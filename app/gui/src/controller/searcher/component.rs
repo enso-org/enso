@@ -142,7 +142,8 @@ impl List {
     ) -> List {
         let mut builder = builder::List::new(suggestion_db.clone_ref());
         builder.extend(suggestion_db.keys());
-        builder.build_with_favorites(favorites)
+        builder.set_favorites(favorites);
+        builder.build()
     }
 
     /// Return the list of top modules, which should be displayed in Component Browser.
@@ -183,7 +184,7 @@ impl List {
     fn all_groups(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
-        normal.chain(flattened)
+        normal.chain(flattened).chain(self.favorites.iter())
     }
 }
 
@@ -201,7 +202,6 @@ pub(crate) mod tests {
 
     use double_representation::module;
     use engine_protocol::language_server;
-    use std::iter;
 
 
     // === Helpers ===
@@ -282,7 +282,7 @@ pub(crate) mod tests {
         }
         let mut builder = builder::List::new(Rc::new(suggestion_db));
         builder.extend(0..4);
-        let list = builder.build_with_favorites(iter::empty().collect());
+        let list = builder.build();
         let get_entries_ids =
             || list.top_modules()[0].entries.borrow().iter().map(|c| *c.id).collect_vec();
         let count_matches_entries = || {
@@ -326,7 +326,7 @@ pub(crate) mod tests {
         let suggestion_db = mock_suggestion_db(logger);
         let mut builder = builder::List::new(Rc::new(suggestion_db));
         builder.extend(0..11);
-        let list = builder.build_with_favorites(iter::empty().collect());
+        let list = builder.build();
 
         // Verify that we can read all top-level modules from the component list.
         let expected_top_modules_ids = vec![Some(0), Some(1)];

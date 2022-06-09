@@ -67,6 +67,7 @@ pub struct List {
     suggestion_db:  Rc<model::SuggestionDatabase>,
     all_components: Vec<Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
+    favorites:      component::group::List,
 }
 
 impl List {
@@ -75,7 +76,12 @@ impl List {
     /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
     /// method takes ids as argument).
     pub fn new(suggestion_db: Rc<model::SuggestionDatabase>) -> Self {
-        Self { suggestion_db, all_components: default(), module_groups: default() }
+        Self {
+            suggestion_db,
+            all_components: default(),
+            module_groups: default(),
+            favorites: default(),
+        }
     }
 
     /// Extend the list with new entries.
@@ -104,6 +110,17 @@ impl List {
         }
     }
 
+    pub fn set_favorites(&mut self, favorites: component::group::List) {
+        self.favorites = favorites;
+        for group in &*self.favorites {
+            let group_entries = group.entries.borrow();
+            self.all_components.reserve(group_entries.len());
+            for component in &*group_entries {
+                self.all_components.push(component.clone_ref());
+            }
+        }
+    }
+
     fn lookup_module_group(&mut self, module: &module::QualifiedName) -> Option<&mut ModuleGroups> {
         let (module_id, db_entry) = self.suggestion_db.lookup_by_qualified_name(module)?;
 
@@ -127,7 +144,7 @@ impl List {
 
     /// Build the list, sorting all group lists and groups' contents appropriately. Set the
     /// favorites in the list keeping their order as passed.
-    pub fn build_with_favorites(self, favorites: component::group::List) -> component::List {
+    pub fn build(self) -> component::List {
         for group in self.module_groups.values() {
             group.content.update_sorting("");
             if let Some(flattened) = &group.flattened_content {
@@ -140,14 +157,14 @@ impl List {
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
         component::List {
-            all_components: Rc::new(self.all_components),
-            top_modules: top_mdl_bld.build(),
+            all_components:        Rc::new(self.all_components),
+            top_modules:           top_mdl_bld.build(),
             top_modules_flattened: top_mdl_flat_bld.build(),
-            module_groups: Rc::new(
+            module_groups:         Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            filtered: default(),
-            favorites,
+            filtered:              default(),
+            favorites:             self.favorites,
         }
     }
 }
@@ -191,7 +208,7 @@ mod tests {
         let second_part = 3..6;
         builder.extend(first_part);
         builder.extend(second_part);
-        let list = builder.build_with_favorites(std::iter::empty().collect());
+        let list = builder.build();
 
         let top_modules: Vec<ComparableGroupData> =
             list.top_modules.iter().map(Into::into).collect();

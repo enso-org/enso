@@ -1034,7 +1034,8 @@ impl Searcher {
         for response in completion_responses {
             builder.extend(response.results.iter().cloned());
         }
-        builder.build_with_favorites(self.favorites.clone())
+        builder.set_favorites(self.favorites.clone());
+        builder.build()
     }
 
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {
