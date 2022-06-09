@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
 
 import project.Database.Helpers.Fake_Test_Connection
 import Standard.Database.Data.Dialect
@@ -38,7 +39,7 @@ spec =
     Test.group "[Codegen] Basic Select" <|
         Test.specify "should select columns from a table" <|
             t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            t2 = t1.select ["C", "B", "undefined"]
+            t2 = t1.select_columns (By_Name ["C", "B", "undefined"])
             t2.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B" FROM "T1" AS "T1"', []]
 
             foo = t1.at "A" . rename "FOO"
@@ -55,7 +56,7 @@ spec =
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
 
         Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select []
+            empty = t1.select_columns (By_Name [])
             json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
             empty.to_json . should_equal json
             empty.columns.length . should_equal 0

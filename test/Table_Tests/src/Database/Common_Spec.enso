@@ -1,5 +1,8 @@
 from Standard.Base import all
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
+
 from Standard.Database import all
+
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Test
 import project.Database.Helpers.Name_Generator
@@ -46,7 +49,7 @@ spec prefix connection pending=Nothing =
             ix2.name . should_equal 'a'
             ix2.to_vector . should_equal [1, 4]
         Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select []
+            empty = t1.select_columns (By_Name [])
             empty.to_dataframe.columns.length . should_equal 0
             empty.to_dataframe.row_count . should_equal empty.row_count
         Test.specify "should handle bigger result sets" <|
@@ -159,7 +162,7 @@ spec prefix connection pending=Nothing =
             ta_2 = ta.set_index "id"
             tb_2 = tb.set_index "id"
             res = (tc.join ta_2 on="id_a") . join tb_2 on="id_b" left_suffix="_a" right_suffix="_b"
-            sel = res.select ["name_a", "name_b"]
+            sel = res.select_columns (By_Name ["name_a", "name_b"])
             df = sel.to_dataframe . sort by="name_a"
             df . at "name_a" . to_vector . should_equal ["Foo", "Hmm"]
             df . at "name_b" . to_vector . should_equal ["Bar", "Hmm"]
@@ -323,8 +326,8 @@ spec prefix connection pending=Nothing =
         t = t0.set_index 'ix'
         Test.specify "should be accessible by `at` like other columns" <|
             t.at 'ix' . to_vector . should_equal t.index.to_vector
-        Test.specify "should be accessible by `select` like other columns" <|
-            t.select ['ix'] . columns . first . to_vector . should_equal t.index.to_vector
+        Test.specify "should be accessible by `select_columns` like other columns" <|
+            t.select_columns (By_Name ['ix']) . columns . first . to_vector . should_equal t.index.to_vector
         Test.specify "treated as a column indexed by itself should still correctly compute values" <|
             col = t.index+10
             vec = [11, 12, 13]

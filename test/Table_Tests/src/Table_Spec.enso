@@ -507,9 +507,6 @@ spec =
             i = t.index
             c.to_vector . should_equal i.to_vector
 
-        Test.specify "should be accessible by `select` like other columns" <|
-            t.select ['ix'] . columns . first . to_vector . should_equal t.index.to_vector
-
         Test.specify "should be able to be set by column" <|
             with_index = t.set_index c
             with_index.index.to_vector . should_equal c.to_vector

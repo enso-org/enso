@@ -569,19 +569,6 @@ type Table
 
     ## UNSTABLE
 
-       Selects a subset of columns from this table by name.
-
-       Arguments:
-       - columns: The names of the columns to select from the table.
-    select : Vector Text -> Table
-    select columns =
-        candidates = this.internal_columns + this.context.meta_index
-        find_col name = candidates.find (p -> p.name == name)
-        selected_cols = columns.map (find_col >> .catch) . filter (c -> c.is_nothing.not)
-        this.updated_columns selected_cols
-
-    ## UNSTABLE
-
        Efficiently joins two tables based on either the index or a key column.
 
        Arguments:
