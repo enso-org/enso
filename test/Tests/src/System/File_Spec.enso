@@ -157,7 +157,6 @@ spec =
             f.delete
             f.exists.should_be_false
 
-        # TODO add a test for when the write operation fails
         Test.specify "should create a backup when writing a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
@@ -186,6 +185,26 @@ spec =
             written_news.each n->
                 n.read_text . should_equal "new content"
             [f, bak, n0, n1, n2, n4].each .delete
+
+        Test.specify "should correctly handle failure of the write operation when working with the backup" <|
+            f = transient / "work.txt"
+            "OLD".write f on_existing_file=Existing_File_Behavior.Overwrite
+            bak_file = transient / "work.txt.bak"
+            new_file = transient / "work.txt.new"
+            [bak_file, new_file].each .delete_if_exists
+
+            result = Panic.recover Illegal_State_Error <|
+                Existing_File_Behavior.Backup.write f output_stream->
+                    output_stream.write_bytes "foo".utf_8
+                    Panic.throw (Illegal_State_Error "baz")
+                    output_stream.write_bytes "bar".utf_8
+            result.should_fail_with Illegal_State_Error
+            result.catch.message . should_equal "baz"
+            f.read_text . should_equal "OLD"
+            if bak_file.exists then
+                Test.fail "If the operation failed, we shouldn't have even created the backup."
+            if new_file.exists then
+                Test.fail "The temporary file should have been cleaned up."
 
     Test.group "folder operations" <|
         resolve files =
