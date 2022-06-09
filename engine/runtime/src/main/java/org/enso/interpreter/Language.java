@@ -110,12 +110,11 @@ public final class Language extends TruffleLanguage<Context> {
     Context context =
         new Context(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
-    InstrumentInfo idValueListenerInstrument =
-        env.getInstruments().get(IdExecutionService.INSTRUMENT_ID);
-    if (idValueListenerInstrument != null) {
-      idExecutionInstrument =
-          Optional.of(env.lookup(idValueListenerInstrument, IdExecutionService.class));
-    }
+    idExecutionInstrument =
+        Optional.ofNullable(env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
+            .map(
+                idValueListenerInstrument ->
+                    env.lookup(idValueListenerInstrument, IdExecutionService.class));
     env.registerService(
         new ExecutionService(
             context, idExecutionInstrument, notificationHandler, connectedLockManager));
