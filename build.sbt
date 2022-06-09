@@ -1176,9 +1176,6 @@ lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
     (Compile / sourceManaged).value.getAbsolutePath,
     "-Xlint:unchecked",
   ),
-  (Compile / compile) := (Compile / compile)
-    .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-    .value
 )
 
 lazy val `runtime-language-epb` = (project in file("engine/runtime-language-epb"))
