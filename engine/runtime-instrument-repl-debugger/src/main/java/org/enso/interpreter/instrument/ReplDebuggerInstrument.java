@@ -20,7 +20,6 @@ import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -85,7 +84,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   }
 
   /** The actual node that's installed as a probe on any node the instrument was launched for. */
-  public static class ReplExecutionEventNodeImpl extends ExecutionEventNode
+  private static class ReplExecutionEventNodeImpl extends ExecutionEventNode
       implements ReplExecutionEventNode {
     private @Child EvalNode evalNode = EvalNode.buildWithResultScopeCapture();
     private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();

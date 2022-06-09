@@ -263,7 +263,7 @@ lazy val enso = (project in file("."))
     `runtime-instrument-id-execution`,
     `runtime-instrument-repl-debugger`,
     `runtime-instrument-runtime-server`,
-    `runtime-instrument`,
+    `runtime-with-instruments`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
@@ -1325,7 +1325,7 @@ lazy val `runtime-instrument-runtime-server` = (project in file("engine/runtime-
   )
   .dependsOn(runtime)
 
-lazy val `runtime-instrument`  = (project in file("engine/runtime-instrument"))
+lazy val `runtime-with-instruments`  = (project in file("engine/runtime-instrument"))
   .configs(Benchmark)
   .settings(
     inConfig(Compile)(truffleRunOptionsSettings),
@@ -1421,7 +1421,7 @@ lazy val `engine-runner` = project
   )
   .settings(
     assembly := assembly
-      .dependsOn(`runtime-instrument` / assembly)
+      .dependsOn(`runtime-with-instruments` / assembly)
       .value
   )
   .dependsOn(`version-output`)
