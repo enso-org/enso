@@ -350,16 +350,17 @@ fn init(app: &Application) {
 
     let selection_animation = Animation::<Vector2>::new(&network);
     frp::extend! { network
-        selection_position <- multiview.selection_position_target.map(f!([groups, scroll_area]((g,
-            p)) {
-            let group = &groups[usize::from(g)];
-            let group_pos = if let component_group::set::Group::OneColumn(group) = group {
-                scroll_area.position() + scroll_area.content().position() + group.position()
-            } else {
-                group.position()
-            };
-            group_pos.xy() + *p
-        }));
+        selection_position <- multiview.selection_position_target.map(
+            f!([groups, scroll_area]((g, p)) {
+                let group = &groups[usize::from(g)];
+                let group_pos = if let component_group::set::Group::OneColumn(group) = group {
+                    scroll_area.position() + scroll_area.content().position() + group.position()
+                } else {
+                    group.position()
+                };
+                group_pos.xy() + *p
+            })
+        );
         selection_animation.target <+ selection_position;
         eval selection_animation.value ((pos) selection.set_position_xy(*pos));
     }

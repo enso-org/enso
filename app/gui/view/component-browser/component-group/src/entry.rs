@@ -136,7 +136,7 @@ pub struct View {
     label_layer:       Rc<RefCell<WeakLayer>>,
 }
 
-impl list_view::Entry for View {
+impl Entry for View {
     type Model = Model;
     type Params = Params;
 
@@ -148,7 +148,6 @@ impl list_view::Entry for View {
         let logger = Logger::new("component_group::Entry");
         let display_object = display::object::Instance::new(&logger);
         let icon: Rc<RefCell<CurrentIcon>> = default();
-        let selected_icon: Rc<RefCell<CurrentIcon>> = default();
         let label = GlyphHighlightedLabel::new(app, style_prefix, &());
         let selected_label = GlyphHighlightedLabel::new(app, style_prefix, &());
         display_object.add_child(&label);
@@ -178,12 +177,12 @@ impl list_view::Entry for View {
             });
             label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
             selected_label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
-            eval colors.icon_strong ([icon,selected_icon](color)
+            eval colors.icon_strong ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.strong_color.set(color.into());
                 }
             );
-            eval colors.icon_weak ([icon,selected_icon](color)
+            eval colors.icon_weak ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.weak_color.set(color.into());
                 }

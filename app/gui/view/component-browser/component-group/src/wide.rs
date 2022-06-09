@@ -23,7 +23,6 @@ use ensogl::application::shortcut::Shortcut;
 use ensogl::application::Application;
 use ensogl::data::color::Rgba;
 use ensogl::display;
-use ensogl::display::scene::layer::Layer;
 use ensogl_gui_component::component;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;

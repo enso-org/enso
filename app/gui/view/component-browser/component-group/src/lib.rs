@@ -53,15 +53,12 @@
 use crate::prelude::*;
 use ensogl::application::traits::*;
 
-use crate::display::scene::layer;
-
 use enso_frp as frp;
 use ensogl::application::shortcut::Shortcut;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::data::text;
 use ensogl::display;
-use ensogl::display::camera::Camera2d;
 use ensogl::display::scene::layer::Layer;
 use ensogl::Animation;
 use ensogl_gui_component::component;
