@@ -48,7 +48,7 @@ spec =
             f = Enso_Project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            f.write_text "Cup"
+            "Cup".write f
             f.with_input_stream stream->
                 stream.read_byte.should_equal 67
                 stream.read_byte.should_equal 117
