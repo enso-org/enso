@@ -43,9 +43,4 @@ public final class IntegerLiteralNode extends ExpressionNode implements Patchabl
       return null;
     }
   }
-
-  @Override
-  public boolean hasTag(Class<? extends com.oracle.truffle.api.instrumentation.Tag> tag) {
-    return tag == Patchable.Tag.class || super.hasTag(tag);
-  }
 }

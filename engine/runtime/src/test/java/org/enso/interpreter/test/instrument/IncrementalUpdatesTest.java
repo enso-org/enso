@@ -117,13 +117,13 @@ public class IncrementalUpdatesTest {
       import Standard.Base.IO
 
       &$foo$ =
-          x = #${originalText}#
+          x = #{originalText}#
           *x*
       &
       main =
           y = @here.foo@
           %IO.println y%
-        """.replace("${originalText}", originalText),
+        """.replace("{originalText}", originalText),
       "&$#*@%", pos);
 
     Function<Character, UUID> registerRegion = (ch) -> {
@@ -199,8 +199,8 @@ public class IncrementalUpdatesTest {
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     var allNodesAfterException = nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 25, Integer.MAX_VALUE);
-    var intNode = findLiteralNode(truffleNodeType, allNodesAfterException);
-    assertEquals("Check Literal node text in the source", originalText, intNode.getSourceSection().getCharacters().toString());
+    var literalNode = findLiteralNode(truffleNodeType, allNodesAfterException);
+    assertEquals("Check Literal node text in the source", originalText, literalNode.getSourceSection().getCharacters().toString());
 
     context.send(Request(new Runtime$Api$EditFileNotification(
           mainFile,
@@ -220,7 +220,7 @@ public class IncrementalUpdatesTest {
       assertEquals(List.newBuilder().addOne(executionOutput), context.consumeOut());
       nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
 
-      assertEquals("Int node has been updated in the source", newText, intNode.getSourceSection().getCharacters().toString());
+      assertEquals("Literal node has been updated in the source", newText, literalNode.getSourceSection().getCharacters().toString());
     }
   }
 

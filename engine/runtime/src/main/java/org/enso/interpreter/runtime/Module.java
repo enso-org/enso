@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Literal$Number;
+import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
@@ -206,8 +207,10 @@ public class Module implements TruffleObject {
    * Sets new literal sources for the module.
    *
    * @param source the module source.
+   * @param change suggested small change in a single literal
+   * @param edit description of the small edit made
    */
-  public void setLiteralSource(Rope source, IR$Literal$Number change, model.TextEdit edit) {
+  public void setLiteralSource(Rope source, IR.Literal change, model.TextEdit edit) {
     this.isInteractive = true;
     if (this.scope != null && edit != null) {
       if (this.scope.simpleUpdate(edit)) {
@@ -216,7 +219,12 @@ public class Module implements TruffleObject {
           @Override
           public IR.Expression apply(IR.Expression v1) {
             if (v1 == change) {
-              return new IR$Literal$Number(change.base(), edit.text(), change.location(), change.passData(), change.diagnostics());
+              if (change instanceof IR$Literal$Number n) {
+                return new IR$Literal$Number(n.base(), edit.text(), n.location(), n.passData(), n.diagnostics());
+              }
+              if (change instanceof IR$Literal$Text t) {
+                return new IR$Literal$Text(edit.text(), t.location(), t.passData(), t.diagnostics());
+              }
             }
             return v1.mapExpressions(this);
           }

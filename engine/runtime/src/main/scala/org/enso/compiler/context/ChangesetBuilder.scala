@@ -22,7 +22,7 @@ import scala.collection.mutable
 case class Changeset[A](
   source: A,
   ir: IR,
-  simpleChange: (IR.Literal.Number, TextEdit),
+  simpleChange: (IR.Literal, TextEdit),
   invalidated: Set[IR.ExternalId]
 )
 
@@ -45,7 +45,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   @throws[CompilerError]
   def build(edits: Seq[TextEdit]): Changeset[A] = {
 
-    def findSimpleChange(): (IR.Literal.Number, TextEdit) = {
+    def findSimpleChange(): (IR.Literal, TextEdit) = {
       val edit = if (edits.size != 1) {
         if (edits.size != 2) {
           return null
@@ -73,6 +73,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
 
       (literals.head match {
         case node: IR.Literal.Number => return (node, edit)
+        case node: IR.Literal.Text => return (node, edit)
         case _                       => return null
       })
     }

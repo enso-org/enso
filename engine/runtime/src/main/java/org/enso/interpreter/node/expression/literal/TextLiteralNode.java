@@ -4,10 +4,11 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.tag.Patchable;
 
 /** Node representing a constant String value. */
 @NodeInfo(shortName = "StringLiteral", description = "Constant string literal expression")
-public class TextLiteralNode extends ExpressionNode {
+public class TextLiteralNode extends ExpressionNode implements Patchable {
   private final Text value;
 
   private TextLiteralNode(String value) {
@@ -33,5 +34,16 @@ public class TextLiteralNode extends ExpressionNode {
   @Override
   public Text executeGeneric(VirtualFrame frame) {
     return value;
+  }
+
+  @Override
+  public Object parsePatch(String text) {
+    if (text.length() >= 2 && text.charAt(0) == '"' && text.charAt(text.length() - 1) == '"') {
+      String real = text.substring(1, text.length() - 1);
+      if (real.indexOf('"') == -1) {
+        return Text.create(real);
+      }
+    }
+    return null;
   }
 }

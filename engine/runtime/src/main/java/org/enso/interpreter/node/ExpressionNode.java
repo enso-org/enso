@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.UUID;
+import org.enso.interpreter.runtime.tag.Patchable;
 
 /**
  * A base class for all Enso expressions.
@@ -167,6 +168,9 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    */
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
+    if (tag == Patchable.Tag.class && this instanceof Patchable) {
+      return true;
+    }
     return tag == StandardTags.ExpressionTag.class || (tag == IdentifiedTag.class && id != null);
   }
 
