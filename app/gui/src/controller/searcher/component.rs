@@ -272,6 +272,9 @@ pub(crate) mod tests {
 
     // === Filtering Component List ===
 
+    /// Assert IDs of all entries in the group which have their [`Component::match_info`] set to
+    /// [`MatchInfo::Matches`]. Additionally, verify the [`Group::visible`] field is [`true`] iff
+    /// no IDs are expected.
     fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
         let ids_of_matches = group
             .entries
