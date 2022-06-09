@@ -1,10 +1,13 @@
 package org.enso.interpreter.test.instrument;
 
 import com.oracle.truffle.api.nodes.Node;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
+import org.enso.interpreter.node.expression.literal.TextLiteralNode;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
@@ -50,7 +53,7 @@ public class IncrementalUpdatesTest {
 
   @Test
   public void sendUpdatesWhenFunctionBodyIsChanged() {
-    sendUpdatesWhenFunctionBodyIsChanged("5", true);
+    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "5", "5", IntegerLiteralNode.class);
     var m = context.languageContext().findModule(MODULE_NAME).orElse(null);
     assertNotNull("Module found", m);
     var numbers = m.getIr().preorder().filter((v1) -> {
@@ -64,41 +67,78 @@ public class IncrementalUpdatesTest {
 
   @Test
   public void sendUpdatesWhenWhenLineIsChanged() {
-    sendUpdatesWhenFunctionBodyIsChanged("1000", true);
+    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "1000", "1000", IntegerLiteralNode.class);
+  }
+
+  @Test
+  public void sendUpdatesWhenTextIsChanged() {
+    sendUpdatesWhenFunctionBodyIsChanged("\"hi\"", ConstantsGen.TEXT, "hi", "\"text\"", "text", TextLiteralNode.class);
   }
 
   @Test
   public void sendNotANumberChange() {
-    sendUpdatesWhenFunctionBodyIsChanged("x", false);
+    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "x", null, IntegerLiteralNode.class);
     var failed = context.receiveN(1, 10000);
     assertTrue("Execution failed: " + failed, failed.head().payload() instanceof Runtime$Api$ExecutionFailed);
   }
 
-  private void sendUpdatesWhenFunctionBodyIsChanged(String newText, boolean assertExecution) {
+  private static String extractPositions(String code, String chars, Map<Character, int[]> beginAndLength) {
+    for (int at = 0; at < code.length(); ) {
+      char ch = code.charAt(at);
+      if (chars.indexOf(ch) >= 0) {
+        int[] prev = beginAndLength.get(ch);
+        if (prev == null) {
+          beginAndLength.put(ch, new int[] { at, -1 });
+        } else if (prev[1] == -1) {
+          prev[1] = at - prev[0];
+        } else {
+          throw new IllegalStateException();
+        }
+        var before = code.substring(0, at);
+        var after = code.substring(at + 1);
+        code = before + after;
+      } else {
+        at++;
+      }
+    }
+    return code;
+  }
+
+  private void sendUpdatesWhenFunctionBodyIsChanged(
+    String originalText, String exprType, String originalOutput,
+    String newText, String executionOutput, Class<? extends Node> truffleNodeType
+  ) {
     var contextId = UUID.randomUUID();
     var requestId = UUID.randomUUID();
     var metadata = new Metadata();
 
-    // foo definition
-    metadata.addItem(25, 22);
-    // foo name
-    metadata.addItem(25, 3);
-    var fooX = metadata.addItem(39, 1);
-    var fooRes = metadata.addItem(45, 1);
-    var mainFoo = metadata.addItem(63, 8);
-    var mainRes = metadata.addItem(76, 12);
-
-    var code = """
+    var pos = new HashMap<Character,int[]>();
+    var code = extractPositions("""
       import Standard.Base.IO
 
-      foo =
-          x = 4
-          x
-
+      &$foo$ =
+          x = #${originalText}#
+          *x*
+      &
       main =
-          y = here.foo
-          IO.println y
-        """;
+          y = @here.foo@
+          %IO.println y%
+        """.replace("${originalText}", originalText),
+      "&$#*@%", pos);
+
+    Function<Character, UUID> registerRegion = (ch) -> {
+      int[] beginAndLength = pos.get(ch);
+      return metadata.addItem(beginAndLength[0], beginAndLength[1]);
+    };
+    // foo definition
+    registerRegion.apply('&');
+    // foo name
+    registerRegion.apply('$');
+    var fooX = registerRegion.apply('#');
+    var fooRes = registerRegion.apply('*');
+    var mainFoo = registerRegion.apply('@');
+    var mainRes = registerRegion.apply('%');
+
     var contents = metadata.appendToCode(code);
     var mainFile = context.writeMain(contents);
 
@@ -135,11 +175,11 @@ public class IncrementalUpdatesTest {
 
     assertSameElements(context.receiveNIgnoreStdLib(4, 10),
             Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
-            TestMessages.update(contextId, mainFoo, ConstantsGen.INTEGER, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
+            TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
             TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
             context.executionComplete(contextId)
     );
-    assertEquals(List.newBuilder().addOne("4"), context.consumeOut());
+    assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 20, 35);
 
@@ -152,45 +192,43 @@ public class IncrementalUpdatesTest {
     );
     assertSameElements(context.receiveN(4, 10),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
-      TestMessages.update(contextId, fooX, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, fooRes, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, fooX, exprType),
+      TestMessages.update(contextId, fooRes, exprType),
       context.executionComplete(contextId)
     );
-    assertEquals(List.newBuilder().addOne("4"), context.consumeOut());
+    assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     var allNodesAfterException = nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 25, Integer.MAX_VALUE);
-    var intNode = findIntegerLiteralNode(allNodesAfterException);
-    assertEquals("Int node represents 4 in the source", "4", intNode.getSourceSection().getCharacters().toString());
+    var intNode = findLiteralNode(truffleNodeType, allNodesAfterException);
+    assertEquals("Check Literal node text in the source", originalText, intNode.getSourceSection().getCharacters().toString());
 
-    context.send(
-      Request(
-        new Runtime$Api$EditFileNotification(
+    context.send(Request(new Runtime$Api$EditFileNotification(
           mainFile,
           makeSeq(
               new model.TextEdit(
-              new model.Range(new model.Position(3, 8), new model.Position(3, 9)),
+              new model.Range(new model.Position(3, 8), new model.Position(3, 8 + originalText.length())),
               newText
             )
           )
         )
       )
     );
-    if (assertExecution) {
+    if (executionOutput != null) {
       assertSameElements(context.receiveN(1, 10000),
         context.executionComplete(contextId)
       );
-      assertEquals(List.newBuilder().addOne(newText), context.consumeOut());
+      assertEquals(List.newBuilder().addOne(executionOutput), context.consumeOut());
       nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
 
       assertEquals("Int node has been updated in the source", newText, intNode.getSourceSection().getCharacters().toString());
     }
   }
 
-  private IntegerLiteralNode findIntegerLiteralNode(Map<Class, java.util.List<Node>> nodes) {
-      var intNodes = nodes.get(IntegerLiteralNode.class);
+  private <T extends Node> T findLiteralNode(Class<T> type, Map<Class, java.util.List<Node>> nodes) {
+      var intNodes = nodes.get(type);
       assertNotNull("Found IntegerLiteralNode in " + nodes, intNodes);
       assertEquals("Expecting one node: " + intNodes, 1, intNodes.size());
-      return (IntegerLiteralNode) intNodes.get(0);
+      return type.cast(intNodes.get(0));
   }
 
   private static void assertSameElements(List<Runtime$Api$Response> actual, Runtime$Api$Response... seq) {
