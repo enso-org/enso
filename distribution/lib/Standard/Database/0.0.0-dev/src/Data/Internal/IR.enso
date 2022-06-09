@@ -277,6 +277,8 @@ type Join_Kind
        in the query can be used to filter the results.
     type Join_Cross
 
+## PRIVATE
+type Order_Column (column : Internal_Column) (direction : Sort_Direction)
 
 ## PRIVATE
 type Order_Descriptor (expression : Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)

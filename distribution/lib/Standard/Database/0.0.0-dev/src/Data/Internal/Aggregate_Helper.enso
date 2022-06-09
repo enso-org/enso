@@ -39,14 +39,14 @@ make_expression aggregate =
         First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error "`First` aggregation requires at least one `order_by` column.")
             True ->
-                order_bys = order_by.columns.map c-> IR.Order_Descriptor c.column.expression c.direction
+                order_bys = order_by.columns.map c-> IR.Order_Column c.column.as_internal c.direction
                 case ignore_nothing of
                     False -> IR.Operation "FIRST" [c.expression]+order_bys
                     True -> IR.Operation "FIRST_NOT_NULL" [c.expression]+order_bys
         Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error "`Last` aggregation requires at least one `order_by` column.")
             True ->
-                order_bys = order_by.columns.map c-> IR.Order_Descriptor c.column.expression c.direction
+                order_bys = order_by.columns.map c-> IR.Order_Column c.column.as_internal c.direction
                 case ignore_nothing of
                     False -> IR.Operation "LAST" [c.expression]+order_bys
                     True -> IR.Operation "LAST_NOT_NULL" [c.expression]+order_bys

@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Internal.IR
@@ -190,8 +191,9 @@ generate_expression dialect expr = case expr of
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
-    IR.Order_Descriptor col_expr direction _ _ ->
-        Pair (here.generate_expression dialect col_expr) direction
+    IR.Order_Column column direction ->
+        prepared = dialect.prepare_order_descriptor column direction Text_Ordering
+        here.generate_order dialect prepared
 
 ## PRIVATE
 

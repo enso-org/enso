@@ -106,6 +106,9 @@ default_aggregate_column_name aggregate_column =
    indices or column references potentially from a different table) are
    replaced with column references from the provided table.
 
+   Sort_Column_Selectors are resolved to Sort_Column_Select.By_Column with the
+   matched columns coming from the provided table.
+
    This preprocess step is required by some helper function, to avoid having
    to pass the table reference and resolve the column descriptors all the
    time.
