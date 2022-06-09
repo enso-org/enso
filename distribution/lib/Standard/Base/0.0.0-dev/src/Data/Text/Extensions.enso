@@ -14,6 +14,7 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
+import Standard.Base.System.File.Existing_File_Behavior
 
 export Standard.Base.Data.Text.Matching_Mode
 export Standard.Base.Data.Text.Case
@@ -1512,7 +1513,7 @@ Text.location_of_all term="" matcher=Text_Matcher = case matcher of
    If another error occurs, such as access denied, an `Io_Error` is raised.
    Otherwise, the file is created with the encoded text written to it.
 Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
-Text.write path encoding=Encodings.utf_8 on_existing_file=Backup on_problems=Report_Warning =
+Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
     bytes = this.bytes encoding on_problems
     file = File.new path
     on_existing_file.write file stream->

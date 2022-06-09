@@ -4,6 +4,7 @@ import com.oracle.truffle.api.TruffleFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.CopyOption;
 import java.nio.file.OpenOption;
 
 /**
@@ -87,6 +88,10 @@ public class EnsoFile {
 
   public void delete() throws IOException {
     truffleFile.delete();
+  }
+
+  public void move(EnsoFile target, CopyOption... options) throws IOException {
+    truffleFile.move(target.truffleFile, options);
   }
 
   public boolean startsWith(EnsoFile parent) {

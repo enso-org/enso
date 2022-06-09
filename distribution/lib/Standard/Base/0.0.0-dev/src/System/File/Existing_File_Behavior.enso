@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+import Standard.Base.System.File.Option
+from Standard.Base.System.File import File_Already_Exists_Error
+
 ## Specifies the behavior of a write operation when the destination file
    already exists.
 type Existing_File_Behavior
@@ -49,7 +52,7 @@ type Existing_File_Behavior
                     handle_existing_file _ = go i+1
                     Panic.catch File_Already_Exists_Error handler=handle_existing_file <|
                         new_file.with_output_stream [Option.Write, Option.Create_New] action
-                        File.move file bak_file
-                        File.move new_file file
+                        file.move_to bak_file
+                        new_file.move_to file
                 go 0
 

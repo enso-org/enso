@@ -16,8 +16,7 @@ polyglot java import java.nio.file.NoSuchFileException
 polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
-polyglot java import java.nio.file.Files
-polyglot java import java.nio.file.CopyOption
+polyglot java import java.nio.file.StandardCopyOption
 
 ## ALIAS New File
 
@@ -570,6 +569,18 @@ type File
     delete =
         here.handle_java_exceptions this this.prim_file.delete
 
+    ## Moves the file to the specified destination.
+
+       Arguments:
+       - destination: the destination to move the file to.
+       - replace_existing: specifies if the operation should proceed if the
+         destination file already exists. Defaults to `True`.
+    move_to : File -> Boolean -> Nothing ! File_Error
+    move_to destination replace_existing=True =
+        here.handle_java_exceptions this <| case replace_existing of
+            True -> this.prim_file.move destination.prim_file StandardCopyOption.REPLACE_EXISTING
+            False -> this.prim_file.move destination.prim_file
+
     ## Deletes the file if it exists on disk.
 
        If the file is a directory, it must be empty, otherwise a `Panic` will
@@ -983,10 +994,3 @@ get_file path = @Builtin_Method "File.get_file"
    Gets the textual path to the user's system-defined home directory.
 user_home : Text
 user_home = @Builtin_Method "File.user_home"
-
-## Moves a file from source to the destination.
-
-   If the destination already exists, it is overwritten with the new contents.
-move : File -> File -> Nothing
-move source destination =
-    Files.move source.prim_file.toPath destination.prim_file.toPath CopyOption.REPLACE_EXISTING
