@@ -14,16 +14,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import static org.junit.Assert.fail;
 
-/**
- * Testing instrument to control newly created nodes.
- */
+/** Testing instrument to control newly created nodes. */
 @TruffleInstrument.Registration(
     id = NodeCountingTestInstrument.INSTRUMENT_ID,
     services = NodeCountingTestInstrument.class)
 public class NodeCountingTestInstrument extends TruffleInstrument {
   public static final String INSTRUMENT_ID = "node-count-test";
-  private Map<Node,Node> all = new ConcurrentHashMap<>();
-  private Map<Class,List<Node>> counter = new ConcurrentHashMap<>();
+  private Map<Node, Node> all = new ConcurrentHashMap<>();
+  private Map<Class, List<Node>> counter = new ConcurrentHashMap<>();
   private Env env;
 
   @Override
@@ -33,22 +31,28 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
   }
 
   public void enable() {
-    this.env.getInstrumenter().attachExecutionEventFactory(SourceSectionFilter.ANY, new CountingFactory());
+    this.env
+        .getInstrumenter()
+        .attachExecutionEventFactory(SourceSectionFilter.ANY, new CountingFactory());
   }
 
   public Map<Class, List<Node>> assertNewNodes(String msg, int min, int max) {
     Map<Class, List<Node>> prev = counter;
-    long value  = prev.values().stream().mapToInt(List::size).sum();
+    long value = prev.values().stream().mapToInt(List::size).sum();
 
-    Function<String, String> dump = (txt) -> {
-      var sb = new StringBuilder(txt);
-      prev.values().stream().forEach((t) -> {
-        t.forEach((n) -> {
-          dumpNode("", n, sb);
-        });
-      });
-      return sb.toString();
-    };
+    Function<String, String> dump =
+        (txt) -> {
+          var sb = new StringBuilder(txt);
+          prev.values().stream()
+              .forEach(
+                  (t) -> {
+                    t.forEach(
+                        (n) -> {
+                          dumpNode("", n, sb);
+                        });
+                  });
+          return sb.toString();
+        };
 
     if (value < min) {
       fail(dump.apply(msg + ". Minimal size should be " + min + ", but was: " + value + " in"));
