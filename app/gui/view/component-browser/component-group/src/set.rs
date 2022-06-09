@@ -32,6 +32,7 @@ pub enum Group {
 }
 
 impl Group {
+    /// Focus group.
     pub fn focus(&self) {
         match self {
             Group::OneColumn(group) => group.focus(),
@@ -39,6 +40,7 @@ impl Group {
         }
     }
 
+    /// Defocus group.
     pub fn defocus(&self) {
         match self {
             Group::OneColumn(group) => group.defocus(),
@@ -46,6 +48,7 @@ impl Group {
         }
     }
 
+    /// An FRP stream of `is_mouse_over` events.
     pub fn is_mouse_over(&self) -> &frp::Sampler<bool> {
         match self {
             Group::OneColumn(group) => &group.is_mouse_over,
@@ -53,6 +56,7 @@ impl Group {
         }
     }
 
+    /// Position of the display object.
     pub fn position(&self) -> Vector3 {
         match self {
             Group::OneColumn(group) => group.position(),

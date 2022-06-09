@@ -15,6 +15,25 @@
 //! After that the shadow is unchanged. When the header approaches the bottom of the component group
 //! we gradually reduce the size of the shadow so that it will never be rendered outside the
 //! component group boundaries. See `Header Backgound` section in the [`Model::resize`] method.
+//!
+//! # Selection
+//!
+//! The selection box used to highlight "selected" entries is implemented in a quite tricky way.
+//! We want to render the selection box above the background of the component group, but below
+//! any text - so that text color isn't blending with the selection box's color. However, a
+//! component group uses 4 different [scene layers][Layer] to render its header correctly, and we
+//! want selection be above the header background and below the text entries at the same time, which
+//! is not possible.
+//!
+//! So instead we duplicate component group entries in a special `selection` scene layer (or
+//! rather, in a multiple scene layers to ensure render ordering) and use [layers masking][mask]
+//! to cut off everything except the selection shape. We duplicate the following:
+//! - Entry text and icon (see [entry][] module).
+//! - A background of the component group [selection_background][].
+//! - (for component groups with header) A background of the header [selection_header_background][].
+//! - (for component groups with header) Header text.
+//!
+//! [mask]: ensogl::display::scene::layer::Layer#masking-layers-with-arbitrary-shapes
 
 #![recursion_limit = "512"]
 // === Features ===
@@ -91,6 +110,40 @@ const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 // === Shapes Definitions ===
 // ==========================
 
+// === Selection ===
+
+/// A shape of selection box. It is used as a mask to show only specific parts of the selection
+/// layers. See module-level documentation.
+pub mod selection_box {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        pointer_events = false;
+        (style:Style) {
+            let width: Var<Pixels> = "input_size.x".into();
+            let height = list_view::entry::HEIGHT.px();
+            let corners_radius = style.get_number(theme::selection::corners_radius);
+            let padding = style.get_number(theme::selection::padding);
+            let shape = Rect((width - padding.px(), height)).corners_radius(corners_radius.px());
+            shape.into()
+        }
+    }
+}
+
+/// A background of the selection box, basically specifies the color of the selection. See
+/// module-level documentation.
+pub mod selection_background {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        pointer_events = false;
+        (color:Vector4) {
+            let color = Var::<color::Rgba>::from(color);
+            Plane().fill(color).into()
+        }
+    }
+}
+
 
 // === Background ===
 
@@ -108,17 +161,6 @@ pub mod background {
     }
 }
 
-pub mod selection_background {
-    use super::*;
-
-    ensogl::define_shape_system! {
-        pointer_events = false;
-        (color:Vector4) {
-            let color = Var::<color::Rgba>::from(color);
-            Plane().fill(color).into()
-        }
-    }
-}
 
 
 // === Header Background ===
@@ -152,6 +194,7 @@ pub mod header_background {
     }
 }
 
+/// A background of the "selected" header. See module-level documentation.
 pub mod selection_header_background {
     use super::*;
 
@@ -162,21 +205,6 @@ pub mod selection_header_background {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
             Rect((width.clone(), height.clone())).fill(color).into()
-        }
-    }
-}
-
-pub mod selection_box {
-    use super::*;
-    ensogl::define_shape_system! {
-        pointer_events = false;
-        (style:Style) {
-            let width: Var<Pixels> = "input_size.x".into();
-            let height = list_view::entry::HEIGHT.px();
-            let corners_radius = style.get_number(theme::selection::corners_radius);
-            let padding = style.get_number(theme::selection::padding);
-            let shape = Rect((width - padding.px(), height)).corners_radius(corners_radius.px());
-            shape.into()
         }
     }
 }
@@ -488,67 +516,61 @@ impl component::Frp<Model> for Frp {
 
 /// A set of scene layers shared by every component group.
 ///
-/// A component group consists of a several shapes with a strict rendering order. The order of the
-/// fields of this struct represents the rendering order of layers, with `background` being the
-/// bottom-most and `header_text` being the top-most.
+/// Layers are duplicated in order to implement selection box. See module-level documentation.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Layers {
-    normal:   LayersInner,
-    selected: LayersInner,
+    normal:    LayersInner,
+    selection: LayersInner,
 }
 
 impl Layers {
     /// Constructor.
     pub fn new(
         logger: &Logger,
-        normal_parent_layer: &layer::Layer,
-        selected_parent_layer: &layer::Layer,
+        normal_parent_layer: &Layer,
+        selected_parent_layer: &Layer,
     ) -> Self {
         let normal = LayersInner::new(logger, normal_parent_layer);
-        let camera = selected_parent_layer.camera();
-        let background = selected_parent_layer.clone_ref();
-        let text = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
-        let header = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
-        let header_text = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
+        let selected = LayersInner::new(logger, selected_parent_layer);
 
-        background.add_sublayer(&text);
-        background.add_sublayer(&header);
-        header.add_sublayer(&header_text);
-        let selected = LayersInner { background, text, header, header_text };
-
-        Self { normal, selected }
+        Self { normal, selection: selected }
     }
 }
 
+/// A set of scene layers shared by every component group.
+///
+/// A component group consists of a several shapes with a strict rendering order. The order of the
+/// fields of this struct represents the rendering order of layers, with `background` being the
+/// bottom-most and `header_text` being the top-most.
 #[derive(Debug, Clone, CloneRef)]
 struct LayersInner {
-    background:  layer::Layer,
-    text:        layer::Layer,
-    header:      layer::Layer,
-    header_text: layer::Layer,
+    background:  Layer,
+    text:        Layer,
+    header:      Layer,
+    header_text: Layer,
 }
 
 impl LayersInner {
     /// Constructor.
     ///
     /// Layers will be attached to a `parent_layer` as
-    /// sublayers. TODO: say about camera.
-    pub fn new(logger: &Logger, parent_layer: &layer::Layer) -> Self {
+    /// sublayers.
+    pub fn new(logger: &Logger, parent_layer: &Layer) -> Self {
         let camera = parent_layer.camera();
-        let background = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
-        let text = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
-        let header = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
-        let header_text = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
+        let background = Layer::new_with_cam(logger.clone_ref(), &camera);
+        let text = Layer::new_with_cam(logger.clone_ref(), &camera);
+        let header = Layer::new_with_cam(logger.clone_ref(), &camera);
+        let header_text = Layer::new_with_cam(logger.clone_ref(), &camera);
 
         background.add_sublayer(&text);
         background.add_sublayer(&header);
         header.add_sublayer(&header_text);
-
         parent_layer.add_sublayer(&background);
 
         Self { background, header, text, header_text }
     }
 }
+
 
 
 // =============
@@ -559,15 +581,15 @@ impl LayersInner {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object: display::object::Instance,
+    entries: list_view::ListView<Entry>,
     header: text::Area,
-    selected_header: text::Area,
     header_background: header_background::View,
-    selection_header_background: selection_header_background::View,
     header_text: Rc<RefCell<String>>,
     header_overlay: header_overlay::View,
     background: background::View,
+    selected_header: text::Area,
+    selection_header_background: selection_header_background::View,
     selection_background: selection_background::View,
-    entries: list_view::ListView<Entry>,
 }
 
 impl display::Object for Model {
@@ -625,20 +647,20 @@ impl Model {
     /// Assign a set of layers to render the component group in. Must be called after constructing
     /// the [`View`].
     pub fn set_layers(&self, layers: &Layers) {
-        // normal:
+        // Set normal layers.
         layers.normal.background.add_exclusive(&self.background);
         layers.normal.header_text.add_exclusive(&self.header_overlay);
         layers.normal.background.add_exclusive(&self.entries);
         self.entries.set_label_layer(&layers.normal.text);
         layers.normal.header.add_exclusive(&self.header_background);
         self.header.add_to_scene_layer(&layers.normal.header_text);
-        // selected:
+        // Set selected layers.
         let mut params = self.entries.entry_params();
-        params.layer = Rc::new(Some(layers.selected.text.downgrade()));
+        params.layer = Rc::new(Some(layers.selection.text.downgrade()));
         self.entries.set_entry_params_and_recreate_entries(params);
-        layers.selected.background.add_exclusive(&self.selection_background);
-        layers.selected.header.add_exclusive(&self.selection_header_background);
-        self.selected_header.add_to_scene_layer(&layers.selected.header_text);
+        layers.selection.background.add_exclusive(&self.selection_background);
+        layers.selection.header.add_exclusive(&self.selection_header_background);
+        self.selected_header.add_to_scene_layer(&layers.selection.header_text);
     }
 
     fn resize(
@@ -724,11 +746,10 @@ impl Model {
         if is_header_selected {
             Vector2(0.0, size.y / 2.0 - list_view::entry::HEIGHT / 2.0 - header_pos)
         } else {
-            let sel_y = entries_selection_position
-                .y
-                .min(size.y / 2.0 - list_view::entry::HEIGHT - header_pos);
-            let selection_pos =
-                self.entries.position().xy() + Vector2(entries_selection_position.x, sel_y);
+            let max_selection_pos_y = size.y / 2.0 - list_view::entry::HEIGHT - header_pos;
+            let selection_pos_y = entries_selection_position.y.min(max_selection_pos_y);
+            let selection_pos = Vector2(entries_selection_position.x, selection_pos_y);
+            let selection_pos = self.entries.position().xy() + selection_pos;
             selection_pos
         }
     }

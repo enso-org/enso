@@ -378,7 +378,6 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         display_object.add_child(&background);
         let selection_background = selection_background::View::new(&logger);
         display_object.add_child(&selection_background);
-        app.display.default_scene.layers.selection.add_exclusive(&selection_background);
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
         let columns = Rc::new(columns);
         for column in columns.iter() {
@@ -395,10 +394,11 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
 }
 
 impl<const COLUMNS: usize> Model<COLUMNS> {
-    /// TODO: docs
+    /// Assign a set of layers to render the component group in. Must be called after constructing
+    /// the [`View`].
     pub fn set_layers(&self, layers: &crate::Layers) {
-        layers.selected.background.add_exclusive(&self.selection_background);
-        let layer = &layers.selected.text;
+        layers.selection.background.add_exclusive(&self.selection_background);
+        let layer = &layers.selection.text;
         for column in self.columns.iter() {
             let mut params = column.list_view.entry_params();
             params.layer = Rc::new(Some(layer.downgrade()));
