@@ -329,6 +329,7 @@ pub(crate) mod tests {
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
 
         list.update_filtering("");
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 1]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
     }
 

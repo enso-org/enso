@@ -109,9 +109,8 @@ impl Group {
             // cannot return reference nor [`Ref`], and we don't want to copy anything here.
             if pattern.as_ref().is_empty() {
                 entries.sort_by(|a, b| {
-                    a.can_be_entered()
-                        .cmp(&b.can_be_entered())
-                        .then_with(|| a.label().cmp(b.label()))
+                    let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+                    cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
                 });
             } else {
                 entries
