@@ -1347,9 +1347,7 @@ pub mod test {
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
-            let module_name =
-                QualifiedName::from_segments(data.graph.graph.project_name.clone(), &[MODULE_NAME])
-                    .unwrap();
+            let module_name = crate::test::mock::data::module_qualified_name();
             let database = suggestion_database_with_mock_entries(&logger, module_name, scope);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
