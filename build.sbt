@@ -1170,10 +1170,6 @@ lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
     "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
     "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
   ),
-  // Note [Unmanaged Classpath]
-  Compile / compile / compileInputs := (Compile / compile / compileInputs)
-    .dependsOn(CopyTruffleJAR.preCompileTask)
-    .value,
   (Compile / javacOptions) ++= Seq(
     "-s",
     (Compile / sourceManaged).value.getAbsolutePath,
