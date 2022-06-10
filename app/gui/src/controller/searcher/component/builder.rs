@@ -115,11 +115,7 @@ impl List {
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
         for group in &*self.favorites {
-            let group_entries = group.entries.borrow();
-            self.all_components.reserve(group_entries.len());
-            for component in &*group_entries {
-                self.all_components.push(component.clone_ref());
-            }
+            self.all_components.extend(group.entries.borrow().iter().cloned());
         }
     }
 
