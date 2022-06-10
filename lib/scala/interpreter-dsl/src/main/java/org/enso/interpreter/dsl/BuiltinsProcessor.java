@@ -108,7 +108,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
   }
 
   /**
-   * Generate m @BuiltinMethod node class
+   * Generate a @BuiltinMethod node class
    *
    * @param element method annotated with @Builtin.Method which implementation and signature will be
    *     used to generate the target node class
