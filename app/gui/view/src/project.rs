@@ -203,6 +203,22 @@ impl SearcherVariant {
             SearcherVariant::OldNodeSearcher(view) => view.hide(),
         }
     }
+
+    fn anchor_at(&self, anchor: Vector2<f32>, size: Vector2<f32>) {
+        match self {
+            SearcherVariant::ComponentBrowser(view) => {
+                let x =
+                    anchor.x - (component_browser::list_panel::WIDTH_INNER / 3.0) + size.x / 2.0;
+                let y = anchor.y + node::HEIGHT / 2.0 + size.y / 2.0;
+                view.set_position_xy(Vector2(x, y));
+            }
+            SearcherVariant::OldNodeSearcher(view) => {
+                let x = anchor.x + size.x / 2.0;
+                let y = anchor.y - node::HEIGHT / 2.0 - size.y / 2.0;
+                view.set_position_xy(Vector2(x, y));
+            }
+        }
+    }
 }
 
 impl display::Object for SearcherVariant {
@@ -305,15 +321,9 @@ impl Model {
         web::document.with_element_by_id_or_warn("root", |root| root.set_class_name(style));
     }
 
-    fn searcher_left_top_position_when_under_node_at(position: Vector2<f32>) -> Vector2<f32> {
-        let x = position.x;
-        let y = position.y - node::HEIGHT / 2.0;
-        Vector2(x, y)
-    }
-
-    fn searcher_left_top_position_when_under_node(&self, node_id: NodeId) -> Vector2<f32> {
+    fn searcher_anchor_next_to_node(&self, node_id: NodeId) -> Vector2<f32> {
         if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
-            Self::searcher_left_top_position_when_under_node_at(node.position().xy())
+            node.position().xy()
         } else {
             error!(self.logger, "Trying to show searcher under nonexisting node");
             default()
@@ -330,7 +340,7 @@ impl Model {
         match searcher_parameters {
             Some(SearcherParams { input, .. }) if !is_searcher_empty => {
                 self.searcher.show();
-                let new_position = self.searcher_left_top_position_when_under_node(input);
+                let new_position = self.searcher_anchor_next_to_node(input);
                 searcher_left_top_position.set_target_value(new_position);
             }
             _ => {
@@ -466,7 +476,7 @@ impl View {
         let graph = &model.graph_editor.frp;
         let project_list = &model.open_dialog.project_list;
         let file_browser = &model.open_dialog.file_browser;
-        let searcher_left_top_position = DEPRECATED_Animation::<Vector2<f32>>::new(network);
+        let searcher_anchor = DEPRECATED_Animation::<Vector2<f32>>::new(network);
         let prompt_visibility = Animation::new(network);
 
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
@@ -516,7 +526,7 @@ impl View {
             // searcher (or rather searcher_cam) by 90 units, so that the node is at x = 100 both
             // in searcher_cam- and in main_cam-space.
             searcher_cam_pos <- all_with3
-                (&main_cam_frp.position, &main_cam_frp.zoom, &searcher_left_top_position.value,
+                (&main_cam_frp.position, &main_cam_frp.zoom, &searcher_anchor.value,
                 |&main_cam_pos, &zoom, &searcher_pos| {
                     let preserve_zoom = (main_cam_pos * zoom).xy();
                     let move_to_edited_node = searcher_pos * (1.0 - zoom);
@@ -524,15 +534,11 @@ impl View {
                 });
             eval searcher_cam_pos ((pos) searcher_cam.set_position_xy(*pos));
 
-            trace searcher_left_top_position.value;
+            trace searcher_anchor.value;
             trace searcher.size;
             trace searcher.is_visible;
-            _eval <- all_with(&searcher_left_top_position.value,&searcher.size,f!([model](lt,size) {
-
-                let x = lt.x + size.x / 2.0;
-                let y = lt.y - size.y / 2.0;
-                DEBUG!("Setting searcher position {x} {y}, which size is {size}");
-                model.searcher.set_position_xy(Vector2(x,y));
+            _eval <- all_with(&searcher_anchor.value,&searcher.size,f!([model](anchor,size) {
+                model.searcher.anchor_at(*anchor, *size)
             }));
 
             eval searcher.is_visible ([model](is_visible) {
@@ -603,20 +609,19 @@ impl View {
 
             visibility_conditions <- all(&frp.searcher,&searcher.is_empty);
             _eval                 <- visibility_conditions.map2(&searcher.is_visible,
-                f!([model,searcher_left_top_position]((searcher,is_searcher_empty),is_visible) {
-                    model.update_searcher_view(*searcher,*is_searcher_empty,&searcher_left_top_position);
+                f!([model,searcher_anchor]((searcher,is_searcher_empty),is_visible) {
+                    model.update_searcher_view(*searcher,*is_searcher_empty,&searcher_anchor);
                     if !is_visible {
                         // Do not animate
-                        searcher_left_top_position.skip();
+                        searcher_anchor.skip();
                     }
                 })
             );
 
             _eval <- graph.output.node_position_set.map2(&frp.searcher,
-                f!([searcher_left_top_position](&(node_id, position), &searcher) {
+                f!([searcher_anchor](&(node_id, position), &searcher) {
                     if searcher.map_or(false, |s| s.input == node_id) {
-                        let new = Model::searcher_left_top_position_when_under_node_at(position);
-                        searcher_left_top_position.set_target_value(new);
+                        searcher_anchor.set_target_value(position);
                     }
                 })
             );
