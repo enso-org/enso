@@ -7,7 +7,8 @@ from Standard.Base.Data.Time.Date as Date_Module import Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Io.File_Format
-import Standard.Table.Io.File
+import Standard.Base.System.File
+import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
@@ -1309,14 +1310,6 @@ type Table
     write_json : File.File -> Nothing
     write_json file = this.to_json.to_text.write file
 
-    ## UNSTABLE
-       DEPRECATED
-    write_old : File.File -> Format.Format -> Nothing
-    write_old file format = case format of
-        Format.Csv header quote sep line max -> this.write_csv file header quote sep line max
-        Format.Xlsx sheet mode header max -> this.write_xlsx file sheet mode header max
-        Format.Json -> this.write_json file
-
     ## This function writes a table from memory into a file.
 
        The specific behavior of the various `File_Format`s is specified below.
@@ -1363,7 +1356,7 @@ type Table
            use the `Text.write` function.
     write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Column_Mapping.By_Name on_problems=Report_Warning =
-        format.write_table (File.new path) on_existing_file column_mapping on_problems
+        format.write_table (File.new path) this on_existing_file column_mapping on_problems
 
 ## UNSTABLE
 

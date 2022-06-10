@@ -49,7 +49,7 @@ type Auto
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
     write_table file table on_existing_file column_mapping on_problems =
         materialised = this.materialise file
-        materialised.write_table file on_existing_file column_mapping on_problems
+        materialised.write_table file table on_existing_file column_mapping on_problems
 
 ## Reads the file to a `Vector` of bytes.
 type Bytes
