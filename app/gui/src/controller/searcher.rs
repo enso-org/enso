@@ -489,8 +489,9 @@ pub struct Searcher {
     this_arg: Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location>,
     project: model::Project,
-    /// A component list builder with favorites already set to
-    /// [`controller::ExecutedGraph::component_groups`].
+    /// A component list builder with favorites prepopulated with
+    /// [`controller::ExecutedGraph::component_groups`]. Stored to reduce the number of
+    /// [`database`] lookups performed when updating [`Data::components`].
     list_builder_with_favorites: Rc<component::builder::List>,
 }
 
