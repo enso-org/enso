@@ -405,7 +405,8 @@ impl component::Frp<Model> for Frp {
 
         // === Colors ===
         let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
-        let params = entry::Params { colors: colors.clone_ref(), layer: default() };
+        let params =
+            entry::Params { colors: colors.clone_ref(), selection_layer: default() };
         model.entries.set_entry_params_and_recreate_entries(params);
 
 
@@ -653,7 +654,7 @@ impl Model {
         self.header.add_to_scene_layer(&layers.normal.header_text);
         // Set selected layers.
         let mut params = self.entries.entry_params();
-        params.layer = Rc::new(Some(layers.selection.text.downgrade()));
+        params.selection_layer = Rc::new(Some(layers.selection.text.downgrade()));
         self.entries.set_entry_params_and_recreate_entries(params);
         layers.selection.background.add_exclusive(&self.selection_background);
         layers.selection.header.add_exclusive(&self.selection_header_background);

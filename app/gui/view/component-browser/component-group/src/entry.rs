@@ -79,8 +79,8 @@ impl From<&str> for Model {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Params {
-    pub colors: Colors,
-    pub layer:  Rc<Option<WeakLayer>>,
+    pub colors:          Colors,
+    pub selection_layer: Rc<Option<WeakLayer>>,
 }
 
 impl Default for Params {
@@ -96,7 +96,7 @@ impl Default for Params {
         }
         let colors =
             Colors { icon_strong, icon_weak, header_text, entry_text, background, selection };
-        Self { colors, layer: default() }
+        Self { colors, selection_layer: default() }
     }
 }
 
@@ -132,7 +132,7 @@ pub struct View {
     icon_weak_color:   frp::Sampler<color::Rgba>,
     label:             GlyphHighlightedLabel,
     selected_label:    GlyphHighlightedLabel,
-    selected_layer:    Rc<Option<WeakLayer>>,
+    selection_layer:   Rc<Option<WeakLayer>>,
     label_layer:       Rc<RefCell<WeakLayer>>,
 }
 
@@ -143,7 +143,7 @@ impl Entry for View {
     fn new(
         app: &Application,
         style_prefix: &style::Path,
-        Params { colors, layer }: &Params,
+        Params { colors, selection_layer }: &Params,
     ) -> Self {
         let logger = Logger::new("component_group::Entry");
         let display_object = display::object::Instance::new(&logger);
@@ -153,8 +153,8 @@ impl Entry for View {
         display_object.add_child(&label);
         display_object.add_child(&selected_label);
 
-        if let Some(selected_layer) = &**layer {
-            if let Some(layer) = selected_layer.upgrade() {
+        if let Some(selection_layer) = &**selection_layer {
+            if let Some(layer) = selection_layer.upgrade() {
                 selected_label.set_label_layer(&layer);
             }
         }
@@ -193,7 +193,7 @@ impl Entry for View {
         init.emit(());
         let icon_strong_color = colors.icon_strong.clone_ref();
         let icon_weak_color = colors.icon_weak.clone_ref();
-        let selected_layer = layer.clone_ref();
+        let selected_layer = selection_layer.clone_ref();
         let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.main.downgrade()));
         Self {
             logger,
@@ -205,7 +205,7 @@ impl Entry for View {
             icon_weak_color,
             label,
             selected_label,
-            selected_layer,
+            selection_layer: selected_layer,
             label_layer,
         }
     }
@@ -226,7 +226,7 @@ impl Entry for View {
             } else {
                 error!(self.logger, "Label layer of the component group entry was dropped.");
             }
-            if let Some(selected_layer) = &*self.selected_layer {
+            if let Some(selected_layer) = &*self.selection_layer {
                 if let Some(selected_layer) = selected_layer.upgrade() {
                     selected_layer.add(&shape);
                 } else {
