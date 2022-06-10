@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.scope;
+package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -9,13 +9,14 @@ import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceFilter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.polyglot.LanguageInfo;
@@ -43,7 +44,37 @@ final class PatchedModuleValues implements ExecutionEventListener {
     values.putAll(collect);
   }
 
-  static void updateFunctionsMap(model.TextEdit edit, Collection<? extends Map<?, Function>> values, Map<Node, Object> nodeValues) {
+  public static PatchedModuleValues simpleUpdate(PatchedModuleValues patchedValues, Module module, model.TextEdit edit) {
+    var scope = module.getScope();
+    var methods = scope.getMethods();
+    var conversions = scope.getConversions();
+    var collect = new HashMap<Node, Object>();
+    PatchedModuleValues.updateFunctionsMap(edit, methods.values(), collect);
+    PatchedModuleValues.updateFunctionsMap(edit, conversions.values(), collect);
+    if (collect.isEmpty()) {
+      return null;
+    }
+    if (patchedValues == null) {
+      var ctx = Context.get(collect.keySet().iterator().next());
+      var instr = ctx.getEnvironment().lookup(Instrumenter.class);
+      patchedValues = new PatchedModuleValues(instr, module);
+    }
+    patchedValues.registerValues(collect);
+    final Source src;
+    try {
+      src = module.getSource();
+    } catch (IOException ex) {
+      throw new IllegalStateException(ex);
+    }
+    int offset =
+        src.getLineStartOffset(edit.range().start().line() + 1) + edit.range().start().character();
+    int removed = edit.range().end().character() - edit.range().start().character();
+    int delta = edit.text().length() - removed;
+    patchedValues.registerDelta(offset, delta);
+    return patchedValues;
+  }
+
+  private static void updateFunctionsMap(model.TextEdit edit, Collection<? extends Map<?, Function>> values, Map<Node, Object> nodeValues) {
     for (Map<?, Function> map : values) {
       for (Function f : map.values()) {
         updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);

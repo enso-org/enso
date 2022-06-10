@@ -1,26 +1,15 @@
 package org.enso.interpreter.runtime.scope;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.instrumentation.Instrumenter;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.Source;
 
-import org.enso.interpreter.runtime.Context;
+import java.util.*;
+
+import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
-import org.enso.text.editing.model;
 
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope implements TruffleObject {
@@ -32,7 +21,6 @@ public class ModuleScope implements TruffleObject {
   private Map<AtomConstructor, Map<AtomConstructor, Function>> conversions = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
   private Set<ModuleScope> exports = new HashSet<>();
-  private PatchedModuleValues patchedValues;
 
   /**
    * Creates a new object of this class.
@@ -306,36 +294,5 @@ public class ModuleScope implements TruffleObject {
     constructors = new HashMap<>();
     conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();
-  }
-
-  public boolean simpleUpdate(model.TextEdit edit) {
-    var collect = new HashMap<Node, Object>();
-    PatchedModuleValues.updateFunctionsMap(edit, methods.values(), collect);
-    PatchedModuleValues.updateFunctionsMap(edit, conversions.values(), collect);
-    if (collect.isEmpty()) {
-      return false;
-    }
-    if (patchedValues == null) {
-      var ctx = Context.get(collect.keySet().iterator().next());
-      var instr = ctx.getEnvironment().lookup(Instrumenter.class);
-      patchedValues = new PatchedModuleValues(instr, module);
-    }
-    patchedValues.registerValues(collect);
-    final Source src;
-    try {
-      src = module.getSource();
-    } catch (IOException ex) {
-      throw new IllegalStateException(ex);
-    }
-    int offset =
-        src.getLineStartOffset(edit.range().start().line() + 1) + edit.range().start().character();
-    int removed = edit.range().end().character() - edit.range().start().character();
-    int delta = edit.text().length() - removed;
-    patchedValues.registerDelta(offset, delta);
-    return true;
-  }
-
-  public int findPatchedDelta(int offset, boolean inclusive) {
-    return patchedValues == null ? 0 : patchedValues.findDelta(offset, inclusive);
   }
 }

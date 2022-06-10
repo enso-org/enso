@@ -12,6 +12,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -85,7 +86,8 @@ public class Module implements TruffleObject {
   }
 
   private ModuleScope scope;
-  private Sources sources;
+  private ModuleSources sources;
+  private PatchedModuleValues patchedValues;
   private Map<Source, Module> allSources = new WeakHashMap<>();
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
@@ -106,7 +108,7 @@ public class Module implements TruffleObject {
    * @param sourceFile the module's source file.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
-    this.sources = Sources.NONE.newWith(sourceFile);
+    this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -124,7 +126,7 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
-    this.sources = Sources.NONE.newWith(Rope.apply(literalSource));
+    this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -142,7 +144,7 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
-    this.sources = Sources.NONE.newWith(literalSource);
+    this.sources = ModuleSources.NONE.newWith(literalSource);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -159,7 +161,7 @@ public class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(QualifiedName name, Package<TruffleFile> pkg) {
-    this.sources = Sources.NONE;
+    this.sources = ModuleSources.NONE;
     this.name = name;
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
@@ -185,7 +187,7 @@ public class Module implements TruffleObject {
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
     this.isInteractive = false;
-    this.sources = Sources.NONE;
+    this.sources = ModuleSources.NONE;
     this.compilationStage = CompilationStage.INITIAL;
   }
 
@@ -213,7 +215,9 @@ public class Module implements TruffleObject {
   public void setLiteralSource(Rope source, IR.Literal change, model.TextEdit edit) {
     this.isInteractive = true;
     if (this.scope != null && edit != null) {
-      if (this.scope.simpleUpdate(edit)) {
+      PatchedModuleValues newValues = PatchedModuleValues.simpleUpdate(patchedValues, this, edit);
+      if (newValues != null) {
+        this.patchedValues = newValues;
         this.sources = this.sources.newWith(source);
         final Function1<IR.Expression, IR.Expression> fn = new Function1<IR.Expression, IR.Expression>() {
           @Override
@@ -244,7 +248,7 @@ public class Module implements TruffleObject {
    * @param file the module source file.
    */
   public void setSourceFile(TruffleFile file) {
-    this.sources = Sources.NONE.newWith(file);
+    this.sources = ModuleSources.NONE.newWith(file);
     this.compilationStage = CompilationStage.INITIAL;
     this.isInteractive = false;
   }
@@ -288,10 +292,30 @@ public class Module implements TruffleObject {
     if (cached != null) {
       return cached;
     }
-    Sources newSources = sources.ensureCachedSource(name);
+    ModuleSources newSources = sources.ensureCachedSource(name);
     sources = newSources;
     allSources.put(newSources.cachedSource(), this);
     return newSources.cachedSource();
+  }
+
+  /**
+   * Constructs source section for current {@link #getSource()} of this module.
+   *
+   * @param sourceStartIndex 0-based offset at the time compilation was performed
+   * @param sourceLength length at the time compilation was performed
+   * @return
+   */
+  public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
+    final Source src = sources.cachedSource();
+    if (src == null) {
+      return null;
+    }
+    allSources.put(src, this);
+    int startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
+    int endDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);
+    final int start = sourceStartIndex + startDelta;
+    final int length = sourceLength + endDelta - startDelta;
+    return src.createSection(start, length);
   }
 
   /**
@@ -609,52 +633,4 @@ public class Module implements TruffleObject {
         MethodNames.Module.EVAL_EXPRESSION);
   }
 
-  private record Sources(
-          TruffleFile sourceFile,
-          Rope ropeHolder,
-          Source cachedSource) {
-
-    static final Sources NONE = new Sources(null, null, null);
-
-    Sources newWith(TruffleFile f) {
-      return new Sources(f, ropeHolder(), cachedSource());
-    }
-
-    Sources newWith(Rope r) {
-      return new Sources(sourceFile(), r, null);
-    }
-
-    Sources ensureCachedSource(QualifiedName name) throws IOException {
-      if (cachedSource != null) {
-        return this;
-      }
-      URI uri;
-      try {
-        uri = new URI("enso://" + Integer.toHexString(System.identityHashCode(this)) + "/" + name);
-      } catch (URISyntaxException ex) {
-        throw new IllegalStateException(ex);
-      }
-      if (literalSource() != null) {
-        var src = Source.newBuilder(LanguageInfo.ID, ropeHolder.characters(), name.toString()).
-          uri(uri).
-          build();
-        return new Sources(sourceFile, ropeHolder, src);
-      } else if (sourceFile != null) {
-        var src = Source.newBuilder(LanguageInfo.ID, sourceFile).
-          uri(uri).
-          build();
-        var lit = Rope.apply(src.getCharacters().toString());
-        return new Sources(sourceFile, lit, src);
-      }
-      throw new IllegalStateException();
-    }
-
-    String getPath() {
-      return sourceFile() == null ? null : sourceFile().getPath();
-    }
-
-    Rope literalSource() {
-      return ropeHolder;
-    }
-  }
 }

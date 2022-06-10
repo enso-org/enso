@@ -4,9 +4,7 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-import java.io.IOException;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.scope.LocalScope;
@@ -98,16 +96,7 @@ public abstract class EnsoRootNode extends RootNode {
   static final int NO_SOURCE = -1;
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
-      final ModuleScope scope = rootNode.getModuleScope();
-      int startDelta = scope.findPatchedDelta(sourceStartIndex, false);
-      int endDelta = scope.findPatchedDelta(sourceStartIndex + sourceLength, true);
-      try {
-        final Source src = scope.getModule().getSource();
-        final int start = sourceStartIndex + startDelta;
-        final int length = sourceLength + endDelta - startDelta;
-        return src.createSection(start, length);
-      } catch (IOException ex) {
-      }
+      return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
     }
     return null;
   }
