@@ -460,9 +460,8 @@ type Column
              column.sort
 
        > Example
-         Sorting `column` in descending order, placing missing values at the
-         top of the resulting column.
-             column.sort order=Sort_Direction.Descending missing_last=False
+         Sorting `column` in descending order.
+             column.sort order=Sort_Direction.Descending
     sort : Sort_Direction -> Column
     sort order=Sort_Direction.Ascending =
         this.to_table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column this order]) . at this.name
@@ -639,4 +638,3 @@ lift_aggregate new_name connection expected_type expr context =
     new_ixes = cols.second
     new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
     Column new_name connection new_col.sql_type new_col.expression new_ctx
-

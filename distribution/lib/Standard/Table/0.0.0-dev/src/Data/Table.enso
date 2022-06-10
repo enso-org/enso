@@ -496,7 +496,6 @@ type Table
         new_names = this.columns.map mapper
         this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems
 
-
     ## ALIAS group, summarize
 
        Aggregates the rows in a table using any `Group_By` entries in columns.
@@ -1327,17 +1326,6 @@ print_table header rows indices_count format_term =
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
-
-## PRIVATE
-
-   Wraps the Enso comparator function so it's usable in Java.
-
-   Arguments:
-   - cmp: The Enso comparator function.
-   - x: The left operand to the comparator.
-   - y: The right operand to the comparator.
-comparator_to_java : (Any -> Any -> Ordering) -> Any -> Any -> Integer
-comparator_to_java cmp x y = cmp x y . to_sign
 
 Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
     java_reader = StringReader.new that
