@@ -15,7 +15,6 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Database.Data.Column as Column_Module import Column, Aggregate_Column_Builder
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Table import No_Such_Column_Error
-from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
@@ -354,7 +353,7 @@ type Table
 
        Since this Table is backed by an SQL database, the Table returned by the
        `limit` method is deterministic only if the Table has been ordered (using
-       the `sort` method).
+       the `order_by` method).
 
        Otherwise, no order is imposed, so the returned Table will include at most
        `max_rows` rows, but there are no guarantees on which rows will be
@@ -363,7 +362,7 @@ type Table
        Table is materialized.
 
        The limit is applied at the very end, so the new Table behaves exactly as
-       the old one, just limitting its results when being materialized.
+       the old one, just limiting its results when being materialized.
        Specifically, applying further filters will still apply to the whole
        result set and the limit will be taken after applying these filters.
 
@@ -371,7 +370,7 @@ type Table
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
-             t1 = table.sort by='A' . limit 5
+             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"]) . limit 5
              t2 = t1.where (t1.at 'A' > 5)
              t2.to_dataframe
     limit : Integer -> Table
@@ -479,6 +478,28 @@ type Table
          descending order.
 
              table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity'])
+
+       > Example
+         Sorting `table` in descending order by the value in column `'Quantity'`.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity' Sort_Direction.Descending])
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` for breaking ties.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating'])
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` in descending order for breaking
+         ties.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new
@@ -494,78 +515,6 @@ type Table
                     this.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
             new_ctx = this.context.add_orders new_order_descriptors
             this.updated_context new_ctx
-
-    ## UNSTABLE
-
-       Sorts the table according to the specified rules.
-
-       Arguments:
-       - by: Specifies the columns used for reordering the table. This
-         argument may be one of:
-           - a text: The text is treated as a column name.
-           - a column: Any column, which is an expression computed from this
-             table.
-           - an order rule: Specifies both the sorting column and additional
-             settings, that will take precedence over the global parameters of
-             this sort operation. The `column` field of the rule may be a text
-             or a column, with the semantics described above.
-           - a vector of any of the above: This will result in a hierarchical
-             sorting, such that the first rule is applied first, the second is
-             used for breaking ties, etc.
-       - order: Specifies the default sort order for this operation. All the
-         rules specified in the `by` argument will default to this setting,
-         unless specified in the rule.
-       - missing_last: Specifies the default placement of missing values when
-         compared to non-missing ones. This setting may be overridden by the
-         particular rules of the `by` argument.  Note thet this argument is
-         independent from `order`, i.e. missing values will always be sorted
-         according to this rule, ignoring the ascending / descending setting.
-
-       > Example
-         Sorting `table` in ascending order by the value in column `'Quantity'`
-             table.sort by='Quantity'
-
-       > Example
-         Sorting `table` in descending order by the value in column `'Quantity'`,
-         placing missing values at the top of the table.
-             table.sort by='Quantity' order=Sort_Direction.Descending missing_last=False
-
-       > Example
-         Sorting `table` in ascending order by the value in column `'Quantity'`,
-         using the value in column `'Rating'` for breaking ties.
-             table.sort by=['Quantity', 'Rating']
-
-       > Example
-         Sorting `table` in ascending order by the value in column `'Quantity'`,
-         using the value in column `'Rating'` in descending order for breaking
-         ties.
-             table.sort by=['Quantity', Order_Rule 'Rating' (order=Sort_Direction.Descending)]
-
-       > Example
-         Sorting `table` in ascending order by the value in an externally
-         computed column, using the value in column `'Rating'` for breaking
-         ties.
-             quality_ratio = table.at 'Rating' / table.at 'Price'
-             table.sort by=[quality_ratio, 'Rating']
-    sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Direction -> Boolean -> Table
-    sort by order=Sort_Direction.Ascending missing_last=True = Panic.recover Any <|
-        missing_to_ir last = case last of
-            True -> IR.Nulls_Last
-            False -> IR.Nulls_First
-        wrap_elem elem =
-            IR.Order_Descriptor (this.resolve elem . expression) order (missing_to_ir missing_last) collation=Nothing
-        to_ir elem = case elem of
-            Text -> wrap_elem elem
-            Column _ _ _ _ _ -> wrap_elem elem
-            Order_Rule elem Nothing my_order my_nulls ->
-                chosen_order = my_order.if_nothing order
-                chosen_nulls = my_nulls.if_nothing missing_last
-                IR.Order_Descriptor (this.resolve elem . expression) chosen_order (missing_to_ir chosen_nulls) collation=Nothing
-            Order_Rule _ _ _ _ ->
-                Error.throw <| Unsupported_Database_Operation_Error "Custom comparators are not supported in Database"
-        elems = Helpers.unify_vector_singleton by . map to_ir
-        new_ctx = this.context.set_orders elems
-        this.updated_context new_ctx
 
     ## UNSTABLE
 

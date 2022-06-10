@@ -9,7 +9,7 @@ import Standard.Test
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
-from Standard.Table import No_Such_Column_Error, Order_Rule
+from Standard.Table import No_Such_Column_Error
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 spec =
@@ -163,7 +163,7 @@ spec =
             r1.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY ("T1"."A" + "T1"."B") ASC NULLS LAST', []]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
-            r1 = t1.sort by=['A', (Order_Rule 'B' order=Sort_Direction.Descending)]
+            r1 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A", Sort_Column.Name "B" Sort_Direction.Descending])
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST, "T1"."B" DESC NULLS LAST', []]
 
         Test.specify 'should return dataflow error when passed a non-existent column' <|
