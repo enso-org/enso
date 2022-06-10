@@ -5,6 +5,9 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::GroupId;
+use crate::SectionId;
+
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -16,6 +19,7 @@ use ensogl_gui_component::component;
 use ensogl_list_view as list_view;
 use ensogl_scroll_area as scroll_area;
 use ide_view_component_group as component_group;
+use ide_view_component_group::set::Group;
 use ide_view_component_group::Layers;
 use ordered_float::OrderedFloat;
 
@@ -65,18 +69,26 @@ impl Model {
         Self { app, display_object, content: default(), size: default() }
     }
 
-    fn update_content_layout(&self, content: &[LabeledAnyModelProvider], style: &Style) -> Vector2 {
+    fn update_content_layout(
+        &self,
+        content: &[LabeledAnyModelProvider],
+        style: &Style,
+        (section, group_wrapper): &(SectionId, component_group::set::Wrapper),
+    ) -> Vector2 {
         const NUMBER_OF_COLUMNS: usize = 3;
         let overall_width = style.content_width - 2.0 * style.content_padding;
         let column_width = (overall_width - 2.0 * style.column_gap) / NUMBER_OF_COLUMNS as f32;
         let content = content
             .iter()
-            .map(|LabeledAnyModelProvider { content, label }| {
+            .enumerate()
+            .map(|(index, LabeledAnyModelProvider { content, label })| {
                 let view = self.app.new_view::<component_group::View>();
                 view.set_width(column_width);
                 view.set_entries(content);
                 view.set_header(label.as_str());
                 self.display_object.add_child(&view);
+                group_wrapper
+                    .add(GroupId { section: *section, index }, Group::OneColumn(view.clone_ref()));
                 Entry { content: view, visible: false }
             })
             .collect_vec();
@@ -189,6 +201,7 @@ impl Style {
 
 define_endpoints_2! {
     Input{
+        set_group_wrapper((SectionId, component_group::set::Wrapper)),
         set_content(Vec<LabeledAnyModelProvider>),
         set_scroll_viewport(scroll_area::Viewport),
     }
@@ -244,12 +257,13 @@ impl component::Frp<Model> for Frp {
         style: &StyleWatchFrp,
     ) {
         let network = &frp_api.network;
+        let input = &frp_api.input;
         let (layout_update, init) = get_layout(network, style);
 
         frp::extend! { network
-            content_update <- all(&frp_api.input.set_content,&layout_update);
-            size_update <- content_update.map(f!(((content,layout))
-                model.update_content_layout(content,layout))
+            content_update <- all3(&input.set_content, &layout_update, &input.set_group_wrapper);
+            size_update <- content_update.map(f!(((content, layout, group_wrapper))
+                model.update_content_layout(content, layout, group_wrapper))
             );
             frp_api.output.size <+ size_update;
 
