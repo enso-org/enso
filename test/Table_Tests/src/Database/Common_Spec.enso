@@ -278,8 +278,6 @@ spec prefix connection pending=Nothing =
         t = t0.set_index 'ix'
         Test.specify "should be accessible by `at` like other columns" <|
             t.at 'ix' . to_vector . should_equal t.index.to_vector
-        Test.specify "should be accessible by `select_columns` like other columns" <|
-            t.select_columns (By_Name ['ix']) . columns . first . to_vector . should_equal t.index.to_vector
         Test.specify "treated as a column indexed by itself should still correctly compute values" <|
             col = t.index+10
             vec = [11, 12, 13]
@@ -315,7 +313,7 @@ spec prefix connection pending=Nothing =
            (InMemory) table are ordered according to a specified column or list
            of columns.
         determinize_by order_column table =
-            table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column order_column])
+            table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name order_column])
 
         Test.specify "should allow counting group sizes and elements" <|
             aggregates = [Count Nothing, Count_Not_Nothing "price", Count_Nothing "price"]
