@@ -31,5 +31,6 @@ Unfortunately, when doing an incremental compilation, only the changed files are
 recompiled and the annotation processor 'forgets' about other instruments that
 haven't been recompiled, leading to runtime errors about missing instruments.
 
-To fix that, individual services have to be placed in separate subprojects depending on
-`runtime` and aggregated under `runtime-with-instruments`. Later the META-INF registrations are concatenated in the final uber jar.
+To fix that, individual services have to be placed in separate subprojects
+depending on `runtime` and aggregated under `runtime-with-instruments`. Later
+the META-INF registrations are concatenated in the final uber jar.
