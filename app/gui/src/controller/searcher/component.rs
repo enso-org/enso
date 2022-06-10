@@ -264,7 +264,7 @@ pub(crate) mod tests {
         let group = crate::model::execution_context::ComponentGroup {
             name:       "Test Group 1".into(),
             color:      None,
-            components: db_entries.into_iter().map(|e| e.qualified_name().into()).collect(),
+            components: db_entries.into_iter().map(|e| e.qualified_name()).collect(),
         };
         vec![group]
     }
