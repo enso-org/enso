@@ -81,20 +81,20 @@ impl Group {
         group: &execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
     ) -> Option<Self> {
-        let lookup_component_by_qualified_name = |qualified_name| {
+        let lookup_component = |qualified_name| {
             let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
             Some(Component::new(id, suggestion))
         };
-        let components_looked_up_in_db =
-            group.components.iter().filter_map(lookup_component_by_qualified_name).collect_vec();
-        let any_components_found_in_db = !components_looked_up_in_db.is_empty();
+        let components = &group.components;
+        let looked_up_components = components.iter().filter_map(lookup_component).collect_vec();
+        let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
                 name:         group.name.clone(),
                 color:        group.color,
                 component_id: None,
                 visible:      Cell::new(true),
-                entries:      RefCell::new(components_looked_up_in_db),
+                entries:      RefCell::new(looked_up_components),
             };
             Group { data: Rc::new(group_data) }
         })
