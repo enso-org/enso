@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
+import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
@@ -929,3 +930,29 @@ get_file path = @Builtin_Method "File.get_file"
    Gets the textual path to the user's system-defined home directory.
 user_home : Text
 user_home = @Builtin_Method "File.user_home"
+
+
+## Writes (or appends) the specified bytes to the specified file.
+   The behavior specified in the `existing_file` parameter will be used if the
+   file exists.
+
+   Arguments:
+   - path: The path to the target file.
+   - encoding: The encoding to use when writing the file.
+   - on_existing_file: Specifies how to proceed if the file already exists.
+   - on_problems: Specifies how to handle any encountered problems.
+
+   If a character cannot be converted to a byte, an `Encoding_Error` is raised.
+   If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
+   a substitute (either � (if Unicode) or ? depending on the encoding).
+   Otherwise, the process is aborted.
+   If the path to the parent location cannot be found or the filename is
+   invalid, a `File_Not_Found` is raised.
+   If another error occurs, such as access denied, an `Io_Error` is raised.
+   Otherwise, the file is created with the encoded text written to it.
+Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
+Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
+    bytes = this.bytes encoding on_problems
+    file = here.new path
+    on_existing_file.write file stream->
+        stream.write_bytes bytes
