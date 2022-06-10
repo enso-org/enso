@@ -1309,44 +1309,16 @@ type Table
     write_json file = this.to_json.to_text.write file
 
     ## UNSTABLE
-
-       Writes the table to a specified file with the given serialization
-       settings.
-
-       Arguments:
-       - file: the file to write to.
-       - format: the format settings to use.
-
-
-       > Example
-         Write a table to a CSV file, without writing the header.
-
-             import Standard.Examples
-             import Table
-
-             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Table.Format.Csv include_header=False)
-
-       > Example
-         Write a table to an XLSX file, without writing the header.
-
-             import Standard.Examples
-             import Table
-
-             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") (Table.Format.Xlsx include_header=False)
-
-       > Example
-         Write a table to a JSON file.
-
-             import Standard.Examples
-             import Table
-
-             example_to_json = Examples.inventory_table.write (Enso_Project.data / "example_output.json") Table.Format.Json
-    write : File.File -> Format.Format -> Nothing
-    write file format = case format of
+       DEPRECATED
+    write_old : File.File -> Format.Format -> Nothing
+    write_old file format = case format of
         Format.Csv header quote sep line max -> this.write_csv file header quote sep line max
         Format.Xlsx sheet mode header max -> this.write_xlsx file sheet mode header max
         Format.Json -> this.write_json file
 
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
+    write path format=File_Format.Auto existing_file=Existing_File_Behavior.Backup column_mapping=Column_Mapping.By_Name on_problems=Report_Warning =
+        ???
 
 ## UNSTABLE
 
