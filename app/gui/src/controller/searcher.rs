@@ -1723,9 +1723,10 @@ pub mod test {
                 data.expect_completion(client, None, None, &[1, 99999, 9]);
                 data.graph.ctx.component_groups = vec![sample_ls_component_group];
             });
-        // Verify the contents of a components list loaded by the Searcher.
+        // Reload the components list in the Searcher.
         searcher.reload_list();
         test.run_until_stalled();
+        // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
         if let [module_group] = &components.top_modules()[..] {
             assert_eq!(module_group.name, entry1.module.to_string());
