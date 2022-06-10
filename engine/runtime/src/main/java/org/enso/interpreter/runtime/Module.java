@@ -15,8 +15,6 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
@@ -97,7 +95,6 @@ public class Module implements TruffleObject {
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
-  private boolean isInteractive;
 
   /**
    * Creates a new module.
@@ -114,7 +111,6 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.isInteractive = false;
   }
 
   /**
@@ -132,7 +128,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.isInteractive = true;
+    this.patchedValues = new PatchedModuleValues(this);
   }
 
   /**
@@ -150,7 +146,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.isInteractive = true;
+    this.patchedValues = new PatchedModuleValues(this);
   }
 
   /**
@@ -169,7 +165,6 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.isInteractive = false;
   }
 
   /**
@@ -186,7 +181,7 @@ public class Module implements TruffleObject {
 
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
-    this.isInteractive = false;
+    this.disposeInteractive();
     this.sources = ModuleSources.NONE;
     this.compilationStage = CompilationStage.INITIAL;
   }
@@ -213,11 +208,11 @@ public class Module implements TruffleObject {
    * @param edit description of the small edit made
    */
   public void setLiteralSource(Rope source, IR.Literal change, model.TextEdit edit) {
-    this.isInteractive = true;
+    if (this.patchedValues == null) {
+      this.patchedValues = new PatchedModuleValues(this);
+    }
     if (this.scope != null && edit != null) {
-      PatchedModuleValues newValues = PatchedModuleValues.simpleUpdate(patchedValues, this, edit);
-      if (newValues != null) {
-        this.patchedValues = newValues;
+      if (patchedValues.simpleUpdate(this, edit)) {
         this.sources = this.sources.newWith(source);
         final Function1<IR.Expression, IR.Expression> fn = new Function1<IR.Expression, IR.Expression>() {
           @Override
@@ -250,7 +245,16 @@ public class Module implements TruffleObject {
   public void setSourceFile(TruffleFile file) {
     this.sources = ModuleSources.NONE.newWith(file);
     this.compilationStage = CompilationStage.INITIAL;
-    this.isInteractive = false;
+    disposeInteractive();
+  }
+
+  /** Cleans supporting data structures for interactive mode.
+   */
+  private void disposeInteractive() {
+      if (this.patchedValues != null) {
+          this.patchedValues.dispose();
+          this.patchedValues = null;
+      }
   }
 
   /** @return the location of this module. */
@@ -324,7 +328,7 @@ public class Module implements TruffleObject {
    * @param s source to check
    * @return {@code true} if the source has been created for this module
    */
-  public boolean isModuleSource(Source s) {
+  final boolean isModuleSource(Source s) {
     return allSources.containsKey(s);
   }
 
@@ -411,7 +415,7 @@ public class Module implements TruffleObject {
 
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
   public boolean isInteractive() {
-    return isInteractive;
+    return patchedValues != null;
   }
 
   /**
@@ -491,7 +495,7 @@ public class Module implements TruffleObject {
         throws ArityException {
       Types.extractArguments(args);
       module.sources = module.sources.newWith((Rope) null);
-      module.isInteractive = false;
+      module.disposeInteractive();
       module.wasLoadedFromCache = false;
       try {
         module.compile(context);

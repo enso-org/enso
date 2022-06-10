@@ -25,26 +25,50 @@ import org.enso.text.editing.model;
 final class PatchedModuleValues implements ExecutionEventListener {
   private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
   private final Map<Node, Object> values = new HashMap<>();
-  private final EventBinding<PatchedModuleValues> binding;
+  private final Module module;
+  private EventBinding<PatchedModuleValues> binding;
 
-  PatchedModuleValues(Instrumenter instr, Module module) {
-    SourceFilter sourceAssociatedWithMyModule = SourceFilter.newBuilder().
-      languageIs(LanguageInfo.ID).
-      sourceIs(module::isModuleSource).
-      build();
-    SourceSectionFilter filter = SourceSectionFilter.newBuilder().sourceFilter(sourceAssociatedWithMyModule).tagIs(Patchable.Tag.class).build();
-    this.binding = instr.attachExecutionEventListener(filter, this);
+  PatchedModuleValues(Module module) {
+    this.module = module;
   }
 
   void dispose() {
-    binding.dispose();
+    if (binding != null) {
+      binding.dispose();
+      binding = null;
+    }
   }
 
-  void registerValues(Map<Node, Object> collect) {
+  private void registerUpdates(
+    Instrumenter instr, Map<Node, Object> collect, int offset, int delta
+  ) {
+    if (binding == null) {
+      SourceFilter sourceAssociatedWithMyModule = SourceFilter.newBuilder().
+              languageIs(LanguageInfo.ID).
+              sourceIs(module::isModuleSource).
+              build();
+      SourceSectionFilter filter = SourceSectionFilter.newBuilder().sourceFilter(sourceAssociatedWithMyModule).tagIs(Patchable.Tag.class).build();
+      this.binding = instr.attachExecutionEventListener(filter, this);
+    }
     values.putAll(collect);
+
+    if (delta == 0) {
+      return;
+    }
+    Map.Entry<Integer, int[]> previous = deltas.floorEntry(offset);
+    if (previous == null) {
+      deltas.put(offset, new int[] { delta });
+    } else if (previous.getKey() == offset) {
+      previous.getValue()[0] += delta;
+    } else {
+      deltas.put(offset, new int[] { previous.getValue()[0] + delta });
+    }
+    for (int[] after : deltas.tailMap(offset, false).values()) {
+      after[0] += delta;
+    }
   }
 
-  public static PatchedModuleValues simpleUpdate(PatchedModuleValues patchedValues, Module module, model.TextEdit edit) {
+  boolean simpleUpdate(Module module, model.TextEdit edit) {
     var scope = module.getScope();
     var methods = scope.getMethods();
     var conversions = scope.getConversions();
@@ -52,14 +76,10 @@ final class PatchedModuleValues implements ExecutionEventListener {
     PatchedModuleValues.updateFunctionsMap(edit, methods.values(), collect);
     PatchedModuleValues.updateFunctionsMap(edit, conversions.values(), collect);
     if (collect.isEmpty()) {
-      return null;
+      return false;
     }
-    if (patchedValues == null) {
-      var ctx = Context.get(collect.keySet().iterator().next());
-      var instr = ctx.getEnvironment().lookup(Instrumenter.class);
-      patchedValues = new PatchedModuleValues(instr, module);
-    }
-    patchedValues.registerValues(collect);
+    var ctx = Context.get(collect.keySet().iterator().next());
+    var instr = ctx.getEnvironment().lookup(Instrumenter.class);
     final Source src;
     try {
       src = module.getSource();
@@ -70,8 +90,9 @@ final class PatchedModuleValues implements ExecutionEventListener {
         src.getLineStartOffset(edit.range().start().line() + 1) + edit.range().start().character();
     int removed = edit.range().end().character() - edit.range().start().character();
     int delta = edit.text().length() - removed;
-    patchedValues.registerDelta(offset, delta);
-    return patchedValues;
+
+    registerUpdates(instr, collect, offset, delta);
+    return true;
   }
 
   private static void updateFunctionsMap(model.TextEdit edit, Collection<? extends Map<?, Function>> values, Map<Node, Object> nodeValues) {
@@ -137,25 +158,8 @@ final class PatchedModuleValues implements ExecutionEventListener {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public Object findPatch(Node n) {
+  private Object findPatch(Node n) {
     return values.get(n);
-  }
-
-  void registerDelta(int offset, int delta) {
-    if (delta == 0) {
-      return;
-    }
-    Map.Entry<Integer, int[]> previous = deltas.floorEntry(offset);
-    if (previous == null) {
-      deltas.put(offset, new int[] { delta });
-    } else if (previous.getKey() == offset) {
-      previous.getValue()[0] += delta;
-    } else {
-      deltas.put(offset, new int[] { previous.getValue()[0] + delta });
-    }
-    for (int[] after : deltas.tailMap(offset, false).values()) {
-      after[0] += delta;
-    }
   }
 
   int findDelta(int offset, boolean inclusive) {
