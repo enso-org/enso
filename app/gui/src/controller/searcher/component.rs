@@ -300,9 +300,9 @@ pub(crate) mod tests {
             suggestion_db.put_entry(id, entry.clone())
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
-        let mut builder = builder::List::new(Rc::new(suggestion_db));
-        builder.extend(0..4);
-        builder.set_favorites(&favorites);
+        let mut builder = builder::List::new();
+        builder.set_favorites(&suggestion_db, &favorites);
+        builder.extend(&suggestion_db, 0..4);
         let list = builder.build();
 
         list.update_filtering("fu");
@@ -334,8 +334,8 @@ pub(crate) mod tests {
         // Create a components list with sample data.
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
-        let mut builder = builder::List::new(Rc::new(suggestion_db));
-        builder.extend(0..11);
+        let mut builder = builder::List::new();
+        builder.extend(&suggestion_db, 0..11);
         let list = builder.build();
 
         // Verify that we can read all top-level modules from the component list.

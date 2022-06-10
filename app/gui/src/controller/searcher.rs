@@ -538,8 +538,9 @@ impl Searcher {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
         });
+        let favorites = graph.component_groups();
         let list_builder_with_favorites =
-            component_list_builder_with_favorites(graph.component_groups(), database.clone_ref());
+            component_list_builder_with_favorites(&database, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -1031,7 +1032,7 @@ impl Searcher {
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
-        builder.extend(entry_ids);
+        builder.extend(&self.database, entry_ids);
         builder.build()
     }
 
@@ -1166,12 +1167,12 @@ impl Searcher {
 
 // === Searcher helpers ===
 
-fn component_list_builder_with_favorites(
-    groups: Rc<Vec<model::execution_context::ComponentGroup>>,
-    db: Rc<model::SuggestionDatabase>,
+fn component_list_builder_with_favorites<'a>(
+    suggestion_db: &model::SuggestionDatabase,
+    groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
 ) -> component::builder::List {
-    let mut builder = component::builder::List::new(db);
-    builder.set_favorites(groups.iter());
+    let mut builder = component::builder::List::new();
+    builder.set_favorites(suggestion_db, groups);
     builder
 }
 
@@ -1358,10 +1359,9 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let list_builder_with_favorites = component_list_builder_with_favorites(
-                graph.component_groups(),
-                database.clone_ref(),
-            );
+            let favorites = graph.component_groups();
+            let list_builder_with_favorites =
+                component_list_builder_with_favorites(&database, &*favorites);
             let searcher = Searcher {
                 graph,
                 logger,
