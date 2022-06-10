@@ -76,7 +76,7 @@ public @interface Builtin {
    * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "length")
    * public class LengthFooNode extends Node {
    *
-   *   long execute(Array _this) {
+   *   long execute(Foo _this) {
    *     return _this.length();
    *   }
    *
