@@ -11,6 +11,7 @@ import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
 import Standard.Table.Internal.Delimited_Reader
+import Standard.Table.Internal.Problem_Builder
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
@@ -572,16 +573,14 @@ type Table
              table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning =
-        columns_for_ordering = Table_Helpers.prepare_order_by this.columns columns on_problems
-        selected_columns = columns_for_ordering.map c->c.column.java_column
-        ordering = columns_for_ordering.map c->
-            case c.associated_selector.direction of
-                Sort_Direction.Ascending -> 1
-                Sort_Direction.Descending -> -1
-        comparator = Comparator.for_text_ordering text_ordering
-        Table <|
-            this.java_table.orderBy selected_columns.to_array ordering.to_array comparator
-
+        problem_builder = Problem_Builder.new
+        columns_for_ordering = Table_Helpers.prepare_order_by this.columns columns problem_builder
+        problem_builder.attach_problems_before on_problems <|
+            selected_columns = columns_for_ordering.map c->c.column.java_column
+            ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
+            comparator = Comparator.for_text_ordering text_ordering
+            java_table = this.java_table.orderBy selected_columns.to_array ordering.to_array comparator
+            Table java_table
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the

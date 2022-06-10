@@ -190,6 +190,7 @@ generate_expression dialect expr = case expr of
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
+    IR.Order_Descriptor _ _ _ _ -> here.generate_order dialect expr
 
 ## PRIVATE
 

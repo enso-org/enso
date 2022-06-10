@@ -137,6 +137,7 @@
 - [Implemented `Table.order_by` for the in-memory table.][3515]
 - [Renamed `File_Format.Text` to `Plain_Text`, updated `File_Format.Delimited`
   API and added builders for customizing less common settings.][3516]
+- [Allow control of sort direction in `First` and `Last` aggregations.][3517]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -215,6 +216,7 @@
 [3514]: https://github.com/enso-org/enso/pull/3514
 [3515]: https://github.com/enso-org/enso/pull/3515
 [3516]: https://github.com/enso-org/enso/pull/3516
+[3517]: https://github.com/enso-org/enso/pull/3517
 
 #### Enso Compiler
 
