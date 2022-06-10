@@ -163,19 +163,14 @@ impl List {
         for component in &*self.all_components {
             component.update_matching_info(pattern)
         }
-        for group in self.all_groups() {
+        let module_groups_contents = self.module_groups.values().map(|mg| &mg.content);
+        for group in self.top_modules_flattened.iter().chain(module_groups_contents) {
             group.update_sorting_and_visibility(pattern);
         }
         for group in self.favorites.iter() {
             group.update_visibility();
         }
         self.filtered.set(!pattern.is_empty());
-    }
-
-    fn all_groups(&self) -> impl Iterator<Item = &Group> {
-        let normal = self.module_groups.values().map(|mg| &mg.content);
-        let flattened = self.top_modules_flattened.iter();
-        normal.chain(flattened)
     }
 }
 
