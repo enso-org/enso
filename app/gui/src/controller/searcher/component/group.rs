@@ -217,7 +217,7 @@ mod tests {
         // Prepare a mock group containing fully qualified component names in non-alphabetical
         // order. Some of the names correspond to entries present in the suggestion database,
         // some do not.
-        let ec_group_with_mixed_components = execution_context::ComponentGroup {
+        let ec_group = execution_context::ComponentGroup {
             name:       "Test Group 1".into(),
             color:      color::Rgb::from_css_hex("#aabbcc"),
             components: vec![
@@ -230,10 +230,7 @@ mod tests {
         };
 
         // Construct a components group with entries looked up in the suggestion database.
-        let group = Group::from_execution_context_component_group(
-            &ec_group_with_mixed_components,
-            &suggestion_db,
-        );
+        let group = Group::from_execution_context_component_group(&ec_group, &suggestion_db);
 
         // Verify the contents of the components group.
         let group = group.unwrap();
@@ -259,15 +256,12 @@ mod tests {
     fn constructing_component_group_from_names_not_found_in_db() {
         let logger = Logger::new("tests::constructing_component_group_from_names_not_found_in_db");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
-        let ec_group_with_component_not_found_in_db = execution_context::ComponentGroup {
+        let ec_group = execution_context::ComponentGroup {
             name:       "Input".into(),
             color:      None,
             components: vec!["NAME.NOT.FOUND.IN.DB".into()],
         };
-        let group = Group::from_execution_context_component_group(
-            &ec_group_with_component_not_found_in_db,
-            &suggestion_db,
-        );
+        let group = Group::from_execution_context_component_group(&ec_group, &suggestion_db);
         assert_matches!(group, None);
     }
 }
