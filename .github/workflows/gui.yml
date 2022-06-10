@@ -60,12 +60,12 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run backend"
+      - run: "./run backend get"
         if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: pwsh
-      - run: "./run backend"
+      - run: "./run backend get"
         if: "runner.os != 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
@@ -107,12 +107,12 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run backend"
+      - run: "./run backend get"
         if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: pwsh
-      - run: "./run backend"
+      - run: "./run backend get"
         if: "runner.os != 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
@@ -156,12 +156,12 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run backend"
+      - run: "./run backend get"
         if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: pwsh
-      - run: "./run backend"
+      - run: "./run backend get"
         if: "runner.os != 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
