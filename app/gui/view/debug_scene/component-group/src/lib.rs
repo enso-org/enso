@@ -41,6 +41,9 @@ use list_view::entry::AnyModelProvider;
 // =================
 
 const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
+/// The selection animation is faster than default one because of the increased
+/// spring force.
+const SELECTION_ANIMATION_SPRING_FORCE: f32 = 30_000.0;
 
 
 
@@ -349,6 +352,7 @@ fn init(app: &Application) {
     }
 
     let selection_animation = Animation::<Vector2>::new(&network);
+    selection_animation.set_spring.emit(SELECTION_ANIMATION_SPRING_FORCE);
     frp::extend! { network
         selection_position <- multiview.selection_position_target.map(
             f!([groups, scroll_area]((g, p)) {
