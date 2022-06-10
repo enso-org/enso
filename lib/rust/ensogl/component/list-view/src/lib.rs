@@ -72,6 +72,19 @@ pub const SHADOW_PX: f32 = 10.0;
 pub const SHAPE_MARGIN: f32 = 5.0;
 
 
+// === Helpers ===
+
+/// Calculate background shape size by subtracting [`SHADOW_PX`] and `SHAPE_MARGIN`.
+fn background_size(
+    sprite_width: Var<Pixels>,
+    sprite_height: Var<Pixels>,
+) -> (Var<Pixels>, Var<Pixels>) {
+    let width = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_MARGIN.px() * 2.0;
+    let height = sprite_height - SHADOW_PX.px() * 2.0 - SHAPE_MARGIN.px() * 2.0;
+    (width, height)
+}
+
+
 // === Selection ===
 
 /// The selection rectangle shape.
@@ -82,6 +95,7 @@ pub mod selection {
     pub const CORNER_RADIUS_PX: f32 = 12.0;
 
     ensogl_core::define_shape_system! {
+        pointer_events = false;
         (style: Style, color: Vector4, corner_radius: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -110,8 +124,7 @@ pub mod background {
         (style: Style, shadow_alpha: f32, corners_radius_px: f32, color: Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
-            let width         = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_MARGIN.px() * 2.0;
-            let height        = sprite_height - SHADOW_PX.px() * 2.0 - SHAPE_MARGIN.px() * 2.0;
+            let (width, height) = background_size(sprite_width, sprite_height);
             let color         = Var::<color::Rgba>::from(color);
             let rect          = Rect((&width,&height)).corners_radius(corners_radius_px);
             let shape         = rect.fill(color);
@@ -119,6 +132,25 @@ pub mod background {
             let shadow = shadow::from_shape_with_alpha(rect.into(), &shadow_alpha, style);
 
             (shadow + shape).into()
+        }
+    }
+}
+
+
+// === Overlay ===
+
+/// A list view overlay used to catch mouse events.
+pub mod overlay {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        above = [background];
+        below = [selection];
+        (style: Style, corners_radius_px: f32) {
+            let sprite_width  : Var<Pixels> = "input_size.x".into();
+            let sprite_height : Var<Pixels> = "input_size.y".into();
+            let (width, height) = background_size(sprite_width, sprite_height);
+            Rect((&width,&height)).corners_radius(corners_radius_px).fill(HOVER_COLOR).into()
         }
     }
 }
@@ -159,6 +191,7 @@ struct Model<E: Entry> {
     entries:        entry::List<E>,
     selection:      selection::View,
     background:     background::View,
+    overlay:        overlay::View,
     scrolled_area:  display::object::Instance,
     display_object: display::object::Instance,
 }
@@ -171,12 +204,14 @@ impl<E: Entry> Model<E> {
         let scrolled_area = display::object::Instance::new(&logger);
         let entries = entry::List::new(&logger, &app);
         let background = background::View::new(&logger);
+        let overlay = overlay::View::new(&logger);
         let selection = selection::View::new(&logger);
         display_object.add_child(&background);
+        display_object.add_child(&overlay);
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        Model { app, entries, selection, background, scrolled_area, display_object }
+        Model { app, entries, selection, background, overlay, scrolled_area, display_object }
     }
 
     fn show_background_shadow(&self, value: bool) {
@@ -200,6 +235,7 @@ impl<E: Entry> Model<E> {
         let entry_width = view.size.x - 2.0 * entry_padding;
         self.entries.set_position_x(-view.size.x / 2.0 + entry_padding);
         self.background.size.set(view.size + padding + shadow + margin);
+        self.overlay.size.set(view.size + padding + shadow + margin);
         self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
         self.entries.update_entries(visible_entries, entry_width, style_prefix);
     }
@@ -230,15 +266,6 @@ impl<E: Entry> Model<E> {
             let last = entry_at_y_saturating(position_y - size.y) + 1;
             first..last
         }
-    }
-
-    /// Check if the `point` is inside component assuming that it have given `size`.
-    fn is_inside(&self, point: Vector2<f32>, size: Vector2<f32>) -> bool {
-        let pos_obj_space =
-            self.app.display.default_scene.screen_to_object_space(&self.background, point);
-        let x_range = (-size.x / 2.0)..=(size.x / 2.0);
-        let y_range = (-size.y / 2.0)..=(size.y / 2.0);
-        x_range.contains(&pos_obj_space.x) && y_range.contains(&pos_obj_space.y)
     }
 
     fn jump_target(&self, current_entry: Option<entry::Id>, jump: isize) -> JumpTarget {
@@ -314,6 +341,7 @@ ensogl_core::define_endpoints! {
     }
 
     Output {
+        is_mouse_over(bool),
         selected_entry(Option<entry::Id>),
         chosen_entry(Option<entry::Id>),
         size(Vector2<f32>),
@@ -466,9 +494,9 @@ where E::Model: Default
 
             // === Mouse Position ===
 
-            mouse_in <- all_with(&mouse.position,&frp.size,f!((pos,size)
-                model.is_inside(*pos,*size)
-            ));
+            let overlay_events = &model.overlay.events;
+            mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
+            frp.source.is_mouse_over <+ mouse_in;
             mouse_moved       <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD );
             mouse_y_in_scroll <- mouse.position.map(f!([model,scene](pos) {
                 scene.screen_to_object_space(&model.scrolled_area,*pos).y
@@ -479,6 +507,8 @@ where E::Model: Default
 
 
             // === Selected Entry ===
+
+            eval frp.source.focused([frp](f) if !f { frp.deselect_entries.emit(()) } );
 
             frp.source.selected_entry <+ frp.select_entry;
             frp.source.selected_entry <+ frp.output.chosen_entry;
@@ -688,7 +718,7 @@ impl<E: Entry> application::View for ListView<E> {
             (Press, "enter", "chose_selected_entry"),
         ])
             .iter()
-            .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
+            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
             .collect()
     }
 }

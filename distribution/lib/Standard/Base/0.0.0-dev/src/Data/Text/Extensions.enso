@@ -614,6 +614,22 @@ Text.compare_to that =
         if comparison_result < 0 then Ordering.Less else
             Ordering.Greater
 
+## Compare two texts to discover their ordering.
+
+   Arguments:
+   - that: The text to order `this` with respect to.
+
+   > Example
+     Checking how "a" orders in relation to "b".
+
+         "a".compare_to_ignore_case "b"
+Text.compare_to_ignore_case : Text -> Locale -> Ordering
+Text.compare_to_ignore_case that locale=Locale.default =
+    comparison_result = Text_Utils.compare_normalized_ignoring_case this that locale.java_locale
+    if comparison_result == 0 then Ordering.Equal else
+        if comparison_result < 0 then Ordering.Less else
+            Ordering.Greater
+
 ## ALIAS Check Emptiness
 
    Check if `this` is empty.
@@ -1065,10 +1081,10 @@ Text.repeat count=1 =
    > Examples
      Various different ways to take part of "Hello World!"
 
-         "Hello World!".take First.new == "H"
+         "Hello World!".take First == "H"
          "Hello World!".take (First 5) == "Hello"
          "Hello World!".take (First 0) == ""
-         "Hello World!".take Last.new == "!"
+         "Hello World!".take Last == "!"
          "Hello World!".take (Last 6) == "World!"
          "Hello World!".take (Before " ") == "Hello"
          "Hello World!".take (Before_Last "o") == "Hello W"
@@ -1105,10 +1121,10 @@ Text.take range =
    > Examples
      Various different ways to take part of "Hello World!"
 
-         "Hello World!".drop First.new == "ello World!"
+         "Hello World!".drop First == "ello World!"
          "Hello World!".drop (First 5) == " World!"
          "Hello World!".drop (First 0) == "Hello World!"
-         "Hello World!".drop Last.new == "Hello World"
+         "Hello World!".drop Last == "Hello World"
          "Hello World!".drop (Last 6) == "Hello "
          "Hello World!".drop (Before " ") == " World!"
          "Hello World!".drop (Before_Last "o") == "orld!"

@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::model::module::QualifiedName as ModuleQualifiedName;
+use crate::model::suggestion_database::entry as suggestion;
 use crate::notification::Publisher;
 
 use engine_protocol::language_server;
@@ -11,6 +12,7 @@ use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::SuggestionId;
 use engine_protocol::language_server::VisualisationConfiguration;
+use ensogl::data::color;
 use flo_stream::Subscriber;
 use mockall::automock;
 use serde::Deserialize;
@@ -268,6 +270,45 @@ pub type Id = language_server::ContextId;
 pub struct AttachedVisualization {
     visualization: Visualization,
     update_sender: futures::channel::mpsc::UnboundedSender<VisualizationUpdateData>,
+}
+
+
+
+// ======================
+// === ComponentGroup ===
+// ======================
+
+/// A named group of components which is defined in a library imported into an execution context.
+///
+/// Components are language elements displayed by the Component Browser. The Component Browser
+/// displays them in groups defined in libraries imported into an execution context.
+/// To learn more about component groups, see the [Component Browser Design
+/// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComponentGroup {
+    pub name:       ImString,
+    /// An optional color to use when displaying the component group.
+    pub color:      Option<color::Rgb>,
+    pub components: Vec<suggestion::QualifiedName>,
+}
+
+impl ComponentGroup {
+    /// Construct from a [`language_server::LibraryComponentGroup`].
+    pub fn from_language_server_protocol_struct(
+        group: language_server::LibraryComponentGroup,
+    ) -> Self {
+        let name = group.name.into();
+        let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
+        let components = group.exports.into_iter().map(|e| e.name.into()).collect();
+        ComponentGroup { name, color, components }
+    }
+}
+
+impl From<language_server::LibraryComponentGroup> for ComponentGroup {
+    fn from(group: language_server::LibraryComponentGroup) -> Self {
+        Self::from_language_server_protocol_struct(group)
+    }
 }
 
 

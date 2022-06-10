@@ -414,6 +414,12 @@ type Locale
         if this.variant.is_nothing.not then b.append ["variant", this.variant]
         Json.from_pairs b.to_vector
 
+    ## Compares two locales for equality.
+    == : Any -> Boolean
+    == other = case other of
+        Locale other_java_locale -> this.java_locale.equals other_java_locale
+        _ -> False
+
 ## PRIVATE
 
    Convert a java locale to an Enso locale.

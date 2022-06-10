@@ -28,6 +28,7 @@ use parser::Parser;
 // ==============
 
 pub mod action;
+pub mod component;
 
 pub use action::Action;
 
@@ -410,6 +411,8 @@ pub struct Data {
     pub input: ParsedInput,
     /// The action list which should be displayed.
     pub actions: Actions,
+    /// The component list which should be displayed.
+    pub components: component::List,
     /// All fragments of input which were added by picking suggestions. If the fragment will be
     /// changed by user, it will be removed from this list.
     pub fragments_added_by_picking: Vec<FragmentAddedByPickingSuggestion>,
@@ -432,7 +435,8 @@ impl Data {
         let edited_node = graph.node(edited_node_id)?;
         let current_module = graph.module.path().qualified_module_name(project_name);
         let input = ParsedInput::new_from_ast(edited_node.info.expression());
-        let suggestions = default();
+        let actions = default();
+        let components = default();
         let intended_method = edited_node.metadata.and_then(|md| md.intended_method);
         let initial_entry = intended_method.and_then(|m| database.lookup_method(m));
         let initial_fragment = initial_entry.and_then(|entry| {
@@ -447,7 +451,7 @@ impl Data {
         });
         let mut fragments_added_by_picking = Vec::<FragmentAddedByPickingSuggestion>::new();
         initial_fragment.for_each(|f| fragments_added_by_picking.push(f));
-        Ok(Data { input, actions: suggestions, fragments_added_by_picking })
+        Ok(Data { input, actions, components, fragments_added_by_picking })
     }
 
     fn find_picked_fragment(
@@ -562,6 +566,11 @@ impl Searcher {
         self.data.borrow().actions.clone_ref()
     }
 
+    /// Get the current component list.
+    pub fn components(&self) -> component::List {
+        self.data.borrow().components.clone_ref()
+    }
+
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
@@ -579,10 +588,14 @@ impl Searcher {
         if expression_changed {
             debug!(self.logger, "Reloading list.");
             self.reload_list();
-        } else if let Actions::Loaded { list } = self.data.borrow().actions.clone_ref() {
-            debug!(self.logger, "Update filtering.");
-            list.update_filtering(&self.data.borrow().input.pattern);
-            executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+        } else {
+            let data = self.data.borrow();
+            data.components.update_filtering(&data.input.pattern);
+            if let Actions::Loaded { list } = &data.actions {
+                debug!(self.logger, "Update filtering.");
+                list.update_filtering(&data.input.pattern);
+                executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+            }
         }
         Ok(())
     }
@@ -930,25 +943,35 @@ impl Searcher {
                 let file = graph.module.path().file_path();
                 ls.completion(file, &position, &this_type, &return_type, &tags)
             });
-            let responses = futures::future::join_all(requests).await;
-            info!(this.logger, "Received suggestions from Language Server.");
-            let new_list = match this.make_action_list(responses, this_type, return_types) {
-                Ok(list) => Actions::Loaded { list: Rc::new(list) },
-                Err(error) => Actions::Error(Rc::new(error)),
-            };
-            this.data.borrow_mut().actions = new_list;
+            let responses: Result<Vec<language_server::response::Completion>, _> =
+                futures::future::join_all(requests).await.into_iter().collect();
+            match responses {
+                Ok(responses) => {
+                    info!(this.logger, "Received suggestions from Language Server.");
+                    let list = this.make_action_list(responses.iter());
+                    let mut data = this.data.borrow_mut();
+                    data.actions = Actions::Loaded { list: Rc::new(list) };
+                    data.components = this.make_component_list(responses.iter());
+                }
+                Err(err) => {
+                    let msg = "Request for completions to the Language Server returned error";
+                    error!(this.logger, "{msg}: {err}");
+                    let mut data = this.data.borrow_mut();
+                    data.actions = Actions::Error(Rc::new(err.into()));
+                    data.components =
+                        component::List::build_list_from_all_db_entries(&this.database);
+                }
+            }
             this.notifier.publish(Notification::NewActionList).await;
         });
     }
 
     /// Process multiple completion responses from the engine into a single list of suggestion.
     #[profile(Debug)]
-    fn make_action_list(
+    fn make_action_list<'a>(
         &self,
-        completion_responses: Vec<json_rpc::Result<language_server::response::Completion>>,
-        _this_type: Option<String>,
-        _return_types: Vec<String>,
-    ) -> FallibleResult<action::List> {
+        completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
+    ) -> action::List {
         let creating_new_node = matches!(self.mode.deref(), Mode::NewNode { .. });
         let should_add_additional_entries = creating_new_node && self.this_arg.is_none();
         let mut actions = action::ListWithSearchResultBuilder::new();
@@ -974,10 +997,9 @@ impl Searcher {
         let libraries_cat =
             libraries_root_cat.add_category("Libraries", libraries_icon.clone_ref());
         if should_add_additional_entries {
-            Self::add_enso_project_entries(&libraries_cat)?;
+            Self::add_enso_project_entries(&libraries_cat);
         }
         for response in completion_responses {
-            let response = response?;
             let entries = response.results.iter().filter_map(|id| {
                 self.database
                     .lookup(*id)
@@ -993,7 +1015,19 @@ impl Searcher {
             libraries_cat.extend(entries);
         }
 
-        Ok(actions.build())
+        actions.build()
+    }
+
+    #[profile(Debug)]
+    fn make_component_list<'a>(
+        &self,
+        completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
+    ) -> component::List {
+        let mut builder = component::builder::List::new(self.database.clone_ref());
+        for response in completion_responses {
+            builder.extend(response.results.iter().cloned());
+        }
+        builder.build()
     }
 
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {
@@ -1085,24 +1119,25 @@ impl Searcher {
     ///
     /// This is a workaround for Engine bug https://github.com/enso-org/enso/issues/1605.
     //TODO[ao] this is a temporary workaround.
-    fn add_enso_project_entries(libraries_cat_builder: &action::CategoryBuilder) -> FallibleResult {
+    fn add_enso_project_entries(libraries_cat_builder: &action::CategoryBuilder) {
+        // We may unwrap here, because the constant is tested to be convertible to
+        // [`QualifiedName`].
+        let module = QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
+        let self_type = tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
         for method in &["data", "root"] {
             let entry = model::suggestion_database::Entry {
                 name:               (*method).to_owned(),
                 kind:               model::suggestion_database::entry::Kind::Method,
-                module:             QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?,
+                module:             module.clone(),
                 arguments:          vec![],
                 return_type:        "Standard.Base.System.File.File".to_owned(),
                 documentation_html: None,
-                self_type:          Some(tp::QualifiedName::from_text(
-                    ENSO_PROJECT_SPECIAL_MODULE,
-                )?),
+                self_type:          Some(self_type.clone()),
                 scope:              model::suggestion_database::entry::Scope::Everywhere,
             };
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);
         }
-        Ok(())
     }
 
     //TODO[ao] The usage of add_hardcoded_entries_to_list is currently commented out. It should be
@@ -1183,6 +1218,7 @@ pub mod test {
 
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::model::module;
     use crate::model::suggestion_database::entry::Argument;
     use crate::model::suggestion_database::entry::Kind;
     use crate::model::suggestion_database::entry::Scope;
@@ -1194,8 +1230,17 @@ pub mod test {
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
     use json_rpc::expect_call;
+    use std::assert_matches::assert_matches;
 
 
+
+    #[test]
+    fn enso_project_special_module_is_convertible_to_qualified_names() {
+        module::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)
+            .expect("ENSO_PROJECT_SPECIAL_MODULE should be convertible to module::QualifiedName.");
+        tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)
+            .expect("ENSO_PROJECT_SPECIAL_MODULE should be convertible to tp::QualifiedName.");
+    }
 
     pub fn completion_response(results: &[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
@@ -1256,6 +1301,9 @@ pub mod test {
         entry2:   Rc<model::suggestion_database::Entry>,
         entry3:   Rc<model::suggestion_database::Entry>,
         entry4:   Rc<model::suggestion_database::Entry>,
+        // The 5th entry is put into database, but not read in any test yet.
+        #[allow(dead_code)]
+        entry5:   Rc<model::suggestion_database::Entry>,
         entry9:   Rc<model::suggestion_database::Entry>,
         entry10:  Rc<model::suggestion_database::Entry>,
     }
@@ -1363,6 +1411,16 @@ pub mod test {
                 ],
                 ..entry3.clone()
             };
+            let entry5 = model::suggestion_database::Entry {
+                kind:               Kind::Module,
+                module:             entry1.module.clone(),
+                name:               MODULE_NAME.to_owned(),
+                arguments:          default(),
+                return_type:        entry1.module.to_string(),
+                documentation_html: None,
+                self_type:          None,
+                scope:              Scope::Everywhere,
+            };
             let entry9 = model::suggestion_database::Entry {
                 name: "testFunction2".to_string(),
                 arguments: vec![
@@ -1398,11 +1456,24 @@ pub mod test {
             let entry3 = searcher.database.lookup(3).unwrap();
             searcher.database.put_entry(4, entry4);
             let entry4 = searcher.database.lookup(4).unwrap();
+            searcher.database.put_entry(5, entry5);
+            let entry5 = searcher.database.lookup(5).unwrap();
             searcher.database.put_entry(9, entry9);
             let entry9 = searcher.database.lookup(9).unwrap();
             searcher.database.put_entry(10, entry10);
             let entry10 = searcher.database.lookup(10).unwrap();
-            Fixture { data, test, searcher, entry1, entry2, entry3, entry4, entry9, entry10 }
+            Fixture {
+                data,
+                test,
+                searcher,
+                entry1,
+                entry2,
+                entry3,
+                entry4,
+                entry5,
+                entry9,
+                entry10,
+            }
         }
 
         fn new() -> Self {
@@ -1592,12 +1663,32 @@ pub mod test {
         test.run_until_stalled();
         let list = searcher.actions().list().unwrap().to_action_vec();
         // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
-        // and all of these are repeasted in "All Search Result" category.
+        // and all of these are repeated in "All Search Result" category.
         assert_eq!(list.len(), 8);
         assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(entry1)));
         assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(entry9)));
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewActionList));
+    }
+
+    #[wasm_bindgen_test]
+    fn loading_components() {
+        let Fixture { mut test, searcher, entry1, entry9, .. } =
+            Fixture::new_custom(|data, client| {
+                // Entry with id 99999 does not exist, so only two actions from suggestions db
+                // should be displayed in searcher.
+                data.expect_completion(client, None, None, &[1, 99999, 9]);
+            });
+        searcher.reload_list();
+        test.run_until_stalled();
+        let components = searcher.components();
+        if let [module_group] = &components.top_modules()[..] {
+            assert_eq!(module_group.name, entry1.module.to_string());
+            let entries = module_group.entries.borrow();
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
+        } else {
+            ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
+        }
     }
 
     #[wasm_bindgen_test]

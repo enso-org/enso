@@ -179,6 +179,12 @@ pub enum MatchInfo {
     Matches { subsequence: fuzzly::Subsequence },
 }
 
+impl Default for MatchInfo {
+    fn default() -> Self {
+        Self::Matches { subsequence: default() }
+    }
+}
+
 impl Ord for MatchInfo {
     /// Compare Match infos: the better matches are greater. The scores are compared using the full
     /// ordering as described in [`fuzzly::Subsequence::compare_scores`].

@@ -147,6 +147,14 @@ type Sql_Type
     is_definitely_text =
        [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains this.typeid
 
+    ## PRIVATE
+       Returns True if this type represents a Text, using heuristics that may
+       match more possible types.
+    is_likely_text : Boolean
+    is_likely_text =
+       this.is_definitely_text || this.name.contains "text" (Text_Matcher Case_Insensitive)
+
+
 ## UNSTABLE
 
    A fragment of a SQL query.
