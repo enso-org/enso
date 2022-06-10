@@ -1224,7 +1224,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "junit"               % "junit"                 % "4.12"            % Test,
       "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
     ),
-    // Note [Unmanaged Classpath]
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,
@@ -1319,7 +1318,7 @@ lazy val `runtime-instrument-runtime-server` = (project in file("engine/runtime-
   )
   .dependsOn(runtime)
 
-lazy val `runtime-with-instruments`  = (project in file("engine/runtime-instrument"))
+lazy val `runtime-with-instruments`  = (project in file("engine/runtime-with-instruments"))
   .configs(Benchmark)
   .settings(
     inConfig(Compile)(truffleRunOptionsSettings),
@@ -1336,6 +1335,7 @@ lazy val `runtime-with-instruments`  = (project in file("engine/runtime-instrume
     libraryDependencies ++= Seq(
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
     ),
+    // Note [Unmanaged Classpath]
     Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     assembly / assemblyJarName := "runtime.jar",
     assembly / test := {},

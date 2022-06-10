@@ -122,13 +122,13 @@ provided by the runtime. Unfortunately, with incremental compilation, only the
 changed instruments are recompiled and the annotation processor does not detect
 this, so un-changed instruments get overwritten.
 
-In the past we had a pre-compile task (defined in
-[`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala)) that
-detected changes to instruments and if only one of them was to be recompiled, it
-forced recompilation of all of them, to ensure consistency. This workaround
-helped to avoid later runtime issues but sometimes triggered a cascade of
-recompilations, which weren't clear to the end user. Instead, to avoid
-overwriting entries in META-INF files, individual services were moved to
+In the past we had a pre-compile task (see
+[FixInstrumentsGeneration](https://github.com/enso-org/enso/blob/8ec2a92b770dea35e47fa9287dbdd1363aabc3c0/project/FixInstrumentsGeneration.scala))
+that detected changes to instruments and if only one of them was to be
+recompiled, it forced recompilation of all of them, to ensure consistency. This
+workaround helped to avoid later runtime issues but sometimes triggered a
+cascade of recompilations, which weren't clear to the end user. Instead, to
+avoid overwriting entries in META-INF files, individual services were moved to
 separate subprojects and during assembly of uber jar we concatenate meta files
 with the same service name.
 
