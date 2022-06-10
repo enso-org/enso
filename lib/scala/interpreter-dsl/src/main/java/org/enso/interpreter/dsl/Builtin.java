@@ -383,7 +383,7 @@ public @interface Builtin {
    *
    * <pre>
    * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "resolve", description = "")
-   * public abstract class FooNode extends Node {
+   * public abstract class ResolveFooNode extends Node {
    *   static ResolveFooNode build() {
    *     return ResolveFooNodeGen.create();
    *   }
@@ -406,7 +406,35 @@ public @interface Builtin {
    * parameters</b> For such parameters the processor automatically adds {@link
    * org.enso.interpreter.dsl.AcceptsWarning} annotation to the corresponding parameter in the
    * execute method, thus indicating that further processors should allow for the possibility of
-   * {@code Warnings} being passed around as arguments.
+   * {@code Warnings} being passed around as arguments:
+   *
+   * <pre>
+   * class Foo extends TruffleObject {
+   *     {@link Builtin.Method @Builtin.Method}
+   *     {@link Builtin.Specialize @Builtin.Specialize}
+   *     public Foo set(WithWarning value) {
+   *         // ...
+   *     }
+   * }
+   * </pre>
+   *
+   * will generate
+   *
+   * <pre>
+   * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "set", description = "")
+   * public abstract class SetFooNode extends Node {
+   *   static SetFooNode build() {
+   *     return SetFooNodeGen.create();
+   *   }
+   *
+   *   abstract Foo execute(Object _this, @org.enso.interpreter.dsl.AcceptsWarning Object value);
+   *
+   *   {@link Specilization @Specialization}
+   *   Foo doWithWarnings(Foo _this, org.enso.interpreter.runtime.error.WithWarnings value) {
+   *     return _this.set(value);
+   *   }
+   * }
+   * </pre>
    *
    * <p><b>Fallback specialization</b>
    *

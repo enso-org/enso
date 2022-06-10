@@ -236,7 +236,7 @@
 - [Generate boilerplate classes related to error handling and varargs in
   builtins from method signatures][3454]
 - [Avoid needless concatenations of warning/error messages][3465]
-- [Towards full-blown DSL for builtins][3471]
+- [Added a full-blown DSL for builtins][3471]
 - [Lazy evaluation of RHS argument for || and &&][3492]
 - [Drop Core implementation of IR][3512]
 

@@ -720,7 +720,9 @@ type File
 
     ## PRIVATE
 
-       Return the absolute path of this File
+       A text representation of this file.
+
+       Returns the absolute path of this file.
     to_text : Text
     to_text = this.absolute . path
 
