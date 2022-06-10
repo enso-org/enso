@@ -73,7 +73,8 @@ object ReportState {
     * license gathering process.
     */
   def computeInputHash(
-    distributionDescription: DistributionDescription
+    distributionDescription: DistributionDescription,
+    log: Logger
   ): String = {
     val DistributionDescription(
       artifactName,
@@ -88,6 +89,7 @@ object ReportState {
       val dependencies =
         sbtComponent.licenseReport.licenses.sortBy(_.module.toString)
       for (dep <- dependencies) {
+        log.info("Digest " + sbtComponent.name + " dependency: " + dep.module.toString() + "," + dep.license.name)
         digest.update(dep.module.toString.getBytes)
         digest.update(dep.license.name.getBytes)
       }
@@ -97,7 +99,8 @@ object ReportState {
 
   /** Computes a hash of all files included in the generated notice package. */
   def computeOutputHash(
-    distributionPackageDestination: File
+    distributionPackageDestination: File,
+    log: Logger
   ): String = {
     val digest = MessageDigest.getInstance("SHA-256")
     val root   = distributionPackageDestination.toPath
@@ -107,9 +110,11 @@ object ReportState {
         .map(p => PortablePath(root.relativize(p)))
         .sortBy(_.toString)
     for (path <- allFiles) {
+      log.info("Digest " + path.toString + " path")
       digest.update(path.toString.getBytes)
       val file = root.resolve(path.path).toFile
       if (!file.isDirectory) {
+        log.info("Digest " + path.toString + " file")
         digest.update(IO.readBytes(file))
       }
     }
@@ -131,12 +136,13 @@ object ReportState {
   def write(
     file: File,
     distributionDescription: DistributionDescription,
-    warningsCount: Int
+    warningsCount: Int,
+    log: Logger
   ): Unit = {
     val state = ReportState(
-      inputHash = computeInputHash(distributionDescription),
+      inputHash = computeInputHash(distributionDescription, log),
       outputHash =
-        computeOutputHash(distributionDescription.packageDestination),
+        computeOutputHash(distributionDescription.packageDestination, log),
       warningsCount = warningsCount
     )
     write(file, state)
