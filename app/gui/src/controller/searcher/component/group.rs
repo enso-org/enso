@@ -113,8 +113,10 @@ impl Group {
                     cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
                 });
             } else {
-                entries
-                    .sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
+                let cmp_match_info = |a: &Component, b: &Component| {
+                    a.match_info.borrow().cmp(&*b.match_info.borrow())
+                };
+                entries.sort_by(|a, b| cmp_match_info(a, b).reverse());
             }
         }
         self.update_visibility();
