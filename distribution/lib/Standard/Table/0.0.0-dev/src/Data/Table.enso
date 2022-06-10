@@ -32,6 +32,7 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
+polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import java.io.StringReader
 
 ## Creates a new table from a vector of `[name, items]` pairs.

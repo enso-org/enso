@@ -1,5 +1,7 @@
 from Standard.Base import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
+import Standard.Table.Data.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column
 
 import project.Database.Helpers.Fake_Test_Connection
 import Standard.Database.Data.Dialect

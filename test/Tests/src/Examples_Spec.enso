@@ -112,9 +112,6 @@ spec = Test.group "Examples" <|
         Examples.text_column_1
         Examples.text_column_2
 
-    Test.specify "should provide an aggregate column" <|
-        Examples.aggregate_column
-
     Test.specify "should provide various example tables" <|
         Examples.inventory_table
         Examples.popularity_table
