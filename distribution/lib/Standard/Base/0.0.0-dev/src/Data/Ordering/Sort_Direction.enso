@@ -19,3 +19,8 @@ type Sort_Direction
              Sort_Direction.Descending
     type Descending
 
+    ## Convert into the sign of the direction
+    to_sign : Integer
+    to_sign = case this of
+        Ascending -> 1
+        Descending -> -1

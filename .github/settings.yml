@@ -219,6 +219,7 @@ branches:
           # The macOS job is intentionally omitted.
           - "Docs Check"
           - "Verify Notice Package"
+          - "Test Formatting"
           - "license/cla"
 
           # GUI jobs

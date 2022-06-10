@@ -8,6 +8,7 @@ import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
+import Standard.Table.Internal.Problem_Builder
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
@@ -480,17 +481,19 @@ type Table
              table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
-        columns_for_ordering = Table_Helpers.prepare_order_by this.internal_columns columns on_problems
-        new_order_descriptors = columns_for_ordering.map selected_column->
-            internal_column = selected_column.column
-            associated_selector = selected_column.associated_selector
-            ## TODO [RW] this is only needed because `Vector.map` does not
-               propagate dataflow errors correctly. See:
-               https://www.pivotaltracker.com/story/show/181057718
-            Panic.throw_wrapped_if_error <|
-                this.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
-        new_ctx = this.context.add_orders new_order_descriptors
-        this.updated_context new_ctx
+        problem_builder = Problem_Builder.new
+        columns_for_ordering = Table_Helpers.prepare_order_by this.columns columns problem_builder
+        problem_builder.attach_problems_before on_problems <|
+            new_order_descriptors = columns_for_ordering.map selected_column->
+                internal_column = selected_column.column
+                associated_selector = selected_column.associated_selector
+                ## TODO [RW] this is only needed because `Vector.map` does not
+                   propagate dataflow errors correctly. See:
+                   https://www.pivotaltracker.com/story/show/181057718
+                Panic.throw_wrapped_if_error <|
+                    this.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
+            new_ctx = this.context.add_orders new_order_descriptors
+            this.updated_context new_ctx
 
     ## UNSTABLE
 

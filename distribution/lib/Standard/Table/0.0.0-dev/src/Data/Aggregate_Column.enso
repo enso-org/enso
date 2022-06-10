@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 from Standard.Table.Data.Column as Column_Module import Column
+import Standard.Table.Data.Column_Selector
+import Standard.Table.Data.Sort_Column_Selector
 
 ## Defines an Aggregate Column
 type Aggregate_Column
@@ -140,7 +142,7 @@ type Aggregate_Column
          not missing value returned.
        - order_by: required for database tables. Specifies how to order the
          results within the group.
-    type First (column:Column|Text|Integer) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
+    type First (column:Column|Text|Integer) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Sort_Column_Selector|Nothing=Nothing)
 
     ## Creates a new column with the last value in each group. If no rows,
        evaluates to `Nothing`.
@@ -153,7 +155,7 @@ type Aggregate_Column
          not missing value returned.
        - order_by: required for database tables. Specifies how to order the
          results within the group.
-    type Last (column:Column|Text|Integer) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Column_Selector|Nothing=Nothing)
+    type Last (column:Column|Text|Integer) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=True) (order_by:Sort_Column_Selector|Nothing=Nothing)
 
     ## Creates a new column with the maximum value in each group. If no rows,
        evaluates to `Nothing`.
