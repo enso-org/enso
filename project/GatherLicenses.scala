@@ -145,6 +145,8 @@ object GatherLicenses {
       case Some(reviewState) =>
         val currentInputHash =
           ReportState.computeInputHash(distributionDescription)
+        log.info("Input hash computed from build.sbt: " + currentInputHash)
+        log.info("Input hash stored in metadata: " + reviewState.inputHash)
         if (currentInputHash != reviewState.inputHash) {
           warnAndThrow(
             s"Report for the $name is not up to date - " +
