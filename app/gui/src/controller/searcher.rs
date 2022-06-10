@@ -539,8 +539,7 @@ impl Searcher {
             _ => None,
         });
         let favorites = graph.component_groups();
-        let list_builder_with_favorites =
-            component_list_builder_with_favorites(&database, &*favorites);
+        let list_builder_with_favs = component_list_builder_with_favorites(&database, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -553,7 +552,7 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
-            list_builder_with_favorites: Rc::new(list_builder_with_favorites),
+            list_builder_with_favorites: Rc::new(list_builder_with_favs),
         };
         ret.reload_list();
         Ok(ret)
@@ -1360,8 +1359,7 @@ pub mod test {
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             let favorites = graph.component_groups();
-            let list_builder_with_favorites =
-                component_list_builder_with_favorites(&database, &*favorites);
+            let list_bldr_with_favs = component_list_builder_with_favorites(&database, &*favorites);
             let searcher = Searcher {
                 graph,
                 logger,
@@ -1374,7 +1372,7 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
-                list_builder_with_favorites: Rc::new(list_builder_with_favorites),
+                list_builder_with_favorites: Rc::new(list_bldr_with_favs),
             };
             let entry1 = searcher.database.lookup(1).unwrap();
             let entry2 = searcher.database.lookup(2).unwrap();
