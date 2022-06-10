@@ -182,6 +182,8 @@ object GatherLicenses {
 
     val currentOutputHash = ReportState.computeOutputHash(packageDestination)
     if (currentOutputHash != reportState.outputHash) {
+      log.info("Output hash computed from build.sbt: " + currentOutputHash)
+      log.info("Output hash stored in metadata: " + reportState.outputHash)
       log.error(
         s"Generated package at $packageDestination seems to be not up-to-date."
       )
