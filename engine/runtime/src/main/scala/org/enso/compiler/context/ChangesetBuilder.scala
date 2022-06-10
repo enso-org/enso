@@ -73,7 +73,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
 
       (literals.head match {
         case node: IR.Literal.Number => return (node, edit)
-        case node: IR.Literal.Text => return (node, edit)
+        case node: IR.Literal.Text   => return (node, edit)
         case _                       => return null
       })
     }
