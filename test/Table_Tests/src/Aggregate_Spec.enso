@@ -1145,7 +1145,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
             grouped = table.aggregate [Group_By "B", Group_By "A"]
             grouped.row_count . should_equal 3
-            materialized = materialize grouped . sort ["A", "B"]
+            materialized = materialize grouped . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A", Sort_Column.Name "B"])
             materialized.columns.length . should_equal 2
             materialized.columns.at 1 . name . should_equal "A"
             materialized.columns.at 1 . to_vector . should_equal [1, 1, 2]
