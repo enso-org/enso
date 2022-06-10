@@ -150,18 +150,18 @@ spec =
     Test.group "[Codegen] Sorting" <|
         Test.specify "should allow sorting by a single column name" <|
             r1 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"]) . at "B"
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST', []]
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC', []]
 
             r2 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "B" Sort_Direction.Descending]) . at "A"
-            r2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC NULLS FIRST', []]
+            r2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC', []]
 
         Test.specify 'should allow sorting by multiple column names' <|
             r1 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'A', Sort_Column.Name 'B'])
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST, "T1"."B" ASC NULLS LAST', []]
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" ASC', []]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
             r1 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A", Sort_Column.Name "B" Sort_Direction.Descending])
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST, "T1"."B" DESC NULLS LAST', []]
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" DESC', []]
 
         Test.specify 'should return dataflow error when passed a non-existent column' <|
             r = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar'])

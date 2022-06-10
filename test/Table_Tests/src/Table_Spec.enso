@@ -346,7 +346,7 @@ spec =
             r_1.at 'Id' . to_vector . should_equal [2,4,1,3,6,5]
 
             r_2 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Rating' Sort_Direction.Descending, Sort_Column.Name 'Quantity' Sort_Direction.Descending])
-            r_2.at 'Id' . to_vector . should_equal [6,2,3,1,4,5]
+            r_2.at 'Id' . to_vector . should_equal [3,1,4,5,6,2]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
             r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Quantity", Sort_Column.Name "Price" Sort_Direction.Descending])
@@ -372,7 +372,7 @@ spec =
             objs = [Cons 1 2, Cons 2 3, Cons 6 7, Cons 8 9, Cons 10 30]
 
             df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs]]
-            r = df.sort by='ord'
+            r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
             df.at 'ints' . to_vector . should_equal ints
