@@ -328,7 +328,7 @@ public class Module implements TruffleObject {
    * @param s source to check
    * @return {@code true} if the source has been created for this module
    */
-  final boolean isModuleSource(Source s) {
+  public final boolean isModuleSource(Source s) {
     return allSources.containsKey(s);
   }
 

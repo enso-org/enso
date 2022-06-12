@@ -152,10 +152,11 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    LocationFilter locationFilter = LocationFilter.create(module.getIr(), src);
+    LocationFilter locationFilter = LocationFilter.create(module, src);
 
     EventBinding<ExecutionEventListener> listener =
         idExecutionInstrument.bind(
+            module,
             call.getFunction().getCallTarget(),
             locationFilter,
             cache,

@@ -325,7 +325,7 @@ class IrToTruffle(
               expressionProcessor.scope,
               moduleScope,
               () => bodyBuilder.bodyNode(),
-              makeSection(methodDef.location),
+              makeSection(moduleScope, methodDef.location),
               cons,
               methodDef.methodName.name
             )
@@ -397,7 +397,7 @@ class IrToTruffle(
               expressionProcessor.scope,
               moduleScope,
               () => bodyBuilder.bodyNode(),
-              makeSection(methodDef.location),
+              makeSection(moduleScope, methodDef.location),
               toType,
               methodDef.methodName.name
             )
@@ -441,10 +441,11 @@ class IrToTruffle(
     * @return the source section corresponding to `location`
     */
   private def makeSection(
+    module: ModuleScope,
     location: Option[IdentifiedLocation]
   ): SourceSection = {
     location
-      .map(loc => source.createSection(loc.start, loc.length))
+      .map(loc => module.getModule().createSection(loc.start, loc.length))
       .getOrElse(source.createUnavailableSection())
   }
 
@@ -712,7 +713,7 @@ class IrToTruffle(
           childScope,
           moduleScope,
           blockNode,
-          makeSection(block.location),
+          makeSection(moduleScope, block.location),
           currentVarName
         )
 
@@ -1336,7 +1337,7 @@ class IrToTruffle(
         scope,
         moduleScope,
         bodyBuilder.bodyNode(),
-        makeSection(location),
+        makeSection(moduleScope, location),
         scopeName
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)

@@ -1,20 +1,28 @@
 package org.enso.interpreter.instrument.execution
 
-import com.oracle.truffle.api.source.{Source, SourceSection}
+import com.oracle.truffle.api.source.SourceSection
+import com.oracle.truffle.api.instrumentation.SourceSectionFilter.IndexRange
 import org.enso.compiler.core.IR
 import org.enso.syntax.text.Location
 
 import scala.collection.mutable
+import org.enso.interpreter.runtime.Module
 
 /** Contains instrumentable source locations.
   *
   * @param sections the list of source sections to instrument
   */
-case class LocationFilter(sections: Set[SourceSection]) {
+case class LocationFilter(
+  sections: Set[SourceSection],
+  ranges: Set[IndexRange]
+) {
 
   /** Get the list of source sections to instrument. */
   def getSections: Array[SourceSection] =
     sections.toArray
+
+  def getRanges: Array[IndexRange] =
+    ranges.toArray
 }
 
 object LocationFilter {
@@ -23,16 +31,20 @@ object LocationFilter {
 
   /** Create the location filter.
     *
-    * @param ir the module ir
+    * @param module the module to create sections for
     * @param span the source section to instrument
     * @return new location filter
     */
-  def create(ir: IR.Module, span: SourceSection): LocationFilter = {
+  def create(module: Module, span: SourceSection): LocationFilter = {
+    val ir         = module.getIr()
     val location   = Location(span.getCharIndex, span.getCharEndIndex)
     val targetNode = LocationResolver.findByLocation(ir, location).getOrElse(ir)
     val locations  = createLocations(targetNode)
 
-    LocationFilter(locations.map(toSection(span.getSource, _)))
+    LocationFilter(
+      locations.map(toSection(module, _)),
+      locations.map(toIndexRange(module, _))
+    )
   }
 
   private def createLocations(ir: IR): Set[Location] = {
@@ -106,8 +118,13 @@ object LocationFilter {
     irLocation.isDefined && irLocation == getLocation(function.body)
   }
 
-  private def toSection(source: Source, location: Location): SourceSection =
-    source.createSection(location.start, location.length)
+  private def toSection(module: Module, location: Location): SourceSection =
+    module.createSection(location.start, location.length)
+
+  private def toIndexRange(module: Module, location: Location): IndexRange = {
+    val s = module.createSection(location.start, location.length)
+    IndexRange.between(s.getCharIndex, s.getCharEndIndex)
+  }
 
   private def getLocation(ir: IR): Option[Location] =
     ir.location.map(_.location)
