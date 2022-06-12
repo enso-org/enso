@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.interpreter.runtime.Module;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 
@@ -275,6 +276,20 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
   }
 
+  private static final Map<Throwable, Object> PATCHED_VALUES = new WeakHashMap<>();
+
+  public static void registerValue(Throwable exception, Object value) {
+    synchronized (PATCHED_VALUES) {
+      PATCHED_VALUES.put(exception, value);
+    }
+  }
+
+  private static Object patchedValue(Throwable exception) {
+    synchronized (PATCHED_VALUES) {
+      return PATCHED_VALUES.get(exception);
+    }
+  }
+
   /** The listener class used by this instrument. */
   private static class IdExecutionEventListener implements ExecutionEventListener {
     private final CallTarget entryCallTarget;
@@ -447,6 +462,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
             context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
         onReturnValue(context, frame, exception);
+      } else if (patchedValue(exception) != null) {
+        onReturnValue(context, frame, patchedValue(exception));
       }
     }
 
@@ -494,6 +511,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
   /**
    * Attach a new listener to observe identified nodes within given function.
    *
+   * @param module module that contains the code
    * @param entryCallTarget the call target being observed.
    * @param locationFilter the location filter.
    * @param cache the precomputed expression values.
@@ -507,6 +525,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @return a reference to the attached event listener.
    */
   public EventBinding<ExecutionEventListener> bind(
+      Module module,
       CallTarget entryCallTarget,
       LocationFilter locationFilter,
       RuntimeCache cache,
@@ -521,7 +540,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
         SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
             .tagIs(IdentifiedTag.class)
-            .sourceSectionEquals(locationFilter.getSections())
+            .sourceIs(module::isModuleSource)
+            .indexIn(locationFilter.getRanges())
             .build();
 
     return env.getInstrumenter()
