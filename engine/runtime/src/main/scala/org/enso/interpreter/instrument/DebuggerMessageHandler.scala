@@ -3,7 +3,6 @@ package org.enso.interpreter.instrument
 import java.nio.ByteBuffer
 import com.oracle.truffle.api.TruffleStackTrace
 import com.typesafe.scalalogging.Logger
-import org.enso.interpreter.instrument.ReplDebuggerInstrument.ReplExecutionEventNode
 import org.enso.polyglot.debugger._
 import org.graalvm.polyglot.io.MessageEndpoint
 

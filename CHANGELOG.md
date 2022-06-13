@@ -137,6 +137,8 @@
 - [Implemented `Table.order_by` for the in-memory table.][3515]
 - [Renamed `File_Format.Text` to `Plain_Text`, updated `File_Format.Delimited`
   API and added builders for customizing less common settings.][3516]
+- [Allow control of sort direction in `First` and `Last` aggregations.][3517]
+- [Implemented `Text.write`, replacing `File.write_text`.][3518]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -215,6 +217,8 @@
 [3514]: https://github.com/enso-org/enso/pull/3514
 [3515]: https://github.com/enso-org/enso/pull/3515
 [3516]: https://github.com/enso-org/enso/pull/3516
+[3517]: https://github.com/enso-org/enso/pull/3517
+[3518]: https://github.com/enso-org/enso/pull/3518
 
 #### Enso Compiler
 
@@ -236,6 +240,7 @@
 - [Generate boilerplate classes related to error handling and varargs in
   builtins from method signatures][3454]
 - [Avoid needless concatenations of warning/error messages][3465]
+- [Added a full-blown DSL for builtins][3471]
 - [Lazy evaluation of RHS argument for || and &&][3492]
 - [Drop Core implementation of IR][3512]
 
@@ -260,6 +265,7 @@
 [3454]: https://github.com/enso-org/enso/pull/3454
 [3461]: https://github.com/enso-org/enso/pull/3461
 [3465]: https://github.com/enso-org/enso/pull/3465
+[3471]: https://github.com/enso-org/enso/pull/3471
 [3492]: https://github.com/enso-org/enso/pull/3492
 [3493]: https://github.com/enso-org/enso/pull/3493
 [3505]: https://github.com/enso-org/enso/pull/3505
