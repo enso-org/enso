@@ -2,6 +2,8 @@ from Standard.Base import all
 import Standard.Test
 import Standard.Table
 import Standard.Table.Io.File_Format
+import Standard.Table.Io.File_Read
+from Standard.Table.Io.Excel import Excel_Section
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Examples
 import project.Util
@@ -24,26 +26,26 @@ spec_fmt header file read_method =
             t.at 'X3' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
 
         Test.specify "should read the specified sheet by name and properly handle dates" <|
-            t = read_method file sheet='Dates'
+            t = read_method file (Sheet 'Dates')
             t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
             t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
 
         Test.specify "should read an empty table" <|
-            t = read_method file sheet="Empty"
+            t = read_method file (Sheet "Empty")
             t.columns.length.should_equal 0
 
         Test.specify "should gracefully handle duplicate column names and formulas" <|
-            t = read_method file sheet="Duplicate Columns"
+            t = read_method file (Sheet "Duplicate Columns")
             t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price_1']
             t.at 'Price_1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
         Test.specify "should allow reading with cell range specified" <|
-            t_1 = read_method file sheet="Simple" cell_range="B:C"
+            t_1 = read_method file (Range "Simple!B:C")
             t_1.columns.map .name . should_equal ['Quantity', 'Price']
             t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
             t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
 
-            t_2 = read_method file sheet="Simple" cell_range="3:5" has_header=False
+            t_2 = read_method file (Range "Simple!3:5") has_header=False
             t_2.columns.length.should_equal 3
             t_2.at 'C0' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
             t_2.at 'C1' . to_vector . should_equal [20, Nothing, 30]
@@ -55,9 +57,9 @@ spec_fmt header file read_method =
             t_3.at 'C1' . to_vector . should_equal [43.2, 54]
 
 spec =
-    here.spec_fmt 'XLSX reading' Examples.xlsx .read_xlsx
+    here.spec_fmt 'XLSX reading' Examples.xlsx .read
 
-    here.spec_fmt 'XLS reading' Examples.xls .read_xls
+    here.spec_fmt 'XLS reading' Examples.xls .read
 
     Test.group 'XLSX writing' <|
         ## We disable parsing dates, because date support is not advanced enough
@@ -72,7 +74,7 @@ spec =
         Test.specify 'should write tables to non-existent XLSX files' <|
             out.delete_if_exists
             table.write_xlsx out
-            written = out.read_xlsx
+            written = out.read
             written.should_equal table
             out.delete_if_exists
 
