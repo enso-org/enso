@@ -344,6 +344,13 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     }
   }
 
+  /** Resolve a name to either an explicit sum type or a simple TypeArg. Used to link
+   * suggestions to concrete types, so the editor can know a fully qualified
+   * type name if possible.
+   *
+   * @param resolvedName the name to resolve
+   * @return how to present it to the suggestion engine
+   */
   private def buildResolvedUnionTypeName(
     resolvedName: BindingsMap.ResolvedName
   ): Option[TypeArg] = resolvedName match {

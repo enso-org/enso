@@ -23,13 +23,13 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
     )
-    val constructors = localBindings.constructors.map { tp =>
+    val constructors = localBindings.constructors./*distinctBy(_.name). */map { tp =>
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
         if (builtinType == null) {
           throw new CompilerError("Unknown @BuiltinType " + tp.name)
         }
-        scope.registerConstructor(builtinType)
+        scope.forciblyRegisterConstructor(builtinType)
         builtinType.setShadowDefinitions(scope)
         (tp, builtinType)
       } else {

@@ -8,6 +8,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.RedefinedConstructorException;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 
@@ -38,8 +39,16 @@ public class ModuleScope implements TruffleObject {
    * @param constructor the constructor to register
    */
   public void registerConstructor(AtomConstructor constructor) {
+    var name = constructor.getName();
+    if (constructors.containsKey(name))
+      throw new RedefinedConstructorException(name, module);
+    constructors.put(name, constructor);
+  }
+
+  public void forciblyRegisterConstructor(AtomConstructor constructor) {
     constructors.put(constructor.getName(), constructor);
   }
+
 
   /** @return the associated type of this module. */
   public AtomConstructor getAssociatedType() {
