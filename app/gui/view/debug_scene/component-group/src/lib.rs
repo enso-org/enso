@@ -42,8 +42,7 @@ use list_view::entry::AnyModelProvider;
 // =================
 
 const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
-/// The selection animation is faster than default one because of the increased
-/// spring force.
+/// The selection animation is faster than default one because of the increased spring force.
 const SELECTION_ANIMATION_SPRING_FORCE: f32 = 30_000.0;
 const COMPONENT_GROUP_WIDTH: f32 = 150.0;
 const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
