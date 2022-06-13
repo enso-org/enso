@@ -952,9 +952,20 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     data.components = this.make_component_list(responses.iter());
-                    // FIXME: do we have some helper for this?
-                    let method = this.graph.node_method_pointer();
-                    DEBUG!("MCDBG method=" method;?);
+                    // let qn = this.module_qualified_name();
+                    // DEBUG!("MCDBG qn=" qn);
+                    // let lookup = this.database.lookup_by_qualified_name(&qn);
+                    // DEBUG!("MCDBG  -> " lookup;?);
+                    // if let Some((id, _)) = lookup {
+                    //     let contents = data.components.get_module_content(id);
+                    //     if let Some(group) = contents {
+                    //         for x in group.entries.borrow().iter() {
+                    //             DEBUG!("MCDBG   * " x.suggestion.qualified_name() " ~ " x.suggestion.kind;?);
+                    //         }
+                    //     }
+                    //     // let fmt = contents.iter().map(|e| iformat!("  * " e.qualified_name() " ~ " e.kind
+                    //     // DEBUG!("MCDBG  -> contents=" contents;?);
+                    // }
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
@@ -965,8 +976,21 @@ impl Searcher {
                         component::List::build_list_from_all_db_entries(&this.database);
                 }
             }
+            this.print_local_scope_entries();
             this.notifier.publish(Notification::NewActionList).await;
         });
+    }
+
+    fn print_local_scope_entries(&self) -> Option<()> {
+        use crate::model::suggestion_database::entry::Kind::Module;
+        let module = self.module_qualified_name();
+        let (id, _) = self.database.lookup_by_qualified_name(&module)?;
+        let components = &self.components();
+        let entries = &components.get_module_content(id)?.entries;
+        for entry in entries.borrow().iter().map(|e| &e.suggestion).filter(|e| e.kind != Module) {
+            DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
+        }
+        Some(())
     }
 
     /// Process multiple completion responses from the engine into a single list of suggestion.
