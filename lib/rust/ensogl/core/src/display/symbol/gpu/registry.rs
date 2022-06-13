@@ -8,6 +8,7 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
 use crate::display::symbol;
+use crate::display::symbol::RenderGroup;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::display::symbol::WeakSymbol;
@@ -141,10 +142,19 @@ impl SymbolRegistry {
     }
 
     /// Rasterize selected symbols.
-    pub fn render_by_ids(&self, ids: &[SymbolId]) {
-        let symbols = self.symbols.borrow();
-        for id in ids {
-            if let Some(symbol) = symbols.get(id) {
+    pub fn render_symbols(&self, to_render: &RenderGroup) {
+        let mut symbols = to_render.symbols.borrow_mut();
+        let symbols = symbols.get_or_insert_with(|| {
+            let id_to_symbol = self.symbols.borrow();
+            to_render
+                .ids
+                .iter()
+                .filter_map(|id| id_to_symbol.get(id))
+                .map(|symbol| WeakSymbol::new(&symbol))
+                .collect()
+        });
+        for symbol in symbols {
+            if let Some(symbol) = symbol.view() {
                 symbol.render();
             }
         }

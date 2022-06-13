@@ -772,6 +772,30 @@ impl SymbolData {
 
 
 
+// ===================
+// === RenderGroup ===
+// ===================
+
+/// Ordered collection of [`Symbol`]s to be rendered.
+#[derive(Debug, Default, Derivative)]
+pub struct RenderGroup {
+    /// Symbols, identified by ID.
+    ids:     Vec<SymbolId>,
+    /// If present, this refers to the same symbols as `ids`, ready to render.
+    #[derivative(Debug = "ignore")]
+    symbols: RefCell<Option<Vec<WeakSymbol>>>,
+}
+
+impl RenderGroup {
+    /// Set the [`Symbol`]s to be rendered, identified by IDs.
+    pub fn set(&mut self, symbols: Vec<SymbolId>) {
+        self.ids = symbols;
+        self.symbols.borrow_mut().take();
+    }
+}
+
+
+
 // ======================
 // === SymbolInstance ===
 // ======================
