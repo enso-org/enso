@@ -139,7 +139,8 @@
   API and added builders for customizing less common settings.][3516]
 - [Allow control of sort direction in `First` and `Last` aggregations.][3517]
 - [Implemented `Text.write`, replacing `File.write_text`.][3518]
-- [Removed `select`, `group`, `sort` and releated type from tables.][3519]
+- [Removed obsolete `select`, `group`, `sort` and releated types from tables.]
+  [3519]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
