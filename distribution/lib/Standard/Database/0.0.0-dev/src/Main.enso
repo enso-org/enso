@@ -10,4 +10,3 @@ export Standard.Database.Connection.Connection
 from Standard.Database.Connection.Database export all
 
 import Standard.Table.Data.Table
-from Standard.Table.Data.Table export No_Such_Column_Error

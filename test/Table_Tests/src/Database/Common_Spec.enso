@@ -7,6 +7,8 @@ import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 import Standard.Test
+import Standard.Test.Problems
+from Standard.Table.Error as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
 import project.Database.Helpers.Name_Generator
 
 from Standard.Table.Data.Aggregate_Column import all
@@ -238,9 +240,12 @@ spec prefix connection pending=Nothing =
             r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "quantity", Sort_Column.Name "price" Sort_Direction.Descending])
             r_1.at 'id' . to_vector . should_equal [4,2,3,1,6,5]
 
-        Test.specify 'should return dataflow error when passed a non-existent column' <|
-            r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar'])
-            r.should_fail_with No_Such_Column_Error
+        Test.specify 'should return warnings and errors when passed a non-existent column' <|
+            action = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
+            tester table =
+                table.at 'id' . to_vector . should_equal [1,2,3,4,5,6]
+            problems = [Missing_Input_Columns [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            Problems.test_problem_handling action problems tester
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
             ints = [1, 2, 3, 4, 5]

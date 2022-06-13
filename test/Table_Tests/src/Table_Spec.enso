@@ -10,7 +10,7 @@ import Standard.Table.Data.Storage
 import Standard.Test
 import Standard.Test.Problems
 import Standard.Visualization
-from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names
+from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
 
 import project.Common_Table_Spec
 
@@ -359,9 +359,12 @@ spec =
             r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
 
-        Test.specify 'should return dataflow error when passed a non-existent column' <|
-            r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar'])
-            r.should_fail_with No_Such_Column_Error
+        Test.specify 'should return warnings and errors when passed a non-existent column' <|
+            action = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
+            tester table =
+                table.at 'Id' . to_vector . should_equal [1,2,3,4,5,6]
+            problems = [Missing_Input_Columns [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            Problems.test_problem_handling action problems tester
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
             ord = [0, 3, 2, 4, 1]
