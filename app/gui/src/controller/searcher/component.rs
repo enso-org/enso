@@ -172,6 +172,7 @@ impl List {
         self.filtered.set(!pattern.is_empty());
     }
 
+    /// All groups from [`List`] without the groups found in [`List::favorites`].
     fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
