@@ -776,7 +776,7 @@ impl SymbolData {
 // === RenderGroup ===
 // ===================
 
-/// Ordered collection of [`Symbol`]s to be rendered.
+/// Collection of [`Symbol`]s to be rendered, in render-order.
 #[derive(Debug, Default, Derivative)]
 pub struct RenderGroup {
     /// Symbols, identified by ID.
