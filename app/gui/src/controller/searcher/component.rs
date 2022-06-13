@@ -177,7 +177,7 @@ impl List {
     fn all_groups(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
-        normal.chain(flattened)
+        normal.chain(flattened).chain(std::iter::once(&self.local_scope))
     }
 }
 
