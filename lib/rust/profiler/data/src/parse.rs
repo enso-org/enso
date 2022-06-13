@@ -499,7 +499,7 @@ impl str::FromStr for crate::Label {
             Some((name, pos)) => match crate::CodePos::parse(pos) {
                 Ok(pos) => Self { name: name.to_owned(), pos },
                 Err(_) => Self { name: s.to_owned(), pos: None },
-            }
+            },
             None => Self { name: s.to_owned(), pos: None },
         })
     }

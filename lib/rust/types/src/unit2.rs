@@ -6,6 +6,7 @@
 //! [`Duration`] or a number, respectfully. You are allowed to define any combination of operators
 //! and rules of how the result inference should be performed.
 
+use enso_reflect::prelude::*;
 use paste::paste;
 use std::borrow::Cow;
 use std::marker::PhantomData;
@@ -94,8 +95,11 @@ pub trait Variant {
 
 /// Internal representation of every unit.
 #[repr(transparent)]
+#[derive(Reflect)]
+#[reflect(transparent)]
 pub struct UnitData<V, R> {
     repr:    R,
+    #[reflect(skip)]
     variant: PhantomData<V>,
 }
 
@@ -513,7 +517,7 @@ macro_rules! define {
             $(#$meta)*
             pub type $name = $crate::unit2::Unit<[<$name:snake:upper>]>;
             $(#$meta)*
-            #[derive(Debug, Clone, Copy)]
+            #[derive(Debug, Clone, Copy, Reflect)]
             pub struct [<$name:snake:upper>];
 
             impl $crate::unit2::Variant for [<$name:snake:upper>] {
