@@ -573,8 +573,8 @@ where E::Model: Default
 
             // === Selection Size and Position ===
 
-            selection_y.target <+ frp.selected_entry.map(|id|
-                id.map_or(0.0,entry::List::<E>::position_y_of_entry)
+            selection_y.target <+ frp.selected_entry.filter_map(|id|
+                id.map(entry::List::<E>::position_y_of_entry)
             );
             selection_height.target <+ all_with(&frp.selected_entry, &style.selection_height, |id, h|
                 if id.is_some() {*h} else {-SHAPE_MARGIN}
