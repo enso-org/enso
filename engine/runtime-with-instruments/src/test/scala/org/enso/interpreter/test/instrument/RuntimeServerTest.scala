@@ -82,8 +82,9 @@ class RuntimeServerTest
       .asHostObject[EnsoContext]
     val info =
       languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
-    languageContext.getLanguage.getIdExecutionInstrument
-      .overrideTimer(new TestTimer)
+    languageContext.getLanguage.getIdExecutionService.ifPresent(
+      _.overrideTimer(new TestTimer)
+    );
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
