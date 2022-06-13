@@ -60,8 +60,6 @@ import project.System.File_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 
-import project.Examples_Spec
-
 main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
