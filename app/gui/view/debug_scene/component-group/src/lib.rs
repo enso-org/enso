@@ -45,6 +45,9 @@ const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 
 /// The selection animation is faster than default one because of the increased
 /// spring force.
 const SELECTION_ANIMATION_SPRING_FORCE: f32 = 30_000.0;
+const COMPONENT_GROUP_WIDTH: f32 = 150.0;
+const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
+const SCROLL_AREA_WIDTH: f32 = COMPONENT_GROUP_WIDTH + 20.0;
 
 
 
@@ -192,7 +195,7 @@ fn create_component_group(
     let component_group = app.new_view::<component_group::View>();
     component_group.model().set_layers(layers);
     component_group.set_header(header.to_string());
-    component_group.set_width(150.0);
+    component_group.set_width(COMPONENT_GROUP_WIDTH);
     component_group.set_position_x(75.0);
     component_group
 }
@@ -203,7 +206,7 @@ fn create_wide_component_group(
 ) -> component_group::wide::View {
     let component_group = app.new_view::<component_group::wide::View>();
     component_group.model().set_layers(layers);
-    component_group.set_width(450.0);
+    component_group.set_width(COMPONENT_GROUP_WIDTH * 3.0);
     component_group.set_position_x(-200.0);
     component_group
 }
@@ -257,8 +260,8 @@ fn init(app: &Application) {
     let network = frp::Network::new("Component Group Debug Scene");
     let scroll_area = ScrollArea::new(app);
     scroll_area.set_position_xy(Vector2(150.0, 100.0));
-    scroll_area.resize(Vector2(170.0, 400.0));
-    scroll_area.set_content_width(150.0);
+    scroll_area.resize(Vector2(SCROLL_AREA_WIDTH, SCROLL_AREA_HEIGHT));
+    scroll_area.set_content_width(COMPONENT_GROUP_WIDTH);
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
     groups_layer.add_exclusive(&scroll_area);
@@ -376,16 +379,32 @@ fn init(app: &Application) {
 
     let selection_animation = Animation::<Vector2>::new(&network);
     selection_animation.set_spring.emit(SELECTION_ANIMATION_SPRING_FORCE);
+    /// This is an example code to position the selection box on scene.
+    /// `multiview.selection_position_target` returns a group-local position, so we transform it
+    /// to global one and then restrict the y coordinate so that the selection box would not go
+    /// below the scroll area bottom.
+    fn selection_position(
+        group_local_pos: Vector2,
+        group: &component_group::set::Group,
+        scroll_area: &ScrollArea,
+    ) -> Vector2 {
+        use component_group::set::Group::*;
+        let group_pos = match group {
+            OneColumn(group) =>
+                scroll_area.position() + scroll_area.content().position() + group.position(),
+            Wide(group) => group.position(),
+        };
+        let mut pos = group_pos.xy() + group_local_pos;
+        let scroll_area_bottom = scroll_area.position().y - SCROLL_AREA_HEIGHT;
+        let lower_bound = scroll_area_bottom + list_view::entry::HEIGHT / 2.0;
+        pos.y = pos.y.max(lower_bound);
+        pos
+    }
     frp::extend! { network
         selection_position <- multiview.selection_position_target.map(
             f!([groups, scroll_area]((g, p)) {
                 let group = &groups[usize::from(g)];
-                let group_pos = if let component_group::set::Group::OneColumn(group) = group {
-                    scroll_area.position() + scroll_area.content().position() + group.position()
-                } else {
-                    group.position()
-                };
-                group_pos.xy() + *p
+                selection_position(*p, group, &scroll_area)
             })
         );
         selection_animation.target <+ selection_position;
