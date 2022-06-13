@@ -96,8 +96,7 @@ object GatherLicenses {
       ReportState.write(
         distributionRoot / stateFileName,
         distribution,
-        summaryWarnings.length,
-        log
+        summaryWarnings.length
       )
       log.info(s"Re-generated distribution notices at `$packagePath`.")
       if (summaryWarnings.nonEmpty) {
@@ -145,7 +144,7 @@ object GatherLicenses {
     ReportState.read(distributionConfig / stateFileName, log) match {
       case Some(reviewState) =>
         val currentInputHash =
-          ReportState.computeInputHash(distributionDescription, log)
+          ReportState.computeInputHash(distributionDescription)
         if (currentInputHash != reviewState.inputHash) {
           log.info("Input hash computed from build.sbt: " + currentInputHash)
           log.info("Input hash stored in metadata: " + reviewState.inputHash)
@@ -181,7 +180,7 @@ object GatherLicenses {
         )
       )
 
-    val currentOutputHash = ReportState.computeOutputHash(packageDestination, log)
+    val currentOutputHash = ReportState.computeOutputHash(packageDestination)
     if (currentOutputHash != reportState.outputHash) {
       log.info("Output hash computed from build.sbt: " + currentOutputHash)
       log.info("Output hash stored in metadata: " + reportState.outputHash)
