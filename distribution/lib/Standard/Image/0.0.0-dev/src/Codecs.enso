@@ -31,7 +31,7 @@ polyglot java import org.enso.image.Codecs as Java_Codecs
 read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.Io_Error
 read location flags=[] =
     path = case location of
-        File.File _ -> location.path
+        File.File -> location.path
         _ -> location
     read_flags = case flags of
         Vector.Vector _ ->
@@ -65,7 +65,7 @@ read location flags=[] =
 Image.Image.write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
 Image.Image.write location flags=[] =
     path = case location of
-        File.File _ -> location.path
+        File.File -> location.path
         _ -> location
     write_flags = case flags of
         Vector.Vector _ -> flags
