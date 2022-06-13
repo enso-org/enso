@@ -262,13 +262,15 @@ fn init(app: &Application) {
     scroll_area.content().add_child(&second_component_group);
     app.display.add_child(&wide_component_group);
 
-    // This is a workaround for a bug - without this transparent shape the content of the scroll
-    // area is invisible.
-    let transparent_circle = transparent_circle::View::new(&app.logger);
-    transparent_circle.size.set(Vector2(150.0, 150.0));
-    transparent_circle.set_position_xy(Vector2(200.0, -150.0));
-    scroll_area.content().add_child(&transparent_circle);
-    std::mem::forget(transparent_circle);
+    // FIXME(#182193824): This is a workaround for a bug. See the docs of the
+    // [`transparent_circle`].
+    {
+        let transparent_circle = transparent_circle::View::new(&app.logger);
+        transparent_circle.size.set(Vector2(150.0, 150.0));
+        transparent_circle.set_position_xy(Vector2(200.0, -150.0));
+        scroll_area.content().add_child(&transparent_circle);
+        std::mem::forget(transparent_circle);
+    }
 
     let selection = component_group::selection_box::View::new(&app.logger);
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));

@@ -33,6 +33,11 @@
 //! - (for component groups with header) A background of the header [selection_header_background][].
 //! - (for component groups with header) Header text.
 //!
+//! This implementation allows tweaking the appearance of the selected text and icons easily.
+//! When the selection box moves the transition between "normal" and "selected" appearances also
+//! looks natural without any additional tricks. So you can see a "half-selected" entry if the
+//! selection box is only covering part of it.
+//!
 //! [mask]: ensogl::display::scene::layer::Layer#masking-layers-with-arbitrary-shapes
 
 #![recursion_limit = "512"]
@@ -159,7 +164,6 @@ pub mod background {
 }
 
 
-
 // === Header Background ===
 
 /// The background of the header. It consists of a rectangle that matches the [`background`] in
@@ -205,7 +209,6 @@ pub mod selection_header_background {
         }
     }
 }
-
 
 
 // === Header Overlay ===
@@ -514,7 +517,13 @@ impl component::Frp<Model> for Frp {
 
 /// A set of scene layers shared by every component group.
 ///
-/// Layers are duplicated in order to implement selection box. See module-level documentation.
+/// Layers are duplicated into two sets ([`LayersInner`]). `normal` layers are used by the
+/// component group itself, `selection` layers are used to implement the selection box. See
+/// module-level documentation.
+///
+/// A component group consists of several shapes with a strict rendering order. The order of the
+/// fields in [`LayersInner`] struct represents the rendering order of layers, with `background`
+/// being the bottom-most and `header_text` being the top-most.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Layers {
     normal:    LayersInner,
@@ -523,23 +532,18 @@ pub struct Layers {
 
 impl Layers {
     /// Constructor.
-    pub fn new(
-        logger: &Logger,
-        normal_parent_layer: &Layer,
-        selected_parent_layer: &Layer,
-    ) -> Self {
-        let normal = LayersInner::new(logger, normal_parent_layer);
-        let selected = LayersInner::new(logger, selected_parent_layer);
+    ///
+    /// `normal` layers are assigned as sublayers of the `normal_parent`, while `selection`
+    /// layers are assigned to the `selected_parent`.
+    pub fn new(logger: &Logger, normal_parent: &Layer, selected_parent: &Layer) -> Self {
+        let normal = LayersInner::new(logger, normal_parent);
+        let selection = LayersInner::new(logger, selected_parent);
 
-        Self { normal, selection: selected }
+        Self { normal, selection }
     }
 }
 
-/// A set of scene layers shared by every component group.
-///
-/// A component group consists of a several shapes with a strict rendering order. The order of the
-/// fields of this struct represents the rendering order of layers, with `background` being the
-/// bottom-most and `header_text` being the top-most.
+/// A set of scene layers shared by every component group. A part of [`Layers`].
 #[derive(Debug, Clone, CloneRef)]
 struct LayersInner {
     background:  Layer,
@@ -551,8 +555,7 @@ struct LayersInner {
 impl LayersInner {
     /// Constructor.
     ///
-    /// Layers will be attached to a `parent_layer` as
-    /// sublayers.
+    /// Layers will be attached to a `parent_layer` as sublayers.
     pub fn new(logger: &Logger, parent_layer: &Layer) -> Self {
         let camera = parent_layer.camera();
         let background = Layer::new_with_cam(logger.clone_ref(), &camera);

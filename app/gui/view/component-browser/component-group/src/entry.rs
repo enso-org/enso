@@ -19,7 +19,6 @@ use ensogl_hardcoded_theme::application::component_browser::component_group::ent
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabel;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
-use ensogl_list_view::Entry;
 
 
 
@@ -171,7 +170,7 @@ impl View {
     }
 }
 
-impl Entry for View {
+impl list_view::Entry for View {
     type Model = Model;
     type Params = Params;
 
