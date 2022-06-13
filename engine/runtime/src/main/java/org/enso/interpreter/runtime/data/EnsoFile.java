@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.CopyOption;
 import java.nio.file.OpenOption;
 
 /**
@@ -135,6 +136,12 @@ public class EnsoFile implements TruffleObject {
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   public void delete() throws IOException {
     truffleFile.delete();
+  }
+
+  @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  public void move(EnsoFile target, CopyOption[] options) throws IOException {
+    truffleFile.move(target.truffleFile, options);
   }
 
   @Builtin.Method
