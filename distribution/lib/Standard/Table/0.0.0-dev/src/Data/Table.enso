@@ -5,7 +5,6 @@ import Standard.Table.Data.Column
 import Standard.Visualization
 from Standard.Base.Data.Time.Date as Date_Module import Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
-import Standard.Table.Io.Format
 import Standard.Table.Io.File_Format
 import Standard.Base.System.File
 import Standard.Base.System.File.Existing_File_Behavior

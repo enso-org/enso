@@ -9,6 +9,8 @@ import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
+import Standard.Table.Io.File_Format
+import Standard.Base.System.File.Existing_File_Behavior
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
@@ -975,7 +977,8 @@ type Table
                  table.write (Enso_Project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Column_Mapping.By_Name on_problems=Report_Warning =
-        format.write_table (File.new path) this on_existing_file column_mapping on_problems
+        # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
+        this.to_dataframe.write path format on_existing_file column_mapping on_problems
 
 ## Represents a table with grouped rows.
 type Aggregate_Table
