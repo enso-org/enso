@@ -129,7 +129,7 @@ pub struct List {
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
     filtered:              Rc<Cell<bool>>,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
-    /// Component Browser.
+    /// [Component Browser](crate::controller::Searcher).
     pub favorites:         group::List,
 }
 
