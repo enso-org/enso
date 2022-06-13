@@ -5,7 +5,7 @@ import Standard.Base.Data.Time.Date
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
 from Standard.Table.Io.Excel import Excel_Range
-from Standard.Table.Io.Excel import Sheet_Names, Range_Names, Sheet, Range
+from Standard.Table.Io.Excel import Sheet_Names, Range_Names, Sheet, Cell_Range
 
 import Standard.Test
 
@@ -169,18 +169,18 @@ spec =
             check_table table
 
         Test.specify "should let you read by range" <|
-            table = xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C"))
+            table = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C" (table.length - col_a.length)))
+            table_2 = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C" (table.length - col_a.length)))
             table_2.length . should_equal col_a.length
             check_table <| table_2
 
-            check_table <| xlsx_sheet.read (File_Format.Excel (Range "Sheet1!10:13"))
-            check_table <| xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A10:C13"))
+            check_table <| xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!10:13"))
+            check_table <| xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A10:C13"))
 
         Test.specify "should let you read by range name" <|
-            table = xlsx_sheet.read (File_Format.Excel (Range "myData"))
+            table = xlsx_sheet.read (File_Format.Excel (Cell_Range "myData"))
             table.length . should_equal col_a.length
             check_table <| table
 
@@ -201,11 +201,11 @@ spec =
     Test.group "Problems" <|
         Test.specify "should handle non-existing file gracefully" <|
             bad_file = Enso_Project.data / "DoesNotExists.xlsx"
-            bad_file.read (File_Format.Excel (Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
+            bad_file.read (File_Format.Excel (Cell_Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
-            xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C") True) . should_fail_with File.Io_Error
-            xls_sheet.read (File_Format.Excel (Range "Sheet1!A:C") False) . should_fail_with File.Io_Error
+            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") True) . should_fail_with File.Io_Error
+            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") False) . should_fail_with File.Io_Error
 
 
 main = Test.Suite.run_main here.spec

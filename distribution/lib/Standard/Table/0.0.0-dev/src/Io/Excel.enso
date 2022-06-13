@@ -24,7 +24,7 @@ type Excel_Section
 
     ## Gets a specific range (taking either a defined name or external style
        address) from the workbook.
-    type Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
+    type Cell_Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
 
 type Excel_Range
     ## Specifies a range within an Excel Workbook.
@@ -171,7 +171,7 @@ read_excel file section _ xls_format=False =
             Table.Table <| case sheet of
                 Integer -> Reader.readSheetByIndex stream sheet skip_rows row_limit xls_format
                 Text -> Reader.readSheetByName stream sheet skip_rows row_limit xls_format
-        Range address skip_rows row_limit ->
+        Cell_Range address skip_rows row_limit ->
             Table.Table <| case address of
                 Excel_Range _ -> Reader.readRange stream address.java_range skip_rows row_limit xls_format
                 Text -> Reader.readRangeByName stream address skip_rows row_limit xls_format
