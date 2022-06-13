@@ -952,46 +952,33 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     data.components = this.make_component_list(responses.iter());
-                    // let qn = this.module_qualified_name();
-                    // DEBUG!("MCDBG qn=" qn);
-                    // let lookup = this.database.lookup_by_qualified_name(&qn);
-                    // DEBUG!("MCDBG  -> " lookup;?);
-                    // if let Some((id, _)) = lookup {
-                    //     let contents = data.components.get_module_content(id);
-                    //     if let Some(group) = contents {
-                    //         for x in group.entries.borrow().iter() {
-                    //             DEBUG!("MCDBG   * " x.suggestion.qualified_name() " ~ " x.suggestion.kind;?);
-                    //         }
-                    //     }
-                    //     // let fmt = contents.iter().map(|e| iformat!("  * " e.qualified_name() " ~ " e.kind
-                    //     // DEBUG!("MCDBG  -> contents=" contents;?);
-                    // }
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
+                    let module_id = this.module_id();
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
-                        component::List::build_list_from_all_db_entries(&this.database);
+                        component::List::build_list_from_all_db_entries(&this.database, module_id);
                 }
             }
-            this.print_local_scope_entries();
+            // this.print_local_scope_entries();
             this.notifier.publish(Notification::NewActionList).await;
         });
     }
 
-    fn print_local_scope_entries(&self) -> Option<()> {
-        use crate::model::suggestion_database::entry::Kind::Module;
-        let module = self.module_qualified_name();
-        let (id, _) = self.database.lookup_by_qualified_name(&module)?;
-        let components = &self.components();
-        let entries = &components.get_module_content(id)?.entries;
-        for entry in entries.borrow().iter().map(|e| &e.suggestion).filter(|e| e.kind != Module) {
-            DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
-        }
-        Some(())
-    }
+    // fn print_local_scope_entries(&self) -> Option<()> {
+    //     use crate::model::suggestion_database::entry::Kind::Module;
+    //     let module = self.module_qualified_name();
+    //     let (id, _) = self.database.lookup_by_qualified_name(&module)?;
+    //     let components = &self.components();
+    //     let entries = &components.get_module_content(id)?.entries;
+    //     for entry in entries.borrow().iter().map(|e| &e.suggestion).filter(|e| e.kind != Module) {
+    //         DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
+    //     }
+    //     Some(())
+    // }
 
     /// Process multiple completion responses from the engine into a single list of suggestion.
     #[profile(Debug)]
@@ -1050,11 +1037,18 @@ impl Searcher {
         &self,
         completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
     ) -> component::List {
-        let mut builder = component::builder::List::new(self.database.clone_ref());
+        let database = self.database.clone_ref();
+        let mut builder = component::builder::List::new(database, self.module_id());
         for response in completion_responses {
             builder.extend(response.results.iter().cloned());
         }
         builder.build()
+    }
+
+    fn module_id(&self) -> Option<language_server::SuggestionId> {
+        let module = self.module_qualified_name();
+        let (id, _) = self.database.lookup_by_qualified_name(&module)?;
+        Some(id)
     }
 
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {

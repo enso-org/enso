@@ -133,8 +133,8 @@ pub struct List {
 
 impl List {
     /// Create a list containing all entities available in the [`model::SuggestionDatabase`].
-    pub fn build_list_from_all_db_entries(suggestion_db: &Rc<model::SuggestionDatabase>) -> List {
-        let mut builder = builder::List::new(suggestion_db.clone_ref());
+    pub fn build_list_from_all_db_entries(suggestion_db: &Rc<model::SuggestionDatabase>, local_scope: Option<suggestion_database::entry::Id>) -> List {
+        let mut builder = builder::List::new(suggestion_db.clone_ref(), local_scope);
         builder.extend(suggestion_db.keys());
         builder.build()
     }
