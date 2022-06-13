@@ -31,7 +31,9 @@ debug-assertions = true
 
 [profile.release]
 opt-level = 3
-lto = true
+lto = "thin"
+codegen-units = 16
+incremental = true
 debug = false
 debug-assertions = false
 
