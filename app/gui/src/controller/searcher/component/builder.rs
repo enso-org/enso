@@ -82,8 +82,8 @@ impl List {
         db: &model::SuggestionDatabase,
         entries: impl IntoIterator<Item = component::Id>,
     ) {
-        let components =
-            entries.into_iter().filter_map(|id| Some(Component::new(id, db.lookup(id).ok()?)));
+        let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
+        let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
