@@ -46,7 +46,7 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
          example_xlsx_to_table = Examples.xlsx.read
 
    > Example
-     Read the sheet named `Dates` from an XLSX and convert it to a table.
+     Read the sheet named `Dates` from an XLS and convert it to a table.
 
          import Standard.Table
          import Standard.Table.Io.File_Read

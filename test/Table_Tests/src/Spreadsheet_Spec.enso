@@ -26,32 +26,32 @@ spec_fmt header file read_method =
             t.at 'X3' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
 
         Test.specify "should read the specified sheet by name and properly handle dates" <|
-            t = read_method file (Sheet 'Dates')
+            t = read_method file (File_Format.Excel (Sheet 'Dates'))
             t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
             t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
 
         Test.specify "should read an empty table" <|
-            t = read_method file (Sheet "Empty")
+            t = read_method file (File_Format.Excel (Sheet "Empty"))
             t.columns.length.should_equal 0
 
         Test.specify "should gracefully handle duplicate column names and formulas" <|
-            t = read_method file (Sheet "Duplicate Columns")
+            t = read_method file (File_Format.Excel (Sheet "Duplicate Columns"))
             t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price_1']
             t.at 'Price_1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
         Test.specify "should allow reading with cell range specified" <|
-            t_1 = read_method file (Range "Simple!B:C")
+            t_1 = read_method file (File_Format.Excel (Range "Simple!B:C"))
             t_1.columns.map .name . should_equal ['Quantity', 'Price']
             t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
             t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
 
-            t_2 = read_method file (Range "Simple!3:5") has_header=False
+            t_2 = read_method file (File_Format.Excel (Range "Simple!3:5") headers=False)
             t_2.columns.length.should_equal 3
             t_2.at 'C0' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
             t_2.at 'C1' . to_vector . should_equal [20, Nothing, 30]
             t_2.at 'C2' . to_vector . should_equal [32, 43.2, 54]
 
-            t_3 = read_method file sheet="Simple" cell_range="B4:C5" has_header=False
+            t_3 = read_method file (File_Format.Excel (Range "Simple!B4:C5") headers=False)
             t_3.columns.length.should_equal 2
             t_3.at 'C0' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C1' . to_vector . should_equal [43.2, 54]
@@ -82,7 +82,7 @@ spec =
             out.delete_if_exists
             table.write_xlsx out sheet='Foo'
             clothes.write_xlsx out sheet='Foo'
-            read_1 = out.read_xlsx sheet='Foo'
+            read_1 = out.read (File_Format.Excel (Sheet "Foo"))
             read_1 . should_equal table
             read_2 = out.read_xlsx sheet='Foo 1'
             read_2 . should_equal clothes
@@ -92,7 +92,7 @@ spec =
             out.delete_if_exists
             table.write_xlsx out sheet='Foo'
             clothes.write_xlsx out sheet='Foo' write_mode=Table.Spreadsheet_Write_Mode.Overwrite
-            read = out.read_xlsx sheet='Foo'
+            read = out.read (File_Format.Excel (Sheet "Foo"))
             read . should_equal clothes
             out.delete_if_exists
 
@@ -100,7 +100,7 @@ spec =
             out.delete_if_exists
             clothes.write_xlsx out sheet='Foo'
             clothes.write_xlsx out sheet='Foo' write_mode=Table.Spreadsheet_Write_Mode.Append include_header=False
-            read = out.read_xlsx sheet='Foo'
+            read = out.read (File_Format.Excel (Sheet "Foo"))
             read . should_equal (clothes.concat clothes)
             out.delete_if_exists
 
@@ -110,8 +110,8 @@ spec =
             out_1.delete_if_exists
             out_2.delete_if_exists
             clothes.write_xlsx out max_rows_per_file=4
-            out_1.read_xlsx . should_equal (clothes.take_start 4)
-            out_2.read_xlsx . should_equal (clothes.take_end 2)
+            out_1.read . should_equal (clothes.take_start 4)
+            out_2.read . should_equal (clothes.take_end 2)
             out_1.delete_if_exists
             out_2.delete_if_exists
 
