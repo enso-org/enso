@@ -35,9 +35,11 @@ polyglot java import java.nio.file.StandardCopyOption
 
          example_new = File.new Examples.csv_path
 new : (Text | File) -> File
-new path = case path of
-    Text -> File (here.get_file path)
-    _ -> path
+new path =
+  case path of
+    Text -> here.get_file path
+    File -> path
+    _    -> Error.throw (Illegal_Argument_Error "new file should be either a File or a Text")
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.
 
@@ -53,10 +55,7 @@ new path = case path of
          example_read_bytes = File.read_bytes Examples.csv
 read_bytes : (Text | File) -> Vector.Vector ! File_Error
 read_bytes path =
-    file = case path of
-        Text -> (here.new path)
-        File _ -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file = here.new path
     file.read_bytes
 
 ## Open and read the file at the provided `path`.
@@ -86,10 +85,7 @@ read_bytes path =
          example_read = File.read_text Examples.csv_path
 read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
-    file = case path of
-        Text -> (here.new path)
-        File _ -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file = here.new path
     file.read_text encoding on_problems
 
 ## ALIAS Current Directory
@@ -103,7 +99,7 @@ read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
 
          example_cwd = File.current_directory
 current_directory : File
-current_directory = File (here.get_cwd)
+current_directory = here.get_cwd
 
 ## ALIAS Home Directory
 
@@ -116,7 +112,7 @@ current_directory = File (here.get_cwd)
 
          example_home = File.home
 home : File
-home = here.new (here.get_user_home)
+home = @Builtin_Method "File.home"
 
 ## Lists files contained in the provided directory.
 
@@ -177,10 +173,8 @@ type File
     ## PRIVATE
 
        A type representing a file.
-
-       Arguments:
-       - prim_file: The internal representation of the file.
-    type File prim_file
+    @Builtin_Type
+    type File
 
     ## Creates a new output stream for this file and runs the specified action
        on it.
@@ -207,6 +201,28 @@ type File
     with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream open_options action =
         Resource.bracket (this.new_output_stream open_options) (_.close) action
+
+    ## PRIVATE
+
+    ## Creates a new output stream for this file. Recommended to use
+       `File.with_output_stream` instead, which does resource management.
+
+       Arguments:
+       - options: A vector of `File.Option` objects determining how to open
+         the stream. These options set the access properties of the stream.
+    output_stream : Vector.Vector -> Output_Stream
+    output_stream options = @Builtin_Method "File.output_stream"
+
+    ## PRIVATE
+
+    ## Creates a new input stream for this file. Recommended to use
+       `File.with_input_stream` instead, which does resource management.
+
+       Arguments:
+       - open_options: A vector of `File.Option` objects determining how to open
+         the stream. These options set the access properties of the stream.
+    input_stream : Vector.Vector -> Input_Stream
+    input_stream options = @Builtin_Method "File.input_stream"
 
     ## Creates a new input stream for this file and runs the specified action
        on it.
@@ -315,20 +331,10 @@ type File
 
              example_append = Examples.data_dir / "scratch_file"
     / : (Text | File) -> File
-    / subpath = case subpath of
-        File prim -> File (this.prim_file.resolve prim)
-        _ -> File (this.prim_file.resolve subpath)
+    / subpath = this.resolve subpath
 
-    ## A text representation of this file.
-
-       > Example
-         Get a textual representation of a file.
-
-             import Standard.Examples
-
-             example_to_text = Examples.csv.to_text
-    to_text : Text
-    to_text = this.prim_file.to_text
+    resolve : (Text | File) -> File
+    resolve = @Builtin_Method "File.resolve"
 
     ## A File to JSON conversion.
 
@@ -350,7 +356,7 @@ type File
 
              example_exists = Examples.csv.exists
     exists : Boolean
-    exists = this.prim_file.exists
+    exists = @Builtin_Method "File.exists"
 
     ## Checks whether the file exists and is a directory.
 
@@ -361,7 +367,7 @@ type File
 
              example_is_directory = Examples.csv.is_directory
     is_directory : Boolean
-    is_directory = this.prim_file.isDirectory
+    is_directory = @Builtin_Method "File.is_directory"
 
     ## Creates the directory represented by this file if it did not exist.
 
@@ -375,7 +381,7 @@ type File
              example_is_directory =
                 (Examples.data_dir / "my_directory") . create_directory
     create_directory : Nothing
-    create_directory = this.prim_file.createDirectories
+    create_directory = @Builtin_Method "File.create_directory"
 
     ## Checks whether the file exists and is a regular file.
 
@@ -391,7 +397,7 @@ type File
 
              example_is_regular_file = Examples.csv.is_regular_file
     is_regular_file : Boolean
-    is_regular_file = this.prim_file.isRegularFile
+    is_regular_file = @Builtin_Method "File.is_regular_file"
 
     ## Resolves the parent filesystem node of this file.
 
@@ -402,7 +408,7 @@ type File
 
              example_parent = Examples.csv.parent
     parent : File
-    parent = File this.prim_file.getParent
+    parent = @Builtin_Method "File.parent"
 
     ## Returns the path of this file.
 
@@ -413,7 +419,7 @@ type File
 
              example_path = Examples.csv.path
     path : Text
-    path = this.prim_file.getPath
+    path = @Builtin_Method "File.path"
 
     ## Returns the name of this file.
 
@@ -424,7 +430,7 @@ type File
 
              example_name = Examples.csv.name
     name : Text
-    name = this.prim_file.getName
+    name = @Builtin_Method "File.name"
 
     ## Returns the extension of the file.
 
@@ -452,7 +458,7 @@ type File
 
              example_absolute = Examples.csv.absolute
     absolute : File
-    absolute = File this.prim_file.getAbsoluteFile
+    absolute = @Builtin_Method "File.absolute"
 
     ## Checks is this file's path is absolute.
 
@@ -463,7 +469,7 @@ type File
 
              example_is_absolute = Examples.csv.is_absolute
     is_absolute : Boolean
-    is_absolute = this.prim_file.isAbsolute
+    is_absolute = @Builtin_Method "File.is_absolute"
 
     ## Normalizes the filepath.
 
@@ -474,7 +480,7 @@ type File
 
              example_normalize = Examples.csv.normalize
     normalize : File
-    normalize = File this.prim_file.normalize
+    normalize = @Builtin_Method "File.normalize"
 
     ## Checks if this file has the same `path` as `that`.
 
@@ -485,7 +491,7 @@ type File
 
              example_eq = Examples.csv == Examples.scratch_file
     == : File -> Boolean
-    == that = this.prim_file.isEqual that.prim_file
+    == that = @Builtin_Method "File.=="
 
     ## Deletes the file.
 
@@ -499,11 +505,18 @@ type File
 
              example_delete =
                  file = Examples.data_dir / "my_file"
-                 "hello".write file
+                 file.write_text "hello"
                  file.delete
     delete : Nothing ! File_Error
     delete =
-        here.handle_java_exceptions this this.prim_file.delete
+        here.handle_java_exceptions this this.delete_builtin
+
+    ## PRIVATE
+
+       Builtin method that deletes the file.
+       Recommended to use `File.delete` instead which handles potential exceptions.
+    delete_builtin : Nothing
+    delete_builtin = @Builtin_Method "File.delete"
 
     ## Moves the file to the specified destination.
 
@@ -514,8 +527,17 @@ type File
     move_to : File -> Boolean -> Nothing ! File_Error
     move_to destination replace_existing=True =
         here.handle_java_exceptions this <| case replace_existing of
-            True -> this.prim_file.move destination.prim_file StandardCopyOption.REPLACE_EXISTING
-            False -> this.prim_file.move destination.prim_file
+            True ->
+              copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
+              this.move_builtin destination copy_options
+            False -> this.move_builtin destination Array.empty
+
+    ## PRIVATE
+
+       Builtin method that moves this file to a new destination.
+       Recommended to use `File.move_to` instead which handles potential exceptions.
+    move_builtin : File -> Array Any -> Nothing
+    move_builtin destination copy_options = @Builtin_Method "File.move_builtin"
 
     ## Deletes the file if it exists on disk.
 
@@ -544,7 +566,7 @@ type File
     new_input_stream : Vector.Vector -> Input_Stream ! File_Error
     new_input_stream open_options =
         opts = open_options . map (_.to_java) . to_array
-        stream = here.handle_java_exceptions this (this.prim_file.newInputStream opts)
+        stream = here.handle_java_exceptions this (this.input_stream opts)
         resource = Managed_Resource.register stream here.close_stream
         Input_Stream this resource
 
@@ -562,7 +584,7 @@ type File
     new_output_stream open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = here.handle_java_exceptions this <|
-            this.prim_file.newOutputStream opts
+            this.output_stream opts
         resource = Managed_Resource.register stream here.close_stream
         Output_Stream this resource
 
@@ -622,26 +644,47 @@ type File
     list name_filter=Nothing recursive=False =
         all_files = case recursive of
             True -> here.list_descendants this
-            False -> here.list_immediate_children this
+            False -> this.list_immediate_children
         filtered = case name_filter of
             Nothing -> all_files
             _ ->
                 fs = FileSystems.getDefault
                 matcher = fs.getPathMatcher "glob:"+name_filter
                 all_files.filter file->
-                    pathStr = this.prim_file.relativize file.prim_file . getPath
+                    pathStr = this.relativize file . path
                     matcher.matches (Path.of pathStr)
         filtered
 
     ## UNSTABLE
 
        Checks if `this` is a child path of `other`.
-    is_child_of other = this.prim_file.startsWith other.prim_file
+    is_child_of : File -> Boolean
+    is_child_of other = this.starts_with other
 
     ## UNSTABLE
 
        Transforms `child` to a relative path with respect to `this`.
-    relativize child = File (this.prim_file.relativize child.prim_file)
+    relativize : File -> Boolean
+    relativize child = @Builtin_Method "File.relativize"
+
+
+    ## PRIVATE
+
+       Utility function that lists immediate children of a directory.
+    list_immediate_children : Vector.Vector File
+    list_immediate_children = Vector.Vector (this.list_immediate_children_array)
+
+    ## PRIVATE
+
+       Utility function that lists immediate children of a directory.
+    list_immediate_children_array : Array File
+    list_immediate_children_array = @Builtin_Method "File.list_immediate_children_array"
+
+    ## PRIVATE
+
+       Return the absolute path of this File
+    to_text : Text
+    to_text = this.absolute . path
 
 ## An output stream, allowing for interactive writing of contents into an
    open file.
@@ -882,14 +925,6 @@ type File_Error
         File_Already_Exists_Error file -> "The file at "+file.path+" already exists."
 
 
-## PRIVATE
-
-   Utility function that lists immediate children of a directory.
-list_immediate_children : File -> Vector.Vector File
-list_immediate_children directory =
-    arr = directory.prim_file.list
-    Vector.new (Polyglot.get_array_size arr) ix->
-        File (arr.at ix)
 
 ## PRIVATE
 
@@ -903,7 +938,7 @@ list_descendants file =
         builder.append file
         case file.is_directory of
             True ->
-                children = here.list_immediate_children file
+                children = file.list_immediate_children
                 children.each go
             False -> Nothing
     go file
@@ -924,13 +959,6 @@ get_cwd = @Builtin_Method "File.get_cwd"
    - path: The path to obtain a file at.
 get_file : Text -> File
 get_file path = @Builtin_Method "File.get_file"
-
-## PRIVATE
-
-   Gets the textual path to the user's system-defined home directory.
-user_home : Text
-user_home = @Builtin_Method "File.user_home"
-
 
 ## Writes (or appends) the specified bytes to the specified file.
    The behavior specified in the `existing_file` parameter will be used if the

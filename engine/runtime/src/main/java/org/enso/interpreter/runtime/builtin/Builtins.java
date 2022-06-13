@@ -20,6 +20,8 @@ import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.*;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
+import org.enso.interpreter.node.expression.builtin.error.Warning;
+import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
@@ -72,6 +74,8 @@ public class Builtins {
   private final BuiltinAtomConstructor managedResource;
   private final BuiltinAtomConstructor debug;
   private final BuiltinAtomConstructor projectDescription;
+  private final BuiltinAtomConstructor file;
+  private final BuiltinAtomConstructor warning;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -108,7 +112,9 @@ public class Builtins {
     managedResource = new BuiltinAtomConstructor(this, ManagedResource.class);
     debug = new BuiltinAtomConstructor(this, Debug.class);
     projectDescription = new BuiltinAtomConstructor(this, ProjectDescription.class);
+    file = new BuiltinAtomConstructor(this, File.class);
     special = new Special(language);
+    warning = new BuiltinAtomConstructor(this, Warning.class);
   }
 
   /**
@@ -387,6 +393,24 @@ public class Builtins {
    */
   public AtomConstructor any() {
     return any.constructor();
+  }
+
+  /**
+   * Returns the {@code Warning} atom constructor.
+   *
+   * @return the {@code Warning} atom constructor
+   */
+  public AtomConstructor warning() {
+    return warning.constructor();
+  }
+
+  /**
+   * Returns the {@code File} atom constructor.
+   *
+   * @return the {@code File} atom constructor
+   */
+  public AtomConstructor file() {
+    return file.constructor();
   }
 
   /**

@@ -240,6 +240,7 @@
 - [Generate boilerplate classes related to error handling and varargs in
   builtins from method signatures][3454]
 - [Avoid needless concatenations of warning/error messages][3465]
+- [Added a full-blown DSL for builtins][3471]
 - [Lazy evaluation of RHS argument for || and &&][3492]
 - [Drop Core implementation of IR][3512]
 
@@ -264,6 +265,7 @@
 [3454]: https://github.com/enso-org/enso/pull/3454
 [3461]: https://github.com/enso-org/enso/pull/3461
 [3465]: https://github.com/enso-org/enso/pull/3465
+[3471]: https://github.com/enso-org/enso/pull/3471
 [3492]: https://github.com/enso-org/enso/pull/3492
 [3493]: https://github.com/enso-org/enso/pull/3493
 [3505]: https://github.com/enso-org/enso/pull/3505
