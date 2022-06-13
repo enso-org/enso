@@ -15,7 +15,7 @@ use crate::model::suggestion_database;
 
 /// The [`Group`] fields, which are shared and available by [`AsRef`] and [`Deref`].
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Data {
     pub name:         ImString,
     /// A component corresponding to this group, e.g. the module of whose content the group
@@ -40,7 +40,7 @@ impl Data {
 // =============
 
 /// A group of [`Component`]s.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct Group {
     data: Rc<Data>,
 }

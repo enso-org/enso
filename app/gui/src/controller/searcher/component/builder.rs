@@ -160,6 +160,7 @@ impl List {
             module_groups:         Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
+            local_scope:           self.local_scope.unwrap_or_default(),
             filtered:              default(),
         }
     }

@@ -127,7 +127,7 @@ pub struct List {
     top_modules:           group::List,
     top_modules_flattened: group::List,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
-    default_local_scope:   Id,
+    local_scope:           Group,
     filtered:              Rc<Cell<bool>>,
 }
 
