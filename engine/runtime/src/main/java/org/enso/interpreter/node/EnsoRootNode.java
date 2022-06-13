@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
@@ -18,6 +19,7 @@ public abstract class EnsoRootNode extends RootNode {
   private final int sourceLength;
   private final LocalScope localScope;
   private final ModuleScope moduleScope;
+  private final Source inlineSource;
   private final FrameSlot stateFrameSlot;
 
   /**
@@ -39,6 +41,11 @@ public abstract class EnsoRootNode extends RootNode {
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
+    if (sourceSection == null || moduleScope.getModule().isModuleSource(sourceSection.getSource())) {
+      this.inlineSource = null;
+    } else {
+      this.inlineSource = sourceSection.getSource();
+    }
     this.sourceStartIndex = sourceSection == null ? NO_SOURCE : sourceSection.getCharIndex();
     this.sourceLength = sourceSection == null ? NO_SOURCE : sourceSection.getCharLength();
     this.stateFrameSlot =
@@ -96,7 +103,11 @@ public abstract class EnsoRootNode extends RootNode {
   static final int NO_SOURCE = -1;
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
-      return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
+      if (rootNode.inlineSource == null) {
+        return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
+      } else {
+        return rootNode.inlineSource.createSection(sourceStartIndex, sourceLength);
+      }
     }
     return null;
   }

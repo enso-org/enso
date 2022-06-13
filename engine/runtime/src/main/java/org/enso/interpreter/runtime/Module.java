@@ -208,10 +208,10 @@ public class Module implements TruffleObject {
    * @param edit description of the small edit made
    */
   public void setLiteralSource(Rope source, IR.Literal change, model.TextEdit edit) {
-    if (this.patchedValues == null) {
-      this.patchedValues = new PatchedModuleValues(this);
-    }
     if (this.scope != null && edit != null) {
+      if (this.patchedValues == null) {
+        this.patchedValues = new PatchedModuleValues(this);
+      }
       if (patchedValues.simpleUpdate(this, edit)) {
         this.sources = this.sources.newWith(source);
         final Function1<IR.Expression, IR.Expression> fn = new Function1<IR.Expression, IR.Expression>() {

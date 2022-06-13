@@ -445,7 +445,14 @@ class IrToTruffle(
     location: Option[IdentifiedLocation]
   ): SourceSection = {
     location
-      .map(loc => module.getModule().createSection(loc.start, loc.length))
+      .map(loc => {
+        val m = module.getModule()
+        if (m.isModuleSource(source)) {
+          module.getModule().createSection(loc.start, loc.length)
+        } else {
+          source.createSection(loc.start, loc.length)
+        }
+      })
       .getOrElse(source.createUnavailableSection())
   }
 

@@ -3,8 +3,6 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.text.buffer.Rope;
@@ -31,17 +29,11 @@ record ModuleSources(
     if (cachedSource != null) {
       return this;
     }
-    URI uri;
-    try {
-      uri = new URI("enso://" + Integer.toHexString(System.identityHashCode(this)) + "/" + name);
-    } catch (URISyntaxException ex) {
-      throw new IllegalStateException(ex);
-    }
     if (literalSource() != null) {
-      com.oracle.truffle.api.source.Source src = Source.newBuilder(LanguageInfo.ID, ropeHolder.characters(), name.toString()).uri(uri).build();
+      Source src = Source.newBuilder(LanguageInfo.ID, ropeHolder.characters(), name.toString()).build();
       return new ModuleSources(sourceFile, ropeHolder, src);
     } else if (sourceFile != null) {
-      com.oracle.truffle.api.source.Source src = Source.newBuilder(LanguageInfo.ID, sourceFile).uri(uri).build();
+      Source src = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
       org.enso.text.buffer.Rope lit = Rope.apply(src.getCharacters().toString());
       return new ModuleSources(sourceFile, lit, src);
     }
