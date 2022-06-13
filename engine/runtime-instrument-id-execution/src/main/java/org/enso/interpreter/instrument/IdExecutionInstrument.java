@@ -31,11 +31,9 @@ import java.util.function.Consumer;
 
 /** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
-    id = IdExecutionInstrument.INSTRUMENT_ID,
-    services = IdExecutionInstrument.class)
-public class IdExecutionInstrument extends TruffleInstrument {
-  public static final String INSTRUMENT_ID = "id-value-extractor";
-
+    id = IdExecutionService.INSTRUMENT_ID,
+    services = IdExecutionService.class)
+public class IdExecutionInstrument extends TruffleInstrument implements IdExecutionService {
   private Timer timer;
   private Env env;
 
@@ -56,223 +54,9 @@ public class IdExecutionInstrument extends TruffleInstrument {
    *
    * @param timer the timer to override with
    */
+  @Override
   public void overrideTimer(Timer timer) {
     this.timer = timer;
-  }
-
-  /** A class for notifications about functions being called in the course of execution. */
-  public static class ExpressionCall {
-    private final UUID expressionId;
-    private final FunctionCallInstrumentationNode.FunctionCall call;
-
-    /**
-     * Creates an instance of this class.
-     *
-     * @param expressionId the expression id where function call was performed.
-     * @param call the actual function call data.
-     */
-    public ExpressionCall(UUID expressionId, FunctionCallInstrumentationNode.FunctionCall call) {
-      this.expressionId = expressionId;
-      this.call = call;
-    }
-
-    /** @return the id of the node performing the function call. */
-    public UUID getExpressionId() {
-      return expressionId;
-    }
-
-    /** @return the function call metadata. */
-    public FunctionCallInstrumentationNode.FunctionCall getCall() {
-      return call;
-    }
-  }
-
-  /** A class for notifications about identified expressions' values being computed. */
-  public static class ExpressionValue {
-    private final UUID expressionId;
-    private final Object value;
-    private final String type;
-    private final String cachedType;
-    private final FunctionCallInfo callInfo;
-    private final FunctionCallInfo cachedCallInfo;
-    private final ProfilingInfo[] profilingInfo;
-    private final boolean wasCached;
-
-    /**
-     * Creates a new instance of this class.
-     *
-     * @param expressionId the id of the expression being computed.
-     * @param value the value returned by computing the expression.
-     * @param type the type of the returned value.
-     * @param cachedType the cached type of the value.
-     * @param callInfo the function call data.
-     * @param cachedCallInfo the cached call data.
-     * @param profilingInfo the profiling information associated with this node
-     * @param wasCached whether or not the value was obtained from the cache
-     */
-    public ExpressionValue(
-        UUID expressionId,
-        Object value,
-        String type,
-        String cachedType,
-        FunctionCallInfo callInfo,
-        FunctionCallInfo cachedCallInfo,
-        ProfilingInfo[] profilingInfo,
-        boolean wasCached) {
-      this.expressionId = expressionId;
-      this.value = value;
-      this.type = type;
-      this.cachedType = cachedType;
-      this.callInfo = callInfo;
-      this.cachedCallInfo = cachedCallInfo;
-      this.profilingInfo = profilingInfo;
-      this.wasCached = wasCached;
-    }
-
-    @Override
-    public String toString() {
-      String profilingInfo = Arrays.toString(this.profilingInfo);
-      return "ExpressionValue{"
-          + "expressionId="
-          + expressionId
-          + ", value="
-          + new MaskedString(value.toString()).applyMasking()
-          + ", type='"
-          + type
-          + '\''
-          + ", cachedType='"
-          + cachedType
-          + '\''
-          + ", callInfo="
-          + callInfo
-          + ", cachedCallInfo="
-          + cachedCallInfo
-          + ", profilingInfo="
-          + profilingInfo
-          + ", wasCached="
-          + wasCached
-          + '}';
-    }
-
-    /** @return the id of the expression computed. */
-    public UUID getExpressionId() {
-      return expressionId;
-    }
-
-    /** @return the type of the returned value. */
-    public String getType() {
-      return type;
-    }
-
-    /** @return the cached type of the value. */
-    public String getCachedType() {
-      return cachedType;
-    }
-
-    /** @return the computed value of the expression. */
-    public Object getValue() {
-      return value;
-    }
-
-    /** @return the function call data. */
-    public FunctionCallInfo getCallInfo() {
-      return callInfo;
-    }
-
-    /** @return the function call data previously associated with the expression. */
-    public FunctionCallInfo getCachedCallInfo() {
-      return cachedCallInfo;
-    }
-
-    /** @return the profiling information associated with this expression */
-    public ProfilingInfo[] getProfilingInfo() {
-      return profilingInfo;
-    }
-
-    /** @return whether or not the expression result was obtained from the cache */
-    public boolean wasCached() {
-      return wasCached;
-    }
-
-    /** @return {@code true} when the type differs from the cached value. */
-    public boolean isTypeChanged() {
-      return !Objects.equals(type, cachedType);
-    }
-
-    /** @return {@code true} when the function call differs from the cached value. */
-    public boolean isFunctionCallChanged() {
-      return !Objects.equals(callInfo, cachedCallInfo);
-    }
-  }
-
-  /** Information about the function call. */
-  public static class FunctionCallInfo {
-
-    private final QualifiedName moduleName;
-    private final QualifiedName typeName;
-    private final String functionName;
-
-    /**
-     * Creates a new instance of this class.
-     *
-     * @param call the function call.
-     */
-    public FunctionCallInfo(FunctionCallInstrumentationNode.FunctionCall call) {
-      RootNode rootNode = call.getFunction().getCallTarget().getRootNode();
-      if (rootNode instanceof MethodRootNode) {
-        MethodRootNode methodNode = (MethodRootNode) rootNode;
-        moduleName = methodNode.getModuleScope().getModule().getName();
-        typeName = methodNode.getAtomConstructor().getQualifiedName();
-        functionName = methodNode.getMethodName();
-      } else if (rootNode instanceof EnsoRootNode) {
-        moduleName = ((EnsoRootNode) rootNode).getModuleScope().getModule().getName();
-        typeName = null;
-        functionName = rootNode.getName();
-      } else {
-        moduleName = null;
-        typeName = null;
-        functionName = rootNode.getName();
-      }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      FunctionCallInfo that = (FunctionCallInfo) o;
-      return Objects.equals(moduleName, that.moduleName)
-          && Objects.equals(typeName, that.typeName)
-          && Objects.equals(functionName, that.functionName);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(moduleName, typeName, functionName);
-    }
-
-    @Override
-    public String toString() {
-      return moduleName + "::" + typeName + "::" + functionName;
-    }
-
-    /** @return the name of the module this function was defined in, or null if not available. */
-    public QualifiedName getModuleName() {
-      return moduleName;
-    }
-
-    /** @return the name of the type this method was defined for, or null if not a method. */
-    public QualifiedName getTypeName() {
-      return typeName;
-    }
-
-    /** @return the name of this function. */
-    public String getFunctionName() {
-      return functionName;
-    }
   }
 
   /** The listener class used by this instrument. */
@@ -506,6 +290,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param onExceptionalCallback the consumer of the exceptional events.
    * @return a reference to the attached event listener.
    */
+  @Override
   public EventBinding<ExecutionEventListener> bind(
       CallTarget entryCallTarget,
       LocationFilter locationFilter,

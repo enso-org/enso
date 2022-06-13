@@ -20,7 +20,6 @@ import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -61,8 +60,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
         instrumenter.attachExecutionEventFactory(
             filter,
             ctx ->
-                new ReplExecutionEventNode(
-                    ctx, handler, env.getLogger(ReplExecutionEventNode.class)));
+                new ReplExecutionEventNodeImpl(
+                    ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class)));
       } else {
         env.getLogger(ReplDebuggerInstrument.class)
             .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
@@ -85,7 +84,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   }
 
   /** The actual node that's installed as a probe on any node the instrument was launched for. */
-  public static class ReplExecutionEventNode extends ExecutionEventNode {
+  private static class ReplExecutionEventNodeImpl extends ExecutionEventNode
+      implements ReplExecutionEventNode {
     private @Child EvalNode evalNode = EvalNode.buildWithResultScopeCapture();
     private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 
@@ -95,7 +95,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private DebuggerMessageHandler handler;
     private TruffleLogger logger;
 
-    private ReplExecutionEventNode(
+    private ReplExecutionEventNodeImpl(
         EventContext eventContext, DebuggerMessageHandler handler, TruffleLogger logger) {
       this.eventContext = eventContext;
       this.handler = handler;
@@ -114,11 +114,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       return currentFrame;
     }
 
-    /**
-     * Lists all the bindings available in the current execution scope.
-     *
-     * @return a map, where keys are variable names and values are current values of variables.
-     */
+    @Override
     public Map<String, Object> listBindings() {
       Map<String, FramePointer> flatScope =
           nodeState.getLastScope().getLocalScope().flattenBindings();
@@ -129,12 +125,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       return result;
     }
 
-    /**
-     * Evaluates an arbitrary expression in the current execution context.
-     *
-     * @param expression the expression to evaluate
-     * @return the result of evaluating the expression or an exception that caused failure
-     */
+    @Override
     public Either<Exception, Object> evaluate(String expression) {
       ReplExecutionEventNodeState savedState = nodeState;
       try {
@@ -155,14 +146,11 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       }
     }
 
-    /**
-     * Returns the String representation of the provided object as defined by Enso {@code to_text}
-     * operation.
-     */
-    public Either<Exception, String> showObject(Object o) {
+    @Override
+    public Either<Exception, String> showObject(Object object) {
       try {
         InteropLibrary interop = InteropLibrary.getUncached();
-        return new Right<>(interop.asString(interop.toDisplayString(o)));
+        return new Right<>(interop.asString(interop.toDisplayString(object)));
       } catch (Exception e) {
         return new Left<>(e);
       }
@@ -176,15 +164,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       }
     }
 
-    /**
-     * Terminates this REPL session.
-     *
-     * <p>The last result of {@link #evaluate(String)} (or {@link Builtins#nothing()} if {@link
-     * #evaluate(String)} was not called before) will be returned from the instrumented node.
-     *
-     * <p>This function must always be called at the end of REPL session, as otherwise the program
-     * will never resume. It's forbidden to use this object after exit has been called.
-     */
+    @Override
     public void exit() {
       throw eventContext.createUnwind(nodeState.getLastReturn());
     }

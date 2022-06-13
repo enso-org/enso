@@ -3,7 +3,6 @@ package org.enso.interpreter.epb;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
 /**

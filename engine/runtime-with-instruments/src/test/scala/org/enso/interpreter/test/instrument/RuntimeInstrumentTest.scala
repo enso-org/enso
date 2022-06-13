@@ -74,8 +74,9 @@ class RuntimeInstrumentTest
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[org.enso.interpreter.runtime.Context]
-    languageContext.getLanguage.getIdExecutionInstrument
-      .overrideTimer(new TestTimer)
+    languageContext.getLanguage.getIdExecutionService.ifPresent(
+      _.overrideTimer(new TestTimer)
+    );
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
