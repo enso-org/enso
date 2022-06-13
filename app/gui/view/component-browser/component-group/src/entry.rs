@@ -109,13 +109,28 @@ impl Default for Params {
 
 // === CurrentIcon ===
 
-/// The structure keeping a currently displayed incon in Component Group Entry [`View`]. Remembering
+/// The structure keeping a currently displayed icon in Component Group Entry [`View`]. Remembering
 /// id allows us to skip icon generation when not changed.
 #[derive(Debug, Default)]
 struct CurrentIcon {
     shape: Option<icon::Any>,
     id:    Option<icon::Id>,
 }
+
+impl CurrentIcon {
+    fn set_strong_color(&self, color: color::Rgba) {
+        if let Some(shape) = &self.shape {
+            shape.strong_color.set(color.into());
+        }
+    }
+
+    fn set_weak_color(&self, color: color::Rgba) {
+        if let Some(shape) = &self.shape {
+            shape.weak_color.set(color.into());
+        }
+    }
+}
+
 
 
 // === View ===
@@ -127,6 +142,7 @@ pub struct View {
     logger:            Logger,
     display_object:    display::object::Instance,
     icon:              Rc<RefCell<CurrentIcon>>,
+    selected_icon:     Rc<RefCell<CurrentIcon>>,
     max_width_px:      frp::Source<f32>,
     icon_strong_color: frp::Sampler<color::Rgba>,
     icon_weak_color:   frp::Sampler<color::Rgba>,
@@ -134,6 +150,26 @@ pub struct View {
     selected_label:    GlyphHighlightedLabel,
     selection_layer:   Rc<Option<WeakLayer>>,
     label_layer:       Rc<RefCell<WeakLayer>>,
+}
+
+impl View {
+    /// Update an icon shape (create it if necessary), update its color, add it to `layer` if
+    /// supplied.
+    fn update_icon(&self, model: &Model, icon: &RefCell<CurrentIcon>, layer: Option<Layer>) {
+        let mut icon = icon.borrow_mut();
+        if !icon.id.contains(&model.icon) {
+            icon.id = Some(model.icon);
+            let shape = model.icon.create_shape(&self.logger, Vector2(icon::SIZE, icon::SIZE));
+            shape.strong_color.set(self.icon_strong_color.value().into());
+            shape.weak_color.set(self.icon_weak_color.value().into());
+            shape.set_position_x(icon::SIZE / 2.0);
+            self.display_object.add_child(&shape);
+            if let Some(layer) = layer {
+                layer.add_exclusive(&shape);
+            }
+            icon.shape = Some(shape);
+        }
+    }
 }
 
 impl Entry for View {
@@ -148,6 +184,7 @@ impl Entry for View {
         let logger = Logger::new("component_group::Entry");
         let display_object = display::object::Instance::new(&logger);
         let icon: Rc<RefCell<CurrentIcon>> = default();
+        let selected_icon: Rc<RefCell<CurrentIcon>> = default();
         let label = GlyphHighlightedLabel::new(app, style_prefix, &());
         let selected_label = GlyphHighlightedLabel::new(app, style_prefix, &());
         display_object.add_child(&label);
@@ -156,6 +193,8 @@ impl Entry for View {
         if let Some(selection_layer) = &**selection_layer {
             if let Some(layer) = selection_layer.upgrade() {
                 selected_label.set_label_layer(&layer);
+            } else {
+                error!(logger, "Selection layer is dropped.");
             }
         }
 
@@ -179,33 +218,32 @@ impl Entry for View {
             });
             label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
             selected_label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
-            eval colors.icon_strong ([icon](color)
-                if let Some(shape) = &icon.borrow().shape {
-                    shape.strong_color.set(color.into());
-                }
-            );
-            eval colors.icon_weak ([icon](color)
-                if let Some(shape) = &icon.borrow().shape {
-                    shape.weak_color.set(color.into());
-                }
-            );
+            eval colors.icon_strong ([icon, selected_icon](&color) {
+                icon.borrow().set_strong_color(color);
+                selected_icon.borrow().set_strong_color(color);
+            });
+            eval colors.icon_weak ([icon, selected_icon](&color) {
+                icon.borrow().set_weak_color(color);
+                selected_icon.borrow().set_weak_color(color);
+            });
         }
         init.emit(());
         let icon_strong_color = colors.icon_strong.clone_ref();
         let icon_weak_color = colors.icon_weak.clone_ref();
-        let selected_layer = selection_layer.clone_ref();
+        let selection_layer = selection_layer.clone_ref();
         let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.main.downgrade()));
         Self {
             logger,
             network,
             display_object,
             icon,
+            selected_icon,
             max_width_px,
             icon_strong_color,
             icon_weak_color,
             label,
             selected_label,
-            selection_layer: selected_layer,
+            selection_layer,
             label_layer,
         }
     }
@@ -213,27 +251,13 @@ impl Entry for View {
     fn update(&self, model: &Self::Model) {
         self.label.update(&model.highlighted_text);
         self.selected_label.update(&model.highlighted_text);
-        let mut icon = self.icon.borrow_mut();
-        if !icon.id.contains(&model.icon) {
-            icon.id = Some(model.icon);
-            let shape = model.icon.create_shape(&self.logger, Vector2(icon::SIZE, icon::SIZE));
-            shape.strong_color.set(self.icon_strong_color.value().into());
-            shape.weak_color.set(self.icon_weak_color.value().into());
-            shape.set_position_x(icon::SIZE / 2.0);
-            self.display_object.add_child(&shape);
-            if let Some(label_layer) = self.label_layer.borrow().upgrade() {
-                label_layer.add_exclusive(&shape);
+        self.update_icon(model, &self.icon, None);
+        if let Some(weak_layer) = &*self.selection_layer {
+            if let Some(layer) = weak_layer.upgrade() {
+                self.update_icon(model, &self.selected_icon, Some(layer));
             } else {
-                error!(self.logger, "Label layer of the component group entry was dropped.");
+                error!(self.logger, "Cannot add icon shape to a dropped scene layer.");
             }
-            if let Some(selected_layer) = &*self.selection_layer {
-                if let Some(selected_layer) = selected_layer.upgrade() {
-                    selected_layer.add(&shape);
-                } else {
-                    error!(self.logger, "Selected layer of the component group entry was dropped.");
-                }
-            }
-            icon.shape = Some(shape);
         }
     }
 
