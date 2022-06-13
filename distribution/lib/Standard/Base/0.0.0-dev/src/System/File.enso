@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
+import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
@@ -13,8 +14,10 @@ polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.NoSuchFileException
+polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
+polyglot java import java.nio.file.StandardCopyOption
 
 ## ALIAS New File
 
@@ -88,36 +91,6 @@ read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
         File _ -> path
         _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
     file.read_text encoding on_problems
-
-## ALIAS Write Text File
-
-   Open and write to the file at the provided `path`.
-
-   Arguments:
-   - path: The path of the file to open and read the contents of. It will
-     accept a textual path or a file.
-   - contents: The text to write to the file.
-   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
-
-   ? Module or Instance?
-     If you have a variable `file` of type `File`, we recommend calling the
-     `.read_text` method on it directly, rather than using
-     `File.read_text file`. The later, however, will still work.
-
-   > Example
-     Read the `data.csv` file from the Examples project.
-
-         import Standard.Base.System.File
-         import Standard.Examples
-
-         example_read = File.read_text Examples.csv_path
-write_text : (Text | File) -> Text -> Encoding -> Text
-write_text path contents (encoding=Encoding.utf_8) =
-    file = case path of
-        Text -> (here.new path)
-        File _ -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
-    file.write_text contents encoding
 
 ## ALIAS Current Directory
 
@@ -311,20 +284,6 @@ type File
         opts = [Option.Append, Option.Create]
         this.with_output_stream opts (_.write_bytes contents)
 
-    ## Appends a UTF-8 encoded `Text` at the end of this file.
-
-       Arguments:
-       - contents: The UTF-8 encoded text to append to the file.
-
-       > Example
-         Append the text "hello" to a file.
-
-             import Standard.Examples
-
-             example_append = Examples.scratch_file.append "hello"
-    append : Text -> Nothing ! File_Error
-    append contents = this.append_bytes contents.utf_8
-
     ## Writes a number of bytes into this file, replacing any existing contents.
 
        Arguments:
@@ -343,27 +302,6 @@ type File
         opts = [Option.Write, Option.Create, Option.Truncate_Existing]
         this.with_output_stream opts (_.write_bytes contents)
         Nothing
-
-    ## ALIAS Write Text File
-
-       Writes a `Text` into this file with specified encoding, replacing any
-       existing contents.
-
-       Arguments:
-       - contents: The text to write to the file.
-       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
-
-       If the file does not exist, it will be created.
-
-       > Example
-         Write the text "hello" to a file.
-
-             import Standard.Examples
-
-             example_write = Examples.scratch_file.write "hello"
-    write_text : Text -> Encoding -> Nothing ! File_Error
-    write_text contents (encoding=Encoding.utf_8) =
-        this.write_bytes <| contents.bytes encoding
 
     ## Join two path segments together.
 
@@ -561,11 +499,23 @@ type File
 
              example_delete =
                  file = Examples.data_dir / "my_file"
-                 file.write_text "hello"
+                 "hello".write file
                  file.delete
     delete : Nothing ! File_Error
     delete =
         here.handle_java_exceptions this this.prim_file.delete
+
+    ## Moves the file to the specified destination.
+
+       Arguments:
+       - destination: the destination to move the file to.
+       - replace_existing: specifies if the operation should proceed if the
+         destination file already exists. Defaults to `True`.
+    move_to : File -> Boolean -> Nothing ! File_Error
+    move_to destination replace_existing=True =
+        here.handle_java_exceptions this <| case replace_existing of
+            True -> this.prim_file.move destination.prim_file StandardCopyOption.REPLACE_EXISTING
+            False -> this.prim_file.move destination.prim_file
 
     ## Deletes the file if it exists on disk.
 
@@ -891,8 +841,9 @@ handle_java_exceptions file ~action =
    Converts a Java `IOException` into its Enso counterpart.
 wrap_io_exception file io_exception =
     if Java.is_instance io_exception NoSuchFileException then Error.throw (File_Not_Found file) else
-        if Java.is_instance io_exception AccessDeniedException then Error.throw (Io_Error file "You do not have permission to access the file") else
-            Error.throw (Io_Error file "An IO error has occurred: "+io_exception.getMessage)
+        if Java.is_instance io_exception FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
+            if Java.is_instance io_exception AccessDeniedException then Error.throw (Io_Error file "You do not have permission to access the file") else
+                Error.throw (Io_Error file "An IO error has occurred: "+io_exception.getMessage)
 
 ## PRIVATE
 
@@ -911,6 +862,9 @@ type File_Error
        - file: The file that doesn't exist.
     type File_Not_Found file
 
+    ## Indicates that a destination file already exists.
+    type File_Already_Exists_Error file
+
     ## A generic IO error.
 
        Arguments:
@@ -925,6 +879,7 @@ type File_Error
     to_display_text = case this of
         File_Not_Found  file -> "The file at " + file.path + " does not exist."
         Io_Error file msg -> msg.to_text + " (" + file.path + ")."
+        File_Already_Exists_Error file -> "The file at "+file.path+" already exists."
 
 
 ## PRIVATE
@@ -975,3 +930,29 @@ get_file path = @Builtin_Method "File.get_file"
    Gets the textual path to the user's system-defined home directory.
 user_home : Text
 user_home = @Builtin_Method "File.user_home"
+
+
+## Writes (or appends) the specified bytes to the specified file.
+   The behavior specified in the `existing_file` parameter will be used if the
+   file exists.
+
+   Arguments:
+   - path: The path to the target file.
+   - encoding: The encoding to use when writing the file.
+   - on_existing_file: Specifies how to proceed if the file already exists.
+   - on_problems: Specifies how to handle any encountered problems.
+
+   If a character cannot be converted to a byte, an `Encoding_Error` is raised.
+   If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
+   a substitute (either � (if Unicode) or ? depending on the encoding).
+   Otherwise, the process is aborted.
+   If the path to the parent location cannot be found or the filename is
+   invalid, a `File_Not_Found` is raised.
+   If another error occurs, such as access denied, an `Io_Error` is raised.
+   Otherwise, the file is created with the encoded text written to it.
+Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
+Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
+    bytes = this.bytes encoding on_problems
+    file = here.new path
+    on_existing_file.write file stream->
+        stream.write_bytes bytes
