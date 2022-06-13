@@ -67,6 +67,7 @@ pub struct List {
     suggestion_db:  Rc<model::SuggestionDatabase>,
     all_components: Vec<Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
+    local_scope:    Option<component::Group>,
 }
 
 impl List {
@@ -74,12 +75,18 @@ impl List {
     ///
     /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
     /// method takes ids as argument).
-    pub fn new(suggestion_db: Rc<model::SuggestionDatabase>) -> Self {
-        Self { suggestion_db, all_components: default(), module_groups: default() }
+    pub fn new(suggestion_db: Rc<model::SuggestionDatabase>, local_scope_module: Option<Id>) -> Self {
+        let local_scope = local_scope_module.and_then(|id| {
+            let entry = suggestion_db.lookup(id).ok()?;
+            Some(component::Group::from_entry(id, &*entry))
+        });
+        Self { suggestion_db, all_components: default(), module_groups: default(), local_scope }
     }
 
     /// Extend the list with new entries.
     pub fn extend(&mut self, entries: impl IntoIterator<Item = component::Id>) {
+        use suggestion_database::entry::Kind;
+        let local_scope_id = self.local_scope.and_then(|group| group.content.component_id);
         let suggestion_db = self.suggestion_db.clone_ref();
         let components = entries
             .into_iter()
@@ -90,6 +97,12 @@ impl List {
                 if let Some(parent_group) = self.lookup_module_group(&parent_module) {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
+                    let parent_id = parent_group.content.component_id;
+                    let in_local_scope = parent_id.is_some() && parent_id == local_scope_id;
+                    let not_module = component.suggestion.kind != Kind::Module;
+                    if in_local_scope && not_module {
+                        self.local_scope.content.entries.borrow_mut().push(component.clone_ref());
+                    }
                 }
                 if let Some(top_group) = self.lookup_module_group(&parent_module.top_module()) {
                     if let Some(flatten_group) = &mut top_group.flattened_content {
