@@ -149,7 +149,6 @@ pub struct View {
     label:             GlyphHighlightedLabel,
     selected_label:    GlyphHighlightedLabel,
     selection_layer:   Rc<Option<WeakLayer>>,
-    label_layer:       Rc<RefCell<WeakLayer>>,
 }
 
 impl View {
@@ -231,7 +230,6 @@ impl Entry for View {
         let icon_strong_color = colors.icon_strong.clone_ref();
         let icon_weak_color = colors.icon_weak.clone_ref();
         let selection_layer = selection_layer.clone_ref();
-        let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.main.downgrade()));
         Self {
             logger,
             network,
@@ -244,7 +242,6 @@ impl Entry for View {
             label,
             selected_label,
             selection_layer,
-            label_layer,
         }
     }
 
@@ -266,7 +263,6 @@ impl Entry for View {
     }
 
     fn set_label_layer(&self, label_layer: &Layer) {
-        self.label_layer.replace(label_layer.downgrade());
         self.label.set_label_layer(label_layer)
     }
 }
