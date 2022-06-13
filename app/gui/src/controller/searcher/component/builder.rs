@@ -86,7 +86,7 @@ impl List {
     /// Extend the list with new entries.
     pub fn extend(&mut self, entries: impl IntoIterator<Item = component::Id>) {
         use suggestion_database::entry::Kind;
-        let local_scope_id = self.local_scope.and_then(|group| group.component_id);
+        let local_scope_id = self.local_scope.as_ref().and_then(|group| group.component_id);
         let suggestion_db = self.suggestion_db.clone_ref();
         let components = entries
             .into_iter()
@@ -97,8 +97,8 @@ impl List {
                 if let Some(parent_group) = self.lookup_module_group(&parent_module) {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
+                    let parent_id = parent_group.content.component_id;
                     if let Some(local_scope) = self.local_scope.as_ref() {
-                        let parent_id = parent_group.content.component_id;
                         let in_local_scope = parent_id == local_scope_id;
                         let not_module = component.suggestion.kind != Kind::Module;
                         if in_local_scope && not_module {
