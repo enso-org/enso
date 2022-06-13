@@ -963,11 +963,18 @@ impl Searcher {
                         component::List::build_list_from_all_db_entries(&this.database, module_id);
                 }
             }
-            // this.print_local_scope_entries();
+            this.print_local_scope_entries();
             this.notifier.publish(Notification::NewActionList).await;
         });
     }
 
+    fn print_local_scope_entries(&self) {
+        let components = &self.components();
+        let entries = &components.local_scope.entries;
+        for entry in entries.borrow().iter().map(|e| &e.suggestion) {
+            DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
+        }
+    }
     // fn print_local_scope_entries(&self) -> Option<()> {
     //     use crate::model::suggestion_database::entry::Kind::Module;
     //     let module = self.module_qualified_name();

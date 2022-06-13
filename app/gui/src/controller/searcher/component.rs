@@ -127,7 +127,7 @@ pub struct List {
     top_modules:           group::List,
     top_modules_flattened: group::List,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
-    local_scope:           Group,
+    pub local_scope:       Group,
     filtered:              Rc<Cell<bool>>,
 }
 
@@ -138,25 +138,6 @@ impl List {
         builder.extend(suggestion_db.keys());
         builder.build()
     }
-
-    // pub fn local_scope_entries(module: Option<Id>) -> Vec<Component> {
-    //     let module_id = module.unwrap_or(self.default_local_scope);
-    //     if let Some(content) = self.get_module_content(module_id) {
-    //         let components = &content.entries.borrow().iter().
-    //     }
-
-    //     let components = if let Some(content) = self.get_module_content(module_id) {
-    //         &content.entries
-    //     } else {
-    //         return Left(std::iter::empty());
-    //     };
-    //     // components.
-
-    //     let entries = &self.get_module_content(id)?.entries;
-    //     for entry in entries.borrow().iter().map(|e| &e.suggestion).filter(|e| e.kind != Module) {
-    //         DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
-    //     }
-    // }
 
     /// Return the list of top modules, which should be displayed in Component Browser.
     ///
