@@ -14,7 +14,6 @@
 use crate::prelude::*;
 
 use crate::entry;
-use crate::selection_background;
 use crate::theme;
 use crate::Colors;
 
@@ -356,7 +355,7 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
 pub struct Model<const COLUMNS: usize> {
     display_object:       display::object::Instance,
     background:           background::View,
-    selection_background: selection_background::View,
+    selection_background: background::View,
     columns:              Rc<Vec<Column<COLUMNS>>>,
     no_items_label:       Label,
 }
@@ -376,7 +375,7 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        let selection_background = selection_background::View::new(&logger);
+        let selection_background = background::View::new(&logger);
         display_object.add_child(&selection_background);
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
         let columns = Rc::new(columns);

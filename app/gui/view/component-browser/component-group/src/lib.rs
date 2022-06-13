@@ -29,7 +29,7 @@
 //! rather, in a multiple scene layers to ensure render ordering) and use [layers masking][mask]
 //! to cut off everything except the selection shape. We duplicate the following:
 //! - Entry text and icon (see [entry][] module).
-//! - A background of the component group [selection_background][].
+//! - A background of the component group [background][].
 //! - (for component groups with header) A background of the header [selection_header_background][].
 //! - (for component groups with header) Header text.
 //!
@@ -128,20 +128,6 @@ pub mod selection_box {
             let padding = style.get_number(theme::selection::padding);
             let shape = Rect((width - padding.px(), height)).corners_radius(corners_radius.px());
             shape.into()
-        }
-    }
-}
-
-/// A background of the selection box, basically specifies the color of the selection. See
-/// module-level documentation.
-pub mod selection_background {
-    use super::*;
-
-    ensogl::define_shape_system! {
-        pointer_events = false;
-        (color:Vector4) {
-            let color = Var::<color::Rgba>::from(color);
-            Plane().fill(color).into()
         }
     }
 }
@@ -590,7 +576,7 @@ pub struct Model {
     background: background::View,
     selected_header: text::Area,
     selection_header_background: selection_header_background::View,
-    selection_background: selection_background::View,
+    selection_background: background::View,
 }
 
 impl display::Object for Model {
@@ -609,7 +595,7 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let header_overlay = header_overlay::View::new(&logger);
         let background = background::View::new(&logger);
-        let selection_background = selection_background::View::new(&logger);
+        let selection_background = background::View::new(&logger);
         let header_background = header_background::View::new(&logger);
         let selection_header_background = selection_header_background::View::new(&logger);
         let header = text::Area::new(app);
