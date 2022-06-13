@@ -563,8 +563,6 @@ pub struct HardcodedLayers {
     pub tooltip_text:       Layer,
     pub cursor:             Layer,
     pub mask:               Layer,
-    pub selection:          Layer,
-    pub selection_mask:     Layer,
 }
 
 impl Deref for HardcodedLayers {
@@ -585,8 +583,6 @@ impl HardcodedLayers {
         let label = Layer::new_with_cam(logger.sub("label"), main_cam);
         let above_nodes = Layer::new_with_cam(logger.sub("above_nodes"), main_cam);
         let above_nodes_text = Layer::new_with_cam(logger.sub("above_nodes_text"), main_cam);
-        let selection = Layer::new_with_cam(logger.sub("selection"), main_cam);
-        let selection_mask = Layer::new_with_cam(logger.sub("selection_mask"), main_cam);
         let panel = Layer::new(logger.sub("panel"));
         let panel_text = Layer::new(logger.sub("panel_text"));
         let node_searcher = Layer::new(logger.sub("node_searcher"));
@@ -601,7 +597,6 @@ impl HardcodedLayers {
         let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
         let cursor = Layer::new(logger.sub("cursor"));
 
-        selection.set_mask(&selection_mask);
         let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
         root.set_sublayers(&[
             &viz,
@@ -611,7 +606,6 @@ impl HardcodedLayers {
             &label,
             &above_nodes,
             &above_nodes_text,
-            &selection,
             &panel,
             &panel_text,
             &node_searcher,
@@ -631,8 +625,6 @@ impl HardcodedLayers {
             label,
             above_nodes,
             above_nodes_text,
-            selection,
-            selection_mask,
             panel,
             panel_text,
             node_searcher,

@@ -20,6 +20,7 @@ use enso_text::Bytes;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::frp;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
@@ -239,6 +240,20 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
+
+    // === Layers setup ===
+
+    let main_camera = app.display.default_scene.layers.main.camera();
+    let selection_layer = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
+    let groups_layer = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
+    let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
+    selection_layer.set_mask(&selection_mask);
+    app.display.default_scene.layers.main.add_sublayer(&groups_layer);
+    app.display.default_scene.layers.main.add_sublayer(&selection_layer);
+
+
+    // === Scroll area ===
+
     let network = frp::Network::new("Component Group Debug Scene");
     let scroll_area = ScrollArea::new(app);
     scroll_area.set_position_xy(Vector2(150.0, 100.0));
@@ -246,12 +261,14 @@ fn init(app: &Application) {
     scroll_area.set_content_width(150.0);
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
+    groups_layer.add_exclusive(&scroll_area);
 
-    let normal_parent_layer = &scroll_area.content_layer();
-    let selected_parent_layer = &app.display.default_scene.layers.selection;
-    let layers =
-        component_group::Layers::new(&app.logger, normal_parent_layer, selected_parent_layer);
 
+    // === Component groups ===
+
+    let normal_parent = &scroll_area.content_layer();
+    let selected_parent = &selection_layer;
+    let layers = component_group::Layers::new(&app.logger, normal_parent, selected_parent);
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
@@ -261,6 +278,7 @@ fn init(app: &Application) {
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
     app.display.add_child(&wide_component_group);
+    groups_layer.add_exclusive(&wide_component_group);
 
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
     // [`transparent_circle`].
@@ -271,11 +289,6 @@ fn init(app: &Application) {
         scroll_area.content().add_child(&transparent_circle);
         std::mem::forget(transparent_circle);
     }
-
-    let selection = component_group::selection_box::View::new(&app.logger);
-    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
-    app.display.default_scene.layers.selection_mask.add_exclusive(&selection);
-    app.display.add_child(&selection);
 
     ComponentGroupController::init(
         &[first_component_group.clone_ref(), second_component_group.clone_ref()],
@@ -353,6 +366,14 @@ fn init(app: &Application) {
         });
     }
 
+
+    // === Selection box ===
+
+    let selection = component_group::selection_box::View::new(&app.logger);
+    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
+    selection_mask.add_exclusive(&selection);
+    app.display.add_child(&selection);
+
     let selection_animation = Animation::<Vector2>::new(&network);
     selection_animation.set_spring.emit(SELECTION_ANIMATION_SPRING_FORCE);
     frp::extend! { network
@@ -386,4 +407,7 @@ fn init(app: &Application) {
     std::mem::forget(second_component_group);
     std::mem::forget(wide_component_group);
     std::mem::forget(layers);
+    std::mem::forget(groups_layer);
+    std::mem::forget(selection_layer);
+    std::mem::forget(selection_mask);
 }
