@@ -104,7 +104,11 @@ public abstract class EnsoRootNode extends RootNode {
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
       if (rootNode.inlineSource == null) {
-        return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
+        if (rootNode.sourceStartIndex == NO_SOURCE) {
+          return null;
+        } else {
+          return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
+        }
       } else {
         return rootNode.inlineSource.createSection(sourceStartIndex, sourceLength);
       }
