@@ -29,10 +29,10 @@ component-groups:
     - Standard.Base.Join:
         exports:
           - Standard.Table.Data.Table.Table.join
-          - Standard.Table.Data.Table.Table.group
+          - Standard.Table.Data.Table.Table.aggregate
     - Standard.Base.Transform:
         exports:
-          - Standard.Table.Data.Table.Table.sort
+          - Standard.Table.Data.Table.Table.order_by
           - Standard.Table.Data.Table.Table.to_csv
           - Standard.Table.Data.Column.Column.to_table
     - Standard.Base.Output:
