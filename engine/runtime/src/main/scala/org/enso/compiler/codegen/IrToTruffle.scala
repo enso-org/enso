@@ -880,6 +880,7 @@ class IrToTruffle(
           runtimeConsOpt.map { atomCons =>
             val any          = context.getBuiltins.any
             val array        = context.getBuiltins.array
+            val file         = context.getBuiltins.file
             val builtinBool  = context.getBuiltins.bool().getBool
             val builtinTrue  = context.getBuiltins.bool().getTrue
             val builtinFalse = context.getBuiltins.bool().getFalse
@@ -911,6 +912,8 @@ class IrToTruffle(
                 NumberBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == array) {
                 ArrayBranchNode.build(atomCons, branchCodeNode.getCallTarget)
+              } else if (atomCons == file) {
+                FileBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == polyglot) {
                 PolyglotBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == any) {

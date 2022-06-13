@@ -25,7 +25,7 @@ File.read : (Text | File) -> File_Format -> Problem_Behavior -> Any ! File_Error
 File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
     file = case path of
         Text -> (File.new path)
-        File.File _ -> path
+        File.File -> path
         _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
     file.read format on_problems
 
