@@ -952,6 +952,9 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     data.components = this.make_component_list(responses.iter());
+                    // FIXME: do we have some helper for this?
+                    let method = this.graph.node_method_pointer();
+                    DEBUG!("MCDBG method=" method;?);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
