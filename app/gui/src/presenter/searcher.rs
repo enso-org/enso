@@ -10,12 +10,14 @@ use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
+use crate::controller::searcher::action::Suggestion;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherVariant;
+use ide_view_component_group::set::SectionId;
 
 
 // ==============
@@ -88,6 +90,33 @@ impl Model {
         provider::create_providers_from_controller(&self.logger, &self.controller)
     }
 
+    fn suggestion_accepted(
+        &self,
+        id: view::component_browser::list_panel::EntryId,
+    ) -> Option<(ViewNodeId, node_view::Expression)> {
+        let components = self.controller.components();
+        let component = match id.group.section {
+            SectionId::Favorites => todo!("integrate favourites"),
+            SectionId::LocalScope => todo!("integrate local scope"),
+            SectionId::SubModules =>
+                components.get_component_from_submodules_by_index(id.group.index, id.entry_id),
+        };
+        let new_code = component.and_then(|component| {
+            let suggestion = Suggestion::FromDatabase(component.suggestion.clone_ref());
+            self.controller.use_suggestion(suggestion)
+        });
+        match new_code {
+            Ok(new_code) => {
+                let new_code_and_trees = node_view::Expression::new_plain(new_code);
+                Some((self.input_view, new_code_and_trees))
+            }
+            Err(err) => {
+                error!(self.logger, "Error while applying suggestion: {err}");
+                None
+            }
+        }
+    }
+
     fn create_submodules_providers(&self) -> Vec<LabeledAnyModelProvider> {
         provider::submodules_from_controller(&self.controller)
     }
@@ -135,6 +164,7 @@ impl Searcher {
             });
 
             action_list_changed <- source::<()>();
+            select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
         }
 
         match model.view.searcher() {
@@ -142,6 +172,10 @@ impl Searcher {
                 let list_view = &browser.model().list;
                 frp::extend! { network
                     list_view.set_sub_modules_section <+ action_list_changed.map(f_!(model.create_submodules_providers()));
+                    trace list_view.suggestion_accepted;
+                    new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
+                    trace new_input;
+                    graph.set_node_expression <+ new_input;
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {

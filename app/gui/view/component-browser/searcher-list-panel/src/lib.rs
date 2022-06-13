@@ -718,8 +718,14 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
 
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct EntryId {
-    group:    GroupId,
-    entry_id: component_group::entry::Id,
+    pub group:    GroupId,
+    pub entry_id: component_group::entry::Id,
+}
+
+impl EntryId {
+    fn from_wrapper_event(&(group, entry_id): &(GroupId, component_group::entry::Id)) -> Self {
+        Self { group, entry_id }
+    }
 }
 
 define_endpoints_2! {
@@ -729,9 +735,9 @@ define_endpoints_2! {
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
     }
     Output{
-        selected_entry(Option<(GroupId, component_group::entry::Id)>),
-        suggestion_accepted(GroupId, component_group::entry::Id),
-        expression_accepted(GroupId, component_group::entry::Id),
+        selected_entry(Option<EntryId>),
+        suggestion_accepted(EntryId),
+        expression_accepted(EntryId),
         is_header_selected(GroupId, bool),
         header_accepted(GroupId),
     }
@@ -769,9 +775,9 @@ impl component::Frp<Model> for Frp {
             eval_ on_hover ( model.on_hover() );
             eval_ on_hover_end ( model.on_hover_end() );
 
-            output.selected_entry <+ groups.selected_entry;
-            output.suggestion_accepted <+ groups.suggestion_accepted;
-            output.expression_accepted <+ groups.expression_accepted;
+            output.selected_entry <+ groups.selected_entry.map(|op| op.as_ref().map(EntryId::from_wrapper_event));
+            output.suggestion_accepted <+ groups.suggestion_accepted.map(EntryId::from_wrapper_event);
+            output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
             output.is_header_selected <+ groups.is_header_selected;
             output.header_accepted <+ groups.header_accepted;
         }

@@ -29,6 +29,47 @@ pub type Id = suggestion_database::entry::Id;
 pub type MatchInfo = controller::searcher::action::MatchInfo;
 
 
+
+// ==============
+// === Errors ===
+// ==============
+
+// === NoSuchGroup===
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "No component group with the index {} in section {}.", index, section_name)]
+pub struct NoSuchGroup {
+    section_name: CowString,
+    index:        usize,
+}
+
+impl NoSuchGroup {
+    fn in_submodules_section(index: usize) -> Self {
+        let section_name = "Sub-modules".into();
+        Self { section_name, index }
+    }
+}
+
+
+// === NoSuchComponent ===
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "No component entry with the index {} in {}.", index, group_name)]
+pub struct NoSuchComponent {
+    group_name: CowString,
+    index:      usize,
+}
+
+impl NoSuchComponent {
+    fn in_submodules_section(group: &Group, index: usize) -> Self {
+        let group_name = iformat!("Submodule {group.name}").into();
+        Self { group_name, index }
+    }
+}
+
+
 // =================
 // === Component ===
 // =================
@@ -180,6 +221,19 @@ impl List {
     /// module.
     pub fn get_module_content(&self, component: Id) -> Option<&Group> {
         self.module_groups.get(&component).map(|mg| &mg.content)
+    }
+
+    pub fn get_component_from_submodules_by_index(
+        &self,
+        group_index: usize,
+        entry_index: usize,
+    ) -> FallibleResult<Component> {
+        let error = || NoSuchGroup::in_submodules_section(group_index);
+        let group = self.top_modules.get(group_index).ok_or_else(error)?;
+        let error = || NoSuchComponent::in_submodules_section(group, entry_index);
+        let entries = group.entries.borrow();
+        let component = entries.get(entry_index).ok_or_else(error)?;
+        Ok(component.clone_ref())
     }
 
     /// Update matching info in all components according to the new filtering pattern.
