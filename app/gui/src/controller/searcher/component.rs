@@ -127,8 +127,8 @@ pub struct List {
     top_modules:           group::List,
     top_modules_flattened: group::List,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
-    /// A group containing all non-module components available in the local scope of the module
-    /// where the [Component Browser](crate::controller::Searcher) is opened.
+    /// A group containing all non-module components in the local scope of the module where the
+    /// [Component Browser](crate::controller::Searcher) is opened.
     pub local_scope:       Group,
     filtered:              Rc<Cell<bool>>,
 }
