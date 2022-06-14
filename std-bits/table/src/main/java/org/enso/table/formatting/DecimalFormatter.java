@@ -1,10 +1,41 @@
 package org.enso.table.formatting;
 
+import java.text.DecimalFormat;
+
 public class DecimalFormatter implements DataFormatter {
+    private final DecimalFormat decimalFormat;
+
+    public DecimalFormatter(String thousandSeparator, String decimalPoint) {
+        decimalFormat = new DecimalFormat();
+        var symbols = decimalFormat.getDecimalFormatSymbols();
+
+        if (decimalPoint.length() != 1) {
+            throw new IllegalArgumentException(
+                    "The `decimalPoint` should consist of exactly one code point.");
+        } else {
+            symbols.setDecimalSeparator(decimalPoint.charAt(0));
+        }
+
+        if (thousandSeparator != null) {
+            if (thousandSeparator.length() != 1) {
+                throw new IllegalArgumentException(
+                        "The `thousandSeparator` should consist of exactly one code point.");
+            } else {
+                symbols.setGroupingSeparator(thousandSeparator.charAt(0));
+                decimalFormat.setGroupingUsed(true);
+                decimalFormat.setGroupingSize(3);
+            }
+        } else {
+            decimalFormat.setGroupingUsed(false);
+        }
+
+        decimalFormat.setDecimalFormatSymbols(symbols);
+        decimalFormat.setDecimalSeparatorAlwaysShown(true);
+        decimalFormat.setMaximumFractionDigits(Integer.MAX_VALUE);
+    }
 
     public String format(double value) {
-        // TODO
-        return "TODO";
+        return decimalFormat.format(value);
     }
 
     @Override

@@ -108,11 +108,11 @@ Data_Formatter.make_auto_parser =
 
 ## PRIVATE
 Data_Formatter.make_integer_formatter =
-    IntegerFormatter.new
+    IntegerFormatter.new this.get_thousand_separator
 
 ## PRIVATE
 Data_Formatter.make_decimal_formatter =
-    DecimalFormatter.new
+    DecimalFormatter.new this.get_thousand_separator this.decimal_point
 
 ## PRIVATE
 Data_Formatter.make_boolean_formatter =

@@ -1,17 +1,41 @@
 package org.enso.table.formatting;
 
 import java.math.BigInteger;
+import java.text.DecimalFormat;
 
 public class IntegerFormatter implements DataFormatter {
-    public String format(long value) {
-        // TODO
-        return "TODO";
+    private final DecimalFormat integerFormat;
+
+    public IntegerFormatter(String thousandSeparator) {
+        // We use the decimal format, because only it provides the thousand separator.
+        integerFormat = new DecimalFormat();
+        var symbols = integerFormat.getDecimalFormatSymbols();
+
+        if (thousandSeparator != null) {
+            if (thousandSeparator.length() != 1) {
+                throw new IllegalArgumentException(
+                        "The `thousandSeparator` should consist of exactly one code point.");
+            } else {
+                symbols.setGroupingSeparator(thousandSeparator.charAt(0));
+                integerFormat.setGroupingUsed(true);
+                integerFormat.setGroupingSize(3);
+            }
+        } else {
+            integerFormat.setGroupingUsed(false);
+        }
+
+        integerFormat.setDecimalSeparatorAlwaysShown(false);
+        integerFormat.setDecimalFormatSymbols(symbols);
     }
 
-    public String format(BigInteger value) {
-        // TODO
-        return "TODO";
+    public String format(long value) {
+        return integerFormat.format(value);
     }
+
+    // TODO
+//    public String format(BigInteger value) {
+//        integerFormat.format(value);
+//    }
 
     @Override
     public String format(Object value) {
