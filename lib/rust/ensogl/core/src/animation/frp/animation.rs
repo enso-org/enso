@@ -43,9 +43,9 @@ pub struct Animation<T: mix::Mixable + frp::Data> {
     pub target:     frp::Any<T>,
     pub precision:  frp::Any<f32>,
     pub skip:       frp::Any,
-    pub set_spring: frp::Any<f32>,
-    pub set_mass:   frp::Any<f32>,
-    pub set_drag:   frp::Any<f32>,
+    pub set_spring: frp::Any<inertia::Spring>,
+    pub set_mass:   frp::Any<inertia::Mass>,
+    pub set_drag:   frp::Any<inertia::Drag>,
     pub value:      frp::Stream<T>,
     pub on_end:     frp::Stream<()>,
 }
@@ -68,15 +68,15 @@ where mix::Repr<T>: inertia::Value
             target    <- any_mut::<T>();
             precision <- any_mut::<f32>();
             skip      <- any_mut::<()>();
-            set_spring <- any_mut::<f32>();
-            set_mass <- any_mut::<f32>();
-            set_drag <- any_mut::<f32>();
+            set_spring <- any_mut::<inertia::Spring>();
+            set_mass <- any_mut::<inertia::Mass>();
+            set_drag <- any_mut::<inertia::Drag>();
             eval  target    ((t) simulator.set_target_value(mix::into_space(t.clone())));
             eval  precision ((t) simulator.set_precision(*t));
             eval_ skip      (simulator.skip());
-            eval set_spring ((s) simulator.set_spring(inertia::Spring::from(*s)));
-            eval set_mass ((m) simulator.set_mass(inertia::Mass::from(*m)));
-            eval set_drag ((d) simulator.set_drag(inertia::Drag::from(*d)));
+            eval set_spring ((s) simulator.set_spring(*s));
+            eval set_mass ((m) simulator.set_mass(*m));
+            eval set_drag ((d) simulator.set_drag(*d));
         }
         let value = value_src.into();
         let on_end = on_end_src.into();

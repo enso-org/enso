@@ -151,8 +151,8 @@ pub struct View {
 }
 
 impl View {
-    /// Update an icon shape (create it if necessary), update its color, add it to `layer` if
-    /// supplied.
+    /// Update an icon shape (create it if necessary), update its color, and add it to the
+    /// [`layer`] if supplied.
     fn update_icon(&self, model: &Model, icon: &RefCell<CurrentIcon>, layer: Option<Layer>) {
         let mut icon = icon.borrow_mut();
         if !icon.id.contains(&model.icon) {
@@ -186,11 +186,11 @@ impl list_view::Entry for View {
         let label = GlyphHighlightedLabel::new(app, style_prefix, &());
         let selected_label = GlyphHighlightedLabel::new(app, style_prefix, &());
         display_object.add_child(&label);
-        display_object.add_child(&selected_label);
 
         if let Some(selection_layer) = &**selection_layer {
             if let Some(layer) = selection_layer.upgrade() {
                 selected_label.set_label_layer(&layer);
+                display_object.add_child(&selected_label);
             } else {
                 error!(logger, "Selection layer is dropped.");
             }

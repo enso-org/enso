@@ -17,6 +17,7 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_text::Bytes;
+use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
@@ -43,7 +44,7 @@ use list_view::entry::AnyModelProvider;
 
 const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
 /// The selection animation is faster than default one because of the increased spring force.
-const SELECTION_ANIMATION_SPRING_FORCE: f32 = 30_000.0;
+const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 const COMPONENT_GROUP_WIDTH: f32 = 150.0;
 const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
 const SCROLL_AREA_WIDTH: f32 = COMPONENT_GROUP_WIDTH + 20.0;
@@ -377,11 +378,12 @@ fn init(app: &Application) {
     app.display.add_child(&selection);
 
     let selection_animation = Animation::<Vector2>::new(&network);
-    selection_animation.set_spring.emit(SELECTION_ANIMATION_SPRING_FORCE);
+    let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
+    selection_animation.set_spring.emit(spring);
     /// This is an example code to position the selection box on scene.
-    /// `multiview.selection_position_target` returns a group-local position, so we transform it
-    /// to global one and then restrict the y coordinate so that the selection box would not go
-    /// below the scroll area bottom.
+    /// We transform the group-local position from [`multiview.selection_position_target`] to
+    /// global position. After that we restrict the Y-coordinate so that the selection box won't
+    /// go below the scroll area bottom border.
     fn selection_position(
         group_local_pos: Vector2,
         group: &component_group::set::Group,

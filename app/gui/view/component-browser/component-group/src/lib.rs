@@ -10,20 +10,20 @@
 //!
 //! To simulate scrolling of the component group entries we move the header of the component group
 //! down while moving the whole component group up (see [`Frp::set_header_pos`]). When the header
-//! is moved down the shadow appears below it. The shadow changes its intensity smoothly before
+//! is pushed down the shadow appears below it. The shadow changes its intensity smoothly before
 //! the header reaches the [`HEADER_SHADOW_PEAK`] distance from the top of the component group.
 //! After that the shadow is unchanged. When the header approaches the bottom of the component group
 //! we gradually reduce the size of the shadow so that it will never be rendered outside the
-//! component group boundaries. See `Header Backgound` section in the [`Model::resize`] method.
+//! component group boundaries. See `Header Background` section in the [`Model::resize`] method.
 //!
 //! # Selection
 //!
-//! The selection box used to highlight "selected" entries is implemented in a quite tricky way.
+//! The selection box used to highlight "selected" entries is implemented in a pretty tricky way.
 //! We want to render the selection box above the background of the component group, but below
 //! any text - so that text color isn't blending with the selection box's color. However, a
 //! component group uses 4 different [scene layers][Layer] to render its header correctly, and we
-//! want selection be above the header background and below the text entries at the same time, which
-//! is not possible.
+//! want the selection to be above the header background and below the text entries at the same
+//! time, which is not possible.
 //!
 //! So instead we duplicate component group entries in a special `selection` scene layer (or
 //! rather, in a multiple scene layers to ensure render ordering) and use [layers masking][mask]
@@ -115,7 +115,7 @@ const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 // === Selection ===
 
 /// A shape of selection box. It is used as a mask to show only specific parts of the selection
-/// layers. See module-level documentation.
+/// layers. See module-level documentation to learn more.
 pub mod selection_box {
     use super::*;
 
@@ -278,7 +278,7 @@ pub struct Colors {
 }
 
 impl Colors {
-    /// Constructs [`Colors`] structure, where each variant is based on the "main" `color`
+    /// Constructs [`Colors`] structure, where each variant is based on the "main" [`color`]
     /// parameter.
     pub fn from_main_color(
         network: &frp::Network,
@@ -394,8 +394,8 @@ impl component::Frp<Model> for Frp {
 
         // === Colors ===
         let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
-        let params =
-            entry::Params { colors: colors.clone_ref(), selection_layer: default() };
+        let selection_layer = default();
+        let params = entry::Params { colors: colors.clone_ref(), selection_layer };
         model.entries.set_entry_params_and_recreate_entries(params);
 
 
@@ -505,7 +505,7 @@ impl component::Frp<Model> for Frp {
 ///
 /// Layers are duplicated into two sets ([`LayersInner`]). `normal` layers are used by the
 /// component group itself, `selection` layers are used to implement the selection box. See
-/// module-level documentation.
+/// module-level documentation to learn more.
 ///
 /// A component group consists of several shapes with a strict rendering order. The order of the
 /// fields in [`LayersInner`] struct represents the rendering order of layers, with `background`
@@ -524,7 +524,6 @@ impl Layers {
     pub fn new(logger: &Logger, normal_parent: &Layer, selected_parent: &Layer) -> Self {
         let normal = LayersInner::new(logger, normal_parent);
         let selection = LayersInner::new(logger, selected_parent);
-
         Self { normal, selection }
     }
 }
@@ -548,12 +547,10 @@ impl LayersInner {
         let text = Layer::new_with_cam(logger.clone_ref(), &camera);
         let header = Layer::new_with_cam(logger.clone_ref(), &camera);
         let header_text = Layer::new_with_cam(logger.clone_ref(), &camera);
-
         background.add_sublayer(&text);
         background.add_sublayer(&header);
         header.add_sublayer(&header_text);
         parent_layer.add_sublayer(&background);
-
         Self { background, header, text, header_text }
     }
 }

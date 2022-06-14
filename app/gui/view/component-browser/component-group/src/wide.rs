@@ -260,8 +260,8 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 out.is_mouse_over <+ is_mouse_over;
             }
 
-            let params =
-                entry::Params { colors: colors.clone_ref(), selection_layer: default() };
+            let selection_layer = default();
+            let params = entry::Params { colors: colors.clone_ref(), selection_layer };
             column.list_view.set_entry_params_and_recreate_entries(params);
         }
     }
