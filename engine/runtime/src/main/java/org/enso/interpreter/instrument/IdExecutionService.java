@@ -1,6 +1,8 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -287,9 +289,11 @@ public interface IdExecutionService {
     }
 
     public synchronized void registerValue(Throwable t, Object v) {
+      CompilerAsserts.neverPartOfCompilation();
       VALUES.put(t, v);
     }
 
+    @CompilerDirectives.TruffleBoundary
     public synchronized Object patchedValue(Throwable t) {
       return VALUES.get(t);
     }
