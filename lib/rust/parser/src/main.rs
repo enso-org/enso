@@ -288,7 +288,6 @@ impl<'s> Resolver<'s> {
 
     fn run(
         mut self,
-        lexer: &Lexer<'s>,
         root_macro_map: &MacroMatchTree<'s>,
         tokens: Vec<syntax::Item<'s>>,
     ) -> syntax::Tree<'s> {
@@ -338,7 +337,7 @@ impl<'s> Resolver<'s> {
 
         trace_state!();
 
-        Self::resolve(lexer, self.current_macro, None)
+        Self::resolve(self.current_macro, None)
     }
 
     fn replace_current_with_parent_macro(&mut self, mut parent_macro: MacroResolver<'s>) {
@@ -360,7 +359,6 @@ impl<'s> Resolver<'s> {
     }
 
     fn resolve(
-        lexer: &Lexer<'s>,
         m: MacroResolver<'s>,
         prefix_tokens: Option<Vec<syntax::Item<'s>>>,
     ) -> syntax::Tree<'s> {
@@ -378,9 +376,9 @@ impl<'s> Resolver<'s> {
                                 match_result.matched.reverse();
                                 ss = match_result.rest;
                                 ss.reverse();
-                                Self::resolve(lexer, m2, Some(match_result.matched)).into()
+                                Self::resolve(m2, Some(match_result.matched)).into()
                             } else {
-                                Self::resolve(lexer, m2, None).into()
+                                Self::resolve(m2, None).into()
                             }
                         },
                         SyntaxItemOrMacroResolver::SyntaxItem(t) => t,
@@ -707,9 +705,16 @@ fn builtin_macros() -> MacroMatchTree<'static> {
 // === Main ===
 // ============
 
-// fn main() {
-//     lexer::lexer_main();
-// }
+pub fn parse<'a>(code: &'a str) -> syntax::Tree<'a> {
+    let mut lexer = Lexer::new(code);
+    lexer.run();
+    let root_macro_map = builtin_macros();
+    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
+    let resolver = Resolver::new_root();
+    resolver.run(&root_macro_map, lexer.output.iter().map(|t| t.clone().into()).collect_vec())
+}
+
+use enso_parser_syntax_tree_builder::ast_builder;
 
 fn main() {
     init_tracing(TRACE);
@@ -723,34 +728,27 @@ fn main() {
     // let str = "a+b * c";
     // let str = "foo if a then b";
     // let str = "foo *(a)";
-    let str = "foo if a then b else c";
-    let mut lexer = Lexer::new(str);
-    lexer.run();
+    let ast = parse("foo if a then b else c");
+    let ast2 = ast_builder! {{if} a {then} b};
+    // MultiSegmentApp<'s>(prefix: Option<Tree<'s>>, segments:
+    // NonEmptyVec<MultiSegmentAppSegment<'s>>)
 
-    let root_macro_map = builtin_macros();
-
-    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
-
-    let resolver = Resolver::new_root();
-    let ast = resolver.run(
-        &lexer,
-        &root_macro_map,
-        lexer.output.iter().map(|t| t.clone().into()).collect_vec(),
-    );
+    // let ast2 = Token("", "foo", syntax::token::Variant::new_ident_unchecked("foo"));
     println!("{:#?}", ast);
     println!("\n\n{}", ast.code());
+    println!("\n\n{:?}", ast2);
 
     println!("\n\n==================\n\n");
 
     lexer::main();
 }
-//
-//
-//
-// // =============
-// // === Tests ===
-// // =============
-//
+
+
+
+// =============
+// === Tests ===
+// =============
+
 // #[cfg(test)]
 // mod test {
 //     use super::*;
@@ -775,37 +773,40 @@ fn main() {
 //
 //
 //
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use enso_parser_syntax_tree_builder::ast_builder;
-//
-//     fn one_shot(input: &str) -> syntax::Tree {
-//         let mut lexer = Lexer::new(input);
-//         lexer.run();
-//         let root_macro_map = builtin_macros();
-//         let resolver = Resolver::new_root();
-//         let ast = resolver.run(
-//             &lexer,
-//             &root_macro_map,
-//             lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
-//         );
-//         ast
-//     }
-//
-//     macro_rules! test_parse {
-//         ($input:tt = {$($def:tt)*}) => {
-//             assert_eq!(
-//                 one_shot($input).with_removed_span_info(),
-//                 ast_builder! { $($def)* }.with_removed_span_info()
-//             )
-//         };
-//     }
-//
-//     #[test]
-//     fn test_expressions() {
-//         test_parse!("if a then b" = { {if} a {then} b });
-//         test_parse!("if a then b else c" = { {if} a {then} b {else} c });
-//         test_parse!("if a b then c d else e f" = { {if} a b {then} c d {else} e f });
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use enso_parser_syntax_tree_builder::ast_builder;
+
+    //     fn one_shot(input: &str) -> syntax::Tree {
+    //         let mut lexer = Lexer::new(input);
+    //         lexer.run();
+    //         let root_macro_map = builtin_macros();
+    //         let resolver = Resolver::new_root();
+    //         let ast = resolver.run(
+    //             &lexer,
+    //             &root_macro_map,
+    //             lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
+    //         );
+    //         ast
+    //     }
+    //
+    macro_rules! test_parse {
+            ($input:tt = {$($def:tt)*}) => {
+                assert_eq!(
+                    parse($input),
+                    ast_builder! { $($def)* }
+                )
+            };
+        }
+
+    #[test]
+    fn test_expressions() {
+        test_parse! {"a" = {a}};
+        test_parse! {"a b" = {a b}};
+        test_parse! {"a b c" = {[a b] c}};
+        // test_parse!("if a then b" = { {if} a {then} b });
+        // test_parse!("if a then b else c" = { {if} a {then} b {else} c });
+        // test_parse!("if a b then c d else e f" = { {if} a b {then} c d {else} e f });
+    }
+}
