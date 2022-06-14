@@ -1353,7 +1353,7 @@ lazy val `runtime-with-instruments`  = (project in file("engine/runtime-with-ins
       case _ => MergeStrategy.first
     }
   )
-  .dependsOn(runtime % "compile->compile;test->test")
+  .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
   .dependsOn(`runtime-instrument-id-execution`)
   .dependsOn(`runtime-instrument-repl-debugger`)
   .dependsOn(`runtime-instrument-runtime-server`)
