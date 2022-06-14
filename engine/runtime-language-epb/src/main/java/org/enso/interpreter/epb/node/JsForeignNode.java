@@ -4,7 +4,6 @@ import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
-import org.enso.interpreter.runtime.data.Array;
 
 /** A node responsible for performing foreign JS calls. */
 @NodeField(name = "foreignFunction", type = Object.class)
@@ -34,7 +33,7 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
     if (getArity() - 1 >= 0) System.arraycopy(arguments, 1, positionalArgs, 0, getArity() - 1);
     try {
       return interopLibrary.invokeMember(
-          getForeignFunction(), "apply", arguments[0], new Array(positionalArgs));
+          getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs));
     } catch (UnsupportedMessageException
         | UnknownIdentifierException
         | ArityException
