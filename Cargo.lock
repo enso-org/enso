@@ -1706,7 +1706,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#2fbb1bc01cffa6b2d8775c0259d5d5a280c4ad2b"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1721,6 +1721,7 @@ dependencies = [
  "clap 3.1.18",
  "console-subscriber",
  "derivative",
+ "derive_more",
  "dirs",
  "filetime",
  "flate2",
@@ -1779,7 +1780,7 @@ dependencies = [
 [[package]]
 name = "enso-build-cli"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#2fbb1bc01cffa6b2d8775c0259d5d5a280c4ad2b"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
 dependencies = [
  "anyhow",
  "byte-unit",
@@ -3572,7 +3573,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#2fbb1bc01cffa6b2d8775c0259d5d5a280c4ad2b"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
 dependencies = [
  "anyhow",
  "async-compression",
