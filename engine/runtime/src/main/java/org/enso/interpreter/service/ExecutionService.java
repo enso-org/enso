@@ -158,6 +158,7 @@ public class ExecutionService {
         idExecutionInstrument.map(
             service ->
                 service.bind(
+                    module,
                     call.getFunction().getCallTarget(),
                     locationFilter,
                     cache,

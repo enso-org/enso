@@ -1337,6 +1337,7 @@ lazy val `runtime-with-instruments`  = (project in file("engine/runtime-with-ins
     libraryDependencies ++= Seq(
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Test,
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % Test,
     ),
     // Note [Unmanaged Classpath]
     Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
