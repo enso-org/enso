@@ -963,29 +963,9 @@ impl Searcher {
                         component::List::build_list_from_all_db_entries(&this.database, module_id);
                 }
             }
-            this.print_local_scope_entries();
             this.notifier.publish(Notification::NewActionList).await;
         });
     }
-
-    fn print_local_scope_entries(&self) {
-        let components = &self.components();
-        let entries = &components.local_scope.entries;
-        for entry in entries.borrow().iter().map(|e| &e.suggestion) {
-            DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
-        }
-    }
-    // fn print_local_scope_entries(&self) -> Option<()> {
-    //     use crate::model::suggestion_database::entry::Kind::Module;
-    //     let module = self.module_qualified_name();
-    //     let (id, _) = self.database.lookup_by_qualified_name(&module)?;
-    //     let components = &self.components();
-    //     let entries = &components.get_module_content(id)?.entries;
-    //     for entry in entries.borrow().iter().map(|e| &e.suggestion).filter(|e| e.kind != Module)
-    // {         DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
-    //     }
-    //     Some(())
-    // }
 
     /// Process multiple completion responses from the engine into a single list of suggestion.
     #[profile(Debug)]
@@ -1699,7 +1679,6 @@ pub mod test {
         assert_eq!(notification, Some(Notification::NewActionList));
     }
 
-    // #[wasm_bindgen_test]
     #[test]
     fn loading_components() {
         let Fixture { mut test, searcher, entry1, entry9, .. } =
@@ -1707,7 +1686,6 @@ pub mod test {
                 // Entry with id 99999 does not exist, so only two actions from suggestions db
                 // should be displayed in searcher.
                 data.expect_completion(client, None, None, &[1, 99999, 9]);
-                // data.expect_completion(client, None, None, &[1, 2, 99999, 9]);
             });
         searcher.reload_list();
         test.run_until_stalled();
