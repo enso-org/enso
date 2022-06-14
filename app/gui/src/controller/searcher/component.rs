@@ -291,24 +291,29 @@ pub(crate) mod tests {
         for (id, entry) in all_entries.into_iter().enumerate() {
             suggestion_db.put_entry(id, entry)
         }
-        let mut builder = builder::List::new(Rc::new(suggestion_db), None);
+        let mut builder = builder::List::new(Rc::new(suggestion_db), Some(0));
         builder.extend(0..4);
         let list = builder.build();
 
         list.update_filtering("fu");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
+        assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
         list.update_filtering("x");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("Sub");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[1]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("y");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 1]);
+        assert_ids_of_matches_entries(&list.local_scope, &[2]);
     }
 
 
