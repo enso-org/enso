@@ -718,9 +718,9 @@ impl Model {
         let header_padding_left = header_geometry.padding_left;
         let header_padding_right = header_geometry.padding_right;
         let max_text_width = size.x - header_padding_left - header_padding_right;
-        self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
-        self.selected_header
-            .set_content_truncated(self.header_text.borrow().clone(), max_text_width);
+        let header_text = self.header_text.borrow().clone();
+        self.header.set_content_truncated(header_text.clone(), max_text_width);
+        self.selected_header.set_content_truncated(header_text.clone(), max_text_width);
     }
 
     fn selection_position(
