@@ -88,8 +88,8 @@ impl Model {
 
         let mut entry_ix = 0;
         for (ix, column) in columns.iter().enumerate() {
-            // The +0.5 required as a way to "round up" to the next pixel. Otherwise the
-            // shape appears one pixel too low.
+            // The +0.5 required as a way to center the columns in the x direction by shifting by an
+            // additional half-width.
             let pos_x = (column_width + style.column_gap) * (ix as f32 + 0.5);
             let mut pos_y = -height;
             for entry in column {

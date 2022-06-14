@@ -108,7 +108,6 @@ impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
 }
 
 
-
 // ===============================
 // === Initialisation Helpers ===
 // ===============================
@@ -156,7 +155,6 @@ fn init_local_cope_section(searcher_list_panel: &ComponentBrowserPanel) {
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     searcher_list_panel.set_local_scope_section(model_provider.clone_ref());
 }
-
 
 
 // ===================

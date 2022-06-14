@@ -84,16 +84,15 @@ impl StyleWatchFrp {
         sampler
     }
 
-    /// Queries style sheet value for a number.  Returns 0.0 if not found.
+    /// Queries style sheet value for a number. Emits a warning and returns 0.0 if not found.
     pub fn get_number(&self, path: impl Into<Path>) -> frp::Sampler<f32> {
         let network = &self.network;
         let path = path.into();
-        let path_name = path.clone().to_string();
+        let warning = format!("Tried to access undefined number from theme: {}", &path);
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            path <- source.constant(path_name);
-            value <- source.map2(&path, move |t, path| t.number().unwrap_or_else(|| {
-                WARNING!(format!("Tried to access undefined number from theme: {}", path));
+            value <- source.map(move |t| t.number().unwrap_or_else(|| {
+                WARNING!(warning);
                 0.0
             }));
             sampler <- value.sampler();
@@ -102,16 +101,15 @@ impl StyleWatchFrp {
         sampler
     }
 
-    /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`].
+    /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`] and emits a warning.
     pub fn get_color<T: Into<Path>>(&self, path: T) -> frp::Sampler<color::Rgba> {
         let network = &self.network;
         let path = path.into();
-        let path_name = path.clone().to_string();
+        let warning = format!("Tried to access undefined color from theme: {}", &path);
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            path <- source.constant(path_name);
-            value <- source.map2(&path, |t, path| t.color().unwrap_or_else(|| {
-                WARNING!(format!("Tried to access undefined color from theme: {}", path));
+            value <- source.map(move |t| t.color().unwrap_or_else(|| {
+                WARNING!(warning);
                 FALLBACK_COLOR
             }));
             sampler <- value.sampler();
@@ -120,12 +118,19 @@ impl StyleWatchFrp {
         sampler
     }
 
-    /// Queries the style sheet for a text. Returns empty string if not found.
+    /// Queries the style sheet for a text. Emits a warning and returns empty string if not found.
     pub fn get_text<T: Into<Path>>(&self, path: T) -> frp::Sampler<String> {
         let network = &self.network;
+        let path = path.into();
+        let warning = format!("Tried to access undefined text from theme: {}", &path);
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(|t| t.text().unwrap_or_default());
+            value <- source.map(move |t| {
+                t.text().unwrap_or_else(|| {
+                    WARNING!(warning);
+                    default()
+                })
+            });
             sampler <- value.sampler();
         }
         source.emit(current);

@@ -45,7 +45,6 @@ pub mod column_grid;
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use ensogl_core::traits::*;
 
 pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
@@ -72,7 +71,6 @@ use searcher_theme::list_panel as list_panel_theme;
 // ==============
 // === Shapes ===
 // ==============
-
 
 // === Layout Constants ===
 
@@ -259,8 +257,6 @@ mod background {
 
     ensogl_core::define_shape_system! {
         (style:Style,bg_color:Vector4) {
-            use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
-
             let theme_path: style::Path = list_panel_theme::HERE.into();
 
             let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
@@ -420,7 +416,6 @@ impl Model {
 
         self.sub_modules_section.content.set_position_x(style.content.padding);
         self.sub_modules_section.label.set_content(SUB_MODULES_SECTION_HEADING_LABEL);
-
 
         self.scroll_area.resize(Vector2::new(
             style.content.size.x - style.content.padding,
@@ -592,7 +587,6 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
 // ===========
 // === FRP ===
 // ===========
-
 
 define_endpoints_2! {
     Input{
