@@ -84,7 +84,7 @@ spec =
             clothes.write_xlsx out sheet='Foo'
             read_1 = out.read (File_Format.Excel (Sheet "Foo"))
             read_1 . should_equal table
-            read_2 = out.read_xlsx sheet='Foo 1'
+            read_2 = out.read (File_Format.Excel (Sheet "Foo"))
             read_2 . should_equal clothes
             out.delete_if_exists
 
