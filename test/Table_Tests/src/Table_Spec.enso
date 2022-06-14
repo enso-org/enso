@@ -1,5 +1,7 @@
 from Standard.Base import all
 from Standard.Table import all
+import Standard.Table.Data.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column
 
 from Standard.Table.Data.Table as Table_Internal import Empty_Error
 
@@ -8,7 +10,7 @@ import Standard.Table.Data.Storage
 import Standard.Test
 import Standard.Test.Problems
 import Standard.Visualization
-from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names
+from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
 
 import project.Common_Table_Spec
 
@@ -321,26 +323,6 @@ spec =
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
 
-    Test.group "Aggregation" <|
-        name = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
-        price = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
-        quantity = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
-        t = Table.new [name, price, quantity]
-        agg = t.group by='name'
-
-        Test.specify "should allow counting group sizes" <|
-            agg.count.to_vector.should_equal [3, 2, 1, 1]
-
-        Test.specify "should allow aggregating columns with basic arithmetic aggregators" <|
-            agg.at 'price' . mean . to_vector . should_equal [0.4, 50.25, 6.7, Nothing]
-            agg.at 'price' . min . to_vector . should_equal [0.4, 3.5, 6.7, Nothing]
-
-        Test.specify "should allow aggregating with user-defined aggregate functions" <|
-            median vec =
-                sorted = vec.sort
-                if sorted.is_empty then Nothing else sorted.at (sorted.length-1 / 2).floor
-            agg.at 'quantity' . reduce median . to_vector . should_equal [30, 20, 40, 70]
-
     Test.group "Column-wide statistics" <|
         Test.specify 'should allow computing basic column-wide stats' <|
             price = Column.from_vector 'price' [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]
@@ -353,54 +335,36 @@ spec =
         df = (Enso_Project.data / "clothes.csv").read
 
         Test.specify "should allow sorting by a single column name" <|
-            r_1 = df.sort by="Quantity"
+            r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Quantity"])
             r_1.at 'Id' . to_vector . should_equal [2,4,1,3,5,6]
 
-            r_2 = df.sort by="Rating" missing_last=False
-            r_2.at 'Id' . to_vector . should_equal [2,6,5,1,4,3]
-
-            r_3 = df.sort by="Rating" missing_last=False order=Sort_Direction.Descending
-            r_3.at 'Id' . to_vector . should_equal [2,6,3,1,4,5]
+            r_3 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Rating" Sort_Direction.Descending])
+            r_3.at 'Id' . to_vector . should_equal [3,1,4,5,2,6]
 
         Test.specify 'should allow sorting by multiple column names' <|
-            r_1 = df.sort by=['Quantity', 'Rating']
-            r_1.at 'Id' . to_vector . should_equal [4,2,1,3,5,6]
+            r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating'])
+            r_1.at 'Id' . to_vector . should_equal [2,4,1,3,6,5]
 
-            r_2 = df.sort by=['Rating', 'Quantity'] missing_last=False order=Sort_Direction.Descending
-            r_2.at 'Id' . to_vector . should_equal [6,2,3,1,4,5]
-
-        Test.specify 'should allow sorting by external columns' <|
-            quality_ratio = df.at 'Rating' / df.at 'Price'
-
-            r_1 = df.sort by=quality_ratio
-            r_1.at 'Id' . to_vector . should_equal [4,1,3,5,2,6]
-
-            r_2 = df.sort by=['Quantity', quality_ratio]
-            r_2.at 'Id' . to_vector . should_equal [4,2,1,3,5,6]
+            r_2 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Rating' Sort_Direction.Descending, Sort_Column.Name 'Quantity' Sort_Direction.Descending])
+            r_2.at 'Id' . to_vector . should_equal [3,1,4,5,6,2]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
-            r_1 = df.sort by=['Quantity', (Order_Rule 'Price' order=Sort_Direction.Descending)]
+            r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Quantity", Sort_Column.Name "Price" Sort_Direction.Descending])
             r_1.at 'Id' . to_vector . should_equal [4,2,3,1,6,5]
 
         Test.specify 'should respect defined comparison operations for custom types' <|
             c_1 = ['id', [1, 2, 3, 4, 5, 6]]
             c_2 = ['val', [My 1 2, My 3 4, My 2 1, My 5 2, My 7 0, My 4 -1]]
             df = Table.new [c_1, c_2]
-            r = df.sort by='val'
+            r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'val'])
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
 
-        Test.specify 'should allow passing a custom comparator per column and should missing-proof it' <|
-            c_1 = ['id', [1, 2, 3, 4, 5, 6]]
-            c_2 = ['val', [My 1 2, My 2 5, My 3 4, My 6 3, Nothing, My 1 0]]
-            df = Table.new [c_1, c_2]
-
-            cmp a b = (a.x-a.y).abs . compare_to (b.x-b.y).abs
-            r = df.sort by=(Order_Rule 'val' comparator=cmp)
-            r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
-
-        Test.specify 'should return dataflow error when passed a non-existent column' <|
-            r = df.sort by='foobar'
-            r.should_fail_with No_Such_Column_Error
+        Test.specify 'should return warnings and errors when passed a non-existent column' <|
+            action = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
+            tester table =
+                table.at 'Id' . to_vector . should_equal [1,2,3,4,5,6]
+            problems = [Missing_Input_Columns [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            Problems.test_problem_handling action problems tester
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
             ord = [0, 3, 2, 4, 1]
@@ -411,7 +375,7 @@ spec =
             objs = [Cons 1 2, Cons 2 3, Cons 6 7, Cons 8 9, Cons 10 30]
 
             df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs]]
-            r = df.sort by='ord'
+            r = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'ord'])
 
             r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
             df.at 'ints' . to_vector . should_equal ints
@@ -506,9 +470,6 @@ spec =
             c = t.at 'ix'
             i = t.index
             c.to_vector . should_equal i.to_vector
-
-        Test.specify "should be accessible by `select` like other columns" <|
-            t.select ['ix'] . columns . first . to_vector . should_equal t.index.to_vector
 
         Test.specify "should be able to be set by column" <|
             with_index = t.set_index c

@@ -45,6 +45,12 @@ type Auto
         materialised = this.materialise file
         materialised.read file on_problems
 
+    ## Implements the `Table.write` for this `File_Format`.
+    write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
+    write_table file table on_existing_file column_mapping on_problems =
+        materialised = this.materialise file
+        materialised.write_table file table on_existing_file column_mapping on_problems
+
 ## Reads the file to a `Vector` of bytes.
 type Bytes
     type Bytes
@@ -54,6 +60,11 @@ type Bytes
     read file _ =
         file.read_bytes
 
+    ## Implements the `Table.write` for this `File_Format`.
+    write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
+    write_table _ _ _ _ _ =
+        Error.throw (Illegal_Argument_Error "Saving a Table as Bytes is not supported.")
+
 ## Reads the file to a `Text` with specified encoding.
 type Plain_Text
     type Plain_Text (encoding:Encoding=Encoding.utf_8)
@@ -62,6 +73,11 @@ type Plain_Text
     read : File -> Problem_Behavior -> Any
     read file on_problems =
         file.read_text this.encoding on_problems
+
+    ## Implements the `Table.write` for this `File_Format`.
+    write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
+    write_table _ _ _ _ _ =
+        Error.throw (Illegal_Argument_Error "Saving a Table as Plain_Text is not directly supported. You may convert the Table to a Text using `Text.from` and then use `Text.write` to write it.")
 
 ## Read delimited files such as CSVs into a Table.
 type Delimited
@@ -107,6 +123,11 @@ type Delimited
     read : File -> Problem_Behavior -> Any
     read file on_problems =
         Delimited_Reader.read_file this file on_problems
+
+    ## Implements the `Table.write` for this `File_Format`.
+    write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
+    write_table _ _ _ _ _ =
+        Errors.unimplemented "`Table.write` for the `Delimited` format is not implemented yet."
 
     ## PRIVATE
      Clone the instance with some properties overridden.
@@ -169,3 +190,8 @@ type Excel
             (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
 
         Excel_Module.read_excel file this.section on_problems format
+
+    ## Implements the `Table.write` for this `File_Format`.
+    write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
+    write_table _ _ _ _ _ =
+        Errors.unimplemented "`Table.write` for the `Excel` format is not implemented yet."

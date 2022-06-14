@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+import Standard.Base.System.File.Existing_File_Behavior
+from Standard.Base.System.File import File_Already_Exists_Error
 
 import Standard.Test
 import Standard.Test.Problems
@@ -46,7 +48,7 @@ spec =
             f = Enso_Project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            f.write_text "Cup"
+            "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
             f.with_input_stream stream->
                 stream.read_byte.should_equal 67
                 stream.read_byte.should_equal 117
@@ -118,17 +120,110 @@ spec =
             contents_2.should .start_with "Cupcake ipsum dolor sit amet."
 
     Test.group "write operations" <|
-        Test.specify "should write and append to files" <|
-            f = Enso_Project.data / "work.txt"
+        transient = Enso_Project.data / "transient"
+        Test.specify "should allow to append to files" <|
+            f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            f.write_text "line 1!"
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
-            f.append '\nline 2!'
+            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append
             f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
+
+        Test.specify "should allow to overwrite files" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite . should_equal Nothing
+            f.exists.should_be_true
+            f.read_text.should_equal "line 1!"
+            'line 2!'.write f on_existing_file=Existing_File_Behavior.Overwrite . should_equal Nothing
+            f.read_text.should_equal 'line 2!'
+            f.delete
+            f.exists.should_be_false
+
+        Test.specify "should fail if a file already exists, depending on the settings" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Error . should_equal Nothing
+            f.exists.should_be_true
+            f.read_text.should_equal "line 1!"
+            "line 2!".write f on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Already_Exists_Error
+            f.read_text.should_equal 'line 1!'
+            f.delete
+            f.exists.should_be_false
+
+        Test.specify "should create a backup when writing a file" <|
+            f = transient / "work.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            "line 1!".write f . should_equal Nothing
+            if f.exists.not then
+                Test.fail "The file should have been created."
+            f.read_text.should_equal "line 1!"
+
+            bak = transient / "work.txt.bak"
+            "backup content".write bak on_existing_file=Existing_File_Behavior.Overwrite
+
+            n0 = transient / "work.txt.new"
+            n1 = transient / "work.txt.new.1"
+            n2 = transient / "work.txt.new.2"
+            n3 = transient / "work.txt.new.3"
+            n4 = transient / "work.txt.new.4"
+            written_news = [n0, n1, n2, n4]
+            written_news.each n->
+                "new content".write n on_existing_file=Existing_File_Behavior.Overwrite
+            n3.delete_if_exists
+
+            "line 2!".write f . should_equal Nothing
+            f.read_text.should_equal 'line 2!'
+            bak.read_text.should_equal 'line 1!'
+            if n3.exists then
+                Test.fail "The temporary file should have been cleaned up."
+            written_news.each n->
+                n.read_text . should_equal "new content"
+            [f, bak, n0, n1, n2, n4].each .delete
+
+        Test.specify "should correctly handle failure of the write operation when working with the backup" <|
+            f = transient / "work.txt"
+            "OLD".write f on_existing_file=Existing_File_Behavior.Overwrite
+            bak_file = transient / "work.txt.bak"
+            new_file = transient / "work.txt.new"
+            [bak_file, new_file].each .delete_if_exists
+
+            result = Panic.recover Illegal_State_Error <|
+                Existing_File_Behavior.Backup.write f output_stream->
+                    output_stream.write_bytes "foo".utf_8
+                    Panic.throw (Illegal_State_Error "baz")
+                    output_stream.write_bytes "bar".utf_8
+            result.should_fail_with Illegal_State_Error
+            result.catch.message . should_equal "baz"
+            f.read_text . should_equal "OLD"
+            if bak_file.exists then
+                Test.fail "If the operation failed, we shouldn't have even created the backup."
+            if new_file.exists then
+                Test.fail "The temporary file should have been cleaned up."
+
+            f.delete
+            result2 = Panic.recover Illegal_State_Error <|
+                Existing_File_Behavior.Backup.write f output_stream->
+                    output_stream.write_bytes "foo".utf_8
+                    Panic.throw (Illegal_State_Error "baz")
+                    output_stream.write_bytes "bar".utf_8
+            result2.should_fail_with Illegal_State_Error
+            result2.catch.message . should_equal "baz"
+            if f.exists.not then
+                Test.fail "Since we were writing to the original destination, the partially written file should have been preserved even upon failure."
+            f.read_text . should_equal "foo"
+            if bak_file.exists then
+                Test.fail "If the operation failed, we shouldn't have even created the backup."
+            if new_file.exists then
+                Test.fail "The temporary file should have been cleaned up."
+            f.delete
 
     Test.group "folder operations" <|
         resolve files =

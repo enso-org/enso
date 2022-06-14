@@ -1,14 +1,19 @@
 from Standard.Base import all
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
+import Standard.Table.Data.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column
 
 import project.Database.Helpers.Fake_Test_Connection
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Table as Table_Module
 import Standard.Test
+import Standard.Test.Problems
 
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
-from Standard.Table import No_Such_Column_Error, Order_Rule
+from Standard.Table import No_Such_Column_Error
+from Standard.Table.Error as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 spec =
@@ -38,7 +43,7 @@ spec =
     Test.group "[Codegen] Basic Select" <|
         Test.specify "should select columns from a table" <|
             t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            t2 = t1.select ["C", "B", "undefined"]
+            t2 = t1.select_columns (By_Name ["C", "B", "undefined"]) reorder=True
             t2.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B" FROM "T1" AS "T1"', []]
 
             foo = t1.at "A" . rename "FOO"
@@ -47,7 +52,7 @@ spec =
             t3 = t2.set "bar" foo
             t3.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."A" AS "bar" FROM "T1" AS "T1"', []]
 
-        Test.specify "should fail if at is called for a nonexisting column" <|
+        Test.specify "should fail if at is called for a non-existent column" <|
             t1.at "undefined" . should_fail_with No_Such_Column_Error
 
         Test.specify "should allow to limit the amount of returned results" <|
@@ -55,7 +60,7 @@ spec =
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
 
         Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select []
+            empty = t1.select_columns (By_Name [])
             json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
             empty.to_json . should_equal json
             empty.columns.length . should_equal 0
@@ -146,28 +151,26 @@ spec =
 
     Test.group "[Codegen] Sorting" <|
         Test.specify "should allow sorting by a single column name" <|
-            r1 = t1.sort by="A" . at "B"
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST', []]
+            r1 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"]) . at "B"
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC', []]
 
-            r2 = t1.sort by="B" missing_last=False order=Sort_Direction.Descending . at "A"
-            r2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC NULLS FIRST', []]
+            r2 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "B" Sort_Direction.Descending]) . at "A"
+            r2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC', []]
 
         Test.specify 'should allow sorting by multiple column names' <|
-            r1 = t1.sort by=['A', 'B']
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST, "T1"."B" ASC NULLS LAST', []]
-
-        Test.specify 'should allow sorting by expressions' <|
-            sum = t1.at 'A' + t1.at 'B'
-            r1 = t1.sort by=sum . at "C"
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY ("T1"."A" + "T1"."B") ASC NULLS LAST', []]
+            r1 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'A', Sort_Column.Name 'B'])
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" ASC', []]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
-            r1 = t1.sort by=['A', (Order_Rule 'B' order=Sort_Direction.Descending)]
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST, "T1"."B" DESC NULLS LAST', []]
+            r1 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A", Sort_Column.Name "B" Sort_Direction.Descending])
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" DESC', []]
 
-        Test.specify 'should return dataflow error when passed a non-existent column' <|
-            r = t1.sort by='foobar'
-            r.should_fail_with No_Such_Column_Error
+        Test.specify 'should return warnings and errors when passed a non-existent column' <|
+            action = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
+            tester table =
+                table.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
+            problems = [Missing_Input_Columns [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            Problems.test_problem_handling action problems tester
 
     Test.group "Helpers" <|
         Test.specify "combine_names should combine lists of names" <|

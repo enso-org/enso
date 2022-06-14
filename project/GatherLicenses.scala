@@ -146,6 +146,8 @@ object GatherLicenses {
         val currentInputHash =
           ReportState.computeInputHash(distributionDescription)
         if (currentInputHash != reviewState.inputHash) {
+          log.info("Input hash computed from build.sbt: " + currentInputHash)
+          log.info("Input hash stored in metadata: " + reviewState.inputHash)
           warnAndThrow(
             s"Report for the $name is not up to date - " +
             s"it seems that some dependencies were added or removed."
@@ -180,6 +182,8 @@ object GatherLicenses {
 
     val currentOutputHash = ReportState.computeOutputHash(packageDestination)
     if (currentOutputHash != reportState.outputHash) {
+      log.info("Output hash computed from build.sbt: " + currentOutputHash)
+      log.info("Output hash stored in metadata: " + reportState.outputHash)
       log.error(
         s"Generated package at $packageDestination seems to be not up-to-date."
       )
