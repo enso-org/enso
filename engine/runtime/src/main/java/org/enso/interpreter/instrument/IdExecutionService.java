@@ -276,17 +276,14 @@ public interface IdExecutionService {
     }
   }
 
-  /** Allows communication between patched module values & ID execution instrument.
-   */
+  /** Allows communication between patched module values & ID execution instrument. */
   public static final UnwindHelper UNWIND_HELPER = new UnwindHelper();
 
-  /** Support for communication between patched module values & ID execution instrument.
-   */
+  /** Support for communication between patched module values & ID execution instrument. */
   public static final class UnwindHelper {
-    private final Map<Throwable,Object> VALUES = new WeakHashMap<>();
+    private final Map<Throwable, Object> VALUES = new WeakHashMap<>();
 
-    private UnwindHelper() {
-    }
+    private UnwindHelper() {}
 
     public synchronized void registerValue(Throwable t, Object v) {
       CompilerAsserts.neverPartOfCompilation();

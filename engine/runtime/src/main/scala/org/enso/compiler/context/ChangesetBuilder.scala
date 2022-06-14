@@ -16,7 +16,7 @@ import scala.collection.mutable
 case class SimpleUpdate(
   ir: IR.Literal,
   edit: TextEdit,
-  newIr: IR.Literal,
+  newIr: IR.Literal
 )
 
 /** The changeset of a module containing the computed list of invalidated
@@ -77,15 +77,18 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       def newIR() = AstToIr.translateInline(Parser().run(edit.text))
 
       return literals.head match {
-        case node: IR.Literal.Number => newIR() match {
-            case Some(newIR: IR.Literal.Number) => SimpleUpdate(node, edit, newIR)
+        case node: IR.Literal.Number =>
+          newIR() match {
+            case Some(newIR: IR.Literal.Number) =>
+              SimpleUpdate(node, edit, newIR)
             case _ => null
-        }
-        case node: IR.Literal.Text   => newIR() match {
-          case Some(newIR: IR.Literal.Text) => SimpleUpdate(node, edit, newIR)
-          case _ => null
-        }
-        case _                       => null
+          }
+        case node: IR.Literal.Text =>
+          newIR() match {
+            case Some(newIR: IR.Literal.Text) => SimpleUpdate(node, edit, newIR)
+            case _                            => null
+          }
+        case _ => null
       }
     }
 
