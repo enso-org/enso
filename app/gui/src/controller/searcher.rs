@@ -1679,7 +1679,7 @@ pub mod test {
         assert_eq!(notification, Some(Notification::NewActionList));
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn loading_components() {
         let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
