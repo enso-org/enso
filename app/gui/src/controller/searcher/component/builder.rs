@@ -98,9 +98,9 @@ impl List {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
                     let parent_id = parent_group.content.component_id;
-                    let is_in_local_scope = parent_id == local_scope_id;
-                    let is_not_module = component.suggestion.kind != Kind::Module;
-                    if is_in_local_scope && is_not_module {
+                    let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
+                    let not_module = component.suggestion.kind != Kind::Module;
+                    if in_local_scope && not_module {
                         self.local_scope.entries.borrow_mut().push(component.clone_ref());
                     }
                 }
