@@ -22,7 +22,6 @@ import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.polyglot.LanguageInfo;
-import org.enso.text.editing.model;
 
 final class PatchedModuleValues implements ExecutionEventListener {
   private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
@@ -75,11 +74,18 @@ final class PatchedModuleValues implements ExecutionEventListener {
     var methods = scope.getMethods();
     var conversions = scope.getConversions();
     var collect = new HashMap<Node, Object>();
-    PatchedModuleValues.updateFunctionsMap(update, methods.values(), collect);
-    PatchedModuleValues.updateFunctionsMap(update, conversions.values(), collect);
-    if (collect.isEmpty()) {
-      return false;
+    for (var n : values.keySet()) {
+      updateNode(update, n, collect);
     }
+    if (collect.isEmpty()) {
+      // only search for new literals when none have been found
+      updateFunctionsMap(update, methods.values(), collect);
+      updateFunctionsMap(update, conversions.values(), collect);
+      if (collect.isEmpty()) {
+        return false;
+      }
+    }
+
     var ctx = Context.get(collect.keySet().iterator().next());
     var instr = ctx.getEnvironment().lookup(Instrumenter.class);
     final Source src;

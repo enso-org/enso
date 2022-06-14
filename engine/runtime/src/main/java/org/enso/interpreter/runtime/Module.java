@@ -208,7 +208,6 @@ public class Module implements TruffleObject {
    */
   public void setLiteralSource(Rope source, SimpleUpdate update) {
     if (this.scope != null && update != null) {
-      var edit = update.edit();
       var change = update.ir();
       if (this.patchedValues == null) {
         this.patchedValues = new PatchedModuleValues(this);

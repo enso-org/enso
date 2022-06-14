@@ -73,10 +73,17 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
 
       val directlyAffectedId = directlyAffected.head.externalId
       val literals           = ir.preorder.filter(_.getExternalId == directlyAffectedId)
+      val oldIr              = literals.head
 
-      def newIR() = AstToIr.translateInline(Parser().run(edit.text))
+      def newIR() = {
+        AstToIr
+          .translateInline(Parser().run(edit.text))
+          .map(ir => {
+            ir.setLocation(oldIr.location)
+          })
+      }
 
-      return literals.head match {
+      return oldIr match {
         case node: IR.Literal.Number =>
           newIR() match {
             case Some(newIR: IR.Literal.Number) =>
