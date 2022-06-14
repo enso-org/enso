@@ -1322,6 +1322,7 @@ lazy val `runtime-instrument-runtime-server` = (project in file("engine/runtime-
 lazy val `runtime-with-instruments`  = (project in file("engine/runtime-with-instruments"))
   .configs(Benchmark)
   .settings(
+    frgaalJavaCompilerSetting,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
@@ -1335,6 +1336,7 @@ lazy val `runtime-with-instruments`  = (project in file("engine/runtime-with-ins
     ),
     libraryDependencies ++= Seq(
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Test,
     ),
     // Note [Unmanaged Classpath]
     Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
