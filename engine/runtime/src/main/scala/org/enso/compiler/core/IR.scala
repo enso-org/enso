@@ -7324,13 +7324,13 @@ object IR {
     object Redefined {
 
       /** An error representing the redefinition or incorrect positioning of
-        * the `this` argument to methods.
+        * the `self` argument to methods.
         *
         * @param location the source location of the error
         * @param passData the pass metadata for this node
         * @param diagnostics compiler diagnostics associated with the node
         */
-      sealed case class ThisArg(
+      sealed case class SelfArg(
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7339,7 +7339,7 @@ object IR {
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
-        /** Creates a copy of `this`.
+        /** Creates a copy of `self`.
           *
           * @param location the source location of the error
           * @param passData the pass metadata for this node
@@ -7352,8 +7352,8 @@ object IR {
           passData: MetadataStorage            = passData,
           diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
-        ): ThisArg = {
-          val res = ThisArg(location, passData, diagnostics)
+        ): SelfArg = {
+          val res = SelfArg(location, passData, diagnostics)
           res.id = id
           res
         }
@@ -7364,7 +7364,7 @@ object IR {
           keepMetadata: Boolean    = true,
           keepDiagnostics: Boolean = true,
           keepIdentifiers: Boolean = false
-        ): ThisArg =
+        ): SelfArg =
           copy(
             location = if (keepLocations) location else None,
             passData =
@@ -7377,10 +7377,10 @@ object IR {
         /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
-        ): ThisArg = copy(location = location)
+        ): SelfArg = copy(location = location)
 
         /** @inheritdoc */
-        override def mapExpressions(fn: Expression => Expression): ThisArg =
+        override def mapExpressions(fn: Expression => Expression): SelfArg =
           this
 
         /** @inheritdoc */

@@ -1202,7 +1202,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.ThisArg =>
+        case err: Error.Redefined.SelfArg =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
