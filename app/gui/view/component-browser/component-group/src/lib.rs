@@ -277,7 +277,18 @@ pub struct Colors {
     pub header_text: frp::Sampler<color::Rgba>,
     pub entry_text:  frp::Sampler<color::Rgba>,
     pub background:  frp::Sampler<color::Rgba>,
-    pub selection:   frp::Sampler<color::Rgba>,
+    pub selected:    SelectedColors,
+}
+
+/// Helper struct with colors of the selected entries. Part of [`Colors`].
+#[allow(missing_docs)]
+#[derive(Clone, CloneRef, Debug)]
+pub struct SelectedColors {
+    pub background:  frp::Sampler<color::Rgba>,
+    pub entry_text:  frp::Sampler<color::Rgba>,
+    pub header_text: frp::Sampler<color::Rgba>,
+    pub icon_strong: frp::Sampler<color::Rgba>,
+    pub icon_weak:   frp::Sampler<color::Rgba>,
 }
 
 impl Colors {
@@ -299,6 +310,7 @@ impl Colors {
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let icon_weak_intensity = style.get_number(theme::entry_list::icon::weak_color_intensity);
         let entry_text_ = style.get_color(theme::entry_list::text::color);
+        let selected = style.get_color(theme::entry_list::selected_color);
         let intensity = Animation::new(network);
         frp::extend! { network
             init <- source_();
@@ -311,14 +323,23 @@ impl Colors {
             app_bg_and_main <- all(&app_bg, &main);
             header_text <- app_bg_and_main.all_with(&header_intensity, mix).sampler();
             bg <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
-            selection <- app_bg_and_main.all_with(&selection_intensity, mix).sampler();
             app_bg_and_entry_text <- all(&app_bg, &entry_text_);
             entry_text <- app_bg_and_entry_text.all_with(&intensity.value, mix).sampler();
             icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
             icon_strong <- main.sampler();
+            selected_bg <- app_bg_and_main.all_with(&selection_intensity, mix).sampler();
+            main_and_selected <- all(&main, &selected);
+            selected_icon_weak <- main_and_selected.all_with(&icon_weak_intensity, mix).sampler();
         }
         init.emit(());
-        Self { icon_weak, icon_strong, header_text, entry_text, background: bg, selection }
+        let selected = SelectedColors {
+            background:  selected_bg,
+            header_text: selected.clone_ref(),
+            entry_text:  selected.clone_ref(),
+            icon_weak:   selected_icon_weak,
+            icon_strong: selected.clone_ref(),
+        };
+        Self { icon_weak, icon_strong, header_text, entry_text, background: bg, selected }
     }
 }
 
@@ -419,11 +440,13 @@ impl component::Frp<Model> for Frp {
                 })
             );
             model.header.set_default_color <+ colors.header_text;
-            model.selected_header.set_default_color <+ colors.header_text;
+            model.selected_header.set_default_color <+ all(&colors.selected.header_text,&init)._0();
             eval colors.background((c) model.background.color.set(c.into()));
             eval colors.background((c) model.header_background.color.set(c.into()));
-            eval colors.selection((c) model.selection_background.color.set(c.into()));
-            eval colors.selection((c) model.selection_header_background.color.set(c.into()));
+            eval colors.selected.background((c) model.selection_background.color.set(c.into()));
+            eval colors.selected.background(
+                (c) model.selection_header_background.color.set(c.into())
+            );
         }
 
 
@@ -720,7 +743,7 @@ impl Model {
         let max_text_width = size.x - header_padding_left - header_padding_right;
         let header_text = self.header_text.borrow().clone();
         self.header.set_content_truncated(header_text.clone(), max_text_width);
-        self.selected_header.set_content_truncated(header_text.clone(), max_text_width);
+        self.selected_header.set_content_truncated(header_text, max_text_width);
     }
 
     fn selection_position(

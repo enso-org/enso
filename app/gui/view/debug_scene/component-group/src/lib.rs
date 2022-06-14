@@ -47,7 +47,7 @@ const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 
 const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 const COMPONENT_GROUP_WIDTH: f32 = 150.0;
 const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
-const SCROLL_AREA_WIDTH: f32 = COMPONENT_GROUP_WIDTH + 20.0;
+const SCROLL_AREA_WIDTH: f32 = COMPONENT_GROUP_WIDTH * 4.0 + 20.0;
 
 
 
@@ -196,7 +196,7 @@ fn create_component_group(
     component_group.model().set_layers(layers);
     component_group.set_header(header.to_string());
     component_group.set_width(COMPONENT_GROUP_WIDTH);
-    component_group.set_position_x(75.0);
+    component_group.set_position_x(COMPONENT_GROUP_WIDTH * 3.5);
     component_group
 }
 
@@ -207,7 +207,8 @@ fn create_wide_component_group(
     let component_group = app.new_view::<component_group::wide::View>();
     component_group.model().set_layers(layers);
     component_group.set_width(COMPONENT_GROUP_WIDTH * 3.0);
-    component_group.set_position_x(-200.0);
+    let padding = 5.0;
+    component_group.set_position_xy(Vector2(COMPONENT_GROUP_WIDTH * 1.5 - padding, -150.0));
     component_group
 }
 
@@ -259,9 +260,9 @@ fn init(app: &Application) {
 
     let network = frp::Network::new("Component Group Debug Scene");
     let scroll_area = ScrollArea::new(app);
-    scroll_area.set_position_xy(Vector2(150.0, 100.0));
+    scroll_area.set_position_xy(Vector2(-COMPONENT_GROUP_WIDTH * 2.0, 100.0));
     scroll_area.resize(Vector2(SCROLL_AREA_WIDTH, SCROLL_AREA_HEIGHT));
-    scroll_area.set_content_width(COMPONENT_GROUP_WIDTH);
+    scroll_area.set_content_width(COMPONENT_GROUP_WIDTH * 4.0);
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
     groups_layer.add_exclusive(&scroll_area);
@@ -280,8 +281,7 @@ fn init(app: &Application) {
 
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
-    app.display.add_child(&wide_component_group);
-    groups_layer.add_exclusive(&wide_component_group);
+    scroll_area.content().add_child(&wide_component_group);
 
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
     // [`transparent_circle`].
@@ -389,12 +389,8 @@ fn init(app: &Application) {
         group: &component_group::set::Group,
         scroll_area: &ScrollArea,
     ) -> Vector2 {
-        use component_group::set::Group::*;
-        let group_pos = match group {
-            OneColumn(group) =>
-                scroll_area.position() + scroll_area.content().position() + group.position(),
-            Wide(group) => group.position(),
-        };
+        let scroll_area_pos = scroll_area.position() + scroll_area.content().position();
+        let group_pos = scroll_area_pos + group.position();
         let mut pos = group_pos.xy() + group_local_pos;
         let scroll_area_bottom = scroll_area.position().y - SCROLL_AREA_HEIGHT;
         let lower_bound = scroll_area_bottom + list_view::entry::HEIGHT / 2.0;

@@ -13,6 +13,7 @@
 
 use crate::prelude::*;
 
+use crate::background;
 use crate::entry;
 use crate::theme;
 use crate::Colors;
@@ -50,25 +51,6 @@ type Entry = crate::Entry;
 newtype_prim! {
     /// An index of the column.
     ColumnId(usize);
-}
-
-
-
-// ========================
-// === Background Shape ===
-// ========================
-
-/// The background of the Wide Component Group.
-pub mod background {
-    use super::*;
-
-    ensogl::define_shape_system! {
-        below = [list_view::background];
-        (style:Style, color:Vector4) {
-            let color = Var::<Rgba>::from(color);
-            Plane().fill(color).into()
-        }
-    }
 }
 
 
@@ -175,7 +157,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             });
 
             eval colors.background((c) model.background.color.set(c.into()));
-            eval colors.selection((c) model.selection_background.color.set(c.into()));
+            eval colors.selected.background((c) model.selection_background.color.set(c.into()));
 
             eval input.set_no_items_label_text((text) model.set_no_items_label_text(text));
 
@@ -380,6 +362,7 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
         let columns = Rc::new(columns);
         for column in columns.iter() {
+            column.set_style_prefix(entry::STYLE_PATH);
             column.hide_selection();
             column.set_background_color(Rgba::transparent());
             column.show_background_shadow(false);
@@ -396,12 +379,15 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
     /// Assign a set of layers to render the component group. Must be called after constructing
     /// the [`View`].
     pub fn set_layers(&self, layers: &crate::Layers) {
+        layers.normal.background.add_exclusive(&self.background);
         layers.selection.background.add_exclusive(&self.selection_background);
         let layer = &layers.selection.text;
         for column in self.columns.iter() {
             let mut params = column.list_view.entry_params();
             params.selection_layer = Rc::new(Some(layer.downgrade()));
             column.list_view.set_entry_params_and_recreate_entries(params);
+            layers.normal.background.add_exclusive(&column.list_view);
+            column.list_view.set_label_layer(&layers.normal.text);
         }
     }
 

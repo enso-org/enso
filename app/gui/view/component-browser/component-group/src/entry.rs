@@ -6,6 +6,7 @@ use crate::prelude::*;
 
 use crate::icon;
 use crate::Colors;
+use crate::SelectedColors;
 
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -86,15 +87,23 @@ impl Default for Params {
     fn default() -> Self {
         let network = frp::Network::new("component_browser::entry::Params::default");
         frp::extend! { network
-            icon_strong <- source::<color::Rgba>().sampler();
-            icon_weak <- source::<color::Rgba>().sampler();
-            header_text <- source::<color::Rgba>().sampler();
-            entry_text <- source::<color::Rgba>().sampler();
-            background <- source::<color::Rgba>().sampler();
-            selection <- source::<color::Rgba>().sampler();
+            default_color <- source::<color::Rgba>().sampler();
         }
-        let colors =
-            Colors { icon_strong, icon_weak, header_text, entry_text, background, selection };
+        let selected = SelectedColors {
+            background:  default_color.clone_ref(),
+            header_text: default_color.clone_ref(),
+            entry_text:  default_color.clone_ref(),
+            icon_strong: default_color.clone_ref(),
+            icon_weak:   default_color.clone_ref(),
+        };
+        let colors = Colors {
+            icon_strong: default_color.clone_ref(),
+            icon_weak: default_color.clone_ref(),
+            header_text: default_color.clone_ref(),
+            entry_text: default_color.clone_ref(),
+            background: default_color.clone_ref(),
+            selected,
+        };
         Self { colors, selection_layer: default() }
     }
 }
@@ -137,29 +146,35 @@ impl CurrentIcon {
 /// A visual representation of a [`Model`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
-    network:           frp::Network,
-    logger:            Logger,
-    display_object:    display::object::Instance,
-    icon:              Rc<RefCell<CurrentIcon>>,
-    selected_icon:     Rc<RefCell<CurrentIcon>>,
-    max_width_px:      frp::Source<f32>,
-    icon_strong_color: frp::Sampler<color::Rgba>,
-    icon_weak_color:   frp::Sampler<color::Rgba>,
-    label:             GlyphHighlightedLabel,
-    selected_label:    GlyphHighlightedLabel,
-    selection_layer:   Rc<Option<WeakLayer>>,
+    network:         frp::Network,
+    logger:          Logger,
+    display_object:  display::object::Instance,
+    icon:            Rc<RefCell<CurrentIcon>>,
+    selected_icon:   Rc<RefCell<CurrentIcon>>,
+    max_width_px:    frp::Source<f32>,
+    label:           GlyphHighlightedLabel,
+    selected_label:  GlyphHighlightedLabel,
+    selection_layer: Rc<Option<WeakLayer>>,
+    colors:          Colors,
 }
 
 impl View {
     /// Update an icon shape (create it if necessary), update its color, and add it to the
     /// [`layer`] if supplied.
-    fn update_icon(&self, model: &Model, icon: &RefCell<CurrentIcon>, layer: Option<Layer>) {
+    fn update_icon(
+        &self,
+        model: &Model,
+        icon: &RefCell<CurrentIcon>,
+        layer: Option<Layer>,
+        strong_color: color::Rgba,
+        weak_color: color::Rgba,
+    ) {
         let mut icon = icon.borrow_mut();
         if !icon.id.contains(&model.icon) {
             icon.id = Some(model.icon);
             let shape = model.icon.create_shape(&self.logger, Vector2(icon::SIZE, icon::SIZE));
-            shape.strong_color.set(self.icon_strong_color.value().into());
-            shape.weak_color.set(self.icon_weak_color.value().into());
+            shape.strong_color.set(strong_color.into());
+            shape.weak_color.set(weak_color.into());
             shape.set_position_x(icon::SIZE / 2.0);
             self.display_object.add_child(&shape);
             if let Some(layer) = layer {
@@ -215,20 +230,15 @@ impl list_view::Entry for View {
                 selected_label.set_max_width(*width);
             });
             label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
-            selected_label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
-            eval colors.icon_strong ([icon, selected_icon](&color) {
-                icon.borrow().set_strong_color(color);
-                selected_icon.borrow().set_strong_color(color);
-            });
-            eval colors.icon_weak ([icon, selected_icon](&color) {
-                icon.borrow().set_weak_color(color);
-                selected_icon.borrow().set_weak_color(color);
-            });
+            selected_label.inner.label.set_default_color <+ all(&colors.selected.entry_text,&init)._0();
+            eval colors.icon_strong ((&c) icon.borrow().set_strong_color(c));
+            eval colors.selected.icon_strong((&c) selected_icon.borrow().set_strong_color(c));
+            eval colors.icon_weak ((&c) icon.borrow().set_weak_color(c));
+            eval colors.selected.icon_weak((&c) selected_icon.borrow().set_weak_color(c));
         }
         init.emit(());
-        let icon_strong_color = colors.icon_strong.clone_ref();
-        let icon_weak_color = colors.icon_weak.clone_ref();
         let selection_layer = selection_layer.clone_ref();
+        let colors = colors.clone_ref();
         Self {
             logger,
             network,
@@ -236,8 +246,7 @@ impl list_view::Entry for View {
             icon,
             selected_icon,
             max_width_px,
-            icon_strong_color,
-            icon_weak_color,
+            colors,
             label,
             selected_label,
             selection_layer,
@@ -247,10 +256,22 @@ impl list_view::Entry for View {
     fn update(&self, model: &Self::Model) {
         self.label.update(&model.highlighted_text);
         self.selected_label.update(&model.highlighted_text);
-        self.update_icon(model, &self.icon, None);
+        self.update_icon(
+            model,
+            &self.icon,
+            None,
+            self.colors.icon_strong.value(),
+            self.colors.icon_weak.value(),
+        );
         if let Some(weak_layer) = &*self.selection_layer {
             if let Some(layer) = weak_layer.upgrade() {
-                self.update_icon(model, &self.selected_icon, Some(layer));
+                self.update_icon(
+                    model,
+                    &self.selected_icon,
+                    Some(layer),
+                    self.colors.selected.icon_strong.value(),
+                    self.colors.selected.icon_weak.value(),
+                );
             } else {
                 error!(self.logger, "Cannot add icon shape to a dropped scene layer.");
             }
