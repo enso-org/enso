@@ -288,7 +288,7 @@ pub(crate) mod tests {
         for (id, entry) in all_entries.into_iter().enumerate() {
             suggestion_db.put_entry(id, entry)
         }
-        let mut builder = builder::List::new(Rc::new(suggestion_db));
+        let mut builder = builder::List::new(Rc::new(suggestion_db), None);
         builder.extend(0..4);
         let list = builder.build();
 
@@ -316,7 +316,7 @@ pub(crate) mod tests {
         // Create a components list with sample data.
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
-        let mut builder = builder::List::new(Rc::new(suggestion_db));
+        let mut builder = builder::List::new(Rc::new(suggestion_db), None);
         builder.extend(0..11);
         let list = builder.build();
 

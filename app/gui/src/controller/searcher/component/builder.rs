@@ -199,7 +199,7 @@ mod tests {
     fn building_component_list() {
         let logger = Logger::new("tests::module_groups_in_component_list");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
-        let mut builder = List::new(suggestion_db);
+        let mut builder = List::new(suggestion_db, None);
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
         builder.extend(first_part);
