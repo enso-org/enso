@@ -127,7 +127,7 @@ type Delimited
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
     write_table _ _ _ _ _ =
-        Errors.unimplemented "This feature is not implemented yet."
+        Errors.unimplemented "`Table.write` for the `Delimited` format is not implemented yet."
 
     ## PRIVATE
      Clone the instance with some properties overridden.
@@ -194,4 +194,4 @@ type Excel
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
     write_table _ _ _ _ _ =
-        Errors.unimplemented "This feature is not implemented yet."
+        Errors.unimplemented "`Table.write` for the `Excel` format is not implemented yet."
