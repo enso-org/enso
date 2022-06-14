@@ -203,7 +203,7 @@ mod tests {
     fn building_component_list() {
         let logger = Logger::new("tests::module_groups_in_component_list");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
-        let mut builder = List::new(suggestion_db, None);
+        let mut builder = List::new(suggestion_db, Some(0));
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
         builder.extend(first_part);
@@ -295,5 +295,9 @@ mod tests {
         .into_iter()
         .collect();
         assert_eq!(module_subgroups, expected);
+
+        let local_scope = ComparableGroupData::from(&list.local_scope);
+        let expected_entries = vec![5, 6];
+        assert_eq!(local_scope.entries, expected_entries);
     }
 }
