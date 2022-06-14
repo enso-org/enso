@@ -135,6 +135,8 @@ pub struct List {
 
 impl List {
     /// Create a list containing all entities available in the [`model::SuggestionDatabase`].
+    /// Non-module entities having `local_scope_module` as their parent will be added to
+    /// [`List::local_scope`].
     pub fn build_list_from_all_db_entries(
         suggestion_db: &Rc<model::SuggestionDatabase>,
         local_scope_module: Option<suggestion_database::entry::Id>,
