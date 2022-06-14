@@ -146,6 +146,7 @@ impl List {
                 flattened.update_sorting("");
             }
         }
+        self.local_scope.update_sorting("");
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::ListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
