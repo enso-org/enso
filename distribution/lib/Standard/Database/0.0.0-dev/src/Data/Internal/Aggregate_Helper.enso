@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 
 from Standard.Table.Data.Aggregate_Column import all
 import Standard.Database.Data.Internal.IR
@@ -14,15 +15,15 @@ from Standard.Database.Error as Database_Errors import Unsupported_Database_Oper
 make_aggregate_column : Table -> Aggregate_Column -> Text -> IR.Internal_Column
 make_aggregate_column table aggregate new_name =
     sql_type = table.connection.dialect.resolve_target_sql_type aggregate
-    expression = here.make_expression aggregate
+    expression = here.make_expression aggregate table.connection.dialect
     IR.Internal_Column new_name sql_type expression
 
 ## PRIVATE
    Creates an Internal Representation of the expression that computes a
    requested statistic.
-make_expression : Aggregate_Column -> IR.Expression
-make_expression aggregate =
-    is_non_empty_vector v = if v.is_nothing then False else v.not_empty
+make_expression : Aggregate_Column -> Dialect -> IR.Expression
+make_expression aggregate dialect =
+    is_non_empty_selector v = if v.is_nothing then False else v.columns.not_empty
     case aggregate of
         Group_By c _ -> c.expression
         Count _ -> IR.Operation "COUNT_ROWS" []
@@ -36,20 +37,20 @@ make_expression aggregate =
         Count_Empty c _ -> IR.Operation "COUNT_EMPTY" [c.expression]
         Percentile p c _ -> IR.Operation "PERCENTILE" [IR.Constant Sql_Type.double p, c.expression]
         Mode c _ -> IR.Operation "MODE" [c.expression]
-        First c _ ignore_nothing order_by -> case is_non_empty_vector order_by of
+        First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error "`First` aggregation requires at least one `order_by` column.")
             True ->
-                order_exprs = order_by.map .expression
+                order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering
                 case ignore_nothing of
-                    False -> IR.Operation "FIRST" [c.expression]+order_exprs
-                    True -> IR.Operation "FIRST_NOT_NULL" [c.expression]+order_exprs
-        Last c _ ignore_nothing order_by -> case is_non_empty_vector order_by of
+                    False -> IR.Operation "FIRST" [c.expression]+order_bys
+                    True -> IR.Operation "FIRST_NOT_NULL" [c.expression]+order_bys
+        Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error "`Last` aggregation requires at least one `order_by` column.")
             True ->
-                order_exprs = order_by.map .expression
+                order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering
                 case ignore_nothing of
-                    False -> IR.Operation "LAST" [c.expression]+order_exprs
-                    True -> IR.Operation "LAST_NOT_NULL" [c.expression]+order_exprs
+                    False -> IR.Operation "LAST" [c.expression]+order_bys
+                    True -> IR.Operation "LAST_NOT_NULL" [c.expression]+order_bys
         Maximum c _ -> IR.Operation "MAX" [c.expression]
         Minimum c _ -> IR.Operation "MIN" [c.expression]
         Shortest c _ -> IR.Operation "SHORTEST" [c.expression]

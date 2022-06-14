@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
-import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.polyglot.LanguageInfo;
@@ -142,7 +142,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
     Object patch = findPatch(context.getInstrumentedNode());
     if (patch != null) {
       var unwind = context.createUnwind(patch);
-      IdExecutionInstrument.registerValue(unwind, patch);
+      IdExecutionService.UNWIND_HELPER.registerValue(unwind, patch);
       throw unwind;
     }
   }

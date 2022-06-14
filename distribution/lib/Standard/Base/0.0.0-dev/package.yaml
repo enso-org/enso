@@ -53,4 +53,4 @@ component-groups:
           - Standard.Base.Data.Vector.Vector.distinct
     - Output:
         exports:
-          - Standard.Base.System.File.File.write_text
+          - Standard.Base.Data.Text.Text.write

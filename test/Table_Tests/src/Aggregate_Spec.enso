@@ -2,6 +2,8 @@ from Standard.Base import all
 
 import Standard.Table
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
+import Standard.Table.Data.Sort_Column
+import Standard.Table.Data.Sort_Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
@@ -142,7 +144,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [First "Index" (order_by = By_Name ["Hexadecimal", "TextWithNothing"]), Last "ValueWithNothing" (order_by = By_Name ["Value"])]
+            grouped = table.aggregate [First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.columns.length . should_equal 2
@@ -150,6 +152,18 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 0 . at 0 . should_equal 5
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
+
+        Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
+            grouped = table.aggregate [First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            materialized = materialize grouped
+            grouped.row_count . should_equal 1
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "First TextWithNothing"
+            materialized.columns.at 0 . at 0 . should_equal "riwaiqq1io"
+            materialized.columns.at 1 . name . should_equal "First TextWithNothing_1"
+            materialized.columns.at 1 . at 0 . should_equal "j4i2ua7uft"
+            materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
+            materialized.columns.at 2 . at 0 . should_equal -38.56 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [First "Index", Last "Value"]
@@ -259,7 +273,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 2 . at 0 . should_equal Nothing
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = empty_table.aggregate [First "Index" (order_by = By_Name ["Hexadecimal", "TextWithNothing"]), Last "ValueWithNothing" (order_by = By_Name ["Value"])]
+            grouped = empty_table.aggregate [First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.columns.length . should_equal 2
@@ -363,7 +377,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = By_Name ["Hexadecimal", "TextWithNothing"]), Last "ValueWithNothing" (order_by = By_Name ["Value"])]
+            grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
             materialized.columns.length . should_equal 3
@@ -517,7 +531,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = By_Name ["Value", "Flag"]), Last "ValueWithNothing" (order_by = By_Name ["Value"])]
+            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
             materialized.columns.length . should_equal 3
@@ -528,6 +542,19 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 1 . at idx . should_equal "8g6kidngic"
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
+
+        Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
+            grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            materialized = materialize grouped
+            grouped.row_count . should_equal 10
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [7] materialized
+            idx.is_nothing . should_be_false
+            materialized.columns.at 1 . name . should_equal "First TextWithNothing"
+            materialized.columns.at 1 . at idx . should_equal "riwaiqq1io"
+            materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
+            materialized.columns.at 2 . at idx . should_equal -63.75 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing", Last "Value"]
@@ -701,7 +728,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
         Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = By_Name ["Value", "Flag"]), Last "ValueWithNothing" (order_by = By_Name ["Value"]), Group_By "Index"]
+            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"]), Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
             materialized.columns.length . should_equal 4
@@ -713,6 +740,20 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 1 . at idx . should_equal "8g6kidngic"
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
+
+        Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
+            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending]), Group_By "Index"]
+            materialized = materialize grouped
+            grouped.row_count . should_equal 20
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Flag"
+            materialized.columns.at 3 . name . should_equal "Index"
+            idx = find_row [True, 7] materialized [0, 3]
+            idx.is_nothing . should_be_false
+            materialized.columns.at 1 . name . should_equal "First TextWithNothing"
+            materialized.columns.at 1 . at idx . should_equal "13dir782ah"
+            materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
+            materialized.columns.at 2 . at idx . should_equal 54.48 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing", Last "Value", Group_By "Index"]
@@ -1090,7 +1131,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
     Test.group prefix+"Table.aggregate First and Last" pending=pending <|
         Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
             t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
-            order = By_Name ["G"]
+            order = Sort_Column_Selector.By_Name [Sort_Column.Name "G"]
             r1 = t1.aggregate [First "X" (order_by=order), Last "X" (order_by=order)]
             r1.row_count.should_equal 1
             m1 = materialize r1
@@ -1294,7 +1335,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             if test_selection.first_last.not then
                 Test.specify "with First and Last with ordering" <|
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
-                    order = By_Name ["A"]
+                    order = Sort_Column_Selector.By_Name [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|
                         table.aggregate [Sum "X", First "X" (order_by=order), Last "X" (order_by=order)]
 

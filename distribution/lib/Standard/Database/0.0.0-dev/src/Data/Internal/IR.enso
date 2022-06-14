@@ -40,7 +40,7 @@ type Expression
        - kind: the name of the operation, these can be both functions or infix
          operators, the actual implementation is determined by a specific
          dialect.
-       - expression: a list of expressions which are arguments to the operation;
+       - expressions: a list of expressions which are arguments to the operation
          different operations support different amounts of arguments.
     type Operation (kind : Text) (expressions : Vector Expression)
 
@@ -276,7 +276,6 @@ type Join_Kind
        the right source. Its `on` list should be empty, instead `where_filters`
        in the query can be used to filter the results.
     type Join_Cross
-
 
 ## PRIVATE
 type Order_Descriptor (expression : Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)

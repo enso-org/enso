@@ -15,7 +15,7 @@ import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
 import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.epb.EpbLanguage;
-import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.node.ProgramRootNode;
@@ -29,6 +29,8 @@ import org.enso.logger.masking.MaskingFactory;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
+
+import java.util.Optional;
 
 /**
  * The root of the Enso implementation.
@@ -61,7 +63,7 @@ import org.graalvm.options.OptionDescriptors;
   Patchable.Tag.class
 })
 public final class Language extends TruffleLanguage<Context> {
-  private IdExecutionInstrument idExecutionInstrument;
+  private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
   private static final LanguageReference<Language> REFERENCE =
       LanguageReference.create(Language.class);
 
@@ -110,12 +112,15 @@ public final class Language extends TruffleLanguage<Context> {
     Context context =
         new Context(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
-    InstrumentInfo idValueListenerInstrument =
-        env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
-    idExecutionInstrument = env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
+    idExecutionInstrument =
+        Optional.ofNullable(env.getInstruments().get(IdExecutionService.INSTRUMENT_ID))
+            .map(
+                idValueListenerInstrument ->
+                    env.lookup(idValueListenerInstrument, IdExecutionService.class));
     env.registerService(
         new ExecutionService(
             context, idExecutionInstrument, notificationHandler, connectedLockManager));
+
     return context;
   }
 
@@ -181,7 +186,7 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /** @return a reference to the execution instrument */
-  public IdExecutionInstrument getIdExecutionInstrument() {
+  public Optional<IdExecutionService> getIdExecutionService() {
     return idExecutionInstrument;
   }
 }

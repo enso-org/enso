@@ -20,7 +20,7 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 import java.util.Arrays;
 
-/** A primitve boxed array type for use in the runtime. */
+/** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
