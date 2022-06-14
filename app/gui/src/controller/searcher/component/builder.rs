@@ -67,7 +67,7 @@ pub struct List {
     suggestion_db:  Rc<model::SuggestionDatabase>,
     all_components: Vec<Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
-    local_scope:    Option<component::Group>,
+    local_scope:    component::Group,
 }
 
 impl List {
@@ -79,14 +79,14 @@ impl List {
         let local_scope = local_scope_module.and_then(|id| {
             let entry = suggestion_db.lookup(id).ok()?;
             Some(component::Group::from_entry(id, &*entry))
-        });
+        }).unwrap_or_default();
         Self { suggestion_db, all_components: default(), module_groups: default(), local_scope }
     }
 
     /// Extend the list with new entries.
     pub fn extend(&mut self, entries: impl IntoIterator<Item = component::Id>) {
         use suggestion_database::entry::Kind;
-        let local_scope_id = self.local_scope.as_ref().and_then(|group| group.component_id);
+        let local_scope_id = self.local_scope.component_id;
         let suggestion_db = self.suggestion_db.clone_ref();
         let components = entries
             .into_iter()
@@ -98,12 +98,10 @@ impl List {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
                     let parent_id = parent_group.content.component_id;
-                    if let Some(local_scope) = self.local_scope.as_ref() {
-                        let in_local_scope = parent_id == local_scope_id;
-                        let not_module = component.suggestion.kind != Kind::Module;
-                        if in_local_scope && not_module {
-                            local_scope.entries.borrow_mut().push(component.clone_ref());
-                        }
+                    let is_in_local_scope = parent_id == local_scope_id;
+                    let is_not_module = component.suggestion.kind != Kind::Module;
+                    if is_in_local_scope && is_not_module {
+                        self.local_scope.entries.borrow_mut().push(component.clone_ref());
                     }
                 }
                 if let Some(top_group) = self.lookup_module_group(&parent_module.top_module()) {
@@ -160,7 +158,7 @@ impl List {
             module_groups:         Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            local_scope:           self.local_scope.unwrap_or_default(),
+            local_scope:           self.local_scope,
             filtered:              default(),
         }
     }
