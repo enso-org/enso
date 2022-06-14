@@ -213,22 +213,18 @@ public class Module implements TruffleObject {
       if (this.patchedValues == null) {
         this.patchedValues = new PatchedModuleValues(this);
       }
-      if (patchedValues.simpleUpdate(this, edit)) {
+      if (patchedValues.simpleUpdate(this, update)) {
         this.sources = this.sources.newWith(source);
-        final Function1<IR.Expression, IR.Expression> fn = new Function1<IR.Expression, IR.Expression>() {
-          @Override
-          public IR.Expression apply(IR.Expression v1) {
-            if (v1 == change) {
-              if (change instanceof IR$Literal$Number n) {
-                return new IR$Literal$Number(n.base(), edit.text(), n.location(), n.passData(), n.diagnostics());
+        final Function1<IR.Expression, IR.Expression> fn =
+            new Function1<IR.Expression, IR.Expression>() {
+              @Override
+              public IR.Expression apply(IR.Expression v1) {
+                if (v1 == change) {
+                  return update.newIr();
+                }
+                return v1.mapExpressions(this);
               }
-              if (change instanceof IR$Literal$Text t) {
-                return new IR$Literal$Text(edit.text(), t.location(), t.passData(), t.diagnostics());
-              }
-            }
-            return v1.mapExpressions(this);
-          }
-        };
+            };
         var copy = this.ir.mapExpressions(fn);
         this.ir = copy;
         return;
@@ -249,13 +245,12 @@ public class Module implements TruffleObject {
     disposeInteractive();
   }
 
-  /** Cleans supporting data structures for interactive mode.
-   */
+  /** Cleans supporting data structures for interactive mode. */
   private void disposeInteractive() {
-      if (this.patchedValues != null) {
-          this.patchedValues.dispose();
-          this.patchedValues = null;
-      }
+    if (this.patchedValues != null) {
+      this.patchedValues.dispose();
+      this.patchedValues = null;
+    }
   }
 
   /** @return the location of this module. */
@@ -317,7 +312,8 @@ public class Module implements TruffleObject {
     }
     allSources.put(src, this);
     int startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
-    int endDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);
+    int endDelta =
+        patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);
     final int start = sourceStartIndex + startDelta;
     final int length = sourceLength + endDelta - startDelta;
     return src.createSection(start, length);
@@ -637,5 +633,4 @@ public class Module implements TruffleObject {
         MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR,
         MethodNames.Module.EVAL_EXPRESSION);
   }
-
 }

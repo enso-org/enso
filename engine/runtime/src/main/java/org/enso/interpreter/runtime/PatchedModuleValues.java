@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
+import org.enso.compiler.context.SimpleUpdate;
 import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -69,13 +70,13 @@ final class PatchedModuleValues implements ExecutionEventListener {
     }
   }
 
-  boolean simpleUpdate(Module module, model.TextEdit edit) {
+  boolean simpleUpdate(Module module, SimpleUpdate update) {
     var scope = module.getScope();
     var methods = scope.getMethods();
     var conversions = scope.getConversions();
     var collect = new HashMap<Node, Object>();
-    PatchedModuleValues.updateFunctionsMap(edit, methods.values(), collect);
-    PatchedModuleValues.updateFunctionsMap(edit, conversions.values(), collect);
+    PatchedModuleValues.updateFunctionsMap(update, methods.values(), collect);
+    PatchedModuleValues.updateFunctionsMap(update, conversions.values(), collect);
     if (collect.isEmpty()) {
       return false;
     }
@@ -87,6 +88,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
     } catch (IOException ex) {
       throw new IllegalStateException(ex);
     }
+    var edit = update.edit();
     int offset =
         src.getLineStartOffset(edit.range().start().line() + 1) + edit.range().start().character();
     int removed = edit.range().end().character() - edit.range().start().character();
@@ -96,7 +98,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
     return true;
   }
 
-  private static void updateFunctionsMap(model.TextEdit edit, Collection<? extends Map<?, Function>> values, Map<Node, Object> nodeValues) {
+  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Object> nodeValues) {
     for (Map<?, Function> map : values) {
       for (Function f : map.values()) {
         updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
@@ -104,9 +106,10 @@ final class PatchedModuleValues implements ExecutionEventListener {
     }
   }
 
-  private static void updateNode(model.TextEdit edit, Node root, Map<Node, Object> nodeValues) {
+  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Object> nodeValues) {
     LinkedList<Node> queue = new LinkedList<>();
     queue.add(root);
+    var edit = update.edit();
     while (!queue.isEmpty()) {
       var n = queue.removeFirst();
       SourceSection at = n.getSourceSection();
@@ -124,7 +127,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
             at.getEndLine() - 1 == edit.range().end().line() &&
             at.getEndColumn() == edit.range().end().character()
           ) {
-            java.lang.Object newValue = node.parsePatch(edit.text());
+            java.lang.Object newValue = node.parsePatch(update.newIr());
             if (newValue != null) {
               nodeValues.put(n, newValue);
             }

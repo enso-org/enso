@@ -2,6 +2,8 @@ package org.enso.interpreter.node.expression.literal;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.compiler.core.IR;
+import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -37,12 +39,9 @@ public class TextLiteralNode extends ExpressionNode implements Patchable {
   }
 
   @Override
-  public Object parsePatch(String text) {
-    if (text.length() >= 2 && text.charAt(0) == '"' && text.charAt(text.length() - 1) == '"') {
-      String real = text.substring(1, text.length() - 1);
-      if (real.indexOf('"') == -1) {
-        return Text.create(real);
-      }
+  public Object parsePatch(IR.Expression ir) {
+    if (ir instanceof IR$Literal$Text t) {
+      return Text.create(t.text());
     }
     return null;
   }

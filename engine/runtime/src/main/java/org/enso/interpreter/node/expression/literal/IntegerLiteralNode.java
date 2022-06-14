@@ -2,6 +2,8 @@ package org.enso.interpreter.node.expression.literal;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.compiler.core.IR;
+import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.tag.Patchable;
 
@@ -36,10 +38,14 @@ public final class IntegerLiteralNode extends ExpressionNode implements Patchabl
   }
 
   @Override
-  public Object parsePatch(String text) {
-    try {
-      return Long.valueOf(text);
-    } catch (NumberFormatException ex) {
+  public Object parsePatch(IR.Expression ir) {
+    if (ir instanceof IR$Literal$Number n) {
+      try {
+        return Long.valueOf(n.value());
+      } catch (NumberFormatException ex) {
+        return null;
+      }
+    } else {
       return null;
     }
   }
