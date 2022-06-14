@@ -7,7 +7,6 @@ import Standard.Table.Io.Spreadsheet
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Data.Table
 import Standard.Table.Data.Column
-import Standard.Table.Data.Order_Rule
 import Standard.Table.Model
 
 from Standard.Table.Io.Excel export Excel_Section, Excel_Range, read_excel
@@ -19,7 +18,6 @@ export Standard.Table.Model
 export Standard.Table.Io.File_Read
 
 from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Column_Error, Table
-from Standard.Table.Data.Order_Rule export Order_Rule
 
 ## ALIAS To Table
 

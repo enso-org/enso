@@ -14,7 +14,6 @@ import Standard.Table.Internal.Parse_Values_Helper
 import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Problem_Builder
 
-from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
@@ -32,9 +31,9 @@ import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
+polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import java.io.StringReader
 
 ## Creates a new table from a vector of `[name, items]` pairs.
@@ -498,7 +497,6 @@ type Table
         new_names = this.columns.map mapper
         this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems
 
-
     ## ALIAS group, summarize
 
        Aggregates the rows in a table using any `Group_By` entries in columns.
@@ -572,6 +570,44 @@ type Table
          descending order.
 
              table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
+       > Example
+         Sorting the shop inventory based on the per-item price in ascending
+         order.
+
+             import Standard.Examples
+
+             example_sort = Examples.inventory_table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "price"])
+
+       > Example
+         Sort the shop inventory based on the per-item price in descending order
+
+             import Standard.Examples
+
+             example_sort =
+                table = Examples.inventory_table
+                table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "price" Sort_Direction.Descending])
+
+       > Example
+         Sort the shop inventory based on the total stock, using the number sold
+         to break ties in descending order.
+
+             import Standard.Examples
+
+             example_sort =
+                 table = Examples.inventory_table
+                 table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "total_stock" Sort_Direction.Descending, Sort_Column.Name "sold_stock" Sort_Direction.Descending])
+
+       > Example
+         Sort the shop inventory in ascending order by the total stock, using
+         the number of items sold in descending order to break ties.
+
+             import Standard.Examples
+             import Standard.Table
+
+             example_sort =
+                 table = Examples.inventory_table
+                 table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
+
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
@@ -749,20 +785,6 @@ type Table
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column i
 
-    ## Alias Select Columns
-
-       Selects a subset of columns from this table by name.
-
-       > Example
-         Get the item name and price columns from the shop inventory.
-
-             import Standard.Examples
-
-             example_select =
-                 Examples.inventory_table.select ["item_name", "price"]
-    select : Vector -> Table
-    select columns = Table (this.java_table.selectColumns columns.to_array)
-
     ## ALIAS Join Table
 
        Efficiently joins two tables based on either the index or the specified
@@ -875,183 +897,6 @@ type Table
     info =
         cols = this.columns
         here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
-
-    ## ALIAS Group a Table
-
-       Returns an aggregate table resulting from grouping the elements by the
-       value of the specified column.
-
-       Arguments:
-       - by: The column in the table to perform grouping by. If this argument
-         is not set, the index is used for grouping instead.
-
-       > Example
-         Compute the number of transactions that each item has participated in,
-         as well as the number of each item sold across those transactions.
-
-             import Standard.Examples
-             import Standard.Table
-
-             example_group =
-                 transactions = Examples.transactions_table
-                 item_names = Examples.inventory_table.at "item_name"
-                 aggregated = transactions.group by="item_id"
-                 num_transactions = aggregated.at "transaction_id" . reduce .length . rename "transaction_count"
-                 num_sold = aggregated.at "quantity" . reduce .sum . rename "num_sold"
-                 Table.join [item_names, num_transactions, num_sold]
-    group : Text | Nothing -> Aggregate_Table
-    group by=Nothing =
-        Aggregate_Table (this.java_table.group by)
-
-    ## ALIAS Sort Table
-       UNSTABLE
-
-       Sorts the table according to the specified rules.
-
-       Arguments:
-       - by: Specifies the columns used for reordering the table. This argument
-         may be one of:
-         - a text: The text is treated as a column name.
-         - a column: Any column, that may or may not belong to this table.
-           Sorting by a column will result in reordering the rows of this
-           table in a way that would result in sorting the given column.
-         - an order rule: Specifies both the sorting column and additional
-           settings, that will take precedence over the global parameters of
-           this sort operation. The `column` field of the rule may be a text
-           or a column, with the semantics described above.
-         - a vector of any of the above: This will result in a hierarchical
-           sorting, such that the first rule is applied first, the second is
-           used for breaking ties, etc.
-       - order: Specifies the default sort order for this operation. All the
-         rules specified in the `by` argument will default to this setting,
-         unless specified in the rule.
-       - missing_last: Specifies the default placement of missing values when
-         compared to non-missing ones. This setting may be overriden by the
-         particular rules of the `by` argument.  Note thet this argument is
-         independent from `order`, i.e. missing values will always be sorted
-         according to this rule, ignoring the ascending / descending setting.
-
-       > Example
-         Sorting the shop inventory based on the per-item price in ascending
-         order.
-
-             import Standard.Examples
-
-             example_sort = Examples.inventory_table.sort by="price"
-
-       > Example
-         Sort the shop inventory based on the per-item price in descending order
-         and placing missing values at the top of the table.
-
-             import Standard.Examples
-
-             example_sort =
-                table = Examples.inventory_table
-                table.sort by="price" order=Sort_Direction.Descending missing_last=false
-
-       > Example
-         Sort the shop inventory based on the total stock, using the number sold
-         to break ties in descending order.
-
-             import Standard.Examples
-
-             example_sort =
-                 table = Examples.inventory_table
-                 table.sort by=["total_stock", "sold_stock"] order=Sort_Direction.Descending
-
-       > Example
-         Sort the shop inventory in ascending order by the total stock, using
-         the number of items sold in descending order to break ties.
-
-             import Standard.Examples
-             import Standard.Table
-
-             example_sort =
-                 table = Examples.inventory_table
-                 sold_stock_rule = Table.Order_Rule "sold_stock" order=Sort_Direction.Descending
-                 table.sort by=["total_stock", sold_stock_rule]
-
-       > Example
-         Sorting the inventory in descending order based on the percentage of
-         the total stock sold, using the popularity of the product to break
-         ties.
-
-             import Standard.Examples
-             import Standard.Table
-
-             example_sort =
-                 table = Examples.inventory_table.join Examples.popularity_table
-                 percentage_sold = table.at "sold_stock" / table.at "total_stock"
-                 table.sort by=[percentage_sold, "popularity"] order=Sort_Direction.Descending
-
-       > Example
-         Sort the inventory by the price using a custom comparator function.
-
-             import Standard.Examples
-             import Standard.Table
-
-             example_sort =
-                 table = Examples.inventory_table
-                 comparator a b = a.compare_to b*2
-                 price_rule = Table.Order_Rule "price" comparator=comparator
-                 table.sort by=price_rule
-    sort : Text | Column.Column | Order_Rule | Vector.Vector (Text | Column.Column | Order_Rule) -> Sort_Direction -> Boolean -> Table
-    sort by order=Sort_Direction.Ascending missing_last=True = Panic.recover Any <|
-        rules = this.build_java_order_rules by order missing_last
-        fallback_cmp = here.comparator_to_java .compare_to
-        mask = OrderBuilder.buildOrderMask rules.to_array fallback_cmp
-        new_table = this.java_table.applyMask mask
-        Table new_table
-
-    ## PRIVATE
-
-       Transforms order rules from Enso into Java.
-
-       Arguments:
-       - rules: The rule(s) to convert.
-       - order: The sorting order.
-       - missing_last: Whether or not missing values should be ordered last.
-    build_java_order_rules : (Text | Column.Column. | Order_Rule | Vector (Text | Column.Column | Order_Rule)) -> Sort_Direction -> Boolean -> Vector
-    build_java_order_rules rules order missing_last = case rules of
-        Text -> [this.build_java_order_rule rules order missing_last]
-        Column.Column _ -> [this.build_java_order_rule rules order missing_last]
-        Order_Rule _ _ _ _ -> [this.build_java_order_rule rules order missing_last]
-        Vector.Vector _ -> rules.map (this.build_java_order_rule _ order missing_last)
-
-    ## PRIVATE
-
-       Builds a java order rule.
-
-       Arguments:
-       - rule: The rule to convert.
-       - order: The sort order.
-       - missing_last: Whether or not missing values should be ordered last.
-    build_java_order_rule : (Text | Column.Column | Order_Rule) -> Sort_Direction -> Boolean -> OrderRule
-    build_java_order_rule rule order missing_last =
-        order_bool = case order of
-            Sort_Direction.Ascending -> True
-            Sort_Direction.Descending -> False
-        case rule of
-            Text ->
-                column = Panic.rethrow (this.at rule)
-                OrderBuilder.OrderRule.new column.java_column Nothing order_bool missing_last
-            Column.Column c ->
-                OrderBuilder.OrderRule.new c Nothing order_bool missing_last
-            Order_Rule col_ref cmp rule_order rule_nulls_last ->
-                c = case col_ref of
-                    Text -> this.at col_ref . java_column
-                    Column.Column c -> c
-                o = case rule_order of
-                    Nothing -> order_bool
-                    Sort_Direction.Ascending -> True
-                    Sort_Direction.Descending -> False
-                nulls = case rule_nulls_last of
-                    Nothing -> missing_last
-                    _ -> rule_nulls_last
-                java_cmp = case cmp of
-                    Nothing -> Nothing
-                    c -> here.comparator_to_java c
-                OrderBuilder.OrderRule.new c java_cmp o nulls
 
     ## UNSTABLE
 
@@ -1414,86 +1259,6 @@ Text.write_to_spreadsheet cell = cell.setCellValue this
      which should be set by this method.
 Date.write_to_spreadsheet cell = cell.setCellValue this.internal_local_date
 
-
-
-## Represents a table with grouped rows.
-type Aggregate_Table
-
-    ## PRIVATE
-
-       A table type with grouped rows.
-
-       Arguments:
-       - java_table: The internal representation of the table.
-    type Aggregate_Table java_table
-
-    ## Returns a vector of aggregate columns in this table.
-
-       > Example
-         Get a vector of aggregate columns from this table.
-
-             import Standard.Examples
-
-             example_columns = Examples.aggregate_table.columns
-    columns : Vector.Vector
-    columns = Vector.Vector this.java_table.getColumns . map Column.Aggregate_Column
-
-    ## Returns a table containing columns resulting from calling `values` on
-       each column in `this`.
-
-       > Example
-         Get the values table from an aggregate table.
-
-             import Standard.Examples
-
-             example_values = Examples.aggregate_table.values
-    values : Table
-    values = this.columns . map (_.values name_suffix='') . reduce .join
-
-    ## Returns a column containing the number of elements in each group of the
-       aggregate table.
-
-       > Examples
-         Get the counts for an aggregate table.
-
-             import Standard.Examples
-
-             example_count = Examples.aggregate_table.count
-    count : Column
-    count = Column.Column this.java_table.count
-
-    ## ALIAS Get a Column
-
-       Returns an aggregate column with the given name, contained in this table.
-
-       Arguments:
-       - name: The name of the aggregate column to get.
-
-       > Example
-         Get the transaction ids column from the aggregate table.
-
-             import Standard.Examples
-
-             example_at = Examples.aggregate_table.at "transaction_id"
-    at : Text -> Column ! No_Such_Column_Error
-    at name = case this.java_table.getColumnByName name of
-        Nothing -> Error.throw (No_Such_Column_Error name)
-        c -> Column.Aggregate_Column c
-
-    ## Prints an ASCII-art table with this data to the standard output.
-
-       Arguments:
-       - show_rows: the number of initial rows that should be displayed.
-
-       > Example
-         Pretty-print and display an aggregate table in the console.
-
-             import Standard.Examples
-
-             example_print = Examples.aggregate_table.print
-    print : Integer -> Nothing
-    print show_rows=10 = this.values.print show_rows
-
 ## UNSTABLE
 
    An error returned when a non-existent column is being looked up.
@@ -1587,17 +1352,6 @@ print_table header rows indices_count format_term =
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
-
-## PRIVATE
-
-   Wraps the Enso comparator function so it's usable in Java.
-
-   Arguments:
-   - cmp: The Enso comparator function.
-   - x: The left operand to the comparator.
-   - y: The right operand to the comparator.
-comparator_to_java : (Any -> Any -> Ordering) -> Any -> Any -> Integer
-comparator_to_java cmp x y = cmp x y . to_sign
 
 Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
     java_reader = StringReader.new that
