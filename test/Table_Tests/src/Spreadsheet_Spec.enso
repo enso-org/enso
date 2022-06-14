@@ -47,14 +47,14 @@ spec_fmt header file read_method =
 
             t_2 = read_method file (File_Format.Excel (Cell_Range "Simple!3:5") headers=False)
             t_2.columns.length.should_equal 3
-            t_2.at 'C0' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
-            t_2.at 'C1' . to_vector . should_equal [20, Nothing, 30]
-            t_2.at 'C2' . to_vector . should_equal [32, 43.2, 54]
+            t_2.at 'A' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
+            t_2.at 'B' . to_vector . should_equal [20, Nothing, 30]
+            t_2.at 'C' . to_vector . should_equal [32, 43.2, 54]
 
             t_3 = read_method file (File_Format.Excel (Cell_Range "Simple!B4:C5") headers=False)
             t_3.columns.length.should_equal 2
-            t_3.at 'C0' . to_vector . should_equal [Nothing, 30]
-            t_3.at 'C1' . to_vector . should_equal [43.2, 54]
+            t_3.at 'B' . to_vector . should_equal [Nothing, 30]
+            t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
 spec =
     here.spec_fmt 'XLSX reading' Examples.xlsx .read

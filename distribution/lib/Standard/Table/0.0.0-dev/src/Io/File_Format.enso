@@ -194,7 +194,7 @@ type Excel
             extension = file.extension
             (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
 
-        Excel_Module.read_excel file self.section on_problems format
+        Excel_Module.read_excel file self.section self.headers on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
