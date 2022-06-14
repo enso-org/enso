@@ -39,12 +39,8 @@ public final class IntegerLiteralNode extends ExpressionNode implements Patchabl
 
   @Override
   public Object parsePatch(IR.Expression ir) {
-    if (ir instanceof IR$Literal$Number n) {
-      try {
-        return Long.valueOf(n.value());
-      } catch (NumberFormatException ex) {
-        return null;
-      }
+    if (ir instanceof IR$Literal$Number n && n.numericValue() instanceof Long l) {
+      return l;
     } else {
       return null;
     }

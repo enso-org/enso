@@ -1139,38 +1139,12 @@ class IrToTruffle(
       */
     def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
-        case lit @ IR.Literal.Number(base, value, location, _, _) =>
-          val node = if (lit.isFractional) {
-            DecimalLiteralNode.build(value.toDouble)
-          } else if (base.isDefined) {
-            val baseNum =
-              try {
-                Integer.parseInt(base.get)
-              } catch {
-                case _: NumberFormatException =>
-                  throw new CompilerError(
-                    s"Invalid number base $base seen during codegen."
-                  )
-              }
-            try {
-              val longVal = java.lang.Long.parseLong(value, baseNum)
-              IntegerLiteralNode.build(longVal)
-            } catch {
-              case _: NumberFormatException =>
-                try {
-                  val bigInt = new BigInteger(value, baseNum)
-                  BigIntegerLiteralNode.build(bigInt)
-                } catch {
-                  case _: NumberFormatException =>
-                    throw new CompilerError(
-                      s"Invalid number base $base seen during codegen."
-                    )
-                }
-            }
-          } else {
-            value.toLongOption
-              .map(IntegerLiteralNode.build)
-              .getOrElse(BigIntegerLiteralNode.build(new BigInteger(value)))
+        case lit @ IR.Literal.Number(_, _, location, _, _) =>
+          val node = lit.numericValue match {
+            case l: Long       => IntegerLiteralNode.build(l)
+            case d: Double     => DecimalLiteralNode.build(d)
+            case b: BigInteger => BigIntegerLiteralNode.build(b)
+            case m: String     => throw new CompilerError(m)
           }
           setLocation(node, location)
         case IR.Literal.Text(text, location, _, _) =>

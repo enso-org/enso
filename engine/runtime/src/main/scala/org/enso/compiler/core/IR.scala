@@ -2074,6 +2074,37 @@ object IR {
         * @return `true` if the value is fractional, `false` otherwise.
         */
       def isFractional: Boolean = value.contains(".")
+
+      /** Checks the values in the literal converts that to approviate JVM value.
+        * @return Double, Long, BigInteger or String (representing compiler error message)
+        */
+      def numericValue: Any = {
+        if (isFractional) {
+          value.toDouble
+        } else if (base.isDefined) {
+          val baseNum =
+            try {
+              Integer.parseInt(base.get)
+            } catch {
+              case _: NumberFormatException =>
+                return s"Invalid number base $base seen during codegen."
+            }
+          try {
+            val longVal = java.lang.Long.parseLong(value, baseNum)
+            longVal
+          } catch {
+            case _: NumberFormatException =>
+              try {
+                new java.math.BigInteger(value, baseNum)
+              } catch {
+                case _: NumberFormatException =>
+                  s"Invalid number base $base seen during codegen."
+              }
+          }
+        } else {
+          value.toLongOption.getOrElse(new java.math.BigInteger(value))
+        }
+      }
     }
 
     /** A textual Enso literal.
