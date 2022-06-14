@@ -84,6 +84,7 @@ pub mod wide;
 pub use entry::View as Entry;
 
 
+
 /// A module containing common imports.
 pub mod prelude {
     pub use ensogl::application::traits::*;

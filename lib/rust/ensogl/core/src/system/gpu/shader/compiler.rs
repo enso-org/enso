@@ -16,18 +16,18 @@
 //! does not report compilation errors when the context is not available.
 //!
 //! # `Compiler` and `Controller`
+//!
+//! In order to handle WebGL context loss, we divide the responsibilities of compiler
+//! management between two objects: a `Compiler`, and a `Controller`.
+//!
+//! The [`Compiler`] acts as an extension of the context; its state will be lost if the context
+//! is lost. It is therefore responsible for keeping track of such information as the
+//! currently-running jobs, which will no longer be relevant if context loss occurs.
+//!
+//! The [`Controller`] is not bound to a context; it holds state that is independent of any
+//! particular context object, and uses this state to drive `Compiler` operation.
 
 use crate::control::callback::traits::*;
-///
-/// In order to handle WebGL context loss, we divide the responsibilities of compiler
-/// management between two objects: a `Compiler`, and a `Controller`.
-///
-/// The [`Compiler`] acts as an extension of the context; its state will be lost if the context
-/// is lost. It is therefore responsible for keeping track of such information as the
-/// currently-running jobs, which will no longer be relevant if context loss occurs.
-///
-/// The [`Controller`] is not bound to a context; it holds state that is independent of any
-/// particular context object, and uses this state to drive `Compiler` operation.
 use crate::prelude::*;
 use crate::system::gpu::context::native::traits::*;
 use crate::system::web::traits::*;
