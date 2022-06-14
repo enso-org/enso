@@ -282,6 +282,10 @@ public class Reader {
   }
 
   private static Object getCellValue(Cell cell) {
+    if (cell == null) {
+      return null;
+    }
+
     CellType cellType = cell.getCellType();
     if (cellType == CellType.FORMULA) {
       cellType = cell.getCachedFormulaResultType();
