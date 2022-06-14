@@ -1706,7 +1706,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#34faf21cdaf1c26a1538aa164e4a134b38180ce4"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1780,7 +1780,7 @@ dependencies = [
 [[package]]
 name = "enso-build-cli"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#34faf21cdaf1c26a1538aa164e4a134b38180ce4"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
 dependencies = [
  "anyhow",
  "byte-unit",
@@ -3560,10 +3560,10 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.10.1",
+ "base64 0.11.0",
  "bytes 1.1.0",
  "http",
- "httpdate 0.3.2",
+ "httpdate 1.0.2",
  "language-tags 0.3.2",
  "mime 0.3.16",
  "percent-encoding 2.1.0",
@@ -3573,7 +3573,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#34faf21cdaf1c26a1538aa164e4a134b38180ce4"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
 dependencies = [
  "anyhow",
  "async-compression",
