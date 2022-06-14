@@ -393,7 +393,7 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
 }
 
 impl<const COLUMNS: usize> Model<COLUMNS> {
-    /// Assign a set of layers to render the component group in. Must be called after constructing
+    /// Assign a set of layers to render the component group. Must be called after constructing
     /// the [`View`].
     pub fn set_layers(&self, layers: &crate::Layers) {
         layers.selection.background.add_exclusive(&self.selection_background);

@@ -21,7 +21,7 @@
 //! The selection box used to highlight "selected" entries is implemented in a pretty tricky way.
 //! We want to render the selection box above the background of the component group, but below
 //! any text - so that text color isn't blending with the selection box's color. However, a
-//! component group uses 4 different [scene layers][Layer] to render its header correctly, and we
+//! component group uses four different [scene layers][Layer] to render its header correctly, and we
 //! want the selection to be above the header background and below the text entries at the same
 //! time, which is not possible.
 //!
@@ -34,7 +34,7 @@
 //! - (for component groups with header) Header text.
 //!
 //! This implementation allows tweaking the appearance of the selected text and icons easily.
-//! When the selection box moves the transition between "normal" and "selected" appearances also
+//! When the selection box moves, the transition between "normal" and "selected" appearances also
 //! looks natural without any additional tricks. So you can see a "half-selected" entry if the
 //! selection box is only covering part of it.
 //!
@@ -114,7 +114,7 @@ const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 
 // === Selection ===
 
-/// A shape of selection box. It is used as a mask to show only specific parts of the selection
+/// A shape of a selection box. It is used as a mask to show only specific parts of the selection
 /// layers. See module-level documentation to learn more.
 pub mod selection_box {
     use super::*;
@@ -262,6 +262,9 @@ impl HeaderGeometry {
 /// [`ide_component_group::wide::View`] can be created from single "main color" input. Each of
 /// these colors will be computed by mixing "main color" with application background - for details,
 /// see [`Colors::from_main_color`].
+///
+/// `icon_strong` and `icon_weak` parameters represent the more/less contrasting parts of the
+/// [icon](crate::icon::Any), they do not represent highlighted state of the icon.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Colors {
@@ -508,7 +511,7 @@ impl component::Frp<Model> for Frp {
 /// module-level documentation to learn more.
 ///
 /// A component group consists of several shapes with a strict rendering order. The order of the
-/// fields in [`LayersInner`] struct represents the rendering order of layers, with `background`
+/// fields in [`LayersInner`] struct represent the rendering order of layers, with `background`
 /// being the bottom-most and `header_text` being the top-most.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Layers {
@@ -628,7 +631,7 @@ impl component::Model for Model {
 }
 
 impl Model {
-    /// Assign a set of layers to render the component group in. Must be called after constructing
+    /// Assign a set of layers to render the component group. Must be called after constructing
     /// the [`View`].
     pub fn set_layers(&self, layers: &Layers) {
         // Set normal layers.

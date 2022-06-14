@@ -43,7 +43,7 @@ use list_view::entry::AnyModelProvider;
 // =================
 
 const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
-/// The selection animation is faster than default one because of the increased spring force.
+/// The selection animation is faster than the default one because of the increased spring force.
 const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 const COMPONENT_GROUP_WIDTH: f32 = 150.0;
 const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
@@ -380,7 +380,7 @@ fn init(app: &Application) {
     let selection_animation = Animation::<Vector2>::new(&network);
     let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
     selection_animation.set_spring.emit(spring);
-    /// This is an example code to position the selection box on scene.
+    /// This is an example code to position the selection box on the scene.
     /// We transform the group-local position from [`multiview.selection_position_target`] to
     /// global position. After that we restrict the Y-coordinate so that the selection box won't
     /// go below the scroll area bottom border.
