@@ -28,7 +28,7 @@ type Range
     with_step new_step = case new_step of
         Integer ->
             if new_step == 0 then here.throw_zero_step_error else
-                if new_step < 0 then Error.throw (Illegal_Argument_Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as self operation only sets the magnitude without changing the sign.") else
+                if new_step < 0 then Error.throw (Illegal_Argument_Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
                     Range self.start self.end self.step.signum*new_step
         _ ->
             Error.throw (Illegal_Argument_Error "Range step should be an integer.")

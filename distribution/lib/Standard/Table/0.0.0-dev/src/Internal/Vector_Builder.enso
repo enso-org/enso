@@ -60,7 +60,7 @@ type Vector_Builder
 
     ## PRIVATE
 
-       Concatenates another builder or vector to self.
+       Concatenates another builder or vector to this.
 
        Arguments:
        - other: The other vector to concatenate with `self`.

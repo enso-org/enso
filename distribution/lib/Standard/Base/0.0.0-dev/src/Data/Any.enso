@@ -237,7 +237,7 @@ type Any
     is_nothing = False
 
     ## UNSTABLE
-       If self is Nothing then returns `function`.
+       If `self` is Nothing then returns `function`.
 
        > Example
          If the value "Hello" is nothing return "".
@@ -250,8 +250,8 @@ type Any
        unchanged.
 
        Arguments:
-       - handler: The function to call on self if it is an error value. By default
-         self is identity.
+       - handler: The function to call on this if it is an error value. By default
+         this is identity.
 
        > Example
          Catching an erroneous value and getting the length of its message.

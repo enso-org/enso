@@ -151,7 +151,7 @@ type Column
 
        Arguments:
        - other: the table being the right operand of this join operation.
-       - on: the column(s) or expression(s) of `this` that should be used as
+       - on: the column(s) or expression(s) of `self` that should be used as
          the join key. If this argument is not provided, the index of `self`
          will be used.
        - drop_unmatched: whether the rows of `self` without corresponding
@@ -330,7 +330,7 @@ type Column
        Element-wise multiplication.
 
        Arguments:
-       - other: The other column to multiply `this` by.
+       - other: The other column to multiply `self` by.
 
        Returns a column containing the result of multiplying `other` by each
        element of `self`.  If `other` is a column, the operation is performed
@@ -343,7 +343,7 @@ type Column
        Element-wise division.
 
        Arguments:
-       - other: The other column to divide `this` column by.
+       - other: The other column to divide `self` column by.
 
        Returns a column containing the result of dividing each element of `self`
        by `other`.  If `other` is a column, the operation is performed pairwise
