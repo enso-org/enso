@@ -9,5 +9,6 @@ import java.io.Writer;
 public class DelimitedWriter {
     public static void write(Writer output, Table table, DataFormatter[] columnFormatters) {
         assert table.getColumns().length == columnFormatters.length;
+        throw new RuntimeException("Not implemented.");
     }
 }

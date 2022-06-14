@@ -1,0 +1,90 @@
+from Standard.Base import all
+import Standard.Table
+
+import Standard.Base.Error.Common as Errors
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+import Standard.Base.System.File.Existing_File_Behavior
+from Standard.Table.Error as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+from Standard.Table.Io.File_Format import Infer
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+import Standard.Table.Data.Storage
+
+polyglot java import org.enso.table.write.DelimitedWriter
+polyglot java import java.io.PrintWriter
+polyglot java import java.io.IOException
+polyglot java import org.enso.table.formatting.TextFormatter
+
+## Writes a delimited file according to the provided format.
+
+   Arguments:
+   - table: The table to serialize.
+   - format: The specification of the delimited file format.
+   - file: The file to write to.
+   - on_existing_file: Specifies how to proceed if the file already exists.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+write_file : Table -> Delimited -> File -> Existing_File_Behavior -> Problem_Behavior -> Any
+write_file table format file on_existing_file on_problems = case on_existing_file of
+    Existing_File_Behavior.Append -> Errors.unimplemented "Appending to an existing Delimited file is not implemented yet."
+    _ ->
+        on_existing_file.write file stream->
+            stream.with_java_stream java_stream->
+                here.write_to_stream table format java_stream on_problems related_file=file
+
+## PRIVATE
+   Writes to an output stream according to the provided format.
+
+   Arguments:
+   - table: The table to serialize.
+   - format: The specification of the delimited file format.
+   - java_stream: A Java `OutputStream` used as the data destination.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - related_file: The file related to the provided `java_stream`, if available,
+     or `Nothing`. It is used for more detailed error reporting.
+write_to_stream : Table -> Delimited -> OutputStream -> Problem_Behavior -> File | Nothing -> Any
+write_to_stream table format java_stream on_problems related_file=Nothing =
+    handle_io_exception ~action = Panic.catch IOException action caught_panic->
+        Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
+
+    #java_charset = format.encoding.to_java_charset
+    handle_io_exception <|
+        # TODO create a writer that will use the appropriate encoding and handle mismatches
+        writer = PrintWriter.new java_stream
+        here.write_to_writer table format writer on_problems
+
+## PRIVATE
+   Writes data to the provided `Writer` according to the provided format.
+
+   The `encoding` parameter is ignored, instead the provided writer should
+   handle any necessary encoding.
+
+   Arguments:
+   - table: The table to serialize.
+   - format: The specification of the delimited file format.
+   - java_writer: A Java `Writer` to which characters will be written.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+write_to_writer : Table -> Delimited -> Writer -> Problem_Behavior -> Any
+write_to_writer table format java_writer on_problems =
+    column_formatters = case format.value_formatter of
+        Nothing -> table.columns.map column-> case column.storage_type of
+            Storage.Text ->
+                # TODO quotes, see below
+                TextFormatter.new
+            _ ->
+                # TODO this needs to be recovered as error somewhere, but we may want to panic to indicate to operations like "Backup" that the write failed. Or the backup should check not only for panics but also for errors to see that - probably that's the right solution!
+                Panic.throw (Illegal_Argument_Error "If the expected file format does not specify a valid `Data_Formatter`, only Text columns are allowed.")
+        value_formatter -> table.columns.map column->
+            # TODO handling CSV quotes in the format correctly
+            storage_type = column.storage_type
+            value_formatter.make_formatter_for_column_type storage_type
+
+    DelimitedWriter.write java_writer table.java_table column_formatters.to_array

@@ -88,7 +88,7 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
    - max_columns: Specifies the limit of columns to read. The limit is set to
      avoid `OutOfMemory` errors on malformed files. It must be a positive
      integer.
-read_from_reader : Delimited -> InputStream -> Problem_Behavior -> Integer -> Any
+read_from_reader : Delimited -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
