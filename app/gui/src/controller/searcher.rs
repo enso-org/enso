@@ -956,7 +956,7 @@ impl Searcher {
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
-                    let module_id = this.module_id();
+                    let module_id = this.module_suggestion_id();
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
@@ -1025,14 +1025,14 @@ impl Searcher {
         completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
     ) -> component::List {
         let database = self.database.clone_ref();
-        let mut builder = component::builder::List::new(database, self.module_id());
+        let mut builder = component::builder::List::new(database, self.module_suggestion_id());
         for response in completion_responses {
             builder.extend(response.results.iter().cloned());
         }
         builder.build()
     }
 
-    fn module_id(&self) -> Option<language_server::SuggestionId> {
+    fn module_suggestion_id(&self) -> Option<language_server::SuggestionId> {
         let module = self.module_qualified_name();
         let (id, _) = self.database.lookup_by_qualified_name(&module)?;
         Some(id)
