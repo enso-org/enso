@@ -5,8 +5,9 @@ import Standard.Table.Data.Column
 import Standard.Visualization
 from Standard.Base.Data.Time.Date as Date_Module import Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
-import Standard.Table.Io.Format
 import Standard.Table.Io.File_Format
+import Standard.Base.System.File
+import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
@@ -1308,45 +1309,69 @@ type Table
     write_json : File.File -> Nothing
     write_json file = this.to_json.to_text.write file
 
-    ## UNSTABLE
+    ## This function writes a table from memory into a file.
 
-       Writes the table to a specified file with the given serialization
-       settings.
+       The specific behavior of the various `File_Format`s is specified below.
 
        Arguments:
-       - file: the file to write to.
-       - format: the format settings to use.
+       - path: The path to the output file.
+       - format: The format of the file.
+         If `File_Format.Auto` is specified; the file extension determines the
+         specific type and uses the default settings for that type to be used.
+         Details of this type are below.
+       - on_existing_file: Specified how to handle if the file already exists.
+       - column_matching: Specifies how to map columns against an existing file.
+         If `Column_Matching.By_Name` - the columns are mapped by name against
+         an existing file.
+         If `Column_Matching.By_Position` - the columns are mapped by position
+         against an existing file.
+         If there is a mismatch, then a `Column_Mismatch` error is raised.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default. The specific issues depend on the `File_Format`
+         argument.
 
+       Returns:
+       - If an unsupported `File_Format` is specified, an
+         `Illegal_Argument_Error` is raised.
+       - If the path to the parent location cannot be found or the filename is
+         invalid, a `File_Not_Found` is raised.
+       - If another IO error occurs, such as access denied, an `Io_Error` is
+         raised.
+       - If appending and the columns do not match, a `Column_Mismatch` is
+         raised.
+       - Other specific errors or warnings that can be raised depend on the
+         format argument.
+       - Otherwise, the file is loaded following the rules of the format
+         parameter.
+
+       ? `File_Format` write behaviors
+
+         - `File_Format.Auto`: The file format is determined by the file
+           extension of the path argument.
+         - `File_Format.Bytes` and `File_Format.Text`: The Table does not
+           support these types in the `write` function. If passed as format, an
+           `Illegal_Argument_Error` is raised. To write out the table as plain
+           text, the user needs to call the `Text.from Table` method and then
+           use the `Text.write` function.
 
        > Example
          Write a table to a CSV file, without writing the header.
 
              import Standard.Examples
-             import Table
+             import Standard.Table
 
-             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Table.Format.Csv include_header=False)
-
-       > Example
-         Write a table to an XLSX file, without writing the header.
-
-             import Standard.Examples
-             import Table
-
-             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") (Table.Format.Xlsx include_header=False)
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (File_Format.Delimited delimiter="," headers=False)
 
        > Example
-         Write a table to a JSON file.
+         Write a table to an XLSX file.
 
              import Standard.Examples
-             import Table
+             import Standard.Table
 
-             example_to_json = Examples.inventory_table.write (Enso_Project.data / "example_output.json") Table.Format.Json
-    write : File.File -> Format.Format -> Nothing
-    write file format = case format of
-        Format.Csv header quote sep line max -> this.write_csv file header quote sep line max
-        Format.Xlsx sheet mode header max -> this.write_xlsx file sheet mode header max
-        Format.Json -> this.write_json file
-
+             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") File_Format.Excel
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
+    write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Column_Mapping.By_Name on_problems=Report_Warning =
+        format.write_table (File.new path) this on_existing_file column_mapping on_problems
 
 ## UNSTABLE
 
