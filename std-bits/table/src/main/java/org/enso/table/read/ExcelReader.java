@@ -1,4 +1,4 @@
-package org.enso.table.format.xlsx;
+package org.enso.table.read;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -14,6 +14,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.format.xlsx.Range;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /** A table reader for MS Excel files. */
-public class Reader {
+public class ExcelReader {
   private static Table readSheetToTable(
       Workbook workbook, int sheetIndex, Range range, int skipRows, int rowCount) {
     Sheet sheet = workbook.getSheetAt(sheetIndex);

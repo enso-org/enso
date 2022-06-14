@@ -5,7 +5,7 @@ import Standard.Table.Data.Table
 from Standard.Table.Error as Error_Module import Invalid_Location
 
 polyglot java import org.enso.table.format.xlsx.Range as Java_Range
-polyglot java import org.enso.table.format.xlsx.Reader
+polyglot java import org.enso.table.read.ExcelReader
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
@@ -165,16 +165,16 @@ validate validation ~error_message ~wrapped =
 read_excel : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_excel file section _ xls_format=False =
     reader stream = case section of
-        Sheet_Names -> Vector.Vector (Reader.readSheetNames stream xls_format)
-        Range_Names -> Vector.Vector (Reader.readRangeNames stream xls_format)
+        Sheet_Names -> Vector.Vector (ExcelReader.readSheetNames stream xls_format)
+        Range_Names -> Vector.Vector (ExcelReader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
             Table.Table <| case sheet of
-                Integer -> Reader.readSheetByIndex stream sheet skip_rows row_limit xls_format
-                Text -> Reader.readSheetByName stream sheet skip_rows row_limit xls_format
+                Integer -> ExcelReader.readSheetByIndex stream sheet skip_rows row_limit xls_format
+                Text -> ExcelReader.readSheetByName stream sheet skip_rows row_limit xls_format
         Cell_Range address skip_rows row_limit ->
             Table.Table <| case address of
-                Excel_Range _ -> Reader.readRange stream address.java_range skip_rows row_limit xls_format
-                Text -> Reader.readRangeByName stream address skip_rows row_limit xls_format
+                Excel_Range _ -> ExcelReader.readRange stream address.java_range skip_rows row_limit xls_format
+                Text -> ExcelReader.readRangeByName stream address skip_rows row_limit xls_format
 
     bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
     handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
