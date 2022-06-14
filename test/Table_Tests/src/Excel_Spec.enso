@@ -11,12 +11,12 @@ import Standard.Test
 
 spec =
     Test.group 'Excel Range' <|
-        check_range range sheet_name tlbr_vector =
-            range.sheet_name . should_equal sheet_name
-            range.top_row . should_equal (tlbr_vector.at 0)
-            range.left_column . should_equal (tlbr_vector.at 1)
-            range.bottom_row . should_equal (tlbr_vector.at 2)
-            range.right_column . should_equal (tlbr_vector.at 3)
+        check_range excel_range sheet_name tlbr_vector =
+            excel_range.sheet_name . should_equal sheet_name
+            excel_range.top_row . should_equal (tlbr_vector.at 0)
+            excel_range.left_column . should_equal (tlbr_vector.at 1)
+            excel_range.bottom_row . should_equal (tlbr_vector.at 2)
+            excel_range.right_column . should_equal (tlbr_vector.at 3)
 
         Test.specify 'should be able to parse A1 format' <|
             check_range (Excel_Range.from_address "Test!EE4") 'Test' [4, 135, 4, 135]

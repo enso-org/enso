@@ -8,7 +8,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.format.xlsx.Range;
+import org.enso.table.format.xlsx.ExcelRange;
 import org.enso.table.util.NameDeduplicator;
 
 import java.io.IOException;
@@ -23,7 +23,7 @@ public class ExcelReader {
   private static Table readSheetToTable(
       Workbook workbook,
       int sheetIndex,
-      Range range,
+      ExcelRange excelRange,
       HeaderBehavior headers,
       int skipRows,
       int rowCount) {
@@ -32,14 +32,14 @@ public class ExcelReader {
     // Row Range
     int firstRow = sheet.getFirstRowNum() + 1;
     int lastRow = sheet.getLastRowNum() + 1;
-    boolean wholeColumn = range == null || range.isWholeColumn();
-    int startRow = (wholeColumn ? 1 : range.getTopRow()) + skipRows;
-    int endRow = wholeColumn ? lastRow : range.getBottomRow();
+    boolean wholeColumn = excelRange == null || excelRange.isWholeColumn();
+    int startRow = (wholeColumn ? 1 : excelRange.getTopRow()) + skipRows;
+    int endRow = wholeColumn ? lastRow : excelRange.getBottomRow();
 
     // Columns
-    boolean wholeRow = range == null || range.isWholeRow();
-    int startCol = wholeRow ? 1 : range.getLeftColumn();
-    int endCol = wholeRow ? -1 : range.getRightColumn();
+    boolean wholeRow = excelRange == null || excelRange.isWholeRow();
+    int startCol = wholeRow ? 1 : excelRange.getLeftColumn();
+    int endCol = wholeRow ? -1 : excelRange.getRightColumn();
 
     // Headers
     NameDeduplicator deduplicator = new NameDeduplicator();
@@ -357,15 +357,15 @@ public class ExcelReader {
     Workbook workbook = getWorkbook(stream, xls_format);
 
     Name name = workbook.getName(rangeNameOrAddress);
-    Range range = new Range(name == null ? rangeNameOrAddress : name.getRefersToFormula());
-    return readRange(workbook, range, headers, skip_rows, row_limit);
+    ExcelRange excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+    return readRange(workbook, excelRange, headers, skip_rows, row_limit);
   }
 
   /**
    * Reads a range for the specified XLSX/XLS file into a table.
    *
    * @param stream an {@link InputStream} allowing to read the XLSX file contents.
-   * @param range the range to read.
+   * @param excelRange the range to read.
    * @param skip_rows skip rows from the top of the range.
    * @param row_limit maximum number of rows to read.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
@@ -374,13 +374,13 @@ public class ExcelReader {
    */
   public static Table readRange(
       InputStream stream,
-      Range range,
+      ExcelRange excelRange,
       HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
       throws IOException {
-    return readRange(getWorkbook(stream, xls_format), range, headers, skip_rows, row_limit);
+    return readRange(getWorkbook(stream, xls_format), excelRange, headers, skip_rows, row_limit);
   }
 
   private static Workbook getWorkbook(InputStream stream, boolean xls_format) throws IOException {
@@ -388,16 +388,16 @@ public class ExcelReader {
   }
 
   private static Table readRange(
-      Workbook workbook, Range range, HeaderBehavior headers, int skip_rows, Integer row_limit) {
-    int sheetIndex = getSheetIndex(workbook, range.getSheetName());
+      Workbook workbook, ExcelRange excelRange, HeaderBehavior headers, int skip_rows, Integer row_limit) {
+    int sheetIndex = getSheetIndex(workbook, excelRange.getSheetName());
     if (sheetIndex == -1) {
-      throw new IllegalArgumentException("Unknown sheet '" + range.getSheetName() + "'.");
+      throw new IllegalArgumentException("Unknown sheet '" + excelRange.getSheetName() + "'.");
     }
 
     return readSheetToTable(
         workbook,
         sheetIndex,
-        range,
+        excelRange,
         headers,
         skip_rows,
         row_limit == null ? Integer.MAX_VALUE : row_limit);

@@ -7,7 +7,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Range {
+public class ExcelRange {
   private static final Pattern FULL_ADDRESS = Pattern.compile("^('.+'|[^'!]+)!(.+)$");
 
   private static String[] parseFullAddress(String fullAddress) throws IllegalArgumentException {
@@ -47,7 +47,7 @@ public class Range {
           parseRange(
               range,
               pattern,
-              pattern == RANGE_RC ? Range::parseR1C1StyleAddress : Range::parseA1StyleAddress);
+              pattern == RANGE_RC ? ExcelRange::parseR1C1StyleAddress : ExcelRange::parseA1StyleAddress);
 
       if (parsed.isPresent()) {
         return parsed.get();
@@ -183,7 +183,7 @@ public class Range {
   private final int topRow;
   private final int bottomRow;
 
-  public Range(String fullAddress) throws IllegalArgumentException {
+  public ExcelRange(String fullAddress) throws IllegalArgumentException {
     String[] sheetAndRange = parseFullAddress(fullAddress);
     this.sheetName = unescapeSheetName(sheetAndRange[0]);
 
@@ -194,7 +194,7 @@ public class Range {
     this.bottomRow = range[2];
   }
 
-  public Range(String sheetName, int leftColumn, int topRow, int rightColumn, int bottomRow) {
+  public ExcelRange(String sheetName, int leftColumn, int topRow, int rightColumn, int bottomRow) {
     this.sheetName = sheetName;
     this.leftColumn = Math.min(leftColumn, rightColumn);
     this.topRow = Math.min(bottomRow, topRow);

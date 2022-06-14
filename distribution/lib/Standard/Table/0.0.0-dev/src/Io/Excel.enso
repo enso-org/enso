@@ -5,7 +5,7 @@ from Standard.Table.Io.File_Format import Infer
 import Standard.Table.Data.Table
 from Standard.Table.Error as Error_Module import Invalid_Location
 
-polyglot java import org.enso.table.format.xlsx.Range as Java_Range
+polyglot java import org.enso.table.format.xlsx.ExcelRange as Java_Range
 polyglot java import org.enso.table.read.ExcelReader
 
 polyglot java import java.lang.IllegalArgumentException
@@ -109,7 +109,7 @@ type Excel_Range
         col_valid <| row_valid <|
             Excel_Range (Java_Range.new sheet col_index row col_index row)
 
-    ## Create a Range for a range of cells.
+    ## Create an Excel_Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
     for_range sheet left top right bottom =
         left_index = Excel_Range.column_index left
