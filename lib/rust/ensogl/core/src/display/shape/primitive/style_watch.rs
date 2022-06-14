@@ -87,9 +87,15 @@ impl StyleWatchFrp {
     /// Queries style sheet value for a number.  Returns 0.0 if not found.
     pub fn get_number(&self, path: impl Into<Path>) -> frp::Sampler<f32> {
         let network = &self.network;
+        let path = path.into();
+        let path_name = path.clone().to_string();
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(|t| t.number().unwrap_or(0.0));
+            path <- source.constant(path_name);
+            value <- source.map2(&path, move |t, path| t.number().unwrap_or_else(|| {
+                WARNING!(format!("Tried to access undefined number from theme: {}", path));
+                0.0
+            }));
             sampler <- value.sampler();
         }
         source.emit(current);
@@ -99,9 +105,15 @@ impl StyleWatchFrp {
     /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`].
     pub fn get_color<T: Into<Path>>(&self, path: T) -> frp::Sampler<color::Rgba> {
         let network = &self.network;
+        let path = path.into();
+        let path_name = path.clone().to_string();
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(|t| t.color().unwrap_or(FALLBACK_COLOR));
+            path <- source.constant(path_name);
+            value <- source.map2(&path, |t, path| t.color().unwrap_or_else(|| {
+                WARNING!(format!("Tried to access undefined color from theme: {}", path));
+                FALLBACK_COLOR
+            }));
             sampler <- value.sampler();
         }
         source.emit(current);
@@ -190,6 +202,12 @@ impl StyleWatch {
     /// Queries style sheet number value, if not found gets fallback.
     pub fn get_number_or(&self, path: impl Into<Path>, fallback: f32) -> f32 {
         self.get(path).number().unwrap_or(fallback)
+    }
+
+    /// Queries style sheet number value, if not found computes it from a closure.
+    pub fn get_number_or_else<F>(&self, path: impl Into<Path>, fallback: F) -> f32
+    where F: FnOnce() -> f32 {
+        self.get(path).number().unwrap_or_else(fallback)
     }
 
     /// Queries style sheet number value. Returns 0 if not found.

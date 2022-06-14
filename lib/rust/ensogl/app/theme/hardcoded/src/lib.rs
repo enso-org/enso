@@ -182,6 +182,24 @@ define_themes! { [light:0, dark:1]
         component_browser {
             searcher {
                 list_panel {
+                    content_width = 400.0, 400.0;
+                    content_height = 398.0, 398.0;
+                    content_padding = 3.0, 3.0;
+                    content_corner_radius = 15.0, 15.0;
+                    content_background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
+
+                    section_divider_height = 2.0, 2.0;
+                    section_heading_size = 16.0, 16.0;
+                    section_heading_font = "Causten-Semibold", "Causten-Semibold";
+                    section_heading_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
+                    section_divider_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
+
+                    menu_height = 35.0, 35.0;
+                    menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
+                    menu_divider_height = 0.5,0.5;
+
+                    favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
+
                     section {
                         column_grid {
                             column_gap = 2.0, 2.0;
@@ -219,6 +237,8 @@ define_themes! { [light:0, dark:1]
                 background_color_intensity = 0.2, 0.2;
                 dimmed_color_intensity = 0.5, 0.5;
                 entry_list {
+                    background = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
+                    highlight = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
                     text {
                         font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
@@ -235,7 +255,8 @@ define_themes! { [light:0, dark:1]
                         padding = 7.0, 7.0;
                     }
                     highlight {
-                        height = 30.0, 30.0
+                        height = 30.0, 30.0;
+                        corner_radius = 0.0, 0.0;
                     }
                 }
             }

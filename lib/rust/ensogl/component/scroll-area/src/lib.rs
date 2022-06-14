@@ -85,9 +85,12 @@ mod mask {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = "input_size.y".into();
             let color = color::Rgba::white();
-            let rect = shape::Rect((width,height)).corners_radiuses(
-                corner_radius_top_left,corner_radius_top_right,corner_radius_bottom_left,
-                corner_radius_bottom_right);
+            let rect = shape::Rect((width, height)).corners_radiuses(
+                corner_radius_top_left,
+                corner_radius_top_right,
+                corner_radius_bottom_left,
+                corner_radius_bottom_right,
+            );
             rect.fill(color).into()
         }
     }
@@ -198,18 +201,18 @@ impl ScrollArea {
             frp.set_corner_radius_bottom_right <+ frp.set_corner_radius;
             frp.set_corner_radius_top_left <+ frp.set_corner_radius;
             frp.set_corner_radius_bottom_left <+ frp.set_corner_radius;
-            eval frp.set_corner_radius_top_right((radius) {
+            eval frp.set_corner_radius_top_right((radius)
                 model.mask.corner_radius_top_right.set(*radius);
-            });
-            eval frp.set_corner_radius_bottom_right((radius) {
+            );
+            eval frp.set_corner_radius_bottom_right((radius)
                 model.mask.corner_radius_bottom_right.set(*radius);
-            });
-            eval frp.set_corner_radius_top_left((radius) {
+            );
+            eval frp.set_corner_radius_top_left((radius)
                 model.mask.corner_radius_top_left.set(*radius);
-            });
-            eval frp.set_corner_radius_bottom_left((radius) {
+            );
+            eval frp.set_corner_radius_bottom_left((radius)
                 model.mask.corner_radius_bottom_left.set(*radius);
-            });
+            );
 
 
             // === Scrolling ===

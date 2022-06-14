@@ -1,7 +1,39 @@
 //! Example scene showing simple usage of a shape system.
 
+#![recursion_limit = "512"]
+// === Features ===
+#![allow(incomplete_features)]
+#![feature(negative_impls)]
+#![feature(associated_type_defaults)]
+#![feature(bool_to_option)]
+#![feature(cell_update)]
+#![feature(const_type_id)]
+#![feature(drain_filter)]
+#![feature(entry_insert)]
+#![feature(fn_traits)]
+#![feature(marker_trait_attr)]
+#![feature(specialization)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
+#![feature(trace_macros)]
+#![feature(const_trait_impl)]
+#![feature(slice_as_chunks)]
 // === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
+#![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
+#![allow(dead_code)]
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;

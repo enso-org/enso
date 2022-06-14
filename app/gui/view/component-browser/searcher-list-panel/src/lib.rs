@@ -1,10 +1,8 @@
-//! This module defines the Component Browser Panel, as sub-content of the Searcher 2.0, that shows
-//! the available components grouped by categories. It also defines the shape that the Component
-//! Browser Menu will be placed on, as this will appear as a single continuous shape.
+//! This module defines the [`ComponentBrowserPanel`], sub-content of the Component Browser, that
+//! shows the available components grouped by categories. It also defines the shape that the
+//! Component Browser Menu will be placed on, as this will appear as a single continuous shape.
 //!
-//! The widget is defined by the [`SearcherListPanel`].
-//!
-//! To learn more about component groups, see the [Component Browser Design
+//! To learn more about the Component Browser and its components, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
 #![recursion_limit = "512"]
@@ -47,6 +45,7 @@ pub mod column_grid;
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
+use ensogl_core::traits::*;
 
 pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
@@ -55,16 +54,18 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
-use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
+use ensogl_core::display::style;
 use ensogl_gui_component::component;
+use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
 use ide_view_component_group as component_group;
 use ide_view_component_group::Layers;
+use searcher_theme::list_panel as list_panel_theme;
 
 
 
@@ -75,67 +76,168 @@ use ide_view_component_group::Layers;
 
 // === Layout Constants ===
 
-/// Scale required to covert from figma pixels measures to Enso pixel numbers.
-const DPI_SCALE: f32 = 0.5;
-
 /// Extra space around shape to allow for shadows.
-const PADDING: f32 = 50.0 * DPI_SCALE;
+const SHADOW_PADDING: f32 = 25.0;
 
-/// Width of the Component List Panel.
-const CONTENT_WIDTH: f32 = 799.0 * DPI_SCALE;
-/// Height of the Component List Panel.
-const CONTENT_HEIGHT: f32 = 797.0 * DPI_SCALE;
-
-/// Width of the whole shape (Component List Panel + Component Browser Panel Menu) without padding.
-const WIDTH_INNER: f32 = CONTENT_WIDTH;
-/// Height of the whole shape (Component List Panel + Component Browser Panel Menu) without padding.
-const HEIGHT_INNER: f32 = MENU_HEIGHT + CONTENT_HEIGHT;
-
-/// Width of the whole shape (Component List Panel + Component Browser Panel Menu) including
-/// padding.
-const WIDTH: f32 = WIDTH_INNER * 2.0 * PADDING;
-/// Height of the whole shape (Component List Panel + Component Browser Panel Menu) including
-/// padding.
-const HEIGHT: f32 = HEIGHT_INNER + (2.0 * PADDING);
-
-/// Height of the area reserved for Component Browser Panel Menu.
-const MENU_HEIGHT: f32 = 70.0 * DPI_SCALE;
-
-/// Radius of the rounded corners.
-const CORNER_RADIUS: f32 = 30.0 * DPI_SCALE;
-
-/// Thickness of the line that divides the Component List Panel from the Component Browser Panel
-/// Menu.
-const DIVIDER_HEIGHT: f32 = 1.0 * DPI_SCALE;
-/// Thickness of the line that divides the sections witin the Component List Panel.
-const SECTION_DIVIDER_HEIGHT: f32 = 4.0 * DPI_SCALE;
-
-/// Y-position of the Divider within the shape.
-const DIVIDER_Y_POS: f32 = (HEIGHT_INNER / 2.0) - MENU_HEIGHT;
-/// Extra space between scroll area and backgound shape edge.
-const PADDING_INNER: f32 = 6.0 * DPI_SCALE;
-
-/// Font size used for section headers.
-const SECTION_HEADING_SIZE: text::style::Size = text::style::Size::new(16.0);
-/// Font used for section headers.
-const SECTION_HEADING_FONT: &str = "Causten-Semibold";
-/// Color used for section headers.
-const SECTION_HEADING_COLOR_HEX: &str = "737373";
-/// Distance between the section header and the section content.
-const SECTION_HEADER_OFFSET: f32 = SECTION_HEADING_SIZE.raw;
-
-
-/// Color used for the Divider.
-const DIVIDER_COLOR: color::Rgb = color::Rgb::new(0.7804, 0.7804, 0.7804);
-/// Color used for the panel background.
-const BACKGROUND_COLOR: color::Rgba = color::Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
-
-const FAVOURITES_SECTION_BASE_COLOR: color::Rgba = color::Rgba::new(0.0, 0.42, 0.64, 1.0);
 const FAVOURITES_SECTION_HEADING_LABEL: &str = "Favorite Data Science Tools";
 const LOCAL_SCOPE_SECTION_HEADING_LABEL: &str = "Local Scope";
 const SUB_MODULES_SECTION_HEADING_LABEL: &str = "Sub Modules";
 
 const INFINITE: f32 = 999999.0;
+
+
+// === Style ===
+
+#[derive(Clone, Debug, Default)]
+struct Style {
+    content: ContentStyle,
+    section: SectionStyle,
+    menu:    MenuStyle,
+}
+
+impl Style {
+    fn size_inner(&self) -> Vector2 {
+        let width = self.content.size.x;
+        let height = self.content.size.y + self.menu.height;
+        Vector2::new(width, height)
+    }
+
+    fn size(&self) -> Vector2 {
+        self.size_inner().map(|value| value + 2.0 * SHADOW_PADDING)
+    }
+
+    fn menu_divider_y_pos(&self) -> f32 {
+        self.size_inner().y / 2.0 - self.menu.height
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct ContentStyle {
+    /// Size of the Component List Panel content area.
+    size:             Vector2,
+    /// Radius of the rounded corners.
+    corner_radius:    f32,
+    /// Extra space between scroll area and backgound shape edge.
+    padding:          f32,
+    /// Color used for the panel background.
+    background_color: color::Rgba,
+}
+
+#[derive(Clone, Debug, Default)]
+struct SectionHeadingStyle {
+    /// Font size used for section headers.
+    size:   text::style::Size,
+    /// Font used for section headers.
+    font:   String,
+    /// Color used for section headers.
+    color:  color::Rgba,
+    /// Distance between the section header and the section content.
+    offset: f32,
+}
+
+impl SectionHeadingStyle {
+    /// Returns the size of the header, which consists of the header text and the padding between
+    /// text and content.
+    fn height(&self) -> f32 {
+        self.size.raw + self.offset
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct SectionStyle {
+    heading: SectionHeadingStyle,
+    /// Thickness of the line that divides the sections within the Component List Panel.
+    divider_height: f32,
+    /// Color used for the Divider.
+    divider_color: color::Rgba,
+    favourites_section_base_color: color::Rgba,
+}
+
+#[derive(Clone, Debug, Default)]
+struct MenuStyle {
+    /// Height of the area reserved for Component Browser Panel Menu.
+    height:         f32,
+    /// Thickness of the line that divides the Component List Panel from the Component Browser
+    /// Panel Menu.
+    divider_height: f32,
+    /// Color used for the Divider.
+    divider_color:  color::Rgba,
+}
+
+impl Style {
+    fn from_theme(
+        network: &enso_frp::Network,
+        style: &StyleWatchFrp,
+    ) -> (enso_frp::Stream<Style>, enso_frp::stream::WeakNode<enso_frp::SourceData>) {
+        let theme_path: style::Path = list_panel_theme::HERE.into();
+
+        let content_width = style.get_number(theme_path.sub("content_width"));
+        let content_height = style.get_number(theme_path.sub("content_height"));
+
+        let content_padding = style.get_number(theme_path.sub("content_padding"));
+
+        let menu_height = style.get_number(theme_path.sub("menu_height"));
+        let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
+        let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
+
+        let content_corner_radius = style.get_number(theme_path.sub("content_corner_radius"));
+
+        let section_divider_height = style.get_number(theme_path.sub("section_divider_height"));
+
+        let section_heading_size = style.get_number(theme_path.sub("section_heading_size"));
+        let section_heading_font = style.get_text(theme_path.sub("section_heading_font"));
+        let section_heading_color = style.get_color(theme_path.sub("section_heading_color"));
+        let section_divider_color = style.get_color(theme_path.sub("section_divider_color"));
+
+        let content_background_color = style.get_color(theme_path.sub("content_background_color"));
+        let favourites_section_base_color =
+            style.get_color(theme_path.sub("favourites_section_base_color"));
+
+        frp::extend! { network
+            init <- source_();
+
+            content_size <- all3(&init,&content_width, &content_height).map(|(_,x,y)|Vector2::new(*x,*y));
+
+            section_heading_layout_data <- all4(&init,&section_heading_size,&section_heading_font,&section_heading_color);
+            section_heading_layout <- section_heading_layout_data.map(|(_,size,font,color)| {
+                SectionHeadingStyle{size:text::style::Size(*size),font:font.clone(),color:*color,offset:*size}
+            });
+            section_layout_data <- all5(&init,&section_heading_layout,&section_divider_height,&section_divider_color,&favourites_section_base_color);
+            section_layout <- section_layout_data.map((|(_,heading,divider_height,divider_color,favourites_section_base_color)|{
+                SectionStyle{heading:heading.clone(),divider_height:*divider_height,divider_color:*divider_color,favourites_section_base_color:*favourites_section_base_color}
+            }));
+            content_layout_data <- all5(&init,&content_size,&content_corner_radius,&content_padding,&content_background_color);
+            content_layout <- content_layout_data.map(|(_,size,corner_radius,padding,background_color)|{
+                ContentStyle {
+                    size:*size,
+                    corner_radius:*corner_radius,
+                    padding:*padding,
+                    background_color:*background_color,
+                }
+            });
+
+            menu_layout_data <- all4(&init,&menu_height,&menu_divider_color,&menu_divider_height);
+            menu_layou <- menu_layout_data.map(|(_,height,divider_color,divider_height)|{
+                MenuStyle {
+                    height:*height,
+                    divider_height:*divider_height,
+                    divider_color:*divider_color,
+                }
+            });
+
+            layout_data <- all4(&init,&content_layout,&section_layout,&menu_layou);
+            layout <- layout_data.map(|(_,content,section,menu)| {
+                Style {
+                    content:content.clone(),
+                    section:section.clone(),
+                    menu:menu.clone(),
+                }
+            });
+
+        }
+        (layout, init)
+    }
+}
 
 /// Enum to indicate whether sections headers should be placed above or below a section. Dead code
 /// is allowed as only one option is used at compile time.
@@ -157,19 +259,35 @@ mod background {
 
     ensogl_core::define_shape_system! {
         (style:Style,bg_color:Vector4) {
+            use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
+
+            let theme_path: style::Path = list_panel_theme::HERE.into();
+
             let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
             let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
 
-            let left_width = &(WIDTH_INNER/2.0).px();
-            let left = Rect((left_width,HEIGHT_INNER.px())).translate_x(-left_width/2.0);
+            let content_width = style.get_number(theme_path.sub("content_width"));
+            let content_height = style.get_number(theme_path.sub("content_height"));
+            let content_corner_radius = style.get_number(theme_path.sub("content_corner_radius"));
+            let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
+            let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
+            let menu_height = style.get_number(theme_path.sub("menu_height"));
 
-            let right_width = &(WIDTH_INNER/2.0 + 2.0 * CORNER_RADIUS).px();
-            let right = Rect((right_width,HEIGHT_INNER.px())).corners_radius(CORNER_RADIUS.px());
-            let right = right.translate_x((WIDTH_INNER/4.0-CORNER_RADIUS).px());
+            let width = content_width;
+            let height = content_height + menu_height;
 
-            let divider = Rect((WIDTH_INNER.px(),DIVIDER_HEIGHT.px()));
-            let divider = divider.fill(DIVIDER_COLOR);
-            let divider = divider.translate_y(DIVIDER_Y_POS.px());
+            let divider_y_pos = height / 2.0 - menu_height;
+
+            let left_width = &(width/2.0).px();
+            let left = Rect((left_width,height.px())).translate_x(-left_width/2.0);
+
+            let right_width = &(width/2.0 + 2.0 * content_corner_radius).px();
+            let right = Rect((right_width,height.px())).corners_radius(content_corner_radius.px());
+            let right = right.translate_x((width/4.0-content_corner_radius).px());
+
+            let divider = Rect((width.px(),menu_divider_height.px()));
+            let divider = divider.fill(menu_divider_color);
+            let divider = divider.translate_y(divider_y_pos.px());
 
             let base_shape = &(left + right);
             let background = base_shape.fill(bg_color);
@@ -185,11 +303,15 @@ mod hline {
 
     ensogl_core::define_shape_system! {
         (style:Style) {
+            let theme_path: style::Path = list_panel_theme::HERE.into();
+
             let width            = Var::<Pixels>::from("input_size.x");
             let height           = Var::<Pixels>::from("input_size.y");
 
+            let section_divider_color = style.get_color(theme_path.sub("section_divider_color"));
+
             let rect = Rect((width,height));
-            let rect = rect.fill(color::Rgb::from_css_hex(SECTION_HEADING_COLOR_HEX).unwrap());
+            let rect = rect.fill(section_divider_color);
             rect.into()
         }
     }
@@ -200,7 +322,6 @@ mod hline {
 // =============
 // === Model ===
 // =============
-
 
 /// The Model of Select Component.
 #[derive(Clone, CloneRef, Debug)]
@@ -223,38 +344,26 @@ impl Model {
         let display_object = display::object::Instance::new(&logger);
 
         let background = background::View::new(&logger);
-        background.bg_color.set(BACKGROUND_COLOR.into());
-        background.size.set(Vector2::new(WIDTH, HEIGHT));
         display_object.add_child(&background);
         app.display.default_scene.layers.below_main.add_exclusive(&background);
 
-        let favourites_section = Self::init_column_section(&app, FAVOURITES_SECTION_HEADING_LABEL);
-        let local_scope_section = Self::init_wide_section(&app, LOCAL_SCOPE_SECTION_HEADING_LABEL);
-        local_scope_section.content.set_color(FAVOURITES_SECTION_BASE_COLOR);
-        let sub_modules_section =
-            Self::init_column_section(&app, SUB_MODULES_SECTION_HEADING_LABEL);
+        let favourites_section = Self::init_column_section(&app);
+        let local_scope_section = Self::init_wide_section(&app);
+        let sub_modules_section = Self::init_column_section(&app);
 
         let scroll_area = ScrollArea::new(&app);
         display_object.add_child(&scroll_area);
-        scroll_area.resize(Vector2::new(
-            CONTENT_WIDTH - PADDING_INNER,
-            CONTENT_HEIGHT - 2.0 * PADDING_INNER,
-        ));
-        scroll_area.set_position_xy(Vector2::new(
-            -CONTENT_WIDTH / 2.0,
-            CONTENT_HEIGHT / 2.0 - MENU_HEIGHT / 2.0,
-        ));
-        scroll_area.set_corner_radius_bottom_right(CORNER_RADIUS);
 
         let camera = &scroll_area.content_layer().camera();
         let parent_layer = scroll_area.content_layer();
-        let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
+        let layers = Layers::new(&app.logger, camera, parent_layer);
 
         favourites_section.set_parent(scroll_area.content());
         local_scope_section.set_parent(scroll_area.content());
         sub_modules_section.set_parent(scroll_area.content());
 
-        // Required for correct clipping.
+        // Required for correct clipping. The components need to be set up with the
+        // `scroll_area.content_layer` to be masked correctly by the [`ScrollArea`].
         favourites_section.set_layers(&layers, scroll_area.content_layer());
         local_scope_section.set_layers(&layers, scroll_area.content_layer());
         sub_modules_section.set_layers(&layers, scroll_area.content_layer());
@@ -272,22 +381,15 @@ impl Model {
         }
     }
 
-    fn init_column_section(app: &Application, label: &str) -> ColumnSection {
+    fn init_column_section(app: &Application) -> ColumnSection {
         let content = app.new_view::<column_grid::ColumnGrid>();
-        content.set_position_x(PADDING_INNER);
-        let section = LabeledSection::new(content, app);
-        section.label.set_content(label);
-        section
+        LabeledSection::new(content, app)
     }
 
-    fn init_wide_section(app: &Application, label: &str) -> WideSection {
+    fn init_wide_section(app: &Application) -> WideSection {
         let content = app.new_view::<component_group::wide::View>();
         content.set_no_items_label_text("No Entries.");
-        content.set_position_x(PADDING_INNER + CONTENT_WIDTH / 2.0);
-        content.set_width(WIDTH_INNER - 2.0 * PADDING_INNER);
-        let section = LabeledSection::new(content, app);
-        section.label.set_content(label);
-        section
+        LabeledSection::new(content, app)
     }
 
     fn update_layers(&self) {
@@ -296,21 +398,57 @@ impl Model {
         self.sub_modules_section.set_layers(&self.layers, self.scroll_area.content_layer());
     }
 
-    fn recompute_layout(&self) {
+    fn update_style(&self, style: &Style) {
+        self.sub_modules_section.set_style(style);
+        self.local_scope_section.set_style(style);
+        self.favourites_section.set_style(style);
+
+        self.background.bg_color.set(style.content.background_color.into());
+        self.background.size.set(style.size());
+
+        self.local_scope_section
+            .content
+            .set_position_x(style.content.padding + style.content.size.x / 2.0);
+        self.local_scope_section
+            .content
+            .set_width(style.size_inner().x - 2.0 * style.content.padding);
+        self.local_scope_section.content.set_color(style.section.favourites_section_base_color);
+        self.local_scope_section.label.set_content(LOCAL_SCOPE_SECTION_HEADING_LABEL);
+
+        self.favourites_section.content.set_position_x(style.content.padding);
+        self.favourites_section.label.set_content(SUB_MODULES_SECTION_HEADING_LABEL);
+
+        self.sub_modules_section.content.set_position_x(style.content.padding);
+        self.sub_modules_section.label.set_content(SUB_MODULES_SECTION_HEADING_LABEL);
+
+
+        self.scroll_area.resize(Vector2::new(
+            style.content.size.x - style.content.padding,
+            style.content.size.y - style.content.padding,
+        ));
+        self.scroll_area.set_position_xy(Vector2::new(
+            -style.content.size.x / 2.0,
+            style.content.size.y / 2.0 - style.menu.height / 2.0,
+        ));
+        self.scroll_area.set_corner_radius_bottom_right(style.content.corner_radius);
+    }
+
+    fn recompute_layout(&self, style: &Style) {
+        self.update_style(style);
         self.update_layers();
 
-        let favourites_section_height = self.favourites_section.height();
-        let local_scope_height = self.local_scope_section.height();
-        let sub_modules_height = self.sub_modules_section.height();
+        let favourites_section_height = self.favourites_section.height(style);
+        let local_scope_height = self.local_scope_section.height(style);
+        let sub_modules_height = self.sub_modules_section.height(style);
 
-        self.favourites_section.set_base_position_y(0.0);
-        self.local_scope_section.set_base_position_y(-favourites_section_height);
+        self.favourites_section.set_base_position_y(0.0, style);
+        self.local_scope_section.set_base_position_y(-favourites_section_height, style);
         self.sub_modules_section
-            .set_base_position_y(-favourites_section_height - local_scope_height);
+            .set_base_position_y(-favourites_section_height - local_scope_height, style);
 
-        self.scroll_area.set_content_height(
-            favourites_section_height + local_scope_height + sub_modules_height,
-        );
+        let full_height = favourites_section_height + local_scope_height + sub_modules_height;
+        self.scroll_area.set_content_height(full_height);
+        self.scroll_area.jump_to_y(full_height);
     }
 }
 
@@ -353,28 +491,16 @@ impl<T: CloneRef> LabeledSection<T> {
         let logger = Logger::new("LabeledSection");
         let label = text::Area::new(app);
         let divider = hline::View::new(logger);
-        divider.size.set(Vector2(INFINITE, SECTION_DIVIDER_HEIGHT));
-
-        Self { label, divider, content }.init_label()
+        Self { label, divider, content }
     }
 
-    fn init_label(self) -> Self {
-        let label = &self.label;
-        let section_header_color: color::Rgba =
-            color::Rgb::from_css_hex(SECTION_HEADING_COLOR_HEX).unwrap().into();
-        label.set_default_color(section_header_color);
-        label.set_default_text_size(SECTION_HEADING_SIZE);
-        label.set_font(SECTION_HEADING_FONT.to_string());
-        label.set_position_y(-0.75 * SECTION_HEADING_SIZE.raw);
-        label.set_position_x(3.0 + PADDING_INNER);
-        self
-    }
-
-    /// Returns the size of the header, which consists of the header text and the padding between
-    /// text and content.
-    fn header_height(&self) -> f32 {
-        let label_height = SECTION_HEADING_SIZE.raw;
-        label_height + SECTION_HEADER_OFFSET
+    fn set_style(&self, style: &Style) {
+        self.divider.size.set(Vector2(INFINITE, style.section.divider_height));
+        self.label.set_default_color(style.section.heading.color);
+        self.label.set_default_text_size(style.section.heading.size);
+        self.label.set_font(style.section.heading.font.clone());
+        self.label.set_position_y(-0.75 * style.section.heading.size.raw);
+        self.label.set_position_x(3.0 + style.content.padding);
     }
 }
 
@@ -425,36 +551,36 @@ impl SectionContent for column_grid::ColumnGrid {
 impl<T: SectionContent + CloneRef> LabeledSection<T> {
     fn set_layers(&self, layers: &Layers, scroll_layer: &Layer) {
         self.content.set_layers(layers, scroll_layer);
-
         scroll_layer.add_exclusive(&self.label);
         self.label.add_to_scene_layer(scroll_layer);
-
         scroll_layer.add_exclusive(&self.divider);
     }
 
     /// Full height of the section including header.
-    fn height(&self) -> f32 {
-        let label_height = self.header_height();
+    fn height(&self, style: &Style) -> f32 {
+        let label_height = style.section.heading.height();
         let body_height = self.content.height();
         let next_section_offset = 17.0; // TODO[MM] this should not be needed.
         body_height + label_height + next_section_offset
     }
 
     /// Set the top y position of the section.
-    fn set_base_position_y(&self, position_y: f32) {
+    fn set_base_position_y(&self, position_y: f32, style: &Style) {
         match SECTION_HEADER_PLACEMENT {
             SectionHeaderPlacement::Top => {
                 self.label.set_position_y(position_y - self.label.height.value() / 1.5);
                 self.divider.set_position_y(position_y);
-                self.content
-                    .set_position_top_y(position_y - SECTION_HEADER_OFFSET - self.header_height());
+                let content_position_y =
+                    position_y - style.section.heading.offset - style.section.heading.height();
+                self.content.set_position_top_y(content_position_y);
             }
             SectionHeaderPlacement::Bottom => {
                 self.label.set_position_y(
                     position_y - self.content.height() - self.label.height.value() / 1.5,
                 );
-                self.divider
-                    .set_position_y(position_y - self.content.height() - DIVIDER_HEIGHT - 0.5);
+                self.divider.set_position_y(
+                    position_y - self.content.height() - style.section.divider_height + 1.0,
+                );
                 self.content.set_position_top_y(position_y);
             }
         }
@@ -482,9 +608,11 @@ impl component::Frp<Model> for Frp {
         frp_api: &<Self as API>::Private,
         _app: &Application,
         model: &Model,
-        _style: &StyleWatchFrp,
+        style: &StyleWatchFrp,
     ) {
         let network = &frp_api.network;
+
+        let (layout_update, init_layout) = Style::from_theme(network, style);
 
         frp::extend! { network
             model.favourites_section.content.set_content <+ frp_api.input.set_favourites_section;
@@ -497,13 +625,15 @@ impl component::Frp<Model> for Frp {
                 &frp_api.input.set_sub_modules_section,
             );
 
-            eval_ content_update( model.recompute_layout() );
+            recompute_layout <- all(&content_update,&layout_update);
+
+            eval recompute_layout(((_,layout)) model.recompute_layout(layout) );
         }
+        init_layout.emit(())
     }
 }
 
-/// A sub-content of the Searcher 2.0, that shows the available components grouped by categories.
-///
-/// To learn more about Component Groups, see the [Component Browser Design
-/// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+/// A sub-content of the Component Browser, that shows the available Component List Sections.
+/// Each Component List Section contains named tiles called Component List Groups. To learn more
+/// see the [Component Browser Design Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 pub type ComponentBrowserPanel = component::ComponentView<Model, Frp>;
