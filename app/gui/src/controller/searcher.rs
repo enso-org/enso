@@ -1238,7 +1238,6 @@ pub mod test {
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
     use json_rpc::expect_call;
-    use std::assert_matches::assert_matches;
 
 
 
@@ -1681,11 +1680,11 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn loading_components() {
-        let Fixture { mut test, searcher, entry1, entry9, .. } =
+        let Fixture { mut test, searcher, entry1, entry2, entry9, .. } =
             Fixture::new_custom(|data, client| {
-                // Entry with id 99999 does not exist, so only two actions from suggestions db
+                // Entry with id 99999 does not exist, so only three actions from suggestions db
                 // should be displayed in searcher.
-                data.expect_completion(client, None, None, &[1, 99999, 9]);
+                data.expect_completion(client, None, None, &[1, 99999, 9, 2]);
             });
         searcher.reload_list();
         test.run_until_stalled();
@@ -1693,7 +1692,8 @@ pub mod test {
         if let [module_group] = &components.top_modules()[..] {
             assert_eq!(module_group.name, entry1.module.to_string());
             let entries = module_group.entries.borrow();
-            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
+            let entry_names = entries.iter().map(|e| &e.suggestion.name).collect_vec();
+            assert_eq!(&*entry_names, [&entry2.name, &entry1.name, &entry9.name]);
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
