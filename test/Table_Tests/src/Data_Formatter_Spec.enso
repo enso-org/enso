@@ -12,14 +12,68 @@ import Standard.Table.Io.Quote_Style
 import Standard.Test
 import Standard.Test.Problems
 
+type Custom_Type
+    type Custom_Type field
+
+type Custom_Type_With_To_Text
+    type Custom_Type_With_To_Text field
+
+    to_text : Text
+    to_text = "[CUSTOM = " + this.field.to_text + "]"
+
 spec =
     Test.group "DataFormatter.parse" pending="TODO: not implemented yet" <|
         Test.specify "should TODO" <|
             Nothing
 
     Test.group "DataFormatter.format" <|
-        Test.specify "should TODO" <|
+        Test.specify "should handle Nothing" <|
+            Data_Formatter.format Nothing . should_equal ""
+
+        Test.specify "should format numbers" <|
+            formatter = Data_Formatter
+            formatter.format 123 . should_equal "123"
+            formatter.format 1000000 . should_equal "1000000"
+            formatter.format 1000000.0 . should_equal "1000000.0"
+            formatter.format 0 . should_equal "0"
+            formatter.format -1.0 . should_equal "-1.0"
+            formatter.format -2 . should_equal "-2"
+            formatter.format 1.0001 . should_equal "1.0001"
+            formatter.format (Number.positive_infinity) . should_equal "+Infinity"
+            formatter.format (Number.negative_infinity) . should_equal "-Infinity"
+            formatter.format (Number.nan) . should_equal "NaN"
+
+        Test.specify "should allow customizing the decimal point and thousand separator" <|
+            formatter = Data_Formatter thousand_separator="_" decimal_point=","
+            formatter.format 123 . should_equal "123"
+            formatter.format 1000000 . should_equal "1_000_000"
+            formatter.format 100000 . should_equal "100_000"
+            formatter.format 100000.0 . should_equal "100_000,0"
+            formatter.format 0 . should_equal "0"
+            formatter.format -1.0 . should_equal "-1,0"
+            formatter.format 1.0001 . should_equal "1,0001"
+
+        Test.specify "should format booleans" <|
+            formatter = Data_Formatter
+            formatter.format True . should_equal "True"
+            formatter.format False . should_equal "False"
+
+        Test.specify "should allow custom boolean formats" <|
+            formatter = Data_Formatter true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
+            formatter.format True . should_equal "YES"
+            formatter.format False . should_equal "NO"
+
+        Test.specify "should work with dates" pending="TODO" <|
             Nothing
+
+        Test.specify "should allow custom date formats" pending="TODO" <|
+            Nothing
+
+        Test.specify "should work with custom types, falling back to the `.to_text` method" <|
+            formatter = Data_Formatter thousand_separator="_"
+            formatter.format (Custom_Type 42) . should_equal "(Custom_Type 42)"
+            # We fallback to `to_text`, so obviously the nested numbers will not know about our formatting settings.
+            formatter.format (Custom_Type_With_To_Text 1000) . should_equal "[CUSTOM = 1000]"
 
     Test.group "DataFormatter builders" pending="TODO: not implemented yet" <|
         Test.specify "should TODO" <|

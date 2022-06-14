@@ -116,7 +116,8 @@ Data_Formatter.make_decimal_formatter =
 
 ## PRIVATE
 Data_Formatter.make_boolean_formatter =
-    BooleanFormatter.new
+    # TODO should we check if true values is not empty? maybe should implement a getorelse which can throw a nice exception
+    BooleanFormatter.new this.true_values.first this.false_values.first
 
 ## PRIVATE
 Data_Formatter.make_text_formatter =
@@ -160,5 +161,5 @@ Data_Formatter.parse text datatype=Auto =
    - value: Value to format.
 Data_Formatter.format : Any -> Text
 Data_Formatter.format value =
-    formatter = here.make_auto_formatter
+    formatter = this.make_auto_formatter
     formatter.format value
