@@ -3,6 +3,9 @@ from Standard.Base import all
 from Standard.Base.Data.Time.Date as Date_Module import Date
 from Standard.Base.Data.Time as Time_Module import Time
 from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
+from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Auto
+import Standard.Base.Error.Common as Errors
+import Standard.Table.Data.Storage
 
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
@@ -13,6 +16,12 @@ polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
+
+polyglot java import org.enso.table.formatting.AnyObjectFormatter
+polyglot java import org.enso.table.formatting.BooleanFormatter
+polyglot java import org.enso.table.formatting.DecimalFormatter
+polyglot java import org.enso.table.formatting.IntegerFormatter
+polyglot java import org.enso.table.formatting.TextFormatter
 
 ## Specifies options for reading text data in a table to more specific types and
    serializing them back.
@@ -96,3 +105,60 @@ Data_Formatter.get_specific_type_parsers =
 Data_Formatter.make_auto_parser =
     fallback_parser = self.make_identity_parser
     TypeInferringParser.new self.get_specific_type_parsers.to_array fallback_parser
+
+## PRIVATE
+Data_Formatter.make_integer_formatter =
+    IntegerFormatter.new
+
+## PRIVATE
+Data_Formatter.make_decimal_formatter =
+    DecimalFormatter.new
+
+## PRIVATE
+Data_Formatter.make_boolean_formatter =
+    BooleanFormatter.new
+
+## PRIVATE
+Data_Formatter.make_text_formatter =
+    TextFormatter.new
+
+## PRIVATE
+Data_Formatter.get_specific_type_formatters =
+    # TODO add date-time formatters
+    [this.make_integer_formatter, this.make_decimal_formatter, this.make_boolean_formatter, this.make_text_formatter]
+
+## PRIVATE
+Data_Formatter.make_auto_formatter =
+    AnyObjectFormatter.new this.get_specific_type_formatters.to_array
+
+## PRIVATE
+Data_Formatter.make_formatter_for_column_type (column_type : Storage) = case column_type of
+    Storage.Text -> this.make_text_formatter
+    Storage.Integer -> this.make_integer_formatter
+    Storage.Decimal -> this.make_decimal_formatter
+    Storage.Boolean -> this.make_boolean_formatter
+    Storage.Any -> this.make_auto_formatter
+
+## Parse a Text into a value.
+
+   Arguments:
+   - text: Text value to parse.
+   - datatype: Text value to parse.
+Data_Formatter.parse : Text -> (Auto|Integer|Number|Date|Time|DateTime|Boolean) -> Any
+Data_Formatter.parse text datatype=Auto =
+    parser = case datatype of
+        Auto -> this.make_auto_parser
+        _ -> this.make_datatype_parser datatype
+    _ = [parser, text]
+    ## TODO we need to revise InvalidRow / LeadingZeros to work without a column
+       name for single value parsing which may not be associated with any columns.
+    Errors.unimplemented "Parsing a single value is not implemented yet."
+
+## Format a value into a Text.
+
+   Arguments:
+   - value: Value to format.
+Data_Formatter.format : Any -> Text
+Data_Formatter.format value =
+    formatter = here.make_auto_formatter
+    formatter.format value
