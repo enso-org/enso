@@ -981,8 +981,8 @@ impl Searcher {
     //     let (id, _) = self.database.lookup_by_qualified_name(&module)?;
     //     let components = &self.components();
     //     let entries = &components.get_module_content(id)?.entries;
-    //     for entry in entries.borrow().iter().map(|e| &e.suggestion).filter(|e| e.kind != Module) {
-    //         DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
+    //     for entry in entries.borrow().iter().map(|e| &e.suggestion).filter(|e| e.kind != Module)
+    // {         DEBUG!("- " entry.qualified_name() ": " entry.kind;?);
     //     }
     //     Some(())
     // }

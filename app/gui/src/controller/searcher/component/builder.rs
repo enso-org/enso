@@ -75,11 +75,15 @@ impl List {
     ///
     /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
     /// method takes ids as argument).
-    pub fn new(suggestion_db: Rc<model::SuggestionDatabase>, local_scope_module: Option<component::Id>) -> Self {
-        let local_scope = local_scope_module.and_then(|id| {
+    pub fn new(
+        suggestion_db: Rc<model::SuggestionDatabase>,
+        local_scope_module: Option<component::Id>,
+    ) -> Self {
+        let group_from_id = |id| {
             let entry = suggestion_db.lookup(id).ok()?;
             Some(component::Group::from_entry(id, &*entry))
-        }).unwrap_or_default();
+        };
+        let local_scope = local_scope_module.and_then(group_from_id).unwrap_or_default();
         Self { suggestion_db, all_components: default(), module_groups: default(), local_scope }
     }
 
