@@ -373,11 +373,11 @@ fn init(app: &Application) {
     // === Selection box ===
 
     let selection = component_group::selection_box::View::new(&app.logger);
-    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
     selection_mask.add_exclusive(&selection);
     app.display.add_child(&selection);
 
     let selection_animation = Animation::<Vector2>::new(&network);
+    let selection_size_animation = Animation::<Vector2>::new(&network);
     let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
     selection_animation.set_spring.emit(spring);
     /// This is an example code to position the selection box on the scene.
@@ -398,6 +398,7 @@ fn init(app: &Application) {
         pos
     }
     frp::extend! { network
+        selection_size_animation.target <+ multiview.selection_size._1();
         selection_position <- multiview.selection_position_target.map(
             f!([groups, scroll_area]((g, p)) {
                 let group = &groups[usize::from(g)];
@@ -406,9 +407,12 @@ fn init(app: &Application) {
         );
         selection_animation.target <+ selection_position;
         eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+        eval selection_size_animation.value ((pos) selection.size.set(*pos));
     }
     selection_animation.target.emit(first_component_group.selection_position_target.value());
+    selection_size_animation.target.emit(Vector2(150.0, list_view::entry::HEIGHT));
     selection_animation.skip.emit(());
+    selection_size_animation.skip.emit(());
 
     // === Forget ===
 

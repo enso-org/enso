@@ -205,7 +205,8 @@ define_themes! { [light:0, dark:1]
                 }
                 selection {
                     corners_radius = 10.0, 10.0;
-                    padding = 10.0, 10.0;
+                    horizontal_padding = 10.0, 10.0;
+                    vertical_padding = 3.0, 3.0;
                 }
                 background_color_intensity = 0.2, 0.2;
                 selection_color_intensity = 1.0, 1.0;

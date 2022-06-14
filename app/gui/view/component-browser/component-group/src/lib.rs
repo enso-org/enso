@@ -123,11 +123,12 @@ pub mod selection_box {
         pointer_events = false;
         (style:Style) {
             let width: Var<Pixels> = "input_size.x".into();
-            let height = list_view::entry::HEIGHT.px();
+            let height: Var<Pixels> = "input_size.y".into();
             let corners_radius = style.get_number(theme::selection::corners_radius);
-            let padding = style.get_number(theme::selection::padding);
-            let shape = Rect((width - padding.px(), height)).corners_radius(corners_radius.px());
-            shape.into()
+            let padding_y = style.get_number(theme::selection::vertical_padding);
+            let padding_x = style.get_number(theme::selection::horizontal_padding);
+            let shape = Rect((width - padding_x.px(), height - padding_y.px()));
+            shape.corners_radius(corners_radius.px()).into()
         }
     }
 }
@@ -484,12 +485,21 @@ impl component::Frp<Model> for Frp {
             out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
-            out.selection_position_target <+ all_with4(
+            out.selection_size <+ all_with3(
+                &header_geometry,
                 &out.is_header_selected,
+                &out.focused,
+                f!((geom, h_sel, _) model.selection_size(geom.height, *h_sel))
+            );
+            out.selection_position_target <+ all_with5(
+                &out.is_header_selected,
+                &header_geometry,
                 &out.size,
                 &model.entries.selection_position_target,
                 &input.set_header_pos,
-                f!((h_sel, size, esp, h_pos) model.selection_position(*h_sel, *size, *esp, *h_pos))
+                f!((h_sel, h_geom, size, esp, h_pos)
+                    model.selection_position(*h_sel, *h_geom, *size, *esp, *h_pos)
+                )
             );
         }
 
@@ -749,18 +759,24 @@ impl Model {
     fn selection_position(
         &self,
         is_header_selected: bool,
+        header_geometry: HeaderGeometry,
         size: Vector2,
         entries_selection_position: Vector2,
         header_pos: f32,
     ) -> Vector2 {
         if is_header_selected {
-            Vector2(0.0, size.y / 2.0 - list_view::entry::HEIGHT / 2.0 - header_pos)
+            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0 - header_pos)
         } else {
             let max_selection_pos_y = size.y / 2.0 - list_view::entry::HEIGHT - header_pos;
             let selection_pos_y = entries_selection_position.y.min(max_selection_pos_y);
             let selection_pos = Vector2(entries_selection_position.x, selection_pos_y);
             self.entries.position().xy() + selection_pos
         }
+    }
+
+    fn selection_size(&self, header_height: f32, is_header_selected: bool) -> Vector2 {
+        let height = if is_header_selected { header_height } else { list_view::entry::HEIGHT };
+        Vector2(self.entries.size.value().x, height)
     }
 }
 

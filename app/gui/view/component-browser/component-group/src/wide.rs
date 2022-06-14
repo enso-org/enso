@@ -122,6 +122,7 @@ ensogl::define_endpoints_2! {
         /// column if possible. If there are no more entries in this column, the selection will move to
         /// the next non-empty column to the left.
         selection_position_target(Vector2<f32>),
+        selection_size(Vector2<f32>),
         entry_count(usize),
         size(Vector2<f32>),
     }
@@ -170,6 +171,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             eval size((size) model.background.size.set(*size));
             eval size((size) model.selection_background.size.set(*size));
             out.size <+ size;
+            out.selection_size <+ background_width.map(|&width| Vector2(width / 3.0,list_view::entry::HEIGHT));
 
             // === "No items" label ===
 

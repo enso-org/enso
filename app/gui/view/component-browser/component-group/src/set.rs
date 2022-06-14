@@ -143,6 +143,7 @@ propagated_events! {
         is_header_selected:        (GroupId, bool),
         header_accepted:           GroupId,
         selection_position_target: (GroupId, Vector2<f32>),
+        selection_size:            (GroupId, Vector2<f32>),
         focused:                   (GroupId, bool),
     }
 }
@@ -238,6 +239,7 @@ impl Wrapper {
                     (suggestion_accepted, move |e| (id, *e)),
                     (expression_accepted, move |e| (id, *e)),
                     (selection_position_target, move |p| (id, *p)),
+                    (selection_size, move |p| (id, *p)),
                     (is_header_selected, move |h| (id, *h)),
                     (header_accepted, move |_| id)
                 }
