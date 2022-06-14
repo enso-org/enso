@@ -1325,6 +1325,7 @@ lazy val `runtime-with-instruments`  = (project in file("engine/runtime-with-ins
     frgaalJavaCompilerSetting,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
+    commands += WithDebugCommand.withDebug,
     Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
     Test / javaOptions ++= Seq(
       "-Dgraalvm.locatorDisabled=true",
