@@ -224,10 +224,10 @@ public class Reader {
     // Read Cell Data
     int row = startRow;
     while (row <= endRow && (row - startRow) < rowCount) {
-      if (row < firstRow || row > lastRow) {
+      Row currentRow;
+      if (row < firstRow || row > lastRow || (currentRow = sheet.getRow(row - 1)) == null) {
         builders.forEach(b -> b.append(null));
       } else {
-        Row currentRow = sheet.getRow(row - 1);
         int currentEndCol = endCol == -1 ? currentRow.getLastCellNum() + 1 : endCol;
         expandBuilders(builders, size, currentEndCol - startCol, row - startRow);
 
