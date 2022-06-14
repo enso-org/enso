@@ -19,11 +19,12 @@ spec_fmt header file read_method =
 
         Test.specify "should read the specified sheet by index and properly format a table" <|
             t = read_method file (File_Format.Excel (Sheet 2) headers=False)
-            t.columns.map .name . should_equal ['A', 'B', 'C', 'D']
-            t.at 'A' . to_vector . should_equal [Nothing, 10, Nothing, Nothing, Nothing, Nothing]
-            t.at 'B' . to_vector . should_equal ['baz', 20, Nothing, 'bar', Nothing, 30]
-            t.at 'C' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            t.at 'D' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
+            t.columns.map .name . should_equal ['A', 'B', 'C', 'D', 'E']
+            t.at 'A' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t.at 'B' . to_vector . should_equal [Nothing, Nothing, 10, Nothing, Nothing, Nothing, Nothing]
+            t.at 'C' . to_vector . should_equal [Nothing, 'baz', 20, Nothing, 'bar', Nothing, 30]
+            t.at 'D' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t.at 'E' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
 
         Test.specify "should read the specified sheet by name and properly handle dates" <|
             t = read_method file (File_Format.Excel (Sheet 'Dates'))
@@ -84,7 +85,7 @@ spec =
             clothes.write_xlsx out sheet='Foo'
             read_1 = out.read (File_Format.Excel (Sheet "Foo"))
             read_1 . should_equal table
-            read_2 = out.read (File_Format.Excel (Sheet "Foo"))
+            read_2 = out.read (File_Format.Excel (Sheet "Foo 1"))
             read_2 . should_equal clothes
             out.delete_if_exists
 
