@@ -274,4 +274,16 @@ public class Reader {
     return readSheetToTable(
         workbook, sheetIndex, range, skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
+
+  /** Specifies how to set the headers for the returned table. */
+  public enum HeaderBehavior {
+    /** Tries to infer if the headers are present in the file. */
+    INFER,
+
+    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
+    USE_FIRST_ROW_AS_HEADERS,
+
+    /** Uses the default Excel Column Names (e.g. A, B, C). */
+    EXCEL_COLUMN_NAMES
+  }
 }
