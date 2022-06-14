@@ -94,13 +94,7 @@ impl Model {
         &self,
         id: view::component_browser::list_panel::EntryId,
     ) -> Option<(ViewNodeId, node_view::Expression)> {
-        let components = self.controller.components();
-        let component = match id.group.section {
-            SectionId::Favorites => todo!("integrate favourites"),
-            SectionId::LocalScope => todo!("integrate local scope"),
-            SectionId::SubModules =>
-                components.get_component_from_submodules_by_index(id.group.index, id.entry_id),
-        };
+        let component = self.component_by_view_id(id);
         let new_code = component.and_then(|component| {
             let suggestion = Suggestion::FromDatabase(component.suggestion.clone_ref());
             self.controller.use_suggestion(suggestion)
@@ -117,8 +111,51 @@ impl Model {
         }
     }
 
+    fn expression_accepted(
+        &self,
+        entry_id: Option<view::component_browser::list_panel::EntryId>,
+    ) -> Option<AstNodeId> {
+        if let Some(entry_id) = entry_id {
+            self.suggestion_accepted(entry_id);
+        }
+        self.controller.commit_node().map(Some).unwrap_or_else(|err| {
+            error!(self.logger, "Error while committing node expression: {err}");
+            None
+        })
+    }
+
+    fn component_by_view_id(
+        &self,
+        id: view::component_browser::list_panel::EntryId,
+    ) -> FallibleResult<controller::searcher::component::Component> {
+        let components = self.controller.components();
+        match id.group.section {
+            SectionId::Favorites => todo!("integrate favourites"),
+            SectionId::LocalScope => todo!("integrate local scope"),
+            SectionId::SubModules =>
+                components.get_component_from_submodules_by_index(id.group.index, id.entry_id),
+        }
+    }
+
     fn create_submodules_providers(&self) -> Vec<LabeledAnyModelProvider> {
         provider::submodules_from_controller(&self.controller)
+    }
+
+    fn documentation_of_component(
+        &self,
+        id: view::component_browser::list_panel::EntryId,
+    ) -> String {
+        match self.component_by_view_id(id) {
+            Ok(component) => component.suggestion.documentation_html.clone().unwrap_or_else(|| {
+                provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
+                    component.suggestion.clone_ref(),
+                ))
+            }),
+            Err(err) => {
+                error!(self.logger, "Error while obtaining documentation: {err}");
+                " ".to_owned()
+            }
+        }
     }
 
     fn should_auto_select_first_action(&self) -> bool {
@@ -170,12 +207,16 @@ impl Searcher {
         match model.view.searcher() {
             SearcherVariant::ComponentBrowser(browser) => {
                 let list_view = &browser.model().list;
+                let documentation = &browser.model().documentation;
                 frp::extend! { network
                     list_view.set_sub_modules_section <+ action_list_changed.map(f_!(model.create_submodules_providers()));
                     trace list_view.suggestion_accepted;
                     new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     trace new_input;
                     graph.set_node_expression <+ new_input;
+
+                    last_selected_entry <- list_view.selected_entry.filter_map(|entry| *entry);
+                    documentation.frp.display_documentation <+ last_selected_entry.map(f!((entry) model.documentation_of_component(*entry)));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {
@@ -249,6 +290,13 @@ impl Searcher {
     #[profile(Task)]
     pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         self.model.commit_editing(entry_id)
+    }
+
+    pub fn expression_accepted(
+        self,
+        entry_id: Option<view::component_browser::list_panel::EntryId>,
+    ) -> Option<AstNodeId> {
+        self.model.expression_accepted(entry_id)
     }
 
     /// Abort editing, without taking any action.

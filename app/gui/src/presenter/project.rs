@@ -87,7 +87,7 @@ impl Model {
         }
     }
 
-    fn editing_committed(
+    fn editing_committed_old_searcher(
         &self,
         node: ViewNodeId,
         entry_id: Option<view::searcher::entry::Id>,
@@ -100,6 +100,24 @@ impl Model {
                 if is_example {
                     self.view.graph().enable_visualization(node);
                 }
+                false
+            } else {
+                true
+            }
+        } else {
+            false
+        }
+    }
+
+    fn editing_committed(
+        &self,
+        node: ViewNodeId,
+        entry_id: Option<view::component_browser::list_panel::EntryId>,
+    ) -> bool {
+        let searcher = self.searcher.take();
+        if let Some(searcher) = searcher {
+            if let Some(created_node) = searcher.expression_accepted(entry_id) {
+                self.graph.assign_node_view_explicitly(node, created_node);
                 false
             } else {
                 true
@@ -196,6 +214,9 @@ impl Project {
                 }
             });
 
+            graph_view.remove_node <+ view.editing_committed_old_searcher.filter_map(f!([model]((node_view, entry)) {
+                model.editing_committed_old_searcher(*node_view, *entry).as_some(*node_view)
+            }));
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {
                 model.editing_committed(*node_view, *entry).as_some(*node_view)
             }));

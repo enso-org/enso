@@ -64,7 +64,7 @@ pub struct Action {
 }
 
 impl Action {
-    fn doc_placeholder_for(suggestion: &controller::searcher::action::Suggestion) -> String {
+    pub fn doc_placeholder_for(suggestion: &controller::searcher::action::Suggestion) -> String {
         use controller::searcher::action::Suggestion;
         let code = match suggestion {
             Suggestion::FromDatabase(suggestion) => {

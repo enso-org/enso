@@ -91,7 +91,8 @@ ensogl::define_endpoints! {
         adding_new_node                (bool),
         old_expression_of_edited_node  (Expression),
         editing_aborted                (NodeId),
-        editing_committed              (NodeId, Option<searcher::entry::Id>),
+        editing_committed_old_searcher (NodeId, Option<searcher::entry::Id>),
+        editing_committed              (NodeId, Option<component_browser::list_panel::EntryId>),
         open_dialog_shown              (bool),
         code_editor_shown              (bool),
         style                          (Theme),
@@ -134,7 +135,7 @@ mod prompt_background {
 pub struct SearcherFrp {
     show:              frp::Any<()>,
     hide:              frp::Any<()>,
-    editing_committed: frp::Stream<Option<searcher::entry::Id>>,
+    editing_committed: frp::Stream,
     is_visible:        frp::Stream<bool>,
     is_empty:          frp::Stream<bool>,
     size:              frp::Stream<Vector2>,
@@ -158,28 +159,34 @@ impl SearcherVariant {
     fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
+                let list_panel = &view.model().list;
                 frp::extend! {project_view_network
                     is_empty <- source::<bool>();
-                    editing_commited <- source();
+                    editing_committed <- list_panel.expression_accepted.constant(());
                 }
                 is_empty.emit(false);
                 SearcherFrp {
                     show:              view.input.show.clone_ref(),
                     hide:              view.input.hide.clone_ref(),
-                    editing_committed: editing_commited.into(),
+                    editing_committed: editing_committed.into(),
                     is_visible:        view.output.is_visible.clone_ref().into(),
                     is_empty:          is_empty.into(),
                     size:              view.output.size.clone_ref().into(),
                 }
             }
-            SearcherVariant::OldNodeSearcher(view) => SearcherFrp {
-                show:              view.input.show.clone_ref(),
-                hide:              view.input.hide.clone_ref(),
-                editing_committed: view.output.editing_committed.clone_ref().into(),
-                is_visible:        view.output.is_visible.clone_ref().into(),
-                is_empty:          view.output.is_empty.clone_ref().into(),
-                size:              view.output.size.clone_ref().into(),
-            },
+            SearcherVariant::OldNodeSearcher(view) => {
+                frp::extend! {project_view_network
+                    editing_committed <- view.editing_committed.constant(());
+                }
+                SearcherFrp {
+                    show:              view.input.show.clone_ref(),
+                    hide:              view.input.hide.clone_ref(),
+                    editing_committed: editing_committed.into(),
+                    is_visible:        view.output.is_visible.clone_ref().into(),
+                    is_empty:          view.output.is_empty.clone_ref().into(),
+                    size:              view.output.size.clone_ref().into(),
+                }
+            }
         }
     }
 
@@ -562,14 +569,30 @@ impl View {
             frp.source.searcher <+ searcher.editing_committed.constant(None);
             frp.source.searcher <+ finished_with_searcher.constant(None);
 
-            committed_in_searcher <-
-                searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
             aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
-            frp.source.editing_committed <+ committed_in_searcher;
-            frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
             frp.source.editing_aborted <+ aborted_in_searcher;
+        }
 
-            committed_in_searcher_event <- committed_in_searcher.constant(());
+        match &model.searcher {
+            SearcherVariant::ComponentBrowser(browser) => {
+                let list_panel = &browser.model().list;
+                frp::extend! { network
+                    committed_in_browser <- list_panel.expression_accepted.map2(&last_searcher, |&entry, &s| (s.input, Some(entry)));
+                    frp.source.editing_committed <+ committed_in_browser;
+                    frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
+                }
+            }
+            SearcherVariant::OldNodeSearcher(searcher) => {
+                frp::extend! { network
+                    committed_in_searcher <- searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
+                    frp.source.editing_committed_old_searcher <+ committed_in_searcher;
+                    frp.source.editing_committed_old_searcher <+ finished_with_searcher.map(|id| (*id,None));
+                }
+            }
+        }
+
+        frp::extend! { network
+            committed_in_searcher_event <- searcher.editing_committed.constant(());
             aborted_in_searcher_event <- aborted_in_searcher.constant(());
             graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
 
