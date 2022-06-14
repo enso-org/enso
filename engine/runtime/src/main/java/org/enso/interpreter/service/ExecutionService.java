@@ -324,11 +324,7 @@ public class ExecutionService {
                   path, edits, failure, module.getLiteralSource());
             },
             rope -> {
-              if (result.simpleChange() == null) {
-                module.setLiteralSource(rope, null, null);
-              } else {
-                module.setLiteralSource(rope, result.simpleChange()._1, result.simpleChange()._2);
-              }
+              module.setLiteralSource(rope, result.simpleUpdate());
               return new Object();
             });
 

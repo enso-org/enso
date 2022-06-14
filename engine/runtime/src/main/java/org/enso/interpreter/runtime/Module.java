@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
+import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Literal$Text;
@@ -39,7 +40,6 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
-import org.enso.text.editing.model;
 import scala.Function1;
 
 /** Represents a source module with a known location. */
@@ -197,18 +197,19 @@ public class Module implements TruffleObject {
    * @param source the module source.
    */
   public void setLiteralSource(String source) {
-    setLiteralSource(Rope.apply(source), null, null);
+    setLiteralSource(Rope.apply(source), null);
   }
 
   /**
    * Sets new literal sources for the module.
    *
    * @param source the module source.
-   * @param change suggested small change in a single literal
-   * @param edit description of the small edit made
+   * @param update suggested small change in a single literal or {@code null}
    */
-  public void setLiteralSource(Rope source, IR.Literal change, model.TextEdit edit) {
-    if (this.scope != null && edit != null) {
+  public void setLiteralSource(Rope source, SimpleUpdate update) {
+    if (this.scope != null && update != null) {
+      var edit = update.edit();
+      var change = update.ir();
       if (this.patchedValues == null) {
         this.patchedValues = new PatchedModuleValues(this);
       }

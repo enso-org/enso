@@ -2,7 +2,9 @@ package org.enso.compiler.context
 
 import java.util.UUID
 
+import org.enso.syntax.text.Parser
 import org.enso.compiler.core.IR
+import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.syntax.text.Location
@@ -10,6 +12,12 @@ import org.enso.text.editing.model.TextEdit
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import scala.collection.mutable
+
+case class SimpleUpdate(
+  ir: IR.Literal,
+  edit: TextEdit,
+  newIr: IR.Literal,
+)
 
 /** The changeset of a module containing the computed list of invalidated
   * expressions.
@@ -22,7 +30,7 @@ import scala.collection.mutable
 case class Changeset[A](
   source: A,
   ir: IR,
-  simpleChange: (IR.Literal, TextEdit),
+  simpleUpdate: SimpleUpdate,
   invalidated: Set[IR.ExternalId]
 )
 
@@ -45,23 +53,18 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   @throws[CompilerError]
   def build(edits: Seq[TextEdit]): Changeset[A] = {
 
-    def findSimpleChange(): (IR.Literal, TextEdit) = {
-      val edit = if (edits.size != 1) {
-        if (edits.size != 2) {
-          return null
-        }
-        try {
-          val firstAffected = invalidated(Seq(edits.head))
+    def findSimpleUpdate(): SimpleUpdate = {
+      val edit: TextEdit = edits match {
+        case Seq(first) => first
+        case Seq(head, realEdit) => {
+          val firstAffected = invalidated(Seq(head))
           if (!firstAffected.isEmpty) {
             return null
           }
-        } catch {
-          case e: Throwable => e.printStackTrace()
+          realEdit
         }
-        edits.tail.head
-      } else {
-        edits.head
-      }
+        case _ => return null
+      };
 
       if (edit.range.start.line != edit.range.end.line) return null
 
@@ -71,14 +74,22 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       val directlyAffectedId = directlyAffected.head.externalId
       val literals           = ir.preorder.filter(_.getExternalId == directlyAffectedId)
 
-      (literals.head match {
-        case node: IR.Literal.Number => return (node, edit)
-        case node: IR.Literal.Text   => return (node, edit)
-        case _                       => return null
-      })
+      def newIR() = AstToIr.translateInline(Parser().run(edit.text))
+
+      return literals.head match {
+        case node: IR.Literal.Number => newIR() match {
+            case Some(newIR: IR.Literal.Number) => SimpleUpdate(node, edit, newIR)
+            case _ => null
+        }
+        case node: IR.Literal.Text   => newIR() match {
+          case Some(newIR: IR.Literal.Text) => SimpleUpdate(node, edit, newIR)
+          case _ => null
+        }
+        case _                       => null
+      }
     }
 
-    Changeset(source, ir, findSimpleChange(), compute(edits))
+    Changeset(source, ir, findSimpleUpdate(), compute(edits))
   }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
