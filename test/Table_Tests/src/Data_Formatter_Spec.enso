@@ -22,8 +22,35 @@ type Custom_Type_With_To_Text
     to_text = "[CUSTOM = " + this.field.to_text + "]"
 
 spec =
-    Test.group "DataFormatter.parse" pending="TODO: not implemented yet" <|
-        Test.specify "should TODO" <|
+    Test.group "DataFormatter.parse" <|
+        Test.specify "should parse numbers" <|
+            formatter = Data_Formatter
+            formatter.parse "123" . should_equal 123
+            formatter.parse "1000000" . should_equal 1000000
+            formatter.parse "1000000.0" . should_equal 1000000.0
+            formatter.parse "0" . should_equal 0
+            formatter.parse "-1.0" . should_equal -1.0
+            formatter.parse "-1." . should_equal -1.0
+            formatter.parse "-1.000000" . should_equal -1.0
+            formatter.parse "-2" . should_equal -2
+            formatter.parse "1.0001" . should_equal 1.0001
+            formatter.parse "Infinity" . should_equal (Number.positive_infinity)
+            formatter.parse "-Infinity" . should_equal (Number.negative_infinity)
+            formatter.parse "NaN" . is_nan . should_be_true
+
+        Test.specify "should allow customizing the decimal point and thousand separator" <|
+            formatter = Data_Formatter thousand_separator="_" decimal_point=","
+            formatter.parse "123" . should_equal 123
+            formatter.parse "1_000_000" . should_equal 1000000
+            formatter.parse "1_000_000_000" . should_equal (1000 * 1000 * 1000)
+            formatter.parse "100_0_0_0" . should_equal 100000
+            formatter.parse "1__00_000,0" . should_equal 100000.0
+            formatter.parse "-100_000,0000" . should_equal -100000.0
+            formatter.parse "0" . should_equal 0
+            formatter.parse "-1,0" . should_equal -1.0
+            formatter.parse "1,0001" . should_equal 1.0001
+
+        Test.specify "handle leading zeros, only if enabled" pending="TODO" <|
             Nothing
 
     Test.group "DataFormatter.format" <|
@@ -53,7 +80,6 @@ spec =
             formatter.format -100000.0 . should_equal "-100_000,0"
             formatter.format 0 . should_equal "0"
             formatter.format -1.0 . should_equal "-1,0"
-            # TODO do we want to allow customizing max fraction digits??
             formatter.format 1.0001 . should_equal "1,0001"
 
         Test.specify "should format booleans" <|

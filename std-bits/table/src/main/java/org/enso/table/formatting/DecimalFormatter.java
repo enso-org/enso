@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 
 public class DecimalFormatter implements DataFormatter {
     private final DecimalFormat decimalFormat;
+    public static final String INFINITY = "Infinity";
 
     public DecimalFormatter(String thousandSeparator, String decimalPoint) {
         decimalFormat = new DecimalFormat();
@@ -29,7 +30,7 @@ public class DecimalFormatter implements DataFormatter {
             decimalFormat.setGroupingUsed(false);
         }
 
-        symbols.setInfinity("Infinity");
+        symbols.setInfinity(INFINITY);
         decimalFormat.setDecimalFormatSymbols(symbols);
         decimalFormat.setDecimalSeparatorAlwaysShown(true);
         decimalFormat.setMaximumFractionDigits(Integer.MAX_VALUE);

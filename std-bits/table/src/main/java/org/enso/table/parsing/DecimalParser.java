@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import java.text.ParsePosition;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
+import org.enso.table.formatting.DecimalFormatter;
 import org.enso.table.parsing.problems.ProblemAggregator;
 
 public class DecimalParser extends IncrementalDatatypeParser {
@@ -34,6 +35,7 @@ public class DecimalParser extends IncrementalDatatypeParser {
     decimalFormat = new DecimalFormat();
     var symbols = decimalFormat.getDecimalFormatSymbols();
     symbols.setDecimalSeparator(this.decimalPoint);
+    symbols.setInfinity(DecimalFormatter.INFINITY);
     decimalFormat.setDecimalFormatSymbols(symbols);
   }
 

@@ -21,6 +21,17 @@ public abstract class DatatypeParser {
   protected abstract Object parseSingleValue(String text, ProblemAggregator problemAggregator);
 
   /**
+   * Parses a single value not contained in a column.
+   *
+   * <p>Any reported problems will contain {@code null} as the related column reference.
+   */
+  public WithProblems<Object> parseIndependentValue(String text) {
+    ProblemAggregator problemAggregator = new ProblemAggregatorImpl(null);
+    Object result = parseSingleValue(text, problemAggregator);
+    return new WithProblems<>(result, problemAggregator.getAggregatedProblems());
+  }
+
+  /**
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */

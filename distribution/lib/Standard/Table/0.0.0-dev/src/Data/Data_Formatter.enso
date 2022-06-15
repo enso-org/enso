@@ -5,7 +5,9 @@ from Standard.Base.Data.Time as Time_Module import Time
 from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Auto
 import Standard.Base.Error.Common as Errors
+import Standard.Base.Error.Problem_Behavior
 import Standard.Table.Data.Storage
+import Standard.Table.Internal.Parse_Values_Helper
 
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
@@ -145,15 +147,14 @@ Data_Formatter.make_formatter_for_column_type (column_type : Storage) = case col
    Arguments:
    - text: Text value to parse.
    - datatype: Text value to parse.
-Data_Formatter.parse : Text -> (Auto|Integer|Number|Date|Time|DateTime|Boolean) -> Any
-Data_Formatter.parse text datatype=Auto =
+Data_Formatter.parse : Text -> (Auto|Integer|Number|Date|Time|DateTime|Boolean) -> Problem_Behavior -> Any
+Data_Formatter.parse text datatype=Auto on_problems=Problem_Behavior.Report_Warning =
     parser = case datatype of
         Auto -> this.make_auto_parser
         _ -> this.make_datatype_parser datatype
-    _ = [parser, text]
-    ## TODO we need to revise InvalidRow / LeadingZeros to work without a column
-       name for single value parsing which may not be associated with any columns.
-    Errors.unimplemented "Parsing a single value is not implemented yet."
+    result = parser.parseIndependentValue text
+    problems = Vector.Vector result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
+    on_problems.attach_problems_after result.value problems
 
 ## Format a value into a Text.
 

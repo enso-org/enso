@@ -139,14 +139,27 @@ Invalid_Location.to_display_text =
     "The location '"+self.location+"' is not valid."
 
 ## Indicates that some values did not match the expected datatype format.
-type Invalid_Format column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+
+   Arguments:
+   - column: the column in which the problematic cells appeared, if applicable.
+     It may be empty if the value is parsed outside of a context of a column.
+   - datatype: The expected datatype.
+   - cells: Contents of the cells that did not match the expected datatype
+     format.
+type Invalid_Format column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
 Invalid_Format.to_display_text : Text
 Invalid_Format.to_display_text =
     self.cells.length+" cells in column "+self.column+" had invalid format for datatype "+self.datatype.to_text+"."
 
 ## Indicates that some values contained leading zeros even though these were not allowed.
-type Leading_Zeros column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+
+   Arguments:
+   - column: the column in which the problematic cells appeared, if applicable.
+     It may be empty if the value is parsed outside of a context of a column.
+   - datatype: The expected datatype.
+   - cells: Contents of the cells that contained leading zeros.
+type Leading_Zeros column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
 ## Indicates that multiple `Column_Type_Selector` match the same column.
 
