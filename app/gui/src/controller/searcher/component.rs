@@ -277,8 +277,8 @@ pub(crate) mod tests {
 
     // === Filtering Component List ===
 
-    /// Assert IDs and order of all components in the vector which have their
-    /// [`Component::match_info`] set to [`MatchInfo::Matches`].
+    /// Assert IDs and order of all components which have their [`Component::match_info`] set to
+    /// [`MatchInfo::Matches`].
     fn assert_ids_of_matches(components: &RefCell<Vec<Component>>, expected_ids: &[Id]) {
         let ids_of_matches = components
             .borrow()
