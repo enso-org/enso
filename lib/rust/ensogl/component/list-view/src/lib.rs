@@ -497,13 +497,16 @@ where E::Model: Default
             let overlay_events = &model.overlay.events;
             mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             frp.source.is_mouse_over <+ mouse_in;
-            mouse_moved       <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD );
+            mouse_moved <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD ).on_true();
+            mouse_moved_in <- mouse_in.on_true();
+            can_select <- any(&mouse_moved, &mouse_moved_in).gate(&mouse_in);
             mouse_y_in_scroll <- mouse.position.map(f!([model,scene](pos) {
                 scene.screen_to_object_space(&model.scrolled_area,*pos).y
             }));
             mouse_pointed_entry <- mouse_y_in_scroll.map(f!([model](y)
                 entry::List::<E>::entry_at_y_position(*y,model.entries.entry_count()).entry()
             ));
+            mouse_selected_entry <- mouse_pointed_entry.sample(&can_select);
 
 
             // === Selected Entry ===
@@ -547,7 +550,6 @@ where E::Model: Default
                 any(selected_entry_after_jump_down,selected_entry_after_moving_last);
             selected_entry_after_move <-
                 any(&selected_entry_after_move_up,&selected_entry_after_move_down);
-            mouse_selected_entry <- mouse_pointed_entry.gate(&mouse_in).gate(&mouse_moved);
 
             frp.source.selected_entry <+ selected_entry_after_move;
             frp.source.selected_entry <+ mouse_selected_entry;
