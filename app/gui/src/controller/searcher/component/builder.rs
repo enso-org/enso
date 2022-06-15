@@ -75,9 +75,8 @@ pub struct List {
 impl List {
     /// Construct List builder without content.
     ///
-    /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
-    /// method takes ids as argument). Additionally, when extending, non-module components having
-    /// `local_scope_module` as their parent will be added to [`component::List::local_scope`].
+    /// Components passed to [`extend`] having their parent module ID equal to
+    /// `local_scope_module_id` will be cloned into [`component::List::local_scope`].
     pub fn new(local_scope_module_id: Option<component::Id>) -> Self {
         Self {
             all_components: default(),
