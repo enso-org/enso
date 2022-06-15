@@ -541,9 +541,8 @@ impl Searcher {
         });
         let favorites = graph.component_groups();
         let module_name = module_qualified_name(&*project, &graph);
-        let module_id = database.lookup_by_qualified_name(&module_name).map(|m| m.id);
         let list_builder_with_favs =
-            component_list_builder_with_favorites(&database, module_id, &*favorites);
+            component_list_builder_with_favorites(&database, &module_name, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -1172,10 +1171,11 @@ impl Searcher {
 
 fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
-    local_scope_module: Option<language_server::SuggestionId>,
+    local_scope_module: &QualifiedName,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
 ) -> component::builder::List {
-    let mut builder = component::builder::List::new(suggestion_db, local_scope_module);
+    let local_scope = suggestion_db.lookup_by_qualified_name(local_scope_module);
+    let mut builder = component::builder::List::new(local_scope);
     builder.set_favorites(suggestion_db, groups);
     builder
 }
@@ -1371,9 +1371,8 @@ pub mod test {
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             let favorites = graph.component_groups();
             let module_qn = module_qualified_name(&*project, &graph);
-            let module_id = database.lookup_by_qualified_name(&module_qn).map(|m| m.id);
             let list_builder_with_favs =
-                component_list_builder_with_favorites(&database, module_id, &*favorites);
+                component_list_builder_with_favorites(&database, &module_qn, &*favorites);
             let searcher = Searcher {
                 graph,
                 logger,

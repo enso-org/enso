@@ -78,14 +78,9 @@ impl List {
     /// method takes ids as argument). Additionally, when extending, non-module components having
     /// `local_scope_module` as their parent will be added to [`component::List::local_scope`].
     pub fn new(
-        suggestion_db: &model::SuggestionDatabase,
-        local_scope_module: Option<component::Id>,
+        local_scope_module: Option<suggestion_database::EntryWithId>,
     ) -> Self {
-        let group_from_id = |id| {
-            let entry = suggestion_db.lookup(id).ok()?;
-            Some(component::Group::from_entry(id, &*entry))
-        };
-        let local_scope = local_scope_module.and_then(group_from_id).unwrap_or_default();
+        let local_scope = local_scope_module.map(Into::into).unwrap_or_default();
         Self {
             all_components: default(),
             module_groups: default(),
@@ -233,7 +228,8 @@ mod tests {
     fn building_component_list() {
         let logger = Logger::new("tests::module_groups_in_component_list");
         let suggestion_db = mock_suggestion_db(logger);
-        let mut builder = List::new(&suggestion_db, Some(0));
+        let local_scope = suggestion_database::entry::QualifiedName::from("test.Test.TopModule1");
+        let mut builder = List::new(suggestion_db.lookup_by_qualified_name(&local_scope));
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
         builder.extend(&suggestion_db, first_part);
