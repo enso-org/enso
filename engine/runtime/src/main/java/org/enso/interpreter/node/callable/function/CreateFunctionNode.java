@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -85,6 +86,7 @@ public class CreateFunctionNode extends ExpressionNode {
   public boolean hasTag(Class<? extends Tag> tag) {
     if (SlowToInstrumentTag.class == tag) {
       System.err.println("checking create function node: " + tag);
+      return callTarget.getRootNode() instanceof ClosureRootNode c && !c.isSubjectToInstrumentation();
     }
     return super.hasTag(tag);
   }

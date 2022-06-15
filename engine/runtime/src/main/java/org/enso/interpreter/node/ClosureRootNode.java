@@ -26,17 +26,17 @@ public class ClosureRootNode extends EnsoRootNode {
   private final boolean subjectToInstrumentation;
 
   ClosureRootNode(
-          Language language, LocalScope localScope, ModuleScope moduleScope, ExpressionNode body, SourceSection section, String name, boolean subjectToInstrumentation) {
+          Language language, LocalScope localScope, ModuleScope moduleScope, ExpressionNode body, SourceSection section, String name, Boolean subjectToInstrumentation) {
     super(language, localScope, moduleScope, name, section);
     this.body = body;
-    this.subjectToInstrumentation = subjectToInstrumentation;
+    this.subjectToInstrumentation = Boolean.TRUE.equals(subjectToInstrumentation);
   }
 
   /**
    * Creates an instance of this node.
    *
    * @param language the language identifier
-   * @param localScope a description of the local scope
+   * @param localScope a description of the local scope 
    * @param moduleScope a description of the module scope
    * @param body the program body to be executed
    * @param section a mapping from {@code body} to the program source
@@ -51,7 +51,7 @@ public class ClosureRootNode extends EnsoRootNode {
       ExpressionNode body,
       SourceSection section,
       String name,
-      boolean subjectToInstrumentation
+      Boolean subjectToInstrumentation
   ) {
     return new ClosureRootNode(language, localScope, moduleScope, body, section, name, subjectToInstrumentation);
   }

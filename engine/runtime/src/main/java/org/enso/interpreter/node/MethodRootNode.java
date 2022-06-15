@@ -32,7 +32,7 @@ public class MethodRootNode extends ClosureRootNode {
         moduleScope,
         body,
         section,
-        shortName(atomConstructor.getName(), methodName), true);
+        shortName(atomConstructor.getName(), methodName), null);
     this.atomConstructor = atomConstructor;
     this.methodName = methodName;
   }
@@ -145,5 +145,8 @@ public class MethodRootNode extends ClosureRootNode {
         notifyInserted(newNode);
         return newNode;
     }
+  }
+  public boolean isSubjectToInstrumentation() {
+    return true;
   }
 }
