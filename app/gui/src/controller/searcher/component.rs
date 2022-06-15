@@ -277,14 +277,8 @@ pub(crate) mod tests {
 
     // === Filtering Component List ===
 
-    /// Assert IDs and order of all entries in the group which have their [`Component::match_info`]
-    /// set to [`MatchInfo::Matches`]. Additionally, verify the [`Group::visible`] field is
-    /// [`true`] iff no IDs are expected.
-    fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
-        assert_ids_of_matches(&group.entries, expected_ids);
-        assert_eq!(group.visible.get(), !expected_ids.is_empty());
-    }
-
+    /// Assert IDs and order of all components in the vector which have their [`Component::match_info`]
+    /// set to [`MatchInfo::Matches`].
     fn assert_ids_of_matches(components: &RefCell<Vec<Component>>, expected_ids: &[Id]) {
         let ids_of_matches = components
             .borrow()
@@ -293,6 +287,14 @@ pub(crate) mod tests {
             .map(|c| *c.id)
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
+    }
+
+    /// Assert IDs and order of all entries in the group which have their [`Component::match_info`]
+    /// set to [`MatchInfo::Matches`]. Additionally, verify the [`Group::visible`] field is
+    /// [`true`] iff no IDs are expected.
+    fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
+        assert_ids_of_matches(&group.entries, expected_ids);
+        assert_eq!(group.visible.get(), !expected_ids.is_empty());
     }
 
     #[test]
