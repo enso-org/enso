@@ -19,6 +19,7 @@ use ide_view_component_group::Layers;
 use ordered_float::OrderedFloat;
 
 
+
 // =============
 // === Model ===
 // =============
@@ -53,7 +54,6 @@ impl Model {
         let logger = Logger::new("ColumnGrid");
         let app = app.clone_ref();
         let display_object = display::object::Instance::new(&logger);
-
         Self { app, display_object, content: default(), size: default() }
     }
 
@@ -85,7 +85,6 @@ impl Model {
         }
         let height: f32 = heights.into_iter().map(OrderedFloat).max().unwrap_or_default().into();
 
-
         let mut entry_ix = 0;
         for (ix, column) in columns.iter().enumerate() {
             // The +0.5 required as a way to center the columns in the x direction by shifting by an
@@ -96,10 +95,9 @@ impl Model {
                 let entry_height = entry.size.value().y;
                 entry.set_position_y(pos_y + entry_height / 2.0);
                 entry.set_position_x(pos_x);
-
                 entry.set_color(style.get_entry_color_for_index(entry_ix));
-                entry_ix += 1;
 
+                entry_ix += 1;
                 pos_y += entry_height;
                 pos_y += style.column_gap;
             }

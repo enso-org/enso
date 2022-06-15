@@ -171,23 +171,20 @@ impl Style {
 
         let content_width = style.get_number(theme_path.sub("content_width"));
         let content_height = style.get_number(theme_path.sub("content_height"));
-
+        let content_corner_radius = style.get_number(theme_path.sub("content_corner_radius"));
         let content_padding = style.get_number(theme_path.sub("content_padding"));
+        let content_background_color = style.get_color(theme_path.sub("content_background_color"));
 
         let menu_height = style.get_number(theme_path.sub("menu_height"));
         let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
         let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
 
-        let content_corner_radius = style.get_number(theme_path.sub("content_corner_radius"));
-
         let section_divider_height = style.get_number(theme_path.sub("section_divider_height"));
-
         let section_heading_size = style.get_number(theme_path.sub("section_heading_size"));
         let section_heading_font = style.get_text(theme_path.sub("section_heading_font"));
         let section_heading_color = style.get_color(theme_path.sub("section_heading_color"));
         let section_divider_color = style.get_color(theme_path.sub("section_divider_color"));
 
-        let content_background_color = style.get_color(theme_path.sub("content_background_color"));
         let favourites_section_base_color =
             style.get_color(theme_path.sub("favourites_section_base_color"));
 
@@ -196,16 +193,45 @@ impl Style {
 
             content_size <- all3(&init,&content_width, &content_height).map(|(_,x,y)|Vector2::new(*x,*y));
 
-            section_heading_layout_data <- all4(&init,&section_heading_size,&section_heading_font,&section_heading_color);
+            section_heading_layout_data <- all4(
+                &init,
+                &section_heading_size,
+                &section_heading_font,
+                &section_heading_color
+            );
             section_heading_layout <- section_heading_layout_data.map(|(_,size,font,color)| {
-                SectionHeadingStyle{size:text::style::Size(*size),font:font.clone(),color:*color,offset:*size}
+                SectionHeadingStyle{
+                    size:text::style::Size(*size),
+                    font:font.clone(),
+                    color:*color,
+                    offset:*size
+                }
             });
-            section_layout_data <- all5(&init,&section_heading_layout,&section_divider_height,&section_divider_color,&favourites_section_base_color);
-            section_layout <- section_layout_data.map((|(_,heading,divider_height,divider_color,favourites_section_base_color)|{
-                SectionStyle{heading:heading.clone(),divider_height:*divider_height,divider_color:*divider_color,favourites_section_base_color:*favourites_section_base_color}
-            }));
-            content_layout_data <- all5(&init,&content_size,&content_corner_radius,&content_padding,&content_background_color);
-            content_layout <- content_layout_data.map(|(_,size,corner_radius,padding,background_color)|{
+            section_layout_data <- all5(
+                &init,
+                &section_heading_layout,
+                &section_divider_height,
+                &section_divider_color,
+                &favourites_section_base_color
+            );
+            section_layout <- section_layout_data.map(
+                |(_,heading,divider_height,divider_color,favourites_section_base_color)|{
+                SectionStyle{
+                        heading:heading.clone(),
+                        divider_height:*divider_height,
+                        divider_color:*divider_color,
+                        favourites_section_base_color:*favourites_section_base_color
+                    }
+            });
+            content_layout_data <- all5(
+                &init,
+                &content_size,
+                &content_corner_radius,
+                &content_padding,
+                &content_background_color
+            );
+            content_layout <- content_layout_data.map(
+                |(_,size,corner_radius,padding,background_color)|{
                 ContentStyle {
                     size:*size,
                     corner_radius:*corner_radius,
@@ -300,12 +326,9 @@ mod hline {
     ensogl_core::define_shape_system! {
         (style:Style) {
             let theme_path: style::Path = list_panel_theme::HERE.into();
-
-            let width            = Var::<Pixels>::from("input_size.x");
-            let height           = Var::<Pixels>::from("input_size.y");
-
+            let width = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
             let section_divider_color = style.get_color(theme_path.sub("section_divider_color"));
-
             let rect = Rect((width,height));
             let rect = rect.fill(section_divider_color);
             rect.into()
@@ -471,11 +494,21 @@ impl component::Model for Model {
 
 /// Struct that contains the components contained in a section of the Component Browser Panel. Also
 /// provides some utility functions for shape and layout handling.
-#[derive(Clone, Debug, CloneRef)]
-struct LabeledSection<T: CloneRef> {
+#[derive(Clone, Debug)]
+struct LabeledSection<T> {
     pub label:   text::Area,
     pub divider: hline::View,
     pub content: T,
+}
+
+impl<T: CloneRef> CloneRef for LabeledSection<T> {
+    fn clone_ref(&self) -> Self {
+        LabeledSection {
+            label:   self.label.clone_ref(),
+            divider: self.divider.clone_ref(),
+            content: self.content.clone_ref(),
+        }
+    }
 }
 
 type WideSection = LabeledSection<component_group::wide::View>;
@@ -563,19 +596,20 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
     fn set_base_position_y(&self, position_y: f32, style: &Style) {
         match SECTION_HEADER_PLACEMENT {
             SectionHeaderPlacement::Top => {
-                self.label.set_position_y(position_y - self.label.height.value() / 1.5);
+                let label_pos = position_y - self.label.height.value() / 1.5;
+                self.label.set_position_y(label_pos);
                 self.divider.set_position_y(position_y);
                 let content_position_y =
                     position_y - style.section.heading.offset - style.section.heading.height();
                 self.content.set_position_top_y(content_position_y);
             }
             SectionHeaderPlacement::Bottom => {
-                self.label.set_position_y(
-                    position_y - self.content.height() - self.label.height.value() / 1.5,
-                );
-                self.divider.set_position_y(
-                    position_y - self.content.height() - style.section.divider_height + 1.0,
-                );
+                let label_pos =
+                    position_y - self.content.height() - self.label.height.value() / 1.5;
+                self.label.set_position_y(label_pos);
+                let divider_pos =
+                    position_y - self.content.height() - style.section.divider_height + 1.0;
+                self.divider.set_position_y(divider_pos);
                 self.content.set_position_top_y(position_y);
             }
         }
@@ -605,22 +639,17 @@ impl component::Frp<Model> for Frp {
         style: &StyleWatchFrp,
     ) {
         let network = &frp_api.network;
-
         let (layout_update, init_layout) = Style::from_theme(network, style);
-
         frp::extend! { network
             model.favourites_section.content.set_content <+ frp_api.input.set_favourites_section;
             model.local_scope_section.content.set_entries <+ frp_api.input.set_local_scope_section;
             model.sub_modules_section.content.set_content <+ frp_api.input.set_sub_modules_section;
-
             content_update <- any3_(
                 &frp_api.input.set_favourites_section,
                 &frp_api.input.set_local_scope_section,
                 &frp_api.input.set_sub_modules_section,
             );
-
             recompute_layout <- all(&content_update,&layout_update);
-
             eval recompute_layout(((_,layout)) model.recompute_layout(layout) );
         }
         init_layout.emit(())
