@@ -104,7 +104,7 @@ impl Frp {
         let base_frp = selector::Frp::new(model, style, network, resize.clone(), mouse);
 
         model.use_track_handles(false);
-        model.set_track_corner_round(true);
+        model.set_track_corner_round(false);
         model.show_background(false);
         model.show_left_overflow(false);
         model.show_right_overflow(false);

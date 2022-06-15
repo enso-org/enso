@@ -369,7 +369,7 @@ impl Model {
         let display_object = display::object::Instance::new(&logger);
 
         let background = background::View::new(&logger);
-        display_object.add_child(&background);
+        // display_object.add_child(&background);
         app.display.default_scene.layers.below_main.add_exclusive(&background);
 
         let favourites_section = Self::init_column_section(&app);
@@ -382,16 +382,6 @@ impl Model {
         let camera = &scroll_area.content_layer().camera();
         let parent_layer = scroll_area.content_layer();
         let layers = Layers::new(&app.logger, camera, parent_layer);
-
-        favourites_section.set_parent(scroll_area.content());
-        local_scope_section.set_parent(scroll_area.content());
-        sub_modules_section.set_parent(scroll_area.content());
-
-        // Required for correct clipping. The components need to be set up with the
-        // `scroll_area.content_layer` to be masked correctly by the [`ScrollArea`].
-        favourites_section.set_layers(&layers, scroll_area.content_layer());
-        local_scope_section.set_layers(&layers, scroll_area.content_layer());
-        sub_modules_section.set_layers(&layers, scroll_area.content_layer());
 
         let navigator = default();
         Self {
@@ -466,13 +456,13 @@ impl Model {
         let favourites_section_height = self.favourites_section.height(style);
         let local_scope_height = self.local_scope_section.height(style);
         let sub_modules_height = self.sub_modules_section.height(style);
-
-        self.favourites_section.set_base_position_y(0.0, style);
-        self.local_scope_section.set_base_position_y(-favourites_section_height, style);
-        self.sub_modules_section
-            .set_base_position_y(-favourites_section_height - local_scope_height, style);
-
         let full_height = favourites_section_height + local_scope_height + sub_modules_height;
+
+        self.sub_modules_section.set_base_position_y(0.0, style);
+        self.favourites_section.set_base_position_y(-sub_modules_height, style);
+        self.local_scope_section
+            .set_base_position_y(-favourites_section_height - sub_modules_height, style);
+
         self.scroll_area.set_content_height(full_height);
         self.scroll_area.jump_to_y(full_height);
     }

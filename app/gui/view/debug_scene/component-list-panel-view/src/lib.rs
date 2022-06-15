@@ -47,7 +47,6 @@ use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ide_view_component_group as component_group;
 use list_view::entry::AnyModelProvider;
-use searcher_list_panel::column_grid::ColumnGrid;
 use searcher_list_panel::ComponentBrowserPanel;
 use searcher_list_panel::LabeledAnyModelProvider;
 

@@ -133,6 +133,7 @@ mod mask {
 #[derive(Debug, Clone, CloneRef)]
 struct Model {
     content:        display::object::Instance,
+    scrollbars:     display::object::Instance,
     display_object: display::object::InstanceWithLayer<layer::Masked>,
     mask:           mask::View,
     h_scrollbar:    Scrollbar,
@@ -194,6 +195,9 @@ impl ScrollArea {
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
+        let scrollbars = display::object::Instance::new(&logger);
+        display_object.add_child(&scrollbars);
+
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);
 
@@ -201,16 +205,17 @@ impl ScrollArea {
         display_object.add_child(&mask);
 
         display_object.layer.masked_layer.add_exclusive(&content);
+        display_object.layer.masked_layer.add_exclusive(&scrollbars);
         display_object.layer.mask_layer.add_exclusive(&mask);
 
         let h_scrollbar = Scrollbar::new(app);
-        display_object.add_child(&h_scrollbar);
+        scrollbars.add_child(&h_scrollbar);
 
         let v_scrollbar = Scrollbar::new(app);
-        display_object.add_child(&v_scrollbar);
+        scrollbars.add_child(&v_scrollbar);
         v_scrollbar.set_rotation_z(-90.0_f32.to_radians());
 
-        let model = Model { display_object, content, v_scrollbar, h_scrollbar, mask };
+        let model = Model { display_object, content, v_scrollbar, h_scrollbar, mask, scrollbars };
 
         let frp = Frp::new();
         let network = &frp.network;
