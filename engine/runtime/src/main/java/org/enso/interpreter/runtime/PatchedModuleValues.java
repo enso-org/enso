@@ -23,6 +23,10 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.polyglot.LanguageInfo;
 
+/**
+ * Keeps patched values for expression in  module. Also keeps mapping of
+ * original source offset and new {@link #findDelta(int, boolean) deltas}.
+ */
 final class PatchedModuleValues implements ExecutionEventListener {
   private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
   private final Map<Node, Object> values = new HashMap<>();
@@ -33,14 +37,28 @@ final class PatchedModuleValues implements ExecutionEventListener {
     this.module = module;
   }
 
-  void dispose() {
+  /** Disposes the binding. Returning to standard behavior of the AST.
+   */
+  synchronized void dispose() {
     if (binding != null) {
       binding.dispose();
       binding = null;
     }
   }
 
-  private void registerUpdates(
+  /** Keeps "deltas" for each {@code offset} where a modification happened.
+   * Edits are always deleting few characters and inserting another few characters
+   * at a given location. The idea here is to use {@code SortedMap} to keep
+   * information about "deltas" at each offset of modification. Whenever new
+   *
+   *
+   * @param instr instrumented to attach itself as a ultimate source of values
+   *    for {@link Patchable.Tag} nodes
+   * @param collect {@link Node} to value map of the values to use
+   * @param offset location when a modification happened
+   * @param delta positive or negative change at the offset location
+   */
+  private synchronized void performUpdates(
     Instrumenter instr, Map<Node, Object> collect, int offset, int delta
   ) {
     if (binding == null) {
@@ -69,6 +87,13 @@ final class PatchedModuleValues implements ExecutionEventListener {
     }
   }
 
+  /** Checks whether a simple edit is applicable and performs it if so.
+   *
+   * @param module module providing the source
+   * @param update information about the edit to be done
+   * @return {@code true} if the edit was applied, {@code false} to proceed with
+   *   full re-parse of the source
+   */
   boolean simpleUpdate(Module module, SimpleUpdate update) {
     var scope = module.getScope();
     var methods = scope.getMethods();
@@ -100,7 +125,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
     int removed = edit.range().end().character() - edit.range().start().character();
     int delta = edit.text().length() - removed;
 
-    registerUpdates(instr, collect, offset, delta);
+    performUpdates(instr, collect, offset, delta);
     return true;
   }
 
@@ -146,6 +171,12 @@ final class PatchedModuleValues implements ExecutionEventListener {
     }
   }
 
+  /**
+   * Replaces value for a node, if a value was found.
+   *
+   * @param context node to patch
+   * @param frame local variables that can be ignored
+   */
   @Override
   public void onEnter(EventContext context, VirtualFrame frame) {
     Object patch = findPatch(context.getInstrumentedNode());
@@ -174,6 +205,14 @@ final class PatchedModuleValues implements ExecutionEventListener {
     return values.get(n);
   }
 
+  /**
+   * Finds difference against location in the original source code.
+   *
+   * @param offset the original location
+   * @param inclusive are modifications at the same location going to count or not
+   *   - they count for section ends, but do not count for section starts
+   * @return positive or negative delta to apply at given offset
+   */
   int findDelta(int offset, boolean inclusive) {
     Map.Entry<Integer, int[]> previous = inclusive ? deltas.floorEntry(offset) : deltas.lowerEntry(offset);
     return previous == null ? 0 : previous.getValue()[0];
