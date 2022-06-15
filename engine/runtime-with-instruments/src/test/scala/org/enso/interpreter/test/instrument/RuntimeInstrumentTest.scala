@@ -571,7 +571,9 @@ class RuntimeInstrumentTest
     def addItem(at: Int, expr: String) = {
       if (code.substring(at, at + expr.length()) != expr) {
         val found = code.indexOf(expr)
-        throw new AssertionError("Cannot find " + expr + " at index " + at + " only found at " + found)
+        throw new AssertionError(
+          "Cannot find " + expr + " at index " + at + " only found at " + found
+        )
       }
       metadata.addItem(at, expr.length())
     }

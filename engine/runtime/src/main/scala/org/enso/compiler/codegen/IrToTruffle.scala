@@ -1009,7 +1009,10 @@ class IrToTruffle(
       * @param binding is the function right insight a binding
       * @return the truffle nodes corresponding to `function`
       */
-    private def processFunction(function: IR.Function, binding: Boolean): RuntimeExpression = {
+    private def processFunction(
+      function: IR.Function,
+      binding: Boolean
+    ): RuntimeExpression = {
       val scopeInfo = function
         .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
         .unsafeAs[AliasAnalysis.Info.Scope.Child]

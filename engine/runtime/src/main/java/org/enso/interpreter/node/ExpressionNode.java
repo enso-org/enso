@@ -22,7 +22,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 import java.util.UUID;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.tag.Patchable;
-import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * A base class for all Enso expressions.
@@ -175,7 +175,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
     if (tag == Patchable.Tag.class && this instanceof Patchable) {
       return true;
     }
-    if (SlowToInstrumentTag.class == tag) {
+    if (AvoidIdInstrumentationTag.class == tag) {
       return getRootNode() instanceof ClosureRootNode c && !c.isSubjectToInstrumentation();
     }
     return tag == StandardTags.ExpressionTag.class || (tag == IdentifiedTag.class && id != null);

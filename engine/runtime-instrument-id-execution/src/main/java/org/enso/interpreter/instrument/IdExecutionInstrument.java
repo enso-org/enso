@@ -29,7 +29,7 @@ import org.enso.interpreter.runtime.Module;
 
 import java.util.function.Consumer;
 import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
@@ -309,7 +309,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     var builder = SourceSectionFilter.newBuilder()
           .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
           .tagIs(IdentifiedTag.class)
-          .tagIsNot(SlowToInstrumentTag.class)
+          .tagIsNot(AvoidIdInstrumentationTag.class)
           .sourceIs(module::isModuleSource);
 
     if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {

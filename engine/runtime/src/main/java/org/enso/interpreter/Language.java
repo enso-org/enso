@@ -31,7 +31,7 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
 
 import java.util.Optional;
-import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * The root of the Enso implementation.
@@ -61,7 +61,7 @@ import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
   StandardTags.RootTag.class,
   StandardTags.TryBlockTag.class,
   IdentifiedTag.class,
-  SlowToInstrumentTag.class,
+  AvoidIdInstrumentationTag.class,
   Patchable.Tag.class
 })
 public final class Language extends TruffleLanguage<Context> {

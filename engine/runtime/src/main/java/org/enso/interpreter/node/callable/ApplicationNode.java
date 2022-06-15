@@ -12,7 +12,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.

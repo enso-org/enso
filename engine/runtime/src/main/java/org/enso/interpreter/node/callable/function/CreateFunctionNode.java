@@ -10,7 +10,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * This node is responsible for representing the definition of a function. It contains information
@@ -84,8 +84,7 @@ public class CreateFunctionNode extends ExpressionNode {
    */
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
-    if (SlowToInstrumentTag.class == tag) {
-      System.err.println("checking create function node: " + tag);
+    if (AvoidIdInstrumentationTag.class == tag) {
       if (callTarget.getRootNode() instanceof ClosureRootNode c) {
         return !c.isUsedInBinding() && !c.isSubjectToInstrumentation();
       }
