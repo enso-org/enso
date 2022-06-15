@@ -654,13 +654,15 @@ class IrToTruffle(
       * @param ir the IR to generate code for
       * @return a truffle expression that represents the same program as `ir`
       */
-    def run(ir: IR.Expression): RuntimeExpression = {
+    def run(ir: IR.Expression): RuntimeExpression = run(ir, false)
+
+    private def run(ir: IR.Expression, binding: Boolean): RuntimeExpression = {
       val runtimeExpression = ir match {
         case block: IR.Expression.Block     => processBlock(block)
         case literal: IR.Literal            => processLiteral(literal)
         case app: IR.Application            => processApplication(app)
         case name: IR.Name                  => processName(name)
-        case function: IR.Function          => processFunction(function)
+        case function: IR.Function          => processFunction(function, binding)
         case binding: IR.Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case              => processCase(caseExpr)
         case typ: IR.Type                   => processType(typ)
@@ -721,7 +723,9 @@ class IrToTruffle(
           moduleScope,
           blockNode,
           makeSection(moduleScope, block.location),
-          currentVarName
+          currentVarName,
+          false,
+          false
         )
 
         val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
@@ -994,7 +998,7 @@ class IrToTruffle(
       val slot = scope.createVarSlot(occInfo.id)
 
       setLocation(
-        AssignmentNode.build(this.run(binding.expression), slot),
+        AssignmentNode.build(this.run(binding.expression, true), slot),
         binding.location
       )
     }
@@ -1002,9 +1006,13 @@ class IrToTruffle(
     /** Generates code for an Enso function.
       *
       * @param function the function to generate code for
+      * @param binding is the function right insight a binding
       * @return the truffle nodes corresponding to `function`
       */
-    def processFunction(function: IR.Function): RuntimeExpression = {
+    private def processFunction(
+      function: IR.Function,
+      binding: Boolean
+    ): RuntimeExpression = {
       val scopeInfo = function
         .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
         .unsafeAs[AliasAnalysis.Info.Scope.Child]
@@ -1027,7 +1035,8 @@ class IrToTruffle(
       val fn = child.processFunctionBody(
         function.arguments,
         function.body,
-        function.location
+        function.location,
+        binding
       )
 
       fn
@@ -1308,12 +1317,14 @@ class IrToTruffle(
       * @param arguments the arguments to the function
       * @param body      the body of the function
       * @param location  the location at which the function exists in the source
+      * @param binding is the function right insight a binding
       * @return a truffle node representing the described function
       */
     def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
-      location: Option[IdentifiedLocation]
+      location: Option[IdentifiedLocation],
+      binding: Boolean = false
     ): CreateFunctionNode = {
       val bodyBuilder = new BuildFunctionBody(arguments, body)
       val fnRootNode = ClosureRootNode.build(
@@ -1322,7 +1333,9 @@ class IrToTruffle(
         moduleScope,
         bodyBuilder.bodyNode(),
         makeSection(moduleScope, location),
-        scopeName
+        scopeName,
+        false,
+        binding
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
@@ -1499,7 +1512,9 @@ class IrToTruffle(
                 moduleScope,
                 argumentExpression,
                 section,
-                displayName
+                displayName,
+                true,
+                false
               )
             )
 
@@ -1575,7 +1590,9 @@ class IrToTruffle(
               moduleScope,
               defaultExpression,
               null,
-              s"<default::$scopeName::${arg.name}>"
+              s"<default::$scopeName::${arg.name}>",
+              false,
+              false
             )
 
             CreateThunkNode.build(

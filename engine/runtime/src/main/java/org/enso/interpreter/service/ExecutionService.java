@@ -23,7 +23,6 @@ import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
-import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
@@ -152,15 +151,12 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    LocationFilter locationFilter = LocationFilter.create(module, src);
-
     Optional<EventBinding<ExecutionEventListener>> listener =
         idExecutionInstrument.map(
             service ->
                 service.bind(
                     module,
                     call.getFunction().getCallTarget(),
-                    locationFilter,
                     cache,
                     methodCallsCache,
                     syncState,
