@@ -23,6 +23,7 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::Scene;
 use ensogl::system::web;
 use ensogl::system::web::dom;
@@ -156,6 +157,12 @@ impl SearcherVariant {
         }
     }
 
+    fn set_navigator(&self, navigator: Navigator) {
+        if let Self::ComponentBrowser(browser) = self {
+            browser.model().list.model().set_navigator(Some(navigator))
+        }
+    }
+
     fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
@@ -261,6 +268,7 @@ impl Model {
         let display_object = display::object::Instance::new(&logger);
         let searcher = SearcherVariant::new(app);
         let graph_editor = app.new_view::<GraphEditor>();
+        searcher.set_navigator(graph_editor.model.navigator.clone_ref());
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
         let prompt_background = prompt_background::View::new(&logger);
