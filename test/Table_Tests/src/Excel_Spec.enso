@@ -116,6 +116,7 @@ spec =
         start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
 
     check_table table =
+        table.columns.length . should_equal 3
         check_column (table.at "A") col_a
         check_column (table.at "B") col_b
         ## ToDo [JD]: Can't check Dates at present as not being handled correctly. Coming as a Polyglot array
@@ -123,19 +124,26 @@ spec =
         # check_column (table.at "C") col_c
 
     Test.group "Read XLSX / XLS Files" <|
-        Test.specify "should let you read the sheet names with File_Format.Auto" <|
-            sheet_names = ["Sheet1", "Another"]
-            xlsx_sheet.read . should_equal sheet_names
-            File.read xlsx_sheet . should_equal sheet_names
-            File.read xlsx_path . should_equal sheet_names
-            xls_sheet.read . should_equal sheet_names
-            File.read xls_sheet . should_equal sheet_names
-            File.read xls_path . should_equal sheet_names
+        Test.specify "should let you read the first names with File_Format.Auto" <|
+            check_table <| xlsx_sheet.read
+            check_table <| File.read xlsx_sheet
+            check_table <| File.read xlsx_path
+            check_table <| xls_sheet.read
+            check_table <| File.read xls_sheet
+            check_table <| File.read xls_path
 
-        Test.specify "should let you read the sheet names with File_Format.Excel" <|
+        Test.specify "should let you read the first names with File_Format.Excel" <|
+            check_table <| xlsx_sheet.read File_Format.Excel
+            check_table <| File.read xlsx_sheet File_Format.Excel
+            check_table <| File.read xlsx_path File_Format.Excel
+            check_table <| xls_sheet.read File_Format.Excel
+            check_table <| File.read xls_sheet File_Format.Excel
+            check_table <| File.read xls_path File_Format.Excel
+
+        Test.specify "should let you read the sheet names" <|
             sheet_names = ["Sheet1", "Another"]
-            xlsx_sheet.read File_Format.Excel . should_equal sheet_names
-            xls_sheet.read File_Format.Excel . should_equal sheet_names
+            xlsx_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
+            xls_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
 
         Test.specify "should let you read the range names" <|
             range_names = ["myData"]
