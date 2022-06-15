@@ -135,7 +135,7 @@ pub struct List {
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
     /// A group containing all non-module components in the local scope of the module where the
     /// [Component Browser](crate::controller::Searcher) is opened.
-    pub local_scope:       Group,
+    pub local_scope:       Rc<RefCell<Vec<Component>>>,
     filtered:              Rc<Cell<bool>>,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// [Component Browser](crate::controller::Searcher).
@@ -172,6 +172,7 @@ impl List {
         for component in &*self.all_components {
             component.update_matching_info(pattern)
         }
+        group::sort(&mut self.local_scope.borrow_mut(), pattern);
         for group in self.all_groups_not_in_favorites() {
             group.update_sorting_and_visibility(pattern);
         }
@@ -185,7 +186,7 @@ impl List {
     fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
-        normal.chain(flattened).chain(std::iter::once(&self.local_scope))
+        normal.chain(flattened)
     }
 }
 
@@ -310,9 +311,7 @@ pub(crate) mod tests {
             suggestion_db.put_entry(id, entry.clone())
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
-        let top_module_qn: suggestion_database::entry::QualifiedName = top_module.module.into();
-        let top_module_with_id = suggestion_db.lookup_by_qualified_name(&top_module_qn);
-        let mut builder = builder::List::new(top_module_with_id);
+        let mut builder = builder::List::new(Some(0));
         builder.set_favorites(&suggestion_db, &favorites);
         builder.extend(&suggestion_db, 0..4);
         let list = builder.build();
