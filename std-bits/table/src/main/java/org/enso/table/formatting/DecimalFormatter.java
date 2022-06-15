@@ -29,9 +29,11 @@ public class DecimalFormatter implements DataFormatter {
             decimalFormat.setGroupingUsed(false);
         }
 
+        symbols.setInfinity("Infinity");
         decimalFormat.setDecimalFormatSymbols(symbols);
         decimalFormat.setDecimalSeparatorAlwaysShown(true);
         decimalFormat.setMaximumFractionDigits(Integer.MAX_VALUE);
+        decimalFormat.setMinimumFractionDigits(1);
     }
 
     public String format(double value) {

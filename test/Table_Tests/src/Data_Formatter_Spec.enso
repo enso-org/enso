@@ -34,14 +34,13 @@ spec =
             formatter = Data_Formatter
             formatter.format 123 . should_equal "123"
             formatter.format 1000000 . should_equal "1000000"
-            # TODO do we want at least one trailing zero?
-            formatter.format 1000000.0 . should_equal "1000000."
+            formatter.format 1000000.0 . should_equal "1000000.0"
             formatter.format 0 . should_equal "0"
-            formatter.format -1.0 . should_equal "-1."
+            formatter.format -1.0 . should_equal "-1.0"
             formatter.format -2 . should_equal "-2"
             formatter.format 1.0001 . should_equal "1.0001"
-            formatter.format (Number.positive_infinity) . should_equal "∞"
-            formatter.format (Number.negative_infinity) . should_equal "-∞"
+            formatter.format (Number.positive_infinity) . should_equal "Infinity"
+            formatter.format (Number.negative_infinity) . should_equal "-Infinity"
             formatter.format (Number.nan) . should_equal "NaN"
 
         Test.specify "should allow customizing the decimal point and thousand separator" <|
@@ -50,10 +49,10 @@ spec =
             formatter.format 1000000 . should_equal "1_000_000"
             formatter.format (1000 * 1000 * 1000) . should_equal "1_000_000_000"
             formatter.format 100000 . should_equal "100_000"
-            formatter.format 100000.0 . should_equal "100_000,"
-            formatter.format -100000.0 . should_equal "-100_000,"
+            formatter.format 100000.0 . should_equal "100_000,0"
+            formatter.format -100000.0 . should_equal "-100_000,0"
             formatter.format 0 . should_equal "0"
-            formatter.format -1.0 . should_equal "-1,"
+            formatter.format -1.0 . should_equal "-1,0"
             # TODO do we want to allow customizing max fraction digits??
             formatter.format 1.0001 . should_equal "1,0001"
 
