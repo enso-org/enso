@@ -6,6 +6,7 @@ import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.excel.ExcelRange;
@@ -215,7 +216,19 @@ public class ExcelReader {
     ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
 
     // Expand Single Cell
-    boolean singleCell = excelRange != null && excelRange.isSingleCell();
+    if (excelRange != null && excelRange.isSingleCell()) {
+      ExcelRow currentRow = sheet.get(excelRange.getTopRow());
+      if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
+        return new Table(
+            new Column[] {
+                new Column(
+                    CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
+                    new ObjectStorage(new Object[0], 0)
+                )});
+      }
+
+      excelRange = expandSingleCell(excelRange, sheet, currentRow);
+    }
 
     // Row Range
     boolean wholeColumn = excelRange == null || excelRange.isWholeColumn();
@@ -280,6 +293,19 @@ public class ExcelReader {
             .toArray(Column[]::new);
 
     return new Table(columns);
+  }
+
+  private static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet, ExcelRow currentRow) {
+    int bottomRow = excelRange.getTopRow();
+    int rightColumn = excelRange.getLeftColumn();
+    while (currentRow != null && !currentRow.isEmpty(excelRange.getLeftColumn(), rightColumn)) {
+      rightColumn = currentRow.findEndRight(rightColumn);
+      bottomRow++;
+      currentRow = sheet.get(bottomRow);
+    }
+
+    excelRange = new ExcelRange(excelRange.getSheetName(), excelRange.getLeftColumn(), excelRange.getTopRow(), rightColumn, bottomRow - 1);
+    return excelRange;
   }
 
   private static void expandBuilders(List<Builder> builders, int size, int columnCount, int rows) {

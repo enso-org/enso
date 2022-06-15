@@ -61,6 +61,19 @@ public class ExcelRow {
     return cellType;
   }
 
+  public boolean isEmpty(int column) {
+    return isEmpty(column, column);
+  }
+
+  public boolean isEmpty(int start, int end) {
+    for (int column = start; column <= end; column++) {
+      if (getCellType(get(column)) != CellType._NONE) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public int findEndRight(int start) {
     int column = start;
     while (getCellType(get(column)) != CellType._NONE) {
