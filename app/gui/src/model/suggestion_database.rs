@@ -131,7 +131,7 @@ pub enum Notification {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct EntryWithId {
-    pub id: SuggestionId,
+    pub id:    entry::Id,
     pub entry: Rc<Entry>,
 }
 

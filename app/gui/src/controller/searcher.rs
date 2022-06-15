@@ -542,7 +542,8 @@ impl Searcher {
         let favorites = graph.component_groups();
         let module_name = module_qualified_name(&*project, &graph);
         let module_id = database.lookup_by_qualified_name(&module_name).map(|m| m.id);
-        let list_builder_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
+        let list_builder_with_favs =
+            component_list_builder_with_favorites(&database, module_id, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -1179,7 +1180,10 @@ fn component_list_builder_with_favorites<'a>(
     builder
 }
 
-fn module_qualified_name(project: &dyn model::project::API, graph: &controller::ExecutedGraph) -> QualifiedName {
+fn module_qualified_name(
+    project: &dyn model::project::API,
+    graph: &controller::ExecutedGraph,
+) -> QualifiedName {
     graph.graph().module.path().qualified_module_name(project.qualified_name())
 }
 
@@ -1368,7 +1372,8 @@ pub mod test {
             let favorites = graph.component_groups();
             let module_qn = module_qualified_name(&*project, &graph);
             let module_id = database.lookup_by_qualified_name(&module_qn).map(|m| m.id);
-            let list_bldr_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
+            let list_builder_with_favs =
+                component_list_builder_with_favorites(&database, module_id, &*favorites);
             let searcher = Searcher {
                 graph,
                 logger,
@@ -1381,7 +1386,7 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
-                list_builder_with_favorites: Rc::new(list_bldr_with_favs),
+                list_builder_with_favorites: Rc::new(list_builder_with_favs),
             };
             let entry1 = searcher.database.lookup(1).unwrap();
             let entry2 = searcher.database.lookup(2).unwrap();
