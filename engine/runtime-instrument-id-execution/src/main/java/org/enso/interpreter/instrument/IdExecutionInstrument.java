@@ -17,7 +17,6 @@ import java.util.UUID;
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.control.TailCallException;
@@ -319,14 +318,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       throw new IllegalStateException("Wrong entryCallTarget: " + entryCallTarget);
     }
     SourceSectionFilter filter = builder.build();
-
-    /*
-    env.getInstrumenter().attachExecutionEventFactory(filter, (context) -> {
-      System.out.println("captured: " + context.getInstrumentedNode().getClass().getName() + " at " + context.getInstrumentedSourceSection());
-      System.out.println("    root: " + context.getInstrumentedNode().getRootNode().getClass().getName());
-      return null;
-    });
-    */
 
     return env.getInstrumenter()
         .attachExecutionEventListener(

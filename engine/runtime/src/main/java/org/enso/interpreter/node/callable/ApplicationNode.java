@@ -2,7 +2,6 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
@@ -12,7 +11,6 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
