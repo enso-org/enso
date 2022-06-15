@@ -5,7 +5,7 @@ from Standard.Table.Io.File_Format import Infer
 import Standard.Table.Data.Table
 from Standard.Table.Error as Error_Module import Invalid_Location
 
-polyglot java import org.enso.table.format.xlsx.ExcelRange as Java_Range
+polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 polyglot java import org.enso.table.read.ExcelReader
 
 polyglot java import java.lang.IllegalArgumentException
@@ -59,6 +59,10 @@ type Excel_Range
     right_column = if self.java_range.isWholeRow then Nothing else
         self.java_range.getRightColumn
 
+    ## Is the Excel_Range referring to a single cell
+    is_single_cell : Boolean
+    is_single_cell = this.java_range.isSingleCell
+
     ## Gets the address to this in A1 format.
     address : Text
     address = self.java_range.getAddress
@@ -107,7 +111,7 @@ type Excel_Range
         row_valid = here.validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
 
         col_valid <| row_valid <|
-            Excel_Range (Java_Range.new sheet col_index row col_index row)
+            Excel_Range (Java_Range.new sheet col_index row)
 
     ## Create an Excel_Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range

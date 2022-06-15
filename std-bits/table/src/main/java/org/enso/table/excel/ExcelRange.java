@@ -1,4 +1,4 @@
-package org.enso.table.format.xlsx;
+package org.enso.table.excel;
 
 import org.apache.poi.ss.util.CellReference;
 
@@ -47,7 +47,9 @@ public class ExcelRange {
           parseRange(
               range,
               pattern,
-              pattern == RANGE_RC ? ExcelRange::parseR1C1StyleAddress : ExcelRange::parseA1StyleAddress);
+              pattern == RANGE_RC
+                  ? ExcelRange::parseR1C1StyleAddress
+                  : ExcelRange::parseA1StyleAddress);
 
       if (parsed.isPresent()) {
         return parsed.get();
@@ -66,7 +68,7 @@ public class ExcelRange {
 
     int[] tl = parser.apply(matcher.group(1));
     if (matcher.group(2) == null) {
-      return Optional.of(new int[] {tl[0], tl[1], tl[0], tl[1]});
+      return Optional.of(new int[] {tl[0], tl[1]});
     }
 
     int[] br = parser.apply(matcher.group(2));
@@ -182,6 +184,7 @@ public class ExcelRange {
   private final int rightColumn;
   private final int topRow;
   private final int bottomRow;
+  private final boolean singleCell;
 
   public ExcelRange(String fullAddress) throws IllegalArgumentException {
     String[] sheetAndRange = parseFullAddress(fullAddress);
@@ -189,13 +192,31 @@ public class ExcelRange {
 
     int[] range = parseRange(sheetAndRange[1]);
     this.leftColumn = range[1];
-    this.rightColumn = range[3];
     this.topRow = range[0];
-    this.bottomRow = range[2];
+
+    if (range.length == 2) {
+      this.singleCell = range[0] != 0 && range[1] != 0;
+      this.rightColumn = range[1];
+      this.bottomRow = range[0];
+    } else {
+      this.singleCell = false;
+      this.rightColumn = range[3];
+      this.bottomRow = range[2];
+    }
+  }
+
+  public ExcelRange(String sheetName, int column, int row) {
+    this.sheetName = sheetName;
+    this.singleCell = column != 0 && row != 0;
+    this.leftColumn = column;
+    this.topRow = row;
+    this.rightColumn = column;
+    this.bottomRow = row;
   }
 
   public ExcelRange(String sheetName, int leftColumn, int topRow, int rightColumn, int bottomRow) {
     this.sheetName = sheetName;
+    this.singleCell = false;
     this.leftColumn = Math.min(leftColumn, rightColumn);
     this.topRow = Math.min(bottomRow, topRow);
     this.rightColumn = Math.max(leftColumn, rightColumn);
@@ -236,6 +257,10 @@ public class ExcelRange {
 
   public int getBottomRow() {
     return bottomRow;
+  }
+
+  public boolean isSingleCell() {
+    return this.singleCell;
   }
 
   public String getAddress() {
