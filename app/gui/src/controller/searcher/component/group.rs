@@ -128,6 +128,12 @@ impl Group {
     }
 }
 
+impl From<suggestion_database::EntryWithId> for Group {
+    fn from(suggestion: suggestion_database::EntryWithId) -> Self {
+        Self::from_entry(suggestion.id, &*suggestion.entry)
+    }
+}
+
 
 
 // ============
