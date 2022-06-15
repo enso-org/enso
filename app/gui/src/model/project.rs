@@ -3,8 +3,6 @@
 //! Responsible for owning any remote connection clients, and providing controllers for specific
 //! files and modules. Expected to live as long as the project remains open in the IDE.
 
-pub mod synchronized;
-
 use crate::prelude::*;
 
 use crate::model::module::ProjectMetadata;
@@ -18,6 +16,13 @@ use flo_stream::Subscriber;
 use mockall::automock;
 use parser::Parser;
 use uuid::Uuid;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod synchronized;
 
 
 

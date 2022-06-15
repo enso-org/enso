@@ -42,10 +42,10 @@ const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 pub use span_tree::Crumb;
 pub use span_tree::Crumbs;
 
-/// Specialized `SpanTree` for the input ports model.
+/// Specialized `SpanTree` for the output ports model.
 pub type SpanTree = span_tree::SpanTree<port::Model>;
 
-/// Mutable reference to port inside of a `SpanTree`.
+/// Reference to port inside of a `SpanTree`.
 pub type PortRef<'a> = span_tree::node::Ref<'a, port::Model>;
 
 /// Mutable reference to port inside of a `SpanTree`.

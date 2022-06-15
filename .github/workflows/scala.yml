@@ -286,6 +286,7 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Examples_Tests
 
       - name: Compile the Standard Libraries (Unix)
         shell: bash
@@ -311,6 +312,7 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Examples_Tests
 
       - name: Test Engine Distribution Without Caches (Windows)
         shell: bash
@@ -321,6 +323,7 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Examples_Tests
 
       - name: Compile the Standard Libraries (Windows)
         shell: bash
@@ -346,6 +349,7 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Image_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Examples_Tests
 
       # Publish
       - name: Compress the built artifacts for upload

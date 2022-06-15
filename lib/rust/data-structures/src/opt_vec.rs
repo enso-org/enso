@@ -187,6 +187,14 @@ impl<T, I: Index> OptVec<T, I> {
         self.items.iter().filter_map(Option::as_ref)
     }
 
+    /// Iterator with indexes.
+    pub fn iter_enumerate(&self) -> impl Iterator<Item = (I, &T)> {
+        self.items
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, item)| item.as_ref().map(|i| (idx.into(), i)))
+    }
+
     /// Mutable iterator.
     pub fn iter_mut(&mut self) -> IterMut<T> {
         self.items.iter_mut().filter_map(Option::as_mut)
@@ -266,6 +274,28 @@ mod tests {
         assert_eq!(v.len(), 2);
         for (i, value) in v.into_iter().enumerate() {
             assert_eq!(i + 1, *value);
+        }
+    }
+
+    #[test]
+    fn test_iter_enumerate() {
+        let mut v = OptVec::<usize>::new();
+
+        let ix1 = v.insert(0);
+        let _ix2 = v.insert(1);
+        let _ix3 = v.insert(2);
+        assert_eq!(v.len(), 3);
+
+        for (i, (index, value)) in v.iter_enumerate().enumerate() {
+            assert_eq!(i, *value);
+            assert_eq!(i, index);
+        }
+
+        v.remove(ix1);
+        assert_eq!(v.len(), 2);
+        for (i, (index, value)) in v.iter_enumerate().enumerate() {
+            assert_eq!(i + 1, *value);
+            assert_eq!(i + 1, index);
         }
     }
 

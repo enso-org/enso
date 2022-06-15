@@ -154,3 +154,10 @@ type Leading_Zeros column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|B
    a parse is attempted anyway. If mixed types are requested, the column is not
    parsed due to ambiguity.
 type Duplicate_Type_Selector column:Text ambiguous:Boolean
+
+## Indicates that the given file type is not supported by the `Auto` format.
+type Unsupported_File_Type filename
+
+Unsupported_File_Type.to_display_text : Text
+Unsupported_File_Type.to_display_text =
+    "The "+this.filename+" has a type that is not supported by the Auto format."
