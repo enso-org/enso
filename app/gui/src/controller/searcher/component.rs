@@ -287,15 +287,18 @@ pub(crate) mod tests {
     /// set to [`MatchInfo::Matches`]. Additionally, verify the [`Group::visible`] field is
     /// [`true`] iff no IDs are expected.
     fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
-        let ids_of_matches = group
-            .entries
+        assert_ids_of_matches(&group.entries, expected_ids);
+        assert_eq!(group.visible.get(), !expected_ids.is_empty());
+    }
+
+    fn assert_ids_of_matches(components: &RefCell<Vec<Component>>, expected_ids: &[Id]) {
+        let ids_of_matches = components
             .borrow()
             .iter()
             .filter(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
             .map(|c| *c.id)
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
-        assert_eq!(group.visible.get(), !expected_ids.is_empty());
     }
 
     #[test]
@@ -318,28 +321,28 @@ pub(crate) mod tests {
 
         list.update_filtering("fu");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
-        assert_ids_of_matches_entries(&list.local_scope, &[2]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
+        assert_ids_of_matches(&list.local_scope, &[2]);
 
         list.update_filtering("x");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
-        assert_ids_of_matches_entries(&list.local_scope, &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3]);
+        assert_ids_of_matches(&list.local_scope, &[]);
 
         list.update_filtering("Sub");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[1]);
-        assert_ids_of_matches_entries(&list.local_scope, &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
+        assert_ids_of_matches(&list.local_scope, &[]);
 
         list.update_filtering("y");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
-        assert_ids_of_matches_entries(&list.local_scope, &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
+        assert_ids_of_matches(&list.local_scope, &[]);
 
         list.update_filtering("");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 1]);
-        assert_ids_of_matches_entries(&list.local_scope, &[2]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
+        assert_ids_of_matches(&list.local_scope, &[2]);
     }
 
 
@@ -350,8 +353,7 @@ pub(crate) mod tests {
         // Create a components list with sample data.
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
-        let local_scope = suggestion_database::entry::QualifiedName::from("test.Test.TopModule1");
-        let mut builder = builder::List::new(suggestion_db.lookup_by_qualified_name(&local_scope));
+        let mut builder = builder::List::new(Some(0));
         builder.extend(&suggestion_db, 0..11);
         let list = builder.build();
 
