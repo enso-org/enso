@@ -23,13 +23,11 @@
 #![warn(unused_import_braces)]
 
 use enso_profiler_data as profiler_data;
-
 use profiler_data::Class;
 use profiler_data::MeasurementId;
 use profiler_data::OpaqueMetadata;
 use profiler_data::Profile;
 use profiler_data::Timestamp;
-
 use std::collections::HashMap;
 use std::default::Default;
 use std::path::Path;

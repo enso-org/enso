@@ -16,6 +16,8 @@
 //! does not report compilation errors when the context is not available.
 //!
 //! # `Compiler` and `Controller`
+
+use crate::control::callback::traits::*;
 ///
 /// In order to handle WebGL context loss, we divide the responsibilities of compiler
 /// management between two objects: a `Compiler`, and a `Controller`.
@@ -32,7 +34,6 @@ use crate::system::web::traits::*;
 
 use crate::animation;
 use crate::control::callback;
-use crate::control::callback::traits::*;
 use crate::display::ToGlEnum;
 use crate::system::gpu::context::extension::KhrParallelShaderCompile;
 use crate::system::gpu::context::native;

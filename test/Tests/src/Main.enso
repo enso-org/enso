@@ -30,6 +30,9 @@ import project.Data.Noise.Generator_Spec as Noise_Generator_Spec
 import project.Data.Noise_Spec
 import project.Data.Numbers_Spec
 import project.Data.Ordering_Spec
+import project.Data.Ordering.Comparator_Spec
+import project.Data.Ordering.Natural_Order_Spec
+import project.Data.Ordering.Vector_Lexicographic_Order_Spec
 import project.Data.Range_Spec
 import project.Data.Ref_Spec
 import project.Data.Text_Spec
@@ -88,6 +91,9 @@ main = Test.Suite.run_main <|
     Noise_Spec.spec
     Numbers_Spec.spec
     Ordering_Spec.spec
+    Comparator_Spec.spec
+    Natural_Order_Spec.spec
+    Vector_Lexicographic_Order_Spec.spec
     Process_Spec.spec
     Python_Interop_Spec.spec
     R_Interop_Spec.spec

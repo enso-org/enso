@@ -9,11 +9,7 @@ import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -22,18 +18,20 @@ public class MultiValueIndex {
   private final Map<MultiValueKey, List<Integer>> locs;
   private final AggregatedProblems problems;
 
-  public MultiValueIndex(Column[] keyColumns, int tableSize) {
+  public MultiValueIndex(Column[] keyColumns, int tableSize, Comparator<Object> objectComparator) {
+    this(keyColumns, tableSize, null, objectComparator);
+  }
+
+  public MultiValueIndex(Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
     this.keyColumnsLength = keyColumns.length;
-    this.locs = new HashMap<>();
+    this.locs = ordering == null ? new HashMap<>() : new TreeMap<>();
     this.problems = new AggregatedProblems();
 
     if (keyColumns.length != 0) {
       int size = keyColumns[0].getSize();
+      Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
       for (int i = 0; i < size; i++) {
-        int finalI = i;
-        MultiValueKey key =
-            new MultiValueKey(
-                Arrays.stream(keyColumns).map(c -> c.getStorage().getItemBoxed(finalI)).toArray());
+        MultiValueKey key = new MultiValueKey(storage, i, ordering, objectComparator);
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("GroupBy", i));
@@ -43,9 +41,7 @@ public class MultiValueIndex {
         ids.add(i);
       }
     } else {
-      this.locs.put(
-          new MultiValueKey(new Object[0]),
-          IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+      this.locs.put(new MultiValueKey(new Storage[0], 0, objectComparator), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
   }
 
@@ -87,19 +83,31 @@ public class MultiValueIndex {
         merged);
   }
 
-  private static Builder getBuilderForType(int type, int size) {
-    switch (type) {
-      case Storage.Type.BOOL:
-        return new BoolBuilder();
-      case Storage.Type.DOUBLE:
-        return NumericBuilder.createDoubleBuilder(size);
-      case Storage.Type.LONG:
-        return NumericBuilder.createLongBuilder(size);
-      case Storage.Type.STRING:
-        return new StringBuilder(size);
-      case Storage.Type.OBJECT:
-        return new ObjectBuilder(size);
+  public int[] makeOrderMap(int rowCount) {
+    if (this.locs.size() == 0) {
+      return new int[0];
     }
-    return new InferredBuilder(size);
+
+    int[] output = new int[rowCount];
+
+    int idx = 0;
+    for (List<Integer> rowIndexes : this.locs.values()) {
+      for (Integer rowIndex : rowIndexes) {
+        output[idx++] = rowIndex;
+      }
+    }
+
+    return output;
+  }
+
+  private static Builder getBuilderForType(int type, int size) {
+    return switch (type) {
+      case Storage.Type.BOOL -> new BoolBuilder();
+      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
+      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
+      case Storage.Type.STRING -> new StringBuilder(size);
+      case Storage.Type.OBJECT -> new ObjectBuilder(size);
+      default -> new InferredBuilder(size);
+    };
   }
 }

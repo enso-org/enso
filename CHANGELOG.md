@@ -133,6 +133,10 @@
   representing `Delimited` files without storing them on the filesystem.][3478]
 - [Added rank data, correlation and covariance statistics for `Vector`][3484]
 - [Implemented `Table.order_by` for the SQLite backend.][3502]
+- [Implemented `Table.order_by` for the PostgreSQL backend.][3514]
+- [Implemented `Table.order_by` for the in-memory table.][3515]
+- [Renamed `File_Format.Text` to `Plain_Text`, updated `File_Format.Delimited`
+  API and added builders for customizing less common settings.][3516]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -208,6 +212,9 @@
 [3478]: https://github.com/enso-org/enso/pull/3478
 [3484]: https://github.com/enso-org/enso/pull/3484
 [3502]: https://github.com/enso-org/enso/pull/3502
+[3514]: https://github.com/enso-org/enso/pull/3514
+[3515]: https://github.com/enso-org/enso/pull/3515
+[3516]: https://github.com/enso-org/enso/pull/3516
 
 #### Enso Compiler
 
@@ -230,6 +237,7 @@
   builtins from method signatures][3454]
 - [Avoid needless concatenations of warning/error messages][3465]
 - [Lazy evaluation of RHS argument for || and &&][3492]
+- [Drop Core implementation of IR][3512]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -255,6 +263,7 @@
 [3492]: https://github.com/enso-org/enso/pull/3492
 [3493]: https://github.com/enso-org/enso/pull/3493
 [3505]: https://github.com/enso-org/enso/pull/3505
+[3512]: https://github.com/enso-org/enso/pull/3512
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

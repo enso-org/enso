@@ -1,0 +1,9 @@
+type Quote_Style
+    ## Do not quote any values even if this will result in an invalid file.
+    type Never
+
+    ## Quote text values which are empty or contain the delimiter or new lines.
+    type Necessary
+
+    ## Quote all text values.
+    type Always
