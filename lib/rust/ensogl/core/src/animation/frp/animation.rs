@@ -40,11 +40,14 @@ pub const DEFAULT_PRECISION: f32 = 0.001;
 #[derivative(Clone(bound = ""))]
 #[allow(missing_docs)]
 pub struct Animation<T: mix::Mixable + frp::Data> {
-    pub target:    frp::Any<T>,
-    pub precision: frp::Any<f32>,
-    pub skip:      frp::Any,
-    pub value:     frp::Stream<T>,
-    pub on_end:    frp::Stream<()>,
+    pub target:     frp::Any<T>,
+    pub precision:  frp::Any<f32>,
+    pub skip:       frp::Any,
+    pub set_spring: frp::Any<inertia::Spring>,
+    pub set_mass:   frp::Any<inertia::Mass>,
+    pub set_drag:   frp::Any<inertia::Drag>,
+    pub value:      frp::Stream<T>,
+    pub on_end:     frp::Stream<()>,
 }
 
 #[allow(missing_docs)]
@@ -65,14 +68,20 @@ where mix::Repr<T>: inertia::Value
             target    <- any_mut::<T>();
             precision <- any_mut::<f32>();
             skip      <- any_mut::<()>();
+            set_spring <- any_mut::<inertia::Spring>();
+            set_mass <- any_mut::<inertia::Mass>();
+            set_drag <- any_mut::<inertia::Drag>();
             eval  target    ((t) simulator.set_target_value(mix::into_space(t.clone())));
             eval  precision ((t) simulator.set_precision(*t));
             eval_ skip      (simulator.skip());
+            eval set_spring ((s) simulator.set_spring(*s));
+            eval set_mass ((m) simulator.set_mass(*m));
+            eval set_drag ((d) simulator.set_drag(*d));
         }
         let value = value_src.into();
         let on_end = on_end_src.into();
         network.store(&simulator);
-        Self { target, precision, skip, value, on_end }
+        Self { target, precision, skip, set_spring, set_mass, set_drag, value, on_end }
     }
 
     /// Constructor. The initial value is provided explicitly.
