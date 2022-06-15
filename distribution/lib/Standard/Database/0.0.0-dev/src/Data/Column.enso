@@ -360,7 +360,7 @@ type Column
 
        Returns a column containing the result of performing the boolean `and` on
        `other` and each element of `self`.  If `other` is a column, the
-       operation is performed pairwise between corresponding elements of `self` ]
+       operation is performed pairwise between corresponding elements of `self`
        and `other`.
     && : Column | Any -> Column
     && other = self.make_binary_op "AND" other

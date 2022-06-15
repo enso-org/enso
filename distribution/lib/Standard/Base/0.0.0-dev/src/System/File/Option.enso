@@ -45,7 +45,7 @@ type Option
 
     ## PRIVATE
 
-       Convert self object into a representation understandable by the JVM.
+       Convert this object into a representation understandable by the JVM.
     to_java : StandardOpenOption
     to_java = case self of
         Append            -> StandardOpenOption.APPEND

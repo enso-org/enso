@@ -183,7 +183,7 @@ type No_Such_Field_Error field_name
    Pretty prints the no such field error.
 No_Such_Field_Error.to_display_text : Text
 No_Such_Field_Error.to_display_text =
-    "The field " + self.field_name.to_text + " is not present in self object."
+    "The field " + self.field_name.to_text + " is not present in this object."
 
 ## UNSTABLE
 
