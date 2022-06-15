@@ -1691,8 +1691,7 @@ pub mod test {
         });
     }
 
-    // #[wasm_bindgen_test]
-    #[test]
+    #[wasm_bindgen_test]
     fn loading_list() {
         let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
@@ -1730,11 +1729,11 @@ pub mod test {
             }],
         };
         // Create a test fixture with mocked Engine responses.
-        let Fixture { mut test, searcher, entry1, entry2, entry9, .. } =
+        let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
-                // Entry with id 99999 does not exist, so only three actions from suggestions db
+                // Entry with id 99999 does not exist, so only two actions from suggestions db
                 // should be displayed in searcher.
-                data.expect_completion(client, None, None, &[1, 99999, 9, 2]);
+                data.expect_completion(client, None, None, &[1, 99999, 9]);
                 data.graph.ctx.component_groups = vec![sample_ls_component_group];
             });
         // Reload the components list in the Searcher.
@@ -1745,8 +1744,7 @@ pub mod test {
         if let [module_group] = &components.top_modules()[..] {
             assert_eq!(module_group.name, entry1.module.to_string());
             let entries = module_group.entries.borrow();
-            let entry_names = entries.iter().map(|e| &e.suggestion.name).collect_vec();
-            assert_eq!(&*entry_names, [&entry2.name, &entry1.name, &entry9.name]);
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
