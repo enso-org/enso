@@ -76,7 +76,7 @@ impl List {
     /// Construct List builder without content.
     ///
     /// Components passed to [`extend`] having their parent module ID equal to
-    /// `local_scope_module_id` will be cloned into [`component::List::local_scope`].
+    /// `local_scope_module_id` (if set) will be cloned into [`component::List::local_scope`].
     pub fn new(local_scope_module_id: Option<component::Id>) -> Self {
         Self {
             all_components: default(),
