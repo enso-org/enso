@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::module;
@@ -27,7 +28,7 @@ pub struct ModuleGroups {
     /// For example when the module is a top module, so need its flattened content to fill the
     /// `top_module_flattened` field of [`component::List`].
     pub flattened_content: Option<component::Group>,
-    pub submodules:        component::group::ListBuilder,
+    pub submodules:        component::group::AlphabeticalListBuilder,
     pub is_top_module:     bool,
 }
 
@@ -62,36 +63,35 @@ impl ModuleGroups {
 ///
 /// The builder allow extending the list with new entries, and build a list with properly sorted
 /// groups.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct List {
-    suggestion_db:  Rc<model::SuggestionDatabase>,
     all_components: Vec<Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
+    favorites:      component::group::List,
 }
 
 impl List {
     /// Construct List builder without content.
-    ///
-    /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
-    /// method takes ids as argument).
-    pub fn new(suggestion_db: Rc<model::SuggestionDatabase>) -> Self {
-        Self { suggestion_db, all_components: default(), module_groups: default() }
+    pub fn new() -> Self {
+        default()
     }
 
-    /// Extend the list with new entries.
-    pub fn extend(&mut self, entries: impl IntoIterator<Item = component::Id>) {
-        let suggestion_db = self.suggestion_db.clone_ref();
-        let components = entries
-            .into_iter()
-            .filter_map(|id| Some(Component::new(id, suggestion_db.lookup(id).ok()?)));
+    /// Extend the list with new entries looked up by ID in suggestion database.
+    pub fn extend(
+        &mut self,
+        db: &model::SuggestionDatabase,
+        entries: impl IntoIterator<Item = component::Id>,
+    ) {
+        let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
+        let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
-                if let Some(parent_group) = self.lookup_module_group(&parent_module) {
+                if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
                 }
-                if let Some(top_group) = self.lookup_module_group(&parent_module.top_module()) {
+                if let Some(top_group) = self.lookup_module_group(db, &parent_module.top_module()) {
                     if let Some(flatten_group) = &mut top_group.flattened_content {
                         flatten_group.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
@@ -104,8 +104,27 @@ impl List {
         }
     }
 
-    fn lookup_module_group(&mut self, module: &module::QualifiedName) -> Option<&mut ModuleGroups> {
-        let (module_id, db_entry) = self.suggestion_db.lookup_by_qualified_name(module)?;
+    /// Set the favorites in the list. Components are looked up by ID in the suggestion database.
+    pub fn set_favorites<'a>(
+        &mut self,
+        db: &model::SuggestionDatabase,
+        component_groups: impl IntoIterator<Item = &'a execution_context::ComponentGroup>,
+    ) {
+        self.favorites = component_groups
+            .into_iter()
+            .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
+            .collect();
+        for group in &*self.favorites {
+            self.all_components.extend(group.entries.borrow().iter().cloned());
+        }
+    }
+
+    fn lookup_module_group(
+        &mut self,
+        db: &model::SuggestionDatabase,
+        module: &module::QualifiedName,
+    ) -> Option<&mut ModuleGroups> {
+        let (module_id, db_entry) = db.lookup_by_qualified_name(module)?;
 
         // Note: My heart is bleeding at this point, but because of lifetime checker limitations
         // we must do it in this suboptimal way.
@@ -117,7 +136,7 @@ impl List {
         } else {
             let groups = ModuleGroups::new(module_id, &*db_entry);
             if let Some(module) = module.parent_module() {
-                if let Some(parent_groups) = self.lookup_module_group(&module) {
+                if let Some(parent_groups) = self.lookup_module_group(db, &module) {
                     parent_groups.submodules.push(groups.content.clone_ref())
                 }
             }
@@ -125,18 +144,19 @@ impl List {
         }
     }
 
-    /// Build the list, sorting all group lists and groups' contents appropriately.
+    /// Build the list, sorting all group lists and groups' contents appropriately. (Does not sort
+    /// the [`component::List::favorites`].)
     pub fn build(self) -> component::List {
         for group in self.module_groups.values() {
-            group.content.update_sorting("");
+            group.content.update_sorting_and_visibility("");
             if let Some(flattened) = &group.flattened_content {
-                flattened.update_sorting("");
+                flattened.update_sorting_and_visibility("");
             }
         }
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
-        let mut top_mdl_bld = component::group::ListBuilder::default();
+        let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
-        let mut top_mdl_flat_bld = component::group::ListBuilder::default();
+        let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
         component::List {
             all_components:        Rc::new(self.all_components),
@@ -146,6 +166,7 @@ impl List {
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
             filtered:              default(),
+            favorites:             self.favorites,
         }
     }
 }
@@ -184,11 +205,11 @@ mod tests {
     fn building_component_list() {
         let logger = Logger::new("tests::module_groups_in_component_list");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
-        let mut builder = List::new(suggestion_db);
+        let mut builder = List::new();
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
-        builder.extend(first_part);
-        builder.extend(second_part);
+        builder.extend(&suggestion_db, first_part);
+        builder.extend(&suggestion_db, second_part);
         let list = builder.build();
 
         let top_modules: Vec<ComparableGroupData> =
