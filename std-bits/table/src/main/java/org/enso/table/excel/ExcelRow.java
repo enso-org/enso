@@ -5,9 +5,7 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
-/**
- * Wrapper class to handle Excel rows.
- */
+/** Wrapper class to handle Excel rows. */
 public class ExcelRow {
   private final Row row;
   private final int firstColumn;

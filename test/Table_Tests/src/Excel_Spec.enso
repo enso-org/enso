@@ -4,10 +4,59 @@ import Standard.Base.Data.Time.Date
 
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
-from Standard.Table.Io.Excel import Excel_Range
-from Standard.Table.Io.Excel import Sheet_Names, Range_Names, Sheet, Cell_Range
+from Standard.Table.Io.Excel import Excel_Range, Sheet_Names, Range_Names, Sheet, Cell_Range
 
 import Standard.Test
+import Standard.Examples
+
+spec_fmt header file read_method =
+    Test.group header <|
+        Test.specify "should read the specified sheet by index and use correct headers" <|
+            t = read_method file
+            t.columns.map .name . should_equal ['Name', 'Quantity', 'Price']
+            t.at 'Name' . to_vector . should_equal ['blouse', 't-shirt', 'trousers', 'shoes', 'skirt', 'dress']
+            t.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
+            t.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
+
+        Test.specify "should read the specified sheet by index and properly format a table" <|
+            t = read_method file (File_Format.Excel (Sheet 2) headers=False)
+            t.columns.map .name . should_equal ['A', 'B', 'C', 'D', 'E']
+            t.at 'A' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t.at 'B' . to_vector . should_equal [Nothing, Nothing, 10, Nothing, Nothing, Nothing, Nothing]
+            t.at 'C' . to_vector . should_equal [Nothing, 'baz', 20, Nothing, 'bar', Nothing, 30]
+            t.at 'D' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t.at 'E' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
+
+        Test.specify "should read the specified sheet by name and properly handle dates" <|
+            t = read_method file (File_Format.Excel (Sheet 'Dates'))
+            t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
+            t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
+
+        Test.specify "should read an empty table" <|
+            t = read_method file (File_Format.Excel (Sheet "Empty"))
+            t.columns.length.should_equal 0
+
+        Test.specify "should gracefully handle duplicate column names and formulas" <|
+            t = read_method file (File_Format.Excel (Sheet "Duplicate Columns"))
+            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price_1']
+            t.at 'Price_1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
+
+        Test.specify "should allow reading with cell range specified" <|
+            t_1 = read_method file (File_Format.Excel (Cell_Range "Simple!B:C"))
+            t_1.columns.map .name . should_equal ['Quantity', 'Price']
+            t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
+            t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
+
+            t_2 = read_method file (File_Format.Excel (Cell_Range "Simple!3:5") headers=False)
+            t_2.columns.length.should_equal 3
+            t_2.at 'A' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
+            t_2.at 'B' . to_vector . should_equal [20, Nothing, 30]
+            t_2.at 'C' . to_vector . should_equal [32, 43.2, 54]
+
+            t_3 = read_method file (File_Format.Excel (Cell_Range "Simple!B4:C5") headers=False)
+            t_3.columns.length.should_equal 2
+            t_3.at 'B' . to_vector . should_equal [Nothing, 30]
+            t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
 spec =
     Test.group 'Excel Range' <|
@@ -214,8 +263,12 @@ spec =
             bad_file.read (File_Format.Excel (Cell_Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
-            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") True) . should_fail_with File.Io_Error
-            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") False) . should_fail_with File.Io_Error
+            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File.Io_Error
+            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File.Io_Error
+
+    here.spec_fmt 'XLSX reading' Examples.xlsx .read
+
+    here.spec_fmt 'XLS reading' Examples.xls .read
 
 
 main = Test.Suite.run_main here.spec
