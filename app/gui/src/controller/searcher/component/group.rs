@@ -5,6 +5,8 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::controller::searcher::component::NoSuchComponent;
+use crate::controller::searcher::component::NoSuchGroup;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
@@ -159,6 +161,19 @@ impl List {
     pub fn new(groups: Vec<Group>) -> Self {
         Self { groups: Rc::new(groups) }
     }
+
+    pub fn entry_by_index(
+        &self,
+        group_index: usize,
+        entry_index: usize,
+    ) -> FallibleResult<Component> {
+        let error = || NoSuchGroup::in_submodules_section(group_index);
+        let group = self.groups.get(group_index).ok_or_else(error)?;
+        let error = || NoSuchComponent::in_submodules_section(group, entry_index);
+        let entries = group.entries.borrow();
+        let component = entries.get(entry_index).ok_or_else(error)?;
+        Ok(component.clone_ref())
+    }
 }
 
 impl FromIterator<Group> for List {
@@ -177,6 +192,12 @@ impl Deref for List {
 impl AsRef<[Group]> for List {
     fn as_ref(&self) -> &[Group] {
         self.groups.as_slice()
+    }
+}
+
+impl AsRef<List> for List {
+    fn as_ref(&self) -> &List {
+        self
     }
 }
 

@@ -130,15 +130,20 @@ impl Model {
     ) -> FallibleResult<controller::searcher::component::Component> {
         let components = self.controller.components();
         match id.group.section {
-            SectionId::Favorites => todo!("integrate favourites"),
+            SectionId::Favorites =>
+                components.favorites.entry_by_index(id.group.index, id.entry_id),
             SectionId::LocalScope => todo!("integrate local scope"),
             SectionId::SubModules =>
-                components.get_component_from_submodules_by_index(id.group.index, id.entry_id),
+                components.top_modules().entry_by_index(id.group.index, id.entry_id),
         }
     }
 
     fn create_submodules_providers(&self) -> Vec<LabeledAnyModelProvider> {
-        provider::submodules_from_controller(&self.controller)
+        provider::from_component_group_list(self.controller.components().top_modules())
+    }
+
+    fn create_favorites_providers(&self) -> Vec<LabeledAnyModelProvider> {
+        provider::from_component_group_list(&self.controller.components().favorites)
     }
 
     fn documentation_of_component(
@@ -210,7 +215,7 @@ impl Searcher {
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
                     list_view.set_sub_modules_section <+ action_list_changed.map(f_!(model.create_submodules_providers()));
-                    trace list_view.suggestion_accepted;
+                    list_view.set_favourites_section <+ action_list_changed.map(f_!(model.create_favorites_providers()));
                     new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     trace new_input;
                     graph.set_node_expression <+ new_input;

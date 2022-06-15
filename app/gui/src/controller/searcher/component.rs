@@ -219,19 +219,6 @@ impl List {
         self.module_groups.get(&component).map(|mg| &mg.content)
     }
 
-    pub fn get_component_from_submodules_by_index(
-        &self,
-        group_index: usize,
-        entry_index: usize,
-    ) -> FallibleResult<Component> {
-        let error = || NoSuchGroup::in_submodules_section(group_index);
-        let group = self.top_modules.get(group_index).ok_or_else(error)?;
-        let error = || NoSuchComponent::in_submodules_section(group, entry_index);
-        let entries = group.entries.borrow();
-        let component = entries.get(entry_index).ok_or_else(error)?;
-        Ok(component.clone_ref())
-    }
-
     /// Update matching info in all components according to the new filtering pattern.
     pub fn update_filtering(&self, pattern: impl AsRef<str>) {
         let pattern = pattern.as_ref();

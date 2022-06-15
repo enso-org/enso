@@ -205,16 +205,17 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
     }
 }
 
-pub fn submodules_from_controller(
-    controller: &controller::Searcher,
+pub fn from_component_group(
+    group: &controller::searcher::component::Group,
+) -> LabeledAnyModelProvider {
+    LabeledAnyModelProvider {
+        label:   group.name.clone_ref(),
+        content: Rc::new(Component::new(group.clone_ref())).into(),
+    }
+}
+
+pub fn from_component_group_list(
+    groups: &impl AsRef<controller::searcher::component::group::List>,
 ) -> Vec<LabeledAnyModelProvider> {
-    let components = controller.components();
-    components
-        .top_modules()
-        .iter()
-        .map(|group| LabeledAnyModelProvider {
-            label:   group.name.clone_ref(),
-            content: Rc::new(Component::new(group.clone_ref())).into(),
-        })
-        .collect()
+    groups.as_ref().iter().map(from_component_group).collect()
 }
