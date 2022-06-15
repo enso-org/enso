@@ -19,7 +19,7 @@ type Project_Description
 
              Enso_Project.root
     root : File.File
-    root = File.new this.prim_root_file.getPath
+    root = File.new this.prim_root_file
 
     ## Returns the root data directory of the project.
 

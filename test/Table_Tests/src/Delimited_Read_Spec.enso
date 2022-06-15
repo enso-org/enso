@@ -109,7 +109,7 @@ spec =
             create_file name ending_style =
                 lines = ['a,b,c', 'd,e,f', '1,2,3']
                 text = lines.join ending_style
-                (path name).write_text text Encoding.utf_8
+                text.write (path name)
 
             test_file name =
                 table = File.read (path name) (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
@@ -126,7 +126,7 @@ spec =
             test_file 'cr.csv'
 
             # Currently mixed line endings are not supported.
-            (path 'mixed.csv').write_text 'a,b,c\nd,e,f\r1,2,3'
+            'a,b,c\nd,e,f\r1,2,3'.write (path 'mixed.csv')
             File.read (path 'mixed.csv') (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row
 
         Test.specify "should work with Windows-1252 encoding" <|

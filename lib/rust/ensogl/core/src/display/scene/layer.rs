@@ -14,6 +14,7 @@ use crate::display::shape::system::KnownShapeSystemId;
 use crate::display::shape::system::ShapeSystemId;
 use crate::display::shape::ShapeSystemInstance;
 use crate::display::symbol;
+use crate::display::symbol::RenderGroup;
 use crate::display::symbol::SymbolId;
 
 use enso_data_structures::dependency_graph::DependencyGraph;
@@ -319,7 +320,7 @@ pub struct LayerModel {
     shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
     symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemId>>,
     elements: RefCell<BTreeSet<LayerItem>>,
-    symbols_ordered: RefCell<Vec<SymbolId>>,
+    symbols_renderable: Rc<RefCell<RenderGroup>>,
     depth_order: RefCell<DependencyGraph<LayerItem>>,
     depth_order_dirty: dirty::SharedBool<OnDepthOrderDirty>,
     parents: Rc<RefCell<Vec<Sublayers>>>,
@@ -336,7 +337,7 @@ impl Debug for LayerModel {
             .field("id", &self.id().raw)
             .field("registry", &self.shape_system_registry)
             .field("elements", &self.elements.borrow().iter().collect_vec())
-            .field("symbols_ordered", &self.symbols_ordered.borrow().iter().collect_vec())
+            .field("symbols_renderable", &self.symbols_renderable)
             .finish()
     }
 }
@@ -359,7 +360,7 @@ impl LayerModel {
         let shape_system_to_symbol_info_map = default();
         let symbol_to_shape_system_map = default();
         let elements = default();
-        let symbols_ordered = default();
+        let symbols_renderable = default();
         let depth_order = default();
         let parents = default();
         let on_mut = on_depth_order_dirty(&parents);
@@ -376,7 +377,7 @@ impl LayerModel {
             shape_system_to_symbol_info_map,
             symbol_to_shape_system_map,
             elements,
-            symbols_ordered,
+            symbols_renderable,
             depth_order,
             depth_order_dirty,
             parents,
@@ -398,8 +399,8 @@ impl LayerModel {
     /// dependencies. Please note that this function does not update the depth-ordering of the
     /// elements. Updates are performed by calling the `update` method on [`Group`], which usually
     /// happens once per animation frame.
-    pub fn symbols(&self) -> Vec<SymbolId> {
-        self.symbols_ordered.borrow().clone()
+    pub fn symbols(&self) -> impl Deref<Target = RenderGroup> + '_ {
+        self.symbols_renderable.borrow()
     }
 
     /// Return the [`SymbolId`] of the provided [`LayerItem`] if it was added to the current
@@ -636,7 +637,7 @@ impl LayerModel {
                 }
             })
             .collect();
-        *self.symbols_ordered.borrow_mut() = sorted_symbols;
+        self.symbols_renderable.borrow_mut().set(sorted_symbols);
     }
 }
 

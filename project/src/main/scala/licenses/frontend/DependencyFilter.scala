@@ -1,5 +1,6 @@
 package src.main.scala.licenses.frontend
 
+import com.typesafe.sbt.license.DepModuleInfo
 import src.main.scala.licenses.DependencyInformation
 
 /** Filters out irrelevant dependencies.
@@ -13,5 +14,10 @@ object DependencyFilter {
   /** Decides if the dependency should be kept for further processing.
     */
   def shouldKeep(dependencyInformation: DependencyInformation): Boolean =
-    dependencyInformation.moduleInfo.organization != "org.enso"
+    shouldKeep(dependencyInformation.moduleInfo)
+
+  /** Decides if the module should be kept for further processing.
+    */
+  def shouldKeep(moduleInfo: DepModuleInfo): Boolean =
+    moduleInfo.organization != "org.enso"
 }

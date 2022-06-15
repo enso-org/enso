@@ -309,6 +309,10 @@ public class MethodDefinition {
       return !type.toString().equals(OBJECT);
     }
 
+    public boolean isArray() {
+      return type.toString().endsWith("[]");
+    }
+
     /** @return the name of the type of this argument. */
     public String getTypeName() {
       return typeName;
