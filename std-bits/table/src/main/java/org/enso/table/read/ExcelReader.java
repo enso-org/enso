@@ -242,7 +242,7 @@ public class ExcelReader {
 
     // Headers
     NameDeduplicator deduplicator = new NameDeduplicator();
-    String[] columnNames = getHeaders(headers, sheet, startRow, startCol, endCol, deduplicator);
+    String[] columnNames = getHeaders(headers, sheet, startRow, endRow, startCol, endCol, deduplicator);
     if (columnNames != null) {
       startRow++;
     }
@@ -326,11 +326,12 @@ public class ExcelReader {
     return -1;
   }
 
-  private static String[] getHeaders(HeaderBehavior headers, ExcelSheet sheet, int startRow, int startCol, int endCol, NameDeduplicator deduplicator) {
+  private static String[] getHeaders(HeaderBehavior headers, ExcelSheet sheet, int startRow, int endRow, int startCol, int endCol, NameDeduplicator deduplicator) {
     return switch (headers) {
       case EXCEL_COLUMN_NAMES -> null;
       case USE_FIRST_ROW_AS_HEADERS -> readRowAsHeaders(sheet.get(startRow), startCol, endCol, deduplicator);
-      case INFER -> inferHeaders(sheet.get(startRow), sheet.get(startRow + 1),
+      case INFER -> inferHeaders(sheet.get(startRow),
+          startRow < endRow ? sheet.get(startRow + 1) : null,
           startCol, endCol, deduplicator);
     };
   }

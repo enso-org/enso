@@ -270,5 +270,40 @@ spec =
 
     here.spec_fmt 'XLS reading' Examples.xls .read
 
+    Test.group "Reading single cells correctly" <|
+        file = Enso_Project.data / "RangeTests.xlsx"
+
+        check_table table col_names data =
+            table.columns.length . should_equal col_names.length
+            table.columns.map .name . should_equal col_names
+            data.each_with_index idx->values->
+                table.at (col_names.at idx) . to_vector . should_equal values
+
+        Test.specify "Simple table" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A1"))) ["AA", "BB"] [[1,2,3,4,5,6], ["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A2"))) ["A", "B"] [[1,2,3,4,5,6], ["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A1:A1"))) ["A"] [["AA"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B1"))) ["B"] [["BB", "A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B1") True)) ["BB"] [["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B2"))) ["B"] [["A","B","C","D","E","F"]]
+
+        Test.specify "Patchy table" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!D2"))) ["D", "E", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E"))) ["B"] [[4,4,Nothing,Nothing,Nothing,Nothing]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E1"))) ["B", "Column_1"] [[4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E2"))) ["E", "F"] [[4,4,Nothing], [6,Nothing,6]]
+
+        Test.specify "Single cell" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!H1"))) ["H"] [["Single Cell"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!H2"))) ["H"] [[]]
+
+        Test.specify "Single line" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!J1"))) ["J", "K", "L"] [["Just"],["Some"],["Headers"]]
+
+        Test.specify "Growing table" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Column_1"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Column_1"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!O2"))) ["O", "P", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
 
 main = Test.Suite.run_main here.spec

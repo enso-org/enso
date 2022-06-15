@@ -76,7 +76,7 @@ public class ExcelRow {
 
   public int findEndRight(int start) {
     int column = start;
-    while (getCellType(get(column)) != CellType._NONE) {
+    while (getCellType(get(column + 1)) != CellType._NONE) {
       column++;
     }
     return column;
