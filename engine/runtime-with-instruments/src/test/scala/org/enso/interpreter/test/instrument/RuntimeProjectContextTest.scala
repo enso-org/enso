@@ -27,7 +27,7 @@ class RuntimeProjectContextTest extends AnyWordSpec with Matchers {
               .toFile
               .getAbsolutePath
           )
-          .options(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+          .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
           .option(RuntimeOptions.LOG_LEVEL, "WARNING")
           .build()
         context.initialize(LanguageInfo.ID)

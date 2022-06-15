@@ -67,7 +67,7 @@ class RuntimeInstrumentTest
             .toFile
             .getAbsolutePath
         )
-        .options(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+        .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
