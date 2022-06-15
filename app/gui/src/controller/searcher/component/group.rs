@@ -81,8 +81,10 @@ impl Group {
         group: &execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
     ) -> Option<Self> {
-        let lookup_component =
-            |qualified_name| suggestion_db.lookup_by_qualified_name(qualified_name).map(Into::into);
+        let lookup_component = |qualified_name| {
+            let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
+            Some(Component::new(id, suggestion))
+        };
         let components = &group.components;
         let looked_up_components = components.iter().filter_map(lookup_component).collect_vec();
         let any_components_found_in_db = !looked_up_components.is_empty();
@@ -110,12 +112,6 @@ impl Group {
     pub fn update_visibility(&self) {
         let visible = !self.entries.borrow().iter().all(|c| c.is_filtered_out());
         self.visible.set(visible);
-    }
-}
-
-impl From<suggestion_database::EntryWithId> for Group {
-    fn from(suggestion: suggestion_database::EntryWithId) -> Self {
-        Self::from_entry(suggestion.id, &*suggestion.entry)
     }
 }
 

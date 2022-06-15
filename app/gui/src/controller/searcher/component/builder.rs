@@ -142,25 +142,25 @@ impl List {
     fn lookup_module_group(
         &mut self,
         db: &model::SuggestionDatabase,
-        module_name: &module::QualifiedName,
+        module: &module::QualifiedName,
     ) -> Option<&mut ModuleGroups> {
-        let module = db.lookup_by_qualified_name(module_name)?;
+        let (module_id, db_entry) = db.lookup_by_qualified_name(module)?;
 
         // Note: My heart is bleeding at this point, but because of lifetime checker limitations
         // we must do it in this suboptimal way.
         //
         // See https://users.rust-lang.org/t/returning-a-mutable-reference-extends-its-lifetime/28643
         // for example of similar problem.
-        if self.module_groups.contains_key(&module.id) {
-            self.module_groups.get_mut(&module.id)
+        if self.module_groups.contains_key(&module_id) {
+            self.module_groups.get_mut(&module_id)
         } else {
-            let groups = ModuleGroups::new(module.id, &*module.entry);
-            if let Some(module_name) = module_name.parent_module() {
-                if let Some(parent_groups) = self.lookup_module_group(db, &module_name) {
+            let groups = ModuleGroups::new(module_id, &*db_entry);
+            if let Some(module) = module.parent_module() {
+                if let Some(parent_groups) = self.lookup_module_group(db, &module) {
                     parent_groups.submodules.push(groups.content.clone_ref())
                 }
             }
-            Some(self.module_groups.entry(module.id).or_insert(groups))
+            Some(self.module_groups.entry(module_id).or_insert(groups))
         }
     }
 
