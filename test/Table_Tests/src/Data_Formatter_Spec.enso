@@ -50,8 +50,22 @@ spec =
             formatter.parse "-1,0" . should_equal -1.0
             formatter.parse "1,0001" . should_equal 1.0001
 
-        Test.specify "handle leading zeros, only if enabled" pending="TODO" <|
-            Nothing
+        Test.specify "handle leading zeros, only if enabled" <|
+            Data_Formatter.parse "0100" . should_equal "0100"
+            Data_Formatter.parse "000" . should_equal "000"
+            Data_Formatter.parse "000.0" . should_equal "000.0"
+            formatter = Data_Formatter allow_leading_zeros=True
+            formatter.parse "0100" . should_equal 100
+            formatter.parse "000" . should_equal 0
+            formatter.parse "000.0" . should_equal 0.0
+
+        Test.specify "should fallback to Text" <|
+            formatter = Data_Formatter
+            formatter.parse "Text" . should_equal "Text"
+            complex_text = """
+                Text with such 'quotes' and also "that" and `that`
+                And newlines toO!
+            formatter.parse complex_text . should_equal complex_text
 
     Test.group "DataFormatter.format" <|
         Test.specify "should handle Nothing" <|
@@ -91,12 +105,21 @@ spec =
             formatter = Data_Formatter true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
             formatter.format True . should_equal "YES"
             formatter.format False . should_equal "NO"
+            (Data_Formatter true_values=[] false_values=[]).format True . should_fail_with Illegal_Argument_Error
 
         Test.specify "should work with dates" pending="TODO" <|
             Nothing
 
         Test.specify "should allow custom date formats" pending="TODO" <|
             Nothing
+
+        Test.specify "should act as identity on Text" <|
+            formatter = Data_Formatter
+            formatter.format "Text" . should_equal "Text"
+            complex_text = """
+                Text with such 'quotes' and also "that" and `that`
+                And newlines toO!
+            formatter.format complex_text . should_equal complex_text
 
         Test.specify "should work with custom types, falling back to the `.to_text` method" <|
             formatter = Data_Formatter thousand_separator="_"

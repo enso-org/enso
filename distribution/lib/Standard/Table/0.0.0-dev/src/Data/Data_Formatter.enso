@@ -118,8 +118,9 @@ Data_Formatter.make_decimal_formatter =
 
 ## PRIVATE
 Data_Formatter.make_boolean_formatter =
-    # TODO should we check if true values is not empty? maybe should implement a getorelse which can throw a nice exception
-    BooleanFormatter.new this.true_values.first this.false_values.first
+    if this.true_values.is_empty then Error.throw (Illegal_Argument_Error "Formatting booleans requires at least one entry in the `true_values` parameter") else
+        if this.false_values.is_empty then Error.throw (Illegal_Argument_Error "Formatting booleans requires at least one entry in the `false_values` parameter") else
+            BooleanFormatter.new this.true_values.first this.false_values.first
 
 ## PRIVATE
 Data_Formatter.make_text_formatter =
@@ -132,7 +133,9 @@ Data_Formatter.get_specific_type_formatters =
 
 ## PRIVATE
 Data_Formatter.make_auto_formatter =
-    AnyObjectFormatter.new this.get_specific_type_formatters.to_array
+    # TODO The panic rethrow+recover is a workaround for the vector error propagation bug.
+    formatters = Panic.recover Illegal_Argument_Error (this.get_specific_type_formatters.map Panic.rethrow)
+    AnyObjectFormatter.new formatters.to_array
 
 ## PRIVATE
 Data_Formatter.make_formatter_for_column_type (column_type : Storage) = case column_type of
