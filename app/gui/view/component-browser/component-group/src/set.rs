@@ -32,24 +32,35 @@ pub enum Group {
 }
 
 impl Group {
-    fn focus(&self) {
+    /// Focus group.
+    pub fn focus(&self) {
         match self {
             Group::OneColumn(group) => group.focus(),
             Group::Wide(group) => group.focus(),
         }
     }
 
-    fn defocus(&self) {
+    /// Defocus group.
+    pub fn defocus(&self) {
         match self {
             Group::OneColumn(group) => group.defocus(),
             Group::Wide(group) => group.defocus(),
         }
     }
 
-    fn is_mouse_over(&self) -> &frp::Sampler<bool> {
+    /// An FRP stream of `is_mouse_over` events.
+    pub fn is_mouse_over(&self) -> &frp::Sampler<bool> {
         match self {
             Group::OneColumn(group) => &group.is_mouse_over,
             Group::Wide(group) => &group.is_mouse_over,
+        }
+    }
+
+    /// Position of the display object.
+    pub fn position(&self) -> Vector3 {
+        match self {
+            Group::OneColumn(group) => group.position(),
+            Group::Wide(group) => group.position(),
         }
     }
 }
@@ -132,6 +143,7 @@ propagated_events! {
         is_header_selected:        (GroupId, bool),
         header_accepted:           GroupId,
         selection_position_target: (GroupId, Vector2<f32>),
+        selection_size:            (GroupId, Vector2<f32>),
         focused:                   (GroupId, bool),
     }
 }
@@ -227,6 +239,7 @@ impl Wrapper {
                     (suggestion_accepted, move |e| (id, *e)),
                     (expression_accepted, move |e| (id, *e)),
                     (selection_position_target, move |p| (id, *p)),
+                    (selection_size, move |p| (id, *p)),
                     (is_header_selected, move |h| (id, *h)),
                     (header_accepted, move |_| id)
                 }

@@ -497,13 +497,16 @@ where E::Model: Default
             let overlay_events = &model.overlay.events;
             mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             frp.source.is_mouse_over <+ mouse_in;
-            mouse_moved       <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD );
+            mouse_moved <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD ).on_true();
+            mouse_moved_in <- mouse_in.on_true();
+            can_select <- any(&mouse_moved, &mouse_moved_in).gate(&mouse_in);
             mouse_y_in_scroll <- mouse.position.map(f!([model,scene](pos) {
                 scene.screen_to_object_space(&model.scrolled_area,*pos).y
             }));
             mouse_pointed_entry <- mouse_y_in_scroll.map(f!([model](y)
                 entry::List::<E>::entry_at_y_position(*y,model.entries.entry_count()).entry()
             ));
+            mouse_selected_entry <- mouse_pointed_entry.sample(&can_select);
 
 
             // === Selected Entry ===
@@ -547,7 +550,6 @@ where E::Model: Default
                 any(selected_entry_after_jump_down,selected_entry_after_moving_last);
             selected_entry_after_move <-
                 any(&selected_entry_after_move_up,&selected_entry_after_move_down);
-            mouse_selected_entry <- mouse_pointed_entry.gate(&mouse_in).gate(&mouse_moved);
 
             frp.source.selected_entry <+ selected_entry_after_move;
             frp.source.selected_entry <+ mouse_selected_entry;
@@ -573,8 +575,8 @@ where E::Model: Default
 
             // === Selection Size and Position ===
 
-            selection_y.target <+ frp.selected_entry.map(|id|
-                id.map_or(0.0,entry::List::<E>::position_y_of_entry)
+            selection_y.target <+ frp.selected_entry.filter_map(|id|
+                id.map(entry::List::<E>::position_y_of_entry)
             );
             selection_height.target <+ all_with(&frp.selected_entry, &style.selection_height, |id, h|
                 if id.is_some() {*h} else {-SHAPE_MARGIN}
@@ -681,6 +683,11 @@ where E::Model: Default
     pub fn set_entry_params_and_recreate_entries(&self, params: E::Params) {
         let style_prefix = self.frp.style_prefix.value();
         self.model.entries.set_entry_params_and_recreate_entries(params, style_prefix.into());
+    }
+
+    /// Get previously set entry params.
+    pub fn entry_params(&self) -> E::Params {
+        self.model.entries.entry_params()
     }
 }
 

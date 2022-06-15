@@ -17,10 +17,13 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_text::Bytes;
+use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::frp;
+use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
@@ -40,6 +43,11 @@ use list_view::entry::AnyModelProvider;
 // =================
 
 const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
+/// The selection animation is faster than the default one because of the increased spring force.
+const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
+const COMPONENT_GROUP_WIDTH: f32 = 150.0;
+const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
+const SCROLL_AREA_WIDTH: f32 = COMPONENT_GROUP_WIDTH * 4.0 + 20.0;
 
 
 
@@ -187,15 +195,20 @@ fn create_component_group(
     let component_group = app.new_view::<component_group::View>();
     component_group.model().set_layers(layers);
     component_group.set_header(header.to_string());
-    component_group.set_width(150.0);
-    component_group.set_position_x(75.0);
+    component_group.set_width(COMPONENT_GROUP_WIDTH);
+    component_group.set_position_x(COMPONENT_GROUP_WIDTH * 3.5);
     component_group
 }
 
-fn create_wide_component_group(app: &Application) -> component_group::wide::View {
+fn create_wide_component_group(
+    app: &Application,
+    layers: &component_group::Layers,
+) -> component_group::wide::View {
     let component_group = app.new_view::<component_group::wide::View>();
-    component_group.set_width(450.0);
-    component_group.set_position_x(-200.0);
+    component_group.model().set_layers(layers);
+    component_group.set_width(COMPONENT_GROUP_WIDTH * 3.0);
+    let padding = 5.0;
+    component_group.set_position_xy(Vector2(COMPONENT_GROUP_WIDTH * 1.5 - padding, -150.0));
     component_group
 }
 
@@ -226,33 +239,49 @@ mod transparent_circle {
     }
 }
 
-
 fn init(app: &Application) {
     theme::builtin::dark::register(&app);
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
+
+    // === Layers setup ===
+
+    let main_camera = app.display.default_scene.layers.main.camera();
+    let selection_layer = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
+    let groups_layer = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
+    let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
+    selection_layer.set_mask(&selection_mask);
+    app.display.default_scene.layers.main.add_sublayer(&groups_layer);
+    app.display.default_scene.layers.main.add_sublayer(&selection_layer);
+
+
+    // === Scroll area ===
+
     let network = frp::Network::new("Component Group Debug Scene");
     let scroll_area = ScrollArea::new(app);
-    scroll_area.set_position_xy(Vector2(150.0, 100.0));
-    scroll_area.resize(Vector2(170.0, 400.0));
-    scroll_area.set_content_width(150.0);
+    scroll_area.set_position_xy(Vector2(-COMPONENT_GROUP_WIDTH * 2.0, 100.0));
+    scroll_area.resize(Vector2(SCROLL_AREA_WIDTH, SCROLL_AREA_HEIGHT));
+    scroll_area.set_content_width(COMPONENT_GROUP_WIDTH * 4.0);
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
+    groups_layer.add_exclusive(&scroll_area);
 
-    let camera = &scroll_area.content_layer().camera();
-    let parent_layer = scroll_area.content_layer();
-    let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
 
+    // === Component groups ===
+
+    let normal_parent = &scroll_area.content_layer();
+    let selected_parent = &selection_layer;
+    let layers = component_group::Layers::new(&app.logger, normal_parent, selected_parent);
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
     let second_component_group = create_component_group(app, group_name, &layers);
-    let wide_component_group = create_wide_component_group(app);
+    let wide_component_group = create_wide_component_group(app, &layers);
 
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
-    app.display.add_child(&wide_component_group);
+    scroll_area.content().add_child(&wide_component_group);
 
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
     // [`transparent_circle`].
@@ -264,8 +293,6 @@ fn init(app: &Application) {
         std::mem::forget(transparent_circle);
     }
 
-    // === Regular Component Group ===
-
     ComponentGroupController::init(
         &[first_component_group.clone_ref(), second_component_group.clone_ref()],
         &network,
@@ -276,7 +303,7 @@ fn init(app: &Application) {
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
     second_component_group.set_entries(model_provider.clone_ref());
-    wide_component_group.set_entries(model_provider.clone_ref());
+    wide_component_group.set_entries(model_provider);
 
     // === Color sliders ===
 
@@ -343,16 +370,64 @@ fn init(app: &Application) {
     }
 
 
+    // === Selection box ===
+
+    let selection = component_group::selection_box::View::new(&app.logger);
+    selection_mask.add_exclusive(&selection);
+    app.display.add_child(&selection);
+
+    let selection_animation = Animation::<Vector2>::new(&network);
+    let selection_size_animation = Animation::<Vector2>::new(&network);
+    let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
+    selection_animation.set_spring.emit(spring);
+    /// This is an example code to position the selection box on the scene.
+    /// We transform the group-local position from [`multiview.selection_position_target`] to
+    /// global position. After that we restrict the Y-coordinate so that the selection box won't
+    /// go below the scroll area bottom border.
+    fn selection_position(
+        group_local_pos: Vector2,
+        group: &component_group::set::Group,
+        scroll_area: &ScrollArea,
+    ) -> Vector2 {
+        let scroll_area_pos = scroll_area.position() + scroll_area.content().position();
+        let group_pos = scroll_area_pos + group.position();
+        let mut pos = group_pos.xy() + group_local_pos;
+        let scroll_area_bottom = scroll_area.position().y - SCROLL_AREA_HEIGHT;
+        let lower_bound = scroll_area_bottom + list_view::entry::HEIGHT / 2.0;
+        pos.y = pos.y.max(lower_bound);
+        pos
+    }
+    frp::extend! { network
+        selection_size_animation.target <+ multiview.selection_size._1();
+        selection_position <- multiview.selection_position_target.map(
+            f!([groups, scroll_area]((g, p)) {
+                let group = &groups[usize::from(g)];
+                selection_position(*p, group, &scroll_area)
+            })
+        );
+        selection_animation.target <+ selection_position;
+        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+        eval selection_size_animation.value ((pos) selection.size.set(*pos));
+    }
+    selection_animation.target.emit(first_component_group.selection_position_target.value());
+    selection_size_animation.target.emit(Vector2(150.0, list_view::entry::HEIGHT));
+    selection_animation.skip.emit(());
+    selection_size_animation.skip.emit(());
+
     // === Forget ===
 
     std::mem::forget(red_slider);
     std::mem::forget(green_slider);
     std::mem::forget(blue_slider);
     std::mem::forget(scroll_area);
+    std::mem::forget(selection);
     std::mem::forget(network);
     std::mem::forget(multiview);
     std::mem::forget(first_component_group);
     std::mem::forget(second_component_group);
     std::mem::forget(wide_component_group);
     std::mem::forget(layers);
+    std::mem::forget(groups_layer);
+    std::mem::forget(selection_layer);
+    std::mem::forget(selection_mask);
 }
