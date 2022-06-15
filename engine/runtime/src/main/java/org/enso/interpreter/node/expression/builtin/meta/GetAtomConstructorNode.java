@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.data.Array;
     name = "get_atom_constructor",
     description = "Gets the constructor of an atom.")
 public class GetAtomConstructorNode extends Node {
-  AtomConstructor execute(Object _this, Atom atom) {
+  AtomConstructor execute(Object self, Atom atom) {
     return atom.getConstructor();
   }
 }

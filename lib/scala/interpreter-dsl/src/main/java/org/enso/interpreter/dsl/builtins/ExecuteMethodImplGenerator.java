@@ -99,7 +99,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     if (isConstructor) {
       return new String[] {"  return new " + owner + "(" + paramsApplied + ");"};
     } else {
-      String qual = isStatic ? owner : "_this";
+      String qual = isStatic ? owner : "self";
       switch (returnTpe.kind()) {
         case VOID:
           return new String[] {

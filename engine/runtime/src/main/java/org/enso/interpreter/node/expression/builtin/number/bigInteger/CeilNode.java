@@ -6,7 +6,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "ceil", description = "Big integer ceiling.")
 public class CeilNode extends Node {
-  Object execute(EnsoBigInteger _this) {
-    return _this;
+  Object execute(EnsoBigInteger self) {
+    return self;
   }
 }

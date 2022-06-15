@@ -13,29 +13,29 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Small_Integer", name = ">=", description = "Comparison of numbers.")
 public abstract class GreaterOrEqualNode extends Node {
 
-  abstract boolean execute(long _this, Object that);
+  abstract boolean execute(long self, Object that);
 
   static GreaterOrEqualNode build() {
     return GreaterOrEqualNodeGen.create();
   }
 
   @Specialization
-  boolean doLong(long _this, long that) {
-    return _this >= that;
+  boolean doLong(long self, long that) {
+    return self >= that;
   }
 
   @Specialization
-  boolean doDouble(long _this, double that) {
-    return (double) _this >= that;
+  boolean doDouble(long self, double that) {
+    return (double) self >= that;
   }
 
   @Specialization
-  boolean doBigInteger(long _this, EnsoBigInteger that) {
+  boolean doBigInteger(long self, EnsoBigInteger that) {
     return that.getValue().signum() < 0;
   }
 
   @Fallback
-  boolean doOther(long _this, Object that) {
+  boolean doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

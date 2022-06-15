@@ -392,7 +392,7 @@ public final class Function implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Function _this,
+        Function self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -400,7 +400,7 @@ public final class Function implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Function _this, UnresolvedSymbol symbol)
+    static Function resolve(Function self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -440,7 +440,7 @@ public final class Function implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Function _this,
+        Function self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
@@ -450,7 +450,7 @@ public final class Function implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Function _this, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Function self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

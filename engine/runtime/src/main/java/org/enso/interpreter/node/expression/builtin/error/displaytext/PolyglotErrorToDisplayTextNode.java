@@ -20,16 +20,16 @@ public abstract class PolyglotErrorToDisplayTextNode extends Node {
     return PolyglotErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
   Text doAtom(
-      Atom _this,
+      Atom self,
       @Cached TypeToDisplayTextNode displayTypeNode,
       @CachedLibrary(limit = "5") InteropLibrary exceptions,
       @CachedLibrary(limit = "5") InteropLibrary strings) {
     try {
-      Object cause = _this.getFields()[0];
+      Object cause = self.getFields()[0];
       String rep;
       if (exceptions.hasExceptionMessage(cause)) {
         rep = strings.asString(exceptions.getExceptionMessage(cause));
@@ -43,7 +43,7 @@ public abstract class PolyglotErrorToDisplayTextNode extends Node {
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Polyglot error.");
   }
 }

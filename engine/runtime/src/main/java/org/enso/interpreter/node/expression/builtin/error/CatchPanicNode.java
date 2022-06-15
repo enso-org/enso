@@ -43,7 +43,7 @@ public abstract class CatchPanicNode extends Node {
   abstract Stateful execute(
       VirtualFrame frame,
       @MonadicState Object state,
-      Object _this,
+      Object self,
       @Suspend Object action,
       Object handler);
 
@@ -51,7 +51,7 @@ public abstract class CatchPanicNode extends Node {
   Stateful doExecute(
       VirtualFrame frame,
       @MonadicState Object state,
-      Object _this,
+      Object self,
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,
