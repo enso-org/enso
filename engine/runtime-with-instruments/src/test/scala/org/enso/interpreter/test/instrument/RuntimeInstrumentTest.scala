@@ -560,6 +560,13 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
+    // f expression
+    metadata.addItem(42, 5)
+    val aExpr    = metadata.addItem(56, 1)
+    val fApp     = metadata.addItem(74, 3)
+    val mainRes  = metadata.addItem(62, 16)
+    val mainExpr = metadata.addItem(31, 47)
+
     val code =
       """import Standard.Base.IO
         |
@@ -568,23 +575,6 @@ class RuntimeInstrumentTest
         |    a = 1
         |    IO.println (f a)
         |""".stripMargin.linesIterator.mkString("\n")
-    def addItem(at: Int, expr: String) = {
-      if (code.substring(at, at + expr.length()) != expr) {
-        val found = code.indexOf(expr)
-        throw new AssertionError(
-          "Cannot find " + expr + " at index " + at + " only found at " + found
-        )
-      }
-      metadata.addItem(at, expr.length())
-    }
-
-    // f expression
-    metadata.addItem(42, 5)
-    val aExpr    = addItem(56, "1")
-    val fApp     = addItem(74, "f a")
-    val mainRes  = addItem(62, "IO.println (f a)")
-    val mainExpr = metadata.addItem(31, 47)
-
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
