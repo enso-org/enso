@@ -12,7 +12,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.function.Consumer;
-import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -30,7 +29,6 @@ public interface IdExecutionService {
    *
    * @param module module that contains the code
    * @param entryCallTarget the call target being observed.
-   * @param locationFilter the location filter.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
@@ -44,7 +42,6 @@ public interface IdExecutionService {
   public EventBinding<ExecutionEventListener> bind(
       Module module,
       CallTarget entryCallTarget,
-      LocationFilter locationFilter,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
