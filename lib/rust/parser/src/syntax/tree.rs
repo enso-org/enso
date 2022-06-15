@@ -99,6 +99,10 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         MultiSegmentApp {
             pub prefix: Option<Tree<'s>>,
             pub segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
+        },
+
+        TypeDef {
+            pub token: token::Token<'s>,
         }
     }
 }};}

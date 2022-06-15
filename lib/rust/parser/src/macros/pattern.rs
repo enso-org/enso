@@ -28,8 +28,24 @@ pub enum Pattern {
     /// Consume items matching the first pattern. If the match was unsuccessful, the second match
     /// will be tried.
     Or(Box<Pattern>, Box<Pattern>),
+    Seq(Box<Pattern>, Box<Pattern>),
+    Many(Box<Pattern>),
     /// Consume a single item if it matches the configuration.
     Item(Item),
+    Identifier,
+}
+
+impl Pattern {
+    pub fn many(self) -> Self {
+        Pattern::Many(Box::new(self))
+    }
+}
+
+impl std::ops::Shr for Pattern {
+    type Output = Pattern;
+    fn shr(self, rhs: Pattern) -> Self::Output {
+        Pattern::Seq(Box::new(self), Box::new(rhs))
+    }
 }
 
 /// Item pattern configuration.
@@ -48,20 +64,17 @@ pub struct Item {
 // =======================
 
 /// Pattern resolution error.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
-pub struct ResolutionError<T> {
-    /// All the incoming tokens. The resolver consumes vector of tokens and returns it back in case
-    /// an error happened.
-    pub tokens:  Vec<T>,
+pub struct ResolutionError {
     pub message: String,
 }
 
-impl<T> ResolutionError<T> {
+impl ResolutionError {
     /// Constructor.
-    pub fn new(tokens: Vec<T>, message: impl Into<String>) -> Self {
+    pub fn new(message: impl Into<String>) -> Self {
         let message = message.into();
-        Self { tokens, message }
+        Self { message }
     }
 }
 
@@ -79,12 +92,13 @@ pub struct Match<T> {
     pub matched: Vec<T>,
     /// The rest of the token stream that was not needed for the successful pattern match.
     pub rest:    Vec<T>,
+    pub error:   Option<ResolutionError>,
 }
 
 impl<T> Match<T> {
     /// Constructor.
-    pub fn new(matched: Vec<T>, rest: Vec<T>) -> Self {
-        Self { matched, rest }
+    pub fn new(matched: Vec<T>, rest: Vec<T>, error: Option<ResolutionError>) -> Self {
+        Self { matched, rest, error }
     }
 }
 
@@ -95,30 +109,88 @@ impl Pattern {
         mut input: Vec<T>,
         has_spacing_at_end: bool,
         right_to_left_mode: bool,
-    ) -> Result<Match<T>, ResolutionError<T>> {
+    ) -> Match<T> {
+        let reject = |input: Vec<T>, message: &str| {
+            Match::new(default(), input, Some(ResolutionError::new(message)))
+        };
+
         match self {
-            Self::Everything => Ok(Match::new(input, default())),
-            Self::Nothing => Ok(Match::new(default(), input)),
-            Self::Or(fst, snd) => fst
-                .resolve(input, has_spacing_at_end, right_to_left_mode)
-                .or_else(|err| snd.resolve(err.tokens, has_spacing_at_end, right_to_left_mode)),
+            Self::Everything => Match::new(input, default(), None),
+            Self::Nothing => Match::new(default(), input, None),
+            Self::Or(fst, snd) => {
+                let fst_result = fst.resolve(input, has_spacing_at_end, right_to_left_mode);
+                if fst_result.error.is_none() {
+                    fst_result
+                } else {
+                    let input =
+                        fst_result.matched.into_iter().chain(fst_result.rest.into_iter()).collect();
+                    snd.resolve(input, has_spacing_at_end, right_to_left_mode)
+                }
+            }
+            Self::Seq(fst, snd) => {
+                println!(">> Seq");
+
+                let fst_result = fst.resolve(input, has_spacing_at_end, right_to_left_mode);
+                if fst_result.error.is_none() {
+                    let snd_result =
+                        snd.resolve(fst_result.rest, has_spacing_at_end, right_to_left_mode);
+                    Match::new(
+                        fst_result
+                            .matched
+                            .into_iter()
+                            .chain(snd_result.matched.into_iter())
+                            .collect(),
+                        snd_result.rest,
+                        snd_result.error,
+                    )
+                } else {
+                    fst_result
+                }
+            }
+            Self::Many(pat) => {
+                let mut matched = vec![];
+                loop {
+                    let result =
+                        pat.resolve(mem::take(&mut input), has_spacing_at_end, right_to_left_mode);
+                    if result.error.is_none() {
+                        matched.extend(result.matched);
+                        input = result.rest;
+                    } else {
+                        input = result.matched.into_iter().chain(result.rest.into_iter()).collect();
+                        break;
+                    }
+                }
+                Match::new(matched, input, None)
+            }
             Self::Item(item) => match input.first() {
-                None => Err(ResolutionError::new(input, "Expected an item.")),
+                None => reject(input, "Expected item"),
                 Some(first) => match first.try_as_ref() {
-                    None => Err(ResolutionError::new(input, "Expected an item.")),
+                    None => reject(input, "Expected item"),
                     Some(_) => match item.has_rhs_spacing {
                         Some(spacing) =>
                             if right_to_left_mode {
                                 if spacing == has_spacing_at_end {
-                                    Ok(Match::new(vec![input.pop_front().unwrap()], input))
+                                    Match::new(vec![input.pop_front().unwrap()], input, None)
                                 } else {
-                                    Err(ResolutionError::new(input, "Expected an item."))
+                                    reject(input, "Expected item")
                                 }
                             } else {
                                 todo!()
                             },
-                        None => Ok(Match::new(vec![input.pop_front().unwrap()], input)),
+                        None => Match::new(vec![input.pop_front().unwrap()], input, None),
                     },
+                },
+            },
+            Self::Identifier => match input.first() {
+                None => reject(input, "Expected identifier, got nothing."),
+                Some(first) => match first.try_as_ref() {
+                    None => reject(input, "Expected identifier, got ..."),
+                    Some(item) =>
+                        if item.is_variant(syntax::token::variant::VariantMarker::Ident) {
+                            Match::new(vec![input.pop_front().unwrap()], input, None)
+                        } else {
+                            reject(input, "Expected identifier, got ...")
+                        },
                 },
             },
         }

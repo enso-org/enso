@@ -347,7 +347,10 @@ impl<'s> Resolver<'s> {
             let pattern = &def.segments.last().pattern;
             let child_tokens = mem::take(&mut child_macro.current_segment.body);
             // FIXME: the first [`false`] below is invalid.
-            let match_result = pattern.resolve(child_tokens, false, false).unwrap();
+            let match_result = pattern.resolve(child_tokens, false, false);
+            if match_result.error.is_some() {
+                panic!()
+            }
             let mut new_child_tokens = match_result.matched;
             let new_parent_tokens = match_result.rest;
             mem::swap(&mut child_macro.current_segment.body, &mut new_child_tokens);
@@ -367,22 +370,25 @@ impl<'s> Resolver<'s> {
             let mut ss: Vec<syntax::Item<'s>> = vec![];
             for item in segment.body {
                 let resolved_token = match item {
-                        SyntaxItemOrMacroResolver::MacroResolver(m2) => {
-                            if let Some(macro_def) = &m2.matched_macro_def
-                            && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
-                                ss.reverse();
-                                let spacing = m2.current_segment.header.left_offset.visible > VisibleOffset(0);
-                                let mut match_result = pfx_pattern.resolve(ss,spacing,true).unwrap();
-                                match_result.matched.reverse();
-                                ss = match_result.rest;
-                                ss.reverse();
-                                Self::resolve(m2, Some(match_result.matched)).into()
-                            } else {
-                                Self::resolve(m2, None).into()
+                    SyntaxItemOrMacroResolver::MacroResolver(m2) => {
+                        if let Some(macro_def) = &m2.matched_macro_def
+                        && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
+                            ss.reverse();
+                            let spacing = m2.current_segment.header.left_offset.visible > VisibleOffset(0);
+                            let mut match_result = pfx_pattern.resolve(ss,spacing,true);
+                            if match_result.error.is_some() {
+                                panic!()
                             }
-                        },
-                        SyntaxItemOrMacroResolver::SyntaxItem(t) => t,
-                    };
+                            match_result.matched.reverse();
+                            ss = match_result.rest;
+                            ss.reverse();
+                            Self::resolve(m2, Some(match_result.matched)).into()
+                        } else {
+                            Self::resolve(m2, None).into()
+                        }
+                    },
+                    SyntaxItemOrMacroResolver::SyntaxItem(t) => t,
+                };
                 ss.push(resolved_token);
             }
             (segment.header, ss)
@@ -690,12 +696,27 @@ fn macro_lambda<'s>() -> macros::Definition<'s> {
     }
 }
 
+fn macro_type_def<'s>() -> macros::Definition<'s> {
+    macro_definition! {
+        ("type", Pattern::Identifier >> Pattern::Identifier.many())
+        ttt
+    }
+}
+
+fn ttt<'s>(
+    prefix_tokens: Option<Vec<syntax::Item<'s>>>,
+    matched_segments: NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>,
+) -> syntax::Tree<'s> {
+    syntax::Tree::type_def(matched_segments.first().0.clone())
+}
+
 fn builtin_macros() -> MacroMatchTree<'static> {
     let mut macro_map = MacroMatchTree::default();
     macro_map.register(macro_if_then());
     macro_map.register(macro_if_then_else());
     macro_map.register(macro_group());
     macro_map.register(macro_lambda());
+    macro_map.register(macro_type_def());
     macro_map
 }
 
@@ -728,19 +749,25 @@ fn main() {
     // let str = "a+b * c";
     // let str = "foo if a then b";
     // let str = "foo *(a)";
-    let ast = parse("foo if a then b else c");
+    // let ast = parse("foo if a then b else c");
+    // let ast = parse("type Bool\n    True\n    False");
+    let ast = parse("type Bool a");
     let ast2 = ast_builder! {{if} a {then} b};
     // MultiSegmentApp<'s>(prefix: Option<Tree<'s>>, segments:
     // NonEmptyVec<MultiSegmentAppSegment<'s>>)
 
+    println!("\n\n==================\n\n");
+
     // let ast2 = Token("", "foo", syntax::token::Variant::new_ident_unchecked("foo"));
     println!("{:#?}", ast);
     println!("\n\n{}", ast.code());
-    println!("\n\n{:?}", ast2);
+    // println!("\n\n{:?}", ast2);
 
-    println!("\n\n==================\n\n");
+    // let mut lexer = Lexer::new("type Bool\n    True\n    False");
+    // lexer.run();
+    // println!("{:#?}", lexer.output);
 
-    lexer::main();
+    // lexer::main();
 }
 
 

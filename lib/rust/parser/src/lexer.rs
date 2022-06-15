@@ -744,7 +744,14 @@ impl<'s> Lexer<'s> {
                 }
             }
         }
-        self.current_char == None
+        let is_eof = self.current_char == None;
+        if is_eof {
+            while self.end_block().is_some() {
+                let block_end = self.marker_token(token::Variant::block_end());
+                self.submit_token(block_end);
+            }
+        }
+        is_eof
     }
 }
 
