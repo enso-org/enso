@@ -1691,7 +1691,8 @@ pub mod test {
         });
     }
 
-    #[wasm_bindgen_test]
+    // #[wasm_bindgen_test]
+    #[test]
     fn loading_list() {
         let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
