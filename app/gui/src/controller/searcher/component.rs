@@ -127,10 +127,10 @@ pub struct List {
     top_modules:           group::AlphabeticalList,
     top_modules_flattened: group::AlphabeticalList,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
-    /// A group containing all non-module components in the local scope of the module where the
-    /// [Component Browser](crate::controller::Searcher) is opened.
-    pub local_scope:       Rc<RefCell<Vec<Component>>>,
     filtered:              Rc<Cell<bool>>,
+    /// Components to display in the "Local Scope" section of the [Component
+    /// Browser](crate::controller::Searcher).
+    pub local_scope:       Rc<RefCell<Vec<Component>>>,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// [Component Browser](crate::controller::Searcher).
     pub favorites:         group::List,
