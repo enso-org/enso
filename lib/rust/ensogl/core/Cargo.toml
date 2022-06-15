@@ -87,5 +87,4 @@ features = [
 ]
 
 [dev-dependencies]
-assert_approx_eq = { version = "1.1.0" }
 wasm-bindgen-test = { version = "0.3.8" }

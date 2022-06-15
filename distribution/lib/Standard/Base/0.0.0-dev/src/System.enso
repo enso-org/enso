@@ -25,7 +25,7 @@ create_process command arguments input redirect_in redirect_out redirect_err = @
    - code: The numerical exit code for the Enso program.
 
    > Example
-     Exit the enso program with a failure.
+     Exit the Enso program with a failure.
 
          System.exit 42
 exit : Integer -> Nothing

@@ -43,6 +43,7 @@ use ensogl::data::color;
 use ensogl::data::text;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
+use ensogl::Animation;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
@@ -55,6 +56,7 @@ use ensogl_shadow as shadow;
 
 pub mod entry;
 pub mod icon;
+pub mod set;
 pub mod wide;
 
 pub use entry::View as Entry;
@@ -115,6 +117,7 @@ pub mod header_background {
 
     ensogl::define_shape_system! {
         above = [background, list_view::background];
+        pointer_events = false;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
@@ -234,19 +237,20 @@ impl Colors {
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let icon_weak_intensity = style.get_number(theme::entry_list::icon::weak_color_intensity);
         let entry_text_ = style.get_color(theme::entry_list::text::color);
+        let intensity = Animation::new(network);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
             let is_dimmed = is_dimmed.clone_ref();
-            intensity <- is_dimmed.switch(&one, &dimmed_intensity);
+            intensity.target <+ is_dimmed.switch(&one, &dimmed_intensity);
             app_bg <- all(&app_bg, &init)._0();
             app_bg_and_input <- all(&app_bg, color);
-            main <- app_bg_and_input.all_with(&intensity, mix);
+            main <- app_bg_and_input.all_with(&intensity.value, mix);
             app_bg_and_main <- all(&app_bg, &main);
             header_text <- app_bg_and_main.all_with(&header_intensity, mix).sampler();
             bg <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
             app_bg_and_entry_text <- all(&app_bg, &entry_text_);
-            entry_text <- app_bg_and_entry_text.all_with(&intensity, mix).sampler();
+            entry_text <- app_bg_and_entry_text.all_with(&intensity.value, mix).sampler();
             icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
             icon_strong <- main.sampler();
         }
@@ -280,6 +284,7 @@ ensogl::define_endpoints_2! {
         set_header_pos(f32),
     }
     Output {
+        is_mouse_over(bool),
         selected_entry(Option<entry::Id>),
         suggestion_accepted(entry::Id),
         expression_accepted(entry::Id),
@@ -366,26 +371,25 @@ impl component::Frp<Model> for Frp {
         }
 
 
-        // === Entries ===
-
-        frp::extend! { network
-            model.entries.set_entries <+ input.set_entries;
-            out.selected_entry <+ model.entries.selected_entry;
-        }
-
-
         // === Selection ===
 
         let overlay_events = &model.header_overlay.events;
         frp::extend! { network
+            model.entries.focus <+ input.focus;
+            model.entries.defocus <+ input.defocus;
+            model.entries.set_focus <+ input.set_focus;
+
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
-            is_mouse_over <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
+            is_mouse_over_header <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             mouse_moved <- mouse_position.on_change().constant(());
-            mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over);
+            is_entry_selected <- model.entries.selected_entry.on_change().map(|e| e.is_some());
+            some_entry_selected <- is_entry_selected.on_true();
+            mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over_header);
+            mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over_header);
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
-            deselect_header <- model.entries.selected_entry.filter_map(|entry| *entry);
-            out.is_header_selected <+ bool(&deselect_header, &select_header);
+            deselect_header <- any(&some_entry_selected, &mouse_moved_beyond_header);
+            out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
             out.selection_position_target <+ all_with3(
@@ -394,6 +398,22 @@ impl component::Frp<Model> for Frp {
                 &model.entries.selection_position_target,
                 f!((h_sel, size, esp) model.selection_position(*h_sel, *size, *esp))
             );
+        }
+
+
+        // === Mouse hovering ===
+
+        frp::extend! { network
+            out.is_mouse_over <+ model.entries.is_mouse_over.or(&is_mouse_over_header);
+        }
+
+
+        // === Entries ===
+
+        frp::extend! { network
+            model.entries.set_entries <+ input.set_entries;
+            out.selected_entry <+ model.entries.selected_entry;
+            out.selected_entry <+ out.is_header_selected.on_true().constant(None);
         }
 
         init.emit(());
@@ -630,16 +650,21 @@ mod tests {
     use ensogl_list_view::entry::AnyModelProvider;
 
     macro_rules! expect_entry_selected {
-        ($cgv:ident, $id:expr$(, $argv:tt)?) => {
-            assert_eq!($cgv.selected_entry.value(), Some($id)$(, $argv)?);
-            assert!(!$cgv.is_header_selected.value()$(, $argv)?);
+        ($cgv:ident, $id:expr) => {
+            assert_eq!(
+                $cgv.selected_entry.value(),
+                Some($id),
+                "Selected entry is not Some({}).",
+                $id
+            );
+            assert!(!$cgv.is_header_selected.value(), "Header is selected.");
         };
     }
 
     macro_rules! expect_header_selected {
-        ($cgv:ident$(, $argv:tt)?) => {
-            assert_eq!($cgv.selected_entry.value(), None$(, $argv)?);
-            assert!($cgv.is_header_selected.value()$(, $argv)?);
+        ($cgv:ident) => {
+            assert_eq!($cgv.selected_entry.value(), None, "Selected entry is not None.");
+            assert!($cgv.is_header_selected.value(), "Header is not selected.");
         };
     }
 

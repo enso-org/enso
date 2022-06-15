@@ -132,6 +132,15 @@
 - [Implemented a `Table.from Text` conversion allowing to parse strings
   representing `Delimited` files without storing them on the filesystem.][3478]
 - [Added rank data, correlation and covariance statistics for `Vector`][3484]
+- [Implemented `Table.order_by` for the SQLite backend.][3502]
+- [Implemented `Table.order_by` for the PostgreSQL backend.][3514]
+- [Implemented `Table.order_by` for the in-memory table.][3515]
+- [Renamed `File_Format.Text` to `Plain_Text`, updated `File_Format.Delimited`
+  API and added builders for customizing less common settings.][3516]
+- [Allow control of sort direction in `First` and `Last` aggregations.][3517]
+- [Implemented `Text.write`, replacing `File.write_text`.][3518]
+- [Removed obsolete `select`, `group`, `sort` and releated types from tables.]
+  [3519]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -206,6 +215,13 @@
 [3486]: https://github.com/enso-org/enso/pull/3486
 [3478]: https://github.com/enso-org/enso/pull/3478
 [3484]: https://github.com/enso-org/enso/pull/3484
+[3502]: https://github.com/enso-org/enso/pull/3502
+[3514]: https://github.com/enso-org/enso/pull/3514
+[3515]: https://github.com/enso-org/enso/pull/3515
+[3516]: https://github.com/enso-org/enso/pull/3516
+[3517]: https://github.com/enso-org/enso/pull/3517
+[3518]: https://github.com/enso-org/enso/pull/3518
+[3519]: https://github.com/enso-org/enso/pull/3519
 
 #### Enso Compiler
 
@@ -227,7 +243,9 @@
 - [Generate boilerplate classes related to error handling and varargs in
   builtins from method signatures][3454]
 - [Avoid needless concatenations of warning/error messages][3465]
+- [Added a full-blown DSL for builtins][3471]
 - [Lazy evaluation of RHS argument for || and &&][3492]
+- [Drop Core implementation of IR][3512]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -250,8 +268,11 @@
 [3454]: https://github.com/enso-org/enso/pull/3454
 [3461]: https://github.com/enso-org/enso/pull/3461
 [3465]: https://github.com/enso-org/enso/pull/3465
+[3471]: https://github.com/enso-org/enso/pull/3471
 [3492]: https://github.com/enso-org/enso/pull/3492
 [3493]: https://github.com/enso-org/enso/pull/3493
+[3505]: https://github.com/enso-org/enso/pull/3505
+[3512]: https://github.com/enso-org/enso/pull/3512
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

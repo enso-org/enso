@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
+from Standard.Table.Error import Unsupported_File_Type
 
 import Standard.Test
 import Standard.Test.Problems
@@ -13,18 +14,21 @@ spec =
 
     Test.group "File_Format.Auto materialise" <|
         Test.specify "should be Bytes for unknown file" <|
-            File_Format.Auto . materialise sample_xxx . should_be_a File_Format.Bytes
+            File_Format.Auto . materialise sample_xxx . should_fail_with Unsupported_File_Type
 
         Test.specify "should be Text for text file" <|
-            File_Format.Auto . materialise sample_txt . should_be_a File_Format.Text
+            File_Format.Auto . materialise sample_txt . should_be_a File_Format.Plain_Text
 
         Test.specify "should be Text for log file" <|
-            File_Format.Auto . materialise windows_log . should_be_a File_Format.Text
+            File_Format.Auto . materialise windows_log . should_be_a File_Format.Plain_Text
+
+        Test.specify "should detect CSV files" <|
+            File_Format.Auto . materialise (Enso_Project.data / "data.csv") . should_equal (File_Format.Delimited ",")
 
     Test.group "File_Format.Auto" <|
-        Test.specify "should be able to read an unknown file" <|
+        Test.specify "should raise an error when reading an unknown file" <|
             bytes = sample_xxx.read
-            bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
+            bytes.should_fail_with Unsupported_File_Type
 
         Test.specify "should be able to read a text file" <|
             content = sample_txt.read
@@ -44,17 +48,17 @@ spec =
             bytes = File.read path File_Format.Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
-    Test.group "File_Format.Text" <|
+    Test.group "File_Format.Plain_Text" <|
         Test.specify "should be able to read a file as Text" <|
-            text = sample_xxx.read File_Format.Text
+            text = sample_xxx.read File_Format.Plain_Text
             text.should_equal "Hello World!"
 
         Test.specify "should be able to read a file as Text with Encoding" <|
-            text = windows_log.read (File_Format.Text Encoding.windows_1252)
+            text = windows_log.read (File_Format.Plain_Text Encoding.windows_1252)
             text.should_equal "Hello World! $¢¤¥"
 
         Test.specify "should raise a warning when invalid encoding in a Text file" <|
-            action = windows_log.read (File_Format.Text Encoding.ascii) on_problems=_
+            action = windows_log.read (File_Format.Plain_Text Encoding.ascii) on_problems=_
             tester result = result . should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
             problems = [Encoding_Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester

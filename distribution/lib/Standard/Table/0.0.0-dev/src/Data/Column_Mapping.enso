@@ -31,8 +31,3 @@ type Column_Mapping
     ## Selects columns by position starting at the first column until the
        new_names is exhausted.
     type By_Position (new_names : [Text])
-
-## UNSTABLE
-   A temporary workaround to allow the By_Name constructor to work with default arguments.
-By_Name.new : Map Text Text -> Matcher  -> By_Name
-By_Name.new names (matcher = Text_Matcher) = By_Name names matcher

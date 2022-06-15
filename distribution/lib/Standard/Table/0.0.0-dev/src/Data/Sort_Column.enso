@@ -1,0 +1,6 @@
+from Standard.Base import all
+
+type Sort_Column
+    type Name name:Text direction:Sort_Direction=Sort_Direction.Ascending
+    type Index index:Integer direction:Sort_Direction=Sort_Direction.Ascending
+    type Column column:Column direction:Sort_Direction=Sort_Direction.Ascending

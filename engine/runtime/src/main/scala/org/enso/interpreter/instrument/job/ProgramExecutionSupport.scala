@@ -7,7 +7,7 @@ import java.util.UUID
 
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
-import org.enso.interpreter.instrument.IdExecutionInstrument.{
+import org.enso.interpreter.instrument.IdExecutionService.{
   ExpressionCall,
   ExpressionValue
 }

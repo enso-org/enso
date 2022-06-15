@@ -4,27 +4,30 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.function.BiFunction;
 
 public class ObjectComparator implements Comparator<Object> {
   private static ObjectComparator INSTANCE;
 
   /**
-   * A singleton instance of an ObjectComparator
+   * A singleton instance of an ObjectComparator.
    *
    * @param fallbackComparator this MUST be the default .compare_to function for Enso. Needs to be
    *     passed to allow calling back from Java.
-   * @return Comparator object
+   * @return Comparator object.
    */
   public static ObjectComparator getInstance(BiFunction<Object, Object, Long> fallbackComparator) {
     if (INSTANCE == null) {
-      INSTANCE = new ObjectComparator((l, r) -> fallbackComparator.apply(l, r).intValue());
+      INSTANCE = new ObjectComparator(fallbackComparator);
     }
 
     return INSTANCE;
   }
 
-  private final BiFunction<Object, Object, Integer> fallbackComparator;
+  private final BiFunction<Object, Object, Long> fallbackComparator;
+  private final BiFunction<String, String, Long> textComparator;
+
 
   public ObjectComparator() {
     this(
@@ -33,8 +36,31 @@ public class ObjectComparator implements Comparator<Object> {
         });
   }
 
-  public ObjectComparator(BiFunction<Object, Object, Integer> fallbackComparator) {
+  public ObjectComparator(BiFunction<Object, Object, Long> fallbackComparator) {
+    this(fallbackComparator, (a, b) -> Long.valueOf(Text_Utils.compare_normalized(a, b)));
+  }
+
+  private ObjectComparator(BiFunction<Object, Object, Long> fallbackComparator, BiFunction<String, String, Long> textComparator) {
     this.fallbackComparator = fallbackComparator;
+    this.textComparator = textComparator;
+  }
+
+  /**
+   * Create a copy of the ObjectComparator with case-insensitive text comparisons.
+   * @param locale to use for case folding.
+   * @return Comparator object.
+   */
+  public ObjectComparator withCaseInsensitivity(Locale locale) {
+    return new ObjectComparator(this.fallbackComparator, (a, b) -> Long.valueOf(Text_Utils.compare_normalized_ignoring_case(a, b, locale)));
+  }
+
+  /**
+   * Create a copy of the ObjectComparator with case-insensitive text comparisons.
+   * @param textComparator custom comparator for Text.
+   * @return Comparator object.
+   */
+  public ObjectComparator withCustomTextComparator(BiFunction<String, String, Long> textComparator) {
+    return new ObjectComparator(this.fallbackComparator, textComparator);
   }
 
   @Override
@@ -42,18 +68,16 @@ public class ObjectComparator implements Comparator<Object> {
     // NULLs
     if (thisValue == null) {
       if (thatValue != null) {
-        return 1;
+        return -1;
       }
       return 0;
     }
     if (thatValue == null) {
-      return -1;
+      return 1;
     }
 
     // Booleans
-    if (thisValue instanceof Boolean && thatValue instanceof Boolean) {
-      boolean thisBool = (Boolean) thisValue;
-      boolean thatBool = (Boolean) thatValue;
+    if (thisValue instanceof Boolean thisBool && thatValue instanceof Boolean thatBool) {
       if (thisBool == thatBool) {
         return 0;
       }
@@ -61,13 +85,11 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Long this
-    if (thisValue instanceof Long) {
-      Long thisLong = (Long) thisValue;
-      if (thatValue instanceof Long) {
-        return thisLong.compareTo((Long) thatValue);
+    if (thisValue instanceof Long thisLong) {
+      if (thatValue instanceof Long thatLong) {
+        return thisLong.compareTo(thatLong);
       }
-      if (thatValue instanceof Double) {
-        Double thatDouble = (Double) thatValue;
+      if (thatValue instanceof Double thatDouble) {
         if (thisLong > thatDouble) {
           return 1;
         }
@@ -79,13 +101,11 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Double this
-    if (thisValue instanceof Double) {
-      Double thisDouble = (Double) thisValue;
-      if (thatValue instanceof Double) {
-        return thisDouble.compareTo((Double) thatValue);
+    if (thisValue instanceof Double thisDouble) {
+      if (thatValue instanceof Double thatDouble) {
+        return thisDouble.compareTo(thatDouble);
       }
-      if (thatValue instanceof Long) {
-        Long thatLong = (Long) thatValue;
+      if (thatValue instanceof Long thatLong) {
         if (thisDouble > thatLong) {
           return 1;
         }
@@ -97,39 +117,36 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Text
-    if (thisValue instanceof String && thatValue instanceof String) {
-      return Text_Utils.compare_normalized((String) thisValue, (String) thatValue);
+    if (thisValue instanceof String thisString && thatValue instanceof String thatString) {
+      return textComparator.apply(thisString, thatString).intValue();
     }
 
     // DateTimes
-    if (thisValue instanceof LocalDate) {
-      LocalDate thisDate = (LocalDate) thisValue;
-      if (thatValue instanceof LocalDate) {
-        return thisDate.compareTo((LocalDate) thatValue);
+    if (thisValue instanceof LocalDate thisDate) {
+      if (thatValue instanceof LocalDate thatDate) {
+        return thisDate.compareTo(thatDate);
       }
-      if (thatValue instanceof LocalDateTime) {
-        return thisDate.atStartOfDay().compareTo((LocalDateTime) thatValue);
+      if (thatValue instanceof LocalDateTime thatDateTime) {
+        return thisDate.atStartOfDay().compareTo(thatDateTime);
       }
     }
-    if (thisValue instanceof LocalDateTime) {
-      LocalDateTime thisDateTime = (LocalDateTime) thisValue;
-      if (thatValue instanceof LocalDate) {
-        return thisDateTime.compareTo(((LocalDate) thatValue).atStartOfDay());
+    if (thisValue instanceof LocalDateTime thisDateTime) {
+      if (thatValue instanceof LocalDate thatDate) {
+        return thisDateTime.compareTo(thatDate.atStartOfDay());
       }
-      if (thatValue instanceof LocalDateTime) {
-        return thisDateTime.compareTo((LocalDateTime) thatValue);
+      if (thatValue instanceof LocalDateTime thatDateTime) {
+        return thisDateTime.compareTo(thatDateTime);
       }
     }
 
     // TimeOfDay
-    if (thisValue instanceof LocalTime) {
-      LocalTime thisTime = (LocalTime) thisValue;
-      if (thatValue instanceof LocalTime) {
-        return thisTime.compareTo((LocalTime) thatValue);
+    if (thisValue instanceof LocalTime thisTime) {
+      if (thatValue instanceof LocalTime thatTime) {
+        return thisTime.compareTo(thatTime);
       }
     }
 
     // Fallback to Enso
-    return fallbackComparator.apply(thisValue, thatValue);
+    return fallbackComparator.apply(thisValue, thatValue).intValue();
   }
 }
