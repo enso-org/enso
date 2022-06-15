@@ -123,7 +123,7 @@ impl Group {
 
 /// Sort the components by [`Component::match_info`] if pattern is non-empty. Otherwise, sort
 /// non-module components alphabetically followed by modules alphabetically.
-pub fn sort(components: &mut Vec<Component>, pattern: impl AsRef<str>) {
+pub fn sort(components: &mut [Component], pattern: impl AsRef<str>) {
     // The `sort_by_key` method is not suitable here, because the closure it takes
     // cannot return reference nor [`Ref`], and we don't want to copy anything here.
     if pattern.as_ref().is_empty() {
