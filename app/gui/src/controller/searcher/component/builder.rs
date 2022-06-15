@@ -86,7 +86,7 @@ impl List {
             Some(component::Group::from_entry(id, &*entry))
         };
         let local_scope = local_scope_module.and_then(group_from_id).unwrap_or_default();
-        Self { all_components: default(), module_groups: default(), local_scope }
+        Self { all_components: default(), module_groups: default(), local_scope, favorites: default() }
     }
 
     /// Extend the list with new entries looked up by ID in suggestion database.
@@ -174,7 +174,7 @@ impl List {
                 flattened.update_sorting_and_visibility("");
             }
         }
-        self.local_scope.update_sorting("");
+        self.local_scope.update_sorting_and_visibility("");
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));

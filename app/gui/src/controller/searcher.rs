@@ -540,7 +540,8 @@ impl Searcher {
             _ => None,
         });
         let favorites = graph.component_groups();
-        let list_builder_with_favs = component_list_builder_with_favorites(&database, &*favorites);
+        let module_id = lookup_suggestion_id(&database, module_qualified_name(&project, &graph));
+        let list_builder_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -1036,12 +1037,6 @@ impl Searcher {
         builder.build()
     }
 
-    fn module_suggestion_id(&self) -> Option<language_server::SuggestionId> {
-        let module = self.module_qualified_name();
-        let (id, _) = self.database.lookup_by_qualified_name(&module)?;
-        Some(id)
-    }
-
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {
         let opt_result = || {
             let call_ast = self.data.borrow().input.expression.as_ref()?.func.clone_ref();
@@ -1119,7 +1114,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        self.graph.graph().module.path().qualified_module_name(self.project.qualified_name())
+        module_qualified_name(&self.project, &self.graph)
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1175,11 +1170,24 @@ impl Searcher {
 
 fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
+    local_scope_module: Option<language_server::SuggestionId>,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
 ) -> component::builder::List {
-    let mut builder = component::builder::List::new();
+    let mut builder = component::builder::List::new(suggestion_db, local_scope_module);
     builder.set_favorites(suggestion_db, groups);
     builder
+}
+
+fn module_qualified_name(project: &model::Project, graph: &controller::ExecutedGraph) -> QualifiedName {
+    graph.graph().module.path().qualified_module_name(project.qualified_name())
+}
+
+fn lookup_suggestion_id<P, I>(suggestion_db: &model::SuggestionDatabase, name: P) -> Option<language_server::SuggestionId>
+    where
+        P: IntoIterator<Item = I>,
+        I: Into<entry::QualifiedNameSegment>, {
+    let (id, _) = self.database.lookup_by_qualified_name(&name)?;
+    Some(id)
 }
 
 
@@ -1358,14 +1366,15 @@ pub mod test {
             let project_name = project_qname.project.clone();
             project.expect_qualified_name().returning_st(move || project_qname.clone());
             project.expect_name().returning_st(move || project_name.clone());
+            let favorites = graph.component_groups();
+            let module_id = lookup_suggestion_id(&database, module_qualified_name(&project, &graph));
+            let list_bldr_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
             let project = Rc::new(project);
             ide.expect_parser().return_const(Parser::new_or_panic());
             let current_project = project.clone_ref();
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let favorites = graph.component_groups();
-            let list_bldr_with_favs = component_list_builder_with_favorites(&database, &*favorites);
             let searcher = Searcher {
                 graph,
                 logger,
