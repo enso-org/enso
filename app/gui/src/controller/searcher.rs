@@ -540,7 +540,7 @@ impl Searcher {
             _ => None,
         });
         let favorites = graph.component_groups();
-        let module_id = lookup_suggestion_id(&database, module_qualified_name(&project, &graph));
+        let module_id = lookup_suggestion_id(&database, &module_qualified_name(&*project, &graph));
         let list_builder_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
         let ret = Self {
             logger,
@@ -1114,7 +1114,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        module_qualified_name(&self.project, &self.graph)
+        module_qualified_name(&*self.project, &self.graph)
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1178,15 +1178,15 @@ fn component_list_builder_with_favorites<'a>(
     builder
 }
 
-fn module_qualified_name(project: &model::Project, graph: &controller::ExecutedGraph) -> QualifiedName {
+fn module_qualified_name(project: &dyn model::project::API, graph: &controller::ExecutedGraph) -> QualifiedName {
     graph.graph().module.path().qualified_module_name(project.qualified_name())
 }
 
 fn lookup_suggestion_id<P, I>(suggestion_db: &model::SuggestionDatabase, name: P) -> Option<language_server::SuggestionId>
     where
         P: IntoIterator<Item = I>,
-        I: Into<entry::QualifiedNameSegment>, {
-    let (id, _) = self.database.lookup_by_qualified_name(&name)?;
+        I: Into<suggestion_database::entry::QualifiedNameSegment>, {
+    let (id, _) = suggestion_db.lookup_by_qualified_name(name)?;
     Some(id)
 }
 
@@ -1366,15 +1366,15 @@ pub mod test {
             let project_name = project_qname.project.clone();
             project.expect_qualified_name().returning_st(move || project_qname.clone());
             project.expect_name().returning_st(move || project_name.clone());
-            let favorites = graph.component_groups();
-            let module_id = lookup_suggestion_id(&database, module_qualified_name(&project, &graph));
-            let list_bldr_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
             let project = Rc::new(project);
             ide.expect_parser().return_const(Parser::new_or_panic());
             let current_project = project.clone_ref();
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
+            let favorites = graph.component_groups();
+            let module_id = lookup_suggestion_id(&database, &module_qualified_name(&*project, &graph));
+            let list_bldr_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
             let searcher = Searcher {
                 graph,
                 logger,
