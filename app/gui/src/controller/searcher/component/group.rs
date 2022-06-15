@@ -115,18 +115,26 @@ impl Group {
     }
 }
 
-pub fn sort(entries: &mut Vec<Component>, pattern: impl AsRef<str>) {
+
+
+/// ============
+/// === Sort ===
+/// ============
+
+/// Sort the components by [`Component::match_info`] if pattern is non-empty. Otherwise, sort
+/// non-modules alphabetically followed by modules alphabetically.
+pub fn sort(components: &mut Vec<Component>, pattern: impl AsRef<str>) {
     // The `sort_by_key` method is not suitable here, because the closure it takes
     // cannot return reference nor [`Ref`], and we don't want to copy anything here.
     if pattern.as_ref().is_empty() {
-        entries.sort_by(|a, b| {
+        components.sort_by(|a, b| {
             let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
             cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
         });
     } else {
         let cmp_match_info =
             |a: &Component, b: &Component| a.match_info.borrow().cmp(&*b.match_info.borrow());
-        entries.sort_by(|a, b| cmp_match_info(a, b).reverse());
+        components.sort_by(|a, b| cmp_match_info(a, b).reverse());
     }
 }
 
