@@ -62,7 +62,10 @@ class RuntimeInstrumentTest
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .option(
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths.get("../../test/micro-distribution/component").toFile.getAbsolutePath
+          Paths
+            .get("../../test/micro-distribution/component")
+            .toFile
+            .getAbsolutePath
         )
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)

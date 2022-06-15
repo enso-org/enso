@@ -109,7 +109,10 @@ class InterpreterContext(
       .in(in)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../test/micro-distribution/component").toFile.getAbsolutePath
+        Paths
+          .get("../../test/micro-distribution/component")
+          .toFile
+          .getAbsolutePath
       )
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {
