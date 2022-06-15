@@ -188,7 +188,7 @@ public class Module implements TruffleObject {
 
   /** @return the literal source of this module. */
   public Rope getLiteralSource() {
-    return sources.literalSource();
+    return sources.rope();
   }
 
   /**
@@ -287,14 +287,14 @@ public class Module implements TruffleObject {
    * @throws IOException when the source comes from a file that can't be read.
    */
   public Source getSource() throws IOException {
-    final Source cached = sources.cachedSource();
+    final Source cached = sources.source();
     if (cached != null) {
       return cached;
     }
-    ModuleSources newSources = sources.ensureCachedSource(name);
+    ModuleSources newSources = sources.ensureSource(name);
     sources = newSources;
-    allSources.put(newSources.cachedSource(), this);
-    return newSources.cachedSource();
+    allSources.put(newSources.source(), this);
+    return newSources.source();
   }
 
   /**
@@ -305,7 +305,7 @@ public class Module implements TruffleObject {
    * @return
    */
   public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
-    final Source src = sources.cachedSource();
+    final Source src = sources.source();
     if (src == null) {
       return null;
     }
@@ -406,7 +406,7 @@ public class Module implements TruffleObject {
 
   /** @return the source file of this module. */
   public TruffleFile getSourceFile() {
-    return sources.sourceFile();
+    return sources.file();
   }
 
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
