@@ -114,16 +114,4 @@ public class ApplicationNode extends ExpressionNode {
     super.setId(id);
     invokeCallableNode.setId(id);
   }
-
-  @Override
-  public boolean hasTag(Class<? extends Tag> tag) {
-    if (SlowToInstrumentTag.class == tag) {
-      System.err.println("check: " + this + " root: " + getRootNode().getClass().getName());
-    }
-    boolean ret = super.hasTag(tag);
-    if (SlowToInstrumentTag.class == tag) {
-      System.err.println("  result of the check: " + ret);
-    }
-    return ret;
-  }
 }

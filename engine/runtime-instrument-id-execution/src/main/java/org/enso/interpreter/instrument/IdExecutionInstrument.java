@@ -10,6 +10,7 @@ import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.SourceSection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.Module;
 
 import java.util.function.Consumer;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
 
 /** An instrument for getting values from AST-identified expressions. */
@@ -309,20 +311,22 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           .tagIs(IdentifiedTag.class)
           .tagIsNot(SlowToInstrumentTag.class)
           .sourceIs(module::isModuleSource);
-    if (
-      entryCallTarget instanceof RootCallTarget r &&
-      r.getRootNode() instanceof EnsoRootNode n &&
-      n.getSourceSection() != null
-    ) {
-      builder.lineIn(n.getSourceSection().getStartLine(), n.getSourceSection().getEndLine());
+
+    if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {
+      SourceSection s = c.getSourceSection();
+      builder.lineIn(SourceSectionFilter.IndexRange.between(s.getStartLine(), s.getEndLine() + 1));
+    } else {
+      throw new IllegalStateException("Wrong entryCallTarget: " + entryCallTarget);
     }
     SourceSectionFilter filter = builder.build();
-    
+
+    /*
     env.getInstrumenter().attachExecutionEventFactory(filter, (context) -> {
       System.out.println("captured: " + context.getInstrumentedNode().getClass().getName() + " at " + context.getInstrumentedSourceSection());
       System.out.println("    root: " + context.getInstrumentedNode().getRootNode().getClass().getName());
-      return null; 
+      return null;
     });
+    */
 
     return env.getInstrumenter()
         .attachExecutionEventListener(
