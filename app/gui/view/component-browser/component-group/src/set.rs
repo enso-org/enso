@@ -13,7 +13,6 @@ use crate::wide;
 use crate::View;
 
 use enso_frp as frp;
-use ensogl::data::OptVec;
 
 
 
@@ -141,14 +140,21 @@ propagated_events! {
 // === Wrapper ===
 // ===============
 
+/// A Component Groups List Section identifier.
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub enum SectionId {
+    /// The "Favorite Tools" section.
     #[default]
     Favorites,
+    /// The "Local Scope" section.
     LocalScope,
+    /// The "Sub-Modules" section.
     SubModules,
 }
 
+/// A Group identifier. If `section` is [`SectionId::LocalScope`], the `index` should be 0, as that
+/// section has always only one group.
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct GroupId {
     pub section: SectionId,
@@ -156,6 +162,7 @@ pub struct GroupId {
 }
 
 impl GroupId {
+    /// Get id of the only group in "Local Scope" section.
     pub fn local_scope_group() -> Self {
         GroupId { section: SectionId::LocalScope, index: default() }
     }

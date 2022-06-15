@@ -1,12 +1,10 @@
 //! Code for type double representation processing.
 
 use crate::prelude::*;
-use std::cmp;
 
 use crate::identifier::ReferentName;
 use crate::module;
 use crate::project;
-use crate::tp;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -169,7 +167,7 @@ impl Display for QualifiedName {
 
 // === Comparison ===
 
-impl PartialEq<module::QualifiedName> for tp::QualifiedName {
+impl PartialEq<module::QualifiedName> for QualifiedName {
     fn eq(&self, rhs: &module::QualifiedName) -> bool {
         self.project_name == rhs.project_name
             && self.module_segments == rhs.id.parent_segments()
