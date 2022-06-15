@@ -540,7 +540,7 @@ impl Searcher {
             _ => None,
         });
         let favorites = graph.component_groups();
-        let module_name = module_qualified_name(&*project, &graph);
+        let module_name = graph_module_qualified_name(&graph, &*project);
         let list_builder_with_favs =
             component_list_builder_with_favorites(&database, &module_name, &*favorites);
         let ret = Self {
@@ -1115,7 +1115,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        module_qualified_name(&*self.project, &self.graph)
+        graph_module_qualified_name(&self.graph, &*self.project)
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1180,9 +1180,9 @@ fn component_list_builder_with_favorites<'a>(
     builder
 }
 
-fn module_qualified_name(
-    project: &dyn model::project::API,
+fn graph_module_qualified_name(
     graph: &controller::ExecutedGraph,
+    project: &dyn model::project::API,
 ) -> QualifiedName {
     graph.graph().module.path().qualified_module_name(project.qualified_name())
 }
@@ -1371,7 +1371,7 @@ pub mod test {
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             let favorites = graph.component_groups();
-            let module_qn = module_qualified_name(&*project, &graph);
+            let module_qn = graph_module_qualified_name(&graph, &*project);
             let list_builder_with_favs =
                 component_list_builder_with_favorites(&database, &module_qn, &*favorites);
             let searcher = Searcher {
