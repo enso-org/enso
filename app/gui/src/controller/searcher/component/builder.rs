@@ -77,9 +77,7 @@ impl List {
     /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
     /// method takes ids as argument). Additionally, when extending, non-module components having
     /// `local_scope_module` as their parent will be added to [`component::List::local_scope`].
-    pub fn new(
-        local_scope_module: Option<suggestion_database::EntryWithId>,
-    ) -> Self {
+    pub fn new(local_scope_module: Option<suggestion_database::EntryWithId>) -> Self {
         let local_scope = local_scope_module.map(Into::into).unwrap_or_default();
         Self {
             all_components: default(),
