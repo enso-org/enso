@@ -310,7 +310,7 @@ pub(crate) mod tests {
             suggestion_db.put_entry(id, entry.clone())
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
-        let top_module_qn: suggestion_database::entry::QualifiedName = top_module.name.into();
+        let top_module_qn: suggestion_database::entry::QualifiedName = top_module.module.into();
         let top_module_with_id = suggestion_db.lookup_by_qualified_name(&top_module_qn);
         let mut builder = builder::List::new(top_module_with_id);
         builder.set_favorites(&suggestion_db, &favorites);
