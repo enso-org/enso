@@ -105,16 +105,15 @@ class TextTest extends InterpreterTest {
     "support converting values to display texts" in {
       val code =
         """
-          |from Standard.Base.Data.List import Cons
+          |from Standard.Base.Data.List import Cons, Nil
           |from Standard.Base.Error.Common import all
-          |import Standard.Base.Data.Text
           |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |main =
           |    IO.println (Cons Nothing Nothing).to_display_text
           |    IO.println (Syntax_Error "foo").to_display_text
-          |    IO.println (Type_Error Nothing Text "myvar").to_display_text
+          |    IO.println (Type_Error Nothing Nil "myvar").to_display_text
           |    IO.println (Compile_Error "error :(").to_display_text
           |    IO.println (Inexhaustive_Pattern_Match_Error 32).to_display_text
           |    IO.println (Arithmetic_Error "cannot frobnicate quaternions").to_display_text
@@ -126,7 +125,7 @@ class TextTest extends InterpreterTest {
       consumeOut shouldEqual List(
         "Cons",
         "Syntax error: foo",
-        "Type error: expected `myvar` to be Nothing, but got Text.",
+        "Type error: expected `myvar` to be Nothing, but got Nil.",
         "Compile error: error :(",
         "Inexhaustive pattern match: no branch matches 32 (Integer).",
         "Arithmetic error: cannot frobnicate quaternions",

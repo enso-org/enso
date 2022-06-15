@@ -1,0 +1,7 @@
+type Array
+    @Builtin_Type
+    type Array
+
+new_1 item_1 = @Builtin_Method "Array.new_1"
+new_2 item_1 item_2 = @Builtin_Method "Array.new_2"
+empty = @Builtin_Method "Array.empty"

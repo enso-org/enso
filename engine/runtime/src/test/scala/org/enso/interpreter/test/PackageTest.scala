@@ -25,7 +25,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option(RuntimeOptions.PROJECT_ROOT, pkgPath.getAbsolutePath)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile.getAbsolutePath
+        Paths.get("../../test/micro-distribution/component").toFile.getAbsolutePath
       )
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
