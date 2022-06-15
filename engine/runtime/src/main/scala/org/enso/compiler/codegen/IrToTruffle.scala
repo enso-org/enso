@@ -721,7 +721,8 @@ class IrToTruffle(
           moduleScope,
           blockNode,
           makeSection(moduleScope, block.location),
-          currentVarName
+          currentVarName,
+          false
         )
 
         val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
@@ -1322,7 +1323,8 @@ class IrToTruffle(
         moduleScope,
         bodyBuilder.bodyNode(),
         makeSection(moduleScope, location),
-        scopeName
+        scopeName,
+        false
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
@@ -1499,7 +1501,8 @@ class IrToTruffle(
                 moduleScope,
                 argumentExpression,
                 section,
-                displayName
+                displayName,
+                true
               )
             )
 
@@ -1575,7 +1578,8 @@ class IrToTruffle(
               moduleScope,
               defaultExpression,
               null,
-              s"<default::$scopeName::${arg.name}>"
+              s"<default::$scopeName::${arg.name}>",
+              false
             )
 
             CreateThunkNode.build(

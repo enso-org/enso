@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
@@ -11,6 +12,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -111,5 +113,17 @@ public class ApplicationNode extends ExpressionNode {
   public void setId(UUID id) {
     super.setId(id);
     invokeCallableNode.setId(id);
+  }
+
+  @Override
+  public boolean hasTag(Class<? extends Tag> tag) {
+    if (SlowToInstrumentTag.class == tag) {
+      System.err.println("check: " + this + " root: " + getRootNode().getClass().getName());
+    }
+    boolean ret = super.hasTag(tag);
+    if (SlowToInstrumentTag.class == tag) {
+      System.err.println("  result of the check: " + ret);
+    }
+    return ret;
   }
 }

@@ -23,16 +23,13 @@ import org.enso.interpreter.runtime.state.Stateful;
 public class ClosureRootNode extends EnsoRootNode {
 
   @Child private ExpressionNode body;
+  private final boolean subjectToInstrumentation;
 
   ClosureRootNode(
-      Language language,
-      LocalScope localScope,
-      ModuleScope moduleScope,
-      ExpressionNode body,
-      SourceSection section,
-      String name) {
+          Language language, LocalScope localScope, ModuleScope moduleScope, ExpressionNode body, SourceSection section, String name, boolean subjectToInstrumentation) {
     super(language, localScope, moduleScope, name, section);
     this.body = body;
+    this.subjectToInstrumentation = subjectToInstrumentation;
   }
 
   /**
@@ -44,6 +41,7 @@ public class ClosureRootNode extends EnsoRootNode {
    * @param body the program body to be executed
    * @param section a mapping from {@code body} to the program source
    * @param name a name for the node
+   * @param subjectToInstrumentation shall this node be instrumented
    * @return a node representing the specified closure
    */
   public static ClosureRootNode build(
@@ -52,8 +50,10 @@ public class ClosureRootNode extends EnsoRootNode {
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      String name) {
-    return new ClosureRootNode(language, localScope, moduleScope, body, section, name);
+      String name,
+      boolean subjectToInstrumentation
+  ) {
+    return new ClosureRootNode(language, localScope, moduleScope, body, section, name, subjectToInstrumentation);
   }
 
   /**
@@ -76,5 +76,9 @@ public class ClosureRootNode extends EnsoRootNode {
 
   final ExpressionNode getBody() {
     return body;
+  }
+
+  public boolean isSubjectToInstrumentation() {
+    return subjectToInstrumentation;
   }
 }

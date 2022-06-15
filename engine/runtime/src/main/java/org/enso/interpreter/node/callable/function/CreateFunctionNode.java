@@ -3,11 +3,13 @@ package org.enso.interpreter.node.callable.function;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
 
 /**
  * This node is responsible for representing the definition of a function. It contains information
@@ -75,5 +77,15 @@ public class CreateFunctionNode extends ExpressionNode {
    */
   public ArgumentDefinition[] getArgs() {
     return schema.getArgumentInfos();
+  }
+
+  /** Adds slow to instrument tag.
+   */
+  @Override
+  public boolean hasTag(Class<? extends Tag> tag) {
+    if (SlowToInstrumentTag.class == tag) {
+      System.err.println("checking create function node: " + tag);
+    }
+    return super.hasTag(tag);
   }
 }

@@ -10,6 +10,9 @@ import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
@@ -29,6 +32,9 @@ import org.enso.pkg.QualifiedName;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.enso.interpreter.runtime.tag.SlowToInstrumentTag;
 
 /** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
@@ -311,9 +317,17 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
             .tagIs(IdentifiedTag.class)
+            .tagIsNot(SlowToInstrumentTag.class)
             .sourceIs(module::isModuleSource)
             .indexIn(locationFilter.getRanges())
             .build();
+    
+    
+    env.getInstrumenter().attachExecutionEventFactory(filter, (context) -> {
+      System.out.println("captured: " + context.getInstrumentedNode().getClass().getName() + " at " + context.getInstrumentedSourceSection());
+      System.out.println("    root: " + context.getInstrumentedNode().getRootNode().getClass().getName());
+      return null; 
+    });
 
     return env.getInstrumenter()
         .attachExecutionEventListener(

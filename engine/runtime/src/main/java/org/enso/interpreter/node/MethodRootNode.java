@@ -27,13 +27,12 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       AtomConstructor atomConstructor,
       String methodName) {
-    super(
-        language,
+    super(language,
         localScope,
         moduleScope,
         body,
         section,
-        shortName(atomConstructor.getName(), methodName));
+        shortName(atomConstructor.getName(), methodName), true);
     this.atomConstructor = atomConstructor;
     this.methodName = methodName;
   }
