@@ -86,7 +86,10 @@ public class CreateFunctionNode extends ExpressionNode {
   public boolean hasTag(Class<? extends Tag> tag) {
     if (SlowToInstrumentTag.class == tag) {
       System.err.println("checking create function node: " + tag);
-      return callTarget.getRootNode() instanceof ClosureRootNode c && !c.isSubjectToInstrumentation();
+      if (callTarget.getRootNode() instanceof ClosureRootNode c) {
+        return !c.isUsedInBinding() && !c.isSubjectToInstrumentation();
+      }
+      return false;
     }
     return super.hasTag(tag);
   }

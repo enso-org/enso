@@ -32,7 +32,7 @@ public class MethodRootNode extends ClosureRootNode {
         moduleScope,
         body,
         section,
-        shortName(atomConstructor.getName(), methodName), null);
+        shortName(atomConstructor.getName(), methodName), null, false);
     this.atomConstructor = atomConstructor;
     this.methodName = methodName;
   }

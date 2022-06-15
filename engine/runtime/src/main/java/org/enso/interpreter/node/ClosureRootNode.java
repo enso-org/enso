@@ -24,12 +24,14 @@ public class ClosureRootNode extends EnsoRootNode {
 
   @Child private ExpressionNode body;
   private final boolean subjectToInstrumentation;
+  private final boolean usedInBinding;
 
   ClosureRootNode(
-          Language language, LocalScope localScope, ModuleScope moduleScope, ExpressionNode body, SourceSection section, String name, Boolean subjectToInstrumentation) {
+          Language language, LocalScope localScope, ModuleScope moduleScope, ExpressionNode body, SourceSection section, String name, Boolean subjectToInstrumentation, boolean usedInBinding) {
     super(language, localScope, moduleScope, name, section);
     this.body = body;
     this.subjectToInstrumentation = Boolean.TRUE.equals(subjectToInstrumentation);
+    this.usedInBinding = usedInBinding;
   }
 
   /**
@@ -51,9 +53,10 @@ public class ClosureRootNode extends EnsoRootNode {
       ExpressionNode body,
       SourceSection section,
       String name,
-      Boolean subjectToInstrumentation
+      Boolean subjectToInstrumentation,
+      boolean usedInBinding
   ) {
-    return new ClosureRootNode(language, localScope, moduleScope, body, section, name, subjectToInstrumentation);
+    return new ClosureRootNode(language, localScope, moduleScope, body, section, name, subjectToInstrumentation, usedInBinding);
   }
 
   /**
@@ -80,5 +83,9 @@ public class ClosureRootNode extends EnsoRootNode {
 
   public boolean isSubjectToInstrumentation() {
     return subjectToInstrumentation;
+  }
+
+  public boolean isUsedInBinding() {
+    return usedInBinding;
   }
 }

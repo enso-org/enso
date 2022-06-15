@@ -162,7 +162,7 @@ public final class AtomConstructor implements TruffleObject {
             definitionScope,
             instantiateBlock,
             instantiateNode.getSourceSection(),
-            definitionScope.getModule().getName().item() + "." + name, null);
+            definitionScope.getModule().getName().item() + "." + name, null, false);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(callTarget, null, new FunctionSchema(args));
   }
