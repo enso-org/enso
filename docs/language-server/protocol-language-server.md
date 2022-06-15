@@ -3309,6 +3309,13 @@ null;
 Sent from the client to the server to get the list of component groups available
 in runtime.
 
+The engine is started with an empty list of libraries loaded. It means that the
+request should be sent after the first
+[`executionContext/executionComplete`](#executioncontextexecutioncomplete)
+notification indicating that all the libraries are loaded, and the component
+group list is populated. If the request is sent before the first notification,
+the response may be empty or not contain all available components.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol

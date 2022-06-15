@@ -105,7 +105,7 @@ impl Component {
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
     pub content:    Group,
-    pub submodules: group::List,
+    pub submodules: group::AlphabeticalList,
 }
 
 
@@ -124,24 +124,20 @@ pub struct ModuleGroups {
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
     all_components:        Rc<Vec<Component>>,
-    top_modules:           group::List,
-    top_modules_flattened: group::List,
+    top_modules:           group::AlphabeticalList,
+    top_modules_flattened: group::AlphabeticalList,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
     filtered:              Rc<Cell<bool>>,
+    /// Groups of components to display in the "Favorites Data Science Tools" section of the
+    /// [Component Browser](crate::controller::Searcher).
+    pub favorites:         group::List,
 }
 
 impl List {
-    /// Create a list containing all entities available in the [`model::SuggestionDatabase`].
-    pub fn build_list_from_all_db_entries(suggestion_db: &Rc<model::SuggestionDatabase>) -> List {
-        let mut builder = builder::List::new(suggestion_db.clone_ref());
-        builder.extend(suggestion_db.keys());
-        builder.build()
-    }
-
     /// Return the list of top modules, which should be displayed in Component Browser.
     ///
     /// If the list is filtered, all top modules will be flattened.
-    pub fn top_modules(&self) -> &group::List {
+    pub fn top_modules(&self) -> &group::AlphabeticalList {
         if self.filtered.get() {
             &self.top_modules_flattened
         } else {
@@ -151,7 +147,7 @@ impl List {
 
     /// Get the list of given component submodules. Returns [`None`] if given component is not
     /// a module.
-    pub fn submodules_of(&self, component: Id) -> Option<&group::List> {
+    pub fn submodules_of(&self, component: Id) -> Option<&group::AlphabeticalList> {
         self.module_groups.get(&component).map(|mg| &mg.submodules)
     }
 
@@ -167,13 +163,17 @@ impl List {
         for component in &*self.all_components {
             component.update_matching_info(pattern)
         }
-        for group in self.all_groups() {
-            group.update_sorting(pattern);
+        for group in self.all_groups_not_in_favorites() {
+            group.update_sorting_and_visibility(pattern);
+        }
+        for group in self.favorites.iter() {
+            group.update_visibility();
         }
         self.filtered.set(!pattern.is_empty());
     }
 
-    fn all_groups(&self) -> impl Iterator<Item = &Group> {
+    /// All groups from [`List`] without the groups found in [`List::favorites`].
+    fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
         normal.chain(flattened)
@@ -257,8 +257,36 @@ pub(crate) mod tests {
         suggestion_db
     }
 
+    fn mock_favorites(
+        db: &model::SuggestionDatabase,
+        component_ids: &[Id],
+    ) -> Vec<crate::model::execution_context::ComponentGroup> {
+        let db_entries = component_ids.iter().map(|id| db.lookup(*id).unwrap());
+        let group = crate::model::execution_context::ComponentGroup {
+            name:       "Test Group 1".into(),
+            color:      None,
+            components: db_entries.into_iter().map(|e| e.qualified_name()).collect(),
+        };
+        vec![group]
+    }
+
 
     // === Filtering Component List ===
+
+    /// Assert IDs and order of all entries in the group which have their [`Component::match_info`]
+    /// set to [`MatchInfo::Matches`]. Additionally, verify the [`Group::visible`] field is
+    /// [`true`] iff no IDs are expected.
+    fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
+        let ids_of_matches = group
+            .entries
+            .borrow()
+            .iter()
+            .filter(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
+            .map(|c| *c.id)
+            .collect_vec();
+        assert_eq!(ids_of_matches, expected_ids);
+        assert_eq!(group.visible.get(), !expected_ids.is_empty());
+    }
 
     #[test]
     fn filtering_component_list() {
@@ -267,45 +295,36 @@ pub(crate) mod tests {
         let sub_module = mock_module("test.Test.TopModule.SubModule");
         let fun1 = mock_function(&top_module.module, "fun1");
         let funx2 = mock_function(&sub_module.module, "funx1");
-        let all_entries = [top_module, sub_module, fun1, funx2];
+        let all_entries = [&top_module, &sub_module, &fun1, &funx2];
         let suggestion_db = model::SuggestionDatabase::new_empty(logger);
         for (id, entry) in all_entries.into_iter().enumerate() {
-            suggestion_db.put_entry(id, entry)
+            suggestion_db.put_entry(id, entry.clone())
         }
-        let mut builder = builder::List::new(Rc::new(suggestion_db));
-        builder.extend(0..4);
+        let favorites = mock_favorites(&suggestion_db, &[3, 2]);
+        let mut builder = builder::List::new();
+        builder.set_favorites(&suggestion_db, &favorites);
+        builder.extend(&suggestion_db, 0..4);
         let list = builder.build();
-        let get_entries_ids =
-            || list.top_modules()[0].entries.borrow().iter().map(|c| *c.id).collect_vec();
-        let count_matches_entries = || {
-            list.top_modules()[0]
-                .entries
-                .borrow()
-                .iter()
-                .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
-                .count()
-        };
 
         list.update_filtering("fu");
-        let expected_ids = vec![2, 3, 1];
-        assert_eq!(get_entries_ids(), expected_ids);
-        assert_eq!(count_matches_entries(), 2);
-        assert!(list.top_modules()[0].visible.get());
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
 
         list.update_filtering("x");
-        let expected_ids = vec![3, 2, 1];
-        assert_eq!(get_entries_ids(), expected_ids);
-        assert_eq!(count_matches_entries(), 1);
-        assert!(list.top_modules()[0].visible.get());
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[3]);
 
         list.update_filtering("Sub");
-        let expected_ids = vec![1, 3, 2];
-        assert_eq!(get_entries_ids(), expected_ids);
-        assert_eq!(count_matches_entries(), 1);
-        assert!(list.top_modules()[0].visible.get());
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[1]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[]);
 
         list.update_filtering("y");
-        assert!(!list.top_modules()[0].visible.get());
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[]);
+
+        list.update_filtering("");
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 1]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
     }
 
 
@@ -316,8 +335,8 @@ pub(crate) mod tests {
         // Create a components list with sample data.
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
-        let mut builder = builder::List::new(Rc::new(suggestion_db));
-        builder.extend(0..11);
+        let mut builder = builder::List::new();
+        builder.extend(&suggestion_db, 0..11);
         let list = builder.build();
 
         // Verify that we can read all top-level modules from the component list.

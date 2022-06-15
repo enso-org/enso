@@ -8,6 +8,7 @@ use crate::controller::graph::NewNodeInfo;
 use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
+use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
@@ -477,17 +478,21 @@ impl Data {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger:           Logger,
-    data:             Rc<RefCell<Data>>,
-    notifier:         notification::Publisher<Notification>,
-    graph:            controller::ExecutedGraph,
-    mode:             Immutable<Mode>,
-    database:         Rc<model::SuggestionDatabase>,
-    language_server:  Rc<language_server::Connection>,
-    ide:              controller::Ide,
-    this_arg:         Rc<Option<ThisNode>>,
+    logger: Logger,
+    data: Rc<RefCell<Data>>,
+    notifier: notification::Publisher<Notification>,
+    graph: controller::ExecutedGraph,
+    mode: Immutable<Mode>,
+    database: Rc<model::SuggestionDatabase>,
+    language_server: Rc<language_server::Connection>,
+    ide: controller::Ide,
+    this_arg: Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location>,
-    project:          model::Project,
+    project: model::Project,
+    /// A component list builder with favorites prepopulated with
+    /// [`controller::ExecutedGraph::component_groups`]. Stored to reduce the number of
+    /// [`database`] lookups performed when updating [`Data::components`].
+    list_builder_with_favorites: Rc<component::builder::List>,
 }
 
 impl Searcher {
@@ -534,6 +539,8 @@ impl Searcher {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
         });
+        let favorites = graph.component_groups();
+        let list_builder_with_favs = component_list_builder_with_favorites(&database, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -546,6 +553,7 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
+            list_builder_with_favorites: Rc::new(list_builder_with_favs),
         };
         ret.reload_list();
         Ok(ret)
@@ -951,15 +959,15 @@ impl Searcher {
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
-                    data.components = this.make_component_list(responses.iter());
+                    let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
+                    data.components = this.make_component_list(completions);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    data.components =
-                        component::List::build_list_from_all_db_entries(&this.database);
+                    data.components = this.make_component_list(this.database.keys());
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1021,12 +1029,10 @@ impl Searcher {
     #[profile(Debug)]
     fn make_component_list<'a>(
         &self,
-        completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
+        entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
     ) -> component::List {
-        let mut builder = component::builder::List::new(self.database.clone_ref());
-        for response in completion_responses {
-            builder.extend(response.results.iter().cloned());
-        }
+        let mut builder = self.list_builder_with_favorites.deref().clone();
+        builder.extend(&self.database, entry_ids);
         builder.build()
     }
 
@@ -1157,6 +1163,21 @@ impl Searcher {
         Ok(())
     }
 }
+
+
+// === Searcher helpers ===
+
+fn component_list_builder_with_favorites<'a>(
+    suggestion_db: &model::SuggestionDatabase,
+    groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
+) -> component::builder::List {
+    let mut builder = component::builder::List::new();
+    builder.set_favorites(suggestion_db, groups);
+    builder
+}
+
+
+// === SimpleFunctionCall ===
 
 /// A simple function call is an AST where function is a single identifier with optional
 /// argument applied by `ACCESS` operator (dot).
@@ -1318,12 +1339,14 @@ pub mod test {
             client_setup(&mut data, &mut client);
             let end_of_code = enso_text::Text::from(&data.graph.module.code).location_of_text_end();
             let code_range = enso_text::Location::default()..=end_of_code;
+            let scope = Scope::InModule { range: code_range };
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
-            let database = Rc::new(SuggestionDatabase::new_empty(&logger));
+            let module_name = crate::test::mock::data::module_qualified_name();
+            let database = suggestion_database_with_mock_entries(&logger, module_name, scope);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();
@@ -1336,9 +1359,8 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let module_name =
-                QualifiedName::from_segments(data.graph.graph.project_name.clone(), &[MODULE_NAME])
-                    .unwrap();
+            let favorites = graph.component_groups();
+            let list_bldr_with_favs = component_list_builder_with_favorites(&database, &*favorites);
             let searcher = Searcher {
                 graph,
                 logger,
@@ -1351,116 +1373,14 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
+                list_builder_with_favorites: Rc::new(list_bldr_with_favs),
             };
-            let entry1 = model::suggestion_database::Entry {
-                name:               "testFunction1".to_string(),
-                kind:               Kind::Function,
-                module:             crate::test::mock::data::module_qualified_name(),
-                arguments:          vec![],
-                return_type:        "Number".to_string(),
-                documentation_html: default(),
-                self_type:          None,
-                scope:              Scope::InModule { range: code_range },
-            };
-            let entry2 = model::suggestion_database::Entry {
-                name: "TestVar1".to_string(),
-                kind: Kind::Local,
-                ..entry1.clone()
-            };
-            let entry3 = model::suggestion_database::Entry {
-                name: "testMethod1".to_string(),
-                kind: Kind::Method,
-                self_type: Some(module_name.into()),
-                scope: Scope::Everywhere,
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Any".to_string(),
-                        name:          "this".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "Number".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry1.clone()
-            };
-            let entry4 = model::suggestion_database::Entry {
-                self_type: Some("test.Test.Test".to_owned().try_into().unwrap()),
-                module: "test.Test.Test".to_owned().try_into().unwrap(),
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Any".to_string(),
-                        name:          "this".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "String".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry3.clone()
-            };
-            let entry5 = model::suggestion_database::Entry {
-                kind:               Kind::Module,
-                module:             entry1.module.clone(),
-                name:               MODULE_NAME.to_owned(),
-                arguments:          default(),
-                return_type:        entry1.module.to_string(),
-                documentation_html: None,
-                self_type:          None,
-                scope:              Scope::Everywhere,
-            };
-            let entry9 = model::suggestion_database::Entry {
-                name: "testFunction2".to_string(),
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Text".to_string(),
-                        name:          "text_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "Number".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry1.clone()
-            };
-            let entry10 = model::suggestion_database::Entry {
-                name: "testFunction3".to_string(),
-                module: "test.Test.Other".to_owned().try_into().unwrap(),
-                scope: Scope::Everywhere,
-                ..entry9.clone()
-            };
-
-            searcher.database.put_entry(1, entry1);
             let entry1 = searcher.database.lookup(1).unwrap();
-            searcher.database.put_entry(2, entry2);
             let entry2 = searcher.database.lookup(2).unwrap();
-            searcher.database.put_entry(3, entry3);
             let entry3 = searcher.database.lookup(3).unwrap();
-            searcher.database.put_entry(4, entry4);
             let entry4 = searcher.database.lookup(4).unwrap();
-            searcher.database.put_entry(5, entry5);
             let entry5 = searcher.database.lookup(5).unwrap();
-            searcher.database.put_entry(9, entry9);
             let entry9 = searcher.database.lookup(9).unwrap();
-            searcher.database.put_entry(10, entry10);
             let entry10 = searcher.database.lookup(10).unwrap();
             Fixture {
                 data,
@@ -1479,6 +1399,117 @@ pub mod test {
         fn new() -> Self {
             Self::new_custom(|_, _| {})
         }
+    }
+
+    fn suggestion_database_with_mock_entries(
+        logger: &Logger,
+        module_name: QualifiedName,
+        scope: Scope,
+    ) -> Rc<SuggestionDatabase> {
+        let database = Rc::new(SuggestionDatabase::new_empty(logger));
+        let entry1 = model::suggestion_database::Entry {
+            name: "testFunction1".to_string(),
+            kind: Kind::Function,
+            module: crate::test::mock::data::module_qualified_name(),
+            arguments: vec![],
+            return_type: "Number".to_string(),
+            documentation_html: default(),
+            self_type: None,
+            scope,
+        };
+        let entry2 = model::suggestion_database::Entry {
+            name: "TestVar1".to_string(),
+            kind: Kind::Local,
+            ..entry1.clone()
+        };
+        let entry3 = model::suggestion_database::Entry {
+            name: "testMethod1".to_string(),
+            kind: Kind::Method,
+            self_type: Some(module_name.into()),
+            scope: Scope::Everywhere,
+            arguments: vec![
+                Argument {
+                    repr_type:     "Any".to_string(),
+                    name:          "this".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "Number".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry1.clone()
+        };
+        let entry4 = model::suggestion_database::Entry {
+            self_type: Some("test.Test.Test".to_owned().try_into().unwrap()),
+            module: "test.Test.Test".to_owned().try_into().unwrap(),
+            arguments: vec![
+                Argument {
+                    repr_type:     "Any".to_string(),
+                    name:          "this".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "String".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry3.clone()
+        };
+        let entry5 = model::suggestion_database::Entry {
+            kind:               Kind::Module,
+            module:             entry1.module.clone(),
+            name:               MODULE_NAME.to_owned(),
+            arguments:          default(),
+            return_type:        entry1.module.to_string(),
+            documentation_html: None,
+            self_type:          None,
+            scope:              Scope::Everywhere,
+        };
+        let entry9 = model::suggestion_database::Entry {
+            name: "testFunction2".to_string(),
+            arguments: vec![
+                Argument {
+                    repr_type:     "Text".to_string(),
+                    name:          "text_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "Number".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry1.clone()
+        };
+        let entry10 = model::suggestion_database::Entry {
+            name: "testFunction3".to_string(),
+            module: "test.Test.Other".to_owned().try_into().unwrap(),
+            scope: Scope::Everywhere,
+            ..entry9.clone()
+        };
+        database.put_entry(1, entry1);
+        database.put_entry(2, entry2);
+        database.put_entry(3, entry3);
+        database.put_entry(4, entry4);
+        database.put_entry(5, entry5);
+        database.put_entry(9, entry9);
+        database.put_entry(10, entry10);
+        database
     }
 
 
@@ -1673,14 +1704,30 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn loading_components() {
+        // Prepare a sample component group to be returned by a mock Language Server client.
+        let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
+        let sample_ls_component_group = language_server::LibraryComponentGroup {
+            library: "".to_string(),
+            name:    "Test Group 1".to_string(),
+            color:   None,
+            icon:    None,
+            exports: vec![language_server::LibraryComponent {
+                name:     module_qualified_name + ".testFunction1",
+                shortcut: None,
+            }],
+        };
+        // Create a test fixture with mocked Engine responses.
         let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
                 // Entry with id 99999 does not exist, so only two actions from suggestions db
                 // should be displayed in searcher.
                 data.expect_completion(client, None, None, &[1, 99999, 9]);
+                data.graph.ctx.component_groups = vec![sample_ls_component_group];
             });
+        // Reload the components list in the Searcher.
         searcher.reload_list();
         test.run_until_stalled();
+        // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
         if let [module_group] = &components.top_modules()[..] {
             assert_eq!(module_group.name, entry1.module.to_string());
@@ -1689,6 +1736,13 @@ pub mod test {
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
+        let favorites = &components.favorites;
+        assert_eq!(favorites.len(), 1);
+        let favorites_group = &favorites[0];
+        assert_eq!(favorites_group.name, "Test Group 1");
+        let favorites_entries = favorites_group.entries.borrow();
+        assert_eq!(favorites_entries.len(), 1);
+        assert_eq!(*favorites_entries[0].id, 1);
     }
 
     #[wasm_bindgen_test]
