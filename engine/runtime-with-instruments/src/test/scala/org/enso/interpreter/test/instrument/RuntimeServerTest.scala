@@ -72,6 +72,7 @@ class RuntimeServerTest
             .toFile
             .getAbsolutePath
         )
+        .options(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(logOut)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)

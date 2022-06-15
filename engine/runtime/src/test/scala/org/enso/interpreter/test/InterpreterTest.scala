@@ -114,6 +114,7 @@ class InterpreterContext(
           .toFile
           .getAbsolutePath
       )
+      .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {
           new DebuggerSessionManagerEndpoint(sessionManager, peer)

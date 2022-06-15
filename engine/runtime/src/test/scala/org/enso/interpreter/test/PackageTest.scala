@@ -30,6 +30,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
           .toFile
           .getAbsolutePath
       )
+      .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .out(output)
