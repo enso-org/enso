@@ -82,8 +82,7 @@ impl Group {
         suggestion_db: &model::SuggestionDatabase,
     ) -> Option<Self> {
         let lookup_component = |qualified_name| {
-            let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
-            Some(Component::new(id, suggestion))
+            suggestion_db.lookup_by_qualified_name(qualified_name).map(Into::into)
         };
         let components = &group.components;
         let looked_up_components = components.iter().filter_map(lookup_component).collect_vec();

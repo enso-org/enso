@@ -540,7 +540,8 @@ impl Searcher {
             _ => None,
         });
         let favorites = graph.component_groups();
-        let module_id = lookup_suggestion_id(&database, &module_qualified_name(&*project, &graph));
+        let module_name = module_qualified_name(&*project, &graph);
+        let module_id = database.lookup_by_qualified_name(&module_name).map(|m| m.id);
         let list_builder_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
         let ret = Self {
             logger,
@@ -1182,14 +1183,6 @@ fn module_qualified_name(project: &dyn model::project::API, graph: &controller::
     graph.graph().module.path().qualified_module_name(project.qualified_name())
 }
 
-fn lookup_suggestion_id<P, I>(suggestion_db: &model::SuggestionDatabase, name: P) -> Option<language_server::SuggestionId>
-    where
-        P: IntoIterator<Item = I>,
-        I: Into<suggestion_database::entry::QualifiedNameSegment>, {
-    let (id, _) = suggestion_db.lookup_by_qualified_name(name)?;
-    Some(id)
-}
-
 
 // === SimpleFunctionCall ===
 
@@ -1373,7 +1366,8 @@ pub mod test {
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             let favorites = graph.component_groups();
-            let module_id = lookup_suggestion_id(&database, &module_qualified_name(&*project, &graph));
+            let module_qn = module_qualified_name(&*project, &graph);
+            let module_id = database.lookup_by_qualified_name(&module_qn).map(|m| m.id);
             let list_bldr_with_favs = component_list_builder_with_favorites(&database, module_id, &*favorites);
             let searcher = Searcher {
                 graph,

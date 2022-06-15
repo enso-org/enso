@@ -125,6 +125,24 @@ pub enum Notification {
 
 
 
+// ===================
+// === EntryWithId ===
+// ===================
+
+#[derive(Clone, CloneRef, Debug)]
+pub struct EntryWithId {
+    pub id: SuggestionId,
+    pub entry: Rc<Entry>,
+}
+
+impl EntryWithId {
+    pub fn new(id: entry::Id, entry: Rc<Entry>) -> Self {
+        Self { id, entry }
+    }
+}
+
+
+
 // ================
 // === Database ===
 // ================
@@ -285,18 +303,21 @@ impl SuggestionDatabase {
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
     /// composed of segments separated by the [`ACCESS`] character.
     pub fn lookup_by_qualified_name_str(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
-        let (_, entry) = self.lookup_by_qualified_name(fully_qualified_name.split(ACCESS))?;
-        Some(entry)
+        let suggestion = self.lookup_by_qualified_name(fully_qualified_name.split(ACCESS))?;
+        Some(suggestion.entry)
     }
 
     /// Search the database for an entry at `name` consisting fully qualified name segments, e.g.
     /// [`model::QualifiedName`].
-    pub fn lookup_by_qualified_name<P, I>(&self, name: P) -> Option<(SuggestionId, Rc<Entry>)>
+    pub fn lookup_by_qualified_name<P, I>(&self, name: P) -> Option<EntryWithId>
     where
         P: IntoIterator<Item = I>,
         I: Into<entry::QualifiedNameSegment>, {
         let id = self.qualified_name_to_id_map.borrow().get(name);
-        id.and_then(|id| Some((id, self.lookup(id).ok()?)))
+        id.and_then(|id| {
+            let entry = self.lookup(id).ok()?;
+            Some(EntryWithId::new(id, entry))
+        })
     }
 
     /// Search the database for entries with given name and visible at given location in module.

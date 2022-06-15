@@ -91,6 +91,12 @@ impl Component {
     }
 }
 
+impl From<suggestion_database::EntryWithId> for Component {
+    fn from(suggestion: suggestion_database::EntryWithId) -> Self {
+        Self::new(suggestion.id, suggestion.entry)
+    }
+}
+
 
 
 // ============
