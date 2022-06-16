@@ -1006,7 +1006,7 @@ class IrToTruffle(
     /** Generates code for an Enso function.
       *
       * @param function the function to generate code for
-      * @param binding is the function right insight a binding
+      * @param binding whether the function is right inside a binding
       * @return the truffle nodes corresponding to `function`
       */
     private def processFunction(
