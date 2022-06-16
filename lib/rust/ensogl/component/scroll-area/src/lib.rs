@@ -135,6 +135,8 @@ struct Model {
     content:        display::object::Instance,
     scrollbars:     display::object::Instance,
     display_object: display::object::InstanceWithLayer<layer::Masked>,
+    content_layer:  layer::Layer,
+    ui_layer:       layer::Layer,
     mask:           mask::View,
     h_scrollbar:    Scrollbar,
     v_scrollbar:    Scrollbar,
@@ -195,17 +197,19 @@ impl ScrollArea {
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
-        let scrollbars = display::object::Instance::new(&logger);
-        display_object.add_child(&scrollbars);
+        let content_layer = display_object.layer.masked_layer.create_sublayer();
+        let ui_layer = display_object.layer.masked_layer.create_sublayer();
 
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);
+        content_layer.add_exclusive(&content);
+
+        let scrollbars = display::object::Instance::new(&logger);
+        display_object.add_child(&scrollbars);
+        ui_layer.add_exclusive(&scrollbars);
 
         let mask = mask::View::new(&logger);
         display_object.add_child(&mask);
-
-        display_object.layer.masked_layer.add_exclusive(&content);
-        display_object.layer.masked_layer.add_exclusive(&scrollbars);
         display_object.layer.mask_layer.add_exclusive(&mask);
 
         let h_scrollbar = Scrollbar::new(app);
@@ -215,7 +219,16 @@ impl ScrollArea {
         scrollbars.add_child(&v_scrollbar);
         v_scrollbar.set_rotation_z(-90.0_f32.to_radians());
 
-        let model = Model { display_object, content, v_scrollbar, h_scrollbar, mask, scrollbars };
+        let model = Model {
+            display_object,
+            content,
+            v_scrollbar,
+            h_scrollbar,
+            mask,
+            scrollbars,
+            content_layer,
+            ui_layer,
+        };
 
         let frp = Frp::new();
         let network = &frp.network;
@@ -320,7 +333,7 @@ impl ScrollArea {
 
     /// A scene layer containing the content of the ScrollArea.
     pub fn content_layer(&self) -> &layer::Layer {
-        &self.model.display_object.layer.masked_layer
+        &self.model.content_layer
     }
 
 
