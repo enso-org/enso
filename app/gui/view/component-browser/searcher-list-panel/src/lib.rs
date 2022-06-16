@@ -400,7 +400,7 @@ impl Model {
         let display_object = display::object::Instance::new(&logger);
 
         let background = background::View::new(&logger);
-        // display_object.add_child(&background);
+        display_object.add_child(&background);
         app.display.default_scene.layers.below_main.add_exclusive(&background);
 
         let favourites_section = Self::init_column_section(&app);
@@ -412,6 +412,10 @@ impl Model {
 
         let layers = Layers::new(&app, &scroll_area);
         layers.base.add_exclusive(&scroll_area);
+
+        favourites_section.set_parent(scroll_area.content());
+        local_scope_section.set_parent(scroll_area.content());
+        sub_modules_section.set_parent(scroll_area.content());
 
         let navigator = default();
         Self {
