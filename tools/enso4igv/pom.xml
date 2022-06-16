@@ -17,6 +17,7 @@
                     <useOSGiDependencies>true</useOSGiDependencies>
                     <author>Enso.org</author>
                     <licenseName>Apache 2.0</licenseName>
+                    <licenseFile>../../LICENSE</licenseFile>
                 </configuration>
             </plugin>
             <plugin>
