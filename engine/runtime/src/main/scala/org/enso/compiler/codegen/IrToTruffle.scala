@@ -20,6 +20,7 @@ import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   MethodDefinitions,
+  MethodReferences,
   Patterns,
   UppercaseNames
 }
@@ -1053,8 +1054,9 @@ class IrToTruffle(
             )
             .unsafeAs[AliasAnalysis.Info.Occurrence]
 
-          val slot   = scope.getFramePointer(useInfo.id)
-          val global = name.getMetadata(UppercaseNames)
+          val slot      = scope.getFramePointer(useInfo.id)
+          val global    = name.getMetadata(UppercaseNames)
+          val globalRef = name.getMetadata(MethodReferences)
           if (slot.isDefined) {
             ReadLocalVariableNode.build(slot.get)
           } else if (global.isDefined) {
@@ -1085,7 +1087,19 @@ class IrToTruffle(
                   "Impossible here, should be desugared by UppercaseNames resolver"
                 )
             }
-          } else if (nameStr == "from") {
+          } else if (globalRef.isDefined) {
+            val resolution = globalRef.get.target
+            resolution match {
+              case BindingsMap.ResolvedModule(module) =>
+                ConstructorNode.build(
+                  module.unsafeAsModule().getScope.getAssociatedType
+                )
+              case _ =>
+                throw new CompilerError(
+                  "Impossible here, should be desugared by MethodReferences resolver"
+                )
+            }
+          } else if (nameStr == Constants.Names.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
           } else {
             DynamicSymbolNode.build(

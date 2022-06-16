@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.resolve.MethodReferences
 
 import scala.annotation.unused
 
@@ -19,7 +20,8 @@ case object UndefinedVariables extends IRPass {
   override type Config = IRPass.Configuration.Default
 
   /** The passes that this pass depends _directly_ on to run. */
-  override val precursorPasses: Seq[IRPass] = Seq(AliasAnalysis)
+  override val precursorPasses: Seq[IRPass] =
+    Seq(AliasAnalysis, MethodReferences)
 
   /** The passes that are invalidated by running this pass. */
   override val invalidatedPasses: Seq[IRPass] = Seq()
@@ -70,9 +72,17 @@ case object UndefinedVariables extends IRPass {
         occ.graph.defLinkFor(occ.id) match {
           case Some(_) => name
           case None =>
-            val errorResolutionNode =
-              IR.Error.Resolution(name, IR.Error.Resolution.VariableNotInScope)
-            errorResolutionNode.updateMetadata(AliasAnalysis -->> occ)
+            val synthetic = name.getMetadata(MethodReferences)
+            // TODO add a link from self to def module (via global symbol?) to avoid a reference to the pass
+            if (synthetic.isDefined) name // <exclude <internal-xyz> self vars
+            else {
+              val errorResolutionNode =
+                IR.Error.Resolution(
+                  name,
+                  IR.Error.Resolution.VariableNotInScope
+                )
+              errorResolutionNode.updateMetadata(AliasAnalysis -->> occ)
+            }
         }
       } else { name }
 

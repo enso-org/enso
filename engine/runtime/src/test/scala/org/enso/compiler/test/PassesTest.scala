@@ -54,7 +54,7 @@ class PassesTest extends CompilerTest {
           BindingAnalysis,
           GenerateDocumentation,
           MethodDefinitions,
-          ModuleThisToHere,
+          ModuleThisToHere, // should remove
           SectionsToBinOp,
           OperatorToFunction,
           LambdaShorthandToLambda,

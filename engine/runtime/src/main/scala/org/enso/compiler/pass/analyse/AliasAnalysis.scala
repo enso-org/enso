@@ -499,7 +499,6 @@ case object AliasAnalysis extends IRPass {
         case _: IR.Literal => parentScope
         case _             => parentScope.addChild()
       }
-
       arg
         .copy(value = analyseExpression(expr, graph, currentScope))
         .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))

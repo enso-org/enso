@@ -2245,7 +2245,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class MethodReference(
-      typePointer: IR.Name,
+      typePointer: IR.Name, // will need to get rid of /Here
       methodName: IR.Name,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -2286,7 +2286,7 @@ object IR {
       }
 
       /** @inheritdoc */
-      override def isReferent: Boolean = true
+      override def isReferent: Boolean = false
 
       /** @inheritdoc */
       override def duplicate(
@@ -2414,7 +2414,7 @@ object IR {
       override def setLocation(location: Option[IdentifiedLocation]): Name =
         copy(location = location)
 
-      override def isReferent: Boolean = true
+      override def isReferent: Boolean = false
 
       /** Creates a copy of `this`.
         *

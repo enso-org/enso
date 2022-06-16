@@ -39,7 +39,7 @@ class Passes(
   val globalTypingPasses = new PassGroup(
     List(
       MethodDefinitions,
-      ModuleThisToHere,
+      ModuleThisToHere, // should remove
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,
@@ -55,6 +55,8 @@ class Passes(
   val functionBodyPasses = new PassGroup(
     List(
       ExpressionAnnotations,
+      AliasAnalysis,
+      MethodReferences,
       AliasAnalysis,
       UppercaseNames,
       MethodCalls,
