@@ -10,11 +10,35 @@
 //!
 //! To simulate scrolling of the component group entries we move the header of the component group
 //! down while moving the whole component group up (see [`Frp::set_header_pos`]). When the header
-//! is moved down the shadow appears below it. The shadow changes its intensity smoothly before
+//! is pushed down the shadow appears below it. The shadow changes its intensity smoothly before
 //! the header reaches the [`HEADER_SHADOW_PEAK`] distance from the top of the component group.
 //! After that the shadow is unchanged. When the header approaches the bottom of the component group
 //! we gradually reduce the size of the shadow so that it will never be rendered outside the
-//! component group boundaries. See `Header Backgound` section in the [`Model::resize`] method.
+//! component group boundaries. See `Header Background` section in the [`Model::resize`] method.
+//!
+//! # Selection
+//!
+//! The selection box used to highlight "selected" entries is implemented in a pretty tricky way.
+//! We want to render the selection box above the background of the component group, but below
+//! any text - so that text color isn't blending with the selection box's color. However, a
+//! component group uses four different [scene layers][Layer] to render its header correctly, and we
+//! want the selection to be above the header background and below the text entries at the same
+//! time, which is not possible.
+//!
+//! So instead we duplicate component group entries in a special `selection` scene layer (or
+//! rather, in a multiple scene layers to ensure render ordering) and use [layers masking][mask]
+//! to cut off everything except the selection shape. We duplicate the following:
+//! - Entry text and icon (see [entry][] module).
+//! - A background of the component group [background][].
+//! - (for component groups with header) A background of the header [selection_header_background][].
+//! - (for component groups with header) Header text.
+//!
+//! This implementation allows tweaking the appearance of the selected text and icons easily.
+//! When the selection box moves, the transition between "normal" and "selected" appearances also
+//! looks natural without any additional tricks. So you can see a "half-selected" entry if the
+//! selection box is only covering part of it.
+//!
+//! [mask]: ensogl::display::scene::layer::Layer#masking-layers-with-arbitrary-shapes
 
 #![recursion_limit = "512"]
 // === Features ===
@@ -34,15 +58,13 @@
 use crate::prelude::*;
 use ensogl::application::traits::*;
 
-use crate::display::scene::layer;
-
 use enso_frp as frp;
 use ensogl::application::shortcut::Shortcut;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::data::text;
 use ensogl::display;
-use ensogl::display::camera::Camera2d;
+use ensogl::display::scene::layer::Layer;
 use ensogl::Animation;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
@@ -91,6 +113,27 @@ const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 // === Shapes Definitions ===
 // ==========================
 
+// === Selection ===
+
+/// A shape of a selection box. It is used as a mask to show only specific parts of the selection
+/// layers. See module-level documentation to learn more.
+pub mod selection_box {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        pointer_events = false;
+        (style:Style) {
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = "input_size.y".into();
+            let corners_radius = style.get_number(theme::selection::corners_radius);
+            let padding_y = style.get_number(theme::selection::vertical_padding);
+            let padding_x = style.get_number(theme::selection::horizontal_padding);
+            let shape = Rect((width - padding_x.px(), height - padding_y.px()));
+            shape.corners_radius(corners_radius.px()).into()
+        }
+    }
+}
+
 
 // === Background ===
 
@@ -100,6 +143,7 @@ pub mod background {
 
     ensogl::define_shape_system! {
         below = [list_view::background];
+        pointer_events = false;
         (style:Style, color:Vector4) {
             let color = Var::<color::Rgba>::from(color);
             Plane().fill(color).into()
@@ -135,6 +179,21 @@ pub mod header_background {
             shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
             let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
             (shadow + bg).into()
+        }
+    }
+}
+
+/// A background of the "selected" header. See module-level documentation.
+pub mod selection_header_background {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        pointer_events = false;
+        (color:Vector4, height: f32) {
+            let color = Var::<color::Rgba>::from(color);
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = height.into();
+            Rect((width, height)).fill(color).into()
         }
     }
 }
@@ -205,6 +264,9 @@ impl HeaderGeometry {
 /// [`ide_component_group::wide::View`] can be created from single "main color" input. Each of
 /// these colors will be computed by mixing "main color" with application background - for details,
 /// see [`Colors::from_main_color`].
+///
+/// `icon_strong` and `icon_weak` parameters represent the more/less contrasting parts of the
+/// [icon](crate::icon::Any), they do not represent highlighted state of the icon.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Colors {
@@ -217,10 +279,22 @@ pub struct Colors {
     pub header_text: frp::Sampler<color::Rgba>,
     pub entry_text:  frp::Sampler<color::Rgba>,
     pub background:  frp::Sampler<color::Rgba>,
+    pub selected:    SelectedColors,
+}
+
+/// Helper struct with colors of the selected entries. Part of [`Colors`].
+#[allow(missing_docs)]
+#[derive(Clone, CloneRef, Debug)]
+pub struct SelectedColors {
+    pub background:  frp::Sampler<color::Rgba>,
+    pub entry_text:  frp::Sampler<color::Rgba>,
+    pub header_text: frp::Sampler<color::Rgba>,
+    pub icon_strong: frp::Sampler<color::Rgba>,
+    pub icon_weak:   frp::Sampler<color::Rgba>,
 }
 
 impl Colors {
-    /// Constructs [`Colors`] structure, where each variant is based on the "main" `color`
+    /// Constructs [`Colors`] structure, where each variant is based on the "main" [`color`]
     /// parameter.
     pub fn from_main_color(
         network: &frp::Network,
@@ -234,9 +308,11 @@ impl Colors {
         let app_bg = style.get_color(ensogl_hardcoded_theme::application::background);
         let header_intensity = style.get_number(theme::header::text::color_intensity);
         let bg_intensity = style.get_number(theme::background_color_intensity);
+        let selection_intensity = style.get_number(theme::selection_color_intensity);
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let icon_weak_intensity = style.get_number(theme::entry_list::icon::weak_color_intensity);
         let entry_text_ = style.get_color(theme::entry_list::text::color);
+        let selected = style.get_color(theme::entry_list::selected_color);
         let intensity = Animation::new(network);
         frp::extend! { network
             init <- source_();
@@ -253,9 +329,19 @@ impl Colors {
             entry_text <- app_bg_and_entry_text.all_with(&intensity.value, mix).sampler();
             icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
             icon_strong <- main.sampler();
+            selected_bg <- app_bg_and_main.all_with(&selection_intensity, mix).sampler();
+            main_and_selected <- all(&main, &selected);
+            selected_icon_weak <- main_and_selected.all_with(&icon_weak_intensity, mix).sampler();
         }
         init.emit(());
-        Self { icon_weak, icon_strong, header_text, entry_text, background: bg }
+        let selected = SelectedColors {
+            background:  selected_bg,
+            header_text: selected.clone_ref(),
+            entry_text:  selected.clone_ref(),
+            icon_weak:   selected_icon_weak,
+            icon_strong: selected.clone_ref(),
+        };
+        Self { icon_weak, icon_strong, header_text, entry_text, background: bg, selected }
     }
 }
 
@@ -334,7 +420,8 @@ impl component::Frp<Model> for Frp {
 
         // === Colors ===
         let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
-        let params = entry::Params { colors: colors.clone_ref() };
+        let selection_layer = default();
+        let params = entry::Params { colors: colors.clone_ref(), selection_layer };
         model.entries.set_entry_params_and_recreate_entries(params);
 
 
@@ -344,8 +431,10 @@ impl component::Frp<Model> for Frp {
             init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
+            model.selected_header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
+            model.selected_header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
                 (text, (size, hdr_geom, _)) {
                     model.header_text.replace(text.clone());
@@ -353,8 +442,13 @@ impl component::Frp<Model> for Frp {
                 })
             );
             model.header.set_default_color <+ colors.header_text;
+            model.selected_header.set_default_color <+ all(&colors.selected.header_text,&init)._0();
             eval colors.background((c) model.background.color.set(c.into()));
             eval colors.background((c) model.header_background.color.set(c.into()));
+            eval colors.selected.background((c) model.selection_background.color.set(c.into()));
+            eval colors.selected.background(
+                (c) model.selection_header_background.color.set(c.into())
+            );
         }
 
 
@@ -392,11 +486,21 @@ impl component::Frp<Model> for Frp {
             out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
-            out.selection_position_target <+ all_with3(
+            out.selection_size <+ all_with3(
+                &header_geometry,
                 &out.is_header_selected,
+                &out.focused,
+                f!((geom, h_sel, _) model.selection_size(geom.height, *h_sel))
+            );
+            out.selection_position_target <+ all_with5(
+                &out.is_header_selected,
+                &header_geometry,
                 &out.size,
                 &model.entries.selection_position_target,
-                f!((h_sel, size, esp) model.selection_position(*h_sel, *size, *esp))
+                &input.set_header_pos,
+                f!((h_sel, h_geom, size, esp, h_pos)
+                    model.selection_position(*h_sel, *h_geom, *size, *esp, *h_pos)
+                )
             );
         }
 
@@ -436,37 +540,58 @@ impl component::Frp<Model> for Frp {
 
 /// A set of scene layers shared by every component group.
 ///
-/// A component group consists of a several shapes with a strict rendering order. The order of the
-/// fields of this struct represents the rendering order of layers, with `background` being the
-/// bottom-most and `header_text` being the top-most.
+/// Layers are duplicated into two sets ([`LayersInner`]). `normal` layers are used by the
+/// component group itself, `selection` layers are used to implement the selection box. See
+/// module-level documentation to learn more.
+///
+/// A component group consists of several shapes with a strict rendering order. The order of the
+/// fields in [`LayersInner`] struct represent the rendering order of layers, with `background`
+/// being the bottom-most and `header_text` being the top-most.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Layers {
-    background:  layer::Layer,
-    text:        layer::Layer,
-    header:      layer::Layer,
-    header_text: layer::Layer,
+    normal:    LayersInner,
+    selection: LayersInner,
 }
 
 impl Layers {
     /// Constructor.
     ///
-    /// A `camera` will be used to render all layers. Layers will be attached to a `parent_layer` as
-    /// sublayers.
-    pub fn new(logger: &Logger, camera: &Camera2d, parent_layer: &layer::Layer) -> Self {
-        let background = layer::Layer::new_with_cam(logger.clone_ref(), camera);
-        let text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
-        let header = layer::Layer::new_with_cam(logger.clone_ref(), camera);
-        let header_text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+    /// `normal` layers are assigned as sublayers of the `normal_parent`, while `selection`
+    /// layers are assigned to the `selected_parent`.
+    pub fn new(logger: &Logger, normal_parent: &Layer, selected_parent: &Layer) -> Self {
+        let normal = LayersInner::new(logger, normal_parent);
+        let selection = LayersInner::new(logger, selected_parent);
+        Self { normal, selection }
+    }
+}
 
+/// A set of scene layers shared by every component group. A part of [`Layers`].
+#[derive(Debug, Clone, CloneRef)]
+struct LayersInner {
+    background:  Layer,
+    text:        Layer,
+    header:      Layer,
+    header_text: Layer,
+}
+
+impl LayersInner {
+    /// Constructor.
+    ///
+    /// Layers will be attached to a `parent_layer` as sublayers.
+    pub fn new(logger: &Logger, parent_layer: &Layer) -> Self {
+        let camera = parent_layer.camera();
+        let background = Layer::new_with_cam(logger.clone_ref(), &camera);
+        let text = Layer::new_with_cam(logger.clone_ref(), &camera);
+        let header = Layer::new_with_cam(logger.clone_ref(), &camera);
+        let header_text = Layer::new_with_cam(logger.clone_ref(), &camera);
         background.add_sublayer(&text);
         background.add_sublayer(&header);
         header.add_sublayer(&header_text);
-
         parent_layer.add_sublayer(&background);
-
         Self { background, header, text, header_text }
     }
 }
+
 
 
 // =============
@@ -476,13 +601,16 @@ impl Layers {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    display_object:    display::object::Instance,
-    header:            text::Area,
+    display_object: display::object::Instance,
+    entries: list_view::ListView<Entry>,
+    header: text::Area,
     header_background: header_background::View,
-    header_text:       Rc<RefCell<String>>,
-    header_overlay:    header_overlay::View,
-    background:        background::View,
-    entries:           list_view::ListView<Entry>,
+    header_text: Rc<RefCell<String>>,
+    header_overlay: header_overlay::View,
+    background: background::View,
+    selected_header: text::Area,
+    selection_header_background: selection_header_background::View,
+    selection_background: background::View,
 }
 
 impl display::Object for Model {
@@ -501,8 +629,11 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let header_overlay = header_overlay::View::new(&logger);
         let background = background::View::new(&logger);
+        let selection_background = background::View::new(&logger);
         let header_background = header_background::View::new(&logger);
+        let selection_header_background = selection_header_background::View::new(&logger);
         let header = text::Area::new(app);
+        let selected_header = text::Area::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
@@ -510,8 +641,11 @@ impl component::Model for Model {
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
         display_object.add_child(&background);
+        display_object.add_child(&selection_background);
         display_object.add_child(&header_background);
+        display_object.add_child(&selection_header_background);
         display_object.add_child(&header);
+        display_object.add_child(&selected_header);
         display_object.add_child(&header_overlay);
         display_object.add_child(&entries);
 
@@ -519,24 +653,35 @@ impl component::Model for Model {
             display_object,
             header_overlay,
             header,
+            selected_header,
             header_text,
             background,
+            selection_background,
             header_background,
+            selection_header_background,
             entries,
         }
     }
 }
 
 impl Model {
-    /// Assign a set of layers to render the component group in. Must be called after constructing
+    /// Assign a set of layers to render the component group. Must be called after constructing
     /// the [`View`].
     pub fn set_layers(&self, layers: &Layers) {
-        layers.background.add_exclusive(&self.background);
-        layers.header_text.add_exclusive(&self.header_overlay);
-        layers.background.add_exclusive(&self.entries);
-        self.entries.set_label_layer(&layers.text);
-        layers.header.add_exclusive(&self.header_background);
-        self.header.add_to_scene_layer(&layers.header_text);
+        // Set normal layers.
+        layers.normal.background.add_exclusive(&self.background);
+        layers.normal.header_text.add_exclusive(&self.header_overlay);
+        layers.normal.background.add_exclusive(&self.entries);
+        self.entries.set_label_layer(&layers.normal.text);
+        layers.normal.header.add_exclusive(&self.header_background);
+        self.header.add_to_scene_layer(&layers.normal.header_text);
+        // Set selected layers.
+        let mut params = self.entries.entry_params();
+        params.selection_layer = Rc::new(Some(layers.selection.text.downgrade()));
+        self.entries.set_entry_params_and_recreate_entries(params);
+        layers.selection.background.add_exclusive(&self.selection_background);
+        layers.selection.header.add_exclusive(&self.selection_header_background);
+        self.selected_header.add_to_scene_layer(&layers.selection.header_text);
     }
 
     fn resize(
@@ -549,6 +694,7 @@ impl Model {
         // === Background ===
 
         self.background.size.set(size);
+        self.selection_background.size.set(size);
 
 
         // === Header Text ===
@@ -566,12 +712,14 @@ impl Model {
         let header_bottom_y = header_center_y - half_header_height;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
+        self.selected_header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
 
 
         // === Header Background ===
 
         self.header_background.height.set(header_height);
+        self.selection_header_background.height.set(header_height);
         let shadow_size = header_geometry.shadow_size;
         let distance_to_bottom = (-size.y / 2.0 - header_bottom_y).abs();
         // We need to render both the header background and the shadow below it, so we add
@@ -584,6 +732,8 @@ impl Model {
         let header_background_height = header_height + shadow_size * 2.0;
         self.header_background.size.set(Vector2(size.x, header_background_height));
         self.header_background.set_position_y(header_center_y);
+        self.selection_header_background.size.set(Vector2(size.x, header_background_height));
+        self.selection_header_background.set_position_y(header_center_y);
 
 
         // === Header Overlay ===
@@ -602,20 +752,32 @@ impl Model {
         let header_padding_left = header_geometry.padding_left;
         let header_padding_right = header_geometry.padding_right;
         let max_text_width = size.x - header_padding_left - header_padding_right;
-        self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
+        let header_text = self.header_text.borrow().clone();
+        self.header.set_content_truncated(header_text.clone(), max_text_width);
+        self.selected_header.set_content_truncated(header_text, max_text_width);
     }
 
     fn selection_position(
         &self,
         is_header_selected: bool,
+        header_geometry: HeaderGeometry,
         size: Vector2,
         entries_selection_position: Vector2,
+        header_pos: f32,
     ) -> Vector2 {
         if is_header_selected {
-            Vector2(0.0, size.y / 2.0 - list_view::entry::HEIGHT / 2.0)
+            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0 - header_pos)
         } else {
-            self.entries.position().xy() + entries_selection_position
+            let max_selection_pos_y = size.y / 2.0 - list_view::entry::HEIGHT - header_pos;
+            let selection_pos_y = entries_selection_position.y.min(max_selection_pos_y);
+            let selection_pos = Vector2(entries_selection_position.x, selection_pos_y);
+            self.entries.position().xy() + selection_pos
         }
+    }
+
+    fn selection_size(&self, header_height: f32, is_header_selected: bool) -> Vector2 {
+        let height = if is_header_selected { header_height } else { list_view::entry::HEIGHT };
+        Vector2(self.entries.size.value().x, height)
     }
 }
 

@@ -140,32 +140,5 @@ spec =
             out_2.delete_if_exists
             out_3.delete_if_exists
 
-        Test.specify 'should be possible through the write method' <|
-            varied_column = (Enso_Project.data / "varied_column.csv") . read
-            out = Enso_Project.data / 'out.csv'
-            out_1 = Enso_Project.data / 'out_1.csv'
-            out_2 = Enso_Project.data / 'out_2.csv'
-            out_3 = Enso_Project.data / 'out_3.csv'
-            out_1.delete_if_exists
-            out_2.delete_if_exists
-            out_3.delete_if_exists
-            varied_column.write out (Table.Format.Csv include_header=False separator=';' max_rows_per_file=3)
-            exp_1 = '''
-                2005-02-25;2005-02-25;1;1;1.0;1
-                2005-02-28;2005-02-28;2;2;2.0;2
-                4;2005-03-01;3;3;3.0;3\n
-            exp_2 = '''
-                2005-03-02;;4;4;4.0;4
-                ;2005-03-03;5;5;5.0;5
-                2005-03-04;2005-03-04;;6;6.25;6.25\n
-            exp_3 = '''
-                2005-03-07;2005-03-07;7;7;7.0;7
-                2005-03-08;2005-03-08;8;8;8.0;osiem\n
-            out_1.read_text.should_equal exp_1
-            out_2.read_text.should_equal exp_2
-            out_3.read_text.should_equal exp_3
-            out_1.delete_if_exists
-            out_2.delete_if_exists
-            out_3.delete_if_exists
 
 main = Test.Suite.run_main here.spec

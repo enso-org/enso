@@ -4,6 +4,8 @@ import Standard.Database.Data.Internal.Helpers
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Table
 import Standard.Table.Data.Column as Materialized_Column
+import Standard.Table.Data.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column
 
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Database.Data.Table import Integrity_Error
@@ -458,12 +460,11 @@ type Column
              column.sort
 
        > Example
-         Sorting `column` in descending order, placing missing values at the
-         top of the resulting column.
-             column.sort order=Sort_Direction.Descending missing_last=False
-    sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort order=Sort_Direction.Ascending missing_last=True =
-        this.to_table.sort by=this order=order missing_last=missing_last . at this.name
+         Sorting `column` in descending order.
+             column.sort order=Sort_Direction.Descending
+    sort : Sort_Direction -> Column
+    sort order=Sort_Direction.Ascending =
+        this.to_table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column this order]) . at this.name
 
     ## UNSTABLE
 
@@ -637,4 +638,3 @@ lift_aggregate new_name connection expected_type expr context =
     new_ixes = cols.second
     new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
     Column new_name connection new_col.sql_type new_col.expression new_ctx
-

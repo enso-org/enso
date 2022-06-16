@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
@@ -77,16 +78,6 @@ impl ExecutionContext {
             let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
             info!(this.logger, "Pushed root frame.");
-            match this.load_component_groups().await {
-                Ok(_) => info!(this.logger, "Loaded component groups."),
-                Err(err) => {
-                    let msg = iformat!(
-                        "Failed to load component groups. No groups will appear in the Favorites \
-                        section of the Component Browser. Error: {err}"
-                    );
-                    error!(this.logger, "{msg}");
-                }
-            }
             Ok(this)
         }
     }
@@ -107,11 +98,22 @@ impl ExecutionContext {
     }
 
     /// Load the component groups defined in libraries imported into the execution context.
-    async fn load_component_groups(&self) -> FallibleResult {
-        let ls_response = self.language_server.get_component_groups(&self.id).await?;
-        *self.model.component_groups.borrow_mut() =
-            ls_response.component_groups.into_iter().map(|group| group.into()).collect();
-        Ok(())
+    async fn load_component_groups(&self) {
+        match self.language_server.get_component_groups(&self.id).await {
+            Ok(ls_response) => {
+                let ls_groups = ls_response.component_groups;
+                let groups = ls_groups.into_iter().map(|group| group.into()).collect();
+                *self.model.component_groups.borrow_mut() = Rc::new(groups);
+                info!(self.logger, "Loaded component groups.");
+            }
+            Err(err) => {
+                let msg = iformat!(
+                    "Failed to load component groups. No groups will appear in the Favorites \
+                    section of the Component Browser. Error: {err}"
+                );
+                error!(self.logger, "{msg}");
+            }
+        }
     }
 
     /// Detach visualization from current execution context.
@@ -136,11 +138,15 @@ impl ExecutionContext {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_notification(&self, notification: Notification) -> FallibleResult {
+    pub fn handle_notification(self: &Rc<Self>, notification: Notification) -> FallibleResult {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
                     info!(self.logger, "Context {self.id} Became ready");
+                    let this = self.clone();
+                    executor::global::spawn(async move {
+                        this.load_component_groups().await;
+                    });
                 },
             Notification::ExpressionUpdates(updates) => {
                 self.model.computed_value_info_registry.apply_updates(updates);
@@ -169,6 +175,10 @@ impl model::execution_context::API for ExecutionContext {
 
     fn active_visualizations(&self) -> Vec<VisualizationId> {
         self.model.active_visualizations()
+    }
+
+    fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
+        self.model.component_groups()
     }
 
     /// Access the registry of computed values information, like types or called method pointers.
@@ -372,10 +382,6 @@ pub mod test {
             };
             let stack_item = language_server::StackItem::ExplicitCall(root_frame);
             expect_call!(ls.push_to_execution_context(id,stack_item) => Ok(()));
-            let component_groups = language_server::response::GetComponentGroups {
-                component_groups: data.component_groups.clone(),
-            };
-            expect_call!(ls.get_component_groups(id) => Ok(component_groups));
         }
 
         /// Generates a mock update for a random expression id.
@@ -573,14 +579,19 @@ pub mod test {
         ];
 
         // Create a test fixture based on the sample data.
-        let mut mock_data = MockData::new();
-        mock_data.component_groups = sample_ls_component_groups;
-        let fixture = Fixture::new_customized_with_data(mock_data, |_, _| {});
+        let fixture = Fixture::new_customized(move |client, data| {
+            let component_groups = language_server::response::GetComponentGroups {
+                component_groups: sample_ls_component_groups,
+            };
+            let id = data.context_id;
+            expect_call!(client.get_component_groups(id) => Ok(component_groups));
+        });
         let Fixture { mut test, context, .. } = fixture;
 
         // Run a test and verify that the sample component groups were parsed correctly and have
         // expected contents.
         test.run_task(async move {
+            context.load_component_groups().await;
             let groups = context.model.component_groups.borrow();
             assert_eq!(groups.len(), 2);
 

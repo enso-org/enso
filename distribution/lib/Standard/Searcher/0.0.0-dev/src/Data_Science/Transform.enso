@@ -24,14 +24,15 @@
          example_map = Examples.integer_column.map (x -> x * x)
 
    > Example
-     Sort the shop inventory based on the per-item price in descending order and
-     placing missing values at the top of the table.
+     Sort the shop inventory based on the per-item price in descending order.
 
          import Standard.Examples
+         import Standard.Table.Data.Sort_Column_Selector
+         import Standard.Table.Data.Sort_Column
 
          example_sort =
             table = Examples.inventory_table
-            table.sort by="price" order=Sort_Direction.Descending missing_last=false
+            table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "price" Sort_Direction.Descending])
 
    > Example
      Add two columns to each other.

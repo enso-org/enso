@@ -5,7 +5,10 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::model::execution_context;
 use crate::model::suggestion_database;
+
+use ensogl::data::color;
 
 
 
@@ -18,6 +21,7 @@ use crate::model::suggestion_database;
 #[derive(Clone, Debug)]
 pub struct Data {
     pub name:         ImString,
+    pub color:        Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
     /// contains.
     pub component_id: Option<component::Id>,
@@ -29,7 +33,13 @@ pub struct Data {
 
 impl Data {
     fn new_empty_visible(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
-        Data { name: name.into(), component_id, entries: default(), visible: Cell::new(true) }
+        Data {
+            name: name.into(),
+            color: None,
+            component_id,
+            entries: default(),
+            visible: Cell::new(true),
+        }
     }
 }
 
@@ -63,19 +73,59 @@ impl Group {
         Self { data: Rc::new(Data::new_empty_visible(name, Some(component_id))) }
     }
 
-    /// Update the group sorting according to the current filtering pattern.
-    pub fn update_sorting(&self, pattern: impl AsRef<str>) {
-        let mut entries = self.entries.borrow_mut();
-        // The `sort_by_key` method is not suitable here, because the closure it takes
-        // cannot return reference nor [`Ref`], and we don't want to copy anything here.
-        if pattern.as_ref().is_empty() {
-            entries.sort_by(|a, b| {
-                a.can_be_entered().cmp(&b.can_be_entered()).then_with(|| a.label().cmp(b.label()))
-            });
-        } else {
-            entries.sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
+    /// Construct from [`execution_context::ComponentGroup`] components looked up in the suggestion
+    /// database by their full qualified name. Returns a group containing only the successfully
+    /// looked up components, or [`None`] if none of the components were found in the suggestion
+    /// database.
+    pub fn from_execution_context_component_group(
+        group: &execution_context::ComponentGroup,
+        suggestion_db: &model::SuggestionDatabase,
+    ) -> Option<Self> {
+        let lookup_component = |qualified_name| {
+            let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
+            Some(Component::new(id, suggestion))
+        };
+        let components = &group.components;
+        let looked_up_components = components.iter().filter_map(lookup_component).collect_vec();
+        let any_components_found_in_db = !looked_up_components.is_empty();
+        any_components_found_in_db.then(|| {
+            let group_data = Data {
+                name:         group.name.clone(),
+                color:        group.color,
+                component_id: None,
+                visible:      Cell::new(true),
+                entries:      RefCell::new(looked_up_components),
+            };
+            Group { data: Rc::new(group_data) }
+        })
+    }
+
+    /// Update the group sorting according to the current filtering pattern and call
+    /// [`update_visibility`].
+    pub fn update_sorting_and_visibility(&self, pattern: impl AsRef<str>) {
+        {
+            let mut entries = self.entries.borrow_mut();
+            // The `sort_by_key` method is not suitable here, because the closure it takes
+            // cannot return reference nor [`Ref`], and we don't want to copy anything here.
+            if pattern.as_ref().is_empty() {
+                entries.sort_by(|a, b| {
+                    let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+                    cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
+                });
+            } else {
+                let cmp_match_info = |a: &Component, b: &Component| {
+                    a.match_info.borrow().cmp(&*b.match_info.borrow())
+                };
+                entries.sort_by(|a, b| cmp_match_info(a, b).reverse());
+            }
         }
-        let visible = !entries.iter().all(|c| c.is_filtered_out());
+        self.update_visibility();
+    }
+
+    /// Sets the [`visible`] flag to [`true`] if at least one of the group's entries is not
+    /// filtered out. Sets the flag to [`false`] otherwise.
+    pub fn update_visibility(&self) {
+        let visible = !self.entries.borrow().iter().all(|c| c.is_filtered_out());
         self.visible.set(visible);
     }
 }
@@ -86,10 +136,23 @@ impl Group {
 // === List ===
 // ============
 
-/// An immutable [`Group`] list, keeping the groups in alphabetical order.
+/// An immutable [`Group`] list, keeping the groups in the order provided in the constructor.
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
     groups: Rc<Vec<Group>>,
+}
+
+impl List {
+    /// Constructor.
+    pub fn new(groups: Vec<Group>) -> Self {
+        Self { groups: Rc::new(groups) }
+    }
+}
+
+impl FromIterator<Group> for List {
+    fn from_iter<T: IntoIterator<Item = Group>>(iter: T) -> Self {
+        Self::new(iter.into_iter().collect())
+    }
 }
 
 impl Deref for List {
@@ -106,22 +169,99 @@ impl AsRef<[Group]> for List {
 }
 
 
-// === ListBuilder ===
+
+// ========================
+// === AlphabeticalList ===
+// ========================
+
+/// An immutable [`Group`] list, keeping the groups in alphabetical order.
+#[derive(Clone, CloneRef, Debug, Default, AsRef, Deref)]
+pub struct AlphabeticalList {
+    groups: List,
+}
 
 
-/// The builder of [`List`]. The groups will be sorted in [`Self::build`] method.
+// === AlphabeticalListBuilder ===
+
+/// The builder of [`AlphabeticalList`]. The groups will be sorted in [`Self::build`] method.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
-pub struct ListBuilder {
+pub struct AlphabeticalListBuilder {
     pub groups: Vec<Group>,
 }
 
-impl ListBuilder {
-    /// Sort the groups and create a [`List`].
-    pub fn build(mut self) -> List {
+impl AlphabeticalListBuilder {
+    /// Sort the groups and create an [`AlphabeticalList`].
+    pub fn build(mut self) -> AlphabeticalList {
         // The `sort_unstable_by_key` method is not suitable here, because the closure it takes
         // cannot return reference, and we don't want to copy strings here.
         self.groups.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-        List { groups: Rc::new(self.groups) }
+        AlphabeticalList { groups: List::new(self.groups) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::controller::searcher::component::tests::mock_suggestion_db;
+    use std::assert_matches::assert_matches;
+
+    /// Test whether [`Group::from_execution_context_component_group`] correctly looks up
+    /// components in the suggestion database.
+    #[test]
+    fn lookup_component_groups_in_suggestion_database() {
+        let logger = Logger::new("tests::lookup_component_groups_in_suggestion_database");
+        let suggestion_db = Rc::new(mock_suggestion_db(logger));
+
+        // Prepare a mock group containing fully qualified component names in non-alphabetical
+        // order. Some of the names correspond to entries present in the suggestion database,
+        // some do not.
+        let ec_group = execution_context::ComponentGroup {
+            name:       "Test Group 1".into(),
+            color:      color::Rgb::from_css_hex("#aabbcc"),
+            components: vec![
+                "test.Test.TopModule1.fun2".into(),
+                "test.Test.TopModule1.SubModule2.SubModule3.fun6".into(),
+                "test.Test.NonExistantModule.fun6".into(),
+                "test.Test.TopModule1.fun1".into(),
+                "test.Test.TopModule1.nonexistantfun".into(),
+            ],
+        };
+
+        // Construct a components group with entries looked up in the suggestion database.
+        let group = Group::from_execution_context_component_group(&ec_group, &suggestion_db);
+
+        // Verify the contents of the components group.
+        let group = group.unwrap();
+        assert_eq!(group.name, ImString::new("Test Group 1"));
+        let color = group.color.unwrap();
+        assert_eq!((color.red * 255.0) as u8, 0xaa);
+        assert_eq!((color.green * 255.0) as u8, 0xbb);
+        assert_eq!((color.blue * 255.0) as u8, 0xcc);
+        let entry_ids_and_names = group
+            .entries
+            .borrow()
+            .iter()
+            .map(|e| (*e.id, e.suggestion.name.to_string()))
+            .collect_vec();
+        let expected_ids_and_names =
+            vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
+        assert_eq!(entry_ids_and_names, expected_ids_and_names);
+    }
+
+    // Test constructing a component group from an [`execution_context::ComponentGroup`] containing
+    // only names not found in the suggestion database.
+    #[test]
+    fn constructing_component_group_from_names_not_found_in_db() {
+        let logger = Logger::new("tests::constructing_component_group_from_names_not_found_in_db");
+        let suggestion_db = Rc::new(mock_suggestion_db(logger));
+        let ec_group = execution_context::ComponentGroup {
+            name:       "Input".into(),
+            color:      None,
+            components: vec!["NAME.NOT.FOUND.IN.DB".into()],
+        };
+        let group = Group::from_execution_context_component_group(&ec_group, &suggestion_db);
+        assert_matches!(group, None);
     }
 }
