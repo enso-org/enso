@@ -27,13 +27,12 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       AtomConstructor atomConstructor,
       String methodName) {
-    super(
-        language,
+    super(language,
         localScope,
         moduleScope,
         body,
         section,
-        shortName(atomConstructor.getName(), methodName));
+        shortName(atomConstructor.getName(), methodName), null, false);
     this.atomConstructor = atomConstructor;
     this.methodName = methodName;
   }
@@ -146,5 +145,8 @@ public class MethodRootNode extends ClosureRootNode {
         notifyInserted(newNode);
         return newNode;
     }
+  }
+  public boolean isSubjectToInstrumentation() {
+    return true;
   }
 }
