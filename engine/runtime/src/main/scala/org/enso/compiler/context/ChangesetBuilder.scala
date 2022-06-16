@@ -77,16 +77,19 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       .filter(edit => edit.range.start.line == edit.range.end.line)
       .map(edit => (edit, invalidated(Seq(edit))))
       .filter(_._2.size == 1)
-      .flatMap({ case (edit, directlyAffected) =>
+      .flatMap { case (edit, directlyAffected) =>
         val directlyAffectedId = directlyAffected.head.externalId
         val literals =
           ir.preorder.filter(_.getExternalId == directlyAffectedId)
         val oldIr = literals.head
 
-        def newIR() = {
+        def newIR(): Option[IR.Literal] = {
           AstToIr
             .translateInline(Parser().run(edit.text))
-            .map(_.setLocation(oldIr.location))
+            .flatMap(_ match {
+              case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
+              case _              => None
+            })
         }
 
         oldIr match {
@@ -96,7 +99,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             newIR().map(ir => SimpleUpdate(node, edit, ir))
           case _ => None
         }
-      })
+      }
 
     Changeset(source, ir, simpleUpdateOption, compute(edits))
   }
