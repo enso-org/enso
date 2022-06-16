@@ -101,6 +101,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/rootRemoved`](#filerootremoved)
 - [Text Editing Operations](#text-editing-operations)
   - [`text/openFile`](#textopenfile)
+  - [`text/openBuffer`](#textopenbuffer)
   - [`text/closeFile`](#textclosefile)
   - [`text/save`](#textsave)
   - [`text/applyEdit`](#textapplyedit)
@@ -2663,6 +2664,48 @@ client that sent the `text/openFile` message.
 - [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
   access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
+
+### `text/openBuffer`
+
+This requests the language server to open a specified in-memory buffer mapped to
+the provided path. If the path exists, this command behaves the same as
+[`text/openFile`](#textopenfile). If the path does not exist, the command
+creates empty in-memory buffer for the provided path.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+If no client has write lock on the opened file, the capability is granted to the
+client that sent the `text/openBuffer` message.
+
+#### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+#### Result
+
+```typescript
+{
+  writeCapability?: CapabilityRegistration;
+  content: String;
+  currentVersion: SHA3-224;
+}
+```
+
+#### Errors
+
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
 
 ### `text/closeFile`
 
