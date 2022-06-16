@@ -1124,8 +1124,14 @@ A representation of a change to a text file at a given position.
 
 ```typescript
 interface TextEdit {
+  /** The range of text in a text file. */
   range: Range;
+
+  /** The change to a text file. */
   text: String;
+
+  /** The update type. When not set defaults to `FileEditKind`. */
+  kind?: EditKind;
 }
 ```
 
@@ -1256,6 +1262,33 @@ interface FileEdit {
   edits: [TextEdit];
   oldVersion: SHA3-224;
   newVersion: SHA3-224;
+}
+```
+
+### EditKind
+
+Represents the type of an update enabling runtime optimizations.
+
+- `FileEditKind` represents a plane file update. After applying the text edit,
+  the program will be recompiled and re-executed.
+- `MetadataEditKind` represents the metadata update. Metadata update does not
+  change the program and thus allows engine to skip inane re-executions.
+- `ValueUpdateKind` represents an update of a node value. In this case the
+  engine can skip the compilation phase, and re-execute the program with a new
+  value.
+
+```typescript
+type EditKind = FileEditKind | MetadataEditKind | ValueUpdateKind;
+
+interface FileEditKind {}
+
+interface MetadataEditKind {}
+
+interface ValueUpdateKind {
+  /** The identifier of altered node. */
+  expressionId: ExpressionId;
+  /** The new value of altered node. */
+  value: string;
 }
 ```
 
