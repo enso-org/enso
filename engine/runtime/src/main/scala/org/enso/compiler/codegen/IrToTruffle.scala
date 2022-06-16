@@ -1147,6 +1147,7 @@ class IrToTruffle(
       * @param literal the literal to generate code for
       * @return the truffle nodes corresponding to `literal`
       */
+    @throws[CompilerError]
     def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
         case lit @ IR.Literal.Number(_, _, location, _, _) =>
@@ -1154,7 +1155,6 @@ class IrToTruffle(
             case l: Long       => IntegerLiteralNode.build(l)
             case d: Double     => DecimalLiteralNode.build(d)
             case b: BigInteger => BigIntegerLiteralNode.build(b)
-            case m: String     => throw new CompilerError(m)
           }
           setLocation(node, location)
         case IR.Literal.Text(text, location, _, _) =>

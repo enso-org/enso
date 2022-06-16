@@ -2076,8 +2076,9 @@ object IR {
       def isFractional: Boolean = value.contains(".")
 
       /** Checks the values in the literal converts that to approviate JVM value.
-        * @return Double, Long, BigInteger or String (representing compiler error message)
+        * @return Double, Long, BigInteger
         */
+      @throws[CompilerError]
       def numericValue: Any = {
         if (isFractional) {
           value.toDouble
@@ -2087,7 +2088,9 @@ object IR {
               Integer.parseInt(base.get)
             } catch {
               case _: NumberFormatException =>
-                return s"Invalid number base $base seen during codegen."
+                throw new CompilerError(
+                  s"Invalid number base $base seen during codegen."
+                )
             }
           try {
             val longVal = java.lang.Long.parseLong(value, baseNum)
@@ -2098,7 +2101,9 @@ object IR {
                 new java.math.BigInteger(value, baseNum)
               } catch {
                 case _: NumberFormatException =>
-                  s"Invalid number base $base seen during codegen."
+                  throw new CompilerError(
+                    s"Invalid number base $base seen during codegen."
+                  )
               }
           }
         } else {
