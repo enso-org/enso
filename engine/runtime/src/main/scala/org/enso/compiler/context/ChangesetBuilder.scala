@@ -76,7 +76,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     val simpleUpdateOption = simpleEditOption
       .filter(edit => edit.range.start.line == edit.range.end.line)
       .map(edit => (edit, invalidated(Seq(edit))))
-      .filter({ case (_, directlyAffected) => directlyAffected.size == 1 })
+      .filter(_._2.size == 1)
       .flatMap({ case (edit, directlyAffected) =>
         val directlyAffectedId = directlyAffected.head.externalId
         val literals =
