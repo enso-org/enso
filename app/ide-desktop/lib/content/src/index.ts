@@ -19,6 +19,8 @@ import buildCfg from '../../../build.json'
 import firebase from 'firebase/app'
 // @ts-ignore
 import 'firebase/auth'
+// @ts-ignore
+import firebase_config from '../firebase.yaml'
 
 import * as semver from 'semver'
 import { SemVer, Comparator } from 'semver'
@@ -551,6 +553,9 @@ async function checkMinSupportedVersion(config: Config) {
 // === Authentication ===
 // ======================
 
+
+
+
 class FirebaseAuthentication {
     protected readonly config: any
     public readonly firebaseui: any
@@ -560,7 +565,7 @@ class FirebaseAuthentication {
 
     constructor(authCallback: any) {
         this.firebaseui = require('firebaseui')
-        this.config = require('../firebase.yaml')
+        this.config = firebase_config
         // initialize Firebase
         firebase.initializeApp(this.config)
         // create HTML markup
@@ -786,7 +791,7 @@ class Config {
         config.data_gathering = true
         config.is_in_cloud = false
         config.entry = null
-        config.authentication_enabled = !Versions.isDevVersion()
+        config.authentication_enabled = true
         config.application_config_url =
             'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
         config.skip_min_version_check = Versions.isDevVersion()
