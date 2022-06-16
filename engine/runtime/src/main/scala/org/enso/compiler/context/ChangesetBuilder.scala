@@ -86,9 +86,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         def newIR() = {
           AstToIr
             .translateInline(Parser().run(edit.text))
-            .map(ir => {
-              ir.setLocation(oldIr.location)
-            })
+            .map(_.setLocation(oldIr.location))
         }
 
         oldIr match {
