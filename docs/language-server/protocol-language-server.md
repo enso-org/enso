@@ -47,6 +47,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`Position`](#position)
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
+  - [`EditKind`](#editkind)
   - [`DiagnosticType`](#diagnostictype)
   - [`StackTraceElement`](#stacktraceelement)
   - [`Diagnostic`](#diagnostic)
@@ -1136,6 +1137,35 @@ interface TextEdit {
 }
 ```
 
+### EditKind
+
+Represents the type of an update enabling runtime optimizations.
+
+- `FileEditKind` represents a plane file update. After applying the text edit,
+  the program will be recompiled and re-executed.
+- `MetadataEditKind` represents the metadata update. Metadata update does not
+  change the program and thus allows engine to skip inane re-executions.
+- `ValueUpdateKind` represents an update of a node value. In this case the
+  engine can skip the compilation phase, and re-execute the program with a new
+  value.
+
+#### Format
+
+```typescript
+type EditKind = FileEditKind | MetadataEditKind | ValueUpdateKind;
+
+interface FileEditKind {}
+
+interface MetadataEditKind {}
+
+interface ValueUpdateKind {
+  /** The identifier of altered node. */
+  expressionId: ExpressionId;
+  /** The new value of altered node. */
+  value: string;
+}
+```
+
 ### `DiagnosticType`
 
 The type of diagnostic message.
@@ -1263,33 +1293,6 @@ interface FileEdit {
   edits: [TextEdit];
   oldVersion: SHA3-224;
   newVersion: SHA3-224;
-}
-```
-
-### EditKind
-
-Represents the type of an update enabling runtime optimizations.
-
-- `FileEditKind` represents a plane file update. After applying the text edit,
-  the program will be recompiled and re-executed.
-- `MetadataEditKind` represents the metadata update. Metadata update does not
-  change the program and thus allows engine to skip inane re-executions.
-- `ValueUpdateKind` represents an update of a node value. In this case the
-  engine can skip the compilation phase, and re-execute the program with a new
-  value.
-
-```typescript
-type EditKind = FileEditKind | MetadataEditKind | ValueUpdateKind;
-
-interface FileEditKind {}
-
-interface MetadataEditKind {}
-
-interface ValueUpdateKind {
-  /** The identifier of altered node. */
-  expressionId: ExpressionId;
-  /** The new value of altered node. */
-  value: string;
 }
 ```
 
