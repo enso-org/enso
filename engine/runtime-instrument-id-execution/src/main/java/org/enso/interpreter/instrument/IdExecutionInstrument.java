@@ -312,8 +312,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           .sourceIs(module::isModuleSource);
 
     if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {
-      SourceSection s = c.getSourceSection();
-      builder.lineIn(SourceSectionFilter.IndexRange.between(s.getStartLine(), s.getEndLine() + 1));
+      final int firstFunctionLine = c.getSourceSection().getStartLine();
+      final int afterFunctionLine = c.getSourceSection().getEndLine() + 1;
+      builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
     }
     SourceSectionFilter filter = builder.build();
 
