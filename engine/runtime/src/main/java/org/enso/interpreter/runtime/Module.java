@@ -201,10 +201,13 @@ public class Module implements TruffleObject {
   }
 
   /**
-   * Sets new literal sources for the module.
+   * Sets new literal sources for the module. Optionally one can suggest {@link SimpleUpdate}
+   * information to perform small {@link PatchedModuleValues patching} of existing AST, IR & co.
+   * rather than complete re-parse.
    *
    * @param source the module source.
-   * @param update suggested small change in a single literal or {@code null}
+   * @param update suggested small change in a single literal or {@code null} when complete
+   *     replacement with full re-parse shall be done
    * @see PatchedModuleValues
    */
   public void setLiteralSource(Rope source, SimpleUpdate update) {
