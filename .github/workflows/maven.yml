@@ -1,0 +1,29 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Enso Language Support for IGV
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        java: [ '8' ]
+        
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Java
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'zulu'
+        java-version: ${{ matrix.java }}        
+        cache: maven
+    - name: Build with Maven
+      run: mvn -B package --file tools/enso4igv/pom.xml
