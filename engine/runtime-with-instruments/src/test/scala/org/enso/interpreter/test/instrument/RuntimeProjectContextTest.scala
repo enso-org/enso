@@ -22,8 +22,12 @@ class RuntimeProjectContextTest extends AnyWordSpec with Matchers {
           )
           .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile.getAbsolutePath
+            Paths
+              .get("../../test/micro-distribution/component")
+              .toFile
+              .getAbsolutePath
           )
+          .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
           .option(RuntimeOptions.LOG_LEVEL, "WARNING")
           .build()
         context.initialize(LanguageInfo.ID)

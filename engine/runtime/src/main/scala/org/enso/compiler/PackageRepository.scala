@@ -5,7 +5,7 @@ import com.typesafe.scalalogging.Logger
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
-import org.enso.editions.{DefaultEdition, LibraryName, LibraryVersion}
+import org.enso.editions.{DefaultEdition, Editions, LibraryName, LibraryVersion}
 import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
@@ -27,7 +27,6 @@ import org.enso.pkg.{
 }
 
 import java.nio.file.Path
-
 import scala.collection.immutable.ListSet
 import scala.util.Try
 
@@ -537,14 +536,19 @@ object PackageRepository {
   def initializeRepository(
     projectPackage: Option[Package[TruffleFile]],
     languageHome: Option[String],
+    editionOverride: Option[String],
     distributionManager: DistributionManager,
     resourceManager: ResourceManager,
     context: Context,
     builtins: Builtins,
     notificationHandler: NotificationHandler
   ): PackageRepository = {
-    val rawEdition = projectPackage
-      .flatMap(_.config.edition)
+    val rawEdition = editionOverride
+      .map(v => Editions.Raw.Edition(parent = Some(v)))
+      .orElse(
+        projectPackage
+          .flatMap(_.config.edition)
+      )
       .getOrElse(DefaultEdition.getDefaultEdition)
 
     val homeManager    = languageHome.map { home => LanguageHome(Path.of(home)) }

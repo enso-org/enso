@@ -109,8 +109,12 @@ class InterpreterContext(
       .in(in)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile.getAbsolutePath
+        Paths
+          .get("../../test/micro-distribution/component")
+          .toFile
+          .getAbsolutePath
       )
+      .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {
           new DebuggerSessionManagerEndpoint(sessionManager, peer)
