@@ -99,11 +99,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
               case _ => None
             }
           case node: IR.Literal.Text =>
-            newIR() match {
-              case Some(newIR: IR.Literal.Text) =>
-                Some(SimpleUpdate(node, edit, newIR))
-              case _ => None
-            }
+            newIR().map(ir => SimpleUpdate(node, edit, ir))
           case _ => None
         }
       })
