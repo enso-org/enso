@@ -1317,7 +1317,7 @@ class IrToTruffle(
       * @param arguments the arguments to the function
       * @param body      the body of the function
       * @param location  the location at which the function exists in the source
-      * @param binding is the function right insight a binding
+      * @param binding whether the function is right inside a binding
       * @return a truffle node representing the described function
       */
     def processFunctionBody(
