@@ -320,7 +320,8 @@ public class ExecutionService {
                   path, edits, failure, module.getLiteralSource());
             },
             rope -> {
-              module.setLiteralSource(rope, result.simpleUpdate());
+              var su = result.simpleUpdate();
+              module.setLiteralSource(rope, su.isDefined() ? su.get() : null);
               return new Object();
             });
 

@@ -13,6 +13,12 @@ import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import scala.collection.mutable
 
+/** Simple editing change description.
+  *
+  * @param ir the current literal
+  * @param edit the editor change
+  * @param newIr the new literal
+  */
 case class SimpleUpdate(
   ir: IR.Literal,
   edit: TextEdit,
@@ -24,13 +30,14 @@ case class SimpleUpdate(
   *
   * @param source the module source
   * @param ir the IR node of the module
+  * @param simpleUpdate description of a simple editing change (usually in a literal)
   * @param invalidated the list of invalidated expressions
   * @tparam A the source type
   */
 case class Changeset[A](
   source: A,
   ir: IR,
-  simpleUpdate: SimpleUpdate,
+  simpleUpdate: Option[SimpleUpdate],
   invalidated: Set[IR.ExternalId]
 )
 
@@ -53,53 +60,59 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   @throws[CompilerError]
   def build(edits: Seq[TextEdit]): Changeset[A] = {
 
-    def findSimpleUpdate(): SimpleUpdate = {
-      val edit: TextEdit = edits match {
-        case Seq(first) => first
-        case Seq(head, realEdit) => {
-          val firstAffected = invalidated(Seq(head))
-          if (!firstAffected.isEmpty) {
-            return null
-          }
-          realEdit
+    val simpleEditOption: Option[TextEdit] = edits match {
+      case Seq(first) => Some(first)
+      case Seq(head, realEdit) => {
+        val firstAffected = invalidated(Seq(head))
+        if (firstAffected.isEmpty) {
+          Some(realEdit)
+        } else {
+          None
         }
-        case _ => return null
-      };
-
-      if (edit.range.start.line != edit.range.end.line) return null
-
-      val directlyAffected = invalidated(Seq(edit))
-      if (directlyAffected.size != 1) return null;
-
-      val directlyAffectedId = directlyAffected.head.externalId
-      val literals           = ir.preorder.filter(_.getExternalId == directlyAffectedId)
-      val oldIr              = literals.head
-
-      def newIR() = {
-        AstToIr
-          .translateInline(Parser().run(edit.text))
-          .map(ir => {
-            ir.setLocation(oldIr.location)
-          })
       }
+      case _ => None
+    };
 
-      return oldIr match {
-        case node: IR.Literal.Number =>
-          newIR() match {
-            case Some(newIR: IR.Literal.Number) =>
-              SimpleUpdate(node, edit, newIR)
-            case _ => null
-          }
-        case node: IR.Literal.Text =>
-          newIR() match {
-            case Some(newIR: IR.Literal.Text) => SimpleUpdate(node, edit, newIR)
-            case _                            => null
-          }
-        case _ => null
-      }
-    }
+    val simpleUpdateOption = simpleEditOption
+      .filter(edit => {
+        edit.range.start.line == edit.range.end.line
+      })
+      .map(edit => (edit, invalidated(Seq(edit))))
+      .filter(pair => pair._2.size == 1)
+      .map(pair => {
+        val edit               = pair._1
+        val directlyAffectedId = pair._2.head.externalId
+        val literals =
+          ir.preorder.filter(_.getExternalId == directlyAffectedId)
+        val oldIr = literals.head
 
-    Changeset(source, ir, findSimpleUpdate(), compute(edits))
+        def newIR() = {
+          AstToIr
+            .translateInline(Parser().run(edit.text))
+            .map(ir => {
+              ir.setLocation(oldIr.location)
+            })
+        }
+
+        oldIr match {
+          case node: IR.Literal.Number =>
+            newIR() match {
+              case Some(newIR: IR.Literal.Number) =>
+                SimpleUpdate(node, edit, newIR)
+              case _ => null
+            }
+          case node: IR.Literal.Text =>
+            newIR() match {
+              case Some(newIR: IR.Literal.Text) =>
+                SimpleUpdate(node, edit, newIR)
+              case _ => null
+            }
+          case _ => null
+        }
+      })
+      .filter(_ != null)
+
+    Changeset(source, ir, simpleUpdateOption, compute(edits))
   }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
