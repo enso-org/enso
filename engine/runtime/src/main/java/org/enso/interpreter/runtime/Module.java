@@ -205,6 +205,7 @@ public class Module implements TruffleObject {
    *
    * @param source the module source.
    * @param update suggested small change in a single literal or {@code null}
+   * @see PatchedModuleValues
    */
   public void setLiteralSource(Rope source, SimpleUpdate update) {
     if (this.scope != null && update != null) {

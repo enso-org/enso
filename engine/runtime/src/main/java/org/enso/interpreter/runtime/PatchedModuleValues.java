@@ -50,9 +50,10 @@ final class PatchedModuleValues implements ExecutionEventListener {
    * Edits are always deleting few characters and inserting another few characters
    * at a given location. The idea here is to use {@code SortedMap} to keep
    * information about "deltas" at each offset of modification. Whenever new
+   * edit is made, the delta at its offset is recorded and all deltas after
+   * the offset adjusted as they shift too.
    *
-   *
-   * @param instr instrumented to attach itself as a ultimate source of values
+   * @param instr instrumenter to attach itself as a ultimate source of values
    *    for {@link Patchable.Tag} nodes
    * @param collect {@link Node} to value map of the values to use
    * @param offset location when a modification happened
