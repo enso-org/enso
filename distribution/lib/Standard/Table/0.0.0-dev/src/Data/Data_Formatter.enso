@@ -43,56 +43,56 @@ polyglot java import org.enso.table.parsing.TypeInferringParser
 type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
 
 ## PRIVATE
-Data_Formatter.get_thousand_separator = if this.thousand_separator.is_empty then Nothing else this.thousand_separator
+Data_Formatter.get_thousand_separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
 
 ## PRIVATE
 Data_Formatter.wrap_base_parser base_parser =
-    if this.trim_values.not then base_parser else
+    if self.trim_values.not then base_parser else
         WhitespaceStrippingParser.new base_parser
 
 ## PRIVATE
-Data_Formatter.make_integer_parser = this.wrap_base_parser <|
-    IntegerParser.new this.get_thousand_separator this.allow_leading_zeros
+Data_Formatter.make_integer_parser = self.wrap_base_parser <|
+    IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
 
 ## PRIVATE
-Data_Formatter.make_decimal_parser = this.wrap_base_parser <|
-    DecimalParser.new this.decimal_point this.get_thousand_separator this.allow_leading_zeros
+Data_Formatter.make_decimal_parser = self.wrap_base_parser <|
+    DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros
 
 ## PRIVATE
-Data_Formatter.make_boolean_parser = this.wrap_base_parser <|
-    BooleanParser.new this.true_values.to_array this.false_values.to_array
+Data_Formatter.make_boolean_parser = self.wrap_base_parser <|
+    BooleanParser.new self.true_values.to_array self.false_values.to_array
 
 ## PRIVATE
-Data_Formatter.make_date_parser = this.wrap_base_parser <|
-    DateParser.new this.date_formats.to_array this.locale.java_locale
+Data_Formatter.make_date_parser = self.wrap_base_parser <|
+    DateParser.new self.date_formats.to_array self.locale.java_locale
 
 ## PRIVATE
-Data_Formatter.make_datetime_parser = this.wrap_base_parser <|
-    DateTimeParser.new this.datetime_formats.to_array this.locale.java_locale
+Data_Formatter.make_datetime_parser = self.wrap_base_parser <|
+    DateTimeParser.new self.datetime_formats.to_array self.locale.java_locale
 
 ## PRIVATE
-Data_Formatter.make_time_parser = this.wrap_base_parser <|
-    TimeParser.new this.time_formats.to_array this.locale.java_locale
+Data_Formatter.make_time_parser = self.wrap_base_parser <|
+    TimeParser.new self.time_formats.to_array self.locale.java_locale
 
 ## PRIVATE
-Data_Formatter.make_identity_parser = this.wrap_base_parser IdentityParser.new
+Data_Formatter.make_identity_parser = self.wrap_base_parser IdentityParser.new
 
 ## PRIVATE
 Data_Formatter.make_datatype_parser datatype = case datatype of
-    Integer -> this.make_integer_parser
-    Decimal -> this.make_decimal_parser
-    Boolean -> this.make_boolean_parser
+    Integer -> self.make_integer_parser
+    Decimal -> self.make_decimal_parser
+    Boolean -> self.make_boolean_parser
     _ ->
-        if datatype == Date then this.make_date_parser else
-            if datatype == Time then this.make_datetime_parser else
-                if datatype == Time_Of_Day then this.make_time_parser else
+        if datatype == Date then self.make_date_parser else
+            if datatype == Time then self.make_datetime_parser else
+                if datatype == Time_Of_Day then self.make_time_parser else
                     Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
 
 ## PRIVATE
 Data_Formatter.get_specific_type_parsers =
-    [this.make_integer_parser, this.make_decimal_parser, this.make_datetime_parser, this.make_date_parser, this.make_time_parser, this.make_boolean_parser]
+    [self.make_integer_parser, self.make_decimal_parser, self.make_datetime_parser, self.make_date_parser, self.make_time_parser, self.make_boolean_parser]
 
 ## PRIVATE
 Data_Formatter.make_auto_parser =
-    fallback_parser = this.make_identity_parser
-    TypeInferringParser.new this.get_specific_type_parsers.to_array fallback_parser
+    fallback_parser = self.make_identity_parser
+    TypeInferringParser.new self.get_specific_type_parsers.to_array fallback_parser

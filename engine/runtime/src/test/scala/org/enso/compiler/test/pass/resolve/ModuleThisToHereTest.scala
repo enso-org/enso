@@ -90,7 +90,7 @@ class ModuleThisToHereTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
       val children        = method2.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val thisOccurrences = children.collect { case n: IR.Name.Self => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
       thisOccurrences.length shouldEqual 0
       hereOccurrences.length shouldEqual 7
@@ -104,7 +104,7 @@ class ModuleThisToHereTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
       val children        = method1.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val thisOccurrences = children.collect { case n: IR.Name.Self => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
       thisOccurrences.length shouldEqual 6
       hereOccurrences.length shouldEqual 1
@@ -118,7 +118,7 @@ class ModuleThisToHereTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
       val children        = conv1.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val thisOccurrences = children.collect { case n: IR.Name.Self => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
       thisOccurrences.length shouldEqual 0
       hereOccurrences.length shouldEqual 7
@@ -132,7 +132,7 @@ class ModuleThisToHereTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
       val children        = conv2.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val thisOccurrences = children.collect { case n: IR.Name.Self => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
       thisOccurrences.length shouldEqual 6
       hereOccurrences.length shouldEqual 1

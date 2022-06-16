@@ -13,7 +13,7 @@ type Auto a
 
 type Manual b
 
-Manual.to_text = "[[[MyREP " + this.b.to_text + "]]]"
+Manual.to_text = "[[[MyREP " + self.b.to_text + "]]]"
 
 ## Specification of operations on the Text type.
 

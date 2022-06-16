@@ -9,12 +9,12 @@ type My_Type
     type My_Type a b
 
     foreign r my_method = """
-        this$a + this$b
+        self$a + self$b
 
-    my_method_2 x = this.my_method * x
+    my_method_2 x = self.my_method * x
 
     foreign r my_method_3 y = """
-        r <- this@my_method_2(y)
+        r <- self@my_method_2(y)
         r + 1
 
     foreign r my_throw = """
@@ -23,7 +23,7 @@ type My_Type
     do_throw = Panic.throw "error!"
 
     foreign r do_catch = """
-        tryCatch(this@do_throw(), error = function(e) e$message)
+        tryCatch(self@do_throw(), error = function(e) e$message)
 
 foreign r make_object = """
     x = 10

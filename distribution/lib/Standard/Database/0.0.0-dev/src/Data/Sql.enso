@@ -61,7 +61,7 @@ type Sql_Type
 
     == that = case that of
         Sql_Type that_id _ ->
-            this.typeid == that_id
+            self.typeid == that_id
         _ -> False
 
     ## The SQL representation of `Boolean` type.
@@ -119,7 +119,7 @@ type Sql_Type
        non-standard ones.
     is_definitely_integer : Boolean
     is_definitely_integer =
-        [Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT].contains this.typeid
+        [Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT].contains self.typeid
 
     ## PRIVATE
 
@@ -129,7 +129,7 @@ type Sql_Type
        non-standard ones.
     is_definitely_boolean : Boolean
     is_definitely_boolean =
-        [Types.BOOLEAN, Types.BIT].contains this.typeid
+        [Types.BOOLEAN, Types.BIT].contains self.typeid
 
     ## PRIVATE
 
@@ -139,20 +139,20 @@ type Sql_Type
        non-standard ones.
     is_definitely_double : Boolean
     is_definitely_double =
-        [Types.FLOAT, Types.DOUBLE, Types.REAL].contains this.typeid
+        [Types.FLOAT, Types.DOUBLE, Types.REAL].contains self.typeid
 
     ## PRIVATE
        Returns True if this type represents a Text.
     is_definitely_text : Boolean
     is_definitely_text =
-       [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains this.typeid
+       [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains self.typeid
 
     ## PRIVATE
        Returns True if this type represents a Text, using heuristics that may
        match more possible types.
     is_likely_text : Boolean
     is_likely_text =
-       this.is_definitely_text || this.name.contains "text" (Text_Matcher Case_Insensitive)
+       self.is_definitely_text || self.name.contains "text" (Text_Matcher Case_Insensitive)
 
 
 ## UNSTABLE
@@ -208,7 +208,7 @@ type Statement
        - Sql_Interpolation, representing objects that will be interpolated in
          between the SQL code.
     fragments : Vector Sql_Fragment
-    fragments = this.internal_fragments
+    fragments = self.internal_fragments
 
     ## UNSAFE
        UNSTABLE
@@ -224,7 +224,7 @@ type Statement
        It should NEVER be used in production code.
     unsafe_to_raw_sql : Text
     unsafe_to_raw_sql =
-        strings = this.internal_fragments . map <| case _ of
+        strings = self.internal_fragments . map <| case _ of
             Sql_Code_Part code -> code
             # TODO at some point we may try more sophisticated serialization based on data type
             Sql_Interpolation _ obj -> case obj of
@@ -244,8 +244,8 @@ type Statement
         to_subst fragment = case fragment of
             Sql_Code_Part _ -> []
             Sql_Interpolation typ obj -> [[obj, typ]]
-        sql = this.fragments.map to_code . join ""
-        substitutions = this.fragments.flat_map to_subst
+        sql = self.fragments.map to_code . join ""
+        substitutions = self.fragments.flat_map to_subst
         [sql, substitutions]
 
     ## UNSTABLE
@@ -258,7 +258,7 @@ type Statement
             Sql_Interpolation typ obj ->
                 inner = Json.from_pairs [["value", obj], ["expected_sql_type", typ.name]]
                 Json.from_pairs [["sql_interpolation", inner]]
-        fragments = Json.Array (this.internal_fragments.map jsonify)
+        fragments = Json.Array (self.internal_fragments.map jsonify)
         Json.from_pairs [["query", fragments]]
 
 type Builder
@@ -280,22 +280,22 @@ type Builder
        Concatenates two code fragments.
 
        Arguments:
-       - other: The code fragment to append to `this`.
+       - other: The code fragment to append to `self`.
     ++ : Builder -> Builder
-    ++ other = Builder (this.fragments ++ other.fragments)
+    ++ other = Builder (self.fragments ++ other.fragments)
 
     ## UNSTABLE
 
        Checks if the builder represents an empty code fragment.
     is_empty : Boolean
-    is_empty = this.fragments.is_empty
+    is_empty = self.fragments.is_empty
 
     ## UNSTABLE
 
        Builds a SQL statement.
     build : Statement
     build =
-        fragments = here.optimize_fragments this.fragments.build
+        fragments = here.optimize_fragments self.fragments.build
         Statement fragments
 
     ## UNSTABLE
@@ -305,7 +305,7 @@ type Builder
     paren =
         l = here.code "("
         r = here.code ")"
-        l ++ this ++ r
+        l ++ self ++ r
 
     ## UNSTABLE
 
@@ -320,7 +320,7 @@ type Builder
         pref = case prefix of
             Builder _ -> prefix
             _ -> here.code prefix
-        if this.is_empty then this else pref++this
+        if self.is_empty then self else pref++self
 
 ## PRIVATE
 

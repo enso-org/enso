@@ -115,7 +115,7 @@ case object GenerateMethodBodies extends IRPass {
     */
   def processBodyFunction(fun: IR.Function): IR.Expression = {
     val containsThis = collectChainedFunctionArgs(fun).exists(arg =>
-      arg.name == IR.Name.This(arg.name.location)
+      arg.name == IR.Name.Self(arg.name.location)
     )
 
     if (!containsThis) {
@@ -154,7 +154,7 @@ case object GenerateMethodBodies extends IRPass {
     */
   def genThisArgument: IR.DefinitionArgument.Specified = {
     IR.DefinitionArgument.Specified(
-      IR.Name.This(None),
+      IR.Name.Self(None),
       None,
       None,
       suspended = false,

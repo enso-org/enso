@@ -59,7 +59,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldEqual IR.Name.This(None)
+        .name shouldEqual IR.Name.Self(None)
 
       resultArgs.tail shouldEqual irMethod.body
         .asInstanceOf[IR.Function.Lambda]
@@ -95,7 +95,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       bodyArgs.length shouldEqual 1
       bodyArgs.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldEqual IR.Name.This(None)
+        .name shouldEqual IR.Name.Self(None)
     }
 
     "have the body of the function be equivalent to the expression" in {

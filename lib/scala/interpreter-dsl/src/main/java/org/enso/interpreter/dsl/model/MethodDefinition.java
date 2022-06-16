@@ -198,7 +198,7 @@ public class MethodDefinition {
     private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
     private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
     private static final String DATAFLOW_ERROR = "org.enso.interpreter.runtime.error.DataflowError";
-    private static final String THIS = "this";
+    private static final String THIS = "self";
     private final String typeName;
     private final TypeMirror type;
     private final String name;

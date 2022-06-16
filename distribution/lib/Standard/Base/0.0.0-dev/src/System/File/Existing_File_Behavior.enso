@@ -39,7 +39,7 @@ type Existing_File_Behavior
        selected.
     write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | Io_Error | File_Already_Exists_Error
     write file action =
-        case this of
+        case self of
             Overwrite -> file.with_output_stream [Option.Write, Option.Create, Option.Truncate_Existing] action
             Append -> file.with_output_stream [Option.Write, Option.Create, Option.Append] action
             Error -> file.with_output_stream [Option.Write, Option.Create_New] action

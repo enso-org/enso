@@ -63,7 +63,7 @@ type Text_Sub_Range
 
             loop 0 0 iterator.next
 
-        case this of
+        case self of
             First count ->
                 if count <= 0 then (Range 0 0) else
                     iterator = BreakIterator.getCharacterInstance

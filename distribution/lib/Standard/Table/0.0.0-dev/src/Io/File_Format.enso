@@ -42,13 +42,13 @@ type Auto
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        materialised = this.materialise file
+        materialised = self.materialise file
         materialised.read file on_problems
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
     write_table file table on_existing_file column_mapping on_problems =
-        materialised = this.materialise file
+        materialised = self.materialise file
         materialised.write_table file table on_existing_file column_mapping on_problems
 
 ## Reads the file to a `Vector` of bytes.
@@ -72,7 +72,7 @@ type Plain_Text
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        file.read_text this.encoding on_problems
+        file.read_text self.encoding on_problems
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
@@ -122,7 +122,7 @@ type Delimited
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        Delimited_Reader.read_file this file on_problems
+        Delimited_Reader.read_file self file on_problems
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
@@ -133,34 +133,34 @@ type Delimited
      Clone the instance with some properties overridden.
      Note: This function is internal until such time as Atom cloning with modification is built into Enso.
     clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->Delimited
-    clone (quote=this.quote) (quote_escape=this.quote_escape) (quote_style=this.quote_style) (headers=this.headers) (value_formatter=this.value_formatter) (keep_invalid_rows=this.keep_invalid_rows) =
-        Delimited this.delimiter this.encoding this.skip_rows this.row_limit quote quote_escape quote_style headers value_formatter keep_invalid_rows
+    clone (quote=self.quote) (quote_escape=self.quote_escape) (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) =
+        Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote quote_escape quote_style headers value_formatter keep_invalid_rows
 
     ## Create a clone of this with specified `quote` and `quote_escape`.
     with_quotes : Text->Text->Quote_Style->Delimited
-    with_quotes quote quote_escape=quote quote_style=this.quote_style =
-        this.clone quote=quote quote_escape=quote_escape quote_style=quote_style
+    with_quotes quote quote_escape=quote quote_style=self.quote_style =
+        self.clone quote=quote quote_escape=quote_escape quote_style=quote_style
 
     ## Create a clone of this with first row treated as header.
     with_headers : Delimited
-    with_headers = this.clone headers=True
+    with_headers = self.clone headers=True
 
     ## Create a clone of this where the first row is treated as data, not a
        header.
     without_headers : Delimited
-    without_headers = this.clone headers=False
+    without_headers = self.clone headers=False
 
     ## Create a clone of this with value parsing.
 
        A custom `Data_Formatter` can be provided to customize parser options.
     with_parsing : Data_Formatter -> Delimited
     with_parsing (value_formatter=Data_Formatter) =
-        this.clone value_formatter=value_formatter
+        self.clone value_formatter=value_formatter
 
     ## Create a clone of this without value parsing.
     without_parsing : Delimited
     without_parsing =
-        this.clone value_formatter=Nothing
+        self.clone value_formatter=Nothing
 
 ## A setting to infer the default behaviour of some option.
 type Infer
@@ -185,11 +185,11 @@ type Excel
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        format = if this.xls_format != Infer then this.xls_format else
+        format = if self.xls_format != Infer then self.xls_format else
             extension = file.extension
             (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
 
-        Excel_Module.read_excel file this.section on_problems format
+        Excel_Module.read_excel file self.section on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing

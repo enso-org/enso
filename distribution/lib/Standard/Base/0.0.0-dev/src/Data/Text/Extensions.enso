@@ -51,7 +51,7 @@ type Index_Out_Of_Bounds_Error index length
 Text.length : Integer
 Text.length =
     iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
+    iterator.setText self
 
     count accum iter = if iter == -1 then accum else
         @Tail_Call count (accum + 1) iterator.next
@@ -70,16 +70,16 @@ Text.length =
          "Hello, world!".reverse
 Text.reverse : Text
 Text.reverse =
-    reverseStringBuilder = StringBuilder.new this.length
+    reverseStringBuilder = StringBuilder.new self.length
     iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
+    iterator.setText self
 
     iterate prev next = if next == -1 then reverseStringBuilder.toString else
-      reverseStringBuilder.append (Text_Utils.substring this next prev)
+      reverseStringBuilder.append (Text_Utils.substring self next prev)
       @Tail_Call iterate next iterator.previous
     iterate iterator.last iterator.previous
 
-## Applies the provided `function` to each character in `this`.
+## Applies the provided `function` to each character in `self`.
 
    Arguments:
    - function: The operation to apply to each character in the text.
@@ -96,10 +96,10 @@ Text.reverse =
 Text.each : (Text -> Any) -> Nothing
 Text.each function =
     iterator = BreakIterator.getCharacterInstance
-    iterator.setText this
+    iterator.setText self
 
     iterate prev nxt = if nxt == -1 then Nothing else
-        function (Text_Utils.substring this prev nxt)
+        function (Text_Utils.substring self prev nxt)
         @Tail_Call iterate nxt iterator.next
     iterate iterator.first iterator.next
 
@@ -126,17 +126,17 @@ Text.at : Integer -> Text ! Index_Out_Of_Bounds_Error
 Text.at index =
     case index < 0 of
         True ->
-            length = this.length
+            length = self.length
             new_index = index + length
             if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error index length) else
-                this.at new_index
+                self.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
-            iterator.setText this
+            iterator.setText self
             first = iterator.next index
             next = if first == -1 then -1 else iterator.next
-            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error index this.length)) else
-                Text_Utils.substring this first next
+            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error index self.length)) else
+                Text_Utils.substring self first next
 
 ## ALIAS Get Characters
 
@@ -154,16 +154,16 @@ Text.at index =
 Text.characters : Vector.Vector Text
 Text.characters =
     bldr = Vector.new_builder
-    this.each bldr.append
+    self.each bldr.append
     bldr.to_vector
 
 ## ALIAS Match Text
 
-   Matches the text in `this` against the provided regex `pattern`, returning
+   Matches the text in `self` against the provided regex `pattern`, returning
    the match(es) if present or `Nothing` if there are no matches.
 
    Arguments:
-   - pattern: The pattern to match `this` against. We recommend using _raw text_
+   - pattern: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
    - mode: This argument specifies how many matches the engine will try and
      find. When mode is set to either `Mode.First` or `Mode.Full`, this method
@@ -217,15 +217,15 @@ Text.characters =
 Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
 Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-    compiled_pattern.match this mode
+    compiled_pattern.match self mode
 
 ## ALIAS Check Matches
 
-   Matches the text in `this` against the provided regex `pattern`, returning
+   Matches the text in `self` against the provided regex `pattern`, returning
    `True` if the text matches at least once, and `False` otherwise.
 
    Arguments:
-   - pattern: The pattern to match `this` against. We recommend using _raw text_
+   - pattern: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
    - mode: This argument specifies how many matches the engine will try and
      find. When mode is set to either `Mode.First` or `Mode.Full`, this method
@@ -279,15 +279,15 @@ Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing do
 Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Boolean ! Regex.Compile_Error
 Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-    compiled_pattern.matches this
+    compiled_pattern.matches self
 
 ## ALIAS Find Text
 
-   Finds all occurrences of `pattern` in the text `this`, returning the text(s)
+   Finds all occurrences of `pattern` in the text `self`, returning the text(s)
    if present, or `Nothing` if there are no matches.
 
    Arguments:
-   - pattern: The pattern to match `this` against. We recommend using _raw text_
+   - pattern: The pattern to match `self` against. We recommend using _raw text_
      to write your patterns.
    - mode: This argument specifies how many matches the engine will try and
      find. When mode is set to either `Mode.First` or `Mode.Full`, this method
@@ -340,11 +340,11 @@ Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_ne
 Text.find : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
 Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-    compiled_pattern.find this mode
+    compiled_pattern.find self mode
 
 ## ALIAS Split Text
 
-   Takes a delimiter and returns the vector that results from splitting `this`
+   Takes a delimiter and returns the vector that results from splitting `self`
    on each of its occurrences.
 
    Arguments:
@@ -375,18 +375,18 @@ Text.split delimiter="," matcher=Text_Matcher = if delimiter.is_empty then Error
         Text_Matcher case_sensitivity ->
             delimiters = Vector.Vector <| case case_sensitivity of
                 True ->
-                    Text_Utils.span_of_all this delimiter
+                    Text_Utils.span_of_all self delimiter
                 Case_Insensitive locale ->
-                    Text_Utils.span_of_all_case_insensitive this delimiter locale.java_locale
+                    Text_Utils.span_of_all_case_insensitive self delimiter locale.java_locale
             Vector.new delimiters.length+1 i->
                 start = if i == 0 then 0 else
                     delimiters.at i-1 . codeunit_end
-                end = if i == delimiters.length then (Text_Utils.char_length this) else
+                end = if i == delimiters.length then (Text_Utils.char_length self) else
                     delimiters.at i . codeunit_start
-                Text_Utils.substring this start end
+                Text_Utils.substring self start end
         Regex_Matcher _ _ _ _ _ ->
             compiled_pattern = matcher.compile delimiter
-            compiled_pattern.split this mode=Mode.All
+            compiled_pattern.split self mode=Mode.All
 
 ## ALIAS Replace Text
    Replaces the first, last, or all occurrences of term with new_text in the
@@ -465,7 +465,7 @@ Text.split delimiter="," matcher=Text_Matcher = if delimiter.is_empty then Error
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
 Text.replace : Text -> Text -> (Matching_Mode.First | Matching_Mode.Last | Mode.All) -> (Text_Matcher | Regex_Matcher) -> Text
-Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then this else
+Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then self else
     case matcher of
         Text_Matcher case_sensitivity ->
             array_from_single_result result = case result of
@@ -474,24 +474,24 @@ Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is
             spans_array = case case_sensitivity of
                 True -> case mode of
                     Mode.All ->
-                        Text_Utils.span_of_all this term
+                        Text_Utils.span_of_all self term
                     Matching_Mode.First ->
-                        array_from_single_result <| Text_Utils.span_of this term
+                        array_from_single_result <| Text_Utils.span_of self term
                     Matching_Mode.Last ->
-                        array_from_single_result <| Text_Utils.last_span_of this term
+                        array_from_single_result <| Text_Utils.last_span_of self term
                 Case_Insensitive locale -> case mode of
                     Mode.All ->
-                        Text_Utils.span_of_all_case_insensitive this term locale.java_locale
+                        Text_Utils.span_of_all_case_insensitive self term locale.java_locale
                     Matching_Mode.First ->
                         array_from_single_result <|
-                            Text_Utils.span_of_case_insensitive this term locale.java_locale False
+                            Text_Utils.span_of_case_insensitive self term locale.java_locale False
                     Matching_Mode.Last ->
                         array_from_single_result <|
-                            Text_Utils.span_of_case_insensitive this term locale.java_locale True
-            Text_Utils.replace_spans this spans_array new_text
+                            Text_Utils.span_of_case_insensitive self term locale.java_locale True
+            Text_Utils.replace_spans self spans_array new_text
         Regex_Matcher _ _ _ _ _ ->
             compiled_pattern = matcher.compile term
-            compiled_pattern.replace this new_text mode=mode
+            compiled_pattern.replace self new_text mode=mode
 
 ## ALIAS Get Words
 
@@ -519,13 +519,13 @@ Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is
 Text.words : Boolean -> Vector.Vector Text
 Text.words keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
-    iterator.setText this
+    iterator.setText self
     bldr = Vector.new_builder
     fst = iterator.first
     nxt = iterator.next
 
     build prev nxt = if nxt == -1 then Nothing else
-        word = Text_Utils.substring this prev nxt
+        word = Text_Utils.substring self prev nxt
         word_not_whitespace = (Text_Utils.is_all_whitespace word).not
         if word_not_whitespace || keep_whitespace then bldr.append word
 
@@ -561,12 +561,12 @@ Text.words keep_whitespace=False =
         '\na\nb\n'.lines keep_endings=True == ['\n', 'a\n', 'b\n']
 Text.lines : Boolean -> Vector.Vector Text
 Text.lines keep_endings=False =
-    Vector.Vector (Text_Utils.split_on_lines this keep_endings)
+    Vector.Vector (Text_Utils.split_on_lines self keep_endings)
 
-## Checks whether `this` is equal to `that`, ignoring the case of the texts.
+## Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
    Arguments:
-   - that: The text to compare `this` for case-insensitive equality with.
+   - that: The text to compare `self` for case-insensitive equality with.
 
    Two texts are considered equal ignoring case if they are of the same length
    and corresponding characters are equal ignoring case.
@@ -587,7 +587,7 @@ Text.lines keep_endings=False =
          (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
 Text.equals_ignore_case : Text -> Locale -> Boolean
 Text.equals_ignore_case that locale=Locale.default =
-    Text_Utils.equals_ignore_case this that locale.java_locale
+    Text_Utils.equals_ignore_case self that locale.java_locale
 
 ## ADVANCED
    PRIVATE
@@ -596,12 +596,12 @@ Text.equals_ignore_case that locale=Locale.default =
    used to perform case-insensitive comparisons.
 Text.to_case_insensitive_key : Locale -> Text
 Text.to_case_insensitive_key locale=Locale.default =
-    Text_Utils.case_insensitive_key this locale.java_locale
+    Text_Utils.case_insensitive_key self locale.java_locale
 
 ## Compare two texts to discover their ordering.
 
    Arguments:
-   - that: The text to order `this` with respect to.
+   - that: The text to order `self` with respect to.
 
    > Example
      Checking how "a" orders in relation to "b".
@@ -609,7 +609,7 @@ Text.to_case_insensitive_key locale=Locale.default =
          "a".compare_to "b"
 Text.compare_to : Text -> Ordering
 Text.compare_to that =
-    comparison_result = Text_Utils.compare_normalized this that
+    comparison_result = Text_Utils.compare_normalized self that
     if comparison_result == 0 then Ordering.Equal else
         if comparison_result < 0 then Ordering.Less else
             Ordering.Greater
@@ -617,7 +617,7 @@ Text.compare_to that =
 ## Compare two texts to discover their ordering.
 
    Arguments:
-   - that: The text to order `this` with respect to.
+   - that: The text to order `self` with respect to.
 
    > Example
      Checking how "a" orders in relation to "b".
@@ -625,14 +625,14 @@ Text.compare_to that =
          "a".compare_to_ignore_case "b"
 Text.compare_to_ignore_case : Text -> Locale -> Ordering
 Text.compare_to_ignore_case that locale=Locale.default =
-    comparison_result = Text_Utils.compare_normalized_ignoring_case this that locale.java_locale
+    comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
     if comparison_result == 0 then Ordering.Equal else
         if comparison_result < 0 then Ordering.Less else
             Ordering.Greater
 
 ## ALIAS Check Emptiness
 
-   Check if `this` is empty.
+   Check if `self` is empty.
 
    ! What is Empty?
      Text is considered to be empty when its length is zero.
@@ -642,11 +642,11 @@ Text.compare_to_ignore_case that locale=Locale.default =
 
          "aaa".is_empty
 Text.is_empty : Boolean
-Text.is_empty = this == ""
+Text.is_empty = self == ""
 
 ## ALIAS Check Non-Emptiness
 
-   Check if `this` is not empty.
+   Check if `self` is not empty.
 
    ! What is Not Empty?
      Text is considered to be not empty when its length is greater than zero.
@@ -656,7 +656,7 @@ Text.is_empty = this == ""
 
          "aaa".not_empty
 Text.not_empty : Boolean
-Text.not_empty = this.is_empty.not
+Text.not_empty = self.is_empty.not
 
 ## Inserts text value at the specified index.
 
@@ -681,13 +681,13 @@ Text.not_empty = this.is_empty.not
          "Hello World!".insert -1 " Cruel" == "Hello World! Cruel"
 Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds_Error
 Text.insert index that =
-    len = this.length
+    len = self.length
     idx = if index < 0 then len + index + 1 else index
     if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error index len) else
-        if idx == 0 then that + this else
-            if idx == len then this + that else
-                pre = this.take (Range 0 idx)
-                post = this.take (Range idx len)
+        if idx == 0 then that + self else
+            if idx == len then self + that else
+                pre = self.take (Range 0 idx)
+                post = self.take (Range idx len)
                 pre + that + post
 
 ## Returns if a character from the text at the specified index (0-based) is a
@@ -713,7 +713,7 @@ Text.insert index that =
          "건반(Korean)".is_digit 1 == False
 Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds_Error
 Text.is_digit (index=0) =
-    grapheme = this.at index
+    grapheme = self.at index
     char = (Text_Utils.get_chars grapheme).at 0
     char>=48 && char<=57
 
@@ -726,7 +726,7 @@ Text.is_digit (index=0) =
          "0 ".is_whitespace == False
 Text.is_whitespace : Boolean
 Text.is_whitespace =
-    Text_Utils.is_all_whitespace this
+    Text_Utils.is_all_whitespace self
 
 ## Returns a vector containing bytes representing the specified encoding of the
    input text.
@@ -734,7 +734,7 @@ Text.is_whitespace =
    This is useful for low-level operations, such as binary data encoding.
 
    Arguments:
-   - encoding: The text encoding to encode this with. Defaults to UTF-8.
+   - encoding: The text encoding to encode self with. Defaults to UTF-8.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
      By default, a warning is issued, but the operation proceeds.
@@ -747,7 +747,7 @@ Text.is_whitespace =
          "Hello".bytes (Encoding.ascii)
 Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
 Text.bytes encoding on_problems=Report_Warning =
-    result = Encoding_Utils.get_bytes this (encoding . to_java_charset)
+    result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.Vector result.result
     if result.warnings.is_nothing then vector else
         on_problems.attach_problems_after vector [Encoding_Error result.warnings]
@@ -793,7 +793,7 @@ Text.from_bytes bytes encoding on_problems=Report_Warning =
          "Hello".utf_8
 Text.utf_8 : Problem_Behavior -> Vector.Vector Byte
 Text.utf_8 on_problems=Report_Warning =
-    this.bytes Encoding.utf_8 on_problems
+    self.bytes Encoding.utf_8 on_problems
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 
@@ -826,7 +826,7 @@ Text.from_utf_8 bytes on_problems=Report_Warning =
 
          "Hello".char_vector
 Text.char_vector : Vector.Vector Integer
-Text.char_vector = Vector.Vector (Text_Utils.get_chars this)
+Text.char_vector = Vector.Vector (Text_Utils.get_chars self)
 
 ## Takes a vector of characters and returns the text that results from it.
 
@@ -849,7 +849,7 @@ Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
          "Hello".codepoints
 Text.codepoints : Vector.Vector Integer
-Text.codepoints = Vector.Vector (Text_Utils.get_codepoints this)
+Text.codepoints = Vector.Vector (Text_Utils.get_codepoints self)
 
 ## Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.
@@ -865,10 +865,10 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 
 ## ALIAS Check Prefix
 
-   Checks whether `this` starts with `prefix`.
+   Checks whether `self` starts with `prefix`.
 
    Arguments:
-   - prefix: The prefix to see if `this` starts with.
+   - prefix: The prefix to see if `self` starts with.
    - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
      rules specified in the matcher.
      If a `Regex_Matcher`, the term is used as a regular expression and matched
@@ -905,21 +905,21 @@ Text.starts_with : Text -> Matcher -> Boolean
 Text.starts_with prefix matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True ->
-            this.take (Text_Sub_Range.First prefix.length) == prefix
+            self.take (Text_Sub_Range.First prefix.length) == prefix
         Case_Insensitive locale ->
-            this.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
+            self.take (Text_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
     Regex_Matcher _ _ _ _ _ ->
         preprocessed_pattern = "\A(?:" + prefix + ")"
         compiled_pattern = matcher.compile preprocessed_pattern
-        match = compiled_pattern.match this Mode.First
+        match = compiled_pattern.match self Mode.First
         match.is_nothing.not
 
 ## ALIAS Check Suffix
 
-   Checks whether `this` ends with `suffix`.
+   Checks whether `self` ends with `suffix`.
 
    Arguments:
-   - suffix: The suffix to see if `this` ends with.
+   - suffix: The suffix to see if `self` ends with.
    - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
      rules specified in the matcher.
      If a `Regex_Matcher`, the term is used as a regular expression and matched
@@ -942,18 +942,18 @@ Text.ends_with : Text -> Matcher -> Boolean
 Text.ends_with suffix matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True ->
-            this.take (Text_Sub_Range.Last suffix.length) == suffix
+            self.take (Text_Sub_Range.Last suffix.length) == suffix
         Case_Insensitive locale ->
-            this.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
+            self.take (Text_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
     Regex_Matcher _ _ _ _ _ ->
         preprocessed_pattern = "(?:" + suffix + ")\z"
         compiled_pattern = matcher.compile preprocessed_pattern
-        match = compiled_pattern.match this Mode.First
+        match = compiled_pattern.match self Mode.First
         match.is_nothing.not
 
 ## ALIAS Contains
 
-   Checks whether `this` contains `sequence` as its substring.
+   Checks whether `self` contains `sequence` as its substring.
 
    Arguments:
    - term: The term to find.
@@ -962,7 +962,7 @@ Text.ends_with suffix matcher=Text_Matcher = case matcher of
      If a `Regex_Matcher`, the term is used as a regular expression and matched
      using the associated options.
 
-   Returns: `True` if term is found within `this`. `False` otherwise.
+   Returns: `True` if term is found within `self`. `False` otherwise.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -1005,12 +1005,12 @@ Text.ends_with suffix matcher=Text_Matcher = case matcher of
 Text.contains : Text -> Matcher -> Boolean
 Text.contains term="" matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
-        True -> Text_Utils.contains this term
+        True -> Text_Utils.contains self term
         Case_Insensitive locale ->
-            Text_Utils.contains_case_insensitive this term locale.java_locale
+            Text_Utils.contains_case_insensitive self term locale.java_locale
     Regex_Matcher _ _ _ _ _ ->
         compiled_pattern = matcher.compile term
-        match = compiled_pattern.match this Mode.First
+        match = compiled_pattern.match self Mode.First
         match.is_nothing.not
 
 ## Text to JSON conversion.
@@ -1020,14 +1020,14 @@ Text.contains term="" matcher=Text_Matcher = case matcher of
 
          "cześć".to_json
 Text.to_json : Json.String
-Text.to_json = Json.String this
+Text.to_json = Json.String self
 
 
 ## Takes an integer and returns a new text, consisting of `count` concatenated
-   copies of `this`.
+   copies of `self`.
 
    Arguments:
-   - count: The number of times that the text `this` should be repeated to make
+   - count: The number of times that the text `self` should be repeated to make
      the new text.
 
    > Example
@@ -1040,13 +1040,13 @@ Text.to_json = Json.String this
 
          "Hello " * 2 == "Hello Hello "
 Text.* : Integer -> Text
-Text.* count = this.repeat count
+Text.* count = self.repeat count
 
 ## Takes an integer and returns a new text, consisting of `count` concatenated
-   copies of `this`.
+   copies of `self`.
 
    Arguments:
-   - count: The number of times that the text `this` should be repeated to make
+   - count: The number of times that the text `self` should be repeated to make
      the new text.
 
    > Example
@@ -1062,7 +1062,7 @@ Text.repeat : Integer -> Text
 Text.repeat count=1 =
     ## TODO max is a workaround until Range is sorted to make 0..-1 not cause an infinite loop
        https://www.pivotaltracker.com/story/show/181435598
-    0.up_to (count.max 0) . fold "" acc-> _-> acc + this
+    0.up_to (count.max 0) . fold "" acc-> _-> acc + self
 
 ## ALIAS first, last, left, right, mid, substring
    Creates a new Text by selecting the specified range of the input.
@@ -1071,7 +1071,7 @@ Text.repeat count=1 =
    input using various criteria defined by the range parameter.
 
    Arguments:
-   - range: The section of the this text to return.
+   - range: The section of the self text to return.
      If a `Text_Sub_Range`, then the selection is interpreted following the rules of that type.
      If a `Range`, the selection is specified by two indices, from and to.
 
@@ -1100,9 +1100,9 @@ Text.repeat count=1 =
 Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.take range =
     char_range = case range of
-        Range _ _ _ -> Span_Module.range_to_char_indices this range
-        _ -> range.to_char_range this
-    Text_Utils.substring this char_range.start char_range.end
+        Range _ _ _ -> Span_Module.range_to_char_indices self range
+        _ -> range.to_char_range self
+    Text_Utils.substring self char_range.start char_range.end
 
 ## ALIAS skip, remove
    Creates a new Text by removing the specified range of the input.
@@ -1140,15 +1140,15 @@ Text.take range =
 Text.drop : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.drop range =
     char_range = case range of
-        Range _ _ _ -> Span_Module.range_to_char_indices this range
-        _ -> range.to_char_range this
-    if char_range.start == 0 then Text_Utils.drop_first this char_range.end else
-        prefix = Text_Utils.substring this 0 char_range.start
-        if char_range.end == (Text_Utils.char_length this) then prefix else
-            prefix + Text_Utils.drop_first this char_range.end
+        Range _ _ _ -> Span_Module.range_to_char_indices self range
+        _ -> range.to_char_range self
+    if char_range.start == 0 then Text_Utils.drop_first self char_range.end else
+        prefix = Text_Utils.substring self 0 char_range.start
+        if char_range.end == (Text_Utils.char_length self) then prefix else
+            prefix + Text_Utils.drop_first self char_range.end
 
 ## ALIAS lower, upper, title, proper
-   Converts each character in `this` to the specified case.
+   Converts each character in `self` to the specified case.
 
    Arguments:
    - case_option: specifies how to convert the characters.
@@ -1180,9 +1180,9 @@ Text.drop range =
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
 Text.to_case : Case -> Locale -> Text
 Text.to_case case_option=Case.Lower locale=Locale.Default = case case_option of
-    Case.Lower -> UCharacter.toLowerCase locale.java_locale this
-    Case.Upper -> UCharacter.toUpperCase locale.java_locale this
-    Case.Title -> UCharacter.toTitleCase locale.java_locale this Nothing
+    Case.Lower -> UCharacter.toLowerCase locale.java_locale self
+    Case.Upper -> UCharacter.toUpperCase locale.java_locale self
+    Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
 
 ## Returns the input padded to the specified `length`, using the `with_pad`
    string repeated at the start or the end.
@@ -1212,15 +1212,15 @@ Text.pad : Integer -> Text -> (Location.Start | Location.End) -> Text
 Text.pad length=0 with_pad=' ' at=Location.End =
     with_pad_length = with_pad.length
     if with_pad_length == 0 then Error.throw (Illegal_Argument_Error "`with_pad` must not be an empty string.") else
-        pad_size = length - this.length
-        if pad_size <= 0 then this else
+        pad_size = length - self.length
+        if pad_size <= 0 then self else
             full_repetitions = pad_size.div with_pad_length
             remainder = pad_size % with_pad_length
             case at of
                 Location.Start ->
-                    with_pad.take (Text_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + this
+                    with_pad.take (Text_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
                 Location.End ->
-                    this + with_pad.repeat full_repetitions + with_pad.take (Text_Sub_Range.First remainder)
+                    self + with_pad.repeat full_repetitions + with_pad.take (Text_Sub_Range.First remainder)
 
 ## This function removes the specified `trim_characters`, by default any
    whitespace, from the start, the end, or both ends of the input.
@@ -1251,30 +1251,30 @@ Text.trim where=Location.Both what=_.is_whitespace =
         Text -> what.contains _
         _ -> what
     break_iterator = BreakIterator.getCharacterInstance
-    break_iterator.setText this
+    break_iterator.setText self
     start_index = case where of
         Location.End -> 0
         _ ->
             loop current next =
                 if next < 0 then current else
-                    case predicate (Text_Utils.substring this current next) of
+                    case predicate (Text_Utils.substring self current next) of
                         True ->
                             @Tail_Call loop next break_iterator.next
                         False -> current
             loop 0 break_iterator.next
     end_index = case where of
-        Location.Start -> Text_Utils.char_length this
+        Location.Start -> Text_Utils.char_length self
         _ ->
             loop current prev =
                 if prev < 0 then current else
-                    case predicate (Text_Utils.substring this prev current) of
+                    case predicate (Text_Utils.substring self prev current) of
                         True ->
                             @Tail_Call loop prev break_iterator.previous
                         False -> current
             current = break_iterator.last
             loop current break_iterator.previous
     if start_index >= end_index then "" else
-        Text_Utils.substring this start_index end_index
+        Text_Utils.substring self start_index end_index
 
 ## ALIAS find, index_of, position_of, span_of
    Find the location of the `term` in the input.
@@ -1373,36 +1373,36 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher = case ma
     Text_Matcher case_sensitive -> case case_sensitive of
         True ->
             codepoint_span = case mode of
-                Matching_Mode.First -> Text_Utils.span_of this term
-                Matching_Mode.Last -> Text_Utils.last_span_of this term
+                Matching_Mode.First -> Text_Utils.span_of self term
+                Matching_Mode.Last -> Text_Utils.last_span_of self term
             if codepoint_span.is_nothing then Nothing else
-                start = Text_Utils.utf16_index_to_grapheme_index this codepoint_span.codeunit_start
+                start = Text_Utils.utf16_index_to_grapheme_index self codepoint_span.codeunit_start
                 ## While the codepoint_span may have different code unit length
                    from our term, the `length` counted in grapheme clusters is
                    guaranteed to be the same.
                 end = start + term.length
-                Span (Range start end) this
+                Span (Range start end) self
         Case_Insensitive locale -> case term.is_empty of
             True -> case mode of
-                Matching_Mode.First -> Span (Range 0 0) this
+                Matching_Mode.First -> Span (Range 0 0) self
                 Matching_Mode.Last ->
-                    end = this.length
-                    Span (Range end end) this
+                    end = self.length
+                    Span (Range end end) self
             False ->
                 search_for_last = case mode of
                     Matching_Mode.First -> False
                     Matching_Mode.Last -> True
-                case Text_Utils.span_of_case_insensitive this term locale.java_locale search_for_last of
+                case Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last of
                     Nothing -> Nothing
                     grapheme_span ->
-                        Span (Range grapheme_span.grapheme_start grapheme_span.grapheme_end) this
+                        Span (Range grapheme_span.grapheme_start grapheme_span.grapheme_end) self
     Regex_Matcher _ _ _ _ _ -> case mode of
         Matching_Mode.First ->
-            case matcher.compile term . match this Mode.First of
+            case matcher.compile term . match self Mode.First of
                 Nothing -> Nothing
                 match -> match.span 0 . to_grapheme_span
         Matching_Mode.Last ->
-            case matcher.compile term . match this Mode.All of
+            case matcher.compile term . match self Mode.All of
                 Nothing -> Nothing
                 matches -> matches.last.span 0 . to_grapheme_span
 
@@ -1473,22 +1473,22 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher = case ma
          match_2 . map .length == [2, 5]
 Text.location_of_all : Text -> Matcher -> [Span]
 Text.location_of_all term="" matcher=Text_Matcher = case matcher of
-    Text_Matcher case_sensitive -> if term.is_empty then Vector.new (this.length + 1) (ix -> Span (Range ix ix) this) else case case_sensitive of
+    Text_Matcher case_sensitive -> if term.is_empty then Vector.new (self.length + 1) (ix -> Span (Range ix ix) self) else case case_sensitive of
         True ->
-            codepoint_spans = Vector.Vector <| Text_Utils.span_of_all this term
-            grahpeme_ixes = Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices this (codepoint_spans.map .codeunit_start).to_array
+            codepoint_spans = Vector.Vector <| Text_Utils.span_of_all self term
+            grahpeme_ixes = Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
             ## While the codepoint_spans may have different code unit lengths
                from our term, the `length` counted in grapheme clusters is
                guaranteed to be the same.
             offset = term.length
             grahpeme_ixes . map start->
                 end = start+offset
-                Span (Range start end) this
+                Span (Range start end) self
         Case_Insensitive locale ->
-            grapheme_spans = Vector.Vector <| Text_Utils.span_of_all_case_insensitive this term locale.java_locale
+            grapheme_spans = Vector.Vector <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
             grapheme_spans.map grapheme_span->
-                Span (Range grapheme_span.grapheme_start grapheme_span.grapheme_end) this
+                Span (Range grapheme_span.grapheme_start grapheme_span.grapheme_end) self
     Regex_Matcher _ _ _ _ _ ->
-        case matcher.compile term . match this Mode.All of
+        case matcher.compile term . match self Mode.All of
             Nothing -> []
             matches -> matches.map m-> m.span 0 . to_grapheme_span

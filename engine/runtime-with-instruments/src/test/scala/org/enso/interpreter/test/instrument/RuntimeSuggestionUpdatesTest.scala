@@ -168,7 +168,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -232,7 +232,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -318,7 +318,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -424,7 +424,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -540,7 +540,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -613,7 +613,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -683,7 +683,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -809,7 +809,7 @@ class RuntimeSuggestionUpdatesTest
                     Seq(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -851,7 +851,7 @@ class RuntimeSuggestionUpdatesTest
                     "overloaded",
                     Seq(
                       Suggestion.Argument(
-                        "this",
+                        "self",
                         ConstantsGen.TEXT,
                         false,
                         false,
@@ -878,7 +878,7 @@ class RuntimeSuggestionUpdatesTest
                     "overloaded",
                     Seq(
                       Suggestion.Argument(
-                        "this",
+                        "self",
                         ConstantsGen.NUMBER,
                         false,
                         false,
@@ -1010,7 +1010,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.A.MkA",
                           false,
                           false,
@@ -1035,7 +1035,7 @@ class RuntimeSuggestionUpdatesTest
                     "fortytwo",
                     List(
                       Suggestion.Argument(
-                        "this",
+                        "self",
                         ConstantsGen.INTEGER,
                         false,
                         false,
@@ -1060,7 +1060,7 @@ class RuntimeSuggestionUpdatesTest
                     "hello",
                     List(
                       Suggestion.Argument(
-                        "this",
+                        "self",
                         "Enso_Test.Test.A",
                         false,
                         false,
@@ -1121,7 +1121,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,

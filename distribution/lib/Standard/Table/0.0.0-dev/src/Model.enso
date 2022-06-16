@@ -6,8 +6,8 @@ from Standard.Table import Column, Table
    vector containing the slope in the first position and the bias in the second.
 
    Arguments:
-   - x_column: The name of the column in `this` containing the x values.
-   - y_column: The name of the column in `this` containing the y values.
+   - x_column: The name of the column in `self` containing the x values.
+   - y_column: The name of the column in `self` containing the y values.
 
    If the columns don't match in length, it throws a `Fit_Error`.
 
@@ -23,8 +23,8 @@ from Standard.Table import Column, Table
              table.linear_regression "x" "y"
 Table.Table.linear_regression : Text -> Text -> Vector Number ! Fit_Error
 Table.Table.linear_regression x_column y_column =
-    x_values = this.at x_column
-    y_values = this.at y_column
+    x_values = self.at x_column
+    y_values = self.at y_column
     here.linear_regression x_values y_values
 
 ## Compute the linear regression between the x and y coordinates, returning a
@@ -73,5 +73,5 @@ type Fit_Error message
 
    Converts the `Fit_Error` to a human-readable representation.
 Fit_Error.to_display_text : Text
-Fit_Error.to_display_text = "Could not fit the model: " + this.message.to_text
+Fit_Error.to_display_text = "Could not fit the model: " + self.message.to_text
 
