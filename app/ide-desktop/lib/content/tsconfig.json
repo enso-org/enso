@@ -2,7 +2,7 @@
   "compilerOptions": {
     "sourceMap": true,
     "noImplicitAny": true,
-    "target": "ES5",
+    "target": "ES2018",
     "module": "ES2015"
   }
 }
