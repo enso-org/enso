@@ -1,0 +1,27 @@
+type Panic
+    @Builtin_Type
+    type Panic
+    throw payload = @Builtin_Method "Panic.throw"
+    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
+
+@Builtin_Type
+type Syntax_Error message
+@Builtin_Type
+type Polyglot_Error cause
+@Builtin_Type
+type Arithmetic_Error message
+@Builtin_Type
+type Type_Error expected actual name
+@Builtin_Type
+type Compile_Error message
+@Builtin_Type
+type Inexhaustive_Pattern_Match_Error scrutinee
+@Builtin_Type
+type Arity_Error expected_min expected_max actual
+
+type Error
+    @Builtin_Type
+    type Error
+    throw payload = @Builtin_Method "Error.throw"
+    catch_primitive handler = @Builtin_Method "Error.catch_primitive"
+    catch (handler = x->x) = this.catch_primitive handler

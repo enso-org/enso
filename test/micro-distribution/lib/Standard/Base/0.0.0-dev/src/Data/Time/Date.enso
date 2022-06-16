@@ -1,0 +1,11 @@
+polyglot java import java.time.LocalDate
+polyglot java import java.time.format.DateTimeFormatter
+
+new year (month = 1) (day = 1) = LocalDate.of year month day
+
+type Date
+    type Date internal_local_date
+    year = this . internal_local_date . getYear
+    month = this . internal_local_date . getMonthValue
+    day = this . internal_local_date . getDayOfMonth
+    to_text = DateTimeFormatter.ISO_LOCAL_DATE.format this.internal_local_date
