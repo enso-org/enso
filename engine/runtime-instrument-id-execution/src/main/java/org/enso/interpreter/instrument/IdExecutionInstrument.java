@@ -314,8 +314,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {
       SourceSection s = c.getSourceSection();
       builder.lineIn(SourceSectionFilter.IndexRange.between(s.getStartLine(), s.getEndLine() + 1));
-    } else {
-      throw new IllegalStateException("Wrong entryCallTarget: " + entryCallTarget);
     }
     SourceSectionFilter filter = builder.build();
 

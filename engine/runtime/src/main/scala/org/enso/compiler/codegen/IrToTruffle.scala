@@ -435,8 +435,9 @@ class IrToTruffle(
       )
   }
 
-  /** Creates a source section from a given location in the code.
+  /** Creates a source section from a given location in the module's code.
     *
+    * @param module the module that owns/provides the source code
     * @param location the location to turn into a section
     * @return the source section corresponding to `location`
     */

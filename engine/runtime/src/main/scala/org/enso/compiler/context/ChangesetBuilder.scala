@@ -74,14 +74,11 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     };
 
     val simpleUpdateOption = simpleEditOption
-      .filter(edit => {
-        edit.range.start.line == edit.range.end.line
-      })
+      .filter(edit => edit.range.start.line == edit.range.end.line)
       .map(edit => (edit, invalidated(Seq(edit))))
-      .filter(pair => pair._2.size == 1)
-      .map(pair => {
-        val edit               = pair._1
-        val directlyAffectedId = pair._2.head.externalId
+      .filter({ case (_, directlyAffected) => directlyAffected.size == 1 })
+      .flatMap({ case (edit, directlyAffected) =>
+        val directlyAffectedId = directlyAffected.head.externalId
         val literals =
           ir.preorder.filter(_.getExternalId == directlyAffectedId)
         val oldIr = literals.head
@@ -98,19 +95,18 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           case node: IR.Literal.Number =>
             newIR() match {
               case Some(newIR: IR.Literal.Number) =>
-                SimpleUpdate(node, edit, newIR)
-              case _ => null
+                Some(SimpleUpdate(node, edit, newIR))
+              case _ => None
             }
           case node: IR.Literal.Text =>
             newIR() match {
               case Some(newIR: IR.Literal.Text) =>
-                SimpleUpdate(node, edit, newIR)
-              case _ => null
+                Some(SimpleUpdate(node, edit, newIR))
+              case _ => None
             }
-          case _ => null
+          case _ => None
         }
       })
-      .filter(_ != null)
 
     Changeset(source, ir, simpleUpdateOption, compute(edits))
   }

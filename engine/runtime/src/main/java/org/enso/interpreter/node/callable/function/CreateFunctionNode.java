@@ -80,7 +80,7 @@ public class CreateFunctionNode extends ExpressionNode {
     return schema.getArgumentInfos();
   }
 
-  /** Adds slow to instrument tag.
+  /** Optionally offers {@link AvoidIdInstrumentationTag}.
    */
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {

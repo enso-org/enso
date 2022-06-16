@@ -51,6 +51,7 @@ public class ClosureRootNode extends EnsoRootNode {
    * @param section a mapping from {@code body} to the program source
    * @param name a name for the node
    * @param subjectToInstrumentation shall this node be instrumented
+   * @param usedInBinding is this node directly used in a variable binding
    * @return a node representing the specified closure
    */
   public static ClosureRootNode build(
