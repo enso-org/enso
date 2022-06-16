@@ -4,6 +4,7 @@
 // which is not just in testing builds.
 
 use super::*;
+
 use enso_frp::future::EventOutputExt;
 
 

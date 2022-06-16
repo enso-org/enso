@@ -278,14 +278,6 @@ transactions_table : Table.Table
 transactions_table =
     (Enso_Project.data / "food_shop_transactions.csv") . read
 
-## An aggregate table for the relevant examples.
-aggregate_table : Table.Aggregate_Table
-aggregate_table =
-    transactions = here.transactions_table
-    item_names = here.inventory_table.at "item_name"
-    with_names = transactions.join item_names on="item_id"
-    with_names.group by="item_name"
-
 ## An example regex match.
 match : Default_Engine.Match
 match =

@@ -203,9 +203,16 @@ define_themes! { [light:0, dark:1]
                         offset_y = shadow::offset_y , shadow::offset_y;
                     }
                 }
+                selection {
+                    corners_radius = 10.0, 10.0;
+                    horizontal_padding = 10.0, 10.0;
+                    vertical_padding = 3.0, 3.0;
+                }
                 background_color_intensity = 0.2, 0.2;
+                selection_color_intensity = 1.0, 1.0;
                 dimmed_color_intensity = 0.5, 0.5;
                 entry_list {
+                    selected_color = Rgba::white(), Rgba::white();
                     text {
                         font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;

@@ -14,8 +14,9 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-use derivative::Derivative;
 use futures::prelude::*;
+
+use derivative::Derivative;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 

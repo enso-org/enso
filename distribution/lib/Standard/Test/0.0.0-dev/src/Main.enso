@@ -712,7 +712,7 @@ wrap_junit_testsuites config builder ~action =
     if config.should_output_junit then
         builder.append '</testsuites>\n'
         config.output_path.parent.create_directory
-        config.output_path.write_text builder.toString
+        builder.toString.write config.output_path
 
     result
 

@@ -29,7 +29,7 @@ spec =
             f = Enso_Project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            f.write_text "Cup"
+            "Cup".write f
             java_charset = Encoding.utf_8.to_java_charset
             f.with_input_stream [File.Option.Read] stream->
                 stream.with_java_stream java_stream->
@@ -45,7 +45,7 @@ spec =
             f = Enso_Project.data / "transient" / "varying_chunks.txt"
             fragment = 'Hello 😎🚀🚧!'
             contents = 1.up_to 1000 . map _->fragment . join '\n'
-            f.write_text contents
+            contents.write f
             java_charset = Encoding.utf_8.to_java_charset
 
             all_codepoints = Vector.new_builder
@@ -104,7 +104,7 @@ spec =
             f = Enso_Project.data / "transient" / "utf8.txt"
             encoding = Encoding.utf_8
             java_charset = encoding.to_java_charset
-            f.write_text ((0.up_to 100).map _->'Hello World!' . join '\n') Encoding.utf_8
+            ((0.up_to 100).map _->'Hello World!' . join '\n').write f
             expected_contents = f.read_text
             contents = read_file_one_by_one f java_charset expected_contents.length
             contents.should_equal expected_contents

@@ -240,6 +240,14 @@ macro_rules! shared_struct {
                 fn view(&self) -> Option<Self::Strong> {
                     self.upgrade()
                 }
+
+                fn is_expired(&self) -> bool {
+                    self.weak.is_expired()
+                }
+
+                fn clone(view: &Self::Strong) -> Self::Strong where Self: Sized {
+                    view.clone()
+                }
             }
 
             impl<$($params)*> $name <$($params)*> {

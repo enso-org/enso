@@ -102,14 +102,6 @@ spec =
             read . should_equal (clothes.concat clothes)
             out.delete_if_exists
 
-        Test.specify 'should allow writing using the generic write method' <|
-            out.delete_if_exists
-            clothes.write out (Table.Format.Xlsx sheet='Foo')
-            clothes.write out (Table.Format.Xlsx sheet='Foo' write_mode=Table.Spreadsheet_Write_Mode.Append include_header=False)
-            read = out.read_xlsx sheet='Foo'
-            read . should_equal (clothes.concat clothes)
-            out.delete_if_exists
-
         Test.specify 'should write multiple files if row limit is specified' <|
             out_1 = Enso_Project.data / 'out_1.xlsx'
             out_2 = Enso_Project.data / 'out_2.xlsx'

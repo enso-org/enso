@@ -1,4 +1,6 @@
-from Standard.Base import Any, Ordering, Nothing, Vector
+from Standard.Base import all
+import Standard.Base.Data.Ordering.Natural_Order
+from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 
 polyglot java import org.enso.base.ObjectComparator
 
@@ -9,10 +11,26 @@ polyglot java import org.enso.base.ObjectComparator
    - custom_comparator:
      If `Nothing` will get a singleton instance for `.compare_to`.
      Otherwise can support a custom fallback comparator.
-new : Nothing | (Any->Any->Ordering)
+new : Nothing | (Any->Any->Ordering) -> ObjectComparator
 new custom_comparator=Nothing =
     comparator_to_java cmp x y = Vector.handle_incomparable_value (cmp x y . to_sign)
 
     case custom_comparator of
         Nothing -> ObjectComparator.getInstance (comparator_to_java .compare_to)
         _ -> ObjectComparator.new (comparator_to_java custom_comparator)
+
+## ADVANCED
+   Create a Java Comparator with the specified Text_Ordering
+
+   Arguments:
+   - text_ordering:
+     Specifies how to compare Text values within the Comparator.
+for_text_ordering : Text_Ordering -> ObjectComparator
+for_text_ordering text_ordering =
+    case text_ordering.sort_digits_as_numbers of
+        True ->
+            txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitive . to_sign
+            here.new.withCustomTextComparator txt_cmp
+        False -> case text_ordering.case_sensitive of
+            Case_Insensitive locale -> here.new.withCaseInsensitivity locale.java_locale
+            _ -> here.new

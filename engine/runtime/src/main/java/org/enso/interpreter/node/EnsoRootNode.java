@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
@@ -14,9 +15,11 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @NodeInfo(shortName = "Root", description = "A root node for Enso computations")
 public abstract class EnsoRootNode extends RootNode {
   private final String name;
-  private final SourceSection sourceSection;
+  private final int sourceStartIndex;
+  private final int sourceLength;
   private final LocalScope localScope;
   private final ModuleScope moduleScope;
+  private final Source inlineSource;
   private final FrameSlot stateFrameSlot;
 
   /**
@@ -38,7 +41,13 @@ public abstract class EnsoRootNode extends RootNode {
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
-    this.sourceSection = sourceSection;
+    if (sourceSection == null || moduleScope.getModule().isModuleSource(sourceSection.getSource())) {
+      this.inlineSource = null;
+    } else {
+      this.inlineSource = sourceSection.getSource();
+    }
+    this.sourceStartIndex = sourceSection == null ? NO_SOURCE : sourceSection.getCharIndex();
+    this.sourceLength = sourceSection == null ? NO_SOURCE : sourceSection.getCharLength();
     this.stateFrameSlot =
         localScope.frameDescriptor().findOrAddFrameSlot("<<monadic_state>>", FrameSlotKind.Object);
   }
@@ -88,7 +97,23 @@ public abstract class EnsoRootNode extends RootNode {
    */
   @Override
   public SourceSection getSourceSection() {
-    return sourceSection;
+    return findSourceSection(this, sourceStartIndex, sourceLength);
+  }
+
+  static final int NO_SOURCE = -1;
+  static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
+    if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
+      if (rootNode.inlineSource == null) {
+        if (rootNode.sourceStartIndex == NO_SOURCE) {
+          return null;
+        } else {
+          return rootNode.getModuleScope().getModule().createSection(sourceStartIndex, sourceLength);
+        }
+      } else {
+        return rootNode.inlineSource.createSection(sourceStartIndex, sourceLength);
+      }
+    }
+    return null;
   }
 
   /**

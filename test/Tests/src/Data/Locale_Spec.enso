@@ -71,3 +71,8 @@ spec = Test.group "Locale" <|
     Test.specify "should convert to Json" <|
         en_gb.to_json.should_equal <|
             Json.from_pairs [["type", "Locale"], ["language", "en"], ["country", "GB"]]
+    Test.specify "should allow equality comparisons" <|
+        Locale.uk . should_equal Locale.uk
+        Locale.uk . should_not_equal Locale.us
+
+main = Test.Suite.run_main here.spec

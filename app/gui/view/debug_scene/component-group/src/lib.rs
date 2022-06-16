@@ -17,10 +17,13 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_text::Bytes;
+use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::frp;
+use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
@@ -32,6 +35,19 @@ use ide_view_component_group::entry;
 use ide_view_component_group::icon;
 use ide_view_component_group::Entry;
 use list_view::entry::AnyModelProvider;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
+/// The selection animation is faster than the default one because of the increased spring force.
+const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
+const COMPONENT_GROUP_WIDTH: f32 = 150.0;
+const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
+const SCROLL_AREA_WIDTH: f32 = COMPONENT_GROUP_WIDTH * 4.0 + 20.0;
 
 
 
@@ -179,11 +195,22 @@ fn create_component_group(
     let component_group = app.new_view::<component_group::View>();
     component_group.model().set_layers(layers);
     component_group.set_header(header.to_string());
-    component_group.set_width(150.0);
-    component_group.set_position_x(75.0);
+    component_group.set_width(COMPONENT_GROUP_WIDTH);
+    component_group.set_position_x(COMPONENT_GROUP_WIDTH * 3.5);
     component_group
 }
 
+fn create_wide_component_group(
+    app: &Application,
+    layers: &component_group::Layers,
+) -> component_group::wide::View {
+    let component_group = app.new_view::<component_group::wide::View>();
+    component_group.model().set_layers(layers);
+    component_group.set_width(COMPONENT_GROUP_WIDTH * 3.0);
+    let padding = 5.0;
+    component_group.set_position_xy(Vector2(COMPONENT_GROUP_WIDTH * 1.5 - padding, -150.0));
+    component_group
+}
 
 fn color_component_slider(app: &Application, caption: &str) -> selector::NumberPicker {
     let slider = app.new_view::<selector::NumberPicker>();
@@ -212,32 +239,49 @@ mod transparent_circle {
     }
 }
 
-
 fn init(app: &Application) {
     theme::builtin::dark::register(&app);
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
+
+    // === Layers setup ===
+
+    let main_camera = app.display.default_scene.layers.main.camera();
+    let selection_layer = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
+    let groups_layer = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
+    let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
+    selection_layer.set_mask(&selection_mask);
+    app.display.default_scene.layers.main.add_sublayer(&groups_layer);
+    app.display.default_scene.layers.main.add_sublayer(&selection_layer);
+
+
+    // === Scroll area ===
+
     let network = frp::Network::new("Component Group Debug Scene");
     let scroll_area = ScrollArea::new(app);
-    scroll_area.set_position_xy(Vector2(0.0, 100.0));
-    scroll_area.resize(Vector2(170.0, 400.0));
-    scroll_area.set_content_width(150.0);
+    scroll_area.set_position_xy(Vector2(-COMPONENT_GROUP_WIDTH * 2.0, 100.0));
+    scroll_area.resize(Vector2(SCROLL_AREA_WIDTH, SCROLL_AREA_HEIGHT));
+    scroll_area.set_content_width(COMPONENT_GROUP_WIDTH * 4.0);
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
+    groups_layer.add_exclusive(&scroll_area);
 
-    let camera = &scroll_area.content_layer().camera();
-    let parent_layer = scroll_area.content_layer();
-    let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
 
+    // === Component groups ===
+
+    let normal_parent = &scroll_area.content_layer();
+    let selected_parent = &selection_layer;
+    let layers = component_group::Layers::new(&app.logger, normal_parent, selected_parent);
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
     let second_component_group = create_component_group(app, group_name, &layers);
-    second_component_group.set_dimmed(true);
+    let wide_component_group = create_wide_component_group(app, &layers);
 
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
+    scroll_area.content().add_child(&wide_component_group);
 
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
     // [`transparent_circle`].
@@ -249,14 +293,6 @@ fn init(app: &Application) {
         std::mem::forget(transparent_circle);
     }
 
-    // === Regular Component Group ===
-
-    frp::extend! { network
-        eval first_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
-        eval first_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
-        eval_ first_component_group.header_accepted ([] DEBUG!("Accepted Header"));
-    }
-
     ComponentGroupController::init(
         &[first_component_group.clone_ref(), second_component_group.clone_ref()],
         &network,
@@ -266,7 +302,8 @@ fn init(app: &Application) {
     let mock_entries = MockEntries::new(15);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
-    second_component_group.set_entries(model_provider);
+    second_component_group.set_entries(model_provider.clone_ref());
+    wide_component_group.set_entries(model_provider);
 
     // === Color sliders ===
 
@@ -285,7 +322,7 @@ fn init(app: &Application) {
     blue_slider.set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
     let blue_slider_frp = &blue_slider.frp;
 
-    let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
+    let default_color = COMPONENT_GROUP_COLOR;
     frp::extend! { network
         init <- source_();
         red_slider_frp.set_value <+ init.constant(default_color.red);
@@ -298,9 +335,84 @@ fn init(app: &Application) {
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
         first_component_group.set_color <+ color;
         second_component_group.set_color <+ color;
+        wide_component_group.set_color <+ color;
     }
     init.emit(());
 
+
+    // === Components groups set ===
+
+    let groups: Rc<Vec<component_group::set::Group>> = Rc::new(vec![
+        first_component_group.clone_ref().into(),
+        second_component_group.clone_ref().into(),
+        wide_component_group.clone_ref().into(),
+    ]);
+    let multiview = component_group::set::Wrapper::new();
+    for group in groups.iter() {
+        multiview.add(group.clone_ref());
+    }
+
+    frp::extend! { network
+        selected_entry <- multiview.selected_entry.on_change();
+        eval selected_entry([](e) if let Some(e) = e {  DEBUG!("Entry {e.1} from group {e.0} selected") });
+        eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g}"));
+        eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g}"));
+        header_selected <- multiview.is_header_selected.filter_map(|(g, h)| if *h { Some(*g) } else { None });
+        eval header_selected([](g) DEBUG!("Header selected in group {g}"));
+        eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g}"));
+
+        eval multiview.focused([groups]((g, f)) {
+            match &groups[usize::from(g)] {
+                component_group::set::Group::OneColumn(group) => group.set_dimmed(!f),
+                component_group::set::Group::Wide(group) => group.set_dimmed(!f),
+            }
+        });
+    }
+
+
+    // === Selection box ===
+
+    let selection = component_group::selection_box::View::new(&app.logger);
+    selection_mask.add_exclusive(&selection);
+    app.display.add_child(&selection);
+
+    let selection_animation = Animation::<Vector2>::new(&network);
+    let selection_size_animation = Animation::<Vector2>::new(&network);
+    let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
+    selection_animation.set_spring.emit(spring);
+    /// This is an example code to position the selection box on the scene.
+    /// We transform the group-local position from [`multiview.selection_position_target`] to
+    /// global position. After that we restrict the Y-coordinate so that the selection box won't
+    /// go below the scroll area bottom border.
+    fn selection_position(
+        group_local_pos: Vector2,
+        group: &component_group::set::Group,
+        scroll_area: &ScrollArea,
+    ) -> Vector2 {
+        let scroll_area_pos = scroll_area.position() + scroll_area.content().position();
+        let group_pos = scroll_area_pos + group.position();
+        let mut pos = group_pos.xy() + group_local_pos;
+        let scroll_area_bottom = scroll_area.position().y - SCROLL_AREA_HEIGHT;
+        let lower_bound = scroll_area_bottom + list_view::entry::HEIGHT / 2.0;
+        pos.y = pos.y.max(lower_bound);
+        pos
+    }
+    frp::extend! { network
+        selection_size_animation.target <+ multiview.selection_size._1();
+        selection_position <- multiview.selection_position_target.map(
+            f!([groups, scroll_area]((g, p)) {
+                let group = &groups[usize::from(g)];
+                selection_position(*p, group, &scroll_area)
+            })
+        );
+        selection_animation.target <+ selection_position;
+        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+        eval selection_size_animation.value ((pos) selection.size.set(*pos));
+    }
+    selection_animation.target.emit(first_component_group.selection_position_target.value());
+    selection_size_animation.target.emit(Vector2(150.0, list_view::entry::HEIGHT));
+    selection_animation.skip.emit(());
+    selection_size_animation.skip.emit(());
 
     // === Forget ===
 
@@ -308,8 +420,14 @@ fn init(app: &Application) {
     std::mem::forget(green_slider);
     std::mem::forget(blue_slider);
     std::mem::forget(scroll_area);
+    std::mem::forget(selection);
     std::mem::forget(network);
+    std::mem::forget(multiview);
     std::mem::forget(first_component_group);
     std::mem::forget(second_component_group);
+    std::mem::forget(wide_component_group);
     std::mem::forget(layers);
+    std::mem::forget(groups_layer);
+    std::mem::forget(selection_layer);
+    std::mem::forget(selection_mask);
 }

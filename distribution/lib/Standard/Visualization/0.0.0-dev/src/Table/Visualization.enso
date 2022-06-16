@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
 
 import Standard.Table.Data.Table as Dataframe_Table
 import Standard.Table.Data.Column as Dataframe_Column
@@ -31,8 +32,8 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
         df = x.reset_index.to_dataframe max_rows
         # Then split into actual columns and indices.
-        vis_df = df.select (x.columns.map .name)
-        indices = df.select (x.indices.map .name) . columns
+        vis_df = df.select_columns (By_Name (x.columns.map .name))
+        indices = df.select_columns (By_Name (x.indices.map .name)) . columns
         all_rows_count = x.row_count
         here.make_json vis_df indices all_rows_count
 
@@ -43,14 +44,9 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
         here.prepare_visualization x.to_table max_rows
 
     # We display aggregates as their ungrouped counterparts.
-    Dataframe_Table.Aggregate_Table _ ->
-        ungrouped = Dataframe_Table.Table x.java_table.getUnderlyingTable
-        here.prepare_visualization ungrouped max_rows
     Dataframe_Column.Aggregate_Column _ ->
         ungrouped = Dataframe_Column.Column x.java_column.getColumn
         here.prepare_visualization ungrouped.to_table max_rows
-    Database_Table.Aggregate_Table _ _ _ _ ->
-        here.prepare_visualization x.ungrouped max_rows
     Database_Column.Aggregate_Column_Builder _ _ _ _ _ ->
         here.prepare_visualization x.ungrouped.to_table max_rows
 

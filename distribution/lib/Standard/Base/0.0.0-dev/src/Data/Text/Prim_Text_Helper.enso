@@ -4,4 +4,4 @@
 
    Forces flattening of a text value.
 optimize : Text
-optimize = @Builtin_Method "Prim_Text_Helpers.optimize"
+optimize = @Builtin_Method "Prim_Text_Helper.optimize"
