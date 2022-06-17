@@ -181,7 +181,7 @@ spec =
             check_table <| File.read xls_sheet
             check_table <| File.read xls_path
 
-        Test.specify "should let you read the first names with File_Format.Excel" <|
+        Test.specify "should let you read the first sheet with File_Format.Excel" <|
             check_table <| xlsx_sheet.read File_Format.Excel
             check_table <| File.read xlsx_sheet File_Format.Excel
             check_table <| File.read xlsx_path File_Format.Excel
