@@ -7,6 +7,7 @@ from Standard.Table.Error as Table_Errors import Duplicate_Output_Column_Names, 
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+import Standard.Table.Io.Quote_Style
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
@@ -115,17 +116,19 @@ read_from_reader format java_reader on_problems max_columns=4096 =
 
     handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
         warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-        base_parser = if format.quote.is_nothing then IdentityParser.new else
-            QuoteStrippingParser.new format.quote
+        quote_characters = case format.quote_style of
+            Quote_Style.No_Quotes -> Pair Nothing Nothing
+            Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
+        base_parser = case format.quote_style of
+            Quote_Style.No_Quotes -> IdentityParser.new
+            Quote_Style.With_Quotes _ quote _ ->
+                QuoteStrippingParser.new quote
         value_parser = if format.value_formatter.is_nothing then base_parser else
             wrapped = format.value_formatter.wrap_base_parser base_parser
             TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
         cell_type_guesser = if format.headers != Infer then Nothing else
             formatter = format.value_formatter.if_nothing Data_Formatter
             TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-        quote_characters = case format.quote_style of
-            Quote_Style.No_Quotes -> Pair Nothing Nothing
-            Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
         reader = DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
         result_with_problems = reader.read
         parsing_problems = Vector.Vector (result_with_problems.problems) . map here.translate_reader_problem

@@ -99,4 +99,7 @@ write_to_writer table format java_writer on_problems =
         Infer -> True
         False -> False
     writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter quote_characters.first quote_characters.second quote_behavior write_headers
-    writer.write table.java_table
+    result = writer.write table.java_table
+    ## TODO map!
+    problems = Vector.Vector result.problems
+    on_problems.attach_problems_after Nothing problems
