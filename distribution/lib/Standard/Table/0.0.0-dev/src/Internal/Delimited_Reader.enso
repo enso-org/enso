@@ -123,7 +123,10 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         cell_type_guesser = if format.headers != Infer then Nothing else
             formatter = format.value_formatter.if_nothing Data_Formatter
             TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-        reader = DelimitedReader.new java_reader format.delimiter format.quote format.quote_escape java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
+        quote_characters = case format.quote_style of
+            Quote_Style.No_Quotes -> Pair Nothing Nothing
+            Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
+        reader = DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
         result_with_problems = reader.read
         parsing_problems = Vector.Vector (result_with_problems.problems) . map here.translate_reader_problem
         on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems

@@ -305,6 +305,7 @@ public abstract class Storage {
    * @param toCsvString a utility for converting unknown values to CSV.
    * @return a CSV representation of the value at {@code index}.
    */
+  @Deprecated
   public String getCsvString(int index, Function<Object, String> toCsvString) {
     if (isNa(index)) {
       return "";
@@ -321,6 +322,7 @@ public abstract class Storage {
    * @param toCsvString a utility for converting unknown values to CSV.
    * @return a CSV representation of the value at {@code index}.
    */
+  @Deprecated
   protected abstract String getPresentCsvString(int index, Function<Object, String> toCsvString);
 
   /**

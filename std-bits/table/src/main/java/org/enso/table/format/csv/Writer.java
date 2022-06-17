@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 /** Utils for converting tables to CSV. */
+@Deprecated
 public class Writer {
   /**
    * Creates a string containing CSV contents of a table.

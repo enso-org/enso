@@ -9,8 +9,10 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Data.Storage
+import Standard.Table.Io.Quote_Style
 
 polyglot java import org.enso.table.write.DelimitedWriter
+polyglot java import org.enso.table.write.WriteQuoteBehavior
 polyglot java import java.io.PrintWriter
 polyglot java import java.io.IOException
 polyglot java import org.enso.table.formatting.TextFormatter
@@ -28,7 +30,8 @@ polyglot java import org.enso.table.formatting.TextFormatter
      If set to `Ignore`, the operation proceeds without errors or warnings.
 write_file : Table -> Delimited -> File -> Existing_File_Behavior -> Problem_Behavior -> Any
 write_file table format file on_existing_file on_problems = case on_existing_file of
-    Existing_File_Behavior.Append -> Errors.unimplemented "Appending to an existing Delimited file is not implemented yet."
+    Existing_File_Behavior.Append ->
+        Errors.unimplemented "Appending to an existing Delimited file is not implemented yet."
     _ ->
         on_existing_file.write file stream->
             stream.with_java_stream java_stream->
@@ -76,9 +79,7 @@ write_to_writer : Table -> Delimited -> Writer -> Problem_Behavior -> Any
 write_to_writer table format java_writer on_problems =
     column_formatters = case format.value_formatter of
         Nothing -> table.columns.map column-> case column.storage_type of
-            Storage.Text ->
-                # TODO quotes, see below
-                TextFormatter.new
+            Storage.Text -> TextFormatter.new
             _ ->
                 # TODO this needs to be recovered as error somewhere, but we may want to panic to indicate to operations like "Backup" that the write failed. Or the backup should check not only for panics but also for errors to see that - probably that's the right solution!
                 Panic.throw (Illegal_Argument_Error "If the expected file format does not specify a valid `Data_Formatter`, only Text columns are allowed.")
@@ -86,5 +87,16 @@ write_to_writer table format java_writer on_problems =
             # TODO handling CSV quotes in the format correctly
             storage_type = column.storage_type
             value_formatter.make_formatter_for_column_type storage_type
-
-    DelimitedWriter.write java_writer table.java_table column_formatters.to_array
+    quote_behavior = case format.quote_style of
+        Quote_Style.No_Quotes -> WriteQuoteBehavior.NEVER
+        Quote_Style.With_Quotes always _ _ ->
+            if always then WriteQuoteBehavior.ALWAYS else WriteQuoteBehavior.NECESSARY
+    quote_characters = case format.quote_style of
+        Quote_Style.No_Quotes -> Pair Nothing Nothing
+        Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
+    write_headers = case format.headers of
+        True -> True
+        Infer -> True
+        False -> False
+    writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter quote_characters.first quote_characters.second quote_behavior write_headers
+    writer.write table.java_table
