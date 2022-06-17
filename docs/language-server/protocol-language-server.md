@@ -2681,7 +2681,10 @@ creates empty in-memory buffer for the provided path.
 - **Visibility:** Public
 
 If no client has write lock on the opened file, the capability is granted to the
-client that sent the `text/openBuffer` message.
+client that sent the `text/openBuffer` message. The in-memory buffers can be
+used to define hidden modules with visualization functions. In a nutshell, the
+request behaves the same as [`text/openFile`](#textopenfile) but does not
+require the file to exist.
 
 #### Parameters
 
