@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 public class ExcelRange {
   private static final Pattern FULL_ADDRESS = Pattern.compile("^('.+'|[^'!]+)!(.+)$");
+  private static final int WHOLE_ROW_OR_COLUMN = -1;
 
   private static String[] parseFullAddress(String fullAddress) throws IllegalArgumentException {
     if (fullAddress == null) {
@@ -101,7 +102,7 @@ public class ExcelRange {
   private static int[] parseA1StyleAddress(CharSequence address) {
     ParsedInteger col = parseColumn(address, skipDollar(address, 0));
     ParsedInteger row = parseInteger(address, skipDollar(address, col.index));
-    return new int[] {row.value, col.value};
+    return new int[] {row.value == 0 ? WHOLE_ROW_OR_COLUMN : row.value, col.value};
   }
 
   private static int[] parseR1C1StyleAddress(CharSequence address) throws IllegalArgumentException {
@@ -139,23 +140,26 @@ public class ExcelRange {
    */
   public static int parseA1Column(CharSequence column) throws IllegalArgumentException {
     ParsedInteger parsed = parseColumn(column, skipDollar(column, 0));
-    if (parsed.index != column.length() || parsed.value == 0) {
+    if (parsed.index != column.length() || parsed.value == WHOLE_ROW_OR_COLUMN) {
       throw new IllegalArgumentException(column + " is not a valid Excel Column Name.");
     }
 
     return parsed.value;
   }
 
-  private static class ParsedInteger {
-    /** Index to the next character after the parsed value */
-    public final int index;
-    /** Parsed integer value or 0 if not valid */
-    public final int value;
+  public static ExcelRange forColumns(String sheetName, int leftColumn, int rightColumn) {
+    return new ExcelRange(sheetName, leftColumn, WHOLE_ROW_OR_COLUMN, rightColumn, WHOLE_ROW_OR_COLUMN);
+  }
 
-    public ParsedInteger(int index, int value) {
-      this.index = index;
-      this.value = value;
-    }
+  public static ExcelRange forRows(String sheetName, int topRow, int bottomRow) {
+    return new ExcelRange(sheetName, WHOLE_ROW_OR_COLUMN, topRow, WHOLE_ROW_OR_COLUMN, bottomRow);
+  }
+
+  /**
+   * @param index Index to the next character after the parsed value
+   * @param value Parsed integer value or 0 if not valid
+   */
+  private record ParsedInteger(int index, int value) {
   }
 
   private static ParsedInteger parseInteger(CharSequence address, int index) {
@@ -176,7 +180,7 @@ public class ExcelRange {
       index++;
     }
 
-    return new ParsedInteger(index, col);
+    return new ParsedInteger(index, col == 0 ? WHOLE_ROW_OR_COLUMN : col);
   }
 
   private final String sheetName;
@@ -195,7 +199,7 @@ public class ExcelRange {
     this.topRow = range[0];
 
     if (range.length == 2) {
-      this.singleCell = range[0] != 0 && range[1] != 0;
+      this.singleCell = range[0] != WHOLE_ROW_OR_COLUMN && range[1] != WHOLE_ROW_OR_COLUMN;
       this.rightColumn = range[1];
       this.bottomRow = range[0];
     } else {
@@ -207,7 +211,7 @@ public class ExcelRange {
 
   public ExcelRange(String sheetName, int column, int row) {
     this.sheetName = sheetName;
-    this.singleCell = column != 0 && row != 0;
+    this.singleCell = column != WHOLE_ROW_OR_COLUMN && row != WHOLE_ROW_OR_COLUMN;
     this.leftColumn = column;
     this.topRow = row;
     this.rightColumn = column;
@@ -236,7 +240,7 @@ public class ExcelRange {
   }
 
   public boolean isWholeRow() {
-    return leftColumn == 0;
+    return leftColumn == WHOLE_ROW_OR_COLUMN;
   }
 
   public int getLeftColumn() {
@@ -248,7 +252,7 @@ public class ExcelRange {
   }
 
   public boolean isWholeColumn() {
-    return topRow == 0;
+    return topRow == WHOLE_ROW_OR_COLUMN;
   }
 
   public int getTopRow() {

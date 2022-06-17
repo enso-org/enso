@@ -137,7 +137,7 @@ type Excel_Range
         right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
 
         left_valid <| right_valid <|
-            Excel_Range (Java_Range.new sheet left_index 0 right_index 0)
+            Excel_Range (Java_Range.forColumns sheet left_index right_index)
 
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
@@ -146,7 +146,7 @@ type Excel_Range
         bottom_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         top_valid <| bottom_valid <|
-            Excel_Range (Java_Range.new sheet 0 top 0 bottom)
+            Excel_Range (Java_Range.forRows sheet top bottom)
 
 
 ## PRIVATE
