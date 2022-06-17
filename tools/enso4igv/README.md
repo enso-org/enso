@@ -35,3 +35,30 @@ Make sure you are logged into GitHub -  artifacts are only available to those lo
 Unzip it and get `enso*.nbm` file. This file can be installed into
 _IGV_ (or any other [NetBeans](http://netbeans.apache.org) based application).
 Go to _Tools_/_Plugins_/_Downloaded_ and install the NBM file.
+
+![Tools/Plugins/Downloaded](docs/tools_plugins_downloaded.png)
+
+Proceed by clicking _Install_. You may be asked to download _TextMate Lexer_ -
+a necessary dependency of the _Enso support_ module. Continue thru the wizard
+to _finish_ the installation.
+
+![Tools/Plugins/Downloaded](docs/installer.png)
+
+## Using the IGV
+
+TBD
+
+## Building
+
+The plugin can be rebuilt using [Apache Maven](http://maven.apache.org). Switch
+to this directory and invoke:
+
+```bash
+enso/tools/enso4igv$ mvn clean install
+enso/tools/enso4igv$ ls target/*.nbm
+target/enso4igv-1.0-SNAPSHOT.nbm
+```
+
+an NBM file is generated which can be installed into IGV, NetBeans or any other
+NetBeans based application.
+
