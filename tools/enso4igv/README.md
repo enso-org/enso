@@ -27,7 +27,11 @@ launches the _IGV_ application. One doesn't have to use the `--userdir` option,
 but doing so ensures the newly running _IGV_ process is isolated from any settings
 left around by previous usage of _IGV_.
 
-Now download [Enso Language Support module](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
-ZIP file. Unzip it and get `enso*.nbm` file. This file can be installed into
+Now download [Enso Language Support module](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml).
+Follow the [GitHub actions link](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
+and select a build (usually the latest one). The build summary page provides various information
+as well as list of artifacts at the bottom. Download the _Enso IGV Plugin_ ZIP file.
+Make sure you are logged into GitHub -  artifacts are only available to those logged in.
+Unzip it and get `enso*.nbm` file. This file can be installed into
 _IGV_ (or any other [NetBeans](http://netbeans.apache.org) based application).
 Go to _Tools_/_Plugins_/_Downloaded_ and install the NBM file.
