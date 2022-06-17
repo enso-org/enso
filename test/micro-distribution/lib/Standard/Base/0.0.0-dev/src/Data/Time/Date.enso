@@ -3,7 +3,7 @@ polyglot java import java.time.format.DateTimeFormatter
 
 new year (month = 1) (day = 1) = LocalDate.of year month day
 
-type Date
+type Date_Tp
     type Date internal_local_date
     year = this . internal_local_date . getYear
     month = this . internal_local_date . getMonthValue

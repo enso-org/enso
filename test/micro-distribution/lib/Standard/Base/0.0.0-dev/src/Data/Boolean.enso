@@ -1,4 +1,4 @@
-type Boolean
+type Boolean_Tp
     @Builtin_Type
     type Boolean
 

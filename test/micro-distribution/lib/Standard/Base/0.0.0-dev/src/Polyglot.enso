@@ -1,4 +1,4 @@
-type Polyglot
+type Polyglot_Tp
     @Builtin_Type
     type Polyglot
 get_array_size array = @Builtin_Method "Polyglot.get_array_size"
