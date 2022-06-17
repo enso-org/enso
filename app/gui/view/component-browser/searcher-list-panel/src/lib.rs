@@ -50,6 +50,7 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
+use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
 use ensogl_core::data::bounding_box::BoundingBox;
@@ -62,6 +63,7 @@ use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style;
 use ensogl_derive_theme::FromTheme;
+use ensogl_core::Animation;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
@@ -74,6 +76,16 @@ use ide_view_component_group::set::Group;
 use ide_view_component_group::set::SectionId;
 use ide_view_component_group::Layers as GroupLayers;
 use searcher_theme::list_panel as list_panel_theme;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The selection animation is faster than the default one because of the increased spring force.
+const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
+
 
 
 // ==============
@@ -264,6 +276,7 @@ pub struct Model {
     layers:              Layers,
     groups_wrapper:      component_group::set::Wrapper,
     navigator:           Rc<RefCell<Option<Navigator>>>,
+    selection:           component_group::selection_box::View,
 }
 
 impl Model {
@@ -295,9 +308,12 @@ impl Model {
 
         let scroll_area = ScrollArea::new(&app);
         display_object.add_child(&scroll_area);
-
         let layers = Layers::new(&app, &scroll_area);
         layers.base.add_exclusive(&scroll_area);
+
+        let selection = component_group::selection_box::View::new(&app.logger);
+        display_object.add_child(&selection);
+        layers.selection_mask.add_exclusive(&selection);
 
         favourites_section.set_parent(scroll_area.content());
         local_scope_section.set_parent(scroll_area.content());
@@ -321,6 +337,7 @@ impl Model {
             logger,
             groups_wrapper,
             navigator,
+            selection,
         }
     }
 
@@ -407,6 +424,16 @@ impl Model {
         let size = self.background.size().get();
         let viewport = BoundingBox::from_center_and_size(center, size);
         viewport.contains(pos)
+    }
+
+    /// Clamp the Y-coordinate of [`pos`] inside the boundaries of the scroll area.
+    fn clamp_y(&self, pos: Vector2) -> Vector2 {
+        let top_y = self.scroll_area.position().y;
+        let height = self.scroll_area.scroll_area_height.value();
+        let selection_height = self.selection.size.get().y;
+        let half_selection_height = selection_height / 2.0;
+        let y = pos.y.clamp(top_y - height + half_selection_height, top_y - half_selection_height);
+        Vector2(pos.x, y)
     }
 
     fn on_hover(&self) {
@@ -660,6 +687,25 @@ impl component::Frp<Model> for Frp {
         let scene = &app.display.default_scene;
         let output = &frp_api.output;
         let groups = &model.groups_wrapper;
+        let selection = &model.selection;
+
+        let selection_animation = Animation::<Vector2>::new(&network);
+        let selection_size_animation = Animation::<Vector2>::new(&network);
+        let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
+        selection_animation.set_spring.emit(spring);
+        fn selection_position(model: &Model, id: GroupId, group_local_pos: Vector2) -> Vector2 {
+            let scroll_area = &model.scroll_area;
+            let scroll_area_pos = scroll_area.position() + scroll_area.content().position();
+            let section_pos = match id.section {
+                SectionId::Favorites => model.favourites_section.content.position(),
+                SectionId::LocalScope => default(),
+                SectionId::SubModules => model.sub_modules_section.content.position(),
+            };
+            let group_pos = model.groups_wrapper.get(&id).map(|g| g.position()).unwrap_or_default();
+            let pos = (scroll_area_pos + section_pos + group_pos).xy() + group_local_pos;
+            model.clamp_y(pos)
+        }
+
         frp::extend! { network
             model.favourites_section.content.set_content <+ frp_api.input.set_favourites_section;
             model.local_scope_section.content.set_entries <+ frp_api.input.set_local_scope_section;
@@ -691,8 +737,18 @@ impl component::Frp<Model> for Frp {
             output.header_accepted <+ groups.header_accepted;
 
             output.size <+ layout_update.map(|style| style.size_inner());
+
+            selection_size_animation.target <+ groups.selection_size._1();
+            selection_animation.target <+ groups.selection_position_target.all_with(
+                &model.scroll_area.scroll_position_y,
+                f!([model]((id, pos), _) selection_position(&model,*id, *pos))
+            );
+            eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+            eval selection_size_animation.value ((pos) selection.size.set(*pos));
+            eval_ model.scroll_area.scroll_position_y(selection_animation.skip.emit(()));
         }
         layout_frp.init.emit(())
+        selection_animation.skip.emit(());
     }
 }
 
