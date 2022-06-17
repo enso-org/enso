@@ -183,7 +183,7 @@ impl component::Model for Model {
 #[derive(Clone, Debug, Default)]
 struct Style {
     column_gap:      f32,
-    entry_colors:    [color::Rgba; 4],
+    entry_colors:    [color::Rgba; 6],
     content_width:   f32,
     content_padding: f32,
 }
@@ -221,6 +221,8 @@ fn get_layout(
     let entry_color_1 = style.get_color(theme_path.sub("entry_color_1"));
     let entry_color_2 = style.get_color(theme_path.sub("entry_color_2"));
     let entry_color_3 = style.get_color(theme_path.sub("entry_color_3"));
+    let entry_color_4 = style.get_color(theme_path.sub("entry_color_4"));
+    let entry_color_5 = style.get_color(theme_path.sub("entry_color_5"));
 
     let theme_path: style::Path = searcher_theme_path.sub("list_panel");
     let content_padding = style.get_number(theme_path.sub("content_padding"));
@@ -229,8 +231,21 @@ fn get_layout(
     frp::extend! { network
         init <- source_();
 
-        entry_colors <- all5(&init, &entry_color_0,&entry_color_1,&entry_color_2,&entry_color_3);
-        entry_colors <- entry_colors.map(|(_,c1,c2,c3,c4)| [*c1,*c2,*c3,*c4]);
+        entry_colors_part_1 <- all4(
+            &init,
+            &entry_color_0,
+            &entry_color_1,
+            &entry_color_2,
+        );
+        entry_colors_part_2 <- all4(
+            &init,
+            &entry_color_3,
+            &entry_color_4,
+            &entry_color_5,
+        );
+        entry_colors <- all(&entry_colors_part_1,&entry_colors_part_2);
+
+        entry_colors <- entry_colors.map(|((_,c1,c2,c3),(_,c4,c5,c6))| [*c1,*c2,*c3,*c4,*c5,*c6]);
 
         layout_update <- all5(&init, &column_gap, &entry_colors, &content_padding, &content_width);
         layout_update <- layout_update.map(|(_, column_gap,entry_colors,content_padding,content_width)|{

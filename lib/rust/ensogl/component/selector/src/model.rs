@@ -285,9 +285,17 @@ impl Model {
         self.padding.set(padding);
     }
 
-    pub fn show_background(&self, value: bool) {
+    pub fn show_shadow(&self, value: bool) {
         if value {
             self.background.show_shadow.set(1.0);
+        } else {
+            self.background.show_shadow.set(0.0);
+        }
+    }
+
+    pub fn show_background(&self, value: bool) {
+        if value {
+            self.show_shadow(true);
             self.background.color.set(self.background_color.as_ref().clone().into_inner().into());
             let left_corner_roundness =
                 if self.background_left_corner_roundness.get() { 1.0 } else { 0.0 };
@@ -296,8 +304,8 @@ impl Model {
             self.track.corner_right.set(right_corner_roundness);
             self.track.corner_left.set(left_corner_roundness);
         } else {
+            self.show_shadow(false);
             self.background.color.set(HOVER_COLOR.into());
-            self.background.show_shadow.set(0.0);
             self.track.corner_right.set(0.0);
             self.track.corner_left.set(0.0);
         }

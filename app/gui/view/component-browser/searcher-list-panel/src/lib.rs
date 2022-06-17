@@ -159,13 +159,15 @@ struct ContentStyle {
 #[derive(Clone, Debug, Default)]
 struct SectionHeadingStyle {
     /// Font size used for section headers.
-    size:   text::style::Size,
+    size:        text::style::Size,
     /// Font used for section headers.
-    font:   String,
+    font:        String,
     /// Color used for section headers.
-    color:  color::Rgba,
+    color:       color::Rgba,
+    /// Distance between the section start and the section header_text.
+    text_offset: f32,
     /// Distance between the section header and the section content.
-    offset: f32,
+    offset:      f32,
 }
 
 impl SectionHeadingStyle {
@@ -217,6 +219,9 @@ impl Style {
         let section_divider_height = style.get_number(theme_path.sub("section_divider_height"));
         let section_heading_size = style.get_number(theme_path.sub("section_heading_size"));
         let section_heading_font = style.get_text(theme_path.sub("section_heading_font"));
+        let section_heading_offset = style.get_number(theme_path.sub("section_heading_offset"));
+        let section_heading_text_offset =
+            style.get_number(theme_path.sub("section_heading_text_offset"));
         let section_heading_color = style.get_color(theme_path.sub("section_heading_color"));
         let section_divider_color = style.get_color(theme_path.sub("section_divider_color"));
 
@@ -228,18 +233,21 @@ impl Style {
 
             content_size <- all3(&init,&content_width, &content_height).map(|(_,x,y)|Vector2::new(*x,*y));
 
-            section_heading_layout_data <- all4(
+            section_heading_layout_data <- all6(
                 &init,
                 &section_heading_size,
                 &section_heading_font,
-                &section_heading_color
+                &section_heading_color,
+                &section_heading_offset,
+                &section_heading_text_offset,
             );
-            section_heading_layout <- section_heading_layout_data.map(|(_,size,font,color)| {
+            section_heading_layout <- section_heading_layout_data.map(|(_,size,font,color,offset,text_offset)| {
                 SectionHeadingStyle{
                     size:text::style::Size(*size),
                     font:font.clone(),
                     color:*color,
-                    offset:*size
+                    offset:*offset,
+                    text_offset:*text_offset,
                 }
             });
             section_layout_data <- all5(
@@ -333,7 +341,7 @@ mod background {
             let width = content_width;
             let height = content_height + menu_height;
 
-            let divider_y_pos = height / 2.0 - menu_height;
+            let divider_y_pos = height / 2.0 - menu_height + menu_divider_height ;
 
             let left_width = &(width/2.0).px();
             let left = Rect((left_width,height.px())).translate_x(-left_width/2.0);
@@ -444,31 +452,36 @@ impl Model {
     }
 
     fn update_style(&self, style: &Style) {
-        self.sub_modules_section.set_style(style);
-        self.local_scope_section.set_style(style);
-        self.favourites_section.set_style(style);
+        // Background
 
         self.background.bg_color.set(style.content.background_color.into());
         self.background.size.set(style.size());
 
-        let local_scope_content = &self.local_scope_section.content;
-        local_scope_content.set_position_x(style.content.padding + style.content.size.x / 2.0);
-        local_scope_content.set_width(style.size_inner().x - 2.0 * style.content.padding);
+        // Sections
+
+        self.sub_modules_section.set_style(style);
+        self.local_scope_section.set_style(style);
+        self.favourites_section.set_style(style);
+
+        self.local_scope_section.content.set_position_x(style.content.size.x / 2.0);
+        self.local_scope_section.content.set_width(style.size_inner().x);
         self.local_scope_section.content.set_color(style.section.favourites_section_base_color);
         self.local_scope_section.label.set_content(LOCAL_SCOPE_SECTION_HEADING_LABEL);
 
-        self.favourites_section.content.set_position_x(style.content.padding);
+        self.favourites_section.content.set_position_x(0.0);
         self.favourites_section.label.set_content(SUB_MODULES_SECTION_HEADING_LABEL);
 
-        self.sub_modules_section.content.set_position_x(style.content.padding);
+        self.sub_modules_section.content.set_position_x(0.0);
         self.sub_modules_section.label.set_content(SUB_MODULES_SECTION_HEADING_LABEL);
 
+        // Scroll Area
+
         self.scroll_area.resize(Vector2::new(
-            style.content.size.x - style.content.padding,
+            style.content.size.x - 2.0 * style.content.padding,
             style.content.size.y - style.content.padding,
         ));
         self.scroll_area.set_position_xy(Vector2::new(
-            -style.content.size.x / 2.0,
+            -style.content.size.x / 2.0 + style.content.padding,
             style.content.size.y / 2.0 - style.menu.height / 2.0,
         ));
         self.scroll_area.set_corner_radius_bottom_right(style.content.corner_radius);
@@ -586,9 +599,7 @@ impl<T: CloneRef> LabeledSection<T> {
         self.label.set_default_color(style.section.heading.color);
         self.label.set_default_text_size(style.section.heading.size);
         self.label.set_font(style.section.heading.font.clone());
-        // TODO[MM]: These magic numbers will be removed with https://github.com/enso-org/enso/pull/3537
-        self.label.set_position_y(-0.75 * style.section.heading.size.raw);
-        self.label.set_position_x(3.0 + style.content.padding);
+        self.label.set_position_x(style.content.padding);
     }
 }
 
@@ -687,9 +698,7 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
     fn height(&self, style: &Style) -> f32 {
         let label_height = style.section.heading.height();
         let body_height = self.content.height();
-        // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
-        let next_section_offset = 29.0;
-        body_height + label_height + next_section_offset
+        body_height + label_height
     }
 
     /// Set the top y position of the section.
@@ -697,7 +706,7 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
         match SECTION_HEADER_PLACEMENT {
             SectionHeaderPlacement::Top => {
                 // TODO[MM] This magic number will be removed with https://github.com/enso-org/enso/pull/3537
-                let label_pos = position_y - self.label.height.value() / 1.5;
+                let label_pos = position_y - style.section.heading.text_offset;
                 self.label.set_position_y(label_pos);
                 self.divider.set_position_y(position_y);
                 let offset_from_top = style.section.heading.offset + style.section.heading.height();
@@ -705,13 +714,10 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
                 self.content.set_position_top_y(content_position_y);
             }
             SectionHeaderPlacement::Bottom => {
-                // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
-                let offset_from_top = 1.0;
-                let label_offset = self.content.height() + self.label.height.value() / 1.5;
-                let label_pos = position_y - label_offset - offset_from_top;
+                let label_offset = self.content.height() + style.section.heading.text_offset;
+                let label_pos = position_y - label_offset;
                 self.label.set_position_y(label_pos);
                 let divider_offset = self.content.height() - style.section.divider_height + 2.0;
-                // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
                 let divider_pos = position_y - divider_offset - offset_from_top;
                 self.divider.set_position_y(divider_pos);
                 self.content.set_position_top_y(position_y);

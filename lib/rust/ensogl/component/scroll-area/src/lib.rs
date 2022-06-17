@@ -145,7 +145,8 @@ struct Model {
 impl Model {
     fn resize(&self, size: Vector2) {
         self.h_scrollbar.set_position_y(-size.y + scrollbar::WIDTH / 2.0);
-        self.v_scrollbar.set_position_x(size.x - scrollbar::WIDTH / 2.0);
+        self.v_scrollbar
+            .set_position_x(size.x - scrollbar::WIDTH / 2.0 + scrollbar::PADDING / 2.0 + 1.0);
         self.h_scrollbar.set_position_x(size.x / 2.0);
         self.v_scrollbar.set_position_y(-size.y / 2.0);
         self.mask.size.set(size);
