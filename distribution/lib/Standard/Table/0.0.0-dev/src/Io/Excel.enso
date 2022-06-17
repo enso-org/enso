@@ -167,7 +167,7 @@ validate validation ~error_message ~wrapped =
      If set to `Ignore`, the operation proceeds without errors or warnings.
    - xls_format: If `True` then the file is read in using Excel 95-2003 format
      otherwise reads in Excel 2007+ format.
-read_excel : File -> Excel_Section -> (True|False|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
+read_excel : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_excel file section headers _ xls_format=False =
     reader stream = case section of
         Sheet_Names -> Vector.Vector (ExcelReader.readSheetNames stream xls_format)
