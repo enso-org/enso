@@ -76,7 +76,7 @@ spec =
             check_range (Excel_Range.from_address "Test!1:4") 'Test' [1, Nothing, 4, Nothing]
             check_range (Excel_Range.from_address "Test!CB") 'Test' [Nothing, 80, Nothing, 80]
             check_range (Excel_Range.from_address "Test!DD:XAZ") 'Test' [Nothing, 108, Nothing, 16276]
-            check_range (Excel_Range.from_address "'Hello World'!$EE4") 'Hello World' [4, 135, 4, 135] True
+            check_range (Excel_Range.from_address "'Hello World'!$EE4") 'Hello World' [4, 135, 4, 135] single_cell=True
             check_range (Excel_Range.from_address "Test!A1:$D$5") 'Test' [1, 1, 5, 4]
             check_range (Excel_Range.from_address "Test!1234") 'Test' [1234, Nothing, 1234, Nothing]
             check_range (Excel_Range.from_address "Test!$1:$4") 'Test' [1, Nothing, 4, Nothing]
