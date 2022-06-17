@@ -4,15 +4,11 @@ use ensogl::application::frp::API;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl_gui_component::component;
+use ensogl_hardcoded_theme::application::component_browser as theme;
 
 use crate::component_browser::component_group::prelude::StyleWatchFrp;
 use crate::documentation;
 pub use ide_view_component_browser::*;
-
-const GAP: f32 = 3.0;
-const DOCUMENTATION_WIDTH: f32 = 369.0;
-const WIDTH: f32 = list_panel::WIDTH_INNER + GAP + DOCUMENTATION_WIDTH;
-const HEIGHT: f32 = list_panel::HEIGHT_INNER;
 
 
 #[derive(Clone, CloneRef, Debug)]
@@ -36,9 +32,6 @@ impl component::Model for Model {
         app.display.default_scene.layers.node_searcher.add_exclusive(&display_object);
         display_object.add_child(&list);
         display_object.add_child(&documentation);
-        documentation.visualization_frp.inputs.set_size.emit(Vector2(DOCUMENTATION_WIDTH, HEIGHT));
-        list.set_position_x(list_panel::WIDTH_INNER / 2.0 - WIDTH / 2.0);
-        documentation.set_position_x(WIDTH / 2.0 - DOCUMENTATION_WIDTH / 2.0);
         Self { logger, display_object, list, documentation }
     }
 }
@@ -57,6 +50,7 @@ ensogl::define_endpoints_2! {
     Output {
         is_visible(bool),
         size(Vector2),
+        expression_input_position(Vector2),
     }
 }
 
@@ -70,10 +64,32 @@ impl component::Frp<Model> for Frp {
         let network = &frp_api.network;
         let input = &frp_api.input;
         let out = &frp_api.output;
-        frp::extend! { network
+        let list_panel = &model.list.output;
+        let documentation = &model.documentation;
+
+        let gap = style.get_number(theme::panels_gap);
+        let doc_width = style.get_number(theme::documentation::width);
+        let doc_height = style.get_number(theme::documentation::height);
+        frp::extend! { TRACE_ALL network
             init <- source_();
+
+            doc_size <- all_with3(&init, &doc_width, &doc_height, |(), w, h| Vector2(*w, *h));
+            eval doc_size ((size) documentation.visualization_frp.inputs.set_size.emit(*size));
+            size <- all_with4(&init, &list_panel.size, &doc_size, &gap, |(), list_size, doc_size, gap| {
+                let width = list_size.x + gap + doc_size.x;
+                let height = max(list_size.y, doc_size.y);
+                Vector2(width, height)
+            });
+            list_position_x <- all_with(&size, &list_panel.size, |size, list_size| list_size.x / 2.0 - size.x / 2.0);
+            doc_position_x <- all_with(&size, &doc_size, |size, doc_size| size.x / 2.0 - doc_size.x / 2.0);
+            eval list_position_x ((x) model.list.set_position_x(*x));
+            eval doc_position_x ((x) model.documentation.set_position_x(*x));
+
             out.is_visible <+ bool(&input.hide, &input.show);
-            out.size <+ init.constant(Vector2(WIDTH, HEIGHT));
+            out.size <+ size;
+            out.expression_input_position <+ all_with4(&list_panel.size, &list_position_x, &size, &gap, |list_size, list_x, size, gap| {
+                Vector2(*list_x - list_size.x / 6.0, - size.y / 2.0 - gap)
+            });
         }
         init.emit(());
     }

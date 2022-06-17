@@ -740,6 +740,7 @@ define_endpoints_2! {
         expression_accepted(EntryId),
         is_header_selected(GroupId, bool),
         header_accepted(GroupId),
+        size(Vector2),
     }
 }
 
@@ -780,6 +781,8 @@ impl component::Frp<Model> for Frp {
             output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
             output.is_header_selected <+ groups.is_header_selected;
             output.header_accepted <+ groups.header_accepted;
+
+            output.size <+ layout_update.map(|style| style.content.size);
         }
         init_layout.emit(())
     }

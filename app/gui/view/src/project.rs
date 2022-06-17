@@ -218,18 +218,23 @@ impl SearcherVariant {
         }
     }
 
-    fn anchor_at(&self, anchor: Vector2<f32>, size: Vector2<f32>) {
+    fn setup_anchor(&self, network: &frp::Network, anchor: &frp::Stream<Vector2<f32>>) {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
-                let x =
-                    anchor.x - (component_browser::list_panel::WIDTH_INNER / 3.0) + size.x / 2.0;
-                let y = anchor.y + node::HEIGHT / 2.0 + size.y / 2.0;
-                view.set_position_xy(Vector2(x, y));
+                frp::extend! {network
+                    cb_position <- all_with(anchor, &view.expression_input_position, |anchor, pos| anchor - pos);
+                    eval cb_position ((pos) view.set_position_xy(*pos));
+                }
             }
             SearcherVariant::OldNodeSearcher(view) => {
-                let x = anchor.x + size.x / 2.0;
-                let y = anchor.y - node::HEIGHT / 2.0 - size.y / 2.0;
-                view.set_position_xy(Vector2(x, y));
+                frp::extend! {network
+                    searcher_pos <- all_with(anchor, &view.size, |anchor, size| {
+                        let x = anchor.x + size.x / 2.0;
+                        let y = anchor.y - node::HEIGHT / 2.0 - size.y / 2.0;
+                        Vector2(x, y)
+                    });
+                    eval searcher_pos ((pos) view.set_position_xy(*pos));
+                }
             }
         }
     }
@@ -549,13 +554,6 @@ impl View {
                 });
             eval searcher_cam_pos ((pos) searcher_cam.set_position_xy(*pos));
 
-            trace searcher_anchor.value;
-            trace searcher.size;
-            trace searcher.is_visible;
-            _eval <- all_with(&searcher_anchor.value,&searcher.size,f!([model](anchor,size) {
-                model.searcher.anchor_at(*anchor, *size)
-            }));
-
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
                 DEBUG!("Searcher visibility change: {is_attached} - {is_visible}.");
@@ -764,6 +762,7 @@ impl View {
             model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
             model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
         }
+        model.searcher.setup_anchor(&network, &searcher_anchor.value);
         init.emit(());
         std::mem::forget(prompt_visibility);
 
