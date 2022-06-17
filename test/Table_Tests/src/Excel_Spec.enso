@@ -173,7 +173,7 @@ spec =
         # check_column (table.at "C") col_c
 
     Test.group "Read XLSX / XLS Files" <|
-        Test.specify "should let you read the first names with File_Format.Auto" <|
+        Test.specify "should let you read the first sheet with File_Format.Auto" <|
             check_table <| xlsx_sheet.read
             check_table <| File.read xlsx_sheet
             check_table <| File.read xlsx_path
