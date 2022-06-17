@@ -171,7 +171,11 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             eval size((size) model.background.size.set(*size));
             eval size((size) model.selection_background.size.set(*size));
             out.size <+ size;
-            out.selection_size <+ background_width.map(|&width| Vector2(width / 3.0,list_view::entry::HEIGHT));
+            out.selection_size <+ background_width.all_with(
+                &out.focused,
+                |&width, _| Vector2 (width / 3.0,list_view::entry::HEIGHT)
+            );
+            trace out.selection_size;
 
             // === "No items" label ===
 
@@ -441,16 +445,6 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
         } else {
             MINIMAL_HEIGHT
         }
-    }
-
-    /// Assign a set of layers to render the component group in. Must be called after constructing
-    /// the [`View`].
-    pub fn set_layers(&self, layers: &super::Layers) {
-        layers.background.add_exclusive(&self.background);
-        self.columns.iter().for_each(|column| {
-            layers.background.add_exclusive(&column.list_view);
-            column.list_view.set_label_layer(&layers.text)
-        });
     }
 }
 
