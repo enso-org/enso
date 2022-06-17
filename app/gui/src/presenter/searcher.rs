@@ -3,6 +3,7 @@
 
 use crate::prelude::*;
 
+use crate::controller::searcher::action::Suggestion;
 use crate::controller::searcher::Notification;
 use crate::controller::searcher::UserAction;
 use crate::executor::global::spawn_stream_handler;
@@ -10,7 +11,6 @@ use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
-use crate::controller::searcher::action::Suggestion;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
@@ -230,7 +230,6 @@ impl Searcher {
                 frp::extend! { network
                     new_providers <- action_list_changed.map(f_!(model.create_providers()));
                     searcher.set_actions <+ new_providers;
-                    select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
                     searcher.select_action <+ select_entry.constant(0);
                     used_as_suggestion <- searcher.used_as_suggestion.filter_map(|entry| *entry);
                     new_input <- used_as_suggestion.filter_map(f!((e) model.entry_used_as_suggestion(*e)));
@@ -286,17 +285,23 @@ impl Searcher {
         Ok(Self::new(parent, searcher_controller, view, input))
     }
 
-    /// Commit editing.
+    /// Commit editing in the old Node Searcher.
     ///
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes. The `entry_id` might be none in case where the searcher should accept
-    /// the node input without any entry selected. If the commitment will result in creating a new
+    /// the node input without any entry selected. If the commitment results in creating a new
     /// node, its AST id is returned.
     #[profile(Task)]
     pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         self.model.commit_editing(entry_id)
     }
 
+    /// Expression accepted in Compnent Browser.
+    ///
+    /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
+    /// editing finishes. The `entry_id` might be none in case where the user want to accept
+    /// the node input without any entry selected. If the commitment results in creating a new
+    /// node, its AST id is returned.
     pub fn expression_accepted(
         self,
         entry_id: Option<view::component_browser::list_panel::EntryId>,

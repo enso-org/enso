@@ -254,6 +254,7 @@ impl View {
         self
     }
 
+    /// The Documentation Panel View.
     pub fn documentation(&self) -> &documentation::View {
         &self.model.documentation
     }

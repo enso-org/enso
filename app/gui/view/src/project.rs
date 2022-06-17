@@ -133,15 +133,19 @@ mod prompt_background {
 // === Model ===
 // =============
 
-pub struct SearcherFrp {
-    show:              frp::Any<()>,
-    hide:              frp::Any<()>,
+/// Common FRP endpoints for both Searcher variants. See [`SearcherVariant`].
+#[derive(Clone, CloneRef, Debug)]
+struct SearcherFrp {
     editing_committed: frp::Stream,
     is_visible:        frp::Stream<bool>,
     is_empty:          frp::Stream<bool>,
-    size:              frp::Stream<Vector2>,
 }
 
+/// A structure containing the Searcher View: the old Node Searcher of a new Component Browser.
+///
+/// As Component Browser is unstable, it is available only under the feature flag. Thus the Project
+/// View must be able to handle any of those views.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub enum SearcherVariant {
     ComponentBrowser(component_browser::View),
@@ -173,12 +177,9 @@ impl SearcherVariant {
                 }
                 is_empty.emit(false);
                 SearcherFrp {
-                    show:              view.input.show.clone_ref(),
-                    hide:              view.input.hide.clone_ref(),
                     editing_committed: editing_committed.into(),
                     is_visible:        view.output.is_visible.clone_ref().into(),
                     is_empty:          is_empty.into(),
-                    size:              view.output.size.clone_ref().into(),
                 }
             }
             SearcherVariant::OldNodeSearcher(view) => {
@@ -186,12 +187,9 @@ impl SearcherVariant {
                     editing_committed <- view.editing_committed.constant(());
                 }
                 SearcherFrp {
-                    show:              view.input.show.clone_ref(),
-                    hide:              view.input.hide.clone_ref(),
                     editing_committed: editing_committed.into(),
                     is_visible:        view.output.is_visible.clone_ref().into(),
                     is_empty:          view.output.is_empty.clone_ref().into(),
-                    size:              view.output.size.clone_ref().into(),
                 }
             }
         }

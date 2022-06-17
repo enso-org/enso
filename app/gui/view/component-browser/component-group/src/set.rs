@@ -218,8 +218,8 @@ impl Wrapper {
         Self { groups, events }
     }
 
-    // /// Start managing a new group. Returned [`GroupId`] is non-unique, it might be reused by new
-    // /// groups if this one removed by calling [`Self::remove`].
+    /// Start managing a new group. If there is already managed group under given id, the old group
+    /// is no longer managed, and it's returned.
     pub fn add(&self, id: GroupId, group: Group) -> Option<Group> {
         let events = PropagatedEvents::new();
         self.events.attach(&events);
@@ -228,7 +228,7 @@ impl Wrapper {
         old.map(|(group, _)| group)
     }
 
-    // /// Stop managing of a group. A freed [`GroupId`] might be reused by new groups later.
+    /// Stop managing of a group.
     pub fn remove(&self, group_id: GroupId) {
         self.groups.borrow_mut().remove(&group_id);
     }

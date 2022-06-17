@@ -1,3 +1,9 @@
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
+
+
 // //! A debug scene which shows the Component Group visual component.
 //
 // // === Standard Linter Configuration ===

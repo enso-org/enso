@@ -46,7 +46,6 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ide_view_component_group as component_group;
-use ide_view_component_list_panel::column_grid::ColumnGrid;
 use ide_view_component_list_panel::ComponentBrowserPanel;
 use ide_view_component_list_panel::LabeledAnyModelProvider;
 use list_view::entry::AnyModelProvider;

@@ -3,7 +3,6 @@
 //! Component is a language entity displayed in the Component Browser.
 
 use crate::prelude::*;
-use std::fmt::Formatter;
 
 use crate::model::suggestion_database;
 

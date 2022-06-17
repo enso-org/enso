@@ -1,4 +1,13 @@
+//! A module containing the Component Browser [`View`].
+//!
+//! This module should be extracted to a separate crate in the future; now it shares
+//! the documentation panel with old Node Searcher, that's why it must be in the view crate.
+
 use crate::prelude::*;
+
+use crate::component_browser::component_group::prelude::StyleWatchFrp;
+use crate::documentation;
+
 use enso_frp as frp;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
@@ -6,11 +15,17 @@ use ensogl::display;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser as theme;
 
-use crate::component_browser::component_group::prelude::StyleWatchFrp;
-use crate::documentation;
+
+// ==============
+// === Export ===
+// ==============
+
 pub use ide_view_component_browser::*;
 
 
+
+/// The Model of Component Browser View.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     logger:            Logger,
@@ -57,7 +72,7 @@ ensogl::define_endpoints_2! {
 impl component::Frp<Model> for Frp {
     fn init(
         frp_api: &<Self as API>::Private,
-        app: &Application,
+        _app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
     ) {
@@ -95,4 +110,10 @@ impl component::Frp<Model> for Frp {
     }
 }
 
+/// Component Browser View.
+///  
+/// The Component Browser is a panel where user searches for types, variables and methods which can
+/// be used to construct new nodes. The components are arranged in sections and groups, and
+/// displayed in Component List Panel. The Component Browser View contains also Documentation Panel,
+/// displaying documentation of currently selected or hovered component.
 pub type View = component::ComponentView<Model, Frp>;

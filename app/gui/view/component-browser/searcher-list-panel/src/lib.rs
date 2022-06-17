@@ -40,14 +40,9 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
-pub mod column_grid;
-
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-pub use column_grid::LabeledAnyModelProvider;
-pub use component_group::set::GroupId;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -72,6 +67,17 @@ use ide_view_component_group::set::Group;
 use ide_view_component_group::set::SectionId;
 use ide_view_component_group::Layers;
 use searcher_theme::list_panel as list_panel_theme;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod column_grid;
+
+pub use column_grid::LabeledAnyModelProvider;
+pub use component_group::set::GroupId;
+
 
 
 // ==============
@@ -716,6 +722,10 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
 // === FRP ===
 // ===========
 
+/// An identifier of Component Entry in Component List.
+///
+/// The component is identified by its group id and its number on the component list.
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct EntryId {
     pub group:    GroupId,

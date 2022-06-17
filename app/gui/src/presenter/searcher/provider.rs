@@ -11,7 +11,7 @@ use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view_component_group as component_group_view;
-use ide_view_component_group::entry::View;
+
 
 
 // ============================
@@ -64,6 +64,11 @@ pub struct Action {
 }
 
 impl Action {
+    /// Get the documentation for a suggestion in case when this suggestion does not have
+    /// a documentation.
+    ///
+    /// Usually something like "Function foo - no documentation available". The returned string is
+    /// documentation in HTML format.
     pub fn doc_placeholder_for(suggestion: &controller::searcher::action::Suggestion) -> String {
         use controller::searcher::action::Suggestion;
         let code = match suggestion {
@@ -152,13 +157,14 @@ impl ide_view::searcher::DocumentationProvider for Action {
     }
 }
 
-
+/// Component Provider getting entries from a [`controller::searcher::component::Group`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
     group: controller::searcher::component::Group,
 }
 
 impl Component {
+    /// Create component provider based of the given group.
     pub fn new(group: controller::searcher::component::Group) -> Self {
         Self { group }
     }
@@ -205,6 +211,7 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
     }
 }
 
+/// Get [`LabeledAnyModelProvider`] for given component group.
 pub fn from_component_group(
     group: &controller::searcher::component::Group,
 ) -> LabeledAnyModelProvider {
@@ -214,6 +221,7 @@ pub fn from_component_group(
     }
 }
 
+/// Get vector of [`LabeledAnyModelProvider`] for given component group list.
 pub fn from_component_group_list(
     groups: &impl AsRef<controller::searcher::component::group::List>,
 ) -> Vec<LabeledAnyModelProvider> {

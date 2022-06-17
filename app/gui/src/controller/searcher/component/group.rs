@@ -131,14 +131,17 @@ impl Group {
         self.visible.set(visible);
     }
 
+    /// Get the number of entries.
     pub fn len(&self) -> usize {
         self.entries.borrow().len()
     }
 
+    /// Check if the group is empty.
     pub fn is_empty(&self) -> bool {
         self.entries.borrow().is_empty()
     }
 
+    /// Get cloned-ref entry under the index.
     pub fn get_entry(&self, index: usize) -> Option<Component> {
         self.entries.borrow().get(index).map(|e| e.clone_ref())
     }
@@ -162,6 +165,7 @@ impl List {
         Self { groups: Rc::new(groups) }
     }
 
+    /// Get entry under given group and entry index.
     pub fn entry_by_index(
         &self,
         group_index: usize,
