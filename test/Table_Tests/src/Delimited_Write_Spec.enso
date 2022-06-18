@@ -48,7 +48,7 @@ spec =
 
         Test.specify 'should quote values that contain the delimiter or quotes, in the [;\"] variant' <|
             data_formatter = Data_Formatter thousand_separator="'"
-            table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c "]], ["B", [1000000.5, 1000.0, 0.0, -1.2]]]
+            table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b"]], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing]]]
             file = (Enso_Project.data / "transient" / "quotes1.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\')
@@ -58,17 +58,18 @@ spec =
                 "!\"baz\" ";1'000.0
                 one, two, three;0.0
                 "a;b; c ";-1.2
+                "a\\b";
             text = File.read_text file
             text.should_equal expected_text+'\n'
 
         Test.specify "should quote values that contain the delimiter or quotes, in the [\t''] variant" <|
             data_formatter = Data_Formatter thousand_separator="'"
-            table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb']], ["B", [1000000.5, 1000.0, Nothing, -1.2]]]
+            table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2]]]
             file = (Enso_Project.data / "transient" / "quotes1.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'')
             expected_text = '''
-                "A"\tB
+                "A"\tB\\C
                 \t'1''000''000.5'
                 'The ''thing''.'\t'1''000.0'
                 one, "two", three\t

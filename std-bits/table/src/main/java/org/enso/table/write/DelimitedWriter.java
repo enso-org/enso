@@ -12,9 +12,16 @@ public class DelimitedWriter {
   private static final char NEWLINE = '\n';
   private final Writer output;
   private final DataFormatter[] columnFormatters;
-  private final String delimiter;
+  private final char delimiter;
   private final String quote;
   private final String quoteEscape;
+
+  private final char quoteChar;
+  private final char quoteEscapeChar;
+
+  private final String quoteReplacement;
+
+  private final String quoteEscapeReplacement;
   private final WriteQuoteBehavior writeQuoteBehavior;
   private final boolean writeHeaders;
 
@@ -28,9 +35,58 @@ public class DelimitedWriter {
       boolean writeHeaders) {
     this.output = output;
     this.columnFormatters = columnFormatters;
-    this.delimiter = delimiter;
-    this.quote = quote;
-    this.quoteEscape = quoteEscape;
+
+    if (delimiter.isEmpty()) {
+      throw new IllegalArgumentException("Empty delimiters are not supported.");
+    }
+    if (delimiter.length() > 1) {
+      throw new IllegalArgumentException(
+          "Delimiters consisting of multiple characters or code units are not supported.");
+    }
+    this.delimiter = delimiter.charAt(0);
+
+    if (quote != null) {
+      if (quote.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Empty quotes are not supported. Set the quote to `Nothing` to disable quotes.");
+      }
+      if (quote.length() > 1) {
+        throw new IllegalArgumentException(
+            "Quotes consisting of multiple characters or code units are not supported.");
+      }
+
+      this.quote = quote;
+      this.quoteChar = quote.charAt(0);
+    } else {
+      this.quote = null;
+      this.quoteChar = '\0';
+    }
+
+    if (quoteEscape != null) {
+      if (quoteEscape.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Empty quote escapes are not supported. Set the escape to `Nothing` to disable escaping quotes.");
+      }
+      if (quoteEscape.length() > 1) {
+        throw new IllegalArgumentException(
+            "Quote escapes consisting of multiple characters or code units are not supported.");
+      }
+
+      this.quoteEscape = quoteEscape;
+      this.quoteEscapeChar = quoteEscape.charAt(0);
+    } else {
+      this.quoteEscape = null;
+      this.quoteEscapeChar = '\0';
+    }
+
+    if (this.quoteEscape == this.quote) {
+      quoteReplacement = this.quote + "" + this.quote;
+      quoteEscapeReplacement = null;
+    } else {
+      quoteReplacement = this.quoteEscape + "" + this.quote;
+      quoteEscapeReplacement = this.quoteEscape + "" + this.quoteEscape;
+    }
+
     this.writeQuoteBehavior = writeQuoteBehavior;
     this.writeHeaders = writeHeaders;
   }
@@ -61,13 +117,39 @@ public class DelimitedWriter {
     return new WithProblems<>(null, List.of());
   }
 
+  private boolean quotingEnabled() {
+    return writeQuoteBehavior != WriteQuoteBehavior.NEVER;
+  }
+
   private void writeCell(String value, boolean isLastInRow) throws IOException {
-    String escaped = value; // TODO
-    output.write(escaped);
+    String processed = quotingEnabled() ? quote(value) : value;
+    output.write(processed);
     if (isLastInRow) {
       output.write(NEWLINE);
     } else {
       output.write(delimiter);
+    }
+  }
+
+  private String quote(String value) {
+    if (value.isEmpty()) {
+      return quote + "" + quote;
+    }
+
+    boolean containsDelimiter = value.indexOf(delimiter) >= 0;
+    boolean containsQuote = value.indexOf(quoteChar) >= 0;
+    boolean containsQuoteEscape = value.indexOf(quoteEscapeChar) >= 0;
+
+    boolean needsQuoting = containsDelimiter || containsQuote || containsQuoteEscape;
+
+    if (!needsQuoting) {
+      return value;
+    }
+
+    if (quoteEscapeChar == quoteChar) {
+      return value.replace(quote, quoteReplacement);
+    } else {
+      return value.replace(quoteEscape, quoteEscapeReplacement).replace(quote, quoteReplacement);
     }
   }
 }
