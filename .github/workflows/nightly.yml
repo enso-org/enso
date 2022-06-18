@@ -2,6 +2,8 @@
 name: Nightly Release
 "on":
   push: {}
+  schedule:
+    - cron: 0 4 * * 2-6
   workflow_dispatch: {}
 jobs:
   build-backend:
@@ -53,7 +55,6 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
-    outputs: {}
     strategy:
       matrix:
         os:
@@ -62,7 +63,7 @@ jobs:
             - engine
           - - self-hosted
             - Linux
-            - mwu-deluxe
+            - engine
           - - macos-latest
       fail-fast: false
     env:
@@ -119,7 +120,6 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
-    outputs: {}
     strategy:
       matrix:
         os:
@@ -128,7 +128,7 @@ jobs:
             - engine
           - - self-hosted
             - Linux
-            - mwu-deluxe
+            - engine
           - - macos-latest
       fail-fast: false
     env:
@@ -141,7 +141,7 @@ jobs:
     runs-on:
       - self-hosted
       - Linux
-      - mwu-deluxe
+      - engine
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
@@ -185,7 +185,6 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
-    outputs: {}
     env:
       ENSO_RELEASE_ID: "${{needs.prepare-release.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.prepare-release.outputs.ENSO_VERSION}}"
@@ -243,7 +242,7 @@ jobs:
     runs-on:
       - self-hosted
       - Linux
-      - mwu-deluxe
+      - engine
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
@@ -287,7 +286,6 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
-    outputs: {}
     env:
       AWS_ACCESS_KEY_ID: "${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}"
       AWS_REGION: us-west-1
@@ -298,3 +296,4 @@ env:
   ENSO_BUILD_KIND: nightly
   ENSO_BUILD_REPO_REMOTE: enso-org/enso-staging
   RUST_BACKTRACE: full
+concurrency: release
