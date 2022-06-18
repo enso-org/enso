@@ -18,11 +18,17 @@ import project.Util
 
 spec =
     Test.group "Delimited File Writing" <|
-        Test.specify "should TODO" <|
+        Test.specify "should correctly write a simple table" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
-            file = (Enso_Project.data / "written.csv")
+            file = (Enso_Project.data / "transient" / "written.csv")
+            file.delete_if_exists
             table.write file
+            expected_text = """
+                A,B,C
+                1,1.0,x
+                2,1.5,y
+                3,2.2,z
             text = File.read_text file
-            IO.println text
+            text.should_equal expected_text+'\n'
 
 main = Test.Suite.run_main here.spec

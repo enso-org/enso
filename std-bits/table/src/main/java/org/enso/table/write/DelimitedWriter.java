@@ -40,21 +40,23 @@ public class DelimitedWriter {
     assert numberOfColumns == columnFormatters.length;
 
     if (writeHeaders) {
-      for (int i = 0; i < numberOfColumns; ++i) {
-        boolean isLast = i == numberOfColumns - 1;
-        writeCell(table.getColumns()[i].getName(), isLast);
+      for (int col = 0; col < numberOfColumns; ++col) {
+        boolean isLast = col == numberOfColumns - 1;
+        writeCell(table.getColumns()[col].getName(), isLast);
       }
     }
 
     int numberOfRows = table.rowCount();
-    for (int i = 0; i < numberOfRows; ++i) {
-      for (int j = 0; j < numberOfColumns; ++j) {
-        boolean isLast = i == numberOfColumns - 1;
-        Object cellValue = table.getColumns()[j].getStorage().getItemBoxed(i);
-        String formatted = columnFormatters[j].format(cellValue);
+    for (int row = 0; row < numberOfRows; ++row) {
+      for (int col = 0; col < numberOfColumns; ++col) {
+        boolean isLast = col == numberOfColumns - 1;
+        Object cellValue = table.getColumns()[col].getStorage().getItemBoxed(row);
+        String formatted = columnFormatters[col].format(cellValue);
         writeCell(formatted, isLast);
       }
     }
+
+    output.flush();
 
     return new WithProblems<>(null, List.of());
   }
