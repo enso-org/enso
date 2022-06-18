@@ -33,25 +33,13 @@ jobs:
         with:
           clean: false
       - run: "./run --help"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - run: "./run backend upload"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run backend upload"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - name: List files if failed
         run: ls -R
         if: failure()
@@ -98,25 +86,13 @@ jobs:
         with:
           clean: false
       - run: "./run --help"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - name: List files if failed
         run: ls -R
         if: failure()
@@ -163,25 +139,13 @@ jobs:
         with:
           clean: false
       - run: "./run --help"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - run: "./run wasm build"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run wasm build"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - name: List files if failed
         run: ls -R
         if: failure()
@@ -214,15 +178,9 @@ jobs:
         with:
           clean: false
       - run: "./run --help"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - id: prepare
         run: "./run release create-draft"
         if: "runner.os != 'Windows'"
@@ -264,25 +222,13 @@ jobs:
         with:
           clean: false
       - run: "./run --help"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - run: "./run release publish"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run release publish"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
+        shell: "${{ (runner.os == 'Windows' && 'pwsh') || 'bash' }}"
       - name: List files if failed
         run: ls -R
         if: failure()
