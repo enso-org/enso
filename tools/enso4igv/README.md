@@ -46,7 +46,71 @@ to _finish_ the installation.
 
 ## Using the IGV
 
-TBD
+Get an instance of the Enso runtime engine (see [Running Enso](../../docs/CONTRIBUTING.md#running-enso))
+and then launch it with special Java options:
+
+```bash
+enso$ JAVA_OPTS="-Dpolyglot.engine.AllowExperimentalOptions=true\
+ -Dpolyglot.engine.TraceCompilation=true\
+ -Dpolyglot.engine.MultiTier=false\
+ -Dgraal.Dump=Truffle:1"\
+ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
+```
+
+When executed on [GraalVM 21.3.0](http://graalvm.org) these options instruct
+the _Graal/Truffle compiler_ to dump files into `graal_dumps/_sometimestamp_` directory.
+Generating these files takes a while - make sure `yourprogram.enso` runs long enough
+for the system to warmup, compile the code and run at _full speed_.
+
+#### Sieve of Eratosthenes Example
+
+As an example you can download [sieve.enso](https://github.com/jtulach/sieve/blob/5b32450da35415322e683bb9769aa45f0d71f1df/enso/sieve.enso)
+which computes hundred thousand of prime numbers repeatedly and measures time 
+of each round. Download the file and launch Enso with:
+
+```bash
+enso$ JAVA_OPTS="-Dpolyglot.engine.AllowExperimentalOptions=true\
+ -Dpolyglot.engine.TraceCompilation=true\
+ -Dpolyglot.engine.MultiTier=false\
+ -Dgraal.Dump=Truffle:1"\
+ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run sieve.enso
+```
+
+Bunch of files in `graal_dumps/*` subdirectory is going to be generated:
+
+```bash
+enso$ ls graal_dumps/*/Truffle* | tail -n5
+graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9889[argument<2>].bgv
+graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9896[IfThenElseMethodGen@3af870b9_<split-62b6b4f3>]_1.bgv
+graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9896[IfThenElseMethodGen@3af870b9_<split-62b6b4f3>].bgv
+graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9935[Primes.next_<split-717d5bdf>]_1.bgv
+graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9935[Primes.next_<split-717d5bdf>].bgv
+```
+
+Let's launch IGV with Enso integration and let's open graph for one of the
+top-most functions: `TruffleHotSpotCompilation*Primes_next*.bgv`. Choose
+compilation phase _"Before lowering"_:
+
+![Before Lowering Graph](docs/igv_graph.png)
+
+Now you can inspect the _compiler graphs_ the regular _IGV_ way. Let's locate
+for example `LoadField#FunctionSchema.isFullyApplied` node and let's check
+how it got _inlined_:
+
+![Inlining Stacktrace](docs/igv_stacktrace.png)
+
+The stack trace shows what methods of the Enso interpreter and Truffle runtime
+are _"inlined on stack"_ when this node is being compiled. This is all regular
+_IGV_ functionality, but now we can switch to _Enso view_:
+
+![Enso Source](docs/igv_enso.png)
+
+By choosing the _Enso language icon_ in front of the stack trace combo,
+the source code of our `.enso` program is opened and we can analyze what
+_compiler nodes_ refer to what lines in the our _Enso_ program. Click _Navigate to Source_
+icon in the _Stack View_ to get from graph node to source. Select a drop
+down widget in the editor toolbar to show you what compiler nodes as associated
+with currently selected line.
 
 ## Building
 
