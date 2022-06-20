@@ -47,7 +47,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`Position`](#position)
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
-  - [`EditKind`](#editkind)
   - [`DiagnosticType`](#diagnostictype)
   - [`StackTraceElement`](#stacktraceelement)
   - [`Diagnostic`](#diagnostic)
@@ -106,6 +105,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`text/closeFile`](#textclosefile)
   - [`text/save`](#textsave)
   - [`text/applyEdit`](#textapplyedit)
+  - [`text/applyExpressionValue`](#textapplyexpressionvalue)
   - [`text/didChange`](#textdidchange)
 - [Workspace Operations](#workspace-operations)
   - [`workspace/projectInfo`](#workspaceprojectinfo)
@@ -1130,39 +1130,7 @@ interface TextEdit {
   range: Range;
 
   /** The change to a text file. */
-  text: String;
-
-  /** The update type. When not set defaults to `FileEditKind`. */
-  kind?: EditKind;
-}
-```
-
-### EditKind
-
-Represents the type of an update enabling runtime optimizations.
-
-- `FileEditKind` represents a plane file update. After applying the text edit,
-  the program will be recompiled and re-executed.
-- `MetadataEditKind` represents the metadata update. Metadata update does not
-  change the program and thus allows engine to skip inane re-executions.
-- `ValueUpdateKind` represents an update of a node value. In this case the
-  engine can skip the compilation phase, and re-execute the program with a new
-  value.
-
-#### Format
-
-```typescript
-type EditKind = FileEditKind | MetadataEditKind | ValueUpdateKind;
-
-interface FileEditKind {}
-
-interface MetadataEditKind {}
-
-interface ValueUpdateKind {
-  /** The identifier of altered node. */
-  expressionId: ExpressionId;
-  /** The new value of altered node. */
-  value: string;
+  text: string;
 }
 ```
 
@@ -2801,7 +2769,13 @@ that some edits are applied and others are not.
 
 ```typescript
 {
+  /** The file edit. */
   edit: FileEdit;
+
+  /** The flag indicating whether we should re-execute the program after
+    * applying the edit. Default value is `true`, to re-execute the program.
+    */
+  execute?: boolean;
 }
 ```
 
@@ -2817,6 +2791,61 @@ null;
   open.
 - [`TextEditValidationError`](#texteditvalidationerror) to signal that
   validation has failed for a series of edits.
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version
+  provided by the client doesn't match the version computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold
+  write lock for the buffer.
+
+### `text/applyExpressionValue`
+
+This requests to apply specific value to the expression. I.e. it can be an
+update of a literal value, like changing `98` to `99`, `true` to `false` or
+`"Hello"` to `"World!"`. This method is a more specific version of
+[`text/applyEdit`](#textapplyedit) and guarantees that the syntax tree is not
+changed after applying the edit. This way the engine can perform a more
+efficient value swap instead of reparsing and recompiling the whole module.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+This operation may fail if the requesting client does not have permission to
+edit the resources for which edits are sent.
+
+#### Parameters
+
+```typescript
+interface TextApplyExpressionValue {
+  /** The expression id to update. */
+  expressionId: ExpressionId;
+
+  /** The new value of the expression. */
+  expressionValue: string;
+
+  /** Edited file. */
+  path: Path;
+
+  /** The SHA hash of the file before setting the new value to the node. */
+  oldVersion: SHA3-224;
+
+  /** The SHA hash of the file after setting the new value to the node. */
+  newVersion: SHA3-224;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
+  open.
+- [`TextEditValidationError`](#texteditvalidationerror) to signal that
+  validation has failed for this edit.
 - [`InvalidVersionError`](#invalidversionerror) to signal that the version
   provided by the client doesn't match the version computed by the server.
 - [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold
