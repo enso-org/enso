@@ -10,5 +10,5 @@ public interface DataFormatter {
    */
   boolean canFormat(Object value);
 
-  String NULL_REPRESENTATION = "";
+  String NULL_REPRESENTATION = null;
 }

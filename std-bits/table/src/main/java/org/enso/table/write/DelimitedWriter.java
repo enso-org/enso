@@ -22,6 +22,7 @@ public class DelimitedWriter {
   private final String quoteReplacement;
 
   private final String quoteEscapeReplacement;
+  private final String emptyValue;
   private final WriteQuoteBehavior writeQuoteBehavior;
   private final boolean writeHeaders;
 
@@ -89,6 +90,7 @@ public class DelimitedWriter {
 
     this.writeQuoteBehavior = writeQuoteBehavior;
     this.writeHeaders = writeHeaders;
+    emptyValue = this.quote + "" + this.quote;
   }
 
   public WithProblems<Void> write(Table table) throws IOException {
@@ -122,7 +124,7 @@ public class DelimitedWriter {
   }
 
   private void writeCell(String value, boolean isLastInRow) throws IOException {
-    String processed = quotingEnabled() ? quote(value) : value;
+    String processed = value == null ? "" : quotingEnabled() ? quote(value) : value;
     output.write(processed);
     if (isLastInRow) {
       output.write(NEWLINE);
@@ -133,7 +135,7 @@ public class DelimitedWriter {
 
   private String quote(String value) {
     if (value.isEmpty()) {
-      return quote + "" + quote;
+      return emptyValue;
     }
 
     boolean containsDelimiter = value.indexOf(delimiter) >= 0;
@@ -146,10 +148,17 @@ public class DelimitedWriter {
       return value;
     }
 
+    String escaped;
     if (quoteEscapeChar == quoteChar) {
-      return value.replace(quote, quoteReplacement);
+      escaped = value.replace(quote, quoteReplacement);
     } else {
-      return value.replace(quoteEscape, quoteEscapeReplacement).replace(quote, quoteReplacement);
+      escaped = value.replace(quoteEscape, quoteEscapeReplacement).replace(quote, quoteReplacement);
     }
+
+    StringBuilder builder = new StringBuilder(escaped.length() + 2);
+    builder.append(quote);
+    builder.append(escaped);
+    builder.append(quote);
+    return builder.toString();
   }
 }

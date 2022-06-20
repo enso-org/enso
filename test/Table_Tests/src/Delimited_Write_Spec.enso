@@ -46,7 +46,7 @@ spec =
             text = File.read_text file
             text.should_equal expected_text+'\n'
 
-        Test.specify 'should quote values that contain the delimiter or quotes, in the [;\"] variant' <|
+        Test.specify 'should quote values that contain the delimiter or quotes, in the [;\\\"] variant' <|
             data_formatter = Data_Formatter thousand_separator="'"
             table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b"]], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing]]]
             file = (Enso_Project.data / "transient" / "quotes1.csv")

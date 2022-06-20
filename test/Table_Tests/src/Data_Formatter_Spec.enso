@@ -69,7 +69,7 @@ spec =
 
     Test.group "DataFormatter.format" <|
         Test.specify "should handle Nothing" <|
-            Data_Formatter.format Nothing . should_equal ""
+            Data_Formatter.format Nothing . should_equal Nothing
 
         Test.specify "should format numbers" <|
             formatter = Data_Formatter
