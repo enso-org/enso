@@ -30,17 +30,12 @@ import org.enso.polyglot.LanguageInfo;
  * original source offset and new {@link #findDelta(int, boolean) deltas}.
  */
 final class PatchedModuleValues {
-  private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
-  private final Map<Node, Predicate<IR.Expression>> values = new HashMap<>();
   private final Module module;
+  private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
+  private Map<Node, Predicate<IR.Expression>> values;
 
   PatchedModuleValues(Module module) {
     this.module = module;
-    var scope = module.getScope();
-    var methods = scope.getMethods();
-    var conversions = scope.getConversions();
-    updateFunctionsMap(null, methods.values(), values);
-    updateFunctionsMap(null, conversions.values(), values);
   }
 
   /** Disposes the binding. No-op currently.
@@ -62,6 +57,14 @@ final class PatchedModuleValues {
   private synchronized void performUpdates(
     Map<Node, Predicate<IR.Expression>> collect, int offset, int delta
   ) {
+    if (values == null) {
+      var scope = module.getScope();
+      values = new HashMap<>();
+      var methods = scope.getMethods();
+      var conversions = scope.getConversions();
+      updateFunctionsMap(null, methods.values(), values);
+      updateFunctionsMap(null, conversions.values(), values);
+    }
     values.putAll(collect);
     if (delta == 0) {
       return;
