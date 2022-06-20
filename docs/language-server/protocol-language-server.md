@@ -2798,9 +2798,9 @@ null;
 
 ### `text/applyExpressionValue`
 
-This requests to set an expression to a new value. For example,
-it can update a literal value, like changing `98` to `99`, `true` to `false` or
-`"Hello"` to `"World!"`. This method is a more specific version of
+This requests to set an expression to a new value. For example, it can update a
+literal value, like changing `98` to `99`, `true` to `false` or `"Hello"` to
+`"World!"`. This method is a more specific version of
 [`text/applyEdit`](#textapplyedit) and guarantees that the syntax tree is not
 changed after applying the edit. This way the engine can perform a more
 efficient value swap instead of reparsing and recompiling the whole module.
