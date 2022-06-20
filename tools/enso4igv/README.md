@@ -10,9 +10,9 @@ Graph Visualizer_ - an excellent tool to get insights into behavior of Graal
 compiler.
 
 This document shows how to use _IGV_ with the _Enso language_. The command line
-instructions format is Unix oriented. Use instructions appropriate for your operating
-system to perform the same on different _OS_. _IGV_ itself as well as the
-_Enso language_ support are platform neutral with launch scripts for all
+instructions format is Unix oriented. Use instructions appropriate for your
+operating system to perform the same on different _OS_. _IGV_ itself as well as
+the _Enso language_ support are platform neutral with launch scripts for all
 major operating systems.
 
 ## Installation
@@ -124,7 +124,7 @@ currently selected line.
 
 ## Building
 
-The plugin can be rebuilt using [Apache Maven](http://maven.apache.org). The 
+The plugin can be rebuilt using [Apache Maven](http://maven.apache.org). The
 build is platform independent. The following instructions are for Unix like
 environment. Switch to this directory and invoke:
 
