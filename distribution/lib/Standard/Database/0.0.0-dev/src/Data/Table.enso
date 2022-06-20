@@ -514,8 +514,8 @@ type Table
                    propagate dataflow errors correctly. See:
                    https://www.pivotaltracker.com/story/show/181057718
                 Panic.throw_wrapped_if_error <|
-                    this.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
-            new_ctx = this.context.add_orders new_order_descriptors
+                    self.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
+            new_ctx = self.context.add_orders new_order_descriptors
             self.updated_context new_ctx
 
     ## UNSTABLE
@@ -638,7 +638,7 @@ type Table
               table.aggregate [Group_By "Key", Count Nothing]
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns this
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
         on_problems.attach_problems_before validated.problems <|
             key_columns = validated.key_columns
             resolved_aggregates = validated.valid_columns
