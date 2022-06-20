@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 from project.Semantic.Names.Definitions import another_method, another_constant
-import project.Semantic.Names.Definitions
 import Standard.Test
 
 Definitions.Foo.my_method = case self of

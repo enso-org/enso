@@ -192,7 +192,8 @@ case object UppercaseNames extends IRPass {
         processedFun.passData.remove(this) // Necessary for IrToTruffle
         val renamed = rename(processedFun, method.name)
         app.copy(function = renamed, arguments = selfArg :: processedArgs)
-      case _ => app.copy(function = processedFun, arguments = processedArgs)
+      case _ =>
+        app.copy(function = processedFun, arguments = processedArgs)
     }
   }
 

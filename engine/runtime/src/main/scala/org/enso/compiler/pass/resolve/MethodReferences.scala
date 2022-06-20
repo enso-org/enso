@@ -45,7 +45,7 @@ case object MethodReferences extends IRPass {
     )
     val freshNameSupply = moduleContext.freshNameSupply.getOrElse(
       throw new CompilerError(
-        "No fresh name supply passed to UppercaseNames resolver."
+        "No fresh name supply passed to MethodReferences resolver."
       )
     )
     val new_bindings =
@@ -72,7 +72,7 @@ case object MethodReferences extends IRPass {
     )
     val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
       throw new CompilerError(
-        "No fresh name supply passed to UppercaseNames resolver."
+        "No fresh name supply passed to MethodReferences resolver."
       )
     )
     processExpression(ir, scopeMap, freshNameSupply)
@@ -107,6 +107,11 @@ case object MethodReferences extends IRPass {
         if (isMethodName(lit)) {
           val resolution = bindings.resolveUppercaseName(lit.name)
           resolution match {
+            case Left(error) =>
+              IR.Error.Resolution(
+                lit,
+                IR.Error.Resolution.ResolverError(error)
+              )
             case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
               if (isInsideApplication) {
                 lit
@@ -183,7 +188,7 @@ case object MethodReferences extends IRPass {
         processedFun.passData.remove(this) // Necessary for IrToTruffle
         app.copy(function = processedFun, arguments = selfArg :: processedArgs)
       case _ =>
-        app
+        app.copy(function = processedFun, arguments = processedArgs)
     }
   }
 
