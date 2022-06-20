@@ -117,6 +117,10 @@ Data_Formatter.make_decimal_formatter =
     DecimalFormatter.new this.get_thousand_separator this.decimal_point
 
 ## PRIVATE
+Data_Formatter.make_date_formatter =
+    DateFormatter.new this.??? this.decimal_point
+
+## PRIVATE
 Data_Formatter.make_boolean_formatter =
     if this.true_values.is_empty then Error.throw (Illegal_Argument_Error "Formatting booleans requires at least one entry in the `true_values` parameter") else
         if this.false_values.is_empty then Error.throw (Illegal_Argument_Error "Formatting booleans requires at least one entry in the `false_values` parameter") else
