@@ -8,8 +8,8 @@ on:
     branches: [develop]
   pull_request:
     branches: [develop]
-  paths:
-    - "tools/enso4igv/**/*"
+    paths:
+      - "tools/enso4igv/**/*"
 
 jobs:
   build:
