@@ -32,7 +32,11 @@ class ApplyEditHandler(
 
   private def requestStage: Receive = {
     case Request(ApplyEdit, id, params: ApplyEdit.Params) =>
-      bufferRegistry ! TextProtocol.ApplyEdit(rpcSession.clientId, params.edit)
+      bufferRegistry ! TextProtocol.ApplyEdit(
+        rpcSession.clientId,
+        params.edit,
+        params.execute.getOrElse(true)
+      )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
