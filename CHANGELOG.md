@@ -244,6 +244,7 @@
   builtins from method signatures][3454]
 - [Avoid needless concatenations of warning/error messages][3465]
 - [Added a full-blown DSL for builtins][3471]
+- [Integration of Enso with Ideal Graph Visualizer][3533]
 - [Lazy evaluation of RHS argument for || and &&][3492]
 - [Drop Core implementation of IR][3512]
 - [Introduce a smaller version of the standard library, just for testing][3531]
@@ -270,6 +271,7 @@
 [3461]: https://github.com/enso-org/enso/pull/3461
 [3465]: https://github.com/enso-org/enso/pull/3465
 [3471]: https://github.com/enso-org/enso/pull/3471
+[3533]: https://github.com/enso-org/enso/pull/3533
 [3492]: https://github.com/enso-org/enso/pull/3492
 [3493]: https://github.com/enso-org/enso/pull/3493
 [3505]: https://github.com/enso-org/enso/pull/3505
