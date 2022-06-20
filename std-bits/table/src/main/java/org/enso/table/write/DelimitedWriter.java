@@ -93,7 +93,7 @@ public class DelimitedWriter {
     emptyValue = this.quote + "" + this.quote;
   }
 
-  public WithProblems<Void> write(Table table) throws IOException {
+  public void write(Table table) throws IOException {
     int numberOfColumns = table.getColumns().length;
     assert numberOfColumns == columnFormatters.length;
 
@@ -115,8 +115,6 @@ public class DelimitedWriter {
     }
 
     output.flush();
-
-    return new WithProblems<>(null, List.of());
   }
 
   private boolean quotingEnabled() {

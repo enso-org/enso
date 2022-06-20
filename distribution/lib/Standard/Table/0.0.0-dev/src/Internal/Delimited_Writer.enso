@@ -55,11 +55,13 @@ write_to_stream table format java_stream on_problems related_file=Nothing =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
 
+    # TODO handling encoding
     #java_charset = format.encoding.to_java_charset
+    _ = on_problems
     handle_io_exception <|
         # TODO create a writer that will use the appropriate encoding and handle mismatches
         writer = PrintWriter.new java_stream
-        here.write_to_writer table format writer on_problems
+        here.write_to_writer table format writer
 
 ## PRIVATE
    Writes data to the provided `Writer` according to the provided format.
@@ -71,12 +73,8 @@ write_to_stream table format java_stream on_problems related_file=Nothing =
    - table: The table to serialize.
    - format: The specification of the delimited file format.
    - java_writer: A Java `Writer` to which characters will be written.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-write_to_writer : Table -> Delimited -> Writer -> Problem_Behavior -> Any
-write_to_writer table format java_writer on_problems =
+write_to_writer : Table -> Delimited -> Writer -> Any
+write_to_writer table format java_writer =
     column_formatters = case format.value_formatter of
         Nothing -> table.columns.map column-> case column.storage_type of
             Storage.Text -> TextFormatter.new
@@ -99,7 +97,4 @@ write_to_writer table format java_writer on_problems =
         Infer -> True
         False -> False
     writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter quote_characters.first quote_characters.second quote_behavior write_headers
-    result = writer.write table.java_table
-    ## TODO map!
-    problems = Vector.Vector result.problems
-    on_problems.attach_problems_after Nothing problems
+    writer.write table.java_table
