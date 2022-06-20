@@ -43,13 +43,13 @@ can be installed into _IGV_ (or any other [NetBeans](http://netbeans.apache.org)
 based application). Go to _Tools_/_Plugins_/_Downloaded_ and install the NBM
 file.
 
-![Tools/Plugins/Downloaded](docs/tools_plugins_downloaded.png)
+![Tools/Plugins/Downloaded](https://user-images.githubusercontent.com/26887752/174608153-9f0b54fa-b507-45be-83de-d7911186d121.png)
 
 Proceed by clicking _Install_. You may be asked to download _TextMate Lexer_ - a
 necessary dependency of the _Enso support_ module. Continue thru the wizard to
 _finish_ the installation.
 
-![Tools/Plugins/Downloaded](docs/installer.png)
+![Tools/Plugins/Downloaded](https://user-images.githubusercontent.com/26887752/174608219-1faf2728-0045-478b-a297-e3c06f691b19.png)
 
 ## Using the IGV
 
@@ -101,19 +101,19 @@ Let's launch IGV with Enso integration and let's open graph for one of the
 top-most functions: `TruffleHotSpotCompilation*Primes_next*.bgv`. Choose
 compilation phase _"Before lowering"_:
 
-![Before Lowering Graph](docs/igv_graph.png)
+![Before Lowering Graph](https://user-images.githubusercontent.com/26887752/174608397-331a4438-1f12-40b0-9fcd-59eda5e53fb6.png)
 
 Now you can inspect the _compiler graphs_ the regular _IGV_ way. Let's locate
 for example `LoadField#FunctionSchema.isFullyApplied` node and let's check how
 it got _inlined_:
 
-![Inlining Stacktrace](docs/igv_stacktrace.png)
+![Inlining Stacktrace](https://user-images.githubusercontent.com/26887752/174608478-e7002c43-d746-42c0-b61c-92ceb9d9f124.png)
 
 The stack trace shows what methods of the Enso interpreter and Truffle runtime
 are _"inlined on stack"_ when this node is being compiled. This is all regular
 _IGV_ functionality, but now we can switch to _Enso view_:
 
-![Enso Source](docs/igv_enso.png)
+![Enso Source](https://user-images.githubusercontent.com/26887752/174608595-4ce80b00-949a-4b28-84a7-60d5988bfc70.png)
 
 By choosing the _Enso language icon_ in front of the stack trace combo, the
 source code of our `.enso` program is opened and we can analyze what _compiler
