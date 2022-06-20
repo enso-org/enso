@@ -24,4 +24,4 @@ type Error
     type Error
     throw payload = @Builtin_Method "Error.throw"
     catch_primitive handler = @Builtin_Method "Error.catch_primitive"
-    catch (handler = x->x) = this.catch_primitive handler
+    catch (handler = x->x) = self.catch_primitive handler
