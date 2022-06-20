@@ -8,6 +8,7 @@ import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
@@ -19,6 +20,9 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.UUID;
+import org.enso.interpreter.node.callable.function.CreateFunctionNode;
+import org.enso.interpreter.runtime.tag.Patchable;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * A base class for all Enso expressions.
@@ -33,16 +37,14 @@ import java.util.UUID;
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
 @GenerateWrapper
 public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
-
-  private static final int NO_SOURCE = -1;
   private @CompilerDirectives.CompilationFinal int sourceStartIndex;
   private @CompilerDirectives.CompilationFinal int sourceLength;
   private @CompilerDirectives.CompilationFinal UUID id = null;
 
   /** Creates a new instance of this node. */
   public ExpressionNode() {
-    sourceLength = NO_SOURCE;
-    sourceStartIndex = NO_SOURCE;
+    sourceLength = EnsoRootNode.NO_SOURCE;
+    sourceStartIndex = EnsoRootNode.NO_SOURCE;
   }
 
   /**
@@ -64,18 +66,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    */
   @Override
   public SourceSection getSourceSection() {
-    if (sourceStartIndex == NO_SOURCE) {
-      return null;
-    }
-    RootNode rootNode = getRootNode();
-    if (rootNode == null) {
-      return null;
-    }
-    SourceSection rootSourceSection = rootNode.getSourceSection();
-    if (rootSourceSection == null) {
-      return null;
-    }
-    return rootSourceSection.getSource().createSection(sourceStartIndex, sourceLength);
+    return EnsoRootNode.findSourceSection(getRootNode(), sourceStartIndex, sourceLength);
   }
 
   /**
@@ -181,6 +172,12 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    */
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
+    if (tag == Patchable.Tag.class && this instanceof Patchable) {
+      return true;
+    }
+    if (AvoidIdInstrumentationTag.class == tag) {
+      return getRootNode() instanceof ClosureRootNode c && !c.isSubjectToInstrumentation();
+    }
     return tag == StandardTags.ExpressionTag.class || (tag == IdentifiedTag.class && id != null);
   }
 

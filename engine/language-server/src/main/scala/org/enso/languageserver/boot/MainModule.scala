@@ -12,7 +12,7 @@ import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
-import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.effect
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
@@ -88,7 +88,18 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
-  val zioExec = ZioExec(zio.Runtime.default)
+  implicit val system: ActorSystem =
+    ActorSystem(
+      serverConfig.name,
+      None,
+      None,
+      Some(serverConfig.computeExecutionContext)
+    )
+  log.trace(s"Created ActorSystem $system.")
+
+  private val zioRuntime =
+    effect.Runtime.fromExecutionContext(system.dispatcher)
+  private val zioExec = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
   val fileSystem: FileSystem = new FileSystem
@@ -97,15 +108,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
   log.trace("Created Version Calculator [{}].", versionCalculator)
-
-  implicit val system =
-    ActorSystem(
-      serverConfig.name,
-      None,
-      None,
-      Some(serverConfig.computeExecutionContext)
-    )
-  log.trace(s"Created ActorSystem $system.")
 
   val sqlDatabase =
     DeploymentType.fromEnvironment() match {

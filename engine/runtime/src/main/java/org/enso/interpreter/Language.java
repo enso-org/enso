@@ -21,6 +21,7 @@ import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
@@ -30,6 +31,7 @@ import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
 
 import java.util.Optional;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * The root of the Enso implementation.
@@ -58,7 +60,9 @@ import java.util.Optional;
   StandardTags.StatementTag.class,
   StandardTags.RootTag.class,
   StandardTags.TryBlockTag.class,
-  IdentifiedTag.class
+  IdentifiedTag.class,
+  AvoidIdInstrumentationTag.class,
+  Patchable.Tag.class
 })
 public final class Language extends TruffleLanguage<Context> {
   private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();

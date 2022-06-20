@@ -12,11 +12,17 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
+import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.IR$Literal$Number;
+import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
@@ -34,6 +40,7 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
+import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
@@ -77,9 +84,9 @@ public class Module implements TruffleObject {
   }
 
   private ModuleScope scope;
-  private TruffleFile sourceFile;
-  private Rope literalSource;
-  private Source cachedSource;
+  private ModuleSources sources;
+  private PatchedModuleValues patchedValues;
+  private Map<Source, Module> allSources = new WeakHashMap<>();
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
@@ -88,7 +95,6 @@ public class Module implements TruffleObject {
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
-  private boolean isInteractive;
 
   /**
    * Creates a new module.
@@ -99,13 +105,12 @@ public class Module implements TruffleObject {
    * @param sourceFile the module's source file.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
-    this.sourceFile = sourceFile;
+    this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.isInteractive = false;
   }
 
   /**
@@ -117,13 +122,13 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
-    this.literalSource = Rope.apply(literalSource);
+    this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.isInteractive = true;
+    this.patchedValues = new PatchedModuleValues(this);
   }
 
   /**
@@ -135,13 +140,13 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
-    this.literalSource = literalSource;
+    this.sources = ModuleSources.NONE.newWith(literalSource);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.isInteractive = true;
+    this.patchedValues = new PatchedModuleValues(this);
   }
 
   /**
@@ -152,6 +157,7 @@ public class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(QualifiedName name, Package<TruffleFile> pkg) {
+    this.sources = ModuleSources.NONE;
     this.name = name;
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
@@ -159,7 +165,6 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.isInteractive = false;
   }
 
   /**
@@ -176,15 +181,14 @@ public class Module implements TruffleObject {
 
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
-    this.isInteractive = false;
-    this.literalSource = null;
-    this.cachedSource = null;
+    this.disposeInteractive();
+    this.sources = ModuleSources.NONE;
     this.compilationStage = CompilationStage.INITIAL;
   }
 
   /** @return the literal source of this module. */
   public Rope getLiteralSource() {
-    return literalSource;
+    return sources.rope();
   }
 
   /**
@@ -193,19 +197,44 @@ public class Module implements TruffleObject {
    * @param source the module source.
    */
   public void setLiteralSource(String source) {
-    setLiteralSource(Rope.apply(source));
+    setLiteralSource(Rope.apply(source), null);
   }
 
   /**
-   * Sets new literal sources for the module.
+   * Sets new literal sources for the module. Optionally one can suggest {@link SimpleUpdate}
+   * information to perform small {@link PatchedModuleValues patching} of existing AST, IR & co.
+   * rather than complete re-parse.
    *
    * @param source the module source.
+   * @param update suggested small change in a single literal or {@code null} when complete
+   *     replacement with full re-parse shall be done
+   * @see PatchedModuleValues
    */
-  public void setLiteralSource(Rope source) {
-    this.literalSource = source;
+  public void setLiteralSource(Rope source, SimpleUpdate update) {
+    if (this.scope != null && update != null) {
+      var change = update.ir();
+      if (this.patchedValues == null) {
+        this.patchedValues = new PatchedModuleValues(this);
+      }
+      if (patchedValues.simpleUpdate(this, update)) {
+        this.sources = this.sources.newWith(source);
+        final Function1<IR.Expression, IR.Expression> fn =
+            new Function1<IR.Expression, IR.Expression>() {
+              @Override
+              public IR.Expression apply(IR.Expression v1) {
+                if (v1 == change) {
+                  return update.newIr();
+                }
+                return v1.mapExpressions(this);
+              }
+            };
+        var copy = this.ir.mapExpressions(fn);
+        this.ir = copy;
+        return;
+      }
+    }
+    this.sources = this.sources.newWith(source);
     this.compilationStage = CompilationStage.INITIAL;
-    this.cachedSource = null;
-    this.isInteractive = true;
   }
 
   /**
@@ -214,19 +243,22 @@ public class Module implements TruffleObject {
    * @param file the module source file.
    */
   public void setSourceFile(TruffleFile file) {
-    this.literalSource = null;
-    this.sourceFile = file;
+    this.sources = ModuleSources.NONE.newWith(file);
     this.compilationStage = CompilationStage.INITIAL;
-    this.cachedSource = null;
-    this.isInteractive = false;
+    disposeInteractive();
+  }
+
+  /** Cleans supporting data structures for interactive mode. */
+  private void disposeInteractive() {
+    if (this.patchedValues != null) {
+      this.patchedValues.dispose();
+      this.patchedValues = null;
+    }
   }
 
   /** @return the location of this module. */
   public String getPath() {
-    if (sourceFile != null) {
-      return sourceFile.getPath();
-    }
-    return null;
+    return sources.getPath();
   }
 
   /**
@@ -259,17 +291,45 @@ public class Module implements TruffleObject {
    * @throws IOException when the source comes from a file that can't be read.
    */
   public Source getSource() throws IOException {
-    if (cachedSource != null) {
-      return cachedSource;
+    final Source cached = sources.source();
+    if (cached != null) {
+      return cached;
     }
-    if (literalSource != null) {
-      cachedSource =
-          Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
-    } else if (sourceFile != null) {
-      cachedSource = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
-      literalSource = Rope.apply(cachedSource.getCharacters().toString());
+    ModuleSources newSources = sources.ensureSource(name);
+    sources = newSources;
+    allSources.put(newSources.source(), this);
+    return newSources.source();
+  }
+
+  /**
+   * Constructs source section for current {@link #getSource()} of this module.
+   *
+   * @param sourceStartIndex 0-based offset at the time compilation was performed
+   * @param sourceLength length at the time compilation was performed
+   * @return
+   */
+  public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
+    final Source src = sources.source();
+    if (src == null) {
+      return null;
     }
-    return cachedSource;
+    allSources.put(src, this);
+    int startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
+    int endDelta =
+        patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);
+    final int start = sourceStartIndex + startDelta;
+    final int length = sourceLength + endDelta - startDelta;
+    return src.createSection(start, length);
+  }
+
+  /**
+   * Check whether given source has ever been associated with this module.
+   *
+   * @param s source to check
+   * @return {@code true} if the source has been created for this module
+   */
+  public final boolean isModuleSource(Source s) {
+    return allSources.containsKey(s);
   }
 
   private void compile(Context context) throws IOException {
@@ -350,12 +410,12 @@ public class Module implements TruffleObject {
 
   /** @return the source file of this module. */
   public TruffleFile getSourceFile() {
-    return sourceFile;
+    return sources.file();
   }
 
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
   public boolean isInteractive() {
-    return isInteractive;
+    return patchedValues != null;
   }
 
   /**
@@ -434,9 +494,8 @@ public class Module implements TruffleObject {
     private static Module reparse(Module module, Object[] args, Context context)
         throws ArityException {
       Types.extractArguments(args);
-      module.cachedSource = null;
-      module.literalSource = null;
-      module.isInteractive = false;
+      module.sources = module.sources.newWith((Rope) null);
+      module.disposeInteractive();
       module.wasLoadedFromCache = false;
       try {
         module.compile(context);
