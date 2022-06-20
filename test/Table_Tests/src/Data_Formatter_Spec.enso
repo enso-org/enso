@@ -21,6 +21,18 @@ type Custom_Type_With_To_Text
     to_text : Text
     to_text = "[CUSTOM = " + this.field.to_text + "]"
 
+type Custom_Type_With_Error
+    type Custom_Type_With_Error
+
+    to_text : Text
+    to_text = Error.throw (Illegal_State_Error "foo_error")
+
+type Custom_Type_With_Panic
+    type Custom_Type_With_Panic
+
+    to_text : Text
+    to_text = Panic.throw (Illegal_State_Error "foo_panic")
+
 spec =
     Test.group "DataFormatter.parse" <|
         Test.specify "should parse numbers" <|
@@ -126,6 +138,11 @@ spec =
             formatter.format (Custom_Type 42) . should_equal "(Custom_Type 42)"
             # We fallback to `to_text`, so obviously the nested numbers will not know about our formatting settings.
             formatter.format (Custom_Type_With_To_Text 1000) . should_equal "[CUSTOM = 1000]"
+
+        Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="TODO figure out the desired behavior" <|
+            formatter = Data_Formatter
+            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State_Error
+            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State_Error
 
     Test.group "DataFormatter builders" pending="TODO: not implemented yet" <|
         Test.specify "should TODO" <|
