@@ -6,7 +6,7 @@ import java.util.Locale;
 public class DateTimeFormatter implements DataFormatter {
     private final java.time.format.DateTimeFormatter formatter;
 
-    public DateTimeFormatter(String formatString, Locale locale) {
+public DateTimeFormatter(String formatString, Locale locale) {
         formatter = java.time.format.DateTimeFormatter.ofPattern(formatString, locale);
     }
 

@@ -12,7 +12,7 @@ public class DateFormatter implements DataFormatter {
     }
 
     @Override
-    public String format(Object value) {
+            public String format(Object value) {
         if (value == null) {
             return NULL_REPRESENTATION;
         }

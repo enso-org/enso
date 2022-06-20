@@ -23,6 +23,9 @@ polyglot java import org.enso.table.formatting.AnyObjectFormatter
 polyglot java import org.enso.table.formatting.BooleanFormatter
 polyglot java import org.enso.table.formatting.DecimalFormatter
 polyglot java import org.enso.table.formatting.IntegerFormatter
+polyglot java import org.enso.table.formatting.DateFormatter
+polyglot java import org.enso.table.formatting.DateTimeFormatter
+polyglot java import org.enso.table.formatting.TimeFormatter
 polyglot java import org.enso.table.formatting.TextFormatter
 
 ## Specifies options for reading text data in a table to more specific types and
@@ -118,7 +121,18 @@ Data_Formatter.make_decimal_formatter =
 
 ## PRIVATE
 Data_Formatter.make_date_formatter =
-    DateFormatter.new this.??? this.decimal_point
+    if this.date_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting dates requires at least one entry in the `date_formats` parameter") else
+        DateFormatter.new this.date_formats.first this.locale.java_locale
+
+## PRIVATE
+Data_Formatter.make_time_formatter =
+    if this.time_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting times requires at least one entry in the `time_formats` parameter") else
+        TimeFormatter.new this.time_formats.first this.locale.java_locale
+
+## PRIVATE
+Data_Formatter.make_datetime_formatter =
+    if this.datetime_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
+        DateTimeFormatter.new this.datetime_formats.first this.locale.java_locale
 
 ## PRIVATE
 Data_Formatter.make_boolean_formatter =
@@ -132,8 +146,7 @@ Data_Formatter.make_text_formatter =
 
 ## PRIVATE
 Data_Formatter.get_specific_type_formatters =
-    # TODO add date-time formatters
-    [this.make_integer_formatter, this.make_decimal_formatter, this.make_boolean_formatter, this.make_text_formatter]
+    [this.make_integer_formatter, this.make_decimal_formatter, this.make_boolean_formatter, this.make_datetime_formatter, this.make_date_formatter, this.make_time_formatter, this.make_text_formatter]
 
 ## PRIVATE
 Data_Formatter.make_auto_formatter =
