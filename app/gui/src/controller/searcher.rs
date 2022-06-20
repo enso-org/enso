@@ -310,7 +310,7 @@ impl Display for ParsedInput {
 // === ThisNode ===
 // ================
 
-/// Information about a node that is used as a `this` argument.
+/// Information about a node that is used as a `self` argument.
 ///
 /// "This" node is either:
 /// 1. A node that was selected when the searcher was brought up.
@@ -614,7 +614,7 @@ impl Searcher {
 
     /// Code that will be inserted by expanding given suggestion at given location.
     ///
-    /// Code depends on the location, as the first fragment can introduce `this` variable access,
+    /// Code depends on the location, as the first fragment can introduce `self` variable access,
     /// and then we don't want to put any module name.
     fn code_to_insert(&self, fragment: &FragmentAddedByPickingSuggestion) -> CodeToInsert {
         fragment.code_to_insert(&self.module_qualified_name(), self.this_arg.as_ref())
@@ -945,7 +945,7 @@ impl Searcher {
         };
         executor::global::spawn(async move {
             let this_type = this_type.await;
-            info!(this.logger, "Requesting new suggestion list. Type of `this` is {this_type:?}.");
+            info!(this.logger, "Requesting new suggestion list. Type of `self` is {this_type:?}.");
             let requests = return_types_for_engine.into_iter().map(|return_type| {
                 info!(this.logger, "Requesting suggestions for returnType {return_type:?}.");
                 let file = graph.module.path().file_path();

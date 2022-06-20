@@ -199,9 +199,9 @@ pub struct This {
 
 impl This {
     /// Name of `This` argument.
-    pub const NAME: &'static str = "this";
+    pub const NAME: &'static str = "self";
 
-    /// Name getter. Please notice that the name of `This` argument is always "this".
+    /// Name getter. Please notice that the name of `This` argument is always "self".
     pub fn name(&self) -> &str {
         Self::NAME
     }

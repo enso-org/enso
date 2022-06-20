@@ -99,7 +99,7 @@ pub enum LineKind {
         ast:  known::Infix,
         /// Name of this definition. Includes typename, if this is an extension method.
         name: Located<DefinitionName>,
-        /// Arguments for this definition. Does not include any implicit ones (e.g. no `this`).
+        /// Arguments for this definition. Does not include any implicit ones (e.g. no `self`).
         args: Vec<Located<Ast>>,
     },
     /// Node in a binding form.
