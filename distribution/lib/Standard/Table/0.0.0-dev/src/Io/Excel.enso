@@ -3,7 +3,7 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 from Standard.Table.Io.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Error as Error_Module import Invalid_Location
+from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 polyglot java import org.enso.table.read.ExcelReader
@@ -11,6 +11,8 @@ polyglot java import org.enso.table.read.ExcelReader
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
 polyglot java import org.apache.poi.UnsupportedFileFormatException
+polyglot java import org.enso.table.util.problems.DuplicateNames
+polyglot java import org.enso.table.util.problems.InvalidNames
 
 type Excel_Section
     ## Gets a list of sheets within a workbook.
@@ -25,6 +27,8 @@ type Excel_Section
 
     ## Gets a specific range (taking either a defined name or external style
        address) from the workbook.
+       If it is a single cell, it will be treated as the top left cell and will
+       expand right and down to cover the connected cells.
     type Cell_Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
 
 type Excel_Range
@@ -168,16 +172,16 @@ validate validation ~error_message ~wrapped =
    - xls_format: If `True` then the file is read in using Excel 95-2003 format
      otherwise reads in Excel 2007+ format.
 read_excel : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
-read_excel file section headers _ xls_format=False =
+read_excel file section headers on_problems xls_format=False =
     reader stream = case section of
         Sheet_Names -> Vector.Vector (ExcelReader.readSheetNames stream xls_format)
         Range_Names -> Vector.Vector (ExcelReader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
-            Table.Table <| case sheet of
+            here.prepare_reader_table on_problems <| case sheet of
                 Integer -> ExcelReader.readSheetByIndex stream sheet (here.make_java_headers headers) skip_rows row_limit xls_format
                 Text -> ExcelReader.readSheetByName stream sheet (here.make_java_headers headers) skip_rows row_limit xls_format
         Cell_Range address skip_rows row_limit ->
-            Table.Table <| case address of
+            here.prepare_reader_table on_problems <| case address of
                 Excel_Range _ -> ExcelReader.readRange stream address.java_range (here.make_java_headers headers) skip_rows row_limit xls_format
                 Text -> ExcelReader.readRangeByName stream address (here.make_java_headers headers) skip_rows row_limit xls_format
 
@@ -189,6 +193,15 @@ read_excel file section headers _ xls_format=False =
 
     File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
         file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
+
+## PRIVATE
+prepare_reader_table on_problems result_with_problems =
+    map_problem java_problem =
+        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames) else
+              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names (Vector.Vector java_problem.invalidNames) else
+                java_problem
+    parsing_problems = Vector.Vector (result_with_problems.problems) . map map_problem
+    on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
 
 ## PRIVATE
    Convert True|False|Infer to the correct HeaderBehavior

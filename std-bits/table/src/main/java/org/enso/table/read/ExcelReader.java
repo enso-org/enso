@@ -13,10 +13,12 @@ import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
+import org.enso.table.problems.WithProblems;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -66,7 +68,7 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
    */
-  public static Table readSheetByName(
+  public static WithProblems<Table> readSheetByName(
       InputStream stream,
       String sheetName,
       HeaderBehavior headers,
@@ -101,7 +103,7 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
    */
-  public static Table readSheetByIndex(
+  public static WithProblems<Table> readSheetByIndex(
       InputStream stream,
       int index,
       HeaderBehavior headers,
@@ -137,7 +139,7 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
    */
-  public static Table readRangeByName(
+  public static WithProblems<Table> readRangeByName(
       InputStream stream,
       String rangeNameOrAddress,
       HeaderBehavior headers,
@@ -163,7 +165,7 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
    */
-  public static Table readRange(
+  public static WithProblems<Table> readRange(
       InputStream stream,
       ExcelRange excelRange,
       HeaderBehavior headers,
@@ -190,7 +192,7 @@ public class ExcelReader {
     return xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
   }
 
-  private static Table readRange(
+  private static WithProblems<Table> readRange(
       Workbook workbook, ExcelRange excelRange, HeaderBehavior headers, int skip_rows, Integer row_limit) {
     int sheetIndex = getSheetIndex(workbook, excelRange.getSheetName());
     if (sheetIndex == -1) {
@@ -206,7 +208,7 @@ public class ExcelReader {
         row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 
-  private static Table readTable(
+  private static WithProblems<Table> readTable(
       Workbook workbook,
       int sheetIndex,
       ExcelRange excelRange,
@@ -219,12 +221,12 @@ public class ExcelReader {
     if (excelRange != null && excelRange.isSingleCell()) {
       ExcelRow currentRow = sheet.get(excelRange.getTopRow());
       if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
-        return new Table(
+        return new WithProblems<>(new Table(
             new Column[] {
                 new Column(
                     CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
                     new ObjectStorage(new Object[0], 0)
-                )});
+                )}), Collections.emptyList());
       }
 
       excelRange = expandSingleCell(excelRange, sheet, currentRow);
@@ -294,7 +296,7 @@ public class ExcelReader {
                         builders.get(idx).seal()))
             .toArray(Column[]::new);
 
-    return new Table(columns);
+    return new WithProblems<>(new Table(columns), excelHeaders.getProblems());
   }
 
   private static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet, ExcelRow currentRow) {

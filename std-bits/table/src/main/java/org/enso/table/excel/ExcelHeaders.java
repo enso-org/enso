@@ -4,8 +4,11 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.util.CellReference;
+import org.enso.table.problems.Problem;
 import org.enso.table.read.ExcelReader;
 import org.enso.table.util.NameDeduplicator;
+
+import java.util.List;
 
 public class ExcelHeaders {
   private final NameDeduplicator deduplicator;
@@ -38,6 +41,10 @@ public class ExcelHeaders {
 
   public int getRowsUsed() {
     return this.names == null ? 0 : 1;
+  }
+
+  public List<Problem> getProblems() {
+    return deduplicator.getProblems();
   }
 
   private static String[] readRowAsHeaders(ExcelRow row, int startCol, int endCol, NameDeduplicator deduplicator) {
