@@ -150,7 +150,8 @@ public class ExcelReader {
     Workbook workbook = getWorkbook(stream, xls_format);
 
     Name name = workbook.getName(rangeNameOrAddress);
-    ExcelRange excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+    ExcelRange excelRange =
+        new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
     return readRange(workbook, excelRange, headers, skip_rows, row_limit);
   }
 
@@ -193,7 +194,11 @@ public class ExcelReader {
   }
 
   private static WithProblems<Table> readRange(
-      Workbook workbook, ExcelRange excelRange, HeaderBehavior headers, int skip_rows, Integer row_limit) {
+      Workbook workbook,
+      ExcelRange excelRange,
+      HeaderBehavior headers,
+      int skip_rows,
+      Integer row_limit) {
     int sheetIndex = getSheetIndex(workbook, excelRange.getSheetName());
     if (sheetIndex == -1) {
       throw new IllegalArgumentException("Unknown sheet '" + excelRange.getSheetName() + "'.");
@@ -221,12 +226,14 @@ public class ExcelReader {
     if (excelRange != null && excelRange.isSingleCell()) {
       ExcelRow currentRow = sheet.get(excelRange.getTopRow());
       if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
-        return new WithProblems<>(new Table(
-            new Column[] {
-                new Column(
-                    CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
-                    new ObjectStorage(new Object[0], 0)
-                )}), Collections.emptyList());
+        return new WithProblems<>(
+            new Table(
+                new Column[] {
+                  new Column(
+                      CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
+                      new ObjectStorage(new Object[0], 0))
+                }),
+            Collections.emptyList());
       }
 
       excelRange = expandSingleCell(excelRange, sheet, currentRow);
@@ -243,12 +250,13 @@ public class ExcelReader {
     int endCol = wholeRow ? -1 : excelRange.getRightColumn();
 
     // Headers
-    ExcelHeaders excelHeaders = new ExcelHeaders(
-        headers,
-        sheet.get(startRow),
-        startRow < endRow ? sheet.get(startRow + 1) : null,
-        startCol,
-        endCol);
+    ExcelHeaders excelHeaders =
+        new ExcelHeaders(
+            headers,
+            sheet.get(startRow),
+            startRow < endRow ? sheet.get(startRow + 1) : null,
+            startCol,
+            endCol);
     startRow += excelHeaders.getRowsUsed();
 
     // Set up Storage
@@ -257,8 +265,8 @@ public class ExcelReader {
         wholeRow
             ? new ArrayList<>()
             : IntStream.range(startCol, endCol + 1)
-            .mapToObj(i -> new InferredBuilder(size))
-            .collect(Collectors.toList());
+                .mapToObj(i -> new InferredBuilder(size))
+                .collect(Collectors.toList());
 
     // Read Cell Data
     int row = startRow;
@@ -267,7 +275,10 @@ public class ExcelReader {
       if (currentRow == null) {
         builders.forEach(b -> b.append(null));
       } else {
-        int currentEndCol = endCol == -1 ? Math.max(currentRow.getLastColumn(), startCol + builders.size() - 1) : endCol;
+        int currentEndCol =
+            endCol == -1
+                ? Math.max(currentRow.getLastColumn(), startCol + builders.size() - 1)
+                : endCol;
         expandBuilders(builders, size, currentEndCol - startCol, row - startRow);
 
         for (int col = startCol; col <= currentEndCol; col++) {
@@ -289,17 +300,14 @@ public class ExcelReader {
     // Create Table
     Column[] columns =
         IntStream.range(0, builders.size())
-            .mapToObj(
-                idx ->
-                    new Column(
-                        excelHeaders.get(idx + startCol),
-                        builders.get(idx).seal()))
+            .mapToObj(idx -> new Column(excelHeaders.get(idx + startCol), builders.get(idx).seal()))
             .toArray(Column[]::new);
 
     return new WithProblems<>(new Table(columns), excelHeaders.getProblems());
   }
 
-  private static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet, ExcelRow currentRow) {
+  private static ExcelRange expandSingleCell(
+      ExcelRange excelRange, ExcelSheet sheet, ExcelRow currentRow) {
     int bottomRow = excelRange.getTopRow();
     int rightColumn = excelRange.getLeftColumn();
     while (currentRow != null && !currentRow.isEmpty(excelRange.getLeftColumn(), rightColumn)) {
@@ -308,7 +316,13 @@ public class ExcelReader {
       currentRow = sheet.get(bottomRow);
     }
 
-    excelRange = new ExcelRange(excelRange.getSheetName(), excelRange.getLeftColumn(), excelRange.getTopRow(), rightColumn, bottomRow - 1);
+    excelRange =
+        new ExcelRange(
+            excelRange.getSheetName(),
+            excelRange.getLeftColumn(),
+            excelRange.getTopRow(),
+            rightColumn,
+            bottomRow - 1);
     return excelRange;
   }
 
