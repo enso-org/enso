@@ -4,58 +4,58 @@ import java.math.BigInteger;
 import java.text.DecimalFormat;
 
 public class IntegerFormatter implements DataFormatter {
-    private final DecimalFormat integerFormat;
+  private final DecimalFormat integerFormat;
 
-    public IntegerFormatter(String thousandSeparator) {
-        // We use the decimal format, because only it provides the thousand separator.
-        integerFormat = new DecimalFormat();
-        var symbols = integerFormat.getDecimalFormatSymbols();
+  public IntegerFormatter(String thousandSeparator) {
+    // We use the decimal format, because only it provides the thousand separator.
+    integerFormat = new DecimalFormat();
+    var symbols = integerFormat.getDecimalFormatSymbols();
 
-        if (thousandSeparator != null) {
-            if (thousandSeparator.length() != 1) {
-                throw new IllegalArgumentException(
-                        "The `thousandSeparator` should consist of exactly one code point.");
-            } else {
-                symbols.setGroupingSeparator(thousandSeparator.charAt(0));
-                integerFormat.setGroupingUsed(true);
-                integerFormat.setGroupingSize(3);
-            }
-        } else {
-            integerFormat.setGroupingUsed(false);
-        }
-
-        integerFormat.setDecimalSeparatorAlwaysShown(false);
-        integerFormat.setDecimalFormatSymbols(symbols);
+    if (thousandSeparator != null) {
+      if (thousandSeparator.length() != 1) {
+        throw new IllegalArgumentException(
+            "The `thousandSeparator` should consist of exactly one code point.");
+      } else {
+        symbols.setGroupingSeparator(thousandSeparator.charAt(0));
+        integerFormat.setGroupingUsed(true);
+        integerFormat.setGroupingSize(3);
+      }
+    } else {
+      integerFormat.setGroupingUsed(false);
     }
 
-    public String format(long value) {
-        return integerFormat.format(value);
+    integerFormat.setDecimalSeparatorAlwaysShown(false);
+    integerFormat.setDecimalFormatSymbols(symbols);
+  }
+
+  public String format(long value) {
+    return integerFormat.format(value);
+  }
+
+  // TODO
+  // public String format(BigInteger value) {
+  //   integerFormat.format(value);
+  // }
+
+  @Override
+  public String format(Object value) {
+    if (value == null) {
+      return NULL_REPRESENTATION;
     }
 
-    // TODO
-//    public String format(BigInteger value) {
-//        integerFormat.format(value);
-//    }
-
-    @Override
-    public String format(Object value) {
-        if (value == null) {
-            return NULL_REPRESENTATION;
-        }
-
-        if (value instanceof Long integer) {
-            return format(integer.longValue());
-        }
-
-        if (value instanceof BigInteger bigInteger) {
-            return format(bigInteger);
-        }
-
-        throw new IllegalArgumentException("Unsupported type for DecimalFormatter.");
+    if (value instanceof Long integer) {
+      return format(integer.longValue());
     }
 
-    @Override
-    public boolean canFormat(Object value) {
-        return value instanceof Long || value instanceof BigInteger;
+    if (value instanceof BigInteger bigInteger) {
+      return format(bigInteger);
     }
+
+    throw new IllegalArgumentException("Unsupported type for DecimalFormatter.");
+  }
+
+  @Override
+  public boolean canFormat(Object value) {
+    return value instanceof Long || value instanceof BigInteger;
+  }
 }

@@ -3,63 +3,63 @@ package org.enso.table.formatting;
 import java.text.DecimalFormat;
 
 public class DecimalFormatter implements DataFormatter {
-    private final DecimalFormat decimalFormat;
-    public static final String INFINITY = "Infinity";
+  private final DecimalFormat decimalFormat;
+  public static final String INFINITY = "Infinity";
 
-    public DecimalFormatter(String thousandSeparator, String decimalPoint) {
-        decimalFormat = new DecimalFormat();
-        var symbols = decimalFormat.getDecimalFormatSymbols();
+  public DecimalFormatter(String thousandSeparator, String decimalPoint) {
+    decimalFormat = new DecimalFormat();
+    var symbols = decimalFormat.getDecimalFormatSymbols();
 
-        if (decimalPoint.length() != 1) {
-            throw new IllegalArgumentException(
-                    "The `decimalPoint` should consist of exactly one code point.");
-        } else {
-            symbols.setDecimalSeparator(decimalPoint.charAt(0));
-        }
-
-        if (thousandSeparator != null) {
-            if (thousandSeparator.length() != 1) {
-                throw new IllegalArgumentException(
-                        "The `thousandSeparator` should consist of exactly one code point.");
-            } else {
-                symbols.setGroupingSeparator(thousandSeparator.charAt(0));
-                decimalFormat.setGroupingUsed(true);
-                decimalFormat.setGroupingSize(3);
-            }
-        } else {
-            decimalFormat.setGroupingUsed(false);
-        }
-
-        symbols.setInfinity(INFINITY);
-        decimalFormat.setDecimalFormatSymbols(symbols);
-        decimalFormat.setDecimalSeparatorAlwaysShown(true);
-        decimalFormat.setMaximumFractionDigits(Integer.MAX_VALUE);
-        decimalFormat.setMinimumFractionDigits(1);
+    if (decimalPoint.length() != 1) {
+      throw new IllegalArgumentException(
+          "The `decimalPoint` should consist of exactly one code point.");
+    } else {
+      symbols.setDecimalSeparator(decimalPoint.charAt(0));
     }
 
-    public String format(double value) {
-        return decimalFormat.format(value);
+    if (thousandSeparator != null) {
+      if (thousandSeparator.length() != 1) {
+        throw new IllegalArgumentException(
+            "The `thousandSeparator` should consist of exactly one code point.");
+      } else {
+        symbols.setGroupingSeparator(thousandSeparator.charAt(0));
+        decimalFormat.setGroupingUsed(true);
+        decimalFormat.setGroupingSize(3);
+      }
+    } else {
+      decimalFormat.setGroupingUsed(false);
     }
 
-    @Override
-    public String format(Object value) {
-        if (value == null) {
-            return NULL_REPRESENTATION;
-        }
+    symbols.setInfinity(INFINITY);
+    decimalFormat.setDecimalFormatSymbols(symbols);
+    decimalFormat.setDecimalSeparatorAlwaysShown(true);
+    decimalFormat.setMaximumFractionDigits(Integer.MAX_VALUE);
+    decimalFormat.setMinimumFractionDigits(1);
+  }
 
-        if (value instanceof Double decimal) {
-            return format(decimal.doubleValue());
-        }
+  public String format(double value) {
+    return decimalFormat.format(value);
+  }
 
-        if (value instanceof Long integer) {
-            return format(integer.doubleValue());
-        }
-
-        throw new IllegalArgumentException("Unsupported type for DecimalFormatter.");
+  @Override
+  public String format(Object value) {
+    if (value == null) {
+      return NULL_REPRESENTATION;
     }
 
-    @Override
-    public boolean canFormat(Object value) {
-        return value instanceof Double || value instanceof Long;
+    if (value instanceof Double decimal) {
+      return format(decimal.doubleValue());
     }
+
+    if (value instanceof Long integer) {
+      return format(integer.doubleValue());
+    }
+
+    throw new IllegalArgumentException("Unsupported type for DecimalFormatter.");
+  }
+
+  @Override
+  public boolean canFormat(Object value) {
+    return value instanceof Double || value instanceof Long;
+  }
 }
