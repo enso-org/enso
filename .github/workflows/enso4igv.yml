@@ -8,6 +8,8 @@ on:
     branches: [ develop ]
   pull_request:
     branches: [ develop]
+  paths:
+    - 'tools/enso4igv/**/*'
 
 jobs:
   build:
@@ -16,14 +18,14 @@ jobs:
     strategy:
       matrix:
         java: [ '8' ]
-        
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Java
       uses: actions/setup-java@v2
       with:
         distribution: 'zulu'
-        java-version: ${{ matrix.java }}        
+        java-version: ${{ matrix.java }}
         cache: maven
 
     - name: Update project version
