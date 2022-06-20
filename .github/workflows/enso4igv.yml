@@ -5,38 +5,37 @@ name: Enso Language Support for IGV
 
 on:
   push:
-    branches: [ develop ]
+    branches: [develop]
   pull_request:
-    branches: [ develop]
+    branches: [develop]
   paths:
-    - 'tools/enso4igv/**/*'
+    - "tools/enso4igv/**/*"
 
 jobs:
   build:
-
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        java: [ '8' ]
+        java: ["8"]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Java
-      uses: actions/setup-java@v2
-      with:
-        distribution: 'zulu'
-        java-version: ${{ matrix.java }}
-        cache: maven
+      - uses: actions/checkout@v2
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: "zulu"
+          java-version: ${{ matrix.java }}
+          cache: maven
 
-    - name: Update project version
-      run: |
-        cd tools/enso4igv
-        mvn versions:set -DnewVersion=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`.$GITHUB_RUN_NUMBER
+      - name: Update project version
+        run: |
+          cd tools/enso4igv
+          mvn versions:set -DnewVersion=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`.$GITHUB_RUN_NUMBER
 
-    - name: Build with Maven
-      run: mvn -B package --file tools/enso4igv/pom.xml
-    - name: Archive NBM file
-      uses: actions/upload-artifact@v3
-      with:
-        name: Enso IGV Plugin
-        path: tools/enso4igv/target/*.nbm
+      - name: Build with Maven
+        run: mvn -B package --file tools/enso4igv/pom.xml
+      - name: Archive NBM file
+        uses: actions/upload-artifact@v3
+        with:
+          name: Enso IGV Plugin
+          path: tools/enso4igv/target/*.nbm

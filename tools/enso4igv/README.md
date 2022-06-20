@@ -3,20 +3,20 @@
 [![Enso Language Support for IGV](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml/badge.svg)](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
 
 [Enso language](http://enso.org) runtime engine is built on top of
-[GraalVM](http://graalvm.org) and its _Truffle framework_. Enso,
-as a good citizen of the GraalVM ecosystem, benefits from polyglot
-capabilities of GraalVM as well as its rich tooling offering. One
-of such tools is _IGV_ - the _Ideal Graph Visualizer_ - an excellent
-tool to get insights into behavior of Graal compiler.
+[GraalVM](http://graalvm.org) and its _Truffle framework_. Enso, as a good
+citizen of the GraalVM ecosystem, benefits from polyglot capabilities of GraalVM
+as well as its rich tooling offering. One of such tools is _IGV_ - the _Ideal
+Graph Visualizer_ - an excellent tool to get insights into behavior of Graal
+compiler.
 
 This document shows how to use _IGV_ with the _Enso language_.
 
 ## Installation
 
-Visit [GraalVM.org](http://graalvm.org) download page and continue 
-towards _enterprise edition_ option. There is an _Ideal Graph Visualizer_
-option. After clicking thru the confirmation dialogs you should get a ZIP -
-I've just got `idealgraphvisualizer-22.1.0.zip` and then:
+Visit [GraalVM.org](http://graalvm.org) download page and continue towards
+_enterprise edition_ option. There is an _Ideal Graph Visualizer_ option. After
+clicking thru the confirmation dialogs you should get a ZIP - I've just got
+`idealgraphvisualizer-22.1.0.zip` and then:
 
 ```bash
 $ unzip idealgraphvisualizer-22.1.0.zip
@@ -24,30 +24,34 @@ $ ./idealgraphvisualizer/bin/idealgraphvisualizer --userdir /tmp/emptyuserdir
 ```
 
 launches the _IGV_ application. One doesn't have to use the `--userdir` option,
-but doing so ensures the newly running _IGV_ process is isolated from any settings
-left around by previous usage of _IGV_.
+but doing so ensures the newly running _IGV_ process is isolated from any
+settings left around by previous usage of _IGV_.
 
-Now download [Enso Language Support module](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml).
-Follow the [GitHub actions link](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
-and select a build (usually the latest one). The build summary page provides various information
-as well as list of artifacts at the bottom. Download the _Enso IGV Plugin_ ZIP file.
-Make sure you are logged into GitHub -  artifacts are only available to those logged in.
-Unzip it and get `enso*.nbm` file. This file can be installed into
-_IGV_ (or any other [NetBeans](http://netbeans.apache.org) based application).
-Go to _Tools_/_Plugins_/_Downloaded_ and install the NBM file.
+Now download
+[Enso Language Support module](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml).
+Follow the
+[GitHub actions link](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
+and select a build (usually the latest one). The build summary page provides
+various information as well as list of artifacts at the bottom. Download the
+_Enso IGV Plugin_ ZIP file. Make sure you are logged into GitHub - artifacts are
+only available to those logged in. Unzip it and get `enso*.nbm` file. This file
+can be installed into _IGV_ (or any other [NetBeans](http://netbeans.apache.org)
+based application). Go to _Tools_/_Plugins_/_Downloaded_ and install the NBM
+file.
 
 ![Tools/Plugins/Downloaded](docs/tools_plugins_downloaded.png)
 
-Proceed by clicking _Install_. You may be asked to download _TextMate Lexer_ -
-a necessary dependency of the _Enso support_ module. Continue thru the wizard
-to _finish_ the installation.
+Proceed by clicking _Install_. You may be asked to download _TextMate Lexer_ - a
+necessary dependency of the _Enso support_ module. Continue thru the wizard to
+_finish_ the installation.
 
 ![Tools/Plugins/Downloaded](docs/installer.png)
 
 ## Using the IGV
 
-Get an instance of the Enso runtime engine (see [Running Enso](../../docs/CONTRIBUTING.md#running-enso))
-and then launch it with special Java options:
+Get an instance of the Enso runtime engine (see
+[Running Enso](../../docs/CONTRIBUTING.md#running-enso)) and then launch it with
+special Java options:
 
 ```bash
 enso$ JAVA_OPTS="-Dpolyglot.engine.AllowExperimentalOptions=true\
@@ -57,16 +61,18 @@ enso$ JAVA_OPTS="-Dpolyglot.engine.AllowExperimentalOptions=true\
  ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
 ```
 
-When executed on [GraalVM 21.3.0](http://graalvm.org) these options instruct
-the _Graal/Truffle compiler_ to dump files into `graal_dumps/_sometimestamp_` directory.
-Generating these files takes a while - make sure `yourprogram.enso` runs long enough
-for the system to warmup, compile the code and run at _full speed_.
+When executed on [GraalVM 21.3.0](http://graalvm.org) these options instruct the
+_Graal/Truffle compiler_ to dump files into `graal_dumps/_sometimestamp_`
+directory. Generating these files takes a while - make sure `yourprogram.enso`
+runs long enough for the system to warmup, compile the code and run at _full
+speed_.
 
 #### Sieve of Eratosthenes Example
 
-As an example you can download [sieve.enso](https://github.com/jtulach/sieve/blob/5b32450da35415322e683bb9769aa45f0d71f1df/enso/sieve.enso)
-which computes hundred thousand of prime numbers repeatedly and measures time 
-of each round. Download the file and launch Enso with:
+As an example you can download
+[sieve.enso](https://github.com/jtulach/sieve/blob/5b32450da35415322e683bb9769aa45f0d71f1df/enso/sieve.enso)
+which computes hundred thousand of prime numbers repeatedly and measures time of
+each round. Download the file and launch Enso with:
 
 ```bash
 enso$ JAVA_OPTS="-Dpolyglot.engine.AllowExperimentalOptions=true\
@@ -94,8 +100,8 @@ compilation phase _"Before lowering"_:
 ![Before Lowering Graph](docs/igv_graph.png)
 
 Now you can inspect the _compiler graphs_ the regular _IGV_ way. Let's locate
-for example `LoadField#FunctionSchema.isFullyApplied` node and let's check
-how it got _inlined_:
+for example `LoadField#FunctionSchema.isFullyApplied` node and let's check how
+it got _inlined_:
 
 ![Inlining Stacktrace](docs/igv_stacktrace.png)
 
@@ -105,12 +111,12 @@ _IGV_ functionality, but now we can switch to _Enso view_:
 
 ![Enso Source](docs/igv_enso.png)
 
-By choosing the _Enso language icon_ in front of the stack trace combo,
-the source code of our `.enso` program is opened and we can analyze what
-_compiler nodes_ refer to what lines in the our _Enso_ program. Click _Navigate to Source_
-icon in the _Stack View_ to get from graph node to source. Select a drop
-down widget in the editor toolbar to show you what compiler nodes as associated
-with currently selected line.
+By choosing the _Enso language icon_ in front of the stack trace combo, the
+source code of our `.enso` program is opened and we can analyze what _compiler
+nodes_ refer to what lines in the our _Enso_ program. Click _Navigate to Source_
+icon in the _Stack View_ to get from graph node to source. Select a drop down
+widget in the editor toolbar to show you what compiler nodes as associated with
+currently selected line.
 
 ## Building
 
@@ -125,4 +131,3 @@ target/enso4igv-1.0-SNAPSHOT.nbm
 
 an NBM file is generated which can be installed into IGV, NetBeans or any other
 NetBeans based application.
-
