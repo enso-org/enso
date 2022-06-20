@@ -9,10 +9,10 @@ import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
-import org.enso.table.util.NameDeduplicator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -241,11 +241,13 @@ public class ExcelReader {
     int endCol = wholeRow ? -1 : excelRange.getRightColumn();
 
     // Headers
-    NameDeduplicator deduplicator = new NameDeduplicator();
-    String[] columnNames = getHeaders(headers, sheet, startRow, endRow, startCol, endCol, deduplicator);
-    if (columnNames != null) {
-      startRow++;
-    }
+    ExcelHeaders excelHeaders = new ExcelHeaders(
+        headers,
+        sheet.get(startRow),
+        startRow < endRow ? sheet.get(startRow + 1) : null,
+        startCol,
+        endCol);
+    startRow += excelHeaders.getRowsUsed();
 
     // Set up Storage
     int size = Math.min(rowCount, endRow - startRow + 1);
@@ -288,7 +290,7 @@ public class ExcelReader {
             .mapToObj(
                 idx ->
                     new Column(
-                        getColumnName(idx + startCol, startCol, columnNames, deduplicator),
+                        excelHeaders.get(idx + startCol),
                         builders.get(idx).seal()))
             .toArray(Column[]::new);
 
@@ -324,85 +326,5 @@ public class ExcelReader {
       }
     }
     return -1;
-  }
-
-  private static String[] getHeaders(HeaderBehavior headers, ExcelSheet sheet, int startRow, int endRow, int startCol, int endCol, NameDeduplicator deduplicator) {
-    return switch (headers) {
-      case EXCEL_COLUMN_NAMES -> null;
-      case USE_FIRST_ROW_AS_HEADERS -> readRowAsHeaders(sheet.get(startRow), startCol, endCol, deduplicator);
-      case INFER -> inferHeaders(sheet.get(startRow),
-          startRow < endRow ? sheet.get(startRow + 1) : null,
-          startCol, endCol, deduplicator);
-    };
-  }
-
-  private static String[] readRowAsHeaders(ExcelRow row, int startCol, int endCol, NameDeduplicator deduplicator) {
-    if (row == null) {
-      return new String[0];
-    }
-
-    int currentEndCol = endCol == -1 ? row.getLastColumn() : endCol;
-    DataFormatter formatter = new DataFormatter();
-
-    String[] output = new String[currentEndCol - startCol + 1];
-    for (int col = startCol; col <= currentEndCol; col++) {
-      Cell cell = row.get(col);
-
-      String name = cell == null ? "" : formatter.formatCellValue(cell);
-      if (!name.isEmpty()) {
-        name = deduplicator.makeUnique(name);
-      }
-
-      output[col - startCol] = name;
-    }
-
-    return output;
-  }
-
-  private static String[] inferHeaders(ExcelRow row, ExcelRow nextRow, int startCol, int endCol, NameDeduplicator deduplicator) {
-    if (row == null || nextRow == null) {
-      return null;
-    }
-
-    String[] rowNames = getCellsAsText(row, startCol, endCol);
-    if (rowNames == null) {
-      return null;
-    }
-
-    String[] nextNames = getCellsAsText(nextRow, startCol, endCol);
-    if (nextNames != null) {
-      return null;
-    }
-
-    return deduplicator.makeUnique(rowNames);
-  }
-
-  private static String[] getCellsAsText(ExcelRow row, int startCol, int endCol) {
-    int currentEndCol = endCol == -1 ? row.getLastColumn() : endCol;
-
-    String[] output = new String[currentEndCol - startCol + 1];
-    for (int col = startCol; col <= currentEndCol; col++) {
-      Cell cell = row.get(col);
-      CellType type = ExcelRow.getCellType(cell);
-      if (type != CellType._NONE && type != CellType.STRING) {
-        return null;
-      }
-      output[col - startCol] = type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
-    }
-
-    return output;
-  }
-
-  private static String getColumnName(int column, int startCol, String[] columnNames, NameDeduplicator deduplicator) {
-    if (columnNames == null) {
-      return CellReference.convertNumToColString(column - 1);
-    }
-
-    int idx = column - startCol;
-    String name = idx < columnNames.length ? columnNames[idx] : "";
-    if (name == null || name.isEmpty()) {
-      name = deduplicator.makeUnique(name);
-    }
-    return name;
   }
 }

@@ -148,7 +148,8 @@ public class ExcelRange {
   }
 
   public static ExcelRange forColumns(String sheetName, int leftColumn, int rightColumn) {
-    return new ExcelRange(sheetName, leftColumn, WHOLE_ROW_OR_COLUMN, rightColumn, WHOLE_ROW_OR_COLUMN);
+    return new ExcelRange(
+        sheetName, leftColumn, WHOLE_ROW_OR_COLUMN, rightColumn, WHOLE_ROW_OR_COLUMN);
   }
 
   public static ExcelRange forRows(String sheetName, int topRow, int bottomRow) {
@@ -159,8 +160,7 @@ public class ExcelRange {
    * @param index Index to the next character after the parsed value
    * @param value Parsed integer value or 0 if not valid
    */
-  private record ParsedInteger(int index, int value) {
-  }
+  private record ParsedInteger(int index, int value) {}
 
   private static ParsedInteger parseInteger(CharSequence address, int index) {
     int endIndex = index;
