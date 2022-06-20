@@ -232,8 +232,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
         onReturnValue(context, frame, exception);
-      } else if (UNWIND_HELPER.patchedValue(exception) != null) {
-        onReturnValue(context, frame, UNWIND_HELPER.patchedValue(exception));
       }
     }
 

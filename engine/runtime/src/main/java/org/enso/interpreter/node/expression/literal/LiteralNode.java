@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Literal$Text;
+import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -72,7 +73,18 @@ public class LiteralNode extends ExpressionNode implements Patchable {
   }
 
   @Override
-  public Object parsePatch(IR.Expression ir) {
+  public Runnable parsePatch(IR.Expression ir) {
+    Object newValue = parseLiteralIr(ir);
+    if (newValue != null) {
+      return () -> {
+        replace(PatchableLiteralNode.build(newValue));
+      };
+    } else {
+      return null;
+    }
+  }
+
+  static Object parseLiteralIr(IR.Expression ir) throws CompilerError {
     return switch (ir) {
       case IR$Literal$Text t -> Text.create(t.text());
       case IR$Literal$Number n -> n.numericValue();

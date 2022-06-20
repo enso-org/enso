@@ -8,9 +8,10 @@ public interface Patchable {
    * Computes new value this node shall return.
    *
    * @param ir the expression the node is being patched to
-   * @return new value to return in subsequent execution
+   * @return {@code null} if the patching cannot be done or an instance of {@link Runnable} signal
+   *     patching is possible with {@link Runnable#run() } method to invoke to finish the patching
    */
-  public Object parsePatch(IR.Expression ir);
+  public Runnable parsePatch(IR.Expression ir);
 
   /** Tag to apply to nodes that support patching and implement {@link Patchable}. */
   public final class Tag extends com.oracle.truffle.api.instrumentation.Tag {}

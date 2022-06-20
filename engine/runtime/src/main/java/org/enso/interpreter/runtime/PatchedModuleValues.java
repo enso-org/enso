@@ -27,23 +27,18 @@ import org.enso.polyglot.LanguageInfo;
  * Keeps patched values for expression in  module. Also keeps mapping of
  * original source offset and new {@link #findDelta(int, boolean) deltas}.
  */
-final class PatchedModuleValues implements ExecutionEventListener {
+final class PatchedModuleValues {
   private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
-  private final Map<Node, Object> values = new HashMap<>();
+  private final Map<Node, Runnable> values = new HashMap<>();
   private final Module module;
-  private EventBinding<PatchedModuleValues> binding;
 
   PatchedModuleValues(Module module) {
     this.module = module;
   }
 
-  /** Disposes the binding. Returning to standard behavior of the AST.
+  /** Disposes the binding. No-op currently.
    */
-  synchronized void dispose() {
-    if (binding != null) {
-      binding.dispose();
-      binding = null;
-    }
+  void dispose() {
   }
 
   /** Keeps "deltas" for each {@code offset} where a modification happened.
@@ -60,17 +55,15 @@ final class PatchedModuleValues implements ExecutionEventListener {
    * @param delta positive or negative change at the offset location
    */
   private synchronized void performUpdates(
-    Instrumenter instr, Map<Node, Object> collect, int offset, int delta
+    Instrumenter instr, Map<Node, Runnable> collect, int offset, int delta
   ) {
-    if (binding == null) {
-      SourceFilter sourceAssociatedWithMyModule = SourceFilter.newBuilder().
-              languageIs(LanguageInfo.ID).
-              sourceIs(module::isModuleSource).
-              build();
-      SourceSectionFilter filter = SourceSectionFilter.newBuilder().sourceFilter(sourceAssociatedWithMyModule).tagIs(Patchable.Tag.class).build();
-      this.binding = instr.attachExecutionEventListener(filter, this);
+    for (var entry : collect.entrySet()) {
+      // do the patching
+      entry.getValue().run();
     }
+
     values.putAll(collect);
+
 
     if (delta == 0) {
       return;
@@ -99,7 +92,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
     var scope = module.getScope();
     var methods = scope.getMethods();
     var conversions = scope.getConversions();
-    var collect = new HashMap<Node, Object>();
+    var collect = new HashMap<Node, Runnable>();
     for (var n : values.keySet()) {
       updateNode(update, n, collect);
     }
@@ -130,7 +123,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
     return true;
   }
 
-  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Object> nodeValues) {
+  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Runnable> nodeValues) {
     for (Map<?, Function> map : values) {
       for (Function f : map.values()) {
         updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
@@ -138,7 +131,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
     }
   }
 
-  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Object> nodeValues) {
+  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Runnable> nodeValues) {
     LinkedList<Node> queue = new LinkedList<>();
     queue.add(root);
     var edit = update.edit();
@@ -159,7 +152,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
             at.getEndLine() - 1 == edit.range().end().line() &&
             at.getEndColumn() == edit.range().end().character()
           ) {
-            java.lang.Object newValue = node.parsePatch(update.newIr());
+            Runnable newValue = node.parsePatch(update.newIr());
             if (newValue != null) {
               nodeValues.put(n, newValue);
             }
@@ -170,40 +163,6 @@ final class PatchedModuleValues implements ExecutionEventListener {
         queue.add(ch);
       }
     }
-  }
-
-  /**
-   * Replaces value for a node, if a value was found.
-   *
-   * @param context node to patch
-   * @param frame local variables that can be ignored
-   */
-  @Override
-  public void onEnter(EventContext context, VirtualFrame frame) {
-    Object patch = findPatch(context.getInstrumentedNode());
-    if (patch != null) {
-      var unwind = context.createUnwind(patch);
-      IdExecutionService.UNWIND_HELPER.registerValue(unwind, patch);
-      throw unwind;
-    }
-  }
-
-  @Override
-  public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-  }
-
-  @Override
-  public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
-  }
-
-  @Override
-  public Object onUnwind(EventContext context, VirtualFrame frame, Object info) {
-    return info;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private Object findPatch(Node n) {
-    return values.get(n);
   }
 
   /**
