@@ -17,7 +17,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 import org.enso.compiler.context.SimpleUpdate;
+import org.enso.compiler.core.IR;
 import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -29,11 +31,16 @@ import org.enso.polyglot.LanguageInfo;
  */
 final class PatchedModuleValues {
   private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
-  private final Map<Node, Runnable> values = new HashMap<>();
+  private final Map<Node, Predicate<IR.Expression>> values = new HashMap<>();
   private final Module module;
 
   PatchedModuleValues(Module module) {
     this.module = module;
+    var scope = module.getScope();
+    var methods = scope.getMethods();
+    var conversions = scope.getConversions();
+    updateFunctionsMap(null, methods.values(), values);
+    updateFunctionsMap(null, conversions.values(), values);
   }
 
   /** Disposes the binding. No-op currently.
@@ -48,23 +55,14 @@ final class PatchedModuleValues {
    * edit is made, the delta at its offset is recorded and all deltas after
    * the offset adjusted as they shift too.
    *
-   * @param instr instrumenter to attach itself as a ultimate source of values
-   *    for {@link Patchable.Tag} nodes
    * @param collect {@link Node} to value map of the values to use
    * @param offset location when a modification happened
    * @param delta positive or negative change at the offset location
    */
   private synchronized void performUpdates(
-    Instrumenter instr, Map<Node, Runnable> collect, int offset, int delta
+    Map<Node, Predicate<IR.Expression>> collect, int offset, int delta
   ) {
-    for (var entry : collect.entrySet()) {
-      // do the patching
-      entry.getValue().run();
-    }
-
     values.putAll(collect);
-
-
     if (delta == 0) {
       return;
     }
@@ -83,16 +81,15 @@ final class PatchedModuleValues {
 
   /** Checks whether a simple edit is applicable and performs it if so.
    *
-   * @param module module providing the source
    * @param update information about the edit to be done
    * @return {@code true} if the edit was applied, {@code false} to proceed with
    *   full re-parse of the source
    */
-  boolean simpleUpdate(Module module, SimpleUpdate update) {
+  boolean simpleUpdate(SimpleUpdate update) {
     var scope = module.getScope();
     var methods = scope.getMethods();
     var conversions = scope.getConversions();
-    var collect = new HashMap<Node, Runnable>();
+    var collect = new HashMap<Node, Predicate<IR.Expression>>();
     for (var n : values.keySet()) {
       updateNode(update, n, collect);
     }
@@ -105,8 +102,6 @@ final class PatchedModuleValues {
       }
     }
 
-    var ctx = Context.get(collect.keySet().iterator().next());
-    var instr = ctx.getEnvironment().lookup(Instrumenter.class);
     final Source src;
     try {
       src = module.getSource();
@@ -119,11 +114,11 @@ final class PatchedModuleValues {
     int removed = edit.range().end().character() - edit.range().start().character();
     int delta = edit.text().length() - removed;
 
-    performUpdates(instr, collect, offset, delta);
+    performUpdates(collect, offset, delta);
     return true;
   }
 
-  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Runnable> nodeValues) {
+  private static void updateFunctionsMap(SimpleUpdate edit, Collection<? extends Map<?, Function>> values, Map<Node, Predicate<IR.Expression>> nodeValues) {
     for (Map<?, Function> map : values) {
       for (Function f : map.values()) {
         updateNode(edit, f.getCallTarget().getRootNode(), nodeValues);
@@ -131,30 +126,40 @@ final class PatchedModuleValues {
     }
   }
 
-  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Runnable> nodeValues) {
+  private static void updateNode(SimpleUpdate update, Node root, Map<Node, Predicate<IR.Expression>> nodeValues) {
     LinkedList<Node> queue = new LinkedList<>();
     queue.add(root);
-    var edit = update.edit();
     while (!queue.isEmpty()) {
       var n = queue.removeFirst();
-      SourceSection at = n.getSourceSection();
-      if (at != null) {
-        if (at.getEndLine() - 1 < edit.range().start().line()) {
-          continue;
-        }
-        if (at.getStartLine() - 1 > edit.range().end().line()) {
-          continue;
-        }
+      if (n == null) {
+        continue;
+      }
+      if (update == null) {
         if (n instanceof Patchable node) {
-          if (
-            at.getStartLine() - 1 == edit.range().start().line() &&
-            at.getStartColumn() - 1 == edit.range().start().character() &&
-            at.getEndLine() - 1 == edit.range().end().line() &&
-            at.getEndColumn() == edit.range().end().character()
-          ) {
-            Runnable newValue = node.parsePatch(update.newIr());
-            if (newValue != null) {
-              nodeValues.put(n, newValue);
+          var patchableNode = node.asPatchableNode();
+          nodeValues.put(patchableNode, patchableNode);
+        }
+      } else {
+        var edit = update.edit();
+        SourceSection at = n.getSourceSection();
+        if (at != null) {
+          if (at.getEndLine() - 1 < edit.range().start().line()) {
+            continue;
+          }
+          if (at.getStartLine() - 1 > edit.range().end().line()) {
+            continue;
+          }
+          if (n instanceof Patchable node) {
+            if (
+              at.getStartLine() - 1 == edit.range().start().line() &&
+              at.getStartColumn() - 1 == edit.range().start().character() &&
+              at.getEndLine() - 1 == edit.range().end().line() &&
+              at.getEndColumn() == edit.range().end().character()
+            ) {
+              var patchableNode = node.asPatchableNode();
+              if (patchableNode.test(update.newIr())) {
+                nodeValues.put(patchableNode, patchableNode);
+              }
             }
           }
         }

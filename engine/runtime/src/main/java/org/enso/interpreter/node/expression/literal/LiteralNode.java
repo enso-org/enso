@@ -1,8 +1,10 @@
 package org.enso.interpreter.node.expression.literal;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.math.BigInteger;
+import java.util.function.Predicate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Literal$Text;
@@ -73,22 +75,15 @@ public class LiteralNode extends ExpressionNode implements Patchable {
   }
 
   @Override
-  public Runnable parsePatch(IR.Expression ir) {
-    Object newValue = parseLiteralIr(ir);
-    if (newValue != null) {
-      return () -> {
-        replace(PatchableLiteralNode.build(newValue));
-      };
-    } else {
-      return null;
-    }
+  @SuppressWarnings("unchecked")
+  public <N extends Node & Predicate<IR.Expression>> N asPatchableNode() {
+    var p = PatchableLiteralNode.build(this);
+    notifyInserted(replace(p));
+    return (N) p;
   }
 
-  static Object parseLiteralIr(IR.Expression ir) throws CompilerError {
-    return switch (ir) {
-      case IR$Literal$Text t -> Text.create(t.text());
-      case IR$Literal$Number n -> n.numericValue();
-      default -> null;
-    };
+  @Override
+  public boolean hasTag(Class<? extends com.oracle.truffle.api.instrumentation.Tag> tag) {
+    return Patchable.Tag.class == tag || super.hasTag(tag);
   }
 }
