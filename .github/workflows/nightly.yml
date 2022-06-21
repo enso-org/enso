@@ -1,7 +1,6 @@
 ---
 name: Nightly Release
 "on":
-  push: {}
   schedule:
     - cron: 0 5 * * 2-6
   workflow_dispatch: {}
