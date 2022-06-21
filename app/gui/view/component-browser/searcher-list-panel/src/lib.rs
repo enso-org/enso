@@ -469,7 +469,7 @@ impl Model {
         self.local_scope_section.label.set_content(LOCAL_SCOPE_SECTION_HEADING_LABEL);
 
         self.favourites_section.content.set_position_x(0.0);
-        self.favourites_section.label.set_content(SUB_MODULES_SECTION_HEADING_LABEL);
+        self.favourites_section.label.set_content(FAVOURITES_SECTION_HEADING_LABEL);
 
         self.sub_modules_section.content.set_position_x(0.0);
         self.sub_modules_section.label.set_content(SUB_MODULES_SECTION_HEADING_LABEL);

@@ -103,7 +103,8 @@ pub mod track {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        pointer_events = false;
+        above = [background];
+        below = [left_overflow, right_overflow, io_rect];
         (style:Style,left:f32,right:f32,corner_left:f32,corner_right:f32,corner_inner:f32,
          track_color:Vector4) {
             let background    = Background::new(&corner_left,&corner_right,style);
