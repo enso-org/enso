@@ -14,7 +14,7 @@
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
@@ -48,6 +48,14 @@ mod shape {
             Circle(100.px()).fill(color::Rgb(1.0,0.0,0.0)).into()
         }
     }
+}
+
+pub fn myrect() -> AnyShape {
+    let rect = Rect((100.0.px(), 100.0.px()));
+    // let shape = circle_bg + rect - circle_sub;
+    let shape = rect;
+    let shape = shape.fill(color::Rgba::new(0.4, 1.0, 0.4, 0.5));
+    shape.into()
 }
 
 
@@ -169,6 +177,14 @@ pub fn main() {
         let scene = &app.display.default_scene;
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
+
+        let sprite_system = ShapeSystem::new(&app.display, &myrect(), true);
+        let sprite = sprite_system.new_instance();
+        sprite.size.set(Vector2::new(300.0, 300.0));
+        sprite.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+        app.display.add_child(&sprite_system);
+        mem::forget(sprite);
+        mem::forget(sprite_system);
 
         let camera = scene.camera().clone_ref();
         let dump = move |mouse_pos| {
