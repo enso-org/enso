@@ -3,7 +3,7 @@ import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.callable.ApplicationNode
 import org.enso.interpreter.node.controlflow.caseexpr.CaseNode
-import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
+import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.polyglot.MethodNames
@@ -37,7 +37,7 @@ class CodeLocationsTest extends InterpreterTest {
       val code = "main = 2 + 45 * 20"
       instrumenter.assertNodeExists(7, 11, classOf[ApplicationNode])
       instrumenter.assertNodeExists(11, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(11, 2, classOf[IntegerLiteralNode])
+      instrumenter.assertNodeExists(11, 2, classOf[LiteralNode])
       eval(code)
       ()
     }
@@ -190,7 +190,7 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct for negated literals" in
     withLocationsInstrumenter { instrumenter =>
       val code = "main = (-1)"
-      instrumenter.assertNodeExists(8, 2, classOf[IntegerLiteralNode])
+      instrumenter.assertNodeExists(8, 2, classOf[LiteralNode])
       eval(code)
     }
 
@@ -257,7 +257,7 @@ class CodeLocationsTest extends InterpreterTest {
           |    # perform the addition
           |    x + y # the addition is performed here
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(82, 1, classOf[IntegerLiteralNode])
+      instrumenter.assertNodeExists(82, 1, classOf[LiteralNode])
       instrumenter.assertNodeExists(164, 5, classOf[ApplicationNode])
       eval(code) shouldEqual 3
     }
@@ -279,7 +279,7 @@ class CodeLocationsTest extends InterpreterTest {
 
         instrumenter.assertNodeExists(70, 67, classOf[CaseNode])
         instrumenter.assertNodeExists(75, 1, classOf[ReadLocalVariableNode])
-        instrumenter.assertNodeExists(118, 3, classOf[IntegerLiteralNode])
+        instrumenter.assertNodeExists(118, 3, classOf[LiteralNode])
 
         eval(code) shouldEqual 100
     }

@@ -7,8 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import org.enso.compiler.core.IR$Literal$Number;
-import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
-import org.enso.interpreter.node.expression.literal.TextLiteralNode;
+import org.enso.interpreter.node.expression.literal.LiteralNode;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
@@ -58,7 +57,7 @@ public class IncrementalUpdatesTest {
 
   @Test
   public void sendUpdatesWhenFunctionBodyIsChanged() {
-    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "5", "5", IntegerLiteralNode.class);
+    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "5", "5", LiteralNode.class);
     var m = context.languageContext().findModule(MODULE_NAME).orElse(null);
     assertNotNull("Module found", m);
     var numbers = m.getIr().preorder().filter((v1) -> {
@@ -72,12 +71,12 @@ public class IncrementalUpdatesTest {
 
   @Test
   public void sendUpdatesWhenWhenLineIsChanged() {
-    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "1000", "1000", IntegerLiteralNode.class);
+    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
   }
 
   @Test
   public void sendMultipleUpdates() {
-    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "1000", "1000", IntegerLiteralNode.class);
+    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
     sendEditFile("1000", "333");
     assertEquals(List.newBuilder().addOne("333"), context.consumeOut());
     nodeCountingInstrument.assertNewNodes("No execution on 333, no nodes yet", 0, 0);
@@ -88,12 +87,12 @@ public class IncrementalUpdatesTest {
 
   @Test
   public void sendUpdatesWhenTextIsChanged() {
-    sendUpdatesWhenFunctionBodyIsChanged("\"hi\"", ConstantsGen.TEXT, "hi", "\"text\"", "text", TextLiteralNode.class);
+    sendUpdatesWhenFunctionBodyIsChanged("\"hi\"", ConstantsGen.TEXT, "hi", "\"text\"", "text", LiteralNode.class);
   }
 
   @Test
   public void sendNotANumberChange() {
-    var failed = sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "x", null, IntegerLiteralNode.class);
+    var failed = sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "x", null, LiteralNode.class);
     assertTrue("Execution failed: " + failed, failed.head().payload() instanceof Runtime$Api$ExecutionFailed);
   }
 
@@ -244,7 +243,7 @@ public class IncrementalUpdatesTest {
 
   private <T extends Node> T findLiteralNode(Class<T> type, Map<Class, java.util.List<Node>> nodes) {
     var intNodes = nodes.get(type);
-    assertNotNull("Found IntegerLiteralNode in " + nodes, intNodes);
+    assertNotNull("Found LiteralNode in " + nodes, intNodes);
     assertEquals("Expecting one node: " + intNodes, 1, intNodes.size());
     return type.cast(intNodes.get(0));
   }

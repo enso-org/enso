@@ -1,7 +1,6 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.InstrumentInfo;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
