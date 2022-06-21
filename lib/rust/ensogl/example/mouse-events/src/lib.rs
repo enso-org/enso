@@ -50,12 +50,20 @@ mod shape {
     }
 }
 
-pub fn myrect() -> AnyShape {
-    let rect = Rect((100.0.px(), 100.0.px()));
-    // let shape = circle_bg + rect - circle_sub;
-    let shape = rect;
-    let shape = shape.fill(color::Rgba::new(0.4, 1.0, 0.4, 0.5));
-    shape.into()
+mod background {
+    use super::*;
+
+    define_shape_system! {
+        below = [shape];
+        () {
+            let width: Var<Pixels> = "input_size.x".into();
+            // let height: Var<Pixels> = "input_size.y".into();
+            let color = Var::<color::Rgba>::from(color::Rgba(0.4, 1.0, 0.4, 0.5));
+            let rect = Plane();
+            let shape = rect - Circle(width/2.0);
+            shape.fill(color).into()
+        }
+    }
 }
 
 
@@ -178,13 +186,10 @@ pub fn main() {
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
 
-        let sprite_system = ShapeSystem::new(&app.display, &myrect(), true);
-        let sprite = sprite_system.new_instance();
-        sprite.size.set(Vector2::new(300.0, 300.0));
-        sprite.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
-        app.display.add_child(&sprite_system);
-        mem::forget(sprite);
-        mem::forget(sprite_system);
+        let logger = Logger::new("tmptest");
+        let sprite = background::View::new(&logger);
+        sprite.size.set(Vector2::new(1000.0, 1000.0));
+        app.display.add_child(&sprite);
 
         let camera = scene.camera().clone_ref();
         let dump = move |mouse_pos| {
@@ -193,11 +198,21 @@ pub fn main() {
         let network = enso_frp::Network::new("test");
         let keyboard = &scene.keyboard.frp;
         let mouse = &scene.mouse.frp;
+        let camera = scene.camera().clone_ref();
+        let sprr = sprite.clone_ref();
         enso_frp::extend! { network
             any_keyboard_event   <- keyboard.down.constant(());
-            _eval <- any_keyboard_event.map2(&mouse.position, move |_, mpos| dump(*mpos));
+            _eval <- any_keyboard_event.map2(&mouse.position, f!([] (_, mpos)
+                // sprr.size.set(Vector2(camera.screen().width, camera.screen().height));
+                sprr.set_position_xy(camera.position().xy());
+                let (w, h) = (camera.screen().width, camera.screen().height);
+                sprr.set_scale_xy(Vector2(w/1000.0, h/1000.0));
+                dump(*mpos))
+            );
         }
         std::mem::forget(network);
+
+        mem::forget(sprite);
 
         std::mem::forget(shape);
         std::mem::forget(navigator);
