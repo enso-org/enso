@@ -115,4 +115,26 @@ spec =
             result . should_equal Nothing
             Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at 7, 8, 15."]
 
+        Test.specify "should allow only text columns if no formatter is specified" <|
+            format = File_Format.Delimited "," value_formatter=Nothing
+            table_1 = Table.new [["A", ["x", "y"]], ["B", ["z", "w"]]]
+            file_1 = (Enso_Project.data / "transient" / "textonly.csv")
+            file_1.delete_if_exists
+            result_1 = table_1.write file_1 format
+            expected_text = """
+                A,B
+                x,z
+                y,w
+            text_1 = File.read_text file_1
+            text_1.should_equal expected_text+'\n'
+            result_1 . should_equal Nothing
+
+            table_2 = Table.new [["A", [1, 2]], ["B", ["z", "w"]]]
+            file_2 = (Enso_Project.data / "transient" / "non-text_but_no_formatter.csv")
+            file_2.delete_if_exists
+            result_2 = table_2.write file_2 format
+            result_2 . should_fail_with Illegal_Argument_Error
+            text_2 = File.read_text file_2
+            text_2.should_equal ""
+
 main = Test.Suite.run_main here.spec

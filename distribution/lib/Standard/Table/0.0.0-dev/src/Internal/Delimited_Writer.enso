@@ -29,13 +29,14 @@ polyglot java import org.enso.table.formatting.TextFormatter
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
 write_file : Table -> Delimited -> File -> Existing_File_Behavior -> Problem_Behavior -> Any
-write_file table format file on_existing_file on_problems = case on_existing_file of
-    Existing_File_Behavior.Append ->
-        Errors.unimplemented "Appending to an existing Delimited file is not implemented yet."
-    _ ->
-        on_existing_file.write file stream->
-            stream.with_java_stream java_stream->
-                here.write_to_stream table format java_stream on_problems related_file=file
+write_file table format file on_existing_file on_problems = Panic.recover Illegal_Argument_Error <|
+    case on_existing_file of
+        Existing_File_Behavior.Append ->
+            Errors.unimplemented "Appending to an existing Delimited file is not implemented yet."
+        _ ->
+            on_existing_file.write file stream->
+                stream.with_java_stream java_stream->
+                    here.write_to_stream table format java_stream on_problems related_file=file
 
 ## PRIVATE
    Writes to an output stream according to the provided format.
@@ -82,7 +83,6 @@ write_to_writer table format java_writer =
                 # TODO this needs to be recovered as error somewhere, but we may want to panic to indicate to operations like "Backup" that the write failed. Or the backup should check not only for panics but also for errors to see that - probably that's the right solution!
                 Panic.throw (Illegal_Argument_Error "If the expected file format does not specify a valid `Data_Formatter`, only Text columns are allowed.")
         value_formatter -> table.columns.map column->
-            # TODO handling CSV quotes in the format correctly
             storage_type = column.storage_type
             value_formatter.make_formatter_for_column_type storage_type
     quote_behavior = case format.quote_style of
