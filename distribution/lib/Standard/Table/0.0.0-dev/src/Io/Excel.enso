@@ -65,7 +65,7 @@ type Excel_Range
 
     ## Is the Excel_Range referring to a single cell
     is_single_cell : Boolean
-    is_single_cell = this.java_range.isSingleCell
+    is_single_cell = self.java_range.isSingleCell
 
     ## Gets the address to this in A1 format.
     address : Text
