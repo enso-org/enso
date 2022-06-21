@@ -172,8 +172,88 @@ spec =
             formatter.format Custom_Type_With_Error . should_fail_with Illegal_State_Error
             Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State_Error
 
-    Test.group "DataFormatter builders" pending="TODO: not implemented yet" <|
-        Test.specify "should TODO" <|
-            Nothing
+    Test.group "DataFormatter builders" <|
+        # We create a formatter with all non-default values to ensure that the builders keep the existing values of other properties instead of switching to the constructor's defaults.
+        formatter_1 = Data_Formatter trim_values=False allow_leading_zeros=True decimal_point=',' thousand_separator='_' allow_exponential_notation=True datetime_formats=["yyyy/MM/dd HH:mm:ss"] date_formats=["dd/MM/yyyy"] time_formats=["HH/mm/ss"] datetime_locale=Locale.uk true_values=["YES"] false_values=["NO"]
+        Test.specify "should allow changing number formatting settings" <|
+            formatter_2 = formatter_1.with_number_formatting decimal_point="*"
+            formatter_2.decimal_point . should_equal "*"
+            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_2.true_values . should_equal formatter_1.true_values
+            formatter_2.false_values . should_equal formatter_1.false_values
+            formatter_2.date_formats . should_equal formatter_1.date_formats
+            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
+            formatter_2.time_formats . should_equal formatter_1.time_formats
+            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
+            formatter_2.trim_values . should_equal formatter_1.trim_values
+
+            formatter_3 = formatter_1.with_number_formatting thousand_separator="" allow_exponential_notation=False allow_leading_zeros=False
+            formatter_3.decimal_point . should_equal formatter_1.decimal_point
+            formatter_3.thousand_separator . should_equal ""
+            formatter_3.allow_leading_zeros . should_equal False
+            formatter_3.allow_exponential_notation . should_equal False
+
+        Test.specify "should allow changing datetime formats" <|
+            formatter_1.with_datetime_formats . should_equal formatter_1
+
+            formatter_2 = formatter_1.with_datetime_formats date_formats="dd.MM.yyyy"
+            formatter_2.date_formats . should_equal ["dd.MM.yyyy"]
+            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
+            formatter_2.time_formats . should_equal formatter_1.time_formats
+            formatter_2.decimal_point . should_equal formatter_1.decimal_point
+            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_2.true_values . should_equal formatter_1.true_values
+            formatter_2.false_values . should_equal formatter_1.false_values
+            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
+            formatter_2.trim_values . should_equal formatter_1.trim_values
+
+            formatter_3 = formatter_1.with_datetime_formats date_formats=[] datetime_formats=["foobar"] time_formats="baz"
+            formatter_3.date_formats . should_equal []
+            formatter_3.datetime_formats . should_equal ["foobar"]
+            formatter_3.time_formats . should_equal ["baz"]
+            formatter_3.decimal_point . should_equal formatter_1.decimal_point
+            formatter_3.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_3.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_3.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_3.true_values . should_equal formatter_1.true_values
+            formatter_3.false_values . should_equal formatter_1.false_values
+            formatter_3.datetime_locale . should_equal formatter_1.datetime_locale
+            formatter_3.trim_values . should_equal formatter_1.trim_values
+
+        Test.specify "should allow changing the datetime locale" <|
+            formatter_2 = formatter_1.with_locale Locale.france
+            formatter_2.datetime_locale . should_equal Locale.france
+            formatter_2.date_formats . should_equal formatter_1.date_formats
+            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
+            formatter_2.time_formats . should_equal formatter_1.time_formats
+            formatter_2.decimal_point . should_equal formatter_1.decimal_point
+            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_2.true_values . should_equal formatter_1.true_values
+            formatter_2.false_values . should_equal formatter_1.false_values
+            formatter_2.trim_values . should_equal formatter_1.trim_values
+
+        Test.specify "should allow changing booleans' representations" <|
+            formatter_2 = formatter_1.with_boolean_values "1" "0"
+            formatter_2.date_formats . should_equal formatter_1.date_formats
+            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
+            formatter_2.time_formats . should_equal formatter_1.time_formats
+            formatter_2.decimal_point . should_equal formatter_1.decimal_point
+            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_2.true_values . should_equal ["1"]
+            formatter_2.false_values . should_equal ["0"]
+            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
+            formatter_2.trim_values . should_equal formatter_1.trim_values
+
+            formatter_3 = formatter_1.with_boolean_values false_values=[] true_values=[]
+            formatter_3.true_values . should_equal []
+            formatter_3.false_values . should_equal []
 
 main = Test.Suite.run_main here.spec
