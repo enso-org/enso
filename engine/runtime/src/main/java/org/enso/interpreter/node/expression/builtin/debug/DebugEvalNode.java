@@ -7,7 +7,6 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectTextNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Root node for the builtin Debug.eval function. */

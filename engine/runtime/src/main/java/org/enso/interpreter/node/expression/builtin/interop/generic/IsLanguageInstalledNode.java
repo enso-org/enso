@@ -7,8 +7,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
 
-import java.io.File;
-
 @BuiltinMethod(
     type = "Polyglot",
     name = "is_language_installed",

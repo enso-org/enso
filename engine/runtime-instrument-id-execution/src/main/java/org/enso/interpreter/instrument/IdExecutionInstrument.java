@@ -10,7 +10,6 @@ import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.SourceSection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -232,8 +231,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
         onReturnValue(context, frame, exception);
-      } else if (UNWIND_HELPER.patchedValue(exception) != null) {
-        onReturnValue(context, frame, UNWIND_HELPER.patchedValue(exception));
       }
     }
 

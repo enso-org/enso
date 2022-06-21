@@ -10,7 +10,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentM
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.concurrent.locks.Lock;
 
