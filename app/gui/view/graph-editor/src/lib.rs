@@ -1466,7 +1466,9 @@ impl GraphEditorModelWithNetwork {
     ) -> (NodeId, Option<NodeSource>, bool) {
         let position = new_node_position::new_node_position(self, way, mouse_position);
         let node = self.new_node(ctx);
+        DEBUG!("set_position_xy(" position;? ") BEFORE");
         node.set_position_xy(position);
+        DEBUG!("set_position_xy(" position;? ") AFTER");
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
@@ -1631,6 +1633,7 @@ impl GraphEditorModelWithNetwork {
         use ensogl::display::navigation::navigator::PanEvent;
         let scene = &self.app.display.default_scene;
         let screen_size_halved = Vector2::from(scene.camera().screen()) / 2.0;
+        DEBUG!("MCDBG screen_size_halved=" screen_size_halved;?);
         // TODO: is 0 as `z` coord. correct here?
         let screen_to_scene_vec2 = |pos: Vector2|
             scene.screen_to_scene_coordinates(Vector3(pos.x, pos.y, 0.0)).xy();
@@ -1639,6 +1642,7 @@ impl GraphEditorModelWithNetwork {
         let screen_corner_max = screen_to_scene_vec2(screen_size_halved);
         let screen_corner_min = screen_to_scene_vec2(-screen_size_halved);
         let screen_bbox = selection::BoundingBox::from_corners(screen_corner_min, screen_corner_max);
+        DEBUG!("MCDBG  screen bbox = " screen_bbox;?);
         // let screen_size_halved: Vector2 = &scene.camera().screen().into() / 2.0;
         // let screen_corner_1
         // let screen_corner_2
@@ -1664,6 +1668,8 @@ impl GraphEditorModelWithNetwork {
             None
         };
         let pan = PanEvent::new(Vector2(pan_x.unwrap_or_default(), pan_y.unwrap_or_default()));
+        DEBUG!("MCDBG  node bbox = " node_bbox;?);
+        DEBUG!("MCDBG  pan = " pan;?);
         self.navigator.emit_pan_event(pan);
     }
 }

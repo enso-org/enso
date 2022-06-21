@@ -692,7 +692,12 @@ impl Node {
         frp::extend! { network
             position <- source::<Vector2>();
         }
-        model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
+        // model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
+        model.display_object.set_on_updated(f!([position](p) {
+            let pos = p.position().xy();
+            DEBUG!("set_on_updated " pos;?);
+            position.emit(pos)
+        }));
 
         frp::extend! { network
 
@@ -1020,6 +1025,7 @@ fn bounding_box(
             BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
         node_bbox.concat_ref(visualization_bbox)
     } else {
+        DEBUG!("MCDBG--bounding_box=" node_bbox;?);
         node_bbox
     }
 }
