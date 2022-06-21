@@ -8,7 +8,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
-import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;

@@ -4,17 +4,12 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
-import java.math.BigInteger;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Literal$Text;
-import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.tag.Patchable;
 
 /** Generic literal node. */

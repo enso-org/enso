@@ -1,12 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.system.*;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A container class for all System-related stdlib builtins. */
 public class System {

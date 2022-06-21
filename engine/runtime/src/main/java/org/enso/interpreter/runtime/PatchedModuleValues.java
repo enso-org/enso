@@ -1,13 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.instrumentation.EventContext;
-import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
-import com.oracle.truffle.api.instrumentation.Instrumenter;
-import com.oracle.truffle.api.instrumentation.SourceFilter;
-import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
@@ -20,10 +12,8 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
-import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
-import org.enso.polyglot.LanguageInfo;
 
 /**
  * Keeps patched values for expression in  module. Also keeps mapping of
