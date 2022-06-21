@@ -93,8 +93,10 @@ final class PatchedModuleValues {
     var methods = scope.getMethods();
     var conversions = scope.getConversions();
     var collect = new HashMap<Node, Predicate<IR.Expression>>();
-    for (var n : values.keySet()) {
-      updateNode(update, n, collect);
+    if (values != null) {
+      for (var n : values.keySet()) {
+        updateNode(update, n, collect);
+      }
     }
     if (collect.isEmpty()) {
       // only search for new literals when none have been found
