@@ -200,11 +200,17 @@ pub fn main() {
         let mouse = &scene.mouse.frp;
         let camera = scene.camera().clone_ref();
         let sprr = sprite.clone_ref();
+        let scn = scene.clone_ref();
         enso_frp::extend! { network
             any_keyboard_event   <- keyboard.down.constant(());
             _eval <- any_keyboard_event.map2(&mouse.position, f!([] (_, mpos)
-                sprr.set_position_xy(camera.position().xy());
+                // sprr.set_position_xy(camera.position().xy());
                 let (w, h) = (camera.screen().width, camera.screen().height);
+                // let corner = camera.position().xy() + Vector2(w, h)/2.0;
+                let corner = Vector2(w, h)/2.0;
+                let corner = Vector3(corner.x, corner.y, 0.0);
+                let corner = scn.screen_to_scene_coordinates(corner.into());
+                sprr.set_position_xy(corner.xy());
                 sprr.set_scale_xy(Vector2(w/1000.0, h/1000.0));
                 dump(*mpos))
             );
