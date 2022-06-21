@@ -170,6 +170,18 @@ pub fn main() {
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
 
+        let camera = scene.camera().clone_ref();
+        let dump = move || {
+            DEBUG!("MCDBG onkbd " camera.position();? " + " camera.screen();?);
+        };
+        let network = enso_frp::Network::new("test");
+        let keyboard = &scene.keyboard.frp;
+        enso_frp::extend! { network
+            any_keyboard_event   <- keyboard.down.constant(());
+            eval_ any_keyboard_event ([] dump());
+        }
+        std::mem::forget(network);
+
         std::mem::forget(shape);
         std::mem::forget(navigator);
         mem::forget(app);
