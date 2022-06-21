@@ -63,8 +63,37 @@ use ensogl_scroll_area::ScrollArea;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
 use ide_view_component_group as component_group;
-use ide_view_component_group::Layers;
+use ide_view_component_group::Layers as GroupLayers;
 use searcher_theme::list_panel as list_panel_theme;
+
+
+
+// ==============
+// === Layers ===
+// ==============
+
+#[derive(Debug, Clone, CloneRef)]
+struct Layers {
+    groups:         GroupLayers,
+    base:           Layer,
+    selection:      Layer,
+    selection_mask: Layer,
+}
+
+impl Layers {
+    fn new(app: &Application, scroll_area: &ScrollArea) -> Self {
+        let main_camera = app.display.default_scene.layers.main.camera();
+        let base = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
+        let selection = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
+        let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
+        selection.set_mask(&selection_mask);
+        app.display.default_scene.layers.main.add_sublayer(&base);
+        app.display.default_scene.layers.main.add_sublayer(&selection);
+        let content = &scroll_area.content_layer();
+        let groups = GroupLayers::new(&app.logger, content, &selection);
+        Self { base, selection, groups, selection_mask }
+    }
+}
 
 
 
@@ -373,9 +402,8 @@ impl Model {
         let scroll_area = ScrollArea::new(&app);
         display_object.add_child(&scroll_area);
 
-        let camera = &scroll_area.content_layer().camera();
-        let parent_layer = scroll_area.content_layer();
-        let layers = Layers::new(&app.logger, camera, parent_layer);
+        let layers = Layers::new(&app, &scroll_area);
+        layers.base.add_exclusive(&scroll_area);
 
         favourites_section.set_parent(scroll_area.content());
         local_scope_section.set_parent(scroll_area.content());
@@ -548,7 +576,7 @@ trait SectionContent {
 
 impl SectionContent for component_group::wide::View {
     fn set_layers(&self, layers: &Layers, _scroll_layer: &Layer) {
-        self.model().set_layers(layers);
+        self.model().set_layers(&layers.groups);
     }
 
     fn height(&self) -> f32 {
@@ -562,7 +590,7 @@ impl SectionContent for component_group::wide::View {
 
 impl SectionContent for column_grid::ColumnGrid {
     fn set_layers(&self, layers: &Layers, scroll_layer: &Layer) {
-        self.model().set_layers(layers, scroll_layer);
+        self.model().set_layers(&layers.groups, scroll_layer);
     }
 
     fn height(&self) -> f32 {
@@ -587,7 +615,7 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
         let label_height = style.section.heading.height();
         let body_height = self.content.height();
         // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
-        let next_section_offset = 17.0;
+        let next_section_offset = 29.0;
         body_height + label_height + next_section_offset
     }
 
@@ -605,12 +633,13 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
             }
             SectionHeaderPlacement::Bottom => {
                 // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
-                let offset_from_top = self.content.height() - self.label.height.value() / 1.5;
-                let label_pos = position_y - offset_from_top;
+                let offset_from_top = 2.0;
+                let label_offset = self.content.height() - self.label.height.value() / 1.5;
+                let label_pos = position_y - offset_from_top - offset_from_top;
                 self.label.set_position_y(label_pos);
-                let divider_offset = self.content.height() - style.section.divider_height;
+                let divider_offset = self.content.height() - style.section.divider_height + 2.0;
                 // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
-                let divider_pos = position_y - divider_offset + 1.0;
+                let divider_pos = position_y - divider_offset - offset_from_top;
                 self.divider.set_position_y(divider_pos);
                 self.content.set_position_top_y(position_y);
             }
