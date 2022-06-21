@@ -68,7 +68,7 @@ pub mod mock {
 
         pub fn foo_method_parameter() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
-                name:          "this".to_owned(),
+                name:          "self".to_owned(),
                 repr_type:     "Base".to_owned(),
                 is_suspended:  false,
                 has_default:   false,
@@ -88,7 +88,7 @@ pub mod mock {
 
         pub fn bar_method_parameter() -> suggestion_database::entry::Argument {
             suggestion_database::entry::Argument {
-                name:          "this".to_owned(),
+                name:          "self".to_owned(),
                 repr_type:     "Other".to_owned(),
                 is_suspended:  false,
                 has_default:   false,

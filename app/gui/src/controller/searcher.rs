@@ -1430,7 +1430,7 @@ pub mod test {
             arguments: vec![
                 Argument {
                     repr_type:     "Any".to_string(),
-                    name:          "this".to_string(),
+                    name:          "self".to_string(),
                     has_default:   false,
                     default_value: None,
                     is_suspended:  false,
@@ -1451,7 +1451,7 @@ pub mod test {
             arguments: vec![
                 Argument {
                     repr_type:     "Any".to_string(),
-                    name:          "this".to_string(),
+                    name:          "self".to_string(),
                     has_default:   false,
                     default_value: None,
                     is_suspended:  false,
@@ -1545,7 +1545,7 @@ pub mod test {
                     data.selected_node = true;
                     // We expect following calls:
                     // 1) for the function - with the "this" filled (if the test case says so);
-                    // 2) for subsequent completions - without "this"
+                    // 2) for subsequent completions - without "self"
                     data.expect_completion(client, case.sets_this.as_some(mock_type), None, &[
                         1, 5, 9,
                     ]);

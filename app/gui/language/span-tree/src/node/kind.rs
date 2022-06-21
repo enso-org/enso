@@ -185,7 +185,7 @@ impl Default for Kind {
 // === This ===
 // ============
 
-/// Kind representing "this" node. For example, in the following expressions, `foo` is considered
+/// Kind representing "self" node. For example, in the following expressions, `foo` is considered
 /// "this": `bar foo`, `foo.bar`, `foo + bar`, `foo.+ bar`.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
