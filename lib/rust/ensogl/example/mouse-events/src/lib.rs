@@ -203,7 +203,6 @@ pub fn main() {
         enso_frp::extend! { network
             any_keyboard_event   <- keyboard.down.constant(());
             _eval <- any_keyboard_event.map2(&mouse.position, f!([] (_, mpos)
-                // sprr.size.set(Vector2(camera.screen().width, camera.screen().height));
                 sprr.set_position_xy(camera.position().xy());
                 let (w, h) = (camera.screen().width, camera.screen().height);
                 sprr.set_scale_xy(Vector2(w/1000.0, h/1000.0));
