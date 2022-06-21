@@ -26,6 +26,7 @@ final class PatchableLiteralNode extends ExpressionNode implements Patchable, Pr
   private PatchableLiteralNode(LiteralNode original) {
     this.node = original;
     this.value = original.executeGeneric(null);
+    this.setId(original.getId());
   }
 
   static PatchableLiteralNode build(LiteralNode original) {
