@@ -107,11 +107,6 @@ case object MethodReferences extends IRPass {
         if (isMethodName(lit)) {
           val resolution = bindings.resolveUppercaseName(lit.name)
           resolution match {
-            case Left(error) =>
-              IR.Error.Resolution(
-                lit,
-                IR.Error.Resolution.ResolverError(error)
-              )
             case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
               if (isInsideApplication) {
                 lit
@@ -135,6 +130,8 @@ case object MethodReferences extends IRPass {
                 app
               }
             case _ =>
+              // Don't report any errors in resolution.
+              // They will be caught in later phases, if necessary.
               lit
           }
         } else { lit }
@@ -142,8 +139,7 @@ case object MethodReferences extends IRPass {
       case app: IR.Application.Prefix =>
         app.function match {
           case n: IR.Name.Literal =>
-            // Module methods must be lower-case
-            if (n.name.toLowerCase.head == n.name.head && !n.isMethod) {
+            if (isMethodName(n)) {
               resolveApplication(app, bindings, freshNameSupply)
             } else {
               app.mapExpressions(
@@ -158,7 +154,7 @@ case object MethodReferences extends IRPass {
   private def isMethodName(lit: IR.Name.Literal): Boolean = {
     !isLocalVar(
       lit
-    ) && (lit.name.toLowerCase.head == lit.name.head) && !lit.isMethod
+    ) && (lit.name.head.toLower == lit.name.head) && !lit.isMethod
   }
 
   private def resolveApplication(

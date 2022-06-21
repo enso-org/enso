@@ -111,9 +111,15 @@ class MethodReferencesTest extends CompilerTest {
       )
     }
 
-    "indicate resolution failures" in {
+    "not indicate resolution failures" in {
       val app = bodyExprs(4).asInstanceOf[IR.Application.Prefix]
-      app.function shouldBe an[IR.Error.Resolution]
+      app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "foo"
+      app.arguments.length shouldEqual 1
+      app
+        .arguments(0)
+        .value
+        .asInstanceOf[IR.Literal.Number]
+        .value shouldEqual "10"
     }
   }
 }
