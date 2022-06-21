@@ -1648,6 +1648,23 @@ impl GraphEditorModelWithNetwork {
                 // let corner = scn.screen_to_scene_coordinates(corner.into());
         let node_bbox = self.node_bounding_box(node_id);
         // FIXME: add a predefined margin around node_bbox - see Design Doc
+        // let mut pan: Vector2 = default();
+        let pan_y = if node_bbox.top > screen_bbox.top {
+            Some(node_bbox.top - screen_bbox.top)
+        } else if node_bbox.bottom < screen_bbox.bottom {
+            Some(node_bbox.bottom - screen_bbox.bottom)
+        } else {
+            None
+        };
+        let pan_x = if node_bbox.left < screen_bbox.left {
+            Some(node_bbox.left - screen_bbox.left)
+        } else if node_bbox.right > screen_bbox.right {
+            Some(node_bbox.right - screen_bbox.right)
+        } else {
+            None
+        };
+        self.navigator.emit_pan_event(Vector2(
+                pan_x.unwrap_or_default(), pan_y.unwrap_or_default()));
     }
 }
 
