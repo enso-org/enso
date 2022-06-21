@@ -1,23 +1,27 @@
 package org.enso.table.parsing;
 
-import java.text.DecimalFormat;
-import java.text.ParsePosition;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.formatting.DecimalFormatter;
 import org.enso.table.parsing.problems.ProblemAggregator;
+
+import java.text.DecimalFormat;
+import java.text.ParsePosition;
 
 public class DecimalParser extends IncrementalDatatypeParser {
   private final String thousandsSeparator;
   private final char decimalPoint;
   private final DecimalFormat decimalFormat;
   private final boolean leadingZerosAllowed;
+  private final boolean scientificNotationAllowed;
 
   public DecimalParser(
       final String decimalPoint,
       final String thousandsSeparator,
-      final boolean leadingZerosAllowed) {
+      final boolean leadingZerosAllowed,
+      boolean scientificNotationAllowed) {
     this.leadingZerosAllowed = leadingZerosAllowed;
+    this.scientificNotationAllowed = scientificNotationAllowed;
 
     if (decimalPoint.length() != 1) {
       throw new IllegalArgumentException(
@@ -67,6 +71,11 @@ public class DecimalParser extends IncrementalDatatypeParser {
       return null;
     }
 
+    if (!scientificNotationAllowed && hasExponentSymbol(replaced)) {
+      problemAggregator.reportInvalidFormat(text);
+      return null;
+    }
+
     return result.doubleValue();
   }
 
@@ -83,6 +92,10 @@ public class DecimalParser extends IncrementalDatatypeParser {
     return s.charAt(firstDigitPos) == '0'
         && firstDigitPos + 1 < s.length()
         && s.charAt(firstDigitPos + 1) != decimalPoint;
+  }
+
+  private boolean hasExponentSymbol(String s) {
+    return s.contains(decimalFormat.getDecimalFormatSymbols().getExponentSeparator());
   }
 
   @Override

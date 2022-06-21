@@ -66,6 +66,24 @@ spec =
             formatter.parse "-1,0" . should_equal -1.0
             formatter.parse "1,0001" . should_equal 1.0001
 
+        Test.specify "should support exponential notation, but only if explicitly enabled" <|
+            plain_formatter = Data_Formatter
+            exponential_formatter = Data_Formatter allow_exponential_notation=True
+            plain_formatter.parse "1E3" . should_equal "1E3"
+
+            r1 = plain_formatter.parse "1E3" Decimal
+            r1.should_equal Nothing
+            Warning.get_all r1 . map .value . should_equal [(Invalid_Format Nothing Decimal ["1E3"])]
+
+            exponential_formatter.parse "1E3" . should_equal 1000.0
+            exponential_formatter.parse "1E3" Decimal . should_equal 1000.0
+            exponential_formatter.parse "1E3" Integer . should_equal Nothing
+
+            plain_formatter.parse "1.2E-3" . should_equal "1.2E-3"
+            plain_formatter.parse "1.2E-3" Decimal . should_equal Nothing
+            exponential_formatter.parse "1.2E-3" . should_equal 0.0012
+            exponential_formatter.parse "1.2E-3" Decimal . should_equal 0.0012
+
         Test.specify "handle leading zeros, only if enabled" <|
             Data_Formatter.parse "0100" . should_equal "0100"
             Data_Formatter.parse "000" . should_equal "000"
@@ -130,7 +148,7 @@ spec =
             formatter.format (Time_Of_Day.new . internal_local_time) . should_equal "00:00:00"
 
         Test.specify "should allow custom date formats" <|
-            formatter = Data_Formatter date_formats=["E, d MMM y", "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm"] time_formats=["h:mma"] locale=Locale.uk
+            formatter = Data_Formatter date_formats=["E, d MMM y", "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm"] time_formats=["h:mma"] datetime_locale=Locale.uk
             formatter.format (Date.new 2022 06 21 . internal_local_date) . should_equal "Tue, 21 Jun 2022"
             formatter.format (Time.new 1999 02 03 04 56 11 . internal_zoned_date_time) . should_equal "03/02/1999 04:56"
             formatter.format (Time_Of_Day.new 13 55 . internal_local_time) . should_equal "1:55pm"

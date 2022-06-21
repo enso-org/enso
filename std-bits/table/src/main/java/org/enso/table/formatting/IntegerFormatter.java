@@ -32,11 +32,6 @@ public class IntegerFormatter implements DataFormatter {
     return integerFormat.format(value);
   }
 
-  // TODO
-  // public String format(BigInteger value) {
-  //   integerFormat.format(value);
-  // }
-
   @Override
   public String format(Object value) {
     if (value == null) {
@@ -47,15 +42,11 @@ public class IntegerFormatter implements DataFormatter {
       return format(integer.longValue());
     }
 
-    if (value instanceof BigInteger bigInteger) {
-      return format(bigInteger);
-    }
-
     throw new IllegalArgumentException("Unsupported type for DecimalFormatter.");
   }
 
   @Override
   public boolean canFormat(Object value) {
-    return value instanceof Long || value instanceof BigInteger;
+    return value instanceof Long;
   }
 }
