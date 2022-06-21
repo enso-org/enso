@@ -35,6 +35,26 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
      By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   > Example
+     Read the first sheet of an XLSX from disk and convert it into a table.
+
+         import Standard.Table
+         import Standard.Table.Io.File_Read
+         import Standard.Examples
+
+         example_xlsx_to_table = Examples.xlsx.read
+
+   > Example
+     Read the sheet named `Dates` from an XLS and convert it to a table.
+
+         import Standard.Table
+         import Standard.Table.Io.File_Read
+         from Standard.Table.Io.File_Format import Excel
+         from Standard.Table.Io.Excel import Excel_Section
+         import Standard.Examples
+
+         example_xls_to_table = Examples.xls.read (Excel (Sheet 'Dates'))
 File.File.read : File_Format -> Problem_Behavior -> Any ! File_Error
 File.File.read (format=File_Format.Auto) (on_problems=Report_Warning) =
     format.read self on_problems

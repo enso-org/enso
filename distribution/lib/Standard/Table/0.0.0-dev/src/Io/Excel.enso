@@ -1,15 +1,18 @@
-from Standard.Base import Integer, Text, Nothing, Boolean, Illegal_Argument_Error, Any, Error, Panic, File, Vector, False, IO
+from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+from Standard.Table.Io.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Error as Error_Module import Invalid_Location
+from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
-polyglot java import org.enso.table.format.xlsx.Range as Java_Range
-polyglot java import org.enso.table.format.xlsx.Reader
+polyglot java import org.enso.table.excel.ExcelRange as Java_Range
+polyglot java import org.enso.table.read.ExcelReader
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
 polyglot java import org.apache.poi.UnsupportedFileFormatException
+polyglot java import org.enso.table.util.problems.DuplicateNames
+polyglot java import org.enso.table.util.problems.InvalidNames
 
 type Excel_Section
     ## Gets a list of sheets within a workbook.
@@ -20,11 +23,13 @@ type Excel_Section
 
     ## Gets the data from a specific sheet. Column names are the Excel column
        names.
-    type Sheet (sheet:(Integer|Text)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
+    type Sheet (sheet:(Integer|Text)=1) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
 
     ## Gets a specific range (taking either a defined name or external style
        address) from the workbook.
-    type Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
+       If it is a single cell, it will be treated as the top left cell and will
+       expand right and down to cover the connected cells.
+    type Cell_Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
 
 type Excel_Range
     ## Specifies a range within an Excel Workbook.
@@ -57,6 +62,10 @@ type Excel_Range
     right_column : Integer | Nothing
     right_column = if self.java_range.isWholeRow then Nothing else
         self.java_range.getRightColumn
+
+    ## Is the Excel_Range referring to a single cell
+    is_single_cell : Boolean
+    is_single_cell = self.java_range.isSingleCell
 
     ## Gets the address to this in A1 format.
     address : Text
@@ -106,9 +115,9 @@ type Excel_Range
         row_valid = here.validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
 
         col_valid <| row_valid <|
-            Excel_Range (Java_Range.new sheet col_index row col_index row)
+            Excel_Range (Java_Range.new sheet col_index row)
 
-    ## Create a Range for a range of cells.
+    ## Create an Excel_Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
     for_range sheet left top right bottom =
         left_index = Excel_Range.column_index left
@@ -132,7 +141,7 @@ type Excel_Range
         right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
 
         left_valid <| right_valid <|
-            Excel_Range (Java_Range.new sheet left_index 0 right_index 0)
+            Excel_Range (Java_Range.forColumns sheet left_index right_index)
 
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
@@ -141,7 +150,7 @@ type Excel_Range
         bottom_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         top_valid <| bottom_valid <|
-            Excel_Range (Java_Range.new sheet 0 top 0 bottom)
+            Excel_Range (Java_Range.forRows sheet top bottom)
 
 
 ## PRIVATE
@@ -162,19 +171,19 @@ validate validation ~error_message ~wrapped =
      If set to `Ignore`, the operation proceeds without errors or warnings.
    - xls_format: If `True` then the file is read in using Excel 95-2003 format
      otherwise reads in Excel 2007+ format.
-read_excel : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
-read_excel file section _ xls_format=False =
+read_excel : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
+read_excel file section headers on_problems xls_format=False =
     reader stream = case section of
-        Sheet_Names -> Vector.Vector (Reader.readSheetNames stream xls_format)
-        Range_Names -> Vector.Vector (Reader.readRangeNames stream xls_format)
+        Sheet_Names -> Vector.Vector (ExcelReader.readSheetNames stream xls_format)
+        Range_Names -> Vector.Vector (ExcelReader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
-            Table.Table <| case sheet of
-                Integer -> Reader.readSheetByIndex stream sheet skip_rows row_limit xls_format
-                Text -> Reader.readSheetByName stream sheet skip_rows row_limit xls_format
-        Range address skip_rows row_limit ->
-            Table.Table <| case address of
-                Excel_Range _ -> Reader.readRange stream address.java_range skip_rows row_limit xls_format
-                Text -> Reader.readRangeByName stream address skip_rows row_limit xls_format
+            here.prepare_reader_table on_problems <| case sheet of
+                Integer -> ExcelReader.readSheetByIndex stream sheet (here.make_java_headers headers) skip_rows row_limit xls_format
+                Text -> ExcelReader.readSheetByName stream sheet (here.make_java_headers headers) skip_rows row_limit xls_format
+        Cell_Range address skip_rows row_limit ->
+            here.prepare_reader_table on_problems <| case address of
+                Excel_Range _ -> ExcelReader.readRange stream address.java_range (here.make_java_headers headers) skip_rows row_limit xls_format
+                Text -> ExcelReader.readRangeByName stream address (here.make_java_headers headers) skip_rows row_limit xls_format
 
     bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
     handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
@@ -184,3 +193,20 @@ read_excel file section _ xls_format=False =
 
     File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
         file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
+
+## PRIVATE
+prepare_reader_table on_problems result_with_problems =
+    map_problem java_problem =
+        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames) else
+              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names (Vector.Vector java_problem.invalidNames) else
+                java_problem
+    parsing_problems = Vector.Vector (result_with_problems.problems) . map map_problem
+    on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
+
+## PRIVATE
+   Convert True|False|Infer to the correct HeaderBehavior
+make_java_headers : (True|False|Infer) -> ExcelReader.HeaderBehavior
+make_java_headers headers = case headers of
+        True -> ExcelReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+        Infer -> ExcelReader.HeaderBehavior.INFER
+        False -> ExcelReader.HeaderBehavior.EXCEL_COLUMN_NAMES

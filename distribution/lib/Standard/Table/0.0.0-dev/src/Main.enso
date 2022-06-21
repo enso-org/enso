@@ -3,14 +3,12 @@ from Standard.Base import all
 import Standard.Geo.Geo_Json
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.Excel
-import Standard.Table.Io.Spreadsheet
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Data.Table
 import Standard.Table.Data.Column
 import Standard.Table.Model
 
-from Standard.Table.Io.Excel export Excel_Section, Excel_Range, read_excel
-from Standard.Table.Io.Spreadsheet export all hiding Reader
+from Standard.Table.Io.Excel export Excel_Section, Excel_Range
 
 export Standard.Table.Io.Spreadsheet_Write_Mode
 export Standard.Table.Data.Column

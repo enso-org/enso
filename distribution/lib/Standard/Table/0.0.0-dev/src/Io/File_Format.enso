@@ -117,7 +117,7 @@ type Delimited
        - keep_invalid_rows: Specifies whether rows that contain less or more
          columns than expected should be kept (setting the missing columns to
          `Nothing` or dropping the excess columns) or dropped.
-    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote:Text|Nothing='"') (quote_escape:Text|Nothing='"') (quote_style:Quote_Style=Quote_Style.Necessary) (headers:True|False|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True)
+    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote:Text|Nothing='"') (quote_escape:Text|Nothing='"') (quote_style:Quote_Style=Quote_Style.Necessary) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -175,12 +175,17 @@ type Excel
          - `Sheet_Names` - outputs a `Vector` of sheet names.
          - `Range_Names` - outputs a `Vector` of range names.
          - `Sheet` - outputs a `Table` containing the specified sheet.
-         - `Range` - outputs a `Table` containing the specified range.
-       - `xls_format`:
+         - `Cell_Range` - outputs a `Table` containing the specified range.
+       - headers: If set to `True`, the first row is used as column names. If
+         set to `False`, the column names are Excel column names. If set to
+         `Infer`, the process tries to infer if headers are present on the first
+          row. If the column names are not unique, numeric suffixes will be
+          appended to disambiguate them.
+       - xls_format:
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
-    type Excel (section:Excel_Section=Excel_Module.Sheet_Names) (xls_format:(True|False|Infer)=Infer)
+    type Excel (section:Excel_Section=Excel_Module.Sheet) (headers:(True|False|Infer)=Infer) (xls_format:(True|False|Infer)=Infer)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -189,7 +194,7 @@ type Excel
             extension = file.extension
             (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
 
-        Excel_Module.read_excel file self.section on_problems format
+        Excel_Module.read_excel file self.section self.headers on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing

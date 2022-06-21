@@ -141,6 +141,8 @@
 - [Implemented `Text.write`, replacing `File.write_text`.][3518]
 - [Removed obsolete `select`, `group`, `sort` and releated types from tables.]
   [3519]
+- [Removed obsolete `from_xls` and `from_xlsx` functions. Added support for
+  reading column names from first row in `File_Format.Excel`][3523]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -222,6 +224,7 @@
 [3517]: https://github.com/enso-org/enso/pull/3517
 [3518]: https://github.com/enso-org/enso/pull/3518
 [3519]: https://github.com/enso-org/enso/pull/3519
+[3523]: https://github.com/enso-org/enso/pull/3523
 
 #### Enso Compiler
 
