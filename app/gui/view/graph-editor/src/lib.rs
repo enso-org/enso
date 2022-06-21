@@ -1626,6 +1626,28 @@ impl GraphEditorModelWithNetwork {
         self.nodes.insert(node_id, node.clone_ref());
         node
     }
+
+    fn pan_to_node(node_id: impl Into<NodeId>) {
+        let scene = &app.display.default_scene;
+        let screen_size_halved = Vector2::from(scene.camera().screen()) / 2.0;
+        // TODO: is 0 as `z` coord. correct here?
+        let screen_to_scene_vec2 = |pos|
+            scene.screen_to_scene_coordinates(Vector2(pos.x, pos.y, 0.0)).xy();
+        // TODO: make sure the corners respect camera's "origin" point, which may not be at center;
+        // though, the `alignment` described in Camera2dData does not seem present in the struct.
+        let screen_corner_max = screen_to_scene_vec2(screen_size_halved);
+        let screen_corner_min = screen_to_scene_vec2(-screen_size_halved);
+        let screen_bbox = selection::BoundingBox::from_corners(screen_corner_min, screen_corner_max);
+        // let screen_size_halved: Vector2 = &scene.camera().screen().into() / 2.0;
+        // let screen_corner_1
+        // let screen_corner_2
+                // let (w, h) = (camera.screen().width, camera.screen().height);
+                // // let corner = camera.position().xy() + Vector2(w, h)/2.0;
+                // let corner = Vector2(w, h)/2.0;
+                // let corner = Vector3(corner.x, corner.y, 0.0);
+                // let corner = scn.screen_to_scene_coordinates(corner.into());
+        let node_bbox = self.node_bounding_box(node_id);
+    }
 }
 
 
@@ -2856,6 +2878,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             };
             model.create_node(&ctx, way, *mouse_pos)
         }));
+        _eval <- new_node.map(|(id, _, _)| model.pan_to_node(id));
         out.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
     }
