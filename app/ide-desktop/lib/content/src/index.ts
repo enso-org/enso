@@ -553,9 +553,6 @@ async function checkMinSupportedVersion(config: Config) {
 // === Authentication ===
 // ======================
 
-
-
-
 class FirebaseAuthentication {
     protected readonly config: any
     public readonly firebaseui: any
