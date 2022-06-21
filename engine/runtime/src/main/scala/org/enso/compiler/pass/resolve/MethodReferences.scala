@@ -103,62 +103,50 @@ case object MethodReferences extends IRPass {
     isInsideApplication: Boolean = false
   ): IR.Expression =
     ir.transformExpressions {
-      case lit: IR.Name.Literal =>
-        if (isMethodName(lit)) {
-          val resolution = bindings.resolveUppercaseName(lit.name)
-          resolution match {
-            case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
-              if (isInsideApplication) {
-                lit
-                  .updateMetadata(this -->> BindingsMap.Resolution(r))
-                  .copy(isMethod = true)
-              } else {
-                val self = freshNameSupply
-                  .newName(isReferent = false)
-                  .updateMetadata(
-                    this -->> BindingsMap.Resolution(
-                      BindingsMap.ResolvedModule(mod)
-                    )
-                  )
-                val fun = lit.copy(name = method.name, isMethod = true)
-                val app = IR.Application.Prefix(
-                  fun,
-                  List(IR.CallArgument.Specified(None, self, None)),
-                  hasDefaultsSuspended = false,
-                  None
-                )
-                app
-              }
-            case _ =>
-              // Don't report any errors in resolution.
-              // They will be caught in later phases, if necessary.
+      case lit: IR.Name.Literal if !lit.isMethod =>
+        val resolution = bindings.resolveMethodName(lit.name)
+        resolution match {
+          case Right(r @ BindingsMap.ResolvedMethod(mod, method))
+              if !isLocalVar(lit) =>
+            if (isInsideApplication) {
               lit
-          }
-        } else { lit }
+                .updateMetadata(this -->> BindingsMap.Resolution(r))
+                .copy(isMethod = true)
+            } else {
+              val self = freshNameSupply
+                .newName(isReferent = false)
+                .updateMetadata(
+                  this -->> BindingsMap.Resolution(
+                    BindingsMap.ResolvedModule(mod)
+                  )
+                )
+              val fun = lit.copy(name = method.name, isMethod = true)
+              val app = IR.Application.Prefix(
+                fun,
+                List(IR.CallArgument.Specified(None, self, None)),
+                hasDefaultsSuspended = false,
+                None
+              )
+              app
+            }
+          case _ =>
+            // Don't report any errors in resolution.
+            // They will be caught in later phases, if necessary.
+            lit
+        }
 
       case app: IR.Application.Prefix =>
         app.function match {
-          case n: IR.Name.Literal =>
-            if (isMethodName(n)) {
-              resolveApplication(app, bindings, freshNameSupply)
-            } else {
-              app.mapExpressions(
-                processExpression(_, bindings, freshNameSupply)
-              )
-            }
+          case lit: IR.Name.Literal if !lit.isMethod =>
+            resolveApplication(app, lit, bindings, freshNameSupply)
           case _ =>
             app.mapExpressions(processExpression(_, bindings, freshNameSupply))
         }
     }
 
-  private def isMethodName(lit: IR.Name.Literal): Boolean = {
-    !isLocalVar(
-      lit
-    ) && (lit.name.head.toLower == lit.name.head) && !lit.isMethod
-  }
-
   private def resolveApplication(
     app: IR.Application.Prefix,
+    fun: IR.Name.Literal,
     bindingsMap: BindingsMap,
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
@@ -172,7 +160,7 @@ case object MethodReferences extends IRPass {
       _.mapExpressions(processExpression(_, bindingsMap, freshNameSupply))
     )
     processedFun.getMetadata(this) match {
-      case Some(Resolution(ResolvedMethod(mod, _))) =>
+      case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
         val self = freshNameSupply
           .newName(isReferent = false)
           .updateMetadata(
