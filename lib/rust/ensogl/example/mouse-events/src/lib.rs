@@ -171,14 +171,15 @@ pub fn main() {
         let navigator = Navigator::new(scene, &camera);
 
         let camera = scene.camera().clone_ref();
-        let dump = move || {
-            DEBUG!("MCDBG onkbd " camera.position();? " + " camera.screen();?);
+        let dump = move |mouse_pos| {
+            DEBUG!("MCDBG onkbd " camera.position();? " + " camera.screen();? " + mouse=" mouse_pos;?);
         };
         let network = enso_frp::Network::new("test");
         let keyboard = &scene.keyboard.frp;
+        let mouse = &scene.mouse.frp;
         enso_frp::extend! { network
             any_keyboard_event   <- keyboard.down.constant(());
-            eval_ any_keyboard_event ([] dump());
+            _eval <- any_keyboard_event.map2(&mouse.position, move |_, mpos| dump(*mpos));
         }
         std::mem::forget(network);
 
