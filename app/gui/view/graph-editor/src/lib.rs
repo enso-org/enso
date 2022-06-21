@@ -1647,6 +1647,7 @@ impl GraphEditorModelWithNetwork {
                 // let corner = Vector3(corner.x, corner.y, 0.0);
                 // let corner = scn.screen_to_scene_coordinates(corner.into());
         let node_bbox = self.node_bounding_box(node_id);
+        // FIXME: add a predefined margin around node_bbox - see Design Doc
     }
 }
 
