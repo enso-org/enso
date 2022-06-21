@@ -1006,7 +1006,8 @@ class RuntimeServerTest
               model.Range(model.Position(3, 8), model.Position(3, 9)),
               "5"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1165,7 +1166,8 @@ class RuntimeServerTest
               model.Range(model.Position(3, 13), model.Position(3, 17)),
               "\"Hi\""
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1254,7 +1256,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "1234.x 4"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1279,7 +1282,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "1000.x 5"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1296,7 +1300,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "here.pie"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1321,7 +1326,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "here.uwu"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1346,7 +1352,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "here.hie"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1371,7 +1378,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "\"Hello!\""
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1695,7 +1703,8 @@ class RuntimeServerTest
               model.Range(model.Position(2, 25), model.Position(2, 29)),
               "modified"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1760,7 +1769,8 @@ class RuntimeServerTest
               model.Range(model.Position(0, 0), model.Position(0, 9)),
               "main = 42"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1910,7 +1920,8 @@ class RuntimeServerTest
               model.Range(model.Position(3, 0), model.Position(3, 0)),
               s"Number.lucky = 42$newline$newline"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
