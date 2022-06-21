@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.type.Types;
     name = "get_qualified_type_name",
     description = "Returns a qualified type name of the given value.")
 public class GetQualifiedTypeNameNode extends Node {
-  Text execute(@AcceptsError Object _this, Object value) {
+  Text execute(@AcceptsError Object self, Object value) {
     var typeName = Types.getName(value);
     return Text.create(typeName);
   }

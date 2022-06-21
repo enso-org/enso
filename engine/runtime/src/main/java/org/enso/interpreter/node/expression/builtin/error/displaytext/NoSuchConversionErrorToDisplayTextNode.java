@@ -15,19 +15,19 @@ public abstract class NoSuchConversionErrorToDisplayTextNode extends Node {
     return NoSuchConversionErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this, @Cached TypeToDisplayTextNode displayTypeNode) {
+  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
     return Text.create("Could not find a conversion from `")
-        .add(displayTypeNode.execute(_this.getFields()[1]))
+        .add(displayTypeNode.execute(self.getFields()[1]))
         .add("` to `")
-        .add(displayTypeNode.execute(_this.getFields()[0]))
+        .add(displayTypeNode.execute(self.getFields()[0]))
         .add("`");
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Conversion could not be found.");
   }
 }

@@ -16,11 +16,11 @@ public abstract class RunThreadNode extends Node {
     return RunThreadNodeGen.create();
   }
 
-  abstract Thread execute(@MonadicState Object state, @Suspend Object _this);
+  abstract Thread execute(@MonadicState Object state, @Suspend Object self);
 
   @CompilerDirectives.TruffleBoundary
   @Specialization
-  Thread doExecute(Object state, Object _this) {
+  Thread doExecute(Object state, Object self) {
     Context ctx = Context.get(this);
     Thread thread =
         ctx.getEnvironment()
@@ -29,7 +29,7 @@ public abstract class RunThreadNode extends Node {
                   Object p = ctx.getThreadManager().enter();
                   try {
                     ThunkExecutorNodeGen.getUncached()
-                        .executeThunk(_this, state, BaseNode.TailStatus.NOT_TAIL);
+                        .executeThunk(self, state, BaseNode.TailStatus.NOT_TAIL);
                   } finally {
                     ctx.getThreadManager().leave(p);
                   }

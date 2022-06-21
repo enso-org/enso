@@ -128,9 +128,9 @@ type No_Such_Group_Error (id : Text | Integer)
 
    Provides a human-readable representation of the `No_Such_Group_Error`.
 No_Such_Group_Error.to_display_text : Text
-No_Such_Group_Error.to_display_text = case this.id of
-    Integer -> "No group exists with the index " + this.id.to_text + "."
-    Text -> "No group exists with the name " + this.id + "."
+No_Such_Group_Error.to_display_text = case self.id of
+    Integer -> "No group exists with the index " + self.id.to_text + "."
+    Text -> "No group exists with the name " + self.id + "."
 
 ## PRIVATE
 
@@ -146,5 +146,5 @@ type Syntax_Error (message : Text)
    Converts the compile error to a human-readable representation.
 Syntax_Error.to_display_text : Text
 Syntax_Error.to_display_text =
-    "The regex could not be compiled: " + this.message
+    "The regex could not be compiled: " + self.message
 

@@ -22,7 +22,7 @@ public class GetExecutableNameNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  Text execute(Object _this, Object function) {
+  Text execute(Object self, Object function) {
     try {
       return Text.create(stringsLibrary.asString(functionsLibrary.getExecutableName(function)));
     } catch (UnsupportedMessageException e) {

@@ -20,12 +20,12 @@ public abstract class UnsupportedArgumentTypesToDisplayTextNode extends Node {
     return UnsupportedArgumentTypesToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  Text doAtom(Atom _this, @Cached TypeToDisplayTextNode displayTypeNode) {
-    Object args = _this.getFields()[0];
+  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
+    Object args = self.getFields()[0];
     String argsRep;
     if (args instanceof Array) {
       Object[] arguments = ((Array) args).getItems();
@@ -40,7 +40,7 @@ public abstract class UnsupportedArgumentTypesToDisplayTextNode extends Node {
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Unsupported argument types.");
   }
 }

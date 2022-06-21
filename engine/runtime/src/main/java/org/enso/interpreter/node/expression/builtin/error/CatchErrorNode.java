@@ -28,7 +28,7 @@ public class CatchErrorNode extends Node {
   }
 
   Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, DataflowError _this, Object handler) {
-    return invokeCallableNode.execute(handler, frame, state, new Object[] {_this.getPayload()});
+      VirtualFrame frame, @MonadicState Object state, DataflowError self, Object handler) {
+    return invokeCallableNode.execute(handler, frame, state, new Object[] {self.getPayload()});
   }
 }

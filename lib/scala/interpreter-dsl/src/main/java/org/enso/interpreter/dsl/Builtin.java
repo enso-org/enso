@@ -76,8 +76,8 @@ public @interface Builtin {
    * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "length")
    * public class LengthFooNode extends Node {
    *
-   *   long execute(Foo _this) {
-   *     return _this.length();
+   *   long execute(Foo self) {
+   *     return self.length();
    *   }
    *
    * }
@@ -89,7 +89,7 @@ public @interface Builtin {
    * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "length")
    * public class EmptyFooNode extends Node {
    *
-   *   Foo execute(Foo _this) {
+   *   Foo execute(Foo self) {
    *     return Foo.empty();
    *   }
    *
@@ -138,13 +138,13 @@ public @interface Builtin {
      * <pre>
      * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "create_1")
      * public class Create1FooNode extends Node {
-     *   Foo execute(Foo _this, Object items_1) {
+     *   Foo execute(Foo self, Object items_1) {
      *     return Foo.create(items_1);
      *   }
      * }
      * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "create_2")
      * public class Create2FooNode extends Node {
-     *   Foo execute(Foo _this, Object items_1, Object items_2) {
+     *   Foo execute(Foo self, Object items_1, Object items_2) {
      *     return Foo.create(items_1, items_2);
      *   }
      * }
@@ -185,12 +185,12 @@ public @interface Builtin {
    * <pre>
    * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "get")
    * public class GetFooNode extends Node {
-   *   java.lang.Object execute(Foo _this, long index) {
+   *   java.lang.Object execute(Foo self, long index) {
    *     try {
-   *       return _this.get(index);
+   *       return self.get(index);
    *     } catch (java.lang.IndexOutOfBoundsException e) {
    *       Builtins builtins = Context.get(this).getBuiltins();
-   *       throw new PanicException(builtins.error().makeInvalidArrayIndexError(_this, index), this);
+   *       throw new PanicException(builtins.error().makeInvalidArrayIndexError(self, index), this);
    *     }
    *   }
    * }
@@ -215,9 +215,9 @@ public @interface Builtin {
    * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "create")
    * public class CreateFooNode extends Node {
    *
-   *   Object execute(Foo _this, Object path) {
+   *   Object execute(Foo self, Object path) {
    *     try {
-   *       return _this.create(path)
+   *       return self.create(path)
    *     } catch (java.io.IOException e) {
    *       Builtins builtins = Context.get(this).getBuiltins();
    *       throw new PanicException(builtins.error().makePolyglotError(e), this);
@@ -284,10 +284,10 @@ public @interface Builtin {
    * <pre>
    * {@link BuiltinMethod @BuiltinMethod}(type = "Foo", name = "create")
    * public class CreateFooNode extends Node {
-   *   java.lang.Object execute(Foo _this, Object item) {
+   *   java.lang.Object execute(Foo self, Object item) {
    *     return context
    *           .getEnvironment()
-   *           .asGuestValue(_this.foo(item));
+   *           .asGuestValue(self.foo(item));
    *   }
    * }
    * </pre>
@@ -335,10 +335,10 @@ public @interface Builtin {
    *     return CreateFooNodeGen.create();
    *   }
    *
-   *   abstract Foo execute((Object _this, Object path);
+   *   abstract Foo execute((Object self, Object path);
    *
    *   {@link Specialization @Specialization}
-   *   Foo doString(Object _this, Object path, @Cached("build()") ExpectStringNode expectStringNode) {
+   *   Foo doString(Object self, Object path, @Cached("build()") ExpectStringNode expectStringNode) {
    *     Context context = Context.get(this);
    *     java.lang.String pathCached = expectStringNode.execute(path);
    *     return Foo.create(context, pathCached);
@@ -388,16 +388,16 @@ public @interface Builtin {
    *     return ResolveFooNodeGen.create();
    *   }
    *
-   *   abstract Foo execute(Object _this, Object sub_path);
+   *   abstract Foo execute(Object self, Object sub_path);
    *
    *   {@link Specilization @Specialization}
-   *   Foo doFoo(Foo _this, Foo sub_path) {
-   *     return _this.resolve(sub_path);
+   *   Foo doFoo(Foo self, Foo sub_path) {
+   *     return self.resolve(sub_path);
    *   }
    *   {@link Specilization @Specialization}
-   *   Foo doString(Foo _this, Object sub_path, @Cached("build()") ExpectStringNode expectStringNode) {
+   *   Foo doString(Foo self, Object sub_path, @Cached("build()") ExpectStringNode expectStringNode) {
    *     java.lang.String sub_pathCached = expectStringNode.execute(sub_path);
-   *     return _this.resolve(sub_pathCached);
+   *     return self.resolve(sub_pathCached);
    *   }
    * }
    * </pre>
@@ -427,11 +427,11 @@ public @interface Builtin {
    *     return SetFooNodeGen.create();
    *   }
    *
-   *   abstract Foo execute(Object _this, @org.enso.interpreter.dsl.AcceptsWarning Object value);
+   *   abstract Foo execute(Object self, @org.enso.interpreter.dsl.AcceptsWarning Object value);
    *
    *   {@link Specilization @Specialization}
-   *   Foo doWithWarnings(Foo _this, org.enso.interpreter.runtime.error.WithWarnings value) {
-   *     return _this.set(value);
+   *   Foo doWithWarnings(Foo self, org.enso.interpreter.runtime.error.WithWarnings value) {
+   *     return self.set(value);
    *   }
    * }
    * </pre>

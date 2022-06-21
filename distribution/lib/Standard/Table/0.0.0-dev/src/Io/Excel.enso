@@ -32,39 +32,39 @@ type Excel_Range
 
     ## Gets the name of the sheet.
     sheet_name : Text
-    sheet_name = this.java_range.getSheetName
+    sheet_name = self.java_range.getSheetName
 
     ## Gets the index (1-based) of the top row of the range.
        Returns `Nothing` if referring to a complete column.
     top_row : Integer | Nothing
-    top_row = if this.java_range.isWholeColumn then Nothing else
-        this.java_range.getTopRow
+    top_row = if self.java_range.isWholeColumn then Nothing else
+        self.java_range.getTopRow
 
     ## Gets the index (1-based) of the bottom row of the range.
        Returns `Nothing` if referring to a complete column.
     bottom_row : Integer | Nothing
-    bottom_row = if this.java_range.isWholeColumn then Nothing else
-        this.java_range.getBottomRow
+    bottom_row = if self.java_range.isWholeColumn then Nothing else
+        self.java_range.getBottomRow
 
     ## Gets the index (1-based) of the left column of the range.
        Returns `Nothing` if referring to a complete row.
     left_column : Integer | Nothing
-    left_column = if this.java_range.isWholeRow then Nothing else
-        this.java_range.getLeftColumn
+    left_column = if self.java_range.isWholeRow then Nothing else
+        self.java_range.getLeftColumn
 
     ## Gets the index (1-based) of the right column of the range.
        Returns `Nothing` if referring to a complete row.
     right_column : Integer | Nothing
-    right_column = if this.java_range.isWholeRow then Nothing else
-        this.java_range.getRightColumn
+    right_column = if self.java_range.isWholeRow then Nothing else
+        self.java_range.getRightColumn
 
     ## Gets the address to this in A1 format.
     address : Text
-    address = this.java_range.getAddress
+    address = self.java_range.getAddress
 
     ## Displays the Excel_Range.
     to_text : Text
-    to_text = "Excel_Range " + this.address
+    to_text = "Excel_Range " + self.address
 
     ## Validates if a column index (1-based) is within the valid range for
        Excel.

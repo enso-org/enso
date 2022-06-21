@@ -19,7 +19,7 @@ public class InvokeNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object _this, Object target, Object name, Array arguments) {
+  Object execute(Object self, Object target, Object name, Array arguments) {
     try {
       return library.invokeMember(target, expectStringNode.execute(name), arguments.getItems());
     } catch (UnsupportedMessageException

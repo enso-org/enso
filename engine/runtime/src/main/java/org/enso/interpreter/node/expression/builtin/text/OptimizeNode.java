@@ -18,16 +18,16 @@ public abstract class OptimizeNode extends Node {
     return OptimizeNodeGen.create();
   }
 
-  abstract Object execute(Object _this, Object text);
+  abstract Object execute(Object self, Object text);
 
   @Specialization
-  Text doText(Object _this, Text text) {
+  Text doText(Object self, Text text) {
     toJavaStringNode.execute(text);
     return text;
   }
 
   @Fallback
-  Object doOther(Object _this, Object that) {
+  Object doOther(Object self, Object that) {
     return that;
   }
 }

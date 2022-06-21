@@ -75,7 +75,7 @@ public abstract class MethodGenerator {
         + targetReturnType(returnTpe)
         + " execute("
         + thisParamTpe
-        + " _this"
+        + " self"
         + paramsDef
         + ")"
         + (isAbstract ? ";" : "");

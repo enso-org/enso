@@ -14,32 +14,32 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Big_Integer", name = "==", description = "Big integer equality.")
 public abstract class EqualsNode extends Node {
 
-  abstract boolean execute(Object _this, Object that);
+  abstract boolean execute(Object self, Object that);
 
   static EqualsNode build() {
     return EqualsNodeGen.create();
   }
 
   @Specialization
-  boolean doBigInt(EnsoBigInteger _this, EnsoBigInteger that) {
-    return BigIntegerOps.equals(_this.getValue(), that.getValue());
+  boolean doBigInt(EnsoBigInteger self, EnsoBigInteger that) {
+    return BigIntegerOps.equals(self.getValue(), that.getValue());
   }
 
   @Specialization
-  boolean doDouble(EnsoBigInteger _this, double that) {
-    return BigIntegerOps.toDouble(_this.getValue()) == that;
+  boolean doDouble(EnsoBigInteger self, double that) {
+    return BigIntegerOps.toDouble(self.getValue()) == that;
   }
 
   @Specialization
   boolean doAtom(
-      Atom _this, Atom that, @Cached("getBigIntegerConstructor()") AtomConstructor bigIntCons) {
-    var thisCons = _this.getConstructor();
+      Atom self, Atom that, @Cached("getBigIntegerConstructor()") AtomConstructor bigIntCons) {
+    var thisCons = self.getConstructor();
     var thatCons = that.getConstructor();
     return (thatCons == bigIntCons) && (thisCons == thatCons);
   }
 
   @Fallback
-  boolean doOther(Object _this, Object that) {
+  boolean doOther(Object self, Object that) {
     return false;
   }
 

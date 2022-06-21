@@ -24,10 +24,10 @@ public abstract class GetStateNode extends Node {
     return GetStateNodeGen.create();
   }
 
-  abstract Object execute(@MonadicState Object state, Object _this, Object key);
+  abstract Object execute(@MonadicState Object state, Object self, Object key);
 
   @Specialization(guards = {"state.getKey() == key"})
-  Object doSingleton(SingletonMap state, Object _this, Object key) {
+  Object doSingleton(SingletonMap state, Object self, Object key) {
     return state.getValue();
   }
 
@@ -35,7 +35,7 @@ public abstract class GetStateNode extends Node {
       guards = {"state.getKeys() == cachedKeys", "key == cachedKey", "idx != NOT_FOUND"})
   Object doMultiCached(
       SmallMap state,
-      Object _this,
+      Object self,
       Object key,
       @Cached("key") Object cachedKey,
       @Cached(value = "state.getKeys()", dimensions = 1) Object[] cachedKeys,
@@ -44,7 +44,7 @@ public abstract class GetStateNode extends Node {
   }
 
   @Specialization
-  Object doMultiUncached(SmallMap state, Object _this, Object key) {
+  Object doMultiUncached(SmallMap state, Object self, Object key) {
     int idx = state.indexOf(key);
     if (idx == SmallMap.NOT_FOUND) {
       return DataflowError.withoutTrace(
@@ -55,13 +55,13 @@ public abstract class GetStateNode extends Node {
   }
 
   @Specialization
-  Object doEmpty(EmptyMap state, Object _this, Object key) {
+  Object doEmpty(EmptyMap state, Object self, Object key) {
     return DataflowError.withoutTrace(
         Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }
 
   @Specialization
-  Object doSingletonError(SingletonMap state, Object _this, Object key) {
+  Object doSingletonError(SingletonMap state, Object self, Object key) {
     return DataflowError.withoutTrace(
         Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }

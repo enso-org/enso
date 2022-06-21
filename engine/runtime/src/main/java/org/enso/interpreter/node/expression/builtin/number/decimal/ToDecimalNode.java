@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Decimal", name = "to_decimal", description = "Identity on decimals")
 public class ToDecimalNode extends Node {
-  double execute(double _this) {
-    return _this;
+  double execute(double self) {
+    return self;
   }
 }

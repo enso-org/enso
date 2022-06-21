@@ -23,16 +23,16 @@ public abstract class CaughtPanicConvertToDataflowErrorNode extends Node {
     return CaughtPanicConvertToDataflowErrorNodeGen.create();
   }
 
-  abstract Stateful execute(@MonadicState Object state, Atom _this);
+  abstract Stateful execute(@MonadicState Object state, Atom self);
 
   @Specialization
   Stateful doExecute(
       @MonadicState Object state,
-      Atom _this,
+      Atom self,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Object payload = _this.getFields()[0];
-    Object originalException = _this.getFields()[1];
+    Object payload = self.getFields()[0];
+    Object originalException = self.getFields()[1];
     if (interopLibrary.isException(originalException)) {
       return new Stateful(
           state, DataflowError.withTrace(payload, (AbstractTruffleException) originalException));

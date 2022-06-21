@@ -296,7 +296,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   ): Seq[Suggestion] =
     arguments.map { argument =>
       val thisArg = IR.DefinitionArgument.Specified(
-        name         = IR.Name.This(argument.name.location),
+        name         = IR.Name.Self(argument.name.location),
         ascribedType = None,
         defaultValue = None,
         suspended    = false,
@@ -451,7 +451,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       } else {
         vargs match {
           case IR.DefinitionArgument.Specified(
-                name: IR.Name.This,
+                name: IR.Name.Self,
                 _,
                 defaultValue,
                 suspended,

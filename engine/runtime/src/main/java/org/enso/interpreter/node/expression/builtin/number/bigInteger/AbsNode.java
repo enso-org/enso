@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public class AbsNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  Object execute(EnsoBigInteger _this) {
-    return toEnsoNumberNode.execute(BigIntegerOps.abs(_this.getValue()));
+  Object execute(EnsoBigInteger self) {
+    return toEnsoNumberNode.execute(BigIntegerOps.abs(self.getValue()));
   }
 }

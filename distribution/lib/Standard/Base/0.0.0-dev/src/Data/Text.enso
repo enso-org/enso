@@ -27,10 +27,10 @@ type Text
     + : Text -> Text
     + that = @Builtin_Method "Text.+"
 
-    ## Checks whether `this` is equal to `that`.
+    ## Checks whether `self` is equal to `that`.
 
        Arguments:
-       - that: The text to compare `this` for equality with.
+       - that: The text to compare `self` for equality with.
 
        ! Unicode Equality
          The definition of equality includes Unicode canonicalization. I.e. two
@@ -45,5 +45,5 @@ type Text
 
              ('é' == 'e\u0301') == True
     == : Any -> Boolean
-    == that = if Meta.is_same_object this Text then Meta.is_same_object that Text else
-        Text_Utils.equals this that
+    == that = if Meta.is_same_object self Text then Meta.is_same_object that Text else
+        Text_Utils.equals self that

@@ -247,6 +247,7 @@
 - [Added a full-blown DSL for builtins][3471]
 - [Lazy evaluation of RHS argument for || and &&][3492]
 - [Drop Core implementation of IR][3512]
+- [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -276,6 +277,7 @@
 [3493]: https://github.com/enso-org/enso/pull/3493
 [3505]: https://github.com/enso-org/enso/pull/3505
 [3512]: https://github.com/enso-org/enso/pull/3512
+[3524]: https://github.com/enso-org/enso/pull/3524
 [3531]: https://github.com/enso-org/enso/pull/3531
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

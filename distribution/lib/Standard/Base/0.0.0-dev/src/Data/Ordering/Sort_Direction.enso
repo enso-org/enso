@@ -21,6 +21,6 @@ type Sort_Direction
 
     ## Convert into the sign of the direction
     to_sign : Integer
-    to_sign = case this of
+    to_sign = case self of
         Ascending -> 1
         Descending -> -1

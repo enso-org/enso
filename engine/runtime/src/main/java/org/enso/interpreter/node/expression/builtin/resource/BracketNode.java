@@ -52,7 +52,7 @@ public abstract class BracketNode extends Node {
   abstract Stateful execute(
       @MonadicState Object state,
       VirtualFrame frame,
-      Object _this,
+      Object self,
       @Suspend Object constructor,
       Object destructor,
       Object action);
@@ -61,7 +61,7 @@ public abstract class BracketNode extends Node {
   Stateful doBracket(
       Object state,
       VirtualFrame frame,
-      Object _this,
+      Object self,
       Object constructor,
       Object destructor,
       Object action,

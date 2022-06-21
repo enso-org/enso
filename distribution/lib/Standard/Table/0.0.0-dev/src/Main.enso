@@ -53,7 +53,7 @@ from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Colu
              headers = Examples.simple_table_json_headers
              json.to_table headers
 Json.Array.to_table : Vector -> Table
-Json.Array.to_table fields = case this of
+Json.Array.to_table fields = case self of
     Json.Array items ->
         rows = items.map item-> case item of
             Json.Object fs ->
@@ -97,8 +97,8 @@ Json.Array.to_table fields = case this of
              json.to_table
 Json.Object.to_table : Vector -> Table ! Invalid_Format_Error
 Json.Object.to_table fields=Nothing =
-    if this.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error this "not being a feature collection") else
-        case this.get "features" of
+    if self.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error self "not being a feature collection") else
+        case self.get "features" of
             Json.Array items ->
                 feature_rows = items.map .get_feature_row
                 column_names = case fields of
@@ -114,7 +114,7 @@ Json.Object.to_table fields=Nothing =
                     [n, rows.map (_.at i)]
                 Table.new cols
 
-            _ -> Error.throw (Invalid_Format_Error this "not having the 'features' key.")
+            _ -> Error.throw (Invalid_Format_Error self "not having the 'features' key.")
 
 ## UNSTABLE
 
@@ -126,4 +126,4 @@ type Invalid_Format_Error input message
    Provides a human-readable representation of the Invalid_Format_Error.
 Invalid_Format_Error.to_display_text : Text
 Invalid_Format_Error.to_display_text =
-    "The input " + this.input.to_text + " had an invalid format due to: " + this.message.to_text + "."
+    "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."

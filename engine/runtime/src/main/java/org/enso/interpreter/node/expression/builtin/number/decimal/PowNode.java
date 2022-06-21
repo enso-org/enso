@@ -13,29 +13,29 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = "^", description = "Exponentiation of numbers.")
 public abstract class PowNode extends Node {
-  abstract double execute(double _this, Object that);
+  abstract double execute(double self, Object that);
 
   static PowNode build() {
     return PowNodeGen.create();
   }
 
   @Specialization
-  double doDouble(double _this, double that) {
-    return Math.pow(_this, that);
+  double doDouble(double self, double that) {
+    return Math.pow(self, that);
   }
 
   @Specialization
-  double doLong(double _this, long that) {
-    return Math.pow(_this, that);
+  double doLong(double self, long that) {
+    return Math.pow(self, that);
   }
 
   @Specialization
-  double doBigInteger(double _this, EnsoBigInteger that) {
-    return Math.pow(_this, BigIntegerOps.toDouble(that.getValue()));
+  double doBigInteger(double self, EnsoBigInteger that) {
+    return Math.pow(self, BigIntegerOps.toDouble(that.getValue()));
   }
 
   @Fallback
-  double doOther(double _this, Object that) {
+  double doOther(double self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

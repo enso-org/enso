@@ -23,7 +23,7 @@ public class DebugEvalNode extends Node {
   }
 
   Stateful execute(
-      CallerInfo callerInfo, @MonadicState Object state, Object _this, Object expression) {
+      CallerInfo callerInfo, @MonadicState Object state, Object self, Object expression) {
     return evalNode.execute(callerInfo, state, expectTextNode.execute(expression));
   }
 }

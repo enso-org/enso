@@ -13,10 +13,10 @@ public abstract class AnyToDisplayTextNode extends Node {
     return AnyToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doShowType(Object _this, @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
-    return Text.create(typeToDisplayTextNode.execute(_this));
+  Text doShowType(Object self, @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
+    return Text.create(typeToDisplayTextNode.execute(self));
   }
 }

@@ -37,5 +37,5 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
      If set to `Ignore`, the operation proceeds without errors or warnings.
 File.File.read : File_Format -> Problem_Behavior -> Any ! File_Error
 File.File.read (format=File_Format.Auto) (on_problems=Report_Warning) =
-    format.read this on_problems
+    format.read self on_problems
 

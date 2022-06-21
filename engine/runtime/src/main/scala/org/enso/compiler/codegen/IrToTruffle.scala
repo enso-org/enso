@@ -523,7 +523,7 @@ class IrToTruffle(
     val schema = new FunctionSchema(
       new ArgumentDefinition(
         0,
-        "this",
+        Constants.Names.SELF_ARGUMENT,
         ArgumentDefinition.ExecutionMode.EXECUTE
       )
     )
@@ -541,7 +541,7 @@ class IrToTruffle(
         new FunctionSchema(
           new ArgumentDefinition(
             0,
-            "this",
+            Constants.Names.SELF_ARGUMENT,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
@@ -1094,10 +1094,10 @@ class IrToTruffle(
           }
         case IR.Name.Here(_, _, _) =>
           ConstructorNode.build(moduleScope.getAssociatedType)
-        case IR.Name.This(location, passData, _) =>
+        case IR.Name.Self(location, passData, _) =>
           processName(
             IR.Name.Literal(
-              Constants.Names.THIS_ARGUMENT,
+              Constants.Names.SELF_ARGUMENT,
               isReferent = false,
               isMethod   = false,
               location,
@@ -1189,7 +1189,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.ThisArg =>
+        case err: Error.Redefined.SelfArg =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))

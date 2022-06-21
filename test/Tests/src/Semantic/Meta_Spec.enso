@@ -8,7 +8,7 @@ polyglot java import java.util.Random
 
 type My_Type foo bar baz
 
-My_Type.my_method = this.foo + this.bar + this.baz
+My_Type.my_method = self.foo + self.bar + self.baz
 
 type Test_Type x
 
