@@ -23,7 +23,7 @@ type Custom_Type_With_To_Text
     type Custom_Type_With_To_Text field
 
     to_text : Text
-    to_text = "[CUSTOM = " + this.field.to_text + "]"
+    to_text = "[CUSTOM = " + self.field.to_text + "]"
 
 type Custom_Type_With_Error
     type Custom_Type_With_Error

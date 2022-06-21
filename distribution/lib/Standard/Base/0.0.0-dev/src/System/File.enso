@@ -758,7 +758,7 @@ type Output_Stream
        Useful when integrating with polyglot functions requiring an
        `OutputStream` as an argument.
     with_java_stream : (Java_Output_Stream -> Any) -> Any
-    with_java_stream f = this.stream_resource . with f
+    with_java_stream f = self.stream_resource . with f
 
 
 ## An input stream, allowing for interactive reading of contents from an open
