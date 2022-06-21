@@ -217,11 +217,11 @@ impl Style {
             section_layout <- section_layout_data.map(
                 |(_,heading,divider_height,divider_color,favourites_section_base_color)|{
                 SectionStyle{
-                        heading:heading.clone(),
-                        divider_height:*divider_height,
-                        divider_color:*divider_color,
-                        favourites_section_base_color:*favourites_section_base_color
-                    }
+                    heading:heading.clone(),
+                    divider_height:*divider_height,
+                    divider_color:*divider_color,
+                    favourites_section_base_color:*favourites_section_base_color
+                }
             });
             content_layout_data <- all5(
                 &init,
@@ -241,7 +241,7 @@ impl Style {
             });
 
             menu_layout_data <- all4(&init,&menu_height,&menu_divider_color,&menu_divider_height);
-            menu_layou <- menu_layout_data.map(|(_,height,divider_color,divider_height)|{
+            menu_layout <- menu_layout_data.map(|(_,height,divider_color,divider_height)|{
                 MenuStyle {
                     height:*height,
                     divider_height:*divider_height,
@@ -249,7 +249,7 @@ impl Style {
                 }
             });
 
-            layout_data <- all4(&init,&content_layout,&section_layout,&menu_layou);
+            layout_data <- all4(&init,&content_layout,&section_layout,&menu_layout);
             layout <- layout_data.map(|(_,content,section,menu)| {
                 Style {
                     content:content.clone(),
@@ -425,12 +425,9 @@ impl Model {
         self.background.bg_color.set(style.content.background_color.into());
         self.background.size.set(style.size());
 
-        self.local_scope_section
-            .content
-            .set_position_x(style.content.padding + style.content.size.x / 2.0);
-        self.local_scope_section
-            .content
-            .set_width(style.size_inner().x - 2.0 * style.content.padding);
+        let local_scope_content = &self.local_scope_section.content;
+        local_scope_content.set_position_x(style.content.padding + style.content.size.x / 2.0);
+        local_scope_content.set_width(style.size_inner().x - 2.0 * style.content.padding);
         self.local_scope_section.content.set_color(style.section.favourites_section_base_color);
         self.local_scope_section.label.set_content(LOCAL_SCOPE_SECTION_HEADING_LABEL);
 
@@ -461,8 +458,8 @@ impl Model {
 
         self.favourites_section.set_base_position_y(0.0, style);
         self.local_scope_section.set_base_position_y(-favourites_section_height, style);
-        self.sub_modules_section
-            .set_base_position_y(-favourites_section_height - local_scope_height, style);
+        let sub_modules_position = -favourites_section_height - local_scope_height;
+        self.sub_modules_section.set_base_position_y(sub_modules_position, style);
 
         let full_height = favourites_section_height + local_scope_height + sub_modules_height;
         self.scroll_area.set_content_height(full_height);
@@ -527,6 +524,7 @@ impl<T: CloneRef> LabeledSection<T> {
         self.label.set_default_color(style.section.heading.color);
         self.label.set_default_text_size(style.section.heading.size);
         self.label.set_font(style.section.heading.font.clone());
+        // TODO[MM]: These magic numbers will be removed with https://github.com/enso-org/enso/pull/3537
         self.label.set_position_y(-0.75 * style.section.heading.size.raw);
         self.label.set_position_x(3.0 + style.content.padding);
     }
@@ -588,7 +586,8 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
     fn height(&self, style: &Style) -> f32 {
         let label_height = style.section.heading.height();
         let body_height = self.content.height();
-        let next_section_offset = 17.0; // TODO[MM] this should not be needed.
+        // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
+        let next_section_offset = 17.0;
         body_height + label_height + next_section_offset
     }
 
@@ -596,19 +595,22 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
     fn set_base_position_y(&self, position_y: f32, style: &Style) {
         match SECTION_HEADER_PLACEMENT {
             SectionHeaderPlacement::Top => {
+                // TODO[MM] This magic number will be removed with https://github.com/enso-org/enso/pull/3537
                 let label_pos = position_y - self.label.height.value() / 1.5;
                 self.label.set_position_y(label_pos);
                 self.divider.set_position_y(position_y);
-                let content_position_y =
-                    position_y - style.section.heading.offset - style.section.heading.height();
+                let offset_from_top = style.section.heading.offset + style.section.heading.height();
+                let content_position_y = position_y - offset_from_top;
                 self.content.set_position_top_y(content_position_y);
             }
             SectionHeaderPlacement::Bottom => {
-                let label_pos =
-                    position_y - self.content.height() - self.label.height.value() / 1.5;
+                // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
+                let offset_from_top = self.content.height() - self.label.height.value() / 1.5;
+                let label_pos = position_y - offset_from_top;
                 self.label.set_position_y(label_pos);
-                let divider_pos =
-                    position_y - self.content.height() - style.section.divider_height + 1.0;
+                let divider_offset = self.content.height() - style.section.divider_height;
+                // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
+                let divider_pos = position_y - divider_offset + 1.0;
                 self.divider.set_position_y(divider_pos);
                 self.content.set_position_top_y(position_y);
             }
