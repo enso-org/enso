@@ -46,7 +46,7 @@ final class PatchableLiteralNode extends ExpressionNode implements Patchable, Pr
   @Override
   public boolean test(IR.Expression ir) {
     var newValue = parseLiteralIr(ir);
-    if (newValue != null) {
+    if (newValue != null && this.value.getClass() == newValue.getClass()) {
       this.value = newValue;
       return true;
     } else {
