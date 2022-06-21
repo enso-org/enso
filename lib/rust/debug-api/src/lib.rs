@@ -151,7 +151,11 @@ macro_rules! window_prop_getter {
             use wasm_bindgen::JsCast;
             let window = web_sys::window()?;
             let prop = $prop;
-            Some(js_sys::Reflect::get(&window, &prop.into()).ok()?.unchecked_into())
+            let val = js_sys::Reflect::get(&window, &prop.into()).ok()?;
+            if val.is_undefined() {
+                return None;
+            }
+            Some(val.unchecked_into())
         }
     };
 }
