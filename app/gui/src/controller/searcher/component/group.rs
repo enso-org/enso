@@ -22,15 +22,16 @@ use ensogl::data::color;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Data {
-    pub name:         ImString,
-    pub color:        Option<color::Rgb>,
+    pub name:          ImString,
+    pub color:         Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
     /// contains.
-    pub component_id: Option<component::Id>,
-    pub entries:      RefCell<Vec<Component>>,
+    pub component_id:  Option<component::Id>,
+    pub entries:       RefCell<Vec<Component>>,
     /// A flag indicating that the group should be displayed in the Component Browser. It may be
     /// hidden in some scenarios, e.g. when all items are filtered out.
-    pub visible:      Cell<bool>,
+    pub visible:       Cell<bool>,
+    pub matched_items: Cell<usize>,
 }
 
 impl Data {
@@ -41,6 +42,7 @@ impl Data {
             component_id,
             entries: default(),
             visible: Cell::new(true),
+            matched_items: Cell::new(0),
         }
     }
 }
@@ -92,11 +94,12 @@ impl Group {
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
-                name:         group.name.clone(),
-                color:        group.color,
-                component_id: None,
-                visible:      Cell::new(true),
-                entries:      RefCell::new(looked_up_components),
+                name:          group.name.clone(),
+                color:         group.color,
+                component_id:  None,
+                visible:       Cell::new(true),
+                matched_items: Cell::new(looked_up_components.len()),
+                entries:       RefCell::new(looked_up_components),
             };
             Group { data: Rc::new(group_data) }
         })
@@ -119,6 +122,9 @@ impl Group {
                     a.match_info.borrow().cmp(&*b.match_info.borrow())
                 };
                 entries.sort_by(|a, b| cmp_match_info(a, b).reverse());
+                let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
+                DEBUG!("Setting matched items count in group \"{self.name}\" to {matched_items}");
+                self.matched_items.set(matched_items);
             }
         }
         self.update_visibility();

@@ -342,7 +342,7 @@ pub(crate) mod tests {
             .entries
             .borrow()
             .iter()
-            .filter(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
+            .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
             .map(|c| *c.id)
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
@@ -368,6 +368,13 @@ pub(crate) mod tests {
         let list = builder.build();
 
         list.update_filtering("fu");
+        let match_infos = list.top_modules()[0]
+            .entries
+            .borrow()
+            .iter()
+            .map(|c| c.match_info.borrow().clone())
+            .collect_vec();
+        DEBUG!("{match_infos:?}");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
 

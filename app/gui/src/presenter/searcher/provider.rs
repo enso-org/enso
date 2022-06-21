@@ -172,7 +172,7 @@ impl Component {
 
 impl list_view::entry::ModelProvider<component_group_view::Entry> for Component {
     fn entry_count(&self) -> usize {
-        self.group.len()
+        self.group.matched_items.get()
     }
 
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
@@ -225,5 +225,5 @@ pub fn from_component_group(
 pub fn from_component_group_list(
     groups: &impl AsRef<controller::searcher::component::group::List>,
 ) -> Vec<LabeledAnyModelProvider> {
-    groups.as_ref().iter().map(from_component_group).collect()
+    groups.as_ref().iter().filter(|c| c.visible.get()).map(from_component_group).collect()
 }
