@@ -2,7 +2,10 @@ package org.enso.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -47,5 +50,15 @@ public class JDBCProxy {
     if (!com.amazon.redshift.jdbc.Driver.isRegistered()) {
       com.amazon.redshift.jdbc.Driver.register();
     }
+  }
+
+  public static String[] getStringColumn(ResultSet resultSet, String column)
+    throws SQLException {
+    int colIndex = resultSet.findColumn(column);
+    List<String> values = new ArrayList<>();
+    while (resultSet.next()) {
+      values.add(resultSet.getString(colIndex));
+    }
+    return values.toArray(String[]::new);
   }
 }

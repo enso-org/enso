@@ -56,6 +56,20 @@ type Connection
     close =
         self.connection_resource . finalize
 
+    databases : [Text]
+    databases =
+        here.wrap_sql_errors <|
+            metadata = this.connection_resource . getMetaData
+            schema_result_set = metadata.getCatalogs
+            Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_CAT")
+
+    schemas : [Text]
+    schemas =
+        here.wrap_sql_errors <|
+            metadata = this.connection_resource . getMetaData
+            schema_result_set = metadata.getSchemas
+            Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_SCHEM")
+
     ## ADVANCED
 
        Executes a raw query and returns the result as an in-memory Table.
@@ -295,6 +309,7 @@ type Builder
     make_column name =
         storage = self.java_builder.seal
         Java_Exports.make_column name storage
+
 
 ## An error indicating that a supported dialect could not be deduced for the
    provided URL.
