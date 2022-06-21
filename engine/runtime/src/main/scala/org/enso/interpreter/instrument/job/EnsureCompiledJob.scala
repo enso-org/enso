@@ -249,10 +249,13 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     ctx.locking.acquireReadCompilationLock()
     ctx.locking.acquirePendingEditsLock()
     try {
-      val pendingEdits    = ctx.state.pendingEdits.dequeue(file)
-      val edits           = pendingEdits.map(_.edit)
-      val shouldRecompile = pendingEdits.exists(_.execute)
-      val changeset       = ctx.executionService.modifyModuleSources(file, edits)
+      val pendingEdits = ctx.state.pendingEdits.dequeue(file)
+      val edits        = pendingEdits.map(_.edit)
+      val shouldRecompile =
+        pendingEdits.exists(_.execute) || pendingEdits.isEmpty
+      ctx.executionService.getLogger
+        .log(Level.FINE, s"applyEdits recompile=$shouldRecompile edits=$edits")
+      val changeset = ctx.executionService.modifyModuleSources(file, edits)
       Option.when(shouldRecompile)(changeset)
     } finally {
       ctx.locking.releasePendingEditsLock()

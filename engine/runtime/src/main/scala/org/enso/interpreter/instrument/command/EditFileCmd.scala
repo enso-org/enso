@@ -26,9 +26,9 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     try {
       val edits = request.edits.map(edit => PendingEdit(edit, request.execute))
       ctx.state.pendingEdits.enqueue(request.path, edits)
+      ctx.jobControlPlane.abortAllJobs()
       ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
       if (request.execute) {
-        ctx.jobControlPlane.abortAllJobs()
         executeJobs.foreach(ctx.jobProcessor.run)
       }
       Future.successful(())
