@@ -10,6 +10,3 @@ export Standard.Database.Connection.Connection
 from Standard.Database.Connection.Database export all
 
 import Standard.Table.Data.Table
-import Standard.Table.Data.Order_Rule
-from Standard.Table.Data.Table export No_Such_Column_Error
-from Standard.Table.Data.Order_Rule export Order_Rule

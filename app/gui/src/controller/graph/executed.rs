@@ -6,6 +6,7 @@
 
 use crate::prelude::*;
 
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
@@ -173,6 +174,11 @@ impl Handle {
         module: model::module::QualifiedName,
     ) -> FallibleResult {
         self.execution_ctx.modify_visualization(id, Some(code), Some(module)).await
+    }
+
+    /// See [`model::ExecutionContext::component_groups`].
+    pub fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
+        self.execution_ctx.component_groups()
     }
 
     /// Subscribe to updates about changes in this executed graph.

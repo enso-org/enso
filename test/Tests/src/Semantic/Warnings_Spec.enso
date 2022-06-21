@@ -119,7 +119,7 @@ spec = Test.group "Dataflow Warnings" <|
         warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
         warnings = Warning.get_all warned
         filtered = warnings.filter x-> x.value % 2 == 0
-        rewarned = Warning.set filtered warned
+        rewarned = Warning.set warned filtered
         rewarned.should_equal 'foo'
         Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
 

@@ -206,7 +206,8 @@ rename_columns internal_columns mapping on_problems =
    - text_ordering: The sort methodology to use.
 sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
 sort_columns internal_columns direction text_ordering =
-    mapper = case text_ordering.case_sensitive of
+    case_sensitive = text_ordering.case_sensitive.if_nothing True
+    mapper = case case_sensitive of
         True -> _.name
         Case_Insensitive locale ->
             col -> col.name.to_case_insensitive_key locale=locale
@@ -360,9 +361,8 @@ validate_unique vector problem_callback on=(x->x) =
 type Column_Transform_Element column associated_selector
 
 ## PRIVATE
-prepare_order_by : Vector -> Problem_Behavior -> Vector Column_Transform_Element
-prepare_order_by internal_columns column_selectors on_problems =
-    problem_builder = Problem_Builder.new
+prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
+prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
         Sort_Column_Selector.By_Name name_selectors matcher ->
             here.select_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor=(_.name)
@@ -372,7 +372,7 @@ prepare_order_by internal_columns column_selectors on_problems =
             here.select_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor=(_.column)
     if selected_elements.is_empty then
         problem_builder.report_other_warning No_Input_Columns_Selected
-    problem_builder.attach_problems_after on_problems selected_elements
+    selected_elements
 
 ## PRIVATE
    A helper function which can be used by methods that transform a subset of

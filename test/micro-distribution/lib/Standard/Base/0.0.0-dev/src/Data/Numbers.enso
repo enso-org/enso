@@ -1,0 +1,7 @@
+type Number
+    @Builtin_Type
+    type Number
+
+type Integer
+    @Builtin_Type
+    type Integer

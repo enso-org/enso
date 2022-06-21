@@ -1,6 +1,5 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
@@ -27,13 +26,12 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       AtomConstructor atomConstructor,
       String methodName) {
-    super(
-        language,
+    super(language,
         localScope,
         moduleScope,
         body,
         section,
-        shortName(atomConstructor.getName(), methodName));
+        shortName(atomConstructor.getName(), methodName), null, false);
     this.atomConstructor = atomConstructor;
     this.methodName = methodName;
   }
@@ -146,5 +144,8 @@ public class MethodRootNode extends ClosureRootNode {
         notifyInserted(newNode);
         return newNode;
     }
+  }
+  public boolean isSubjectToInstrumentation() {
+    return true;
   }
 }

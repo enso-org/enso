@@ -31,7 +31,9 @@ debug-assertions = true
 
 [profile.release]
 opt-level = 3
-lto = true
+lto = "thin"
+codegen-units = 16
+incremental = true
 debug = false
 debug-assertions = false
 
@@ -59,4 +61,5 @@ debug = false
 debug-assertions = true
 #[patch."https://github.com/enso-org/ci-build"]
 #enso-build = { path = '../ci-build/build' }
+#enso-build-cli = { path = '../ci-build/cli' }
 #ide-ci = { path = '../ci-build/ci_utils' }

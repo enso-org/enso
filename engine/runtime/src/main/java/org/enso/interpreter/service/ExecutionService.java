@@ -12,18 +12,17 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.compiler.context.Changeset;
 import org.enso.compiler.context.ChangesetBuilder;
 import org.enso.interpreter.instrument.Endpoint;
-import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
-import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
@@ -54,7 +53,7 @@ import org.enso.text.editing.model;
  */
 public class ExecutionService {
   private final Context context;
-  private final IdExecutionInstrument idExecutionInstrument;
+  private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
   private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
@@ -64,15 +63,15 @@ public class ExecutionService {
    * Creates a new instance of this service.
    *
    * @param context the language context to use.
-   * @param idExecutionInstrument an instance of the {@link IdExecutionInstrument} to use in the
-   *     course of executions.
+   * @param idExecutionInstrument optional instance of the {@link IdExecutionService} to use in the
+   *     course of executions
    * @param notificationForwarder a forwarder of notifications, used to communicate with the user
    * @param connectedLockManager a connected lock manager (if it is in use) that should be connected
    *     to the language server, or null
    */
   public ExecutionService(
       Context context,
-      IdExecutionInstrument idExecutionInstrument,
+      Optional<IdExecutionService> idExecutionInstrument,
       NotificationHandler.Forwarder notificationForwarder,
       ConnectedLockManager connectedLockManager) {
     this.idExecutionInstrument = idExecutionInstrument;
@@ -142,9 +141,9 @@ public class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
+      Consumer<IdExecutionService.ExpressionCall> funCallCallback,
+      Consumer<IdExecutionService.ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionService.ExpressionValue> onCachedCallback,
       Consumer<Exception> onExceptionalCallback)
       throws ArityException, SourceNotFoundException, UnsupportedMessageException,
           UnsupportedTypeException {
@@ -152,26 +151,26 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    LocationFilter locationFilter = LocationFilter.create(module.getIr(), src);
-
-    EventBinding<ExecutionEventListener> listener =
-        idExecutionInstrument.bind(
-            call.getFunction().getCallTarget(),
-            locationFilter,
-            cache,
-            methodCallsCache,
-            syncState,
-            nextExecutionItem,
-            funCallCallback,
-            onComputedCallback,
-            onCachedCallback,
-            onExceptionalCallback);
+    Optional<EventBinding<ExecutionEventListener>> listener =
+        idExecutionInstrument.map(
+            service ->
+                service.bind(
+                    module,
+                    call.getFunction().getCallTarget(),
+                    cache,
+                    methodCallsCache,
+                    syncState,
+                    nextExecutionItem,
+                    funCallCallback,
+                    onComputedCallback,
+                    onCachedCallback,
+                    onExceptionalCallback));
     Object p = context.getThreadManager().enter();
     try {
       interopLibrary.execute(call);
     } finally {
       context.getThreadManager().leave(p);
-      listener.dispose();
+      listener.ifPresent(binding -> binding.dispose());
     }
   }
 
@@ -199,9 +198,9 @@ public class ExecutionService {
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
+      Consumer<IdExecutionService.ExpressionCall> funCallCallback,
+      Consumer<IdExecutionService.ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionService.ExpressionValue> onCachedCallback,
       Consumer<Exception> onExceptionalCallback)
       throws ArityException, ConstructorNotFoundException, MethodNotFoundException,
           ModuleNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
@@ -293,7 +292,8 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public ChangesetBuilder<Rope> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public Changeset<Rope> modifyModuleSources(
+      File path, scala.collection.immutable.Seq<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (moduleMay.isEmpty()) {
       throw new ModuleNotFoundForFileException(path);
@@ -310,6 +310,9 @@ public class ExecutionService {
             module.getIr(),
             TextEditor.ropeTextEditor(),
             IndexedSource.RopeIndexedSource());
+
+    Changeset<Rope> result = changesetBuilder.build(edits);
+
     JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
         .fold(
             failure -> {
@@ -317,10 +320,12 @@ public class ExecutionService {
                   path, edits, failure, module.getLiteralSource());
             },
             rope -> {
-              module.setLiteralSource(rope);
+              var su = result.simpleUpdate();
+              module.setLiteralSource(rope, su.isDefined() ? su.get() : null);
               return new Object();
             });
-    return changesetBuilder;
+
+    return result;
   }
 
   /**

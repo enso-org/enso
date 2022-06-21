@@ -242,9 +242,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     ctx.locking.acquireReadCompilationLock()
     try {
       val edits = ctx.state.pendingEdits.dequeue(file)
-      val suggestionBuilder = ctx.executionService
-        .modifyModuleSources(file, edits.asJava)
-      suggestionBuilder.build(edits)
+      ctx.executionService.modifyModuleSources(file, edits)
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)

@@ -6,20 +6,21 @@ type Warning
     ## PRIVATE
 
        The constructor to wrap primitive warnings.
-    type Warning prim_warning
+    @Builtin_Type
+    type Warning
 
     ## UNSTABLE
 
        Returns the warning value – usually its explanation or other contents.
     value : Any
-    value = Prim_Warning.get_value this.prim_warning
+    value = @Builtin_Method "Warning.value"
 
     ## UNSTABLE
        ADVANCED
 
        A stack trace for the original warning creation.
     origin : Vector.Vector Stack_Trace_Element
-    origin = Prim_Warning.get_origin this.prim_warning
+    origin = @Builtin_Method "Warning.origin"
 
     ## UNSTABLE
        ADVANCED
@@ -39,11 +40,27 @@ type Warning
          nature is preserved.
     reassignments : Vector.Vector Stack_Trace_Element
     reassignments =
-        Vector.Vector (Prim_Warning.get_reassignments this.prim_warning) . map r->
+        Vector.Vector this.get_reassignments . map r->
             loc = case Polyglot.has_source_location r of
                 False -> Nothing
                 True -> Source_Location (Polyglot.get_source_location r)
             Stack_Trace_Element (Polyglot.get_executable_name r) loc
+
+    ## PRIVATE
+
+       Builtin method for getting the list of locations where the warnings was reassigned.
+       Should use `Warning.reassignments` instead.
+    get_reassignments : Any
+    get_reassignments = @Builtin_Method "Warning.get_reassignments"
+
+## PRIVATE
+
+   Creates a new instance of the primitive warning value.
+   Arguments:
+   - payload: value to which a Warning will be associated with.
+   - origin: stacktrace representing the location where the warning is being created at.
+create : Any -> Any -> Warning
+create payload origin = @Builtin_Method "Warning.create"
 
 ## UNSTABLE
 
@@ -51,23 +68,51 @@ type Warning
 attach : Any -> Any -> Any
 attach warning value =
     origin = Runtime.get_stack_trace
-    Prim_Warning.attach value warning (origin.drop_start 1)
+    here.attach_with_stacktrace value warning (origin.drop_start 1)
+
+## PRIVATE
+
+   Builtin utility function which attaches a new warning to the value
+   and, compared to `Warning.attach` requires an explicit stacktrace associated with it.
+attach_with_stacktrace : Any -> Any -> Vector.Vector Stack_Trace_Element -> Any
+attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
 
 ## UNSTABLE
 
    Gets all the warnings attached to the given value. Warnings are returned in the
    reverse-chronological order with respect to their attachment time.
 get_all : Any -> Vector.Vector Warning
-get_all value =
-    Vector.Vector (Prim_Warning.get_all value) . map Warning
+get_all value = Vector.Vector (here.get_all_array value)
+
+
+## PRIVATE
+
+   Builtin function that gets all the warnings attached to the given value.
+get_all_array : Any -> Array Warning
+get_all_array value = @Builtin_Method "Warning.get_all_array"
 
 ## UNSTABLE
    ADVANCED
 
    Sets a new list of warnings for the given value. Any warnings already present
    in `value` will be lost.
-set warnings value =
-    Prim_Warning.set value (warnings.map .prim_warning).to_array
+
+   Arguments:
+   - value: the value to which warnings should be set to.
+   - warnings: vector of warnings to set to the value.
+set : Any -> Vector.Vector Warning -> Any
+set value warnings = here.set_array value warnings.to_array
+
+## PRIVATE
+
+   Sets a new list of warnings for the given value. Any warnings already present
+   in `value` will be lost.
+
+   Arguments:
+   - value: the value to which warnings should be set to.
+   - warnings: array of warnings to set to the value.
+set_array : Any -> Array Warning -> Any
+set_array value warnings = @Builtin_Method "Warning.set_array"
 
 ## UNSTABLE
    Maps warnings attached to a value.
@@ -125,18 +170,18 @@ map_warnings_and_errors mapper value =
 map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
 map_attached_warnings_helper mapper value frames_to_drop =
     warnings = here.get_all value
-    prim_mapped_warnings = warnings.map warning->
+    mapped_warnings = warnings.map warning->
         case mapper warning.value of
             Maybe.Some new_payload ->
                 self_call_name = "Warning.map_attached_warnings_helper"
                 stack_trace = Runtime.get_stack_trace
                 stack_trace_up_to_this_function = stack_trace.drop_while element-> element.name != self_call_name
                 new_origin = stack_trace_up_to_this_function.drop_start 1+frames_to_drop
-                Prim_Warning.create new_payload new_origin
+                here.create new_payload new_origin
             ## If the mapper did not want to affect this warning, we return the
                original (unwrapped) warning instance.
-            Nothing -> warning.prim_warning
-    Prim_Warning.set value prim_mapped_warnings.to_array
+            Nothing -> warning
+    here.set value mapped_warnings
 
 ## UNSTABLE
    A helper function which selects warnings matching a predicate and returns a
@@ -189,37 +234,3 @@ merge_matched_warnings value matcher merger =
         new_warnings = merger (result.second.map .value)
         new_warnings.fold result.first acc-> warning->
             Warning.attach warning acc
-
-## PRIVATE
-type Prim_Warning
-
-    ## PRIVATE
-    type Prim_Warning
-
-    ## PRIVATE
-    attach : Any -> Any -> Any -> Any
-    attach value warning origin = @Builtin_Method "Prim_Warning.attach"
-
-    ## PRIVATE
-    create : Any -> Any -> Prim_Warning
-    create payload origin = @Builtin_Method "Prim_Warning.create"
-
-    ## PRIVATE
-    get_all : Any -> Array Prim_Warning
-    get_all value = @Builtin_Method "Prim_Warning.get_all"
-
-    ## PRIVATE
-    set : Any -> Array Prim_Warning -> Any
-    set value warnings = @Builtin_Method "Prim_Warning.set"
-
-    ## PRIVATE
-    get_origin : Prim_Warning -> Any
-    get_origin warn = @Builtin_Method "Prim_Warning.get_origin"
-
-    ## PRIVATE
-    get_value : Prim_Warning -> Any
-    get_value warn = @Builtin_Method "Prim_Warning.get_value"
-
-    ## PRIVATE
-    get_reassignments : Prim_Warning -> Any
-    get_reassignments warn = @Builtin_Method "Prim_Warning.get_reassignments"

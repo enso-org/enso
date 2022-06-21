@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.type;
 
+import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 
@@ -39,6 +40,8 @@ public class TypesFromProxy {
         return builtins.dataflowError().newInstance();
       case ConstantsGen.FUNCTION:
         return builtins.function().newInstance();
+      case ConstantsGen.FILE:
+        return builtins.file().newInstance();
       case ConstantsGen.INTEGER:
         return builtins.number.getInteger().newInstance();
       case ConstantsGen.MANAGED_RESOURCE:
@@ -54,7 +57,7 @@ public class TypesFromProxy {
       case ConstantsGen.TEXT:
         return builtins.text().newInstance();
       default:
-        return null;
+        throw new CompilerError("Invalid builtin type " + typeName);
     }
   }
 }

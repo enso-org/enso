@@ -49,10 +49,12 @@
      break ties in descending order.
 
          import Standard.Examples
+         import Standard.Table.Data.Sort_Column_Selector
+         import Standard.Table.Data.Sort_Column
 
          example_sort =
              table = Examples.inventory_table
-             table.sort by=["total_stock", "sold_stock"] order=Sort_Direction.Descending
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
    > Example
      Compute the number of transactions that each item has participated in, as

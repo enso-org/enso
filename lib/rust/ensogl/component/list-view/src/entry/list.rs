@@ -222,6 +222,11 @@ impl<E: Entry> ListData<E, E::Params> {
         self.recreate_entries_with_style_prefix(style_prefix);
     }
 
+    /// Get previously set entry params.
+    pub fn entry_params(&self) -> E::Params {
+        self.entry_params.borrow().clone_ref()
+    }
+
     /// Update displayed entries, giving new provider. New entries created by the function have
     /// their maximum width set to `max_width_px` and use the styles located at the `style_prefix`
     /// path.
