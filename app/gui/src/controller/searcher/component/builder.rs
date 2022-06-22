@@ -74,17 +74,15 @@ pub struct List {
 
 impl List {
     /// Construct List builder without content.
-    ///
-    /// Components passed to [`extend`] having their parent module ID equal to
-    /// `local_scope_module_id` (if set) will be cloned into [`component::List::local_scope`].
-    pub fn new(local_scope_module_id: Option<component::Id>) -> Self {
-        Self {
-            all_components: default(),
-            module_groups: default(),
-            local_scope_module_id,
-            local_scope_entries: default(),
-            favorites: default(),
-        }
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Return [`List`] with the [`local_scope_module_id`] field set to `id`. When the field is
+    /// set, components passed to [`extend`] having their parent module ID equal to
+    /// [`local_scope_module_id`] will be cloned into [`component::List::local_scope`].
+    pub fn with_local_scope_module_id(self, id: component::Id) -> Self {
+        Self { local_scope_module_id: Some(id), ..self }
     }
 
     /// Extend the list with new entries looked up by ID in suggestion database.
@@ -227,7 +225,7 @@ mod tests {
     fn building_component_list() {
         let logger = Logger::new("tests::module_groups_in_component_list");
         let suggestion_db = mock_suggestion_db(logger);
-        let mut builder = List::new(Some(0));
+        let mut builder = List::new().with_local_scope_module_id(0);
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
         builder.extend(&suggestion_db, first_part);

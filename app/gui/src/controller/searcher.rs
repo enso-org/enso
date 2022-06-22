@@ -1174,8 +1174,10 @@ fn component_list_builder_with_favorites<'a>(
     local_scope_module: &QualifiedName,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
 ) -> component::builder::List {
-    let local_scope = suggestion_db.lookup_by_qualified_name(local_scope_module).map(|(id, _)| id);
-    let mut builder = component::builder::List::new(local_scope);
+    let mut builder = component::builder::List::new();
+    if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
+        builder = builder.with_local_scope_module_id(id);
+    }
     builder.set_favorites(suggestion_db, groups);
     builder
 }

@@ -310,7 +310,7 @@ pub(crate) mod tests {
             suggestion_db.put_entry(id, entry.clone())
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
-        let mut builder = builder::List::new(Some(0));
+        let mut builder = builder::List::new().with_local_scope_module_id(0);
         builder.set_favorites(&suggestion_db, &favorites);
         builder.extend(&suggestion_db, 0..4);
         let list = builder.build();
@@ -349,7 +349,7 @@ pub(crate) mod tests {
         // Create a components list with sample data.
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
-        let mut builder = builder::List::new(Some(0));
+        let mut builder = builder::List::new().with_local_scope_module_id(0);
         builder.extend(&suggestion_db, 0..11);
         let list = builder.build();
 
