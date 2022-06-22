@@ -383,10 +383,6 @@ public class LongStorage extends NumericStorage {
     return new LongStorage(newData, newSize, newMask);
   }
 
-  @Override
-  protected String getPresentCsvString(int index, Function<Object, String> toCsvString) {
-    return String.valueOf(getItem(index));
-  }
 
   @Override
   public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {

@@ -158,10 +158,6 @@ public class ObjectStorage extends Storage {
     return new ObjectStorage(newData, newSize);
   }
 
-  @Override
-  protected String getPresentCsvString(int index, Function<Object, String> toCsvString) {
-    return toCsvString.apply(getItem(index));
-  }
 
   @Override
   public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {

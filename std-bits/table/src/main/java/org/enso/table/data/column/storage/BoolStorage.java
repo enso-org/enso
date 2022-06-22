@@ -321,10 +321,6 @@ public class BoolStorage extends Storage {
         negated);
   }
 
-  @Override
-  public String getPresentCsvString(int index, Function<Object, String> toCsvString) {
-    return getItem(index) ? "True" : "False";
-  }
 
   @Override
   public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {

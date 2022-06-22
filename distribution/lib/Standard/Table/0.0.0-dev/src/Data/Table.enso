@@ -32,7 +32,6 @@ import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import java.io.StringReader
@@ -1032,29 +1031,6 @@ type Table
         mask = OrderBuilder.buildReversedMask self.row_count
         Table <| self.java_table.applyMask mask
 
-    ## UNSTABLE
-
-       Returns a Text containing this table serialized to CSV.
-
-       Arguments:
-       - include_header: Specifies whether the first line of generated CSV
-         should contain the column names.
-       - always_quote: Specifies whether all fields in the resulting CSV should
-         be quoted. When this is set to `False`, only the fields containing the
-         `separator` in their contents will be quoted.
-       - separator: a sequence used to separate fields within a single row.
-       - line_ending: the style of line-endings to use in the generated CSV.
-
-       > Example
-         Convert a table to CSV.
-
-             import Standard.Examples
-
-             example_to_csv = Examples.inventory_table.to_csv
-    to_csv : Boolean -> Boolean -> Text -> Line_Ending_Style.Line_Ending_Style -> Text
-    to_csv include_header=True always_quote=False separator=',' line_ending=Line_Ending_Style.Unix =
-        Csv_Writer.writeString self.java_table include_header always_quote line_ending.to_text separator .to_csv_field
-
     ## ALIAS Write Excel File
        UNSTABLE
 
@@ -1115,7 +1091,7 @@ type Table
 
              import Standard.Examples
 
-             example_to_csv = Examples.inventory_table.write_json (Enso_Project.data / 'example.json')
+             example_to_json = Examples.inventory_table.write_json (Enso_Project.data / 'example.json')
     write_json : File.File -> Nothing
     write_json file = self.to_json.to_text.write file
 

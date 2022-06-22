@@ -48,7 +48,7 @@ spec =
     Test.group 'Writing' <|
         Test.specify 'should properly serialize simple tables' <|
             varied_column = (Enso_Project.data / "varied_column.csv") . read
-            res = varied_column.to_csv
+            res = Text.from varied_column format=(File_Format.Delimited ",")
             exp = '''
                 Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
                 2005-02-25,2005-02-25,1,1,1.0,1
@@ -61,20 +61,19 @@ spec =
                 2005-03-08,2005-03-08,8,8,8.0,osiem\n
             res.should_equal exp
 
-        Test.specify 'should properly handle quoting of records and allow specifying separators and newlines' <|
+        Test.specify 'should properly handle quoting of records and allow specifying separators' <|
             c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
             c2 = ['grade', [10, 20, 'hello;world']]
             t = Table.new [c1, c2]
 
-            expected_wrong_newline = """
+            expected = """
                 name;grade
                 "Robert"");DROP TABLE Students;--";10
                 "This;Name;;Is""""Strange";20
                 Marcin,,;"hello;world"
 
-            expected = expected_wrong_newline.lines . join '\r\n'
-            res = t.to_csv separator=';' line_ending=Line_Ending_Style.Windows
-            res.should_equal expected+'\r\n'
+            res = Text.from t format=(File_Format.Delimited ";")
+            res.should_equal expected+'\n'
 
         Test.specify 'should allow forced quoting of records'
             c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
@@ -83,11 +82,11 @@ spec =
 
             expected = """
                 "name","grade"
-                "Robert"");DROP TABLE Students;--","10"
-                "This;Name;;Is""""Strange","20"
+                "Robert"");DROP TABLE Students;--",10
+                "This;Name;;Is""""Strange",20
                 "Marcin,,","hello;world"
 
-            res = t.to_csv always_quote=True
+            res = Text.from t format=(File_Format.Delimited "," . with_quotes always_quote=True)
             res.should_equal expected+'\n'
 
 
