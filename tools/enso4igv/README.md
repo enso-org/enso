@@ -19,7 +19,7 @@ major operating systems.
 
 Visit [GraalVM.org](http://graalvm.org) download page and continue towards
 _enterprise edition_ option. There is an _Ideal Graph Visualizer_ option. After
-clicking thru the confirmation dialogs you should get a ZIP - I've just got
+clicking through the confirmation dialogs you should get a ZIP - I've just got
 `idealgraphvisualizer-22.1.0.zip` and then:
 
 ```bash
@@ -31,23 +31,23 @@ launches the _IGV_ application. One doesn't have to use the `--userdir` option,
 but doing so ensures the newly running _IGV_ process is isolated from any
 settings left around by previous usage of _IGV_.
 
-Now download
-[Enso Language Support module](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml).
-Follow the
+IGV understands Enso when
+[Enso Language Support module](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
+is installed. Login to GitHub, follow the
 [GitHub actions link](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
-and select a build (usually the latest one). The build summary page provides
-various information as well as list of artifacts at the bottom. Download the
-_Enso IGV Plugin_ ZIP file. Make sure you are logged into GitHub - artifacts are
-only available to those logged in. Unzip it and get `enso*.nbm` file. This file
-can be installed into _IGV_ (or any other [NetBeans](http://netbeans.apache.org)
-based application). Go to _Tools_/_Plugins_/_Downloaded_ and install the NBM
-file.
+and select a build. Unless you have some special needs choose the latest one.
+The build summary page provides various information as well as list of artifacts
+at the bottom. Download the _Enso IGV Plugin_ ZIP file (make sure you are logged
+into GitHub - artifacts are only available to those logged in). Unzip it and get
+`enso*.nbm` file. This file can be installed into _IGV_ (or any other
+[NetBeans](http://netbeans.apache.org) based application). Go to
+_Tools_/_Plugins_/_Downloaded_/_Add Plugins_ and select the NBM file.
 
 ![Tools/Plugins/Downloaded](https://user-images.githubusercontent.com/26887752/174608153-9f0b54fa-b507-45be-83de-d7911186d121.png)
 
 Proceed by clicking _Install_. You may be asked to download _TextMate Lexer_ - a
-necessary dependency of the _Enso support_ module. Continue thru the wizard to
-_finish_ the installation.
+necessary dependency of the _Enso support_ module. Continue through the wizard
+to _finish_ the installation.
 
 ![Tools/Plugins/Downloaded](https://user-images.githubusercontent.com/26887752/174608219-1faf2728-0045-478b-a297-e3c06f691b19.png)
 
@@ -55,14 +55,10 @@ _finish_ the installation.
 
 Get an instance of the Enso runtime engine (see
 [Running Enso](../../docs/CONTRIBUTING.md#running-enso)) and then launch it with
-special Java options:
+special `--dump-graphs` option:
 
 ```bash
-enso$ JAVA_OPTS="-Dpolyglot.engine.AllowExperimentalOptions=true\
- -Dpolyglot.engine.TraceCompilation=true\
- -Dpolyglot.engine.MultiTier=false\
- -Dgraal.Dump=Truffle:1"\
- ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run yourprogram.enso
+enso$ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --dump-graphs --run yourprogram.enso
 ```
 
 When executed on [GraalVM 21.3.0](http://graalvm.org) these options instruct the
@@ -94,14 +90,14 @@ graal_dumps/2022.06.20.06.18.21.733/TruffleHotSpotCompilation-9935[Primes.next_<
 ```
 
 Let's launch IGV with Enso integration and let's open graph for one of the
-top-most functions: `TruffleHotSpotCompilation*Primes_next*.bgv`. Choose
+top-most functions: `TruffleHotSpotCompilation*Primes*next*.bgv`. Choose
 compilation phase _"Before lowering"_:
 
 ![Before Lowering Graph](https://user-images.githubusercontent.com/26887752/174608397-331a4438-1f12-40b0-9fcd-59eda5e53fb6.png)
 
 Now you can inspect the _compiler graphs_ the regular _IGV_ way. Let's locate
 for example `LoadField#FunctionSchema.isFullyApplied` node and let's check how
-it got _inlined_:
+it got _inlined_(you can use search box in the top-right corner)
 
 ![Inlining Stacktrace](https://user-images.githubusercontent.com/26887752/174608478-e7002c43-d746-42c0-b61c-92ceb9d9f124.png)
 
