@@ -12,25 +12,24 @@ use ensogl::data::color;
 
 
 
-// =============
-// === Order ===
-// =============
+// ====================
+// === EntriesOrder ===
+// ====================
 
 #[derive(Copy, Clone, Debug)]
-pub enum Order {
-    AlphabeticallyNonModulesThenModules,
-    ByMatchInfoReverse,
+pub enum EntriesOrder {
+    ByNameNonModulesThenModules,
+    ByMatch,
 }
 
-impl Order {
+impl EntriesOrder {
     fn compare(&self, a: &Component, b: &Component) -> std::cmp::Ordering {
         match self {
-            Order::AlphabeticallyNonModulesThenModules => {
+            EntriesOrder::ByNameNonModulesThenModules => {
                 let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
                 cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
             }
-            Order::ByMatchInfoReverse =>
-                a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse(),
+            EntriesOrder::ByMatch => a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse(),
         }
     }
 }
@@ -134,7 +133,7 @@ impl Group {
 
     /// Update the group sorting according to the current filtering pattern and call
     /// [`update_visibility`].
-    pub fn update_sorting_and_visibility(&self, order: Order) {
+    pub fn update_sorting_and_visibility(&self, order: EntriesOrder) {
         // The `sort_by_key` method is not suitable here, because the closure it takes
         // cannot return reference nor [`Ref`], and we don't want to copy anything here.
         self.entries.borrow_mut().sort_by(|a, b| order.compare(a, b));

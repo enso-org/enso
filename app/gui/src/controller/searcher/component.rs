@@ -168,9 +168,9 @@ impl List {
         }
         let pattern_not_empty = !pattern.is_empty();
         let sort_order = if pattern_not_empty {
-            group::Order::ByMatchInfoReverse
+            group::EntriesOrder::ByMatch
         } else {
-            group::Order::AlphabeticallyNonModulesThenModules
+            group::EntriesOrder::ByNameNonModulesThenModules
         };
         for group in self.all_groups_not_in_favorites() {
             group.update_sorting_and_visibility(sort_order);
