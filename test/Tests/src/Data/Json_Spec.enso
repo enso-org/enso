@@ -6,7 +6,7 @@ type Author name year_of_birth
 type Book title author
 
 Text.should_fail_parsing_with expected =
-    as_fail = case Json.parse this of
+    as_fail = case Json.parse self of
         _ -> Test.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch e-> case e of
         Json.Parse_Error msg ->
@@ -21,10 +21,10 @@ Text.should_fail_parsing_with expected =
         fail -> Panic.throw fail
 
 Text.should_parse_as expected =
-    Test.Verbs.equal (Json.parse this) expected.to_json
+    Test.Verbs.equal (Json.parse self) expected.to_json
 
 Text.should_render_itself =
-    Test.Verbs.equal (Json.parse this . to_text) this
+    Test.Verbs.equal (Json.parse self . to_text) self
 
 spec =
     Test.group "JSON Deserialization" <|

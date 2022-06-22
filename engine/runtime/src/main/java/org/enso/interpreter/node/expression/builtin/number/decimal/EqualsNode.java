@@ -13,37 +13,37 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = "==", description = "Equality on numbers.")
 public abstract class EqualsNode extends Node {
-  abstract boolean execute(Object _this, Object that);
+  abstract boolean execute(Object self, Object that);
 
   static EqualsNode build() {
     return EqualsNodeGen.create();
   }
 
   @Specialization
-  boolean doDouble(double _this, double that) {
-    return _this == that;
+  boolean doDouble(double self, double that) {
+    return self == that;
   }
 
   @Specialization
-  boolean doLong(double _this, long that) {
-    return _this == (double) that;
+  boolean doLong(double self, long that) {
+    return self == (double) that;
   }
 
   @Specialization
-  boolean doBigInteger(double _this, EnsoBigInteger that) {
-    return _this == BigIntegerOps.toDouble(that.getValue());
+  boolean doBigInteger(double self, EnsoBigInteger that) {
+    return self == BigIntegerOps.toDouble(that.getValue());
   }
 
   @Specialization
   boolean doAtom(
-      Atom _this, Atom that, @Cached("getDecimalConstructor()") AtomConstructor decimalCons) {
+      Atom self, Atom that, @Cached("getDecimalConstructor()") AtomConstructor decimalCons) {
     var thatCons = that.getConstructor();
-    var thisCons = _this.getConstructor();
+    var thisCons = self.getConstructor();
     return (thatCons == decimalCons) && (thisCons == thatCons);
   }
 
   @Fallback
-  boolean doOther(Object _this, Object that) {
+  boolean doOther(Object self, Object that) {
     return false;
   }
 

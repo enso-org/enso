@@ -7,7 +7,7 @@ polyglot java import java.lang.NullPointerException
 polyglot java import java.lang.StringBuilder
 
 ## Creates a new test group, describing properties of the object
-   described by `this`.
+   described by `self`.
 
    Arguments:
    - specs: An action encapsulating a number of test specs or groups.
@@ -26,7 +26,7 @@ polyglot java import java.lang.StringBuilder
 Suite.run_main : Any -> Nothing
 Suite.run_main ~specs =
     config = here.config_from_env
-    r = this.run specs config
+    r = self.run specs config
     code = if r.is_fail then 1 else 0
     System.exit code
 
@@ -79,7 +79,7 @@ config_from_env =
 
 
 ## Creates a new test group, describing properties of the object
-   described by `this`.
+   described by `self`.
 
    Arguments:
    - specs: An action encapsulating a number of test specs or groups.
@@ -105,7 +105,7 @@ Suite.run ~specs config =
 
 
 ## Creates a new test group, describing properties of the object
-   described by `this`.
+   described by `self`.
 
    Arguments:
    - name: The name of the test group.
@@ -136,7 +136,7 @@ group name ~behaviors pending=Nothing =
             reason ->
                 here.report_pending_group name reason config suite.builder
 
-## Specifies a single behavior, described by `this`.
+## Specifies a single behavior, described by `self`.
 
    Arguments:
    - label: A description of the behavior being tested.
@@ -179,7 +179,7 @@ specify label ~behavior pending=Nothing =
    - verb: The property (see `Verbs`) being asserted
    - argument: The argument to the verb.
 Any.should : (Verbs -> Any -> Any) -> Any -> Assertion
-Any.should verb argument = verb Verbs this argument
+Any.should verb argument = verb Verbs self argument
 
 ## Fail a test with the given message.
 
@@ -200,7 +200,7 @@ fail message =
 ## Expect a function to fail with the provided dataflow error.
 
    Arguments:
-   - matcher: The expected type of dataflow error contained in `this`.
+   - matcher: The expected type of dataflow error contained in `self`.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -215,12 +215,12 @@ fail message =
 Any.should_fail_with : Any -> Integer -> Assertion
 Any.should_fail_with matcher frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    here.fail ("Expected an error " + matcher.to_text + " but no error occurred, instead got: " + this.to_text + " (at " + loc + ").")
+    here.fail ("Expected an error " + matcher.to_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
 
 ## Expect a function to fail with the provided dataflow error.
 
    Arguments:
-   - matcher: The expected type of dataflow error contained in `this`.
+   - matcher: The expected type of dataflow error contained in `self`.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -234,7 +234,7 @@ Any.should_fail_with matcher frames_to_skip=0 =
             Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Integer -> Assertion
 Error.should_fail_with matcher frames_to_skip=0 =
-    caught = this.catch x->x
+    caught = self.catch x->x
     if caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
         here.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
@@ -264,10 +264,10 @@ expect_panic_with ~action matcher =
     if err.is_a matcher then Nothing else
         here.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
-## Asserts that `this` value is equal to the expected value.
+## Asserts that `self` value is equal to the expected value.
 
    Arguments:
-   - that: The value to check `this` for equality with.
+   - that: The value to check `self` for equality with.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -279,17 +279,17 @@ expect_panic_with ~action matcher =
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Any.should_equal : Any -> Integer -> Assertion
-Any.should_equal that frames_to_skip=0 = case this == that of
+Any.should_equal that frames_to_skip=0 = case self == that of
     True -> Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
-        msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+        msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
         here.fail msg
 
-## Asserts that `this` value is not equal to the expected value.
+## Asserts that `self` value is not equal to the expected value.
 
    Arguments:
-   - that: The value to check `this` for equality with.
+   - that: The value to check `self` for equality with.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -301,17 +301,17 @@ Any.should_equal that frames_to_skip=0 = case this == that of
 
          example_should_not_equal = Examples.add_1_to 1 . should_not_equal 2
 Any.should_not_equal : Any -> Integer -> Assertion
-Any.should_not_equal that frames_to_skip=0 = case this != that of
+Any.should_not_equal that frames_to_skip=0 = case self != that of
     True -> Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
-        msg = this.to_text + " did equal " + that.to_text + " (at " + loc + ")."
+        msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
         here.fail msg
 
-## Asserts that `this` value is equal to the expected value.
+## Asserts that `self` value is equal to the expected value.
 
    Arguments:
-   - _: The value to check `this` for equality with.
+   - _: The value to check `self` for equality with.
 
    > Example
      Assert that one value should equal another,
@@ -321,12 +321,12 @@ Any.should_not_equal that frames_to_skip=0 = case this != that of
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Assertion
-Error.should_equal _ frames_to_skip=0 = here.fail_match_on_unexpected_error this 1+frames_to_skip
+Error.should_equal _ frames_to_skip=0 = here.fail_match_on_unexpected_error self 1+frames_to_skip
 
-## Asserts that `this` is within `epsilon` from `that`.
+## Asserts that `self` is within `epsilon` from `that`.
 
    Arguments:
-   - that: The value to compare `this` for equality with.
+   - that: The value to compare `self` for equality with.
    - epsilon: The epislon for comparing two decimal numbers.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
@@ -348,13 +348,13 @@ Error.should_equal _ frames_to_skip=0 = here.fail_match_on_unexpected_error this
 Decimal.should_equal : Decimal -> Decimal -> Integer -> Assertion
 Decimal.should_equal that epsilon=0 frames_to_skip=0 =
     matches = case that of
-        Number -> this.equals that epsilon
+        Number -> self.equals that epsilon
         _ -> False
     case matches of
         True -> Success
         False ->
             loc = Meta.get_source_location 2+frames_to_skip
-            msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+            msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
             Panic.throw (Failure msg)
 
 ## Asserts that the given `Boolean` is `True`
@@ -367,7 +367,7 @@ Decimal.should_equal that epsilon=0 frames_to_skip=0 =
 
          example_should_be_true = Examples.get_boolean . should_be_true
 Boolean.should_be_true : Assertion
-Boolean.should_be_true = case this of
+Boolean.should_be_true = case self of
     True -> Success
     False ->
         loc = Meta.get_source_location 2
@@ -383,7 +383,7 @@ Boolean.should_be_true = case this of
 
          example_should_be_true = Examples.get_boolean . should_be_true
 Error.should_be_true : Assertion
-Error.should_be_true = here.fail_match_on_unexpected_error this 1
+Error.should_be_true = here.fail_match_on_unexpected_error self 1
 
 ## Asserts that the given `Boolean` is `False`
 
@@ -395,7 +395,7 @@ Error.should_be_true = here.fail_match_on_unexpected_error this 1
 
          example_should_be_false = Examples.get_boolean . should_be_false
 Boolean.should_be_false : Assertion
-Boolean.should_be_false = case this of
+Boolean.should_be_false = case self of
     True ->
         loc = Meta.get_source_location 2
         Panic.throw (Failure "Expected True to be False (at "+loc+").")
@@ -411,12 +411,12 @@ Boolean.should_be_false = case this of
 
          example_should_be_false = Examples.get_boolean . should_be_false
 Error.should_be_false : Assertion
-Error.should_be_false = here.fail_match_on_unexpected_error this 1
+Error.should_be_false = here.fail_match_on_unexpected_error self 1
 
 ## Asserts that a value is of a given type.
 
    Arguments:
-   - typ: The type to assert that `this` is a value of.
+   - typ: The type to assert that `self` is a value of.
 
    > Examples
      Assert that 1 is of type Boolean.
@@ -425,17 +425,17 @@ Error.should_be_false = here.fail_match_on_unexpected_error this 1
 
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Assertion
-Any.should_be_a typ = if this.is_a typ then Success else
+Any.should_be_a typ = if self.is_a typ then Success else
     loc = Meta.get_source_location 0
     expected_type = Meta.get_qualified_type_name typ
-    actual_type = Meta.get_qualified_type_name this
+    actual_type = Meta.get_qualified_type_name self
     message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
     Panic.throw <| Failure message
 
 ## Asserts that a value is of a given type.
 
    Arguments:
-   - typ: The type to assert that `this` is a value of.
+   - typ: The type to assert that `self` is a value of.
 
    > Examples
      Assert that 1 is of type Integer.
@@ -444,9 +444,9 @@ Any.should_be_a typ = if this.is_a typ then Success else
 
          example_should_be_an = 1.should_be_an Integer
 Any.should_be_an : Any -> Assertion
-Any.should_be_an typ = this.should_be_a typ
+Any.should_be_an typ = self.should_be_a typ
 
-## Asserts that `this` value contains the same elements as `that`.
+## Asserts that `self` value contains the same elements as `that`.
 
    It only checks that all elements from one collection are also present in the
    other one. Arities of elements are not checked, so the collections can still
@@ -470,17 +470,17 @@ Any.should_be_an typ = this.should_be_a typ
 Any.should_contain_the_same_elements_as : Any -> Integer -> Assertion
 Any.should_contain_the_same_elements_as that frames_to_skip=0 =
     that.each element->
-        if this.contains element . not then
+        if self.contains element . not then
             loc = Meta.get_source_location 2+frames_to_skip
-            msg = "The collection (" + this.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
+            msg = "The collection (" + self.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
             here.fail msg
-    this.each element->
+    self.each element->
         if that.contains element . not then
             loc = Meta.get_source_location 2+frames_to_skip
             msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
             here.fail msg
 
-## Asserts that `this` value contains the same elements as `that`.
+## Asserts that `self` value contains the same elements as `that`.
 
    It only checks that all elements from one collection are also present in the
    other one. Arities of elements are not checked, so the collections can still
@@ -502,7 +502,7 @@ Any.should_contain_the_same_elements_as that frames_to_skip=0 =
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
 Error.should_contain_the_same_elements_as : Any -> Assertion
-Error.should_contain_the_same_elements_as _ frames_to_skip=0 = here.fail_match_on_unexpected_error this 1+frames_to_skip
+Error.should_contain_the_same_elements_as _ frames_to_skip=0 = here.fail_match_on_unexpected_error self 1+frames_to_skip
 
 
 type Verbs
@@ -547,7 +547,7 @@ type Verbs
        - argument: The provided value to check the `subject` for equality
          against.
     be : Any -> Any -> Assertion
-    be subject argument = this.equal subject argument
+    be subject argument = self.equal subject argument
 
     ## PRIVATE
 
@@ -569,13 +569,13 @@ type Suite_Config
     type Suite_Config only_group_regexp output_path
 
     should_run_group name =
-        regexp = this.only_group_regexp
+        regexp = self.only_group_regexp
         case regexp of
             Text -> name.matches regexp . catch (_->True)
             _ -> True
 
     should_output_junit =
-        this.output_path.is_nothing.not
+        self.output_path.is_nothing.not
 
 
 ## PRIVATE
@@ -610,19 +610,19 @@ type Behavior name result
 
    Checks if the behavior is a failure.
 Behavior.is_fail : Boolean
-Behavior.is_fail = this.result.is_fail
+Behavior.is_fail = self.result.is_fail
 
 ## PRIVATE
 
    Checks if the spec group contains any failures and hence fails itself.
 Spec.is_fail : Boolean
-Spec.is_fail = this.behaviors.any .is_fail
+Spec.is_fail = self.behaviors.any .is_fail
 
 ## PRIVATE
 
    Checks if the suite contains any failures, and hence fails itself.
 Suite.is_fail : Boolean
-Suite.is_fail = this.specs.any .is_fail
+Suite.is_fail = self.specs.any .is_fail
 
 ## PRIVATE
 
@@ -662,7 +662,7 @@ type Assertion
 
        Checks if the Assertion is a failure.
     is_fail : Boolean
-    is_fail = case this of
+    is_fail = case self of
         Success -> False
         Failure _ -> True
         Pending _ -> False
@@ -735,13 +735,13 @@ report_pending_group name reason config builder =
 Spec.print_report : Suite_Config -> (StringBuilder|Nothing) -> Nothing
 Spec.print_report config builder =
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (here.escape_xml this.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
-        builder.append (' tests="' + this.behaviors.length.to_text + '"')
-        builder.append (' disabled="' + this.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
-        builder.append (' errors="' + this.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
+        builder.append ('    <testsuite name="' + (here.escape_xml self.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append (' tests="' + self.behaviors.length.to_text + '"')
+        builder.append (' disabled="' + self.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
+        builder.append (' errors="' + self.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
         builder.append ('>\n')
 
-        this.behaviors.reverse.each behavior->
+        self.behaviors.reverse.each behavior->
             builder.append ('        <testcase name="' + (here.escape_xml behavior.name) + '">')
             case behavior.result of
                 Success -> Nothing
@@ -750,8 +750,8 @@ Spec.print_report config builder =
             builder.append '</testcase>\n'
         builder.append '    </testsuite>\n'
 
-    IO.println (this.name + ":")
-    this.behaviors.reverse.each behavior->
+    IO.println (self.name + ":")
+    self.behaviors.reverse.each behavior->
         case behavior.result of
             Success ->
                 IO.println ("    - " + behavior.name)

@@ -46,7 +46,7 @@ public class DefaultLongExports {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Long _this,
+        Long self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -54,7 +54,7 @@ public class DefaultLongExports {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Long _this, UnresolvedSymbol symbol)
+    static Function resolve(Long self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -103,7 +103,7 @@ public class DefaultLongExports {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Long _this,
+        Long self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
@@ -113,7 +113,7 @@ public class DefaultLongExports {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Long _this, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Long self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

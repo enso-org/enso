@@ -55,9 +55,9 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
-        df = this.reset_index.to_dataframe max_rows=show_rows
-        indices_count = this.context.meta_index.length
-        all_rows_count = this.row_count
+        df = self.reset_index.to_dataframe max_rows=show_rows
+        indices_count = self.context.meta_index.length
+        all_rows_count = self.row_count
         here.display_dataframe df indices_count all_rows_count format_terminal
 
     ## UNSTABLE
@@ -68,17 +68,17 @@ type Table
          - show_rows: the number of initial rows that should be displayed.
     print : Integer -> Nothing
     print show_rows=10 =
-        IO.println (this.display show_rows format_terminal=True)
+        IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
     ## UNSTABLE
 
        Converts this table into a JSON structure.
     to_json : Json
-    to_json = case this.internal_columns.is_empty of
+    to_json = case self.internal_columns.is_empty of
         True ->
             Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
-        False -> this.to_sql.to_json
+        False -> self.to_sql.to_json
 
     ## UNSTABLE
 
@@ -88,9 +88,9 @@ type Table
        - name: The name of the column to get.
     at : Text -> Column ! No_Such_Column_Error
     at name =
-        candidates = this.internal_columns + this.context.meta_index
+        candidates = self.internal_columns + self.context.meta_index
         internal = candidates.find (p -> p.name == name)
-        this.make_column internal . map_error (_ -> No_Such_Column_Error name)
+        self.make_column internal . map_error (_ -> No_Such_Column_Error name)
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -141,8 +141,8 @@ type Table
              table.select_columns (By_Column [column1, column2])
     select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.select_columns internal_columns=this.internal_columns selector=columns reorder=reorder on_problems=on_problems
-        this.updated_columns new_columns
+        new_columns = Table_Helpers.select_columns internal_columns=self.internal_columns selector=columns reorder=reorder on_problems=on_problems
+        self.updated_columns new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
@@ -190,8 +190,8 @@ type Table
              table.remove_columns (By_Column [column1, column2])
     remove_columns : Column_Selector -> Problem_Behavior -> Table
     remove_columns (columns = By_Index [0]) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.remove_columns internal_columns=this.internal_columns selector=columns on_problems=on_problems
-        this.updated_columns new_columns
+        new_columns = Table_Helpers.remove_columns internal_columns=self.internal_columns selector=columns on_problems=on_problems
+        self.updated_columns new_columns
 
     ## Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
@@ -244,8 +244,8 @@ type Table
              table.reorder_columns (By_Column [column1, column2])
     reorder_columns : Column_Selector -> Position.Position -> Problem_Behavior -> Table
     reorder_columns (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
-        new_columns = Table_Helpers.reorder_columns internal_columns=this.internal_columns selector=columns position=position on_problems=on_problems
-        this.updated_columns new_columns
+        new_columns = Table_Helpers.reorder_columns internal_columns=self.internal_columns selector=columns position=position on_problems=on_problems
+        self.updated_columns new_columns
 
     ## Returns a new table with the columns sorted by name according to the
        specified sort method. By default, sorting will be according to
@@ -271,8 +271,8 @@ type Table
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> Table
     sort_columns direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
-        new_columns = Table_Helpers.sort_columns internal_columns=this.internal_columns direction text_ordering
-        this.updated_columns new_columns
+        new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns direction text_ordering
+        self.updated_columns new_columns
 
     ## Returns a new table with the columns renamed based on either a mapping
        from the old name to the new or a positional list of new names.
@@ -299,10 +299,10 @@ type Table
        > Example
     rename_columns : Column_Mapping -> Problem_Behavior -> Table
     rename_columns (column_map=(Column_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
-        new_names = Table_Helpers.rename_columns internal_columns=this.internal_columns mapping=column_map on_problems=on_problems
+        new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems
         if new_names.is_error then new_names else
-            new_columns = this.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
-            this.updated_columns new_columns
+            new_columns = self.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
+            self.updated_columns new_columns
 
     ## PRIVATE
 
@@ -315,9 +315,9 @@ type Table
        as it comes from the same context.
     resolve : Text | Column -> Column
     resolve column = case column of
-        Text -> Panic.rethrow (this.at column)
+        Text -> Panic.rethrow (self.at column)
         _ ->
-            if Helpers.check_integrity this column then column else
+            if Helpers.check_integrity self column then column else
                 Panic.throw (Integrity_Error "Column "+column.name)
 
     ## UNSTABLE
@@ -337,13 +337,13 @@ type Table
              my_table.where (my_table.at "Status" == "Valid")
     where : Column -> Table
     where filter =
-        case Helpers.check_integrity this filter of
+        case Helpers.check_integrity self filter of
             False ->
                 Error.throw (Integrity_Error "Column "+filter.name)
             True ->
-                new_filters = this.context.where_filters + [filter.expression]
-                new_ctx = this.context.set_where_filters new_filters
-                this.updated_context new_ctx
+                new_filters = self.context.where_filters + [filter.expression]
+                new_ctx = self.context.set_where_filters new_filters
+                self.updated_context new_ctx
 
     ## UNSTABLE
 
@@ -377,8 +377,8 @@ type Table
              t2.to_dataframe
     limit : Integer -> Table
     limit max_rows =
-        new_ctx = this.context.set_limit max_rows
-        this.updated_context new_ctx
+        new_ctx = self.context.set_limit max_rows
+        self.updated_context new_ctx
 
     ## UNSTABLE
 
@@ -393,24 +393,24 @@ type Table
     set : Text -> Column -> Table
     set name column = case Helpers.ensure_name_is_sane name of
         True ->
-            is_used_in_index = this.context.meta_index.exists i-> i.name == name
+            is_used_in_index = self.context.meta_index.exists i-> i.name == name
             case is_used_in_index of
                 True -> Error.throw <| Illegal_State_Error "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
                 False ->
                     new_col = Internal_Column name column.sql_type column.expression
-                    replace = this.internal_columns.exists (c -> c.name == name)
+                    replace = self.internal_columns.exists (c -> c.name == name)
                     case replace of
                         True ->
-                            new_cols = this.internal_columns.map (c -> if c.name == name then new_col else c)
-                            this.updated_columns new_cols
+                            new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
+                            self.updated_columns new_cols
                         False ->
-                            this.updated_columns (this.internal_columns + [new_col])
+                            self.updated_columns (self.internal_columns + [new_col])
 
     ## UNSTABLE
 
        Returns the vector of columns contained in this table.
     columns : Vector Column
-    columns = this.internal_columns . map this.make_column
+    columns = self.internal_columns . map self.make_column
 
     ## UNSTABLE
 
@@ -420,19 +420,19 @@ type Table
        - index: The column to use as the index of the table.
     set_index : Text | Column | Vector Text -> Table
     set_index index = Panic.recover Any <|
-        new_index = (Helpers.unify_vector_singleton index).map (this.at >> .as_internal)
-        new_ctx = this.context.set_index new_index
-        new_cols = this.internal_columns.filter col->
+        new_index = (Helpers.unify_vector_singleton index).map (self.at >> .as_internal)
+        new_ctx = self.context.set_index new_index
+        new_cols = self.internal_columns.filter col->
             turned_into_index = new_index.exists i-> i.name == col.name
             turned_into_index.not
-        this.updated_context new_ctx . updated_columns new_cols
+        self.updated_context new_ctx . updated_columns new_cols
 
     ## UNSTABLE
 
        Returns the (possibly empty) list of indices for this table.
     indices : Vector Column
     indices =
-        this.context.meta_index.map this.make_column
+        self.context.meta_index.map self.make_column
 
     ## UNSTABLE
 
@@ -442,7 +442,7 @@ type Table
        Throws `No_Index_Set_Error` if there is no index set.
     index : Column | Vector Column ! Materialized_Table.No_Index_Set_Error
     index =
-        ixes = this.indices
+        ixes = self.indices
         len = ixes.length
         if len == 0 then Error.throw Materialized_Table.No_Index_Set_Error else
             if len == 1 then ixes.at 0 else ixes
@@ -503,9 +503,9 @@ type Table
 
              table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
+    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new
-        columns_for_ordering = Table_Helpers.prepare_order_by this.columns columns problem_builder
+        columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
             new_order_descriptors = columns_for_ordering.map selected_column->
                 internal_column = selected_column.column
@@ -514,9 +514,9 @@ type Table
                    propagate dataflow errors correctly. See:
                    https://www.pivotaltracker.com/story/show/181057718
                 Panic.throw_wrapped_if_error <|
-                    this.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
-            new_ctx = this.context.add_orders new_order_descriptors
-            this.updated_context new_ctx
+                    self.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
+            new_ctx = self.context.add_orders new_order_descriptors
+            self.updated_context new_ctx
 
     ## UNSTABLE
 
@@ -524,22 +524,22 @@ type Table
 
        Arguments:
        - other: the table being the right operand of this join operation.
-       - on: the column(s) or expression(s) of `this` that should be used as
-         the join key. If this argument is not provided, the index of `this`
+       - on: the column(s) or expression(s) of `self` that should be used as
+         the join key. If this argument is not provided, the index of `self`
          will be used.
-       - drop_unmatched: whether the rows of `this` without corresponding
+       - drop_unmatched: whether the rows of `self` without corresponding
          matches in `other` should be dropped from the result.
-       - left_suffix: a suffix that should be added to the columns of `this`
+       - left_suffix: a suffix that should be added to the columns of `self`
          when there's a name conflict with a column of `other`.
        - right_suffix: a suffix that should be added to the columns of `other`
-         when there's a name conflict with a column of `this`.
+         when there's a name conflict with a column of `self`.
 
-       The resulting table contains rows of `this` extended with rows of
+       The resulting table contains rows of `self` extended with rows of
        `other` with matching indexes. If the index in `other` is not unique,
-       the corresponding rows of `this` will be duplicated in the result.
+       the corresponding rows of `self` will be duplicated in the result.
     join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = case other of
-        Column _ _ _ _ _ -> this.join other.to_table on drop_unmatched left_suffix right_suffix
+        Column _ _ _ _ _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
         Table _ _ _ _ -> Panic.recover Any <|
             Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
             if left_suffix == right_suffix then
@@ -549,25 +549,25 @@ type Table
             # Prepare the left and right pairs of indices along which the join will be performed.
             left_join_index : Vector Internal_Column
             left_join_index = case on of
-                Nothing -> this.context.meta_index
+                Nothing -> self.context.meta_index
                 _ ->
-                    (Helpers.unify_vector_singleton on).map (this.resolve >> .as_internal)
+                    (Helpers.unify_vector_singleton on).map (self.resolve >> .as_internal)
             right_join_index = other.context.meta_index
             if left_join_index.length != right_join_index.length then
                 Panic.throw <| Illegal_State_Error "Cannot join with multi-indexes of different lengths."
 
             # TODO [RW] We may be able to avoid creating subqueries if there are no groups, orders or wheres,
             #  so it may be worth optimizing that here (#1515).
-            new_table_name = this.name + "_" + other.name
-            aliases = case this.name == other.name of
-                True -> [this.name+left_suffix, other.name+right_suffix]
-                False -> [this.name, other.name]
+            new_table_name = self.name + "_" + other.name
+            aliases = case self.name == other.name of
+                True -> [self.name+left_suffix, other.name+right_suffix]
+                False -> [self.name, other.name]
             left_alias = aliases.first
             right_alias = aliases.second
 
             # Ensure that the join indices (which are not directly visible to the user, but must be materialized in the sub-query)
             # get a fresh set of names, so that they do not collide with other parts of the query.
-            left_used_names = this.internal_columns_with_index.map .name
+            left_used_names = self.internal_columns_with_index.map .name
             left_join_index_fresh = here.freshen_columns left_used_names left_join_index
 
             # Create subqueries that encapsulate the original queries and provide needed columns.
@@ -576,7 +576,7 @@ type Table
             # valid in contexts whose from_spec is this subquery directly or it is a join containing this subquery.
             # TODO [RW] Not all of these included columns are actually usable from the external context, so
             #  in the future we may consider pruning some of them as additional optimization and simplification of the query.
-            left_config = this.context.as_subquery left_alias [this.internal_columns, this.context.meta_index, left_join_index_fresh]
+            left_config = self.context.as_subquery left_alias [self.internal_columns, self.context.meta_index, left_join_index_fresh]
             right_config = other.context.as_subquery right_alias [other.internal_columns, right_join_index]
 
             left_subquery = left_config.first
@@ -609,7 +609,7 @@ type Table
             new_limit = Nothing
             new_ctx = IR.Context new_from [] [] [] new_index new_limit
 
-            Table new_table_name this.connection new_columns new_ctx
+            Table new_table_name self.connection new_columns new_ctx
 
     ## ALIAS group, summarize
 
@@ -638,16 +638,16 @@ type Table
               table.aggregate [Group_By "Key", Count Nothing]
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns this
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
         on_problems.attach_problems_before validated.problems <|
             key_columns = validated.key_columns
             resolved_aggregates = validated.valid_columns
             key_expressions = key_columns.map .expression
-            new_ctx = this.context.set_groups key_expressions
+            new_ctx = self.context.set_groups key_expressions
             results = resolved_aggregates.map p->
                 agg = p.second
                 new_name = p.first
-                Aggregate_Helper.make_aggregate_column this agg new_name . catch
+                Aggregate_Helper.make_aggregate_column self agg new_name . catch
             partitioned = results.partition (_.is_an Internal_Column)
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
@@ -656,7 +656,7 @@ type Table
             new_columns = partitioned.first
             problems = partitioned.second
             on_problems.attach_problems_before problems <|
-                this.updated_context_and_columns new_ctx new_columns
+                self.updated_context_and_columns new_ctx new_columns
 
     ## Parsing values is not supported in database tables, the table has to be
        materialized first with `to_dataframe`.
@@ -674,9 +674,9 @@ type Table
        the columns.
     drop_missing_rows : Table
     drop_missing_rows =
-        filters = this.columns.map (c -> c.is_missing.not.expression)
-        new_ctx = this.context.set_where_filters (this.context.where_filters + filters)
-        this.updated_context new_ctx
+        filters = self.columns.map (c -> c.is_missing.not.expression)
+        new_ctx = self.context.set_where_filters (self.context.where_filters + filters)
+        self.updated_context new_ctx
 
     ## Returns a new Table without columns that contained any missing values.
 
@@ -687,29 +687,29 @@ type Table
         rows_expr = IR.Operation "COUNT_ROWS" []
         all_rows_column_name = "row_count"
         make_count_expr expr = IR.Operation "COUNT" [expr]
-        cols = this.internal_columns.map (c -> [c.name, make_count_expr c.expression])
-        query = IR.Select [[all_rows_column_name, rows_expr]]+cols this.context
-        sql = this.connection.dialect.generate_sql query
-        table = this.connection.execute_query sql
+        cols = self.internal_columns.map (c -> [c.name, make_count_expr c.expression])
+        query = IR.Select [[all_rows_column_name, rows_expr]]+cols self.context
+        sql = self.connection.dialect.generate_sql query
+        table = self.connection.execute_query sql
         all_rows = table.at all_rows_column_name . at 0
-        kept_columns = this.internal_columns . filter c->
+        kept_columns = self.internal_columns . filter c->
             all_rows == table.at c.name . at 0
-        this.updated_columns kept_columns
+        self.updated_columns kept_columns
 
     ## Returns the amount of rows in this table.
     row_count : Integer
-    row_count = if this.internal_columns.is_empty then 0 else
+    row_count = if self.internal_columns.is_empty then 0 else
         expr = IR.Operation "COUNT_ROWS" []
         column_name = "row_count"
         ## We need to keep some column in the subquery which will determine if
            the query is performing regular selection or aggregation. To avoid
            computing too much we do not pass all the columns but only the first
            one.
-        setup = this.context.as_subquery this.name [[this.internal_columns.first]]
+        setup = self.context.as_subquery self.name [[self.internal_columns.first]]
         new_ctx = IR.subquery_as_ctx setup.first
         query = IR.Select [[column_name, expr]] new_ctx
-        sql = this.connection.dialect.generate_sql query
-        table = this.connection.execute_query sql
+        sql = self.connection.dialect.generate_sql query
+        table = self.connection.execute_query sql
         table.at column_name . at 0
 
     ## UNSTABLE
@@ -721,19 +721,19 @@ type Table
          available rows are fetched.
     to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
     to_dataframe max_rows=Nothing =
-        case this.context.meta_index.length > 1 of
+        case self.context.meta_index.length > 1 of
             True -> Error.throw <| Illegal_State_Error "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
             False ->
-                preprocessed = this.reset_index.limit max_rows
+                preprocessed = self.reset_index.limit max_rows
                 case preprocessed.internal_columns.is_empty of
                     True ->
-                        internal_table = Java_Exports.make_table_without_columns this.row_count
+                        internal_table = Java_Exports.make_table_without_columns self.row_count
                         Materialized_Table.Table internal_table
                     False ->
                         sql = preprocessed.to_sql
                         expected_types = preprocessed.internal_columns.map .sql_type
-                        table = this.connection.execute_query sql expected_types
-                        case this.context.meta_index.length == 1 of
+                        table = self.connection.execute_query sql expected_types
+                        case self.context.meta_index.length == 1 of
                             False -> table
                             True ->
                                 ix_col_name = table.columns.first.name
@@ -744,21 +744,21 @@ type Table
        Brings the index back as columns.
     reset_index : Table
     reset_index =
-        new_cols = this.internal_columns_with_index
-        new_ctx = this.context.set_index []
-        this.updated_context new_ctx . updated_columns new_cols
+        new_cols = self.internal_columns_with_index
+        new_ctx = self.context.set_index []
+        self.updated_context new_ctx . updated_columns new_cols
 
     ## UNSTABLE
 
        Returns an SQL statement that will be used for materializing this table.
     to_sql : Sql.Statement
     to_sql =
-        cols = this.internal_columns.map (c -> [c.name, c.expression])
+        cols = self.internal_columns.map (c -> [c.name, c.expression])
         case cols.is_empty of
             True -> Error.throw <| Unsupported_Database_Operation_Error "Cannot generate SQL for a table with no columns."
             False ->
-                query = IR.Select cols this.context
-                this.connection.dialect.generate_sql query
+                query = IR.Select cols self.context
+                self.connection.dialect.generate_sql query
 
     ## Returns a Table describing this table's contents.
 
@@ -766,19 +766,19 @@ type Table
        of each column.
     info : Table
     info =
-        cols = this.internal_columns
+        cols = self.internal_columns
         count_query =
             ## Performing a subquery is the most robust way to handle both
                regular columns and aggregates.
                Naively wrapping each column in a `COUNT(...)` will not
                always work as aggregates cannot be nested.
-            setup = this.context.as_subquery this.name [this.internal_columns]
+            setup = self.context.as_subquery self.name [self.internal_columns]
             new_ctx = IR.subquery_as_ctx setup.first
             new_columns = setup.second.first.map column->
                 [column.name, IR.Operation "COUNT" [column.expression]]
             query = IR.Select new_columns new_ctx
-            this.connection.dialect.generate_sql query
-        count_table = this.connection.execute_query count_query
+            self.connection.dialect.generate_sql query
+        count_table = self.connection.execute_query count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
         types = cols.map c-> c.sql_type.name
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]] . set_index "Column"
@@ -794,9 +794,9 @@ type Table
         # TODO [RW] Many places assume that index names are distinct from column names, so when creating a column from
         # index we need to ensure that the names do not collide. In the future we may consider trying to get rid of
         # these distinctness assumptions, to avoid this renaming.
-        ixes = here.freshen_columns [internal.name] this.context.meta_index
-        new_ctx = this.context.set_index ixes
-        Column internal.name this.connection internal.sql_type internal.expression new_ctx
+        ixes = here.freshen_columns [internal.name] self.context.meta_index
+        new_ctx = self.context.set_index ixes
+        Column internal.name self.connection internal.sql_type internal.expression new_ctx
 
     ## PRIVATE
 
@@ -805,7 +805,7 @@ type Table
        Arguments:
        - columns: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> Table
-    updated_columns internal_columns = Table this.name this.connection internal_columns this.context
+    updated_columns internal_columns = Table self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -814,7 +814,7 @@ type Table
        Arguments:
        - ctx: The new context for this table.
     updated_context : Context -> Table
-    updated_context ctx = Table this.name this.connection this.internal_columns ctx
+    updated_context ctx = Table self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -824,7 +824,7 @@ type Table
        - ctx: The new context for this table.
        - internal_columns: The new columns to include in the table.
     updated_context_and_columns : Context -> Vector Internal_Column -> Table
-    updated_context_and_columns ctx internal_columns = Table this.name this.connection internal_columns ctx
+    updated_context_and_columns ctx internal_columns = Table self.name self.connection internal_columns ctx
 
     ## PRIVATE
 
@@ -832,7 +832,7 @@ type Table
        indices and then all columns.
     internal_columns_with_index : Vector Internal_Column
     internal_columns_with_index =
-        this.context.meta_index + this.internal_columns
+        self.context.meta_index + self.internal_columns
 
 
     ## PRIVATE
@@ -847,14 +847,14 @@ type Table
        like modifying, removing or adding columns, filtering, grouping etc.
     insert : Vector Any -> Nothing
     insert values =
-        table_name = case this.context.from_spec of
+        table_name = case self.context.from_spec of
             IR.From_Table name _ -> name
             _ -> Error.throw <| Illegal_State_Error "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
-        pairs = this.internal_columns.zip values col-> value->
+        pairs = self.internal_columns.zip values col-> value->
             [col.name, IR.Constant col.sql_type value]
-        query = this.connection.dialect.generate_sql <| IR.Insert table_name pairs
-        affected_rows = this.connection.execute_update query
+        query = self.connection.dialect.generate_sql <| IR.Insert table_name pairs
+        affected_rows = self.connection.execute_update query
         case affected_rows == 1 of
             False -> Error.throw <| Illegal_State_Error "The update unexpectedly affected "+affected_rows.to_text+" rows."
             True -> Nothing
@@ -917,7 +917,7 @@ type Table
     write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Column_Mapping.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
-        this.to_dataframe.write path format on_existing_file column_mapping on_problems
+        self.to_dataframe.write path format on_existing_file column_mapping on_problems
 
 type Integrity_Error
 
@@ -931,10 +931,10 @@ type Integrity_Error
 
     # Return a readable description of this error.
     to_text : Text
-    to_text = this.object_description + " comes from a different context."
+    to_text = self.object_description + " comes from a different context."
 
     to_display_text : Text
-    to_display_text = this.to_text
+    to_display_text = self.to_text
 
 ## PRIVATE
 

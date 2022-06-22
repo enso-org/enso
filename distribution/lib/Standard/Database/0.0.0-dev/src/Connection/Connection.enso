@@ -45,8 +45,8 @@ type Connection
        - name: name of the table to access
     access_table : Text -> Database_Table
     access_table name = here.handle_sql_errors <|
-        columns = this.fetch_columns name
-        Database_Table.make_table this name columns
+        columns = self.fetch_columns name
+        Database_Table.make_table self name columns
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
@@ -54,7 +54,7 @@ type Connection
        The connection is not usable afterwards.
     close : Nothing
     close =
-        this.connection_resource . finalize
+        self.connection_resource . finalize
 
     ## ADVANCED
 
@@ -67,7 +67,7 @@ type Connection
          meant only for internal use.
     execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
     execute_query query expected_types=Nothing = here.handle_sql_errors <|
-        this.with_prepared_statement query stmt->
+        self.with_prepared_statement query stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount
@@ -99,7 +99,7 @@ type Connection
          representing the query to execute.
     execute_update : Text | Sql.Statement -> Integer
     execute_update query = here.handle_sql_errors <|
-        this.with_prepared_statement query stmt->
+        self.with_prepared_statement query stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                 stmt.executeUpdate
 
@@ -109,7 +109,7 @@ type Connection
        information to any thrown SQL errors.
     with_prepared_statement : Text  | Sql.Statement -> (PreparedStatement -> Any) -> Any
     with_prepared_statement query action =
-        prepare template holes = this.connection_resource . with java_connection->
+        prepare template holes = self.connection_resource . with java_connection->
             stmt = java_connection.prepareStatement template
             Panic.catch Any (here.set_statement_values stmt holes) caught_panic->
                 stmt.close
@@ -137,8 +137,8 @@ type Connection
     fetch_columns : Text -> Vector Any
     fetch_columns table_name =
         query = IR.Select_All (IR.make_ctx_from table_name)
-        compiled = this.dialect.generate_sql query
-        this.with_prepared_statement compiled stmt->
+        compiled = self.dialect.generate_sql query
+        self.with_prepared_statement compiled stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount
@@ -174,15 +174,15 @@ type Connection
             Base_Generator.wrap_in_quotes name ++ Sql.code " " ++ Sql.code typ.name
         create_prefix = if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
         create_sql = (Sql.code create_prefix ++ Base_Generator.wrap_in_quotes name ++ Sql.code " (" ++ (Sql.join ", " col_makers) ++ Sql.code ")").build
-        Panic.rethrow <| this.execute_update create_sql
-        db_table = Panic.rethrow <| this.access_table name
+        Panic.rethrow <| self.execute_update create_sql
+        db_table = Panic.rethrow <| self.access_table name
 
         pairs = db_table.internal_columns.map col->
             [col.name, IR.Constant col.sql_type Nothing]
         db_types = pairs.map p-> p.second.sql_type
-        insert_query = this.dialect.generate_sql <| IR.Insert name pairs
+        insert_query = self.dialect.generate_sql <| IR.Insert name pairs
         insert_template = insert_query.prepare.first
-        this.connection_resource . with java_connection->
+        self.connection_resource . with java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False
             Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
@@ -265,25 +265,25 @@ type Builder
        - i: the index of the column to fetch from (starting from 1 as is the
          ResultSet convention).
     fetch_and_append : ResultSet -> Integer -> Nothing
-    fetch_and_append rs i = case this of
+    fetch_and_append rs i = case self of
         Builder_Inferred _ ->
             obj = rs.getObject i
-            this.java_builder.append obj
+            self.java_builder.append obj
         Builder_Boolean _ ->
             bool = rs.getBoolean i
             case rs.wasNull of
-                True -> this.java_builder.appendNulls 1
-                False -> this.java_builder.appendBoolean bool
+                True -> self.java_builder.appendNulls 1
+                False -> self.java_builder.appendBoolean bool
         Builder_Long _ ->
             long = rs.getLong i
             case rs.wasNull of
-                True -> this.java_builder.appendNulls 1
-                False -> this.java_builder.appendLong long
+                True -> self.java_builder.appendNulls 1
+                False -> self.java_builder.appendLong long
         Builder_Double _ ->
             double = rs.getDouble i
             case rs.wasNull of
-                True -> this.java_builder.appendNulls 1
-                False -> this.java_builder.appendDouble double
+                True -> self.java_builder.appendNulls 1
+                False -> self.java_builder.appendDouble double
 
     ## PRIVATE
 
@@ -293,7 +293,7 @@ type Builder
        - name: The name of the column.
     make_column : Text -> Java_Exports.Column
     make_column name =
-        storage = this.java_builder.seal
+        storage = self.java_builder.seal
         Java_Exports.make_column name storage
 
 ## An error indicating that a supported dialect could not be deduced for the
@@ -306,7 +306,7 @@ type Unsupported_Dialect url
 ## Pretty print the error about unsupported SQL dialects.
 Unsupported_Dialect.to_display_text : Text
 Unsupported_Dialect.to_display_text =
-    "Could not infer the SQL dialect for the database at " + this.url + "."
+    "Could not infer the SQL dialect for the database at " + self.url + "."
 
 ## PRIVATE
 
@@ -361,14 +361,14 @@ type Sql_Error
        Convert the SQL error to a textual representation.
     to_text : Text
     to_text =
-        query = if this.related_query.is_nothing.not then " [Query was: " + this.related_query + "]" else ""
-        "There was an SQL error: " + this.java_exception.getMessage.to_text + "." + query
+        query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query + "]" else ""
+        "There was an SQL error: " + self.java_exception.getMessage.to_text + "." + query
 
     ## UNSTABLE
 
        Pretty print the SQL error.
     to_display_text : Text
-    to_display_text = this.to_text
+    to_display_text = self.to_text
 
 type Sql_Timeout_Error
 
@@ -387,14 +387,14 @@ type Sql_Timeout_Error
        Convert the timeout error to a textual representation.
     to_text : Text
     to_text =
-        query = if this.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
-        "The SQL connection timed out: " + this.java_exception.getMessage + "." + query
+        query = if self.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
+        "The SQL connection timed out: " + self.java_exception.getMessage + "." + query
 
     ## UNSTABLE
 
        Pretty print the timeout error.
     to_display_text : Text
-    to_display_text = this.to_text
+    to_display_text = self.to_text
 
 ## PRIVATE
 

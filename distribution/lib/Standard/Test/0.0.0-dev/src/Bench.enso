@@ -90,7 +90,7 @@ len_list list =
    Perform an action a number of times.
 
    Arguments:
-   - act: The action to perform `this` number of times.
+   - act: The action to perform `self` number of times.
 Number.times : List Any
 Number.times act =
     go = results -> number -> if number == 0 then results else

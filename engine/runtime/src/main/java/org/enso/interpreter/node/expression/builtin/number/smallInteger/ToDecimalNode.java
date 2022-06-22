@@ -8,7 +8,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     name = "to_decimal",
     description = "Conversion of integers to decimals.")
 public class ToDecimalNode extends Node {
-  double execute(long _this) {
-    return _this;
+  double execute(long self) {
+    return self;
   }
 }

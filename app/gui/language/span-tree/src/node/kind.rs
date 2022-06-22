@@ -185,7 +185,7 @@ impl Default for Kind {
 // === This ===
 // ============
 
-/// Kind representing "this" node. For example, in the following expressions, `foo` is considered
+/// Kind representing "self" node. For example, in the following expressions, `foo` is considered
 /// "this": `bar foo`, `foo.bar`, `foo + bar`, `foo.+ bar`.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
@@ -199,9 +199,9 @@ pub struct This {
 
 impl This {
     /// Name of `This` argument.
-    pub const NAME: &'static str = "this";
+    pub const NAME: &'static str = "self";
 
-    /// Name getter. Please notice that the name of `This` argument is always "this".
+    /// Name getter. Please notice that the name of `This` argument is always "self".
     pub fn name(&self) -> &str {
         Self::NAME
     }

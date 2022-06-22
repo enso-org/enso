@@ -35,7 +35,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       Object that,
       Object[] arguments,
       CallArgumentInfo[] schema,
@@ -49,7 +49,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       Object that,
       Object[] arguments,
       CallArgumentInfo[] schema,
@@ -66,7 +66,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           dispatch.getConversionFunction(
               that,
               InvokeConversionNode.extractConstructor(
-                  this, _this, atomConstructorProfile, atomProfile),
+                  this, self, atomConstructorProfile, atomProfile),
               conversion);
       return indirectInvokeFunctionNode.execute(
           function,
@@ -79,10 +79,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           isTail);
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       throw new PanicException(
-          Context.get(this)
-              .getBuiltins()
-              .error()
-              .makeNoSuchConversionError(_this, that, conversion),
+          Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
           this);
     }
   }
@@ -92,7 +89,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       DataflowError that,
       Object[] arguments,
       CallArgumentInfo[] schema,
@@ -110,7 +107,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           dispatch.getConversionFunction(
               that,
               InvokeConversionNode.extractConstructor(
-                  this, _this, atomConstructorProfile, atomProfile),
+                  this, self, atomConstructorProfile, atomProfile),
               conversion);
       return indirectInvokeFunctionNode.execute(
           function,
@@ -132,7 +129,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       PanicSentinel that,
       Object[] arguments,
       CallArgumentInfo[] schema,
@@ -148,7 +145,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       WithWarnings that,
       Object[] arguments,
       CallArgumentInfo[] schema,
@@ -164,7 +161,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
             frame,
             state,
             conversion,
-            _this,
+            self,
             that.getValue(),
             arguments,
             schema,
@@ -180,7 +177,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       Object that,
       Object[] arguments,
       CallArgumentInfo[] schema,
@@ -201,7 +198,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
           textDispatch.getConversionFunction(
               txt,
               InvokeConversionNode.extractConstructor(
-                  this, _this, atomConstructorProfile, atomProfile),
+                  this, self, atomConstructorProfile, atomProfile),
               conversion);
       arguments[0] = txt;
       return indirectInvokeFunctionNode.execute(
@@ -217,10 +214,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       throw new PanicException(
-          Context.get(this)
-              .getBuiltins()
-              .error()
-              .makeNoSuchConversionError(_this, that, conversion),
+          Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
           this);
     }
   }
@@ -235,7 +229,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       Object that,
       Object[] arguments,
       CallArgumentInfo[] schema,
@@ -246,7 +240,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
-        Context.get(this).getBuiltins().error().makeNoSuchConversionError(_this, that, conversion),
+        Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
         this);
   }
 }

@@ -23,11 +23,11 @@ public abstract class CopyNode extends Node {
   }
 
   abstract Object execute(
-      Object _this, Object src, long source_index, Array dest, long dest_index, long count);
+      Object self, Object src, long source_index, Array dest, long dest_index, long count);
 
   @Specialization
   Object doArray(
-      Object _this, Array src, long source_index, Array dest, long dest_index, long count) {
+      Object self, Array src, long source_index, Array dest, long dest_index, long count) {
     System.arraycopy(
         src.getItems(), (int) source_index, dest.getItems(), (int) dest_index, (int) count);
     return Context.get(this).getBuiltins().nothing().newInstance();
@@ -35,7 +35,7 @@ public abstract class CopyNode extends Node {
 
   @Specialization(guards = "arrays.hasArrayElements(src)")
   Object doPolyglotArray(
-      Object _this,
+      Object self,
       Object src,
       long source_index,
       Array dest,
@@ -63,7 +63,7 @@ public abstract class CopyNode extends Node {
 
   @Fallback
   Object doOther(
-      Object _this, Object src, long source_index, Array dest, long dest_index, long count) {
+      Object self, Object src, long source_index, Array dest, long dest_index, long count) {
     Builtins builtins = Context.get(this).getBuiltins();
     throw new PanicException(
         builtins.error().makeTypeError(builtins.array().newInstance(), src, "src"), this);

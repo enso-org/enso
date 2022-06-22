@@ -32,7 +32,7 @@ type Vector_Builder
 
        Number of elements inside of the to-be-built vector.
     length : Integer
-    length = case this of
+    length = case self of
         Leaf vec -> vec.length
         Append _ _ len -> len
 
@@ -40,14 +40,14 @@ type Vector_Builder
 
        Checks if this builder contains any elements.
     is_empty : Boolean
-    is_empty = this.length == 0
+    is_empty = self.length == 0
 
     ## PRIVATE
 
        Materializes the actual vector from this builder.
     build : Vector.Vector Any
     build =
-       array = Array.new this.length
+       array = Array.new self.length
        go ix elem = case elem of
            Leaf vec ->
                Array.copy vec.to_array 0 array ix vec.length
@@ -55,7 +55,7 @@ type Vector_Builder
            Append l r _ ->
                ix2 = go ix l
                go ix2 r
-       go 0 this
+       go 0 self
        Vector.Vector array
 
     ## PRIVATE
@@ -63,17 +63,17 @@ type Vector_Builder
        Concatenates another builder or vector to this.
 
        Arguments:
-       - other: The other vector to concatenate with `this`.
+       - other: The other vector to concatenate with `self`.
 
        It returns a new builder that will yield a vector that is a concatenation
-       of `this` and the argument.
+       of `self` and the argument.
     ++ : Vector_Builder Any | Vector.Vector Any -> Vector_Builder Any
-    ++ other = if other.is_empty then this else
-        len = this.length + other.length
+    ++ other = if other.is_empty then self else
+        len = self.length + other.length
         case other of
-            Leaf _ -> Append this other len
-            Append _ _ _ -> Append this other len
-            Vector.Vector _ -> Append this (Leaf other) len
+            Leaf _ -> Append self other len
+            Append _ _ _ -> Append self other len
+            Vector.Vector _ -> Append self (Leaf other) len
 
 ## PRIVATE
 

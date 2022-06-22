@@ -315,7 +315,7 @@ type Locale
              example_language = Locale.default.language
     language : Text | Nothing
     language =
-        lang = this.java_locale.getLanguage
+        lang = self.java_locale.getLanguage
         if lang.is_empty then Nothing else lang
 
     ## Gets the country from the locale.
@@ -328,7 +328,7 @@ type Locale
              example_country = Locale.default.country
     country : Text | Nothing
     country =
-        place = this.java_locale.getCountry
+        place = self.java_locale.getCountry
         if place.is_empty then Nothing else place
 
     ## Gets the variant from the locale.
@@ -341,7 +341,7 @@ type Locale
              example_variant = Locale.default.variant
     variant : Text | Nothing
     variant =
-        var = this.java_locale.getVariant
+        var = self.java_locale.getVariant
         if var.is_empty then Nothing else var
 
     ## Gets a representation of the language in the locale that can be shown to
@@ -355,7 +355,7 @@ type Locale
              example_display_language = Locale.default.display_language
     display_language : Text | Nothing
     display_language =
-        disp = this.java_locale.getDisplayLanguage
+        disp = self.java_locale.getDisplayLanguage
         if disp.is_empty then Nothing else disp
 
     ## Gets a representation of the country in the locale that can be shown to
@@ -369,7 +369,7 @@ type Locale
              example_display_country = Locale.default.display_country
     display_country : Text | Nothing
     display_country =
-        disp = this.java_locale.getDisplayCountry
+        disp = self.java_locale.getDisplayCountry
         if disp.is_empty then Nothing else disp
 
     ## Gets a representation of the variant in the locale that can be shown to
@@ -383,7 +383,7 @@ type Locale
              example_display_variant = Locale.default.display_variant
     display_variant : Text | Nothing
     display_variant =
-        disp = this.java_locale.getDisplayVariant
+        disp = self.java_locale.getDisplayVariant
         if disp.is_empty then Nothing else disp
 
     ## Converts the locale to text.
@@ -395,7 +395,7 @@ type Locale
 
              example_to_text = Locale.default.to_text
     to_text : Text | Nothing
-    to_text = this.java_locale.toLanguageTag
+    to_text = self.java_locale.toLanguageTag
 
     ## A Locale to Json conversion
 
@@ -409,15 +409,15 @@ type Locale
     to_json =
         b = Vector.new_builder
         b.append ["type", "Locale"]
-        if this.language.is_nothing.not then b.append ["language", this.language]
-        if this.country.is_nothing.not then b.append ["country", this.country]
-        if this.variant.is_nothing.not then b.append ["variant", this.variant]
+        if self.language.is_nothing.not then b.append ["language", self.language]
+        if self.country.is_nothing.not then b.append ["country", self.country]
+        if self.variant.is_nothing.not then b.append ["variant", self.variant]
         Json.from_pairs b.to_vector
 
     ## Compares two locales for equality.
     == : Any -> Boolean
     == other = case other of
-        Locale other_java_locale -> this.java_locale.equals other_java_locale
+        Locale other_java_locale -> self.java_locale.equals other_java_locale
         _ -> False
 
 ## PRIVATE

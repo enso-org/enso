@@ -17,16 +17,16 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class DivNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  abstract Object execute(EnsoBigInteger _this, Object that);
+  abstract Object execute(EnsoBigInteger self, Object that);
 
   static DivNode build() {
     return DivNodeGen.create();
   }
 
   @Specialization
-  Object doLong(EnsoBigInteger _this, long that) {
+  Object doLong(EnsoBigInteger self, long that) {
     try {
-      return toEnsoNumberNode.execute(BigIntegerOps.divide(_this.getValue(), that));
+      return toEnsoNumberNode.execute(BigIntegerOps.divide(self.getValue(), that));
     } catch (ArithmeticException e) {
       return DataflowError.withoutTrace(
           Context.get(this).getBuiltins().error().getDivideByZeroError(), this);
@@ -34,13 +34,13 @@ public abstract class DivNode extends Node {
   }
 
   @Specialization
-  Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
+  Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
     // No need to trap, as 0 is never represented as an EnsoBigInteger.
-    return toEnsoNumberNode.execute(BigIntegerOps.divide(_this.getValue(), that.getValue()));
+    return toEnsoNumberNode.execute(BigIntegerOps.divide(self.getValue(), that.getValue()));
   }
 
   @Fallback
-  Object doOther(EnsoBigInteger _this, Object that) {
+  Object doOther(EnsoBigInteger self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);

@@ -6,16 +6,16 @@ type Missing_Input_Columns (criteria : [Text])
 
 Missing_Input_Columns.to_display_text : Text
 Missing_Input_Columns.to_display_text =
-    "The criteria "+this.criteria.to_text+" did not match any columns."
+    "The criteria "+self.criteria.to_text+" did not match any columns."
 
 ## One or more column indexes were invalid on the input table.
    Can occur when using By_Index.
 type Column_Indexes_Out_Of_Range (indexes : [Integer])
 
 Column_Indexes_Out_Of_Range.to_display_text : Text
-Column_Indexes_Out_Of_Range.to_display_text = case this.indexes.length == 1 of
-    True -> "The index " + (this.indexes.at 0).to_text + " is out of range."
-    False -> "The indexes "+this.indexes.short_display_text+" are out of range."
+Column_Indexes_Out_Of_Range.to_display_text = case self.indexes.length == 1 of
+    True -> "The index " + (self.indexes.at 0).to_text + " is out of range."
+    False -> "The indexes "+self.indexes.short_display_text+" are out of range."
 
 ## More names than the column count provided to the function.
    Can occur when using By_Position.
@@ -23,23 +23,23 @@ type Too_Many_Column_Names_Provided (column_names : [Text])
 
 Too_Many_Column_Names_Provided.to_display_text : Text
 Too_Many_Column_Names_Provided.to_display_text =
-    "Too many column names provided. " + (this.column_names.at 0).to_text + " unused."
+    "Too many column names provided. " + (self.column_names.at 0).to_text + " unused."
 
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names (column_names : [Text])
 
 Invalid_Output_Column_Names.to_display_text : Text
-Invalid_Output_Column_Names.to_display_text = case this.column_names.length == 1 of
-    True -> "The name " + (this.column_names.at 0).to_text + " is invalid."
-    False -> "The names "+this.column_names.short_display_text+" are invalid."
+Invalid_Output_Column_Names.to_display_text = case self.column_names.length == 1 of
+    True -> "The name " + (self.column_names.at 0).to_text + " is invalid."
+    False -> "The names "+self.column_names.short_display_text+" are invalid."
 
 ## One or more column names clashed during a rename operation.
 type Duplicate_Output_Column_Names (column_names : [Text])
 
 Duplicate_Output_Column_Names.to_display_text : Text
-Duplicate_Output_Column_Names.to_display_text = case this.column_names.length == 1 of
-    True -> "The name " + (this.column_names.at 0).to_text + " was repeated in the output, so was renamed."
-    False -> "The names "+this.column_names.short_display_text+" were repeated in the output, and were renamed."
+Duplicate_Output_Column_Names.to_display_text = case self.column_names.length == 1 of
+    True -> "The name " + (self.column_names.at 0).to_text + " was repeated in the output, so was renamed."
+    False -> "The names "+self.column_names.short_display_text+" were repeated in the output, and were renamed."
 
 ## No columns in the output result.
 type No_Output_Columns
@@ -53,7 +53,7 @@ type Duplicate_Column_Selectors (duplicate_selectors : [(Text | Integer)])
 
 Duplicate_Column_Selectors.to_display_text : Text
 Duplicate_Column_Selectors.to_display_text =
-    "The provided Column_Selector has duplicate entries: "+this.duplicate_selectors.short_display_text+"."
+    "The provided Column_Selector has duplicate entries: "+self.duplicate_selectors.short_display_text+"."
 
 ## Indicates that one column has been matched by multiple selectors.
 
@@ -63,7 +63,7 @@ type Column_Matched_By_Multiple_Selectors (column_name : Text) (selectors : [Any
 
 Column_Matched_By_Multiple_Selectors.to_display_text : Text
 Column_Matched_By_Multiple_Selectors.to_display_text =
-    'The column "' + this.column_name + '" is matched by multiple selectors: ' + this.selectors.short_display_text + "."
+    'The column "' + self.column_name + '" is matched by multiple selectors: ' + self.selectors.short_display_text + "."
 
 ## Indicates that the provided indices matched columns already matched by
    others, so they do not introduce any new columns to the input.
@@ -75,7 +75,7 @@ type Input_Indices_Already_Matched (indices : [Integer])
 
 Input_Indices_Already_Matched.to_display_text : Text
 Input_Indices_Already_Matched.to_display_text =
-    "The indices "+this.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."
+    "The indices "+self.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."
 
 ## Indicates that no input columns were selected for the operation, so the
    operation will cause no effect.
@@ -91,28 +91,28 @@ type Invalid_Aggregation (column:Text) (rows:[Integer]) (message:Text)
 
 Invalid_Aggregation.to_display_text : Text
 Invalid_Aggregation.to_display_text =
-    "The "+this.column+" could not be calculated at "+this.row.to_text+" : "+this.message
+    "The "+self.column+" could not be calculated at "+self.row.to_text+" : "+self.message
 
 ## Indicates that a floating point number was used in a grouping.
 type Floating_Point_Grouping (column:Text) (rows:[Integer])
 
 Floating_Point_Grouping.to_display_text : Text
 Floating_Point_Grouping.to_display_text =
-    "Grouping on floating points is not recommended within "+this.column+" at row "+this.row.to_text+"."
+    "Grouping on floating points is not recommended within "+self.column+" at row "+self.row.to_text+"."
 
 ## Indicates that a text value with a delimiter was included in a concatenation without any quote character
 type Unquoted_Delimiter (column:Text) (rows:[Integer])
 
 Unquoted_Delimiter.to_display_text : Text
 Unquoted_Delimiter.to_display_text =
-    "The "+this.column+" at row "+this.row.to_text+" contains the delimiter and there is no specified quote character."
+    "The "+self.column+" at row "+self.row.to_text+" contains the delimiter and there is no specified quote character."
 
 ## Warning when additional warnings occurred.
 type Additional_Warnings (count:Integer)
 
 Additional_Warnings.to_display_text : Text
 Additional_Warnings.to_display_text =
-    "There were "+this.count.to_text+" additional issues."
+    "There were "+self.count.to_text+" additional issues."
 
 ## Indicates that when loading a delimited file, a row was encountered which had
    too many or too few columns.
@@ -136,14 +136,14 @@ type Invalid_Location (location:Text)
 
 Invalid_Location.to_display_text : Text
 Invalid_Location.to_display_text =
-    "The location '"+this.location+"' is not valid."
+    "The location '"+self.location+"' is not valid."
 
 ## Indicates that some values did not match the expected datatype format.
 type Invalid_Format column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
 Invalid_Format.to_display_text : Text
 Invalid_Format.to_display_text =
-    this.cells.length+" cells in column "+this.column+" had invalid format for datatype "+this.datatype.to_text+"."
+    self.cells.length+" cells in column "+self.column+" had invalid format for datatype "+self.datatype.to_text+"."
 
 ## Indicates that some values contained leading zeros even though these were not allowed.
 type Leading_Zeros column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
@@ -160,4 +160,4 @@ type Unsupported_File_Type filename
 
 Unsupported_File_Type.to_display_text : Text
 Unsupported_File_Type.to_display_text =
-    "The "+this.filename+" has a type that is not supported by the Auto format."
+    "The "+self.filename+" has a type that is not supported by the Auto format."

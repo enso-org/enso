@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
@@ -9,25 +10,24 @@ import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.instrument.execution.LocationFilter;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
-import org.enso.logger.masking.MaskedString;
-import org.enso.pkg.QualifiedName;
+import org.enso.interpreter.runtime.Module;
 
-import java.util.*;
 import java.util.function.Consumer;
+import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /** An instrument for getting values from AST-identified expressions. */
 @TruffleInstrument.Registration(
@@ -278,8 +278,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
   /**
    * Attach a new listener to observe identified nodes within given function.
    *
+   * @param module module that contains the code
    * @param entryCallTarget the call target being observed.
-   * @param locationFilter the location filter.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
@@ -292,8 +292,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    */
   @Override
   public EventBinding<ExecutionEventListener> bind(
+      Module module,
       CallTarget entryCallTarget,
-      LocationFilter locationFilter,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
@@ -302,12 +302,18 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<Exception> onExceptionalCallback) {
-    SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder()
-            .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
-            .tagIs(IdentifiedTag.class)
-            .sourceSectionEquals(locationFilter.getSections())
-            .build();
+    var builder = SourceSectionFilter.newBuilder()
+          .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
+          .tagIs(IdentifiedTag.class)
+          .tagIsNot(AvoidIdInstrumentationTag.class)
+          .sourceIs(module::isModuleSource);
+
+    if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {
+      final int firstFunctionLine = c.getSourceSection().getStartLine();
+      final int afterFunctionLine = c.getSourceSection().getEndLine() + 1;
+      builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
+    }
+    SourceSectionFilter filter = builder.build();
 
     return env.getInstrumenter()
         .attachExecutionEventListener(

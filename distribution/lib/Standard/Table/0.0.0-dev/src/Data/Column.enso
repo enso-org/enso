@@ -46,7 +46,7 @@ type Column
              example_display = Examples.integer_column.display
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
-        java_col = this.java_column
+        java_col = self.java_column
         index = java_col.getIndex
         col_name = java_col.getName
         storage = java_col.getStorage
@@ -77,15 +77,15 @@ type Column
              example_display = Examples.integer_column.print
     print : Integer -> Nothing
     print show_rows=10 =
-        IO.println (this.display show_rows format_terminal=True)
+        IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
     ## Element-wise equality comparison.
 
        Arguments:
-       - other: The value to compare `this` against. If `other` is a column, the
+       - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -105,14 +105,14 @@ type Column
              example_eq = Examples.integer_column == 1
     == : Column | Any -> Column
     == other =
-        here.run_vectorized_binary_op this "==" (==) other
+        here.run_vectorized_binary_op self "==" (==) other
 
     ## Element-wise non-equality comparison.
 
        Arguments:
-       - other: The value to compare `this` against. If `other` is a column, the
+       - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -131,14 +131,14 @@ type Column
 
              example_neq = Examples.integer_column != 1
     != : Column | Any -> Column
-    != other = (this == other).not
+    != other = (self == other).not
 
     ## Element-wise order comparison.
 
        Arguments:
-       - other: The value to compare `this` against. If `other` is a column, the
+       - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -158,14 +158,14 @@ type Column
              example_geq = Examples.integer_column >= 1
     >= : Column | Any -> Column
     >= other =
-        here.run_vectorized_binary_op this ">=" (>=) other
+        here.run_vectorized_binary_op self ">=" (>=) other
 
     ## Element-wise order comparison.
 
        Arguments:
-       - other: The value to compare `this` against. If `other` is a column, the
+       - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -185,14 +185,14 @@ type Column
              example_leq = Examples.integer_column <= 1
     <= : Column | Any -> Column
     <= other =
-        here.run_vectorized_binary_op this "<=" (<=) other
+        here.run_vectorized_binary_op self "<=" (<=) other
 
     ## Element-wise order comparison.
 
        Arguments:
-       - other: The value to compare `this` against. If `other` is a column, the
+       - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -212,14 +212,14 @@ type Column
              example_gt = Examples.integer_column > 1
     > : Column | Any -> Column
     > other =
-        here.run_vectorized_binary_op this ">" (>) other
+        here.run_vectorized_binary_op self ">" (>) other
 
     ## Element-wise order comparison.
 
        Arguments:
-       - other: The value to compare `this` against. If `other` is a column, the
+       - other: The value to compare `self` against. If `other` is a column, the
          comparison is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        Returns a column with results of comparing this column's elements against
        `other`.
@@ -238,19 +238,19 @@ type Column
 
              example_lt = Examples.integer_column < 1
     < : Column | Any -> Column
-    < other = here.run_vectorized_binary_op this "<" (<) other
+    < other = here.run_vectorized_binary_op self "<" (<) other
 
     ## ALIAS Add Columns
 
        Element-wise addition.
 
        Arguments:
-       - other: The value to add to `this`. If `other` is a column, the addition
-         is performed pairwise between corresponding elements of `this` and
+       - other: The value to add to `self`. If `other` is a column, the addition
+         is performed pairwise between corresponding elements of `self` and
          `other`.
 
        Returns a column with results of adding `other` from each element of
-       `this`.
+       `self`.
 
        > Example
          Add two columns to each other.
@@ -266,19 +266,19 @@ type Column
 
              example_plus = Examples.integer_column + 10
     + : Column | Any -> Column
-    + other = here.run_vectorized_binary_op this '+' (+) other
+    + other = here.run_vectorized_binary_op self '+' (+) other
 
     ## ALIAS Subtract Columns
 
        Element-wise subtraction.
 
        Arguments:
-       - other: The value to subtract from `this`. If `other` is a column, the
+       - other: The value to subtract from `self`. If `other` is a column, the
          subtraction is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        Returns a column with results of subtracting `other` from each element of
-       `this`.
+       `self`.
 
        > Example
          Subtract one column from another.
@@ -294,19 +294,19 @@ type Column
 
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
-    - other = here.run_vectorized_binary_op this '-' (-) other
+    - other = here.run_vectorized_binary_op self '-' (-) other
 
     ## ALIAS Multiply Columns
 
        Element-wise multiplication.
 
        Arguments:
-       - other: The value to multiply `this` by. If `other` is a column, the
+       - other: The value to multiply `self` by. If `other` is a column, the
          multiplication is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        Returns a column containing the result of multiplying each element of
-       `this` by `other`.
+       `self` by `other`.
 
        > Example
          Multiply the elements of two columns together.
@@ -322,18 +322,18 @@ type Column
 
              example_mul = Examples.integer_column * 10
     * : Column | Any -> Column
-    * other = here.run_vectorized_binary_op this '*' (*) other
+    * other = here.run_vectorized_binary_op self '*' (*) other
 
     ## ALIAS Divide Columns
 
        Element-wise division.
 
        Arguments:
-       - other: The value to divide `this` by. If `other` is a column, the
-         division is performed pairwise between corresponding elements of `this`
+       - other: The value to divide `self` by. If `other` is a column, the
+         division is performed pairwise between corresponding elements of `self`
          and `other`.
 
-       Returns a column containing the result of dividing each element of `this`
+       Returns a column containing the result of dividing each element of `self`
        by `other`.
 
        > Example
@@ -350,19 +350,19 @@ type Column
 
              example_div = Examples.integer_column / 10
     / : Column | Any -> Column
-    / other = here.run_vectorized_binary_op this '/' (/) other
+    / other = here.run_vectorized_binary_op self '/' (/) other
 
     ## ALIAS AND Columns
 
        Element-wise boolean conjunction.
 
        Arguments:
-       - other: The value to compute the conjunction of `this` with. If `other`
+       - other: The value to compute the conjunction of `self` with. If `other`
          is a column, the conjunction is performed pairwise between
-         corresponding elements of `this` and `other`.
+         corresponding elements of `self` and `other`.
 
        Returns a column containing the result of performing boolean `and` on
-       each element of `this` and `other`.
+       each element of `self` and `other`.
 
        > Example
          Compute the pairwise logical conjunction to two columns.
@@ -380,19 +380,19 @@ type Column
              example_and = Examples.bool_column_1 && True
     && : Column | Any -> Column
     && other =
-        here.run_vectorized_binary_op this "&&" (&&) other
+        here.run_vectorized_binary_op self "&&" (&&) other
 
     ## ALIAS OR Columns
 
        Element-wise boolean disjunction.
 
        Arguments:
-       - other: The value to compute the disjunction of `this` with. If `other`
+       - other: The value to compute the disjunction of `self` with. If `other`
          is a column, the disjunction is performed pairwise between
-         corresponding elements of `this` and `other`.
+         corresponding elements of `self` and `other`.
 
        Returns a column containing the result of performing the boolean `or` on
-       each element of `this` and `other`.
+       each element of `self` and `other`.
 
        > Example
          Compute the pairwise logical disjunction to two columns.
@@ -410,11 +410,11 @@ type Column
              example_or = Examples.bool_column_1 || True
     || : Column | Any -> Column
     || other =
-        here.run_vectorized_binary_op this "||" (||) other
+        here.run_vectorized_binary_op self "||" (||) other
 
     ## ALIAS NOT Columns
 
-       Boolean negation of each element in this column.
+       Boolean negation of each element in self column.
 
        > Example
          Negate the elements of a column.
@@ -423,7 +423,7 @@ type Column
 
              example_not = Examples.bool_column_1.not
     not : Column
-    not = here.run_vectorized_unary_op this "not" .not
+    not = here.run_vectorized_unary_op self "not" .not
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
@@ -435,7 +435,7 @@ type Column
 
              example_is_missing = Examples.decimal_column.is_missing
     is_missing : Column
-    is_missing = here.run_vectorized_unary_op this "is_missing" (== Nothing)
+    is_missing = here.run_vectorized_unary_op self "is_missing" (== Nothing)
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
@@ -447,7 +447,7 @@ type Column
 
              example_is_present = Examples.decimal_column.is_present
     is_present : Column
-    is_present = this.is_missing.not
+    is_present = self.is_missing.not
 
     ## ALIAS Fill Missing
 
@@ -467,9 +467,9 @@ type Column
              example_fill_missing = Examples.decimal_column.fill_missing 20.5
     fill_missing : Column | Any -> Column
     fill_missing default =
-        storage = this.java_column.getStorage
-        index = this.java_column.getIndex
-        name = this.java_column.getName
+        storage = self.java_column.getStorage
+        index = self.java_column.getIndex
+        name = self.java_column.getName
         new_st = case default of
             Column java_col ->
                 other_storage = java_col.getStorage
@@ -491,14 +491,14 @@ type Column
              example_drop_missing = Examples.decimal_column.drop_missing
     drop_missing : Any -> Column
     drop_missing =
-        this.where this.is_missing.not
+        self.where self.is_missing.not
 
     ## Checks for each element of the column if it starts with `other`.
 
        Arguments:
-       - other: The value to compare `this` with. If `other` is a column, the
+       - other: The value to compare `self` with. If `other` is a column, the
          operation is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        > Example
          Check the elements of a column for starting with the elements of
@@ -517,14 +517,14 @@ type Column
              example_starts_with = Examples.text_column_1.starts_with "hell"
     starts_with : Column | Text -> Column
     starts_with other =
-        here.run_vectorized_binary_op this "starts_with" (a -> b -> a.starts_with b) other
+        here.run_vectorized_binary_op self "starts_with" (a -> b -> a.starts_with b) other
 
     ## Checks for each element of the column if it ends with `other`.
 
        Arguments:
-       - other: The value to compare `this` with. If `other` is a column, the
+       - other: The value to compare `self` with. If `other` is a column, the
          operation is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        > Example
          Check the elements of a column for ending with the elements of another
@@ -543,14 +543,14 @@ type Column
              example_ends_with = Examples.text_column_1.ends_with "hell"
     ends_with : Column | Text -> Column
     ends_with other =
-        here.run_vectorized_binary_op this "ends_with" (a -> b -> a.ends_with b) other
+        here.run_vectorized_binary_op self "ends_with" (a -> b -> a.ends_with b) other
 
     ## Checks for each element of the column if it contains `other`.
 
        Arguments:
-       - other: The value to compare `this` with. If `other` is a column, the
+       - other: The value to compare `self` with. If `other` is a column, the
          operation is performed pairwise between corresponding elements of
-         `this` and `other`.
+         `self` and `other`.
 
        > Example
          Check the elements of a column for containing the elements of another
@@ -569,7 +569,7 @@ type Column
              example_contains = Examples.text_column_1.contains "hell"
     contains : Column | Text -> Column
     contains other =
-        here.run_vectorized_binary_op this "contains" (a -> b -> a.contains b) other
+        here.run_vectorized_binary_op self "contains" (a -> b -> a.contains b) other
 
     ## ALIAS Transform Column
 
@@ -577,7 +577,7 @@ type Column
        of results.
 
        Arguments:
-       - function: The function to apply to each element of `this` column.
+       - function: The function to apply to each element of `self` column.
 
        > Example
          Multiply each element of the column by itself.
@@ -587,21 +587,21 @@ type Column
              example_map = Examples.integer_column.map (x -> x * x)
     map : (Any -> Any) -> Column
     map function =
-        storage = this.java_column.getStorage
-        index = this.java_column.getIndex
+        storage = self.java_column.getStorage
+        index = self.java_column.getIndex
         new_st = storage.map Nothing function
         col = Java_Column.new "Result" index new_st
         Column col
 
     ## ALIAS Transform Columns
 
-       Applies `function` to consecutive pairs of elements of `this` and `that`
+       Applies `function` to consecutive pairs of elements of `self` and `that`
        and returns a column of results.
 
        Arguments:
-       - that: The column to zip with `this`.
+       - that: The column to zip with `self`.
        - function: A binary function that is applied to corresponding pairs of
-         elements of `this` and `that` to produce a value.
+         elements of `self` and `that` to produce a value.
        - skip_missing: controls whether missing values should be passed to the
          `function`. The default value of `True` will skip the rows for which
          the value in either column is missing and automatically append
@@ -617,15 +617,15 @@ type Column
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
     zip that function skip_missing=True =
-        s1 = this.java_column.getStorage
-        ix = this.java_column.getIndex
+        s1 = self.java_column.getStorage
+        ix = self.java_column.getIndex
         s2 = that.java_column.getStorage
         rs = s1.zip Nothing function s2 skip_missing
         Column (Java_Column.new "Result" ix rs)
 
     ## ALIAS Rename Column
 
-       Returns a new column, containing the same elements as `this`, but with
+       Returns a new column, containing the same elements as `self`, but with
        the given name.
 
        Arguments:
@@ -638,7 +638,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column
-    rename name = Column (this.java_column.rename name)
+    rename name = Column (self.java_column.rename name)
 
     ## Returns the name of this column.
 
@@ -649,7 +649,7 @@ type Column
 
              example_name = Examples.text_column_2.name
     name : Text
-    name = this.java_column.getName
+    name = self.java_column.getName
 
     ## Returns the length of this column.
 
@@ -660,7 +660,7 @@ type Column
 
              example_length = Examples.text_column_2.length
     length : Integer
-    length = this.java_column . getSize
+    length = self.java_column . getSize
 
     ## Returns the number of missing items in this column.
 
@@ -671,7 +671,7 @@ type Column
 
              example_count_missing = Examples.text_column_2.count_missing
     count_missing : Integer
-    count_missing = this.java_column.getStorage.countMissing
+    count_missing = self.java_column.getStorage.countMissing
 
     ## Returns the number of non-null items in this column.
 
@@ -682,7 +682,7 @@ type Column
 
              example_count = Examples.text_column_2.count
     count : Integer
-    count = this.length - this.count_missing
+    count = self.length - self.count_missing
 
     ## Returns the index of this column, as a column (indexed by itself).
 
@@ -695,7 +695,7 @@ type Column
 
              example_index = Examples.decimal_column.index
     index : Column ! Table.No_Index_Set_Error
-    index = case this.java_column.getIndex.toColumn of
+    index = case self.java_column.getIndex.toColumn of
         Nothing -> Error.throw Table.No_Index_Set_Error
         i -> Column i
 
@@ -712,7 +712,7 @@ type Column
              example_set_index =
                 Examples.decimal_column.set_index Examples.integer_column
     set_index : Column -> Column
-    set_index index = Column (this.java_column.setIndex index.java_column)
+    set_index index = Column (self.java_column.setIndex index.java_column)
 
     ## Returns the value contained in this column at the given index.
 
@@ -730,9 +730,9 @@ type Column
              example_at = Examples.integer_column.at 0
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds_Error
     at index =
-        valid_index = (index >= 0) && (index < this.length)
-        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error index this.length) else
-            storage = this.java_column.getStorage
+        valid_index = (index >= 0) && (index < self.length)
+        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error index self.length) else
+            storage = self.java_column.getStorage
             if storage.isNa index then Nothing else
                 storage.getItem index
 
@@ -741,7 +741,7 @@ type Column
 
        Arguments:
        - indexes: A column containing boolean values that is used to mask
-         `this`.
+         `self`.
 
        This is useful for filtering the rows by given predicate.
 
@@ -755,7 +755,7 @@ type Column
                  Examples.text_column_1.where (Examples.text_column_1.map .length > 2)
     where : Column -> Column
     where indexes =
-        Column (this.java_column.mask indexes.java_column)
+        Column (self.java_column.mask indexes.java_column)
 
     ## Returns a vector containing all the elements in this column.
 
@@ -766,7 +766,7 @@ type Column
 
              example_to_vector = Examples.integer_column.to_vector
     to_vector : Vector
-    to_vector = Vector.Vector this.java_column.getStorage.toList
+    to_vector = Vector.Vector self.java_column.getStorage.toList
 
     ## Returns the underlying storage type of this column.
 
@@ -778,7 +778,7 @@ type Column
              example_storage_type = Examples.integer_column.storage_type
     storage_type : Storage.Type
     storage_type =
-        tp = this.java_column.getStorage.getType
+        tp = self.java_column.getStorage.getType
         if tp == Storage_Type_String then Storage.Text else
             if tp == Storage_Type_Long then Storage.Integer else
                 if tp == Storage_Type_Double then Storage.Decimal else
@@ -797,10 +797,10 @@ type Column
              example_to_json = Examples.integer_column.to_json
     to_json : Json
     to_json =
-        col = this.java_column
+        col = self.java_column
         name = col.getName
         storage = col.getStorage
-        json_factory = case this.storage_type of
+        json_factory = case self.storage_type of
             Storage.Text -> Json.String
             Storage.Integer -> Json.Number
             Storage.Decimal -> Json.Number
@@ -815,18 +815,18 @@ type Column
 
        Arguments:
        - other: the table being the right operand of this join operation.
-       - on: the column of `this` that should be used as the join key. If this
-         argument is not provided, the index of `this` will be used.
-       - drop_unmatched: whether the rows of `this` without corresponding
+       - on: the column of `self` that should be used as the join key. If this
+         argument is not provided, the index of `self` will be used.
+       - drop_unmatched: whether the rows of `self` without corresponding
          matches in `other` should be dropped from the result.
-       - left_suffix: a suffix that should be added to the columns of `this`
+       - left_suffix: a suffix that should be added to the columns of `self`
          when there's a name conflict with a column of `other`.
        - right_suffix: a suffix that should be added to the columns of `other`
-         when there's a name conflict with a column of `this`.
+         when there's a name conflict with a column of `self`.
 
-       The resulting table contains rows of `this` extended with rows of
+       The resulting table contains rows of `self` extended with rows of
        `other` with matching indexes. If the index values in `other` are not
-       unique, the corresponding rows of `this` will be duplicated in the
+       unique, the corresponding rows of `self` will be duplicated in the
        result.
 
        > Example
@@ -837,7 +837,7 @@ type Column
              example_join = Examples.integer_column.join Examples.bool_column_1
     join : Table.Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
-        this.to_table.join other on drop_unmatched left_suffix right_suffix
+        self.to_table.join other on drop_unmatched left_suffix right_suffix
 
     ## Converts this column into a single-column table.
 
@@ -848,7 +848,7 @@ type Column
 
              example_to_table = Examples.integer_column.to_table
     to_table : Table.Table
-    to_table = Table.Table this.java_column.toTable
+    to_table = Table.Table self.java_column.toTable
 
     ## UNSTABLE
        ADVANCED
@@ -857,10 +857,10 @@ type Column
        benefit of visualization in the IDE.
     to_default_visualization_data : Text
     to_default_visualization_data =
-        size = ['length', this.length]
-        name = ['name', this.name]
+        size = ['length', self.length]
+        name = ['name', self.name]
         max_data = 100
-        data = ['data', this.to_vector.take_start max_data]
+        data = ['data', self.to_vector.take_start max_data]
         Json.from_pairs [size, name, data] . to_text
 
     ## ALIAS Sum Columns
@@ -874,7 +874,7 @@ type Column
 
              example_sum = Examples.integer_column.sum
     sum : Any
-    sum = this.java_column.aggregate 'sum' (x-> Vector.Vector x . reduce (+)) True
+    sum = self.java_column.aggregate 'sum' (x-> Vector.Vector x . reduce (+)) True
 
     ## ALIAS Max Columns
 
@@ -888,7 +888,7 @@ type Column
              example_max = Examples.integer_column.max
     max : Any
     max =
-        this.java_column.aggregate 'max' (x-> Vector.Vector x . reduce Math.max) True
+        self.java_column.aggregate 'max' (x-> Vector.Vector x . reduce Math.max) True
 
     ## ALIAS Min Columns
 
@@ -902,7 +902,7 @@ type Column
              example_min = Examples.integer_column.min
     min : Any
     min =
-        this.java_column.aggregate 'min' (x-> Vector.Vector x . reduce Math.min) True
+        self.java_column.aggregate 'min' (x-> Vector.Vector x . reduce Math.min) True
 
     ## ALIAS Mean Columns
 
@@ -918,7 +918,7 @@ type Column
     mean =
         vec_mean v = if v.length == 0 then Nothing else
             (Vector.Vector v).reduce (+) / v.length
-        this.java_column.aggregate 'mean' vec_mean True
+        self.java_column.aggregate 'mean' vec_mean True
 
     ## Computes the variance of the sample represented by this column.
 
@@ -928,10 +928,10 @@ type Column
          computes a sample variance. Setting it to `0` will compute population
          variance instead.
     variance degrees_of_freedom_correction=1 =
-        mean = this.mean
-        shifted = this - mean
+        mean = self.mean
+        shifted = self - mean
         sq = shifted * shifted
-        sq.sum / (this.length - degrees_of_freedom_correction)
+        sq.sum / (self.length - degrees_of_freedom_correction)
 
     ## Computes the standard deviation of the sample represented by this column.
 
@@ -941,16 +941,16 @@ type Column
          computes a sample standard deviation. Setting it to `0` will compute
          population standard deviation instead.
     standard_deviation degrees_of_freedom_correction=1 =
-        this.variance degrees_of_freedom_correction . sqrt
+        self.variance degrees_of_freedom_correction . sqrt
 
     ## Computes the coefficient of determination of a given prediction column.
 
        Arguments:
        - predictions: the column predicting the values of this column.
     r_squared predictions =
-        prediction_diff = this - predictions
+        prediction_diff = self - predictions
         ss_res = prediction_diff*prediction_diff . sum
-        ss_tot_lin = this - this.mean
+        ss_tot_lin = self - self.mean
         ss_tot = ss_tot_lin*ss_tot_lin . sum
         1 - ss_res / ss_tot
 
@@ -962,7 +962,7 @@ type Column
        Arguments:
        - order: specifies the default sort order for this operation.
        - missing_last: specifies the default placement of missing values when
-         compared to non-missing ones. Note thet this argument is independent
+         compared to non-missing ones. Note that this argument is independent
          from `order`, i.e. missing values will always be sorted according to
          this rule, ignoring the ascending / descending setting.
        - comparator: function taking two items in this column and returning
@@ -1003,10 +1003,10 @@ type Column
         java_cmp = case comparator of
             Nothing -> Nothing
             cmp -> comparator_to_java cmp
-        rule = OrderBuilder.OrderRule.new this.java_column java_cmp order_bool missing_last
+        rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
         fallback_cmp = comparator_to_java .compare_to
         mask = OrderBuilder.buildOrderMask [rule].to_array fallback_cmp
-        new_col = this.java_column.applyMask mask
+        new_col = self.java_column.applyMask mask
         Column new_col
 
     ## UNSTABLE
@@ -1016,7 +1016,7 @@ type Column
        Arguments:
        - count: The number of elements to take from the start of this column.
 
-       If `this` has a number of items in it less than `count`, the entire
+       If `self` has a number of items in it less than `count`, the entire
        column will be returned.
 
        > Example
@@ -1027,7 +1027,7 @@ type Column
              example_take_start = Examples.integer_column.take_start 2
     take_start : Integer -> Column
     take_start count =
-        Column (this.java_column.slice 0 count)
+        Column (self.java_column.slice 0 count)
 
     ## UNSTABLE
 
@@ -1036,7 +1036,7 @@ type Column
        Arguments:
        - count: The number of elements to take from the end of this column.
 
-       If `this` has a number of items in it less than `count`, the entire
+       If `self` has a number of items in it less than `count`, the entire
        column will be returned.
 
        > Example
@@ -1047,8 +1047,8 @@ type Column
              example_take_end = Examples.integer_column.take_end 2
     take_end : Integer -> Column
     take_end count =
-        start_point = Math.max (this.length - count) 0
-        Column (this.java_column.slice start_point count)
+        start_point = Math.max (self.length - count) 0
+        Column (self.java_column.slice start_point count)
 
     ## UNSTABLE
 
@@ -1064,7 +1064,7 @@ type Column
 
              example_first = Examples.integer_column.first
     first : Any ! Empty_Error
-    first = this.at 0 . catch (_ -> Error.throw Empty_Error)
+    first = self.at 0 . catch (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1080,7 +1080,7 @@ type Column
 
              example_head = Examples.integer_column.head
     head : Any ! Empty_Error
-    head = this.first
+    head = self.first
 
     ## UNSTABLE
 
@@ -1096,11 +1096,11 @@ type Column
 
              example_last = Examples.integer_column.last
     last : Any ! Empty_Error
-    last = this.at (this.length - 1) . catch (_ -> Error.throw Empty_Error)
+    last = self.at (self.length - 1) . catch (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
-       Returns a column containing the values of `this` column with their order
+       Returns a column containing the values of `self` column with their order
        reversed.
 
        > Example
@@ -1111,8 +1111,8 @@ type Column
              example_reverse = Examples.integer_column.reverse
     reverse : Column
     reverse =
-        mask = OrderBuilder.buildReversedMask this.length
-        Column <| this.java_column.applyMask mask
+        mask = OrderBuilder.buildReversedMask self.length
+        Column <| self.java_column.applyMask mask
 
     ## UNSTABLE
 
@@ -1126,7 +1126,7 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count : Column
-    duplicate_count = Column this.java_column.duplicateCount
+    duplicate_count = Column self.java_column.duplicateCount
 
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.
@@ -1157,7 +1157,7 @@ type Aggregate_Column
     reduce : (Vector.Vector -> Any) -> Boolean -> Text -> Column
     reduce function skip_missing=True name_suffix="_result" =
         f arr = function (Vector.Vector arr)
-        r = this.java_column.aggregate Nothing name_suffix f skip_missing
+        r = self.java_column.aggregate Nothing name_suffix f skip_missing
         Column r
 
     ## Sums the values in each group.
@@ -1175,7 +1175,7 @@ type Aggregate_Column
              example_sum = Examples.aggregate_column.sum . rename "id_sum"
     sum : Text -> Column
     sum name_suffix='_sum' =
-        r = this.java_column.aggregate 'sum' name_suffix (x-> Vector.Vector x . reduce (+)) True
+        r = self.java_column.aggregate 'sum' name_suffix (x-> Vector.Vector x . reduce (+)) True
         Column r
 
     ## Computes the maximum element of each group.
@@ -1192,7 +1192,7 @@ type Aggregate_Column
              example_max = Examples.aggregate_column.max . rename "latest_transaction"
     max : Text -> Column
     max name_suffix='_max' =
-        r = this.java_column.aggregate 'max' name_suffix (x-> Vector.Vector x . reduce Math.max) True
+        r = self.java_column.aggregate 'max' name_suffix (x-> Vector.Vector x . reduce Math.max) True
         Column r
 
     ## Computes the minimum element of each group.
@@ -1209,7 +1209,7 @@ type Aggregate_Column
              example_min = Examples.aggregate_column.min . rename "first_transaction"
     min : Text -> Column
     min name_suffix='_min' =
-        r = this.java_column.aggregate 'min' name_suffix (x-> Vector.Vector x . reduce Math.min) True
+        r = self.java_column.aggregate 'min' name_suffix (x-> Vector.Vector x . reduce Math.min) True
         Column r
 
     ## Computes the number of non-missing elements in each group.
@@ -1227,7 +1227,7 @@ type Aggregate_Column
              example_count = Examples.aggregate_column.count . rename "transaction_count"
     count : Text -> Column
     count name_suffix='_count' =
-        r = this.java_column.aggregate 'count' name_suffix (x-> x.length) True
+        r = self.java_column.aggregate 'count' name_suffix (x-> x.length) True
         Column r
 
     ## Computes the mean of non-missing elements in each group.
@@ -1246,7 +1246,7 @@ type Aggregate_Column
     mean name_suffix='_mean' =
         vec_mean v = if v.length == 0 then Nothing else
             (Vector.Vector v).reduce (+) / v.length
-        r = this.java_column.aggregate 'mean' name_suffix vec_mean True
+        r = self.java_column.aggregate 'mean' name_suffix vec_mean True
         Column r
 
     ## Gathers all elements in a group into a vector and returns a column of
@@ -1264,7 +1264,7 @@ type Aggregate_Column
              example_values = Examples.aggregate_column.values
     values : Text -> Column
     values name_suffix='_values' =
-        r = this.java_column.aggregate Nothing name_suffix Vector.Vector False
+        r = self.java_column.aggregate Nothing name_suffix Vector.Vector False
         Column r
 
     ## Prints an ASCII-art column with this data to the standard output.
@@ -1280,7 +1280,7 @@ type Aggregate_Column
 
              example_print = Examples.aggregate_column.print
     print : Nothing
-    print = this.values.print
+    print = self.values.print
 
 ## UNSTABLE
 
@@ -1296,8 +1296,8 @@ type Index_Out_Of_Bounds_Error index length
    Pretty-prints the index out of bounds error.
 Index_Out_Of_Bounds_Error.to_display_text : Text
 Index_Out_Of_Bounds_Error.to_display_text =
-    ix_text = this.index.to_text
-    len_text = this.length.to_text
+    ix_text = self.index.to_text
+    len_text = self.length.to_text
     "The index " + ix_text + " is out of bounds in a column of length " + len_text + "."
 
 ## UNSTABLE

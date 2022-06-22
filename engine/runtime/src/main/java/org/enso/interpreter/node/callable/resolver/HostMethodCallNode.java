@@ -39,12 +39,12 @@ public abstract class HostMethodCallNode extends Node {
      */
     READ_ARRAY_ELEMENT,
     /**
-     * The method call should be handled by converting {@code _this} to a {@link
+     * The method call should be handled by converting {@code self} to a {@link
      * org.enso.interpreter.runtime.data.text.Text} and dispatching natively.
      */
     CONVERT_TO_TEXT,
     /**
-     * The method call should be handled by converting {@code _this} to a {@code
+     * The method call should be handled by converting {@code self} to a {@code
      * Standard.Base.Data.Time.Date} and dispatching natively.
      */
     CONVERT_TO_DATE,
@@ -73,27 +73,27 @@ public abstract class HostMethodCallNode extends Node {
    * Returns a token instructing the caller about what mode of calling the given method should be
    * used.
    *
-   * @param _this the method call target
+   * @param self the method call target
    * @param methodName the method name
    * @param library an instance of interop library to use for interacting with the target
    * @return a {@link PolyglotCallType} to use for this target and method
    */
   public static PolyglotCallType getPolyglotCallType(
-      Object _this, String methodName, InteropLibrary library) {
-    if (library.isMemberInvocable(_this, methodName)) {
+      Object self, String methodName, InteropLibrary library) {
+    if (library.isMemberInvocable(self, methodName)) {
       return PolyglotCallType.CALL_METHOD;
-    } else if (library.isMemberReadable(_this, methodName)) {
+    } else if (library.isMemberReadable(self, methodName)) {
       return PolyglotCallType.GET_MEMBER;
-    } else if (library.isInstantiable(_this) && methodName.equals(NEW_NAME)) {
+    } else if (library.isInstantiable(self) && methodName.equals(NEW_NAME)) {
       return PolyglotCallType.INSTANTIATE;
-    } else if (library.hasArrayElements(_this) && methodName.equals(ARRAY_LENGTH_NAME)) {
+    } else if (library.hasArrayElements(self) && methodName.equals(ARRAY_LENGTH_NAME)) {
       return PolyglotCallType.GET_ARRAY_LENGTH;
-    } else if (library.hasArrayElements(_this) && methodName.equals(ARRAY_READ_NAME)) {
+    } else if (library.hasArrayElements(self) && methodName.equals(ARRAY_READ_NAME)) {
       return PolyglotCallType.READ_ARRAY_ELEMENT;
-    } else if (library.isString(_this)) {
+    } else if (library.isString(self)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
-    } else if (library.isDate(_this)) {
-      if (!library.isTime(_this)) {
+    } else if (library.isDate(self)) {
+      if (!library.isTime(self)) {
         return PolyglotCallType.CONVERT_TO_DATE;
       }
     }
@@ -105,23 +105,23 @@ public abstract class HostMethodCallNode extends Node {
    *
    * @param callType the call type to perform
    * @param symbol the method name
-   * @param _this the call receiver
+   * @param self the call receiver
    * @param args the arguments
    * @return the result of calling the method on the receiver
    */
   public abstract Object execute(
-      PolyglotCallType callType, String symbol, Object _this, Object[] args);
+      PolyglotCallType callType, String symbol, Object self, Object[] args);
 
   @Specialization(guards = {"callType == CALL_METHOD"})
   Object resolveHostMethod(
       PolyglotCallType callType,
       String symbol,
-      Object _this,
+      Object self,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
-      return hostValueToEnsoNode.execute(members.invokeMember(_this, symbol, args));
+      return hostValueToEnsoNode.execute(members.invokeMember(self, symbol, args));
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
       throw new IllegalStateException(
           "Impossible to reach here. The member is checked to be invocable.");
@@ -146,7 +146,7 @@ public abstract class HostMethodCallNode extends Node {
   Object resolveHostField(
       PolyglotCallType callType,
       String symbol,
-      Object _this,
+      Object self,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
       @Cached HostValueToEnsoNode hostValueToEnsoNode,
@@ -157,7 +157,7 @@ public abstract class HostMethodCallNode extends Node {
           Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
     }
     try {
-      return hostValueToEnsoNode.execute(members.readMember(_this, symbol));
+      return hostValueToEnsoNode.execute(members.readMember(self, symbol));
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
       throw new IllegalStateException(
           "Impossible to reach here. The member is checked to be readable.");
@@ -168,12 +168,12 @@ public abstract class HostMethodCallNode extends Node {
   Object resolveHostConstructor(
       PolyglotCallType callType,
       String symbol,
-      Object _this,
+      Object self,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary instances,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
-      return hostValueToEnsoNode.execute(instances.instantiate(_this, args));
+      return hostValueToEnsoNode.execute(instances.instantiate(self, args));
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(
           "Impossible to reach here. The member is checked to be instantiable.");
@@ -198,7 +198,7 @@ public abstract class HostMethodCallNode extends Node {
   Object resolveHostArrayLength(
       PolyglotCallType callType,
       String symbol,
-      Object _this,
+      Object self,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
       @Cached BranchProfile errorProfile,
@@ -209,9 +209,9 @@ public abstract class HostMethodCallNode extends Node {
           Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
     }
     try {
-      return hostValueToEnsoNode.execute(arrays.getArraySize(_this));
+      return hostValueToEnsoNode.execute(arrays.getArraySize(self));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible to reach here, _this is checked to be an array");
+      throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
     }
   }
 
@@ -219,7 +219,7 @@ public abstract class HostMethodCallNode extends Node {
   Object resolveHostArrayRead(
       PolyglotCallType callType,
       String symbol,
-      Object _this,
+      Object self,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
       @Cached BranchProfile arityErrorProfile,
@@ -233,16 +233,16 @@ public abstract class HostMethodCallNode extends Node {
     if (!(args[0] instanceof Long)) {
       typeErrorProfile.enter();
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(_this, args[0]), this);
+          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(self, args[0]), this);
     }
     long idx = (Long) args[0];
     try {
-      return hostValueToEnsoNode.execute(arrays.readArrayElement(_this, idx));
+      return hostValueToEnsoNode.execute(arrays.readArrayElement(self, idx));
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible to reach here, _this is checked to be an array");
+      throw new IllegalStateException("Impossible to reach here, self is checked to be an array");
     } catch (InvalidArrayIndexException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(_this, idx), this);
+          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(self, idx), this);
     }
   }
 }

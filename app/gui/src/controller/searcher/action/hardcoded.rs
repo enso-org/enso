@@ -93,7 +93,7 @@ pub struct Suggestion {
     pub name:               &'static str,
     /// The code inserted when picking suggestion.
     pub code:               &'static str,
-    /// The type of expected `this` argument.
+    /// The type of expected `self` argument.
     pub this_arg:           Option<tp::QualifiedName>,
     /// The list of argument types which may be applied to the code returned by this suggestion.
     pub argument_types:     Vec<tp::QualifiedName>,

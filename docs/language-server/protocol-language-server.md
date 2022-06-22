@@ -101,9 +101,11 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/rootRemoved`](#filerootremoved)
 - [Text Editing Operations](#text-editing-operations)
   - [`text/openFile`](#textopenfile)
+  - [`text/openBuffer`](#textopenbuffer)
   - [`text/closeFile`](#textclosefile)
   - [`text/save`](#textsave)
   - [`text/applyEdit`](#textapplyedit)
+  - [`text/applyExpressionValue`](#textapplyexpressionvalue)
   - [`text/didChange`](#textdidchange)
 - [Workspace Operations](#workspace-operations)
   - [`workspace/projectInfo`](#workspaceprojectinfo)
@@ -1124,8 +1126,11 @@ A representation of a change to a text file at a given position.
 
 ```typescript
 interface TextEdit {
+  /** The range of text in a text file. */
   range: Range;
-  text: String;
+
+  /** The change to a text file. */
+  text: string;
 }
 ```
 
@@ -2631,6 +2636,51 @@ client that sent the `text/openFile` message.
   access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
+### `text/openBuffer`
+
+This requests the language server to open a specified in-memory buffer mapped to
+the provided path. If the path exists, this command behaves the same as
+[`text/openFile`](#textopenfile). If the path does not exist, the command
+creates empty in-memory buffer for the provided path.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+If no client has write lock on the opened file, the capability is granted to the
+client that sent the `text/openBuffer` message. The in-memory buffers can be
+used to define hidden modules with visualization functions. In a nutshell, the
+request behaves the same as [`text/openFile`](#textopenfile) but does not
+require the file to exist.
+
+#### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+#### Result
+
+```typescript
+{
+  writeCapability?: CapabilityRegistration;
+  content: String;
+  currentVersion: SHA3-224;
+}
+```
+
+#### Errors
+
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
+
 ### `text/closeFile`
 
 This requests the language server to close the specified file.
@@ -2719,7 +2769,13 @@ that some edits are applied and others are not.
 
 ```typescript
 {
+  /** The file edit. */
   edit: FileEdit;
+
+  /** The flag indicating whether we should re-execute the program after
+    * applying the edit. Default value is `true`, to re-execute the program.
+    */
+  execute?: boolean;
 }
 ```
 
@@ -2735,6 +2791,61 @@ null;
   open.
 - [`TextEditValidationError`](#texteditvalidationerror) to signal that
   validation has failed for a series of edits.
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version
+  provided by the client doesn't match the version computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold
+  write lock for the buffer.
+
+### `text/applyExpressionValue`
+
+This requests to set an expression to a new value. For example, it can update a
+literal value, like changing `98` to `99`, `true` to `false` or `"Hello"` to
+`"World!"`. This method is a more specific version of
+[`text/applyEdit`](#textapplyedit) and guarantees that the syntax tree is not
+changed after applying the edit. This way the engine can perform a more
+efficient value swap instead of reparsing and recompiling the whole module.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+This operation may fail if the requesting client does not have permission to
+edit the resources for which edits are sent.
+
+#### Parameters
+
+```typescript
+interface TextApplyExpressionValue {
+  /** The expression id to update. */
+  expressionId: ExpressionId;
+
+  /** The new value of the expression. */
+  expressionValue: string;
+
+  /** Edited file. */
+  path: Path;
+
+  /** The SHA hash of the file before setting the new value to the node. */
+  oldVersion: SHA3-224;
+
+  /** The SHA hash of the file after setting the new value to the node. */
+  newVersion: SHA3-224;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
+  open.
+- [`TextEditValidationError`](#texteditvalidationerror) to signal that
+  validation has failed for this edit.
 - [`InvalidVersionError`](#invalidversionerror) to signal that the version
   provided by the client doesn't match the version computed by the server.
 - [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold

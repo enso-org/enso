@@ -11,7 +11,7 @@ type No_Matches_Found (criteria : Vector Text)
 
 No_Matches_Found.to_display_text : Text
 No_Matches_Found.to_display_text =
-    "The criteria "+this.criteria.to_text+" did not match any names in the input."
+    "The criteria "+self.criteria.to_text+" did not match any names in the input."
 
 
 ## Represents case-insensitive comparison mode.
@@ -59,13 +59,13 @@ type Regex_Matcher (case_sensitive : (True | Case_Insensitive) = True) (multilin
    `Regex_Matcher`.
 Regex_Matcher.compile : Text -> Pattern
 Regex_Matcher.compile pattern =
-    case_insensitive = case this.case_sensitive of
+    case_insensitive = case self.case_sensitive of
         True -> False
         ## TODO [RW] Currently locale is not supported in case-insensitive
            Regex matching. There are plans to revisit it:
            https://www.pivotaltracker.com/story/show/181313576
         Case_Insensitive _ -> True
-    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=this.match_ascii dot_matches_newline=this.dot_matches_newline multiline=this.multiline comments=this.comments
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=self.match_ascii dot_matches_newline=self.dot_matches_newline multiline=self.multiline comments=self.comments
     compiled_pattern
 
 ## UNSTABLE
@@ -82,7 +82,7 @@ Regex_Matcher.compile pattern =
          Text_Matcher.match_single_criterion "Foobar" "foo" == False
 Text_Matcher.match_single_criterion : Text -> Text -> Boolean
 Text_Matcher.match_single_criterion name criterion =
-    case this.case_sensitive of
+    case self.case_sensitive of
         True -> name == criterion
         Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
 
@@ -101,7 +101,7 @@ Text_Matcher.match_single_criterion name criterion =
          Regex_Matcher case_sensitive=Case_Insensitive . match_single_criterion "Foobar" "f.*" == True
 Regex_Matcher.match_single_criterion : Text -> Text -> Boolean
 Regex_Matcher.match_single_criterion name criterion =
-    this.compile criterion . matches name
+    self.compile criterion . matches name
 
 ## UNSTABLE
    Selects objects from an input list that match any of the provided criteria.
@@ -142,7 +142,7 @@ Regex_Matcher.match_single_criterion name criterion =
 
          Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 Text_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
-Text_Matcher.match_criteria = here.match_criteria_implementation this
+Text_Matcher.match_criteria = here.match_criteria_implementation self
 
 ## UNSTABLE
    Selects objects from an input list that match any of the provided criteria.
@@ -183,7 +183,7 @@ Text_Matcher.match_criteria = here.match_criteria_implementation this
 
          Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 Regex_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
-Regex_Matcher.match_criteria = here.match_criteria_implementation this
+Regex_Matcher.match_criteria = here.match_criteria_implementation self
 
 ## A common supertype representing a matching strategy.
 type Matcher
@@ -213,18 +213,18 @@ type Match_Matrix
     # Checks if the ith object is matched by any criterion.
     is_object_matched_by_anything : Integer -> Boolean
     is_object_matched_by_anything i =
-        this.matrix.at i . any x->x
+        self.matrix.at i . any x->x
 
     # Checks if the ith criterion matches any objects.
     does_criterion_match_anything : Integer -> Boolean
     does_criterion_match_anything i =
-        this.matrix.map (col -> col.at i) . any x->x
+        self.matrix.map (col -> col.at i) . any x->x
 
     ## PRIVATE
        Extracts the list of criteria that did not have any matches.
     unmatched_criteria =
-        checked_criteria = this.criteria.map_with_index j-> criterion->
-            has_matches = this.does_criterion_match_anything j
+        checked_criteria = self.criteria.map_with_index j-> criterion->
+            has_matches = self.does_criterion_match_anything j
             Pair has_matches criterion
         checked_criteria.filter (p -> p.first.not) . map .second
 
@@ -232,15 +232,15 @@ type Match_Matrix
        Returns the list of criteria that match the ith object.
     criteria_matching_object : Integer -> Vector
     criteria_matching_object i =
-        this.criteria.filter_with_index j-> _->
-            this.matrix . at i . at j
+        self.criteria.filter_with_index j-> _->
+            self.matrix . at i . at j
 
     ## PRIVATE
        Returns the list of criteria indices that match the ith object.
     criteria_indices_matching_object : Integer -> Vector
     criteria_indices_matching_object i =
-        (0.up_to this.criteria.length).filter j->
-            this.matrix . at i . at j
+        (0.up_to self.criteria.length).filter j->
+            self.matrix . at i . at j
 
 ## PRIVATE
    Generates a matrix specifying which criteria match which object.

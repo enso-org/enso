@@ -277,7 +277,7 @@ case object UppercaseNames extends IRPass {
   private def findThisPosition(args: List[IR.CallArgument]): Option[Int] = {
     val ix = args.indexWhere(arg =>
       arg.name.exists(
-        _.name == Constants.Names.THIS_ARGUMENT
+        _.name == Constants.Names.SELF_ARGUMENT
       ) || arg.name.isEmpty
     )
     if (ix == -1) None else Some(ix)

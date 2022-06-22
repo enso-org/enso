@@ -69,8 +69,12 @@ class RuntimeErrorsTest
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .option(
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths.get("../../distribution/component").toFile.getAbsolutePath
+          Paths
+            .get("../../test/micro-distribution/component")
+            .toFile
+            .getAbsolutePath
         )
+        .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -747,7 +751,7 @@ class RuntimeErrorsTest
         |    Error.throw MyError1
         |
         |main =
-        |    x = this.foo
+        |    x = self.foo
         |    y = x - 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1172,7 +1176,7 @@ class RuntimeErrorsTest
         |    Panic.throw 9
         |
         |main =
-        |    x = this.foo
+        |    x = self.foo
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1281,7 +1285,7 @@ class RuntimeErrorsTest
         |    Error.throw 9
         |
         |main =
-        |    x = this.foo
+        |    x = self.foo
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")

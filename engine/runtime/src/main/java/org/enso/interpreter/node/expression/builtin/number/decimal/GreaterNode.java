@@ -14,29 +14,29 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Decimal", name = ">", description = "Comparison of numbers.")
 public abstract class GreaterNode extends Node {
 
-  abstract boolean execute(double _this, Object that);
+  abstract boolean execute(double self, Object that);
 
   static GreaterNode build() {
     return GreaterNodeGen.create();
   }
 
   @Specialization
-  boolean doDouble(double _this, double that) {
-    return _this > that;
+  boolean doDouble(double self, double that) {
+    return self > that;
   }
 
   @Specialization
-  boolean doLong(double _this, long that) {
-    return _this > (double) that;
+  boolean doLong(double self, long that) {
+    return self > (double) that;
   }
 
   @Specialization
-  boolean doBigInteger(double _this, EnsoBigInteger that) {
-    return _this > BigIntegerOps.toDouble(that.getValue());
+  boolean doBigInteger(double self, EnsoBigInteger that) {
+    return self > BigIntegerOps.toDouble(that.getValue());
   }
 
   @Fallback
-  boolean doOther(double _this, Object that) {
+  boolean doOther(double self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

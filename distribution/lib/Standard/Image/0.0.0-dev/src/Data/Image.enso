@@ -55,7 +55,7 @@ type Image
 
              example_rows = Examples.image.rows
     rows : Integer
-    rows = this.opencv_mat.rows
+    rows = self.opencv_mat.rows
 
     ## UNSTABLE
 
@@ -68,7 +68,7 @@ type Image
 
              example_cols = Examples.image.columns
     columns : Integer
-    columns = this.opencv_mat.cols
+    columns = self.opencv_mat.cols
 
     ## UNSTABLE
 
@@ -81,7 +81,7 @@ type Image
 
              example_channels = Examples.image.channels
     channels : Integer
-    channels = this.opencv_mat.channels
+    channels = self.opencv_mat.channels
 
     ## UNSTABLE
 
@@ -99,9 +99,9 @@ type Image
              example_get = Examples.image.get 10 10
     get : Integer -> Integer -> Vector ! Matrix.Index_Out_Of_Bounds_Error
     get row column =
-        if (row < 0) || (row >= this.rows) then Error.throw (Matrix.Index_Out_Of_Bounds_Error this.rows this.columns row) else
-            if (column < 0) || (column >= this.columns) then Error.throw (Matrix.Index_Out_Of_Bounds_Error this.rows this.columns column) else
-                arr = Java_Image.get this.opencv_mat row column
+        if (row < 0) || (row >= self.rows) then Error.throw (Matrix.Index_Out_Of_Bounds_Error self.rows self.columns row) else
+            if (column < 0) || (column >= self.columns) then Error.throw (Matrix.Index_Out_Of_Bounds_Error self.rows self.columns column) else
+                arr = Java_Image.get self.opencv_mat row column
                 Vector.Vector arr
 
     ## UNSTABLE
@@ -153,7 +153,7 @@ type Image
                  image = Examples.image
                  image + (Matrix.zeros rows=image.rows columns=image.columns channels=image.channels)
     + : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
-    + value = Panic.recover Any (Internal.core_op this.opencv_mat value (Java_Image.add _ _ _)) . catch Internal.core_op_handler
+    + value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Image.add _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -204,7 +204,7 @@ type Image
                  image = Examples.image
                  image - (Matrix.zeros rows=image.rows columns=image.columns channels=image.channels)
     - : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
-    - value = Panic.recover Any (Internal.core_op this.opencv_mat value (Java_Image.subtract _ _ _)) . catch Internal.core_op_handler
+    - value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Image.subtract _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -255,7 +255,7 @@ type Image
                  image = Examples.image
                  image * (Matrix.ones rows=image.rows columns=image.columns channels=image.channels)
     * : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
-    * value = Panic.recover Any (Internal.core_op this.opencv_mat value (Java_Image.multiply _ _ _)) . catch Internal.core_op_handler
+    * value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Image.multiply _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -306,7 +306,7 @@ type Image
                  image = Examples.image
                  image / (Matrix.ones rows=image.rows columns=image.columns channels=image.channels)
     / : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
-    / value = Panic.recover Any (Internal.core_op this.opencv_mat value (Java_Image.divide _ _ _)) . catch Internal.core_op_handler
+    / value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Image.divide _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -330,7 +330,7 @@ type Image
 
              example_eq = Examples.image == Examples.image
     == : Image -> Boolean
-    == that = Java_Image.is_equals this.opencv_mat that.opencv_mat
+    == that = Java_Image.is_equals self.opencv_mat that.opencv_mat
 
     ## UNSTABLE
 
@@ -344,7 +344,7 @@ type Image
              example_to_vector = Examples.image.to_vector
     to_vector : Vector
     to_vector =
-        arr = Java_Image.to_vector this.opencv_mat
+        arr = Java_Image.to_vector self.opencv_mat
         Vector.Vector arr
 
     ## UNSTABLE
@@ -359,7 +359,7 @@ type Image
              example_to_json = Examples.image.to_json
     to_json : Json
     to_json =
-        base64 = Java_Image.to_base64 this.opencv_mat
+        base64 = Java_Image.to_base64 self.opencv_mat
         Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
 
     ## UNSTABLE
@@ -373,5 +373,5 @@ type Image
 
              example_to_mat = Examples.image.to_matrix
     to_matrix : Matrix
-    to_matrix = Matrix.from_vector this.to_vector this.rows this.channels
+    to_matrix = Matrix.from_vector self.to_vector self.rows self.channels
 

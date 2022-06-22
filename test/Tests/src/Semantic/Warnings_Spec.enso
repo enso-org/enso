@@ -7,7 +7,7 @@ import Standard.Test
 type My_Warning reason
 
 type My_Type a b c
-My_Type.my_method = this.a + this.b + this.c
+My_Type.my_method = self.a + self.b + self.c
 
 type Wrap foo
 

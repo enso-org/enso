@@ -1,0 +1,3 @@
+type Text
+    @Builtin_Type
+    type Text

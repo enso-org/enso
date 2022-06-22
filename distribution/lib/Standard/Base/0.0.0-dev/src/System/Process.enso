@@ -80,7 +80,7 @@ type Builder
                  builder = Process.new_builder "echo"
                  builder.set_arguments ["hello, world!"]
     set_arguments : Vector.Vector Text -> Builder
-    set_arguments arguments = Builder this.command arguments this.stdin
+    set_arguments arguments = Builder self.command arguments self.stdin
 
     ## UNSTABLE
 
@@ -99,7 +99,7 @@ type Builder
                  builder = Process.new_builder "echo"
                  builder.set_stdin "hello, world!"
     set_stdin : Text -> Builder
-    set_stdin stdin = Builder this.command this.arguments stdin
+    set_stdin stdin = Builder self.command self.arguments stdin
 
     ## UNSTABLE
 
@@ -116,7 +116,7 @@ type Builder
                  with_args.create
     create : Result
     create =
-        result = System.create_process this.command this.arguments.to_array this.stdin redirect_in=False redirect_out=False redirect_err=False
+        result = System.create_process self.command self.arguments.to_array self.stdin redirect_in=False redirect_out=False redirect_err=False
         Result (Exit_Code.from_number result.exit_code) result.stdout result.stderr
 
 ## UNSTABLE
