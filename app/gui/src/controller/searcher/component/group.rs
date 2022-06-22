@@ -63,8 +63,11 @@ impl Deref for Group {
 }
 
 impl Group {
-    /// Construct a new group with no entries.
-    pub fn new_empty(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+    /// Create a named empty group referring to module with specified component ID.
+    pub fn from_name_and_id(
+        name: impl Into<ImString>,
+        component_id: Option<component::Id>,
+    ) -> Self {
         Self { data: Rc::new(Data::new_empty(name, component_id)) }
     }
 
@@ -75,7 +78,7 @@ impl Group {
         } else {
             entry.module.name().into()
         };
-        Self::new_empty(name, Some(component_id))
+        Self::from_name_and_id(name, Some(component_id))
     }
 
     /// Construct from [`execution_context::ComponentGroup`] components looked up in the suggestion

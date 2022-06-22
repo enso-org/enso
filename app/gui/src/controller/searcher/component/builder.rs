@@ -83,7 +83,8 @@ impl List {
     /// [`component::List::local_scope`].
     pub fn with_local_scope_module_id(self, module_id: component::Id) -> Self {
         const LOCAL_SCOPE_GROUP_NAME: &str = "Local Scope";
-        let local_scope = component::Group::new_empty(LOCAL_SCOPE_GROUP_NAME, Some(module_id));
+        let id = Some(module_id);
+        let local_scope = component::Group::from_name_and_id(LOCAL_SCOPE_GROUP_NAME, id);
         Self { local_scope, ..self }
     }
 
