@@ -130,7 +130,7 @@ pub struct List {
     filtered:              Rc<Cell<bool>>,
     /// Components to display in the "Local Scope" section of the [Component
     /// Browser](crate::controller::Searcher).
-    pub local_scope:       Rc<RefCell<Vec<Component>>>,
+    pub local_scope:       Group,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// [Component Browser](crate::controller::Searcher).
     pub favorites:         group::List,

@@ -67,15 +67,15 @@ impl ModuleGroups {
 pub struct List {
     all_components:        Vec<Component>,
     module_groups:         HashMap<component::Id, ModuleGroups>,
-    local_scope_module:    component::Group,
+    local_scope:    component::Group,
     favorites:             component::group::List,
 }
 
 impl Default for List {
     fn default() -> Self {
         // FIXME: make "Local Scope" a constant
-        let local_scope_module = component::Group::new_empty_visible("Local Scope", None);
-        Self { local_scope_module, ..default() }
+        let local_scope = component::Group::new_empty_visible("Local Scope", None);
+        Self { local_scope, ..default() }
     }
 }
 
@@ -93,8 +93,8 @@ impl List {
         // FIXME: should the group be visible or not? is it relevant if we call update_filtering
         // anyway?
         // FIXME: make "Local Scope" a constant
-        let local_scope_module = component::Group::new_empty_visible("Local Scope", Some(id));
-        Self { local_scope_module, ..self }
+        let local_scope = component::Group::new_empty_visible("Local Scope", Some(id));
+        Self { local_scope, ..self }
     }
 
     /// Extend the list with new entries looked up by ID in suggestion database.
@@ -104,7 +104,7 @@ impl List {
         entries: impl IntoIterator<Item = component::Id>,
     ) {
         use suggestion_database::entry::Kind;
-        let local_scope_id = self.local_scope_module_id;
+        let local_scope_id = self.local_scope.component_id;
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
@@ -117,7 +117,7 @@ impl List {
                     let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
                     let not_module = component.suggestion.kind != Kind::Module;
                     if in_local_scope && not_module {
-                        self.local_scope_entries.push(component.clone_ref());
+                        self.local_scope.entries.borrow_mut().push(component.clone_ref());
                     }
                 }
                 if let Some(top_group) = self.lookup_module_group(db, &parent_module.top_module()) {
@@ -182,8 +182,7 @@ impl List {
                 flattened.update_sorting_and_visibility("");
             }
         }
-        let mut local_scope_entries = self.local_scope_entries;
-        component::group::sort(&mut local_scope_entries, "");
+        self.local_scope.update_sorting_and_visibility("");
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
@@ -196,7 +195,7 @@ impl List {
             module_groups:         Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            local_scope:           Rc::new(RefCell::new(local_scope_entries)),
+            local_scope:           self.local_scope,
             filtered:              default(),
             favorites:             self.favorites,
         }
