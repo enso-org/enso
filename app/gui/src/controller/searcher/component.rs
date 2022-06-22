@@ -167,13 +167,13 @@ impl List {
             component.update_matching_info(pattern)
         }
         let pattern_not_empty = !pattern.is_empty();
-        let sort_order = if pattern_not_empty {
+        let entries_order = if pattern_not_empty {
             group::EntriesOrder::ByMatch
         } else {
             group::EntriesOrder::ByNameNonModulesThenModules
         };
         for group in self.all_groups_not_in_favorites() {
-            group.update_sorting_and_visibility(sort_order);
+            group.update_sorting_and_visibility(entries_order);
         }
         for group in self.favorites.iter() {
             group.update_visibility();
