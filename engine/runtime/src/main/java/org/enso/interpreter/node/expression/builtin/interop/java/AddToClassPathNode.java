@@ -20,7 +20,7 @@ public abstract class AddToClassPathNode extends Node {
   }
 
   @Specialization
-  Object doExecute(Object _this, Object path, @Cached ExpectStringNode expectStringNode) {
+  Object doExecute(Object self, Object path, @Cached ExpectStringNode expectStringNode) {
     Context context = Context.get(this);
     context
         .getEnvironment()
@@ -28,5 +28,5 @@ public abstract class AddToClassPathNode extends Node {
     return context.getBuiltins().nothing();
   }
 
-  abstract Object execute(Object _this, Object path);
+  abstract Object execute(Object self, Object path);
 }

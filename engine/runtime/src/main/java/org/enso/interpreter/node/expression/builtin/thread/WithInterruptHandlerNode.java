@@ -19,7 +19,7 @@ public class WithInterruptHandlerNode extends Node {
 
   Stateful execute(
       @MonadicState Object state,
-      Object _this,
+      Object self,
       @Suspend Object action,
       @Suspend Object interrupt_handler) {
     try {

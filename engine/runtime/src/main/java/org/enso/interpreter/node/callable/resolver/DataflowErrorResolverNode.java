@@ -12,21 +12,21 @@ import org.enso.interpreter.runtime.error.DataflowError;
 @ReportPolymorphism
 public abstract class DataflowErrorResolverNode extends BaseResolverNode {
 
-  public abstract Function execute(UnresolvedSymbol symbol, DataflowError _this);
+  public abstract Function execute(UnresolvedSymbol symbol, DataflowError self);
 
   @Specialization(
       guards = {"!getContext().isInlineCachingDisabled()", "cachedSymbol == symbol"},
       limit = "CACHE_SIZE")
   Function resolveCached(
       UnresolvedSymbol symbol,
-      DataflowError _this,
+      DataflowError self,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("resolveMethodOnError(cachedSymbol)") Function function) {
     return function;
   }
 
   @Specialization(replaces = "resolveCached")
-  Function resolve(UnresolvedSymbol symbol, DataflowError _this) {
+  Function resolve(UnresolvedSymbol symbol, DataflowError self) {
     return resolveMethodOnError(symbol);
   }
 }

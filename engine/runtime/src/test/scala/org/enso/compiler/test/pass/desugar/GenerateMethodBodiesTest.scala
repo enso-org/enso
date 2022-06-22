@@ -53,13 +53,13 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irResult       = ir.desugar
     val irResultMethod = irResult.bindings.head.asInstanceOf[Method]
 
-    "have the `this` argument prepended to the argument list" in {
+    "have the `self` argument prepended to the argument list" in {
       val resultArgs =
         irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
 
       resultArgs.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldEqual IR.Name.This(None)
+        .name shouldEqual IR.Name.Self(None)
 
       resultArgs.tail shouldEqual irMethod.body
         .asInstanceOf[IR.Function.Lambda]
@@ -88,14 +88,14 @@ class GenerateMethodBodiesTest extends CompilerTest {
       irResultMethod.body shouldBe an[IR.Function.Lambda]
     }
 
-    "have the resultant function take the `this` argument" in {
+    "have the resultant function take the `self` argument" in {
       val bodyArgs =
         irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
 
       bodyArgs.length shouldEqual 1
       bodyArgs.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldEqual IR.Name.This(None)
+        .name shouldEqual IR.Name.Self(None)
     }
 
     "have the body of the function be equivalent to the expression" in {
@@ -109,24 +109,24 @@ class GenerateMethodBodiesTest extends CompilerTest {
     }
   }
 
-  "Methods that redefine `this`" should {
+  "Methods that redefine `self`" should {
     val ir =
       """
-        |Unit.method = this -> this + 1
+        |Unit.method = self -> self + 1
         |""".stripMargin.preprocessModule.desugar
 
     val method =
       ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
 
     "have their bodies replaced by an error" in {
-      method.body shouldBe an[IR.Error.Redefined.ThisArg]
+      method.body shouldBe an[IR.Error.Redefined.SelfArg]
     }
   }
 
   "Conversion method definitions" should {
     val from = FunctionBinding.conversionMethodName
 
-    "have the `this` argument added" in {
+    "have the `self` argument added" in {
       val ir =
         s"""My_Type.$from (that : Other) = that.a
            |""".stripMargin.preprocessModule.desugar
@@ -136,17 +136,17 @@ class GenerateMethodBodiesTest extends CompilerTest {
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
       body.arguments.length shouldEqual 2
-      body.arguments.head.name.name shouldEqual "this"
+      body.arguments.head.name.name shouldEqual "self"
     }
 
-    "have their bodies replaced by an error if they redefine `this`" in {
+    "have their bodies replaced by an error if they redefine `self`" in {
       val ir =
-        s"""My_Type.$from (that : Other) this=1 = that.a
+        s"""My_Type.$from (that : Other) self=1 = that.a
            |""".stripMargin.preprocessModule.desugar
 
       val conversion =
         ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
-      conversion.body shouldBe an[IR.Error.Redefined.ThisArg]
+      conversion.body shouldBe an[IR.Error.Redefined.SelfArg]
     }
   }
 }

@@ -2,62 +2,14 @@ from Standard.Base import all
 import Standard.Test
 import Standard.Table
 import Standard.Table.Io.File_Format
+import Standard.Table.Io.File_Read
+from Standard.Table.Io.Excel import Sheet
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Examples
+
 import project.Util
 
-spec_fmt header file read_method =
-    Test.group header <|
-        Test.specify "should read the specified sheet by index and use correct headers" <|
-            t = read_method file
-            t.columns.map .name . should_equal ['Name', 'Quantity', 'Price']
-            t.at 'Name' . to_vector . should_equal ['blouse', 't-shirt', 'trousers', 'shoes', 'skirt', 'dress']
-            t.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
-            t.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
-
-        Test.specify "should read the specified sheet by index and properly format a table" <|
-            t = read_method file sheet=1 has_header=False prefix='X'
-            t.columns.map .name . should_equal ['X0', 'X1', 'X2', 'X3']
-            t.at 'X0' . to_vector . should_equal [Nothing, 10, Nothing, Nothing, Nothing, Nothing]
-            t.at 'X1' . to_vector . should_equal ['baz', 20, Nothing, 'bar', Nothing, 30]
-            t.at 'X2' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
-            t.at 'X3' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
-
-        Test.specify "should read the specified sheet by name and properly handle dates" <|
-            t = read_method file sheet='Dates'
-            t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
-            t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
-
-        Test.specify "should read an empty table" <|
-            t = read_method file sheet="Empty"
-            t.columns.length.should_equal 0
-
-        Test.specify "should gracefully handle duplicate column names and formulas" <|
-            t = read_method file sheet="Duplicate Columns"
-            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price_1']
-            t.at 'Price_1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
-
-        Test.specify "should allow reading with cell range specified" <|
-            t_1 = read_method file sheet="Simple" cell_range="B:C"
-            t_1.columns.map .name . should_equal ['Quantity', 'Price']
-            t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
-            t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
-
-            t_2 = read_method file sheet="Simple" cell_range="3:5" has_header=False
-            t_2.columns.length.should_equal 3
-            t_2.at 'C0' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
-            t_2.at 'C1' . to_vector . should_equal [20, Nothing, 30]
-            t_2.at 'C2' . to_vector . should_equal [32, 43.2, 54]
-
-            t_3 = read_method file sheet="Simple" cell_range="B4:C5" has_header=False
-            t_3.columns.length.should_equal 2
-            t_3.at 'C0' . to_vector . should_equal [Nothing, 30]
-            t_3.at 'C1' . to_vector . should_equal [43.2, 54]
 
 spec =
-    here.spec_fmt 'XLSX reading' Examples.xlsx .read_xlsx
-
-    here.spec_fmt 'XLS reading' Examples.xls .read_xls
 
     Test.group 'XLSX writing' <|
         ## We disable parsing dates, because date support is not advanced enough
@@ -72,7 +24,7 @@ spec =
         Test.specify 'should write tables to non-existent XLSX files' <|
             out.delete_if_exists
             table.write_xlsx out
-            written = out.read_xlsx
+            written = out.read
             written.should_equal table
             out.delete_if_exists
 
@@ -80,9 +32,9 @@ spec =
             out.delete_if_exists
             table.write_xlsx out sheet='Foo'
             clothes.write_xlsx out sheet='Foo'
-            read_1 = out.read_xlsx sheet='Foo'
+            read_1 = out.read (File_Format.Excel (Sheet "Foo"))
             read_1 . should_equal table
-            read_2 = out.read_xlsx sheet='Foo 1'
+            read_2 = out.read (File_Format.Excel (Sheet "Foo 1"))
             read_2 . should_equal clothes
             out.delete_if_exists
 
@@ -90,7 +42,7 @@ spec =
             out.delete_if_exists
             table.write_xlsx out sheet='Foo'
             clothes.write_xlsx out sheet='Foo' write_mode=Table.Spreadsheet_Write_Mode.Overwrite
-            read = out.read_xlsx sheet='Foo'
+            read = out.read (File_Format.Excel (Sheet "Foo"))
             read . should_equal clothes
             out.delete_if_exists
 
@@ -98,7 +50,7 @@ spec =
             out.delete_if_exists
             clothes.write_xlsx out sheet='Foo'
             clothes.write_xlsx out sheet='Foo' write_mode=Table.Spreadsheet_Write_Mode.Append include_header=False
-            read = out.read_xlsx sheet='Foo'
+            read = out.read (File_Format.Excel (Sheet "Foo"))
             read . should_equal (clothes.concat clothes)
             out.delete_if_exists
 
@@ -108,8 +60,8 @@ spec =
             out_1.delete_if_exists
             out_2.delete_if_exists
             clothes.write_xlsx out max_rows_per_file=4
-            out_1.read_xlsx . should_equal (clothes.take_start 4)
-            out_2.read_xlsx . should_equal (clothes.take_end 2)
+            out_1.read . should_equal (clothes.take_start 4)
+            out_2.read . should_equal (clothes.take_end 2)
             out_1.delete_if_exists
             out_2.delete_if_exists
 

@@ -5,9 +5,9 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Special", name = "<join_thread>")
 public class JoinThreadNode extends Node {
-  public Object execute(Object _this) {
+  public Object execute(Object self) {
     try {
-      ((Thread) _this).join();
+      ((Thread) self).join();
     } catch (InterruptedException e) {
     }
     return null;

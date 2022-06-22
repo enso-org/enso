@@ -71,28 +71,28 @@ public abstract class InvokeConversionNode extends BaseNode {
       VirtualFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       Object that,
       Object[] arguments);
 
   static AtomConstructor extractConstructor(
       Node thisNode,
-      Object _this,
+      Object self,
       ConditionProfile atomConstructorProfile,
       ConditionProfile atomProfile) {
-    if (atomConstructorProfile.profile(_this instanceof AtomConstructor)) {
-      return (AtomConstructor) _this;
-    } else if (atomProfile.profile(_this instanceof Atom)) {
-      return ((Atom) _this).getConstructor();
+    if (atomConstructorProfile.profile(self instanceof AtomConstructor)) {
+      return (AtomConstructor) self;
+    } else if (atomProfile.profile(self instanceof Atom)) {
+      return ((Atom) self).getConstructor();
     } else {
       throw new PanicException(
-          Context.get(thisNode).getBuiltins().error().makeInvalidConversionTargetError(_this),
+          Context.get(thisNode).getBuiltins().error().makeInvalidConversionTargetError(self),
           thisNode);
     }
   }
 
-  AtomConstructor extractConstructor(Object _this) {
-    return extractConstructor(this, _this, atomConstructorProfile, atomProfile);
+  AtomConstructor extractConstructor(Object self) {
+    return extractConstructor(this, self, atomConstructorProfile, atomProfile);
   }
 
   @Specialization(guards = "dispatch.canConvertFrom(that)")
@@ -100,20 +100,17 @@ public abstract class InvokeConversionNode extends BaseNode {
       VirtualFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       Object that,
       Object[] arguments,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch) {
     try {
       Function function =
-          dispatch.getConversionFunction(that, extractConstructor(_this), conversion);
+          dispatch.getConversionFunction(that, extractConstructor(self), conversion);
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       throw new PanicException(
-          Context.get(this)
-              .getBuiltins()
-              .error()
-              .makeNoSuchConversionError(_this, that, conversion),
+          Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
           this);
     }
   }
@@ -123,14 +120,14 @@ public abstract class InvokeConversionNode extends BaseNode {
       VirtualFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       DataflowError that,
       Object[] arguments,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
       @Cached BranchProfile profile) {
     try {
       Function function =
-          dispatch.getConversionFunction(that, extractConstructor(_this), conversion);
+          dispatch.getConversionFunction(that, extractConstructor(self), conversion);
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       profile.enter();
@@ -143,7 +140,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       VirtualFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       PanicSentinel that,
       Object[] arguments) {
     throw that;
@@ -154,7 +151,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       VirtualFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       WithWarnings that,
       Object[] arguments) {
     // Cannot use @Cached for childDispatch, because we need to call notifyInserted.
@@ -181,7 +178,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     arguments[thatArgumentPosition] = that.getValue();
     ArrayRope<Warning> warnings = that.getReassignedWarnings(this);
     Stateful result =
-        childDispatch.execute(frame, state, conversion, _this, that.getValue(), arguments);
+        childDispatch.execute(frame, state, conversion, self, that.getValue(), arguments);
     return new Stateful(result.getState(), WithWarnings.prependTo(result.getValue(), warnings));
   }
 
@@ -190,7 +187,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       VirtualFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       Object that,
       Object[] arguments,
       @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
@@ -199,17 +196,14 @@ public abstract class InvokeConversionNode extends BaseNode {
       String str = interop.asString(that);
       Text txt = Text.create(str);
       Function function =
-          textDispatch.getConversionFunction(txt, extractConstructor(_this), conversion);
+          textDispatch.getConversionFunction(txt, extractConstructor(self), conversion);
       arguments[0] = txt;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       throw new PanicException(
-          Context.get(this)
-              .getBuiltins()
-              .error()
-              .makeNoSuchConversionError(_this, that, conversion),
+          Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
           this);
     }
   }
@@ -224,13 +218,13 @@ public abstract class InvokeConversionNode extends BaseNode {
       VirtualFrame frame,
       Object state,
       UnresolvedConversion conversion,
-      Object _this,
+      Object self,
       Object that,
       Object[] arguments,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
-        Context.get(this).getBuiltins().error().makeNoSuchConversionError(_this, that, conversion),
+        Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
         this);
   }
 

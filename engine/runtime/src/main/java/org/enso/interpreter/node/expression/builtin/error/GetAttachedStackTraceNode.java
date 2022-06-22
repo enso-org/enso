@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     name = "primitive_get_attached_stack_trace",
     description = "Gets the stack trace attached to the throwable.")
 public class GetAttachedStackTraceNode extends Node {
-  Array execute(Object _this, @AcceptsError Object error) {
+  Array execute(Object self, @AcceptsError Object error) {
     if (error instanceof Throwable) {
       return GetStackTraceNode.stackTraceToArray((Throwable) error);
     } else {

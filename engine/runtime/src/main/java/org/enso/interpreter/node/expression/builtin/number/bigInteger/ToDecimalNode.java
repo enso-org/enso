@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     name = "to_decimal",
     description = "Conversion of integers to decimals")
 public class ToDecimalNode extends Node {
-  double execute(EnsoBigInteger _this) {
-    return BigIntegerOps.toDouble(_this.getValue());
+  double execute(EnsoBigInteger self) {
+    return BigIntegerOps.toDouble(self.getValue());
   }
 }

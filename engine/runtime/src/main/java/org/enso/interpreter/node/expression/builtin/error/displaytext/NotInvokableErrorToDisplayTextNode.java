@@ -15,17 +15,17 @@ public abstract class NotInvokableErrorToDisplayTextNode extends Node {
     return NotInvokableErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this, @Cached TypeToDisplayTextNode displayTypeNode) {
+  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
     return Text.create("Type error: expected a function, but got ")
-        .add(displayTypeNode.execute(_this.getFields()[0]))
+        .add(displayTypeNode.execute(self.getFields()[0]))
         .add(".");
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Type error.");
   }
 }

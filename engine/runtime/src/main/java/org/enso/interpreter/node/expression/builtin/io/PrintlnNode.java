@@ -29,7 +29,7 @@ public abstract class PrintlnNode extends Node {
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
   abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Object _this, @AcceptsError Object message);
+      VirtualFrame frame, @MonadicState Object state, Object self, @AcceptsError Object message);
 
   @Specialization(guards = "strings.isString(message)")
   Stateful doPrintText(

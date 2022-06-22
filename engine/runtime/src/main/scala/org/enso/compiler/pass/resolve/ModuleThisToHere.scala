@@ -59,7 +59,7 @@ case object ModuleThisToHere extends IRPass {
             .contains(localResolution)
         ) {
           val result = m.body.transformExpressions {
-            case IR.Name.This(loc, _, _) => IR.Name.Here(loc)
+            case IR.Name.Self(loc, _, _) => IR.Name.Here(loc)
           }
 
           m match {

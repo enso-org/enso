@@ -27,7 +27,7 @@ class BooleanTest extends InterpreterTest {
         """from Standard.Base.Data.Boolean import all
           |from Standard.Base.IO import all
           |
-          |Boolean.Boolean.isTrue = this
+          |Boolean.Boolean.isTrue = self
           |
           |main =
           |    true = 1 == 1

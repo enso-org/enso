@@ -14,29 +14,29 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Big_Integer", name = ">", description = "Comparison of numbers.")
 public abstract class GreaterNode extends Node {
 
-  abstract boolean execute(EnsoBigInteger _this, Object that);
+  abstract boolean execute(EnsoBigInteger self, Object that);
 
   static GreaterNode build() {
     return GreaterNodeGen.create();
   }
 
   @Specialization
-  boolean doDouble(EnsoBigInteger _this, double that) {
-    return BigIntegerOps.toDouble(_this.getValue()) > that;
+  boolean doDouble(EnsoBigInteger self, double that) {
+    return BigIntegerOps.toDouble(self.getValue()) > that;
   }
 
   @Specialization
-  boolean doLong(EnsoBigInteger _this, long that) {
-    return _this.getValue().signum() > 0;
+  boolean doLong(EnsoBigInteger self, long that) {
+    return self.getValue().signum() > 0;
   }
 
   @Specialization
-  boolean doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
-    return BigIntegerOps.compare(_this.getValue(), that.getValue()) > 0;
+  boolean doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
+    return BigIntegerOps.compare(self.getValue(), that.getValue()) > 0;
   }
 
   @Fallback
-  boolean doOther(EnsoBigInteger _this, Object that) {
+  boolean doOther(EnsoBigInteger self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

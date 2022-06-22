@@ -40,7 +40,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      Object _this,
+      Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -48,12 +48,12 @@ public abstract class IndirectInvokeMethodNode extends Node {
       BaseNode.TailStatus isTail,
       int thisArgumentPosition);
 
-  @Specialization(guards = "dispatch.hasFunctionalDispatch(_this)")
+  @Specialization(guards = "dispatch.hasFunctionalDispatch(self)")
   Stateful doFunctionalDispatch(
       MaterializedFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      Object _this,
+      Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -63,7 +63,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     try {
-      Function function = dispatch.getFunctionalDispatch(_this, symbol);
+      Function function = dispatch.getFunctionalDispatch(self, symbol);
       return invokeFunctionNode.execute(
           function,
           frame,
@@ -75,7 +75,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
           isTail);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }
 
@@ -84,7 +84,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      DataflowError _this,
+      DataflowError self,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -94,9 +94,9 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Cached DataflowErrorResolverNode dataflowErrorResolverNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode,
       @Cached ConditionProfile profile) {
-    Function function = dataflowErrorResolverNode.execute(symbol, _this);
+    Function function = dataflowErrorResolverNode.execute(symbol, self);
     if (profile.profile(function == null)) {
-      return new Stateful(state, _this);
+      return new Stateful(state, self);
     } else {
       return invokeFunctionNode.execute(
           function,
@@ -115,7 +115,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      WithWarnings _this,
+      WithWarnings self,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -123,14 +123,14 @@ public abstract class IndirectInvokeMethodNode extends Node {
       BaseNode.TailStatus isTail,
       int thisArgumentPosition,
       @Cached IndirectInvokeMethodNode childDispatch) {
-    arguments[thisArgumentPosition] = _this.getValue();
-    ArrayRope<Warning> warnings = _this.getReassignedWarnings(this);
+    arguments[thisArgumentPosition] = self.getValue();
+    ArrayRope<Warning> warnings = self.getReassignedWarnings(this);
     Stateful result =
         childDispatch.execute(
             frame,
             state,
             symbol,
-            _this.getValue(),
+            self.getValue(),
             arguments,
             schema,
             defaultsExecutionMode,
@@ -145,20 +145,20 @@ public abstract class IndirectInvokeMethodNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      PanicSentinel _this,
+      PanicSentinel self,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       int thisArgumentPosition) {
-    throw _this;
+    throw self;
   }
 
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(_this)",
-        "!methods.hasSpecialDispatch(_this)",
+        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasSpecialDispatch(self)",
         "polyglotCallType != NOT_SUPPORTED",
         "polyglotCallType != CONVERT_TO_TEXT"
       })
@@ -166,7 +166,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       MaterializedFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      Object _this,
+      Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -175,7 +175,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       int thisArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
+      @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
       @Cached HostMethodCallNode hostMethodCallNode,
@@ -190,20 +190,20 @@ public abstract class IndirectInvokeMethodNode extends Node {
       args[i] = r.getValue();
     }
     return new Stateful(
-        state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args));
+        state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args));
   }
 
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(_this)",
-        "!methods.hasSpecialDispatch(_this)",
-        "getPolyglotCallType(_this, symbol.getName(), interop) == CONVERT_TO_TEXT"
+        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TEXT"
       })
   Stateful doConvertText(
       MaterializedFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      Object _this,
+      Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -215,7 +215,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     try {
-      String str = interop.asString(_this);
+      String str = interop.asString(self);
       Text txt = Text.create(str);
       Function function = textDispatch.getFunctionalDispatch(txt, symbol);
       arguments[0] = txt;
@@ -229,25 +229,25 @@ public abstract class IndirectInvokeMethodNode extends Node {
           argumentsExecutionMode,
           isTail);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
+      throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }
 
   @ExplodeLoop
   @Specialization(
       guards = {
-        "!methods.hasFunctionalDispatch(_this)",
-        "!methods.hasSpecialDispatch(_this)",
-        "getPolyglotCallType(_this, symbol.getName(), interop) == NOT_SUPPORTED"
+        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == NOT_SUPPORTED"
       })
   Stateful doFallback(
       MaterializedFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      Object _this,
+      Object self,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -256,13 +256,13 @@ public abstract class IndirectInvokeMethodNode extends Node {
       int thisArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
+      @Bind("getPolyglotCallType(self, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
       @Cached AnyResolverNode anyResolverNode,
       @Cached HostMethodCallNode hostMethodCallNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
-    Function function = anyResolverNode.execute(symbol, _this);
+    Function function = anyResolverNode.execute(symbol, self);
     return invokeFunctionNode.execute(
         function,
         frame,

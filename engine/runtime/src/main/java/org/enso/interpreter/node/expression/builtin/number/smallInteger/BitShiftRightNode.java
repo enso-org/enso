@@ -14,32 +14,32 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "bit_shift_r", description = "Bitwise right-shift.")
 public abstract class BitShiftRightNode extends Node {
-  abstract Object execute(Object _this, Object that);
+  abstract Object execute(Object self, Object that);
 
   static BitShiftRightNode build() {
     return BitShiftRightNodeGen.create();
   }
 
   @Specialization
-  Object doBigInteger(long _this, long that, @Cached("build()") BitShiftNode bitShiftNode) {
-    return bitShiftNode.execute(_this, -1L * that);
+  Object doBigInteger(long self, long that, @Cached("build()") BitShiftNode bitShiftNode) {
+    return bitShiftNode.execute(self, -1L * that);
   }
 
   @Specialization
   Object doBigInteger(
-      long _this, EnsoBigInteger that, @Cached("build()") BitShiftNode bitShiftNode) {
-    return bitShiftNode.execute(_this, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
+      long self, EnsoBigInteger that, @Cached("build()") BitShiftNode bitShiftNode) {
+    return bitShiftNode.execute(self, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
   }
 
   @Specialization
-  Object doAtomThis(Atom _this, Object that) {
+  Object doAtomThis(Atom self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(integer, _this, "this"), this);
+    throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
   }
 
   @Fallback
-  Object doOther(Object _this, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);

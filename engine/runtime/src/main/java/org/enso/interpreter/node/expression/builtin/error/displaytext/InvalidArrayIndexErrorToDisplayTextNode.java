@@ -13,15 +13,15 @@ public abstract class InvalidArrayIndexErrorToDisplayTextNode extends Node {
     return InvalidArrayIndexErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this) {
-    return Text.create("Invalid array index: ", String.valueOf(_this.getFields()[1]));
+  Text doAtom(Atom self) {
+    return Text.create("Invalid array index: ", String.valueOf(self.getFields()[1]));
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Invalid array index.");
   }
 }

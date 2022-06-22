@@ -49,8 +49,8 @@ pub struct NotAMethod(pub String);
 
 #[allow(missing_docs)]
 #[derive(Debug, Fail, Clone)]
-#[fail(display = "Entry named {} is described as method but does not have a `this` parameter.", _0)]
-pub struct MissingThisOnMethod(pub String);
+#[fail(display = "Entry named {} is described as method but does not have a `self` parameter.", _0)]
+pub struct MissingSelfOnMethod(pub String);
 
 
 
@@ -208,7 +208,7 @@ impl Entry {
 
         // Entry import should be skipped when:
         // * it is a regular (i.e. non extension) method, as it will bee found dynamically through
-        //   the `this` argument;
+        //   the `self` argument;
         // * it is an entry defined in the current module, so it is already visible.
         let should_skip_import = self.is_regular_method() || is_local_entry;
         if !should_skip_import {
@@ -216,7 +216,7 @@ impl Entry {
         }
 
         let this_expr = if generate_this {
-            // TODO [mwu] Currently we support `this` generation for module atoms only.
+            // TODO [mwu] Currently we support `self` generation for module atoms only.
             //            This should be extended to any atom that is known to be nullary.
             //            Tracked by https://github.com/enso-org/ide/issues/1299
             if self.is_regular_module_method() {
@@ -224,7 +224,7 @@ impl Entry {
                     // No additional import for `here`.
                     Some(keywords::HERE.to_owned())
                 } else {
-                    // If we are inserting an additional `this` argument, the used name must be
+                    // If we are inserting an additional `self` argument, the used name must be
                     // visible.
                     imports.insert(self.module.clone());
                     let mut module = self.module.clone();
@@ -553,7 +553,7 @@ impl TryFrom<&Entry> for language_server::MethodPointer {
     type Error = failure::Error;
     fn try_from(entry: &Entry) -> FallibleResult<Self> {
         (entry.kind == Kind::Method).ok_or_else(|| NotAMethod(entry.name.clone()))?;
-        let missing_this_err = || MissingThisOnMethod(entry.name.clone());
+        let missing_this_err = || MissingSelfOnMethod(entry.name.clone());
         let defined_on_type = entry.self_type.clone().ok_or_else(missing_this_err)?;
         Ok(language_server::MethodPointer {
             defined_on_type: defined_on_type.into(),

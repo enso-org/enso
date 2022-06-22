@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 public class CreateUnresolvedSymbolNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
 
-  Object execute(Object _this, Object name, ModuleScope scope) {
+  Object execute(Object self, Object name, ModuleScope scope) {
     String result = expectStringNode.execute(name);
     if (result.equals(Constants.Names.FROM_MEMBER)) {
       return UnresolvedConversion.build(scope);

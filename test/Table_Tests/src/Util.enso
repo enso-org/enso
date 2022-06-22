@@ -4,7 +4,7 @@ import Standard.Table
 import Standard.Test
 
 Table.Table.should_equal expected =
-    this_cols = this.columns
+    self_cols = self.columns
     that_cols = expected.columns
-    this_cols.map .name . should_equal (that_cols.map .name)
-    this_cols.map .to_vector . should_equal (that_cols.map .to_vector)
+    self_cols.map .name . should_equal (that_cols.map .name)
+    self_cols.map .to_vector . should_equal (that_cols.map .to_vector)

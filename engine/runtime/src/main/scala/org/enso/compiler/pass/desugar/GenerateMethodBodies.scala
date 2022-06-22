@@ -22,7 +22,7 @@ import scala.annotation.unused
   * is as follows:
   *
   * - The body is a function (lambda)
-  * - The body has `this` at the start of its argument list.
+  * - The body has `self` at the start of its argument list.
   *
   * This pass requires the context to provide:
   *
@@ -107,22 +107,22 @@ case object GenerateMethodBodies extends IRPass {
 
   /** Processes the method body if it's a function.
     *
-    * This is solely responsible for prepending the `this` argument to the list
+    * This is solely responsible for prepending the `self` argument to the list
     * of arguments.
     *
     * @param fun the body function
-    * @return the body function with the `this` argument
+    * @return the body function with the `self` argument
     */
   def processBodyFunction(fun: IR.Function): IR.Expression = {
     val containsThis = collectChainedFunctionArgs(fun).exists(arg =>
-      arg.name == IR.Name.This(arg.name.location)
+      arg.name == IR.Name.Self(arg.name.location)
     )
 
     if (!containsThis) {
       fun match {
         case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
           lam.copy(
-            arguments = genThisArgument :: args
+            arguments = genSelfArgument :: args
           )
         case _: IR.Function.Binding =>
           throw new CompilerError(
@@ -131,30 +131,30 @@ case object GenerateMethodBodies extends IRPass {
           )
       }
     } else {
-      IR.Error.Redefined.ThisArg(fun.location)
+      IR.Error.Redefined.SelfArg(fun.location)
     }
   }
 
   /** Processes the method body if it's an expression.
     *
     * @param expr the body expression
-    * @return `expr` converted to a function taking the `this` argument
+    * @return `expr` converted to a function taking the `self` argument
     */
   def processBodyExpression(expr: IR.Expression): IR.Expression = {
     IR.Function.Lambda(
-      arguments = List(genThisArgument),
+      arguments = List(genSelfArgument),
       body      = expr,
       location  = expr.location
     )
   }
 
-  /** Generates a definition of the `this` argument for method definitions.
+  /** Generates a definition of the `self` argument for method definitions.
     *
-    * @return the `this` argument
+    * @return the `self` argument
     */
-  def genThisArgument: IR.DefinitionArgument.Specified = {
+  def genSelfArgument: IR.DefinitionArgument.Specified = {
     IR.DefinitionArgument.Specified(
-      IR.Name.This(None),
+      IR.Name.Self(None),
       None,
       None,
       suspended = false,

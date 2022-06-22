@@ -23,15 +23,15 @@ public abstract class AndNode extends Node {
     return AndNodeGen.create();
   }
 
-  abstract Stateful execute(@MonadicState Object state, boolean _this, @Suspend Object that);
+  abstract Stateful execute(@MonadicState Object state, boolean self, @Suspend Object that);
 
   @Specialization
   Stateful executeBool(
       Object state,
-      boolean _this,
+      boolean self,
       Object that,
       @Cached("build()") ThunkExecutorNode rhsThunkExecutorNode) {
-    if (conditionProfile.profile(!_this)) {
+    if (conditionProfile.profile(!self)) {
       return new Stateful(state, false);
     }
     return rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);

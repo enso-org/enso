@@ -18,15 +18,15 @@ public abstract class InvalidConversionTargetErrorToDisplayTextNode extends Node
     return InvalidConversionTargetErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
   Text doAtom(
-      Atom _this,
+      Atom self,
       @CachedLibrary(limit = "10") InteropLibrary interopLibrary,
       @Cached TypeToDisplayTextNode fallback) {
     String fieldRep;
-    Object target = _this.getFields()[0];
+    Object target = self.getFields()[0];
     try {
       fieldRep = interopLibrary.asString(interopLibrary.toDisplayString(target));
     } catch (UnsupportedMessageException e) {
@@ -36,7 +36,7 @@ public abstract class InvalidConversionTargetErrorToDisplayTextNode extends Node
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Invalid conversion target type.");
   }
 }

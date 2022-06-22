@@ -10,8 +10,8 @@ type Fake_Test_Connection
     ## PRIVATE
     access_table : Text -> Database_Table
     access_table name =
-        columns = this.tables.get name
-        Database_Table.make_table this name columns
+        columns = self.tables.get name
+        Database_Table.make_table self name columns
 
     ## PRIVATE
     close : Nothing

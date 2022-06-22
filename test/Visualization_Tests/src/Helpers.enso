@@ -5,5 +5,5 @@ import Standard.Test
 
 Column.Column.expect : Text -> Vector -> Test.Success
 Column.Column.expect name contents =
-    this.name.should_equal name
-    this.to_vector.should_equal contents
+    self.name.should_equal name
+    self.to_vector.should_equal contents

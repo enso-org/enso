@@ -198,7 +198,7 @@ public class MethodDefinition {
     private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
     private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
     private static final String DATAFLOW_ERROR = "org.enso.interpreter.runtime.error.DataflowError";
-    private static final String THIS = "this";
+    private static final String SELF = "self";
     private final String typeName;
     private final TypeMirror type;
     private final String name;
@@ -222,8 +222,7 @@ public class MethodDefinition {
       type = element.asType();
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
-      String originalName = element.getSimpleName().toString();
-      name = originalName.equals("_this") ? THIS : originalName;
+      name = element.getSimpleName().toString();
       isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
       isSuspended = element.getAnnotation(Suspend.class) != null;
       acceptsError =
@@ -246,22 +245,22 @@ public class MethodDefinition {
         return false;
       }
 
-      if (isThis() && position != 0) {
+      if (isSelf() && position != 0) {
         processingEnvironment
             .getMessager()
             .printMessage(
                 Diagnostic.Kind.ERROR,
-                "Argument `_this` must be the first positional argument.",
+                "Argument `self` must be the first positional argument.",
                 element);
         return false;
       }
 
-      if (isPositional() && position == 0 && !isThis()) {
+      if (isPositional() && position == 0 && !isSelf()) {
         processingEnvironment
             .getMessager()
             .printMessage(
                 Diagnostic.Kind.ERROR,
-                "The first positional argument should be called `_this`.",
+                "The first positional argument should be called `self`.",
                 element);
         return false;
       }
@@ -342,16 +341,16 @@ public class MethodDefinition {
       return acceptsWarning;
     }
 
-    public boolean isThis() {
-      return name.equals(THIS);
+    public boolean isSelf() {
+      return name.equals(SELF);
     }
 
     public boolean shouldCheckErrors() {
-      return isPositional() && !isThis() && !acceptsError();
+      return isPositional() && !isSelf() && !acceptsError();
     }
 
     public boolean shouldCheckWarnings() {
-      return isPositional() && !isThis() && !acceptsWarning();
+      return isPositional() && !isSelf() && !acceptsWarning();
     }
   }
 }
