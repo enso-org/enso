@@ -160,7 +160,7 @@ class ReplTest
           |    Debug.breakpoint
           |    State.get Number
           |
-          |main = State.run Number 0 here.run
+          |main = State.run Number 0 run
           |""".stripMargin
       setSessionManager { executor =>
         executor.evaluate("x = State.get Number")

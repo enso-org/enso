@@ -215,12 +215,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val mainBodyId = metadata.addItem(28, 12)
+    val mainBodyId = metadata.addItem(28, 7)
 
     val code =
       """foo a b = a + b + x
         |
-        |main = here.foo 1 2
+        |main = foo 1 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -741,9 +741,9 @@ class RuntimeErrorsTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val fooThrowId = metadata.addItem(70, 20)
-    val xId        = metadata.addItem(107, 8)
-    val yId        = metadata.addItem(124, 5)
-    val mainResId  = metadata.addItem(134, 12)
+    val xId        = metadata.addItem(107, 3)
+    val yId        = metadata.addItem(119, 5)
+    val mainResId  = metadata.addItem(129, 12)
 
     val code =
       """from Standard.Base import all
@@ -755,7 +755,7 @@ class RuntimeErrorsTest
         |    Error.throw MyError1
         |
         |main =
-        |    x = self.foo
+        |    x = foo
         |    y = x - 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1173,9 +1173,9 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(71, 8)
-    val yId        = metadata.addItem(88, 5)
-    val mainResId  = metadata.addItem(98, 12)
+    val xId        = metadata.addItem(71, 3)
+    val yId        = metadata.addItem(83, 5)
+    val mainResId  = metadata.addItem(93, 12)
 
     val code =
       """from Standard.Base import all
@@ -1184,7 +1184,7 @@ class RuntimeErrorsTest
         |    Panic.throw 9
         |
         |main =
-        |    x = self.foo
+        |    x = foo
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1282,9 +1282,9 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(108, 8)
-    val yId        = metadata.addItem(125, 5)
-    val mainResId  = metadata.addItem(135, 12)
+    val xId        = metadata.addItem(108, 3)
+    val yId        = metadata.addItem(120, 5)
+    val mainResId  = metadata.addItem(130, 12)
 
     val code =
       """import Standard.Base.IO
@@ -1294,7 +1294,7 @@ class RuntimeErrorsTest
         |    Error.throw 9
         |
         |main =
-        |    x = self.foo
+        |    x = foo
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")

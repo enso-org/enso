@@ -120,12 +120,15 @@ case object MethodReferences extends IRPass {
                     BindingsMap.ResolvedModule(mod)
                   )
                 )
-              val fun = lit.copy(name = method.name, isMethod = true)
+              // The synthetic applications gets the location so that instrumentation
+              // identifies the node correctly
+              val fun =
+                lit.copy(name = method.name, isMethod = true, location = None)
               val app = IR.Application.Prefix(
                 fun,
                 List(IR.CallArgument.Specified(None, self, None)),
                 hasDefaultsSuspended = false,
-                None
+                lit.location
               )
               app
             }
