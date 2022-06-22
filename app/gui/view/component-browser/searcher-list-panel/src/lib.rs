@@ -78,6 +78,7 @@ struct Layers {
     base:           Layer,
     selection:      Layer,
     selection_mask: Layer,
+    scroll_layer:   Layer,
 }
 
 impl Layers {
@@ -91,7 +92,8 @@ impl Layers {
         app.display.default_scene.layers.main.add_sublayer(&selection);
         let content = &scroll_area.content_layer();
         let groups = GroupLayers::new(&app.logger, content, &selection);
-        Self { base, selection, groups, selection_mask }
+        let scroll_layer = scroll_area.content_layer().clone_ref();
+        Self { base, selection, groups, selection_mask, scroll_layer }
     }
 }
 
@@ -411,9 +413,9 @@ impl Model {
 
         // Required for correct clipping. The components need to be set up with the
         // `scroll_area.content_layer` to be masked correctly by the [`ScrollArea`].
-        favourites_section.set_layers(&layers, scroll_area.content_layer());
-        local_scope_section.set_layers(&layers, scroll_area.content_layer());
-        sub_modules_section.set_layers(&layers, scroll_area.content_layer());
+        favourites_section.set_layers(&layers);
+        local_scope_section.set_layers(&layers);
+        sub_modules_section.set_layers(&layers);
 
         Self {
             app,
@@ -437,12 +439,6 @@ impl Model {
         let content = app.new_view::<component_group::wide::View>();
         content.set_no_items_label_text("No Entries.");
         LabeledSection::new(content, app)
-    }
-
-    fn update_layers(&self) {
-        self.favourites_section.set_layers(&self.layers, self.scroll_area.content_layer());
-        self.local_scope_section.set_layers(&self.layers, self.scroll_area.content_layer());
-        self.sub_modules_section.set_layers(&self.layers, self.scroll_area.content_layer());
     }
 
     fn update_style(&self, style: &Style) {
@@ -478,7 +474,6 @@ impl Model {
 
     fn recompute_layout(&self, style: &Style) {
         self.update_style(style);
-        self.update_layers();
 
         let favourites_section_height = self.favourites_section.height(style);
         let local_scope_height = self.local_scope_section.height(style);
@@ -569,13 +564,13 @@ impl<T: ObjectOps + CloneRef> LabeledSection<T> {
 /// Trait that provides functionality for layouting and layer setting for structs used in the
 /// `LabeledSection`.
 trait SectionContent {
-    fn set_layers(&self, layers: &Layers, scroll_layer: &Layer);
+    fn set_layers(&self, layers: &Layers);
     fn height(&self) -> f32;
     fn set_position_top_y(&self, position_y: f32);
 }
 
 impl SectionContent for component_group::wide::View {
-    fn set_layers(&self, layers: &Layers, _scroll_layer: &Layer) {
+    fn set_layers(&self, layers: &Layers) {
         self.model().set_layers(&layers.groups);
     }
 
@@ -589,8 +584,8 @@ impl SectionContent for component_group::wide::View {
 }
 
 impl SectionContent for column_grid::ColumnGrid {
-    fn set_layers(&self, layers: &Layers, scroll_layer: &Layer) {
-        self.model().set_layers(&layers.groups, scroll_layer);
+    fn set_layers(&self, layers: &Layers) {
+        self.model().set_layers(layers);
     }
 
     fn height(&self) -> f32 {
@@ -603,11 +598,11 @@ impl SectionContent for column_grid::ColumnGrid {
 }
 
 impl<T: SectionContent + CloneRef> LabeledSection<T> {
-    fn set_layers(&self, layers: &Layers, scroll_layer: &Layer) {
-        self.content.set_layers(layers, scroll_layer);
-        scroll_layer.add_exclusive(&self.label);
-        self.label.add_to_scene_layer(scroll_layer);
-        scroll_layer.add_exclusive(&self.divider);
+    fn set_layers(&self, layers: &Layers) {
+        self.content.set_layers(layers);
+        layers.scroll_layer.add_exclusive(&self.label);
+        self.label.add_to_scene_layer(&layers.scroll_layer);
+        layers.scroll_layer.add_exclusive(&self.divider);
     }
 
     /// Full height of the section including header.
@@ -633,9 +628,9 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
             }
             SectionHeaderPlacement::Bottom => {
                 // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537
-                let offset_from_top = 2.0;
-                let label_offset = self.content.height() - self.label.height.value() / 1.5;
-                let label_pos = position_y - offset_from_top - offset_from_top;
+                let offset_from_top = 1.0;
+                let label_offset = self.content.height() + self.label.height.value() / 1.5;
+                let label_pos = position_y - label_offset - offset_from_top;
                 self.label.set_position_y(label_pos);
                 let divider_offset = self.content.height() - style.section.divider_height + 2.0;
                 // TODO[MM]: This magic number will be removed with https://github.com/enso-org/enso/pull/3537

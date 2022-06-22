@@ -5,6 +5,7 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::Layers;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -15,7 +16,6 @@ use ensogl_core::display::style;
 use ensogl_gui_component::component;
 use ensogl_list_view as list_view;
 use ide_view_component_group as component_group;
-use ide_view_component_group::Layers;
 use ordered_float::OrderedFloat;
 
 
@@ -47,6 +47,7 @@ pub struct Model {
     display_object: display::object::Instance,
     content:        Rc<RefCell<Vec<component_group::View>>>,
     size:           Rc<Cell<Vector2>>,
+    layers:         Rc<RefCell<Option<Layers>>>,
 }
 
 impl Model {
@@ -54,7 +55,7 @@ impl Model {
         let logger = Logger::new("ColumnGrid");
         let app = app.clone_ref();
         let display_object = display::object::Instance::new(&logger);
-        Self { app, display_object, content: default(), size: default() }
+        Self { app, display_object, content: default(), size: default(), layers: default() }
     }
 
     fn update_content_layout(&self, content: &[LabeledAnyModelProvider], style: &Style) -> Vector2 {
@@ -65,6 +66,11 @@ impl Model {
             .iter()
             .map(|LabeledAnyModelProvider { content, label }| {
                 let view = self.app.new_view::<component_group::View>();
+                if let Some(layers) = self.layers.borrow().as_ref() {
+                    view.model().set_layers(&layers.groups);
+                } else {
+                    tracing::log::warn!("Created ColumnGrid entry without layers.");
+                }
                 view.set_width(column_width);
                 view.set_entries(content);
                 view.set_header(label.as_str());
@@ -112,9 +118,10 @@ impl Model {
 
     /// Assign a set of layers to render the component group in. Must be called after constructing
     /// the [`View`].
-    pub fn set_layers(&self, layers: &Layers, scroll_layer: &display::scene::Layer) {
-        self.content.borrow().iter().for_each(|entry| entry.model().set_layers(layers));
-        scroll_layer.add_exclusive(&self.display_object);
+    pub(crate) fn set_layers(&self, layers: &Layers) {
+        self.content.borrow().iter().for_each(|entry| entry.model().set_layers(&layers.groups));
+        layers.scroll_layer.add_exclusive(&self.display_object);
+        self.layers.set(layers.clone_ref());
     }
 }
 

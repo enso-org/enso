@@ -163,7 +163,7 @@ pub mod overlay {
 
 /// Information about displayed fragment of entries list.
 #[derive(Copy, Clone, Debug, Default)]
-struct View {
+pub struct View {
     position_y: f32,
     size:       Vector2<f32>,
 }
@@ -248,6 +248,7 @@ impl<E: Entry> Model<E> {
     ) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
         let entry_width = view.size.x;
+        ERROR!(format!("___entry_width {}", entry_width));
         let entries = &self.entries;
         entries.update_entries_new_provider(provider, visible_entries, entry_width, style_prefix);
     }
