@@ -35,12 +35,16 @@ from Standard.Database.Connection.Connection import all
      For Redshift, the URL can be found in the cluster management section in the
      AWS admin console.
 connect : Text -> Nothing | Text -> Nothing | Text -> Vector -> Connection ! Sql_Error
-connect url user=Nothing password=Nothing custom_properties=[] =
-    full_url = if url.starts_with "jdbc:" then url else "jdbc:"+url
-    user_prop = if user.is_nothing then [] else [["user", user]]
-    pass_prop = if password.is_nothing then [] else [["password", password]]
-    properties = user_prop + pass_prop + custom_properties
-    Connection.create_jdbc_connection full_url properties
+connect url user=Nothing password=Nothing custom_properties=[] = case url of
+    Text ->
+        full_url = if url.starts_with 'jdbc:' then url else 'jdbc:'+url
+        user_prop = if user.is_nothing then [] else [['user', user]]
+        pass_prop = if password.is_nothing then [] else [['password', password]]
+        properties = user_prop + pass_prop + custom_properties
+        Connection.create_jdbc_connection full_url properties
+    _ ->
+        full_url = url.jdbc_url
+
 
 ## UNSTABLE
 
@@ -52,5 +56,90 @@ connect url user=Nothing password=Nothing custom_properties=[] =
    It is an alternative to `connect` that resolves a path to the database file.
 open_sqlite_file : File -> Connection ! Sql_Error
 open_sqlite_file file =
-    url = "sqlite:" + file.absolute.path
+    url = 'sqlite:' + file.absolute.path
     here.connect url
+
+type SQLite
+    type SQLite location:InMemory|File|Text
+
+    ## Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url = case self.location of
+        InMemory -> "jdbc:sqlite::memory:"
+        _ -> "jdbc:sqlite:" + ((File.new self.location).absolute.path.replace '\\' '/')
+
+    ## Provides the properties for the connection.
+    jdbc_properties : [Pair Text Text]
+    jdbc_properties = []
+
+    ## Provides the dialect needed for creating SQL statements.
+    dialect : Dialect
+    dialect = Dialect.sqlite
+
+## Connect to an in-memory SQLite database.
+type InMemory
+
+type PostgreSQL
+    type PostgreSQL (host:Text='localhost') (port:Int=5432) (database:Text='postgres') (credentials:Credentials|Nothing=Nothing) (use_ssl:SSLMode=Prefer) (client_cert:Client_Certificate|Nothing=Nothing)
+
+    ## Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url =
+        'jdbc:postgresql://' + self.host + ':' + self.port.to_text + '/' + self.database
+
+    ## Provides the properties for the connection.
+    jdbc_properties : [Pair Text Text]
+    jdbc_properties =
+        credentials = case self.credentials of
+            Nothing -> []
+            Credentials username password ->
+                [ Pair 'user' username, Pair 'password' password ]
+
+        ssl_properties = case self.use_ssl of
+            case Disable -> []
+            case Prefer -> [Pair 'sslmode' 'prefer']
+            case Require -> [Pair 'sslmode' 'require']
+            case Verify_CA cert_file ->
+                if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
+                    [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+            case Full_Verification cert_file ->
+                if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
+                    [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+
+        cert_properties = if self.client_cert.is_nothing then [] else
+            self.client_cert.properties
+
+        credentials + ssl_properties + cert_properties
+
+    ## Provides the dialect needed for creating SQL statements.
+    dialect : Dialect
+    dialect = Dialect.postgres
+
+type SSLMode
+    ## Do not use SSL for the connection.
+       sslmode=disable
+    type Disable
+
+    ## Prefer SSL for the connection, but does not verify the server certificate.
+       sslmode=prefer
+    type Prefer
+
+    ## Will use SSL but does not verify the server certificate.
+       sslmode=require
+    type Require
+
+    ## Will use SSL, validating the certificate but not verifying the hostname.
+       sslmode=verify-ca
+    type Verify_CA ca_file:Nothing|File|Text=Nothing
+
+    ## Will use SSL, validating the certificate and checking the hostname matches.
+       sslmode=verify-full
+    type Full_Verification ca_file:Nothing|File|Text=Nothing
+
+type Client_Certificate
+    type Client_Certificate cert_file:File|Text key_file:File|Text key_password:Text=''
+
+    properties : [Pair Text Text]
+    properties =
+        base = [Pair 'sslcert' (File.new self.cert_file).absolute.path, Pair 'sslkey' (File.new self.key_file).absolute.path]
+        if self.key_password == "" then base else base + [Pair 'sslpassword' self.key_password]
