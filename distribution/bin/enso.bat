@@ -1,6 +1,6 @@
 @echo off
 set comp-dir=%~dp0\..\component
-set EXTRA_OPTS="Dgraal.PrintGraph=Network
+set EXTRA_OPTS=-Dgraal.PrintGraph=Network
 FOR %%A in (%*) DO (
 if /I %%A==--dump-graphs (
 set EXTRA_OPTS=%EXTRA_OPTS% -Dgraal.Dump=Truffle:1
