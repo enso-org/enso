@@ -77,12 +77,13 @@ impl List {
         default()
     }
 
-    /// Return [`List`] with the [`local_scope_module_id`] field set to `id`. When the field is
-    /// set, components passed to [`extend`] which have their parent module ID equal to
-    /// [`local_scope_module_id`] will be cloned into [`component::List::local_scope`].
-    pub fn with_local_scope_module_id(self, id: component::Id) -> Self {
+    /// Return [`List`] with a new [`local_scope`] with its [`Group::component_id`] field set to
+    /// `module_id`. When the field is set to `module_id`, components passed to [`extend`] which
+    /// have their parent module ID equal to `module_id` will be cloned into
+    /// [`component::List::local_scope`].
+    pub fn with_local_scope_module_id(self, module_id: component::Id) -> Self {
         const LOCAL_SCOPE_GROUP_NAME: &'static str = "Local Scope";
-        let local_scope = component::Group::new_empty(LOCAL_SCOPE_GROUP_NAME, Some(id));
+        let local_scope = component::Group::new_empty(LOCAL_SCOPE_GROUP_NAME, Some(module_id));
         Self { local_scope, ..self }
     }
 
