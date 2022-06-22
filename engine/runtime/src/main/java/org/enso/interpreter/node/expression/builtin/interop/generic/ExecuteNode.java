@@ -22,7 +22,7 @@ public class ExecuteNode extends Node {
   private @Child HostValueToEnsoNode hostValueToEnsoNode = HostValueToEnsoNode.build();
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object _this, Object callable, Array arguments) {
+  Object execute(Object self, Object callable, Array arguments) {
     try {
       return hostValueToEnsoNode.execute(library.execute(callable, arguments.getItems()));
     } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {

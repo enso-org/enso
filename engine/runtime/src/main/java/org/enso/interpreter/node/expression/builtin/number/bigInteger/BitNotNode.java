@@ -12,21 +12,21 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "bit_not", description = "Bitwise negation.")
 public abstract class BitNotNode extends Node {
-  abstract Object execute(Object _this);
+  abstract Object execute(Object self);
 
   static BitNotNode build() {
     return BitNotNodeGen.create();
   }
 
   @Specialization
-  EnsoBigInteger doLong(EnsoBigInteger _this) {
-    return new EnsoBigInteger(_this.getValue().not());
+  EnsoBigInteger doLong(EnsoBigInteger self) {
+    return new EnsoBigInteger(self.getValue().not());
   }
 
   @Fallback
-  Object doOther(Object _this) {
+  Object doOther(Object self) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(integer, _this, "this"), this);
+    throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
   }
 }

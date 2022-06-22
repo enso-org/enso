@@ -30,23 +30,23 @@ public abstract class BitShiftNode extends Node {
   private final ConditionProfile rightShiftExceedsLongWidth =
       ConditionProfile.createCountingProfile();
 
-  abstract Object execute(Object _this, Object that);
+  abstract Object execute(Object self, Object that);
 
   static BitShiftNode build() {
     return BitShiftNodeGen.create();
   }
 
-  @Specialization(guards = {"that >= 0", "canShiftLeftInLong(_this, that)"})
-  long doLongShiftLeft(long _this, long that) {
-    return _this << that;
+  @Specialization(guards = {"that >= 0", "canShiftLeftInLong(self, that)"})
+  long doLongShiftLeft(long self, long that) {
+    return self << that;
   }
 
   @Specialization(guards = "that >= 0", replaces = "doLongShiftLeft")
-  Object doLongShiftLeftExplicit(long _this, long that) {
-    if (canShiftLeftInLongProfile.profile(canShiftLeftInLong(_this, that))) {
-      return doLongShiftLeft(_this, that);
+  Object doLongShiftLeftExplicit(long self, long that) {
+    if (canShiftLeftInLongProfile.profile(canShiftLeftInLong(self, that))) {
+      return doLongShiftLeft(self, that);
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
-      return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(_this, (int) that));
+      return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(self, (int) that));
     } else {
       return DataflowError.withoutTrace(
           Context.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
@@ -54,27 +54,27 @@ public abstract class BitShiftNode extends Node {
   }
 
   @Specialization(guards = {"that < 0", "fitsInInt(that)"})
-  long doLongShiftRight(long _this, long that) {
+  long doLongShiftRight(long self, long that) {
     if (rightShiftExceedsLongWidth.profile(-that < 64)) {
-      return _this >> -that;
+      return self >> -that;
     } else {
-      return _this >= 0 ? 0L : -1L;
+      return self >= 0 ? 0L : -1L;
     }
   }
 
   @Specialization(guards = "that < 0", replaces = "doLongShiftRight")
-  long doLongShiftRightExplicit(long _this, long that) {
+  long doLongShiftRightExplicit(long self, long that) {
     if (negativeFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
-      return doLongShiftRight(_this, that);
+      return doLongShiftRight(self, that);
     } else {
-      return _this >= 0 ? 0L : -1L;
+      return self >= 0 ? 0L : -1L;
     }
   }
 
   @Specialization
-  Object doBigInteger(long _this, EnsoBigInteger that) {
+  Object doBigInteger(long self, EnsoBigInteger that) {
     if (!BigIntegerOps.nonNegative(that.getValue())) {
-      return _this >= 0 ? 0L : -1L;
+      return self >= 0 ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
       return DataflowError.withoutTrace(
@@ -89,14 +89,14 @@ public abstract class BitShiftNode extends Node {
    */
 
   @Specialization
-  Object doAtomThis(Atom _this, Object that) {
+  Object doAtomThis(Atom self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "this"), this);
   }
 
   @Fallback
-  Object doOther(Object _this, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
@@ -106,7 +106,7 @@ public abstract class BitShiftNode extends Node {
     return shift < 64 && number > (Long.MIN_VALUE >> shift) && number < (Long.MAX_VALUE >> shift);
   }
 
-  boolean canShiftLeftInLong(long _this, long that) {
-    return BigIntegerOps.fitsInInt(that) && hasFreeBitsLeftShift(_this, that);
+  boolean canShiftLeftInLong(long self, long that) {
+    return BigIntegerOps.fitsInInt(that) && hasFreeBitsLeftShift(self, that);
   }
 }

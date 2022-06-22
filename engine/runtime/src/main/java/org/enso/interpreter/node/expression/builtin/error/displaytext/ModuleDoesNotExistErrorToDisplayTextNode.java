@@ -15,13 +15,13 @@ public abstract class ModuleDoesNotExistErrorToDisplayTextNode extends Node {
     return ModuleDoesNotExistErrorToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom _this) {
+  Text doAtom(Atom self) {
     try {
       return Text.create("Module ")
-          .add(TypesGen.expectText(_this.getFields()[0]))
+          .add(TypesGen.expectText(self.getFields()[0]))
           .add(" does not exist.");
     } catch (UnexpectedResultException e) {
       return Text.create("Module does not exist.");
@@ -29,7 +29,7 @@ public abstract class ModuleDoesNotExistErrorToDisplayTextNode extends Node {
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Module does not exist.");
   }
 }

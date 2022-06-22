@@ -12,10 +12,10 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.compiler.context.Changeset;
 import org.enso.compiler.context.ChangesetBuilder;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionService;
@@ -23,7 +23,6 @@ import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
-import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
@@ -152,14 +151,12 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    LocationFilter locationFilter = LocationFilter.create(module.getIr(), src);
-
     Optional<EventBinding<ExecutionEventListener>> listener =
         idExecutionInstrument.map(
             service ->
                 service.bind(
+                    module,
                     call.getFunction().getCallTarget(),
-                    locationFilter,
                     cache,
                     methodCallsCache,
                     syncState,
@@ -295,7 +292,8 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public ChangesetBuilder<Rope> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public Changeset<Rope> modifyModuleSources(
+      File path, scala.collection.immutable.Seq<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (moduleMay.isEmpty()) {
       throw new ModuleNotFoundForFileException(path);
@@ -312,6 +310,9 @@ public class ExecutionService {
             module.getIr(),
             TextEditor.ropeTextEditor(),
             IndexedSource.RopeIndexedSource());
+
+    Changeset<Rope> result = changesetBuilder.build(edits);
+
     JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
         .fold(
             failure -> {
@@ -319,10 +320,12 @@ public class ExecutionService {
                   path, edits, failure, module.getLiteralSource());
             },
             rope -> {
-              module.setLiteralSource(rope);
+              var su = result.simpleUpdate();
+              module.setLiteralSource(rope, su.isDefined() ? su.get() : null);
               return new Object();
             });
-    return changesetBuilder;
+
+    return result;
   }
 
   /**

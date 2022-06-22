@@ -13,29 +13,29 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "/", description = "Division of numbers.")
 public abstract class DivideNode extends Node {
-  abstract double execute(long _this, Object that);
+  abstract double execute(long self, Object that);
 
   static DivideNode build() {
     return DivideNodeGen.create();
   }
 
   @Specialization
-  double doLong(long _this, long that) {
-    return ((double) _this) / ((double) that);
+  double doLong(long self, long that) {
+    return ((double) self) / ((double) that);
   }
 
   @Specialization
-  double doDouble(long _this, double that) {
-    return _this / that;
+  double doDouble(long self, double that) {
+    return self / that;
   }
 
   @Specialization
-  double doBigInteger(long _this, EnsoBigInteger that) {
-    return ((double) _this) / BigIntegerOps.toDouble(that.getValue());
+  double doBigInteger(long self, EnsoBigInteger that) {
+    return ((double) self) / BigIntegerOps.toDouble(that.getValue());
   }
 
   @Fallback
-  double doOther(long _this, Object that) {
+  double doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

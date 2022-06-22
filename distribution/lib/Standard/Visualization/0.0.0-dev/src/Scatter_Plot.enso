@@ -56,25 +56,25 @@ type PointData
 
     ## PRIVATE
     recognized_names : Vector
-    recognized_names = this.all_fields.map _.name
+    recognized_names = self.all_fields.map _.name
 
     ## PRIVATE
     is_recognized : Column -> Boolean
-    is_recognized column = this.recognized_names.contains column.name
+    is_recognized column = self.recognized_names.contains column.name
 
     ## PRIVATE
     name : Text
-    name = this.to_text.to_case Case.Lower
+    name = self.to_text.to_case Case.Lower
 
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
-    fallback_column table = case this of
-        X -> table.index.catch_ <| this.iota table.row_count
+    fallback_column table = case self of
+        X -> table.index.catch_ <| self.iota table.row_count
         Y ->
             x_column = X.lookup_in table
             candidates = table.all_columns
             is_good_enough c = c.is_numeric && c.name != x_column.name
-            is_good c = is_good_enough c && (this.is_recognized c).not
+            is_good c = is_good_enough c && (self.is_recognized c).not
 
             candidates.find is_good . catch_ <| candidates.find is_good_enough
         _ -> Error.throw No_Fallback_Column
@@ -90,8 +90,8 @@ type PointData
     ## PRIVATE
     lookup_in : Table -> Column
     lookup_in table =
-        named = table.lookup_ignore_case this.name
-        named.catch_ <| this.fallback_column table
+        named = table.lookup_ignore_case self.name
+        named.catch_ <| self.fallback_column table
 
 ## PRIVATE
 type No_Fallback_Column
@@ -106,9 +106,9 @@ No_Fallback_Column.to_display_text =
    Generates JSON that describes points data.
 Table.Table.point_data : Table -> Object
 Table.Table.point_data =
-    get_point_data field = field.lookup_in this . rename field.name
+    get_point_data field = field.lookup_in self . rename field.name
     columns = PointData.all_fields.filter_map get_point_data
-    (0.up_to this.row_count).to_vector.map <| row_n->
+    (0.up_to self.row_count).to_vector.map <| row_n->
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing
             [column.name, value]
@@ -120,21 +120,21 @@ Table.Table.point_data =
 Table.Table.axes : Table -> Object
 Table.Table.axes =
     describe_axis field =
-        col_name = field.lookup_in this . name
+        col_name = field.lookup_in self . name
         label = Json.from_pairs [[here.label_field, col_name]]
         [field.name, label]
     x_axis = describe_axis X
     y_axis = describe_axis Y
     is_valid axis_pair =
         label = axis_pair.at 1
-        label.is_valid && (this.all_columns.length > 0)
+        label.is_valid && (self.all_columns.length > 0)
     axes_obj = Json.from_pairs <| [x_axis, y_axis].filter is_valid
     if axes_obj.fields.size > 0 then axes_obj else Nothing
 
 ## PRIVATE
 Vector.Vector.point_data : Vector -> Object
 Vector.Vector.point_data =
-        this.map_with_index <| i-> elem->
+        self.map_with_index <| i-> elem->
             Json.from_pairs [[X.name,i],[Y.name,elem]]
 
 ## PRIVATE

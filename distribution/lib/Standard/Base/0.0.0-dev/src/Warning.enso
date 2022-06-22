@@ -32,7 +32,7 @@ type Warning
        elements:
        - When pattern matching, the warnings of the scrutinee will be reassigned
          to the `case` expression result.
-       - When calling a method, warnings assigned to `this` will be reassigned to
+       - When calling a method, warnings assigned to `self` will be reassigned to
          the method return value.
        - When calling a polyglot function or method, warnings assigned to any
          arguments will be accumulated in the return value.
@@ -40,7 +40,7 @@ type Warning
          nature is preserved.
     reassignments : Vector.Vector Stack_Trace_Element
     reassignments =
-        Vector.Vector this.get_reassignments . map r->
+        Vector.Vector self.get_reassignments . map r->
             loc = case Polyglot.has_source_location r of
                 False -> Nothing
                 True -> Source_Location (Polyglot.get_source_location r)

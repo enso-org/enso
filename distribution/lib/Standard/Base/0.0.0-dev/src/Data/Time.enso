@@ -177,7 +177,7 @@ type Time
 
              example_year = Time.now.year
     year : Integer
-    year = this . internal_zoned_date_time . getYear
+    year = self . internal_zoned_date_time . getYear
 
     ## Get the month portion of the time as a number from 1 to 12.
 
@@ -188,7 +188,7 @@ type Time
 
              example_month = Time.now.month
     month : Integer
-    month = this . internal_zoned_date_time . getMonthValue
+    month = self . internal_zoned_date_time . getMonthValue
 
     ## Get the day portion of the time.
 
@@ -199,7 +199,7 @@ type Time
 
              example_day = Time.now.day
     day : Integer
-    day = this . internal_zoned_date_time . getDayOfMonth
+    day = self . internal_zoned_date_time . getDayOfMonth
 
     ## Get the hour portion of the time.
 
@@ -210,7 +210,7 @@ type Time
 
              example_hour = Time.now.hour
     hour : Integer
-    hour = this . internal_zoned_date_time . getHour
+    hour = self . internal_zoned_date_time . getHour
 
     ## Get the minute portion of the time.
 
@@ -221,7 +221,7 @@ type Time
 
              example_minute = Time.now.minute
     minute : Integer
-    minute = this . internal_zoned_date_time . getMinute
+    minute = self . internal_zoned_date_time . getMinute
 
     ## Get the second portion of the time.
 
@@ -232,7 +232,7 @@ type Time
 
              example_second = Time.now.second
     second : Integer
-    second = this . internal_zoned_date_time . getSecond
+    second = self . internal_zoned_date_time . getSecond
 
     ## Get the nanosecond portion of the time.
 
@@ -243,7 +243,7 @@ type Time
 
              example_nanosecond = Time.now.nanosecond
     nanosecond : Integer
-    nanosecond = this . internal_zoned_date_time . getNano
+    nanosecond = self . internal_zoned_date_time . getNano
 
     ## Get the timezone for the time.
 
@@ -254,7 +254,7 @@ type Time
 
              example_zone = Time.now.zone
     zone : Zone
-    zone = Zone.zone (this . internal_zoned_date_time . getZone)
+    zone = Zone.zone (self . internal_zoned_date_time . getZone)
 
     ## Return the number of seconds from the Unix epoch.
 
@@ -265,7 +265,7 @@ type Time
 
              example_epoch = Time.now.to_epoch_seconds
     to_epoch_seconds : Integer
-    to_epoch_seconds = this . internal_zoned_date_time . toEpochSecond
+    to_epoch_seconds = self . internal_zoned_date_time . toEpochSecond
 
     ## Return the number of milliseconds from the Unix epoch.
 
@@ -276,7 +276,7 @@ type Time
 
              example_epoch = Time.now.to_epoch_milliseconds
     to_epoch_milliseconds : Integer
-    to_epoch_milliseconds = this . internal_zoned_date_time . toInstant . toEpochMilli
+    to_epoch_milliseconds = self . internal_zoned_date_time . toInstant . toEpochMilli
 
     ## Convert this point in time to time of day, discarding the time zone
        information.
@@ -288,7 +288,7 @@ type Time
 
              example_time_of_day = Time.now.time_of_day
     time_of_day : Time_Of_Day
-    time_of_day = Time_Of_Day.time_of_day this.internal_zoned_date_time.toLocalTime
+    time_of_day = Time_Of_Day.time_of_day self.internal_zoned_date_time.toLocalTime
 
     ## ALIAS Time to Date
 
@@ -302,7 +302,7 @@ type Time
 
              example_date = Time.now.date
     date : Date
-    date = Date.date this.internal_zoned_date_time.toLocalDate
+    date = Date.date self.internal_zoned_date_time.toLocalDate
 
     ## ALIAS Change Time Zone
 
@@ -319,7 +319,7 @@ type Time
 
              exaomple_at_zone = Time.new 2020 . at_zone (Zone.new -4)
     at_zone : Zone -> Time
-    at_zone zone = Time (this.internal_zoned_date_time . withZoneSameInstant zone.internal_zone_id)
+    at_zone zone = Time (self.internal_zoned_date_time . withZoneSameInstant zone.internal_zone_id)
 
     ## Add the specified amount of time to this instant to produce a new instant.
 
@@ -334,7 +334,7 @@ type Time
 
              example_plus = Time.new 2020 + 15.years + 3.hours
     + : Duration -> Time
-    + amount = Time (this . internal_zoned_date_time . plus amount.internal_period . plus amount.internal_duration)
+    + amount = Time (self . internal_zoned_date_time . plus amount.internal_period . plus amount.internal_duration)
 
     ## Subtract the specified amount of time from this instant to get a new
        instant.
@@ -350,7 +350,7 @@ type Time
 
              example_minus = Time.new 2020 - 1.year - 9.months
     - : Duration -> Time
-    - amount = Time (this . internal_zoned_date_time . minus amount.internal_period . minus amount.internal_duration)
+    - amount = Time (self . internal_zoned_date_time . minus amount.internal_period . minus amount.internal_duration)
 
     ## Convert this time to text using the default formatter.
 
@@ -361,7 +361,7 @@ type Time
 
              example_to_text = Time.now.to_text
     to_text : Text
-    to_text = Time_Utils.default_time_formatter . format this.internal_zoned_date_time
+    to_text = Time_Utils.default_time_formatter . format self.internal_zoned_date_time
 
     ## Convert the time to JSON.
 
@@ -372,7 +372,7 @@ type Time
 
              example_to_json = Time.now.to_json
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Time"], ["year", this.year], ["month", this.month], ["day", this.day], ["hour", this.hour], ["minute", this.minute], ["second", this.second], ["nanosecond", this.nanosecond], ["zone", this.zone]]
+    to_json = Json.from_pairs [["type", "Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
 
     ## Format this time as text using the specified format specifier.
 
@@ -452,9 +452,9 @@ type Time
                 Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEE MMM d (HH:mm)"
     format : Text -> Text
     format pattern =
-        DateTimeFormatter.ofPattern pattern . format this.internal_zoned_date_time
+        DateTimeFormatter.ofPattern pattern . format self.internal_zoned_date_time
 
-    ## Compares `this` to `that` to produce an ordering.
+    ## Compares `self` to `that` to produce an ordering.
 
        Arguments:
        - that: The other `Time` to compare against.
@@ -465,7 +465,7 @@ type Time
          (Time.new 2000).compare_to (Time.new 2001)
     compare_to : Time -> Ordering
     compare_to that =
-        sign = this.internal_zoned_date_time.compareTo that.internal_zoned_date_time
+        sign = self.internal_zoned_date_time.compareTo that.internal_zoned_date_time
         Ordering.from_sign sign
 
 type Time_Error

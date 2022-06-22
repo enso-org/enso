@@ -16,8 +16,6 @@ component-groups:
           - Standard.Table.Data.Table.from_rows
           - Standard.Table.Data.Column.from_vector
           - Standard.Base.System.File.read
-          - Standard.Table.Io.Spreadsheet.from_xlsx
-          - Standard.Table.Io.Spreadsheet.from_xls
     - Standard.Base.Select:
         exports:
           - Standard.Table.Data.Table.Table.at

@@ -16,34 +16,34 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class AddNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  abstract Object execute(long _this, Object that);
+  abstract Object execute(long self, Object that);
 
   static AddNode build() {
     return AddNodeGen.create();
   }
 
   @Specialization(rewriteOn = ArithmeticException.class)
-  long doLong(long _this, long that) {
-    return Math.addExact(_this, that);
+  long doLong(long self, long that) {
+    return Math.addExact(self, that);
   }
 
   @Specialization
-  Object doOverflow(long _this, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.add(_this, that));
+  Object doOverflow(long self, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.add(self, that));
   }
 
   @Specialization
-  double doDouble(long _this, double that) {
-    return _this + that;
+  double doDouble(long self, double that) {
+    return self + that;
   }
 
   @Specialization
-  Object doBigInteger(long _this, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.add(that.getValue(), _this));
+  Object doBigInteger(long self, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.add(that.getValue(), self));
   }
 
   @Fallback
-  Object doOther(long _this, Object that) {
+  Object doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

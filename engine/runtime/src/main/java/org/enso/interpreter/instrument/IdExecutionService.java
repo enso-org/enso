@@ -8,12 +8,12 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
-import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.Module;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 
@@ -23,8 +23,8 @@ public interface IdExecutionService {
   /**
    * Attach a new listener to observe identified nodes within given function.
    *
+   * @param module module that contains the code
    * @param entryCallTarget the call target being observed.
-   * @param locationFilter the location filter.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
@@ -36,8 +36,8 @@ public interface IdExecutionService {
    * @return a reference to the attached event listener.
    */
   public EventBinding<ExecutionEventListener> bind(
+      Module module,
       CallTarget entryCallTarget,
-      LocationFilter locationFilter,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,

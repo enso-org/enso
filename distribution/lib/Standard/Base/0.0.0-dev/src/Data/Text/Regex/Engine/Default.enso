@@ -113,7 +113,7 @@ type Engine
                  engine.compile expression options
     compile : Text -> Vector Global_Option.Option -> Pattern ! (Regex.Compile_Error | Invalid_Option_Error)
     compile expression options =
-        all_options = options + this.engine_opts
+        all_options = options + self.engine_opts
         options_bitmask = here.from_enso_options all_options
         unicode_regex = UnicodeRegex.new
 
@@ -126,7 +126,7 @@ type Engine
                     Regex.Syntax_Error err.getMessage
             other -> other
 
-        Pattern internal_pattern all_options this
+        Pattern internal_pattern all_options self
 
     ## ADVANCED
 
@@ -184,24 +184,24 @@ type Pattern
            in code unit space, normalization could shift these indices!
            This should be addressed when reviewing
            See: https://www.pivotaltracker.com/story/show/181524498
-        #normalized_input = if this.options.contains Global_Option.Ascii_Matching then input else
+        #normalized_input = if self.options.contains Global_Option.Ascii_Matching then input else
         #    Text_Utils.normalize input
         normalized_input = input
-        internal_matcher = this.internal_pattern.matcher normalized_input . region start end
+        internal_matcher = self.internal_pattern.matcher normalized_input . region start end
 
-        if this.options.contains No_Anchoring_Bounds then
+        if self.options.contains No_Anchoring_Bounds then
             internal_matcher.useAnchoringBounds False
-        if this.options.contains Transparent_Bounds then
+        if self.options.contains Transparent_Bounds then
             internal_matcher.useTransparentBounds True
 
         internal_matcher
 
     ## ADVANCED
 
-       Tries to match the provided `input` against the pattern `this`.
+       Tries to match the provided `input` against the pattern `self`.
 
        Arguments:
-       - input: The text to match the pattern described by `this` against.
+       - input: The text to match the pattern described by `self` against.
        - mode: The matching mode to use.
 
        This method will _always_ return `Nothing` if it fails to match.
@@ -261,7 +261,7 @@ type Pattern
     match input mode=Mode.All =
         do_match_mode mode start end = case mode of
             Mode.First ->
-                internal_matcher = this.build_matcher input start end
+                internal_matcher = self.build_matcher input start end
 
                 if internal_matcher . find start . not then Nothing else
                     Match internal_matcher start end input
@@ -275,7 +275,7 @@ type Pattern
                 go offset remaining_count =
                     should_continue = remaining_count > 0
                     if should_continue.not || (offset >= end) then Nothing else
-                        internal_matcher = this.build_matcher input start end
+                        internal_matcher = self.build_matcher input start end
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
@@ -295,7 +295,7 @@ type Pattern
                 go : Integer -> Nothing
                 go offset =
                     if offset >= end then Nothing else
-                        internal_matcher = this.build_matcher input start end
+                        internal_matcher = self.build_matcher input start end
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
@@ -310,7 +310,7 @@ type Pattern
 
                 if vector.is_empty then Nothing else vector
             Mode.Full ->
-                internal_matcher = this.build_matcher input start end
+                internal_matcher = self.build_matcher input start end
                 if internal_matcher.matches.not then Nothing else
                     Match internal_matcher start end input
             Mode.Bounded _ _ _ -> Panic.throw <|
@@ -325,7 +325,7 @@ type Pattern
     ## ADVANCED
 
        Returns `True` if the input matches against the pattern described by
-       `this`, otherwise `False`.
+       `self`, otherwise `False`.
 
        Arguments:
        - input: The text to check for matching.
@@ -341,7 +341,7 @@ type Pattern
                  input = "aa"
                  pattern.matches input
     matches : Text -> Boolean
-    matches input = case this.match input mode=Mode.Full of
+    matches input = case self.match input mode=Mode.Full of
         Match _ _ _ _ -> True
         Vector.Vector _ -> True
         _ -> False
@@ -349,7 +349,7 @@ type Pattern
     ## ADVANCED
 
        Tries to find the text in the `input` that matches against the pattern
-       `this`.
+       `self`.
 
        Arguments:
        - input: The text to find matches in.
@@ -411,7 +411,7 @@ type Pattern
                  pattern.find input mode=Mode.Full
     find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
     find input mode=Mode.All =
-        matches = this.match input mode
+        matches = self.match input mode
         case matches of
             Match _ _ _ _ -> matches.group 0
             Vector.Vector _ -> matches.map (_.group 0)
@@ -419,10 +419,10 @@ type Pattern
 
     ## ADVANCED
 
-       Splits the `input` text based on the pattern described by `this`.
+       Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
-       - input: The text to splut based on the pattern described by `this`.
+       - input: The text to splut based on the pattern described by `self`.
        - mode: The splitting mode to use.
 
        This method will _always_ return a vector. If no splits take place, the
@@ -478,12 +478,12 @@ type Pattern
             Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error "Splitting on a bounded region is not well-defined."
 
-        splits = this.internal_pattern.split input limit
+        splits = self.internal_pattern.split input limit
         Vector.Vector splits
 
     ## ADVANCED
 
-       Replace all occurrences of the pattern described by `this` in the `input`
+       Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
 
        Arguments:
@@ -534,13 +534,13 @@ type Pattern
     replace input replacement mode=Mode.All =
         do_replace_mode mode start end = case mode of
             Mode.First ->
-                internal_matcher = this.build_matcher input start end
+                internal_matcher = self.build_matcher input start end
                 internal_matcher.replaceFirst replacement
             Integer ->
                 if mode < 0 then Panic.throw <|
                     Mode_Error "Cannot replace a negative number of times."
 
-                internal_matcher = this.build_matcher input start end
+                internal_matcher = self.build_matcher input start end
                 buffer = StringBuffer.new
 
                 go remaining_replacements =
@@ -552,18 +552,18 @@ type Pattern
                 internal_matcher.appendTail buffer
                 buffer.to_text
             Mode.All ->
-                internal_matcher = this.build_matcher input start end
+                internal_matcher = self.build_matcher input start end
                 internal_matcher.replaceAll replacement
             Mode.Full ->
-                case this.match input mode=Mode.Full of
-                    Match _ _ _ _ -> this.replace input replacement Mode.First
+                case self.match input mode=Mode.Full of
+                    Match _ _ _ _ -> self.replace input replacement Mode.First
                     Nothing -> input
             Matching_Mode.Last ->
-                all_matches = this.match input
+                all_matches = self.match input
                 all_matches_count = if all_matches.is_nothing then 0 else all_matches.length
 
                 if all_matches_count == 0 then input else
-                    internal_matcher = this.build_matcher input start end
+                    internal_matcher = self.build_matcher input start end
                     buffer = StringBuffer.new
                     last_match_index = all_matches_count - 1
 
@@ -632,7 +632,7 @@ type Match
                  match.group "letters"
     group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
     group id =
-        Panic.recover Any (this.internal_match.group id) . map_error (here.handle_error _ id)
+        Panic.recover Any (self.internal_match.group id) . map_error (here.handle_error _ id)
 
     ## Gets a vector containing the results of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
@@ -660,9 +660,9 @@ type Match
                  match.groups default="UNMATCHED"
     groups : (a : Any) -> Vector.Vector (Text | a)
     groups default=Nothing =
-        group_numbers = 0.up_to this.internal_match.groupCount+1
+        group_numbers = 0.up_to self.internal_match.groupCount+1
         group_numbers.map n->
-            case this.group n of
+            case self.group n of
                 Nothing -> default
                 a -> a
 
@@ -686,9 +686,9 @@ type Match
     named_groups : (a : Any) -> Map Text (Text | a)
     named_groups default=Nothing =
         group_names = Vector.Vector <|
-            Regex_Utils.get_group_names this.internal_match.pattern
+            Regex_Utils.get_group_names self.internal_match.pattern
         pairs = group_names.map name->
-            value = case this.group name of
+            value = case self.group name of
                 Nothing -> default
                 a -> a
             [name, value]
@@ -718,7 +718,7 @@ type Match
                  match.start 0
     start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
     start id =
-        result = Panic.recover Any (this.internal_match.start id)
+        result = Panic.recover Any (self.internal_match.start id)
         no_errors = result.map_error (here.handle_error _ id)
         if no_errors == -1 then Nothing else no_errors
 
@@ -746,7 +746,7 @@ type Match
                  match.end 0
     end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
     end id =
-        result = Panic.recover Any (this.internal_match.end id)
+        result = Panic.recover Any (self.internal_match.end id)
         no_errors = result.map_error (here.handle_error _ id)
         if no_errors == -1 then Nothing else no_errors
 
@@ -771,9 +771,9 @@ type Match
                  match = Examples.match
                  match.span 0
     span : Integer | Text -> Utf_16_Span | Nothing ! Regex.No_Such_Group_Error
-    span id = case this.group id of
+    span id = case self.group id of
         Nothing -> Nothing
-        _ -> Utf_16_Span (Range (this.start id) (this.end id)) this.input
+        _ -> Utf_16_Span (Range (self.start id) (self.end id)) self.input
 
     ## Returns the start character index of the match's region.
 
@@ -792,7 +792,7 @@ type Match
                  match = Examples.match
                  match.start_position
     start_position : Integer
-    start_position = this.region_start
+    start_position = self.region_start
 
     ## Returns the end character index of the match's region.
 
@@ -811,7 +811,7 @@ type Match
                  match = Examples.match
                  match.end_position
     end_position : Integer
-    end_position = this.region_end
+    end_position = self.region_end
 
 ## PRIVATE
 
@@ -912,7 +912,7 @@ type Mode_Error (message : Text)
 
    Provides a human-readable representation of the invalid bounds error.
 Mode_Error.to_display_text : Text
-Mode_Error.to_display_text = this.message.to_text
+Mode_Error.to_display_text = self.message.to_text
 
 ## PRIVATE
 
@@ -927,5 +927,5 @@ type Invalid_Option_Error (opt : Any)
    Provides a human-readable representation of the invalid option error.
 Invalid_Option_Error.to_display_text : Text
 Invalid_Option_Error.to_display_text =
-    "The option " + this.opt.to_text + " is not valid for the default regex engine."
+    "The option " + self.opt.to_text + " is not valid for the default regex engine."
 

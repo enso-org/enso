@@ -12,37 +12,37 @@ import Standard.Table.Data.Table
    - f: unary invokable that is applied to each vector element. Non-error
         values are returned in the resulting vector. Error values are dropped.
 Vector.Vector.filter_map : Any -> Vector
-Vector.Vector.filter_map f = this.map f . filter .is_valid
+Vector.Vector.filter_map f = self.map f . filter .is_valid
 
 ## PRIVATE
 
    Returns the given value if this is not an error. Propagates error otherwise.
 
    Arguments:
-   - val: a value that will be evaluated and returned if `this` is an error.
+   - val: a value that will be evaluated and returned if `self` is an error.
 Any.when_valid : Any -> Any
-Any.when_valid ~val = this.map_valid (_-> val)
+Any.when_valid ~val = self.map_valid (_-> val)
 
 ## PRIVATE
 
    Returns the given value if this is not an error. Propagates error otherwise.
 
    Arguments:
-   - val: a value that will be evaluated and returned if `this` is an error.
+   - val: a value that will be evaluated and returned if `self` is an error.
 Error.when_valid : Any -> Any
-Error.when_valid ~val = this.map_valid (_-> val)
+Error.when_valid ~val = self.map_valid (_-> val)
 
 ## PRIVATE
 
    Checks if the value is not an error.
 Any.is_valid : Any
-Any.is_valid = this.is_error.not
+Any.is_valid = self.is_error.not
 
 ## PRIVATE
 
    Checks if the value is not an error.
 Error.is_valid : Any
-Error.is_valid = this.is_error.not
+Error.is_valid = self.is_error.not
 
 ## PRIVATE
 
@@ -50,9 +50,9 @@ Error.is_valid = this.is_error.not
 
    Arguments:
    - f: a function that will be used to generate return value from a non-error
-        `this` value.
+        `self` value.
 Any.map_valid : Any -> Any
-Any.map_valid f = f this
+Any.map_valid f = f self
 
 ## PRIVATE
 
@@ -60,9 +60,9 @@ Any.map_valid f = f this
 
    Arguments:
    - _: a function that will be used to generate return value from a non-error
-        `this` value.
+        `self` value.
 Error.map_valid : Any -> Any
-Error.map_valid _ = this
+Error.map_valid _ = self
 
 ## PRIVATE
 
@@ -71,9 +71,9 @@ Error.map_valid _ = this
    The error contents will be ignored.
 
    Arguments:
-   - val: a value that will be evaluated and returned if `this` is an error.
+   - val: a value that will be evaluated and returned if `self` is an error.
 Any.catch_ : Any -> Any
-Any.catch_ ~val = this.catch (_-> val)
+Any.catch_ ~val = self.catch (_-> val)
 
 ## PRIVATE
 
@@ -82,9 +82,9 @@ Any.catch_ ~val = this.catch (_-> val)
    The error contents will be ignored.
 
    Arguments:
-   - val: a value that will be evaluated and returned if `this` is an error.
+   - val: a value that will be evaluated and returned if `self` is an error.
 Error.catch_ : Any -> Any
-Error.catch_ ~val = this.catch (_-> val)
+Error.catch_ ~val = self.catch (_-> val)
 
 ## PRIVATE
 recover_errors : Any -> Any
@@ -100,11 +100,11 @@ recover_errors ~body =
    Index columns are placed before other columns.
 Table.Table.all_columns : Vector
 Table.Table.all_columns =
-    index = this.index.catch_ []
+    index = self.index.catch_ []
     index_columns = case index of
         Vector.Vector _ -> index
         a -> [a]
-    index_columns + this.columns
+    index_columns + self.columns
 
 ## PRIVATE
 
@@ -116,7 +116,7 @@ Table.Table.all_columns =
    - text: the case-insensitive name of the searched column.
 Table.Table.lookup_ignore_case : Text -> Column ! Nothing
 Table.Table.lookup_ignore_case name =
-    ret = this.all_columns.find <| col->
+    ret = self.all_columns.find <| col->
         col.name.equals_ignore_case name
     ret
 
@@ -125,4 +125,4 @@ Table.Table.lookup_ignore_case name =
   Checks if the column stores numbers.
 Column.Column.is_numeric : Boolean
 Column.Column.is_numeric =
-    [Storage.Integer,Storage.Decimal].contains this.storage_type
+    [Storage.Integer,Storage.Decimal].contains self.storage_type

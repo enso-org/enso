@@ -751,7 +751,7 @@ class RuntimeErrorsTest
         |    Error.throw MyError1
         |
         |main =
-        |    x = this.foo
+        |    x = self.foo
         |    y = x - 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1176,7 +1176,7 @@ class RuntimeErrorsTest
         |    Panic.throw 9
         |
         |main =
-        |    x = this.foo
+        |    x = self.foo
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1285,7 +1285,7 @@ class RuntimeErrorsTest
         |    Error.throw 9
         |
         |main =
-        |    x = this.foo
+        |    x = self.foo
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")

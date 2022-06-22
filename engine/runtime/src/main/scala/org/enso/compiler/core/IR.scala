@@ -1,5 +1,6 @@
 package org.enso.compiler.core
 
+import org.enso.interpreter.Constants
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
@@ -2074,6 +2075,42 @@ object IR {
         * @return `true` if the value is fractional, `false` otherwise.
         */
       def isFractional: Boolean = value.contains(".")
+
+      /** Checks the values in the literal converts that to approviate JVM value.
+        * @return Double, Long, BigInteger
+        */
+      @throws[CompilerError]
+      def numericValue: Any = {
+        if (isFractional) {
+          value.toDouble
+        } else if (base.isDefined) {
+          val baseNum =
+            try {
+              Integer.parseInt(base.get)
+            } catch {
+              case _: NumberFormatException =>
+                throw new CompilerError(
+                  s"Invalid number base $base seen during codegen."
+                )
+            }
+          try {
+            val longVal = java.lang.Long.parseLong(value, baseNum)
+            longVal
+          } catch {
+            case _: NumberFormatException =>
+              try {
+                new java.math.BigInteger(value, baseNum)
+              } catch {
+                case _: NumberFormatException =>
+                  throw new CompilerError(
+                    s"Invalid number base $base seen during codegen."
+                  )
+              }
+          }
+        } else {
+          value.toLongOption.getOrElse(new java.math.BigInteger(value))
+        }
+      }
     }
 
     /** A textual Enso literal.
@@ -2772,24 +2809,24 @@ object IR {
       override def showCode(indent: Int): String = name
     }
 
-    /** A representation of the name `this`, used to refer to the current type.
+    /** A representation of the name `self`, used to refer to the current type.
       *
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
-    sealed case class This(
+    sealed case class Self(
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name {
       override protected var id: Identifier = randomId
-      override val name: String             = "this"
+      override val name: String             = Constants.Names.SELF_ARGUMENT
 
       /** @inheritdoc */
       override def isReferent: Boolean = false
 
-      /** Creates a copy of `this`.
+      /** Creates a copy of `self`.
         *
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
@@ -2802,8 +2839,8 @@ object IR {
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
-      ): This = {
-        val res = This(location, passData, diagnostics)
+      ): Self = {
+        val res = Self(location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2814,7 +2851,7 @@ object IR {
         keepMetadata: Boolean    = true,
         keepDiagnostics: Boolean = true,
         keepIdentifiers: Boolean = false
-      ): This =
+      ): Self =
         copy(
           location = if (keepLocations) location else None,
           passData =
@@ -2825,16 +2862,16 @@ object IR {
         )
 
       /** @inheritdoc */
-      override def setLocation(location: Option[IdentifiedLocation]): This =
+      override def setLocation(location: Option[IdentifiedLocation]): Self =
         copy(location = location)
 
       /** @inheritdoc */
-      override def mapExpressions(fn: Expression => Expression): This = this
+      override def mapExpressions(fn: Expression => Expression): Self = this
 
       /** @inheritdoc */
       override def toString: String =
         s"""
-        |IR.Name.This(
+        |IR.Name.Self(
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -2846,7 +2883,7 @@ object IR {
       override def children: List[IR] = List()
 
       /** @inheritdoc */
-      override def showCode(indent: Int): String = "this"
+      override def showCode(indent: Int): String = name
     }
 
     /** A representation of the name `here`, used to refer to the current
@@ -7323,13 +7360,13 @@ object IR {
     object Redefined {
 
       /** An error representing the redefinition or incorrect positioning of
-        * the `this` argument to methods.
+        * the `self` argument to methods.
         *
         * @param location the source location of the error
         * @param passData the pass metadata for this node
         * @param diagnostics compiler diagnostics associated with the node
         */
-      sealed case class ThisArg(
+      sealed case class SelfArg(
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7338,7 +7375,7 @@ object IR {
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
-        /** Creates a copy of `this`.
+        /** Creates a copy of `self`.
           *
           * @param location the source location of the error
           * @param passData the pass metadata for this node
@@ -7351,8 +7388,8 @@ object IR {
           passData: MetadataStorage            = passData,
           diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
-        ): ThisArg = {
-          val res = ThisArg(location, passData, diagnostics)
+        ): SelfArg = {
+          val res = SelfArg(location, passData, diagnostics)
           res.id = id
           res
         }
@@ -7363,7 +7400,7 @@ object IR {
           keepMetadata: Boolean    = true,
           keepDiagnostics: Boolean = true,
           keepIdentifiers: Boolean = false
-        ): ThisArg =
+        ): SelfArg =
           copy(
             location = if (keepLocations) location else None,
             passData =
@@ -7376,10 +7413,10 @@ object IR {
         /** @inheritdoc */
         override def setLocation(
           location: Option[IdentifiedLocation]
-        ): ThisArg = copy(location = location)
+        ): SelfArg = copy(location = location)
 
         /** @inheritdoc */
-        override def mapExpressions(fn: Expression => Expression): ThisArg =
+        override def mapExpressions(fn: Expression => Expression): SelfArg =
           this
 
         /** @inheritdoc */

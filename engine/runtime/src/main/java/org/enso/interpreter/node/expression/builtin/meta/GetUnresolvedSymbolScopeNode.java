@@ -20,20 +20,20 @@ public abstract class GetUnresolvedSymbolScopeNode extends Node {
     return GetUnresolvedSymbolScopeNodeGen.create();
   }
 
-  abstract ModuleScope execute(Object _this, Object symbol);
+  abstract ModuleScope execute(Object self, Object symbol);
 
   @Specialization
-  ModuleScope doSymbol(Object _this, UnresolvedSymbol symbol) {
+  ModuleScope doSymbol(Object self, UnresolvedSymbol symbol) {
     return symbol.getScope();
   }
 
   @Specialization
-  ModuleScope doConversion(Object _this, UnresolvedConversion symbol) {
+  ModuleScope doConversion(Object self, UnresolvedConversion symbol) {
     return symbol.getScope();
   }
 
   @Fallback
-  ModuleScope doFallback(Object _this, Object symbol) {
+  ModuleScope doFallback(Object self, Object symbol) {
     Builtins builtins = Context.get(this).getBuiltins();
     throw new PanicException(
         builtins.error().makeTypeError("Unresolved_Symbol", symbol, "symbol"), this);

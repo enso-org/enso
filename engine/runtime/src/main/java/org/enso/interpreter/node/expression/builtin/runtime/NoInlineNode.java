@@ -17,7 +17,7 @@ public class NoInlineNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
   @CompilerDirectives.TruffleBoundary
-  Stateful execute(@MonadicState Object state, Object _this, @Suspend Object action) {
+  Stateful execute(@MonadicState Object state, Object self, @Suspend Object action) {
     return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.NOT_TAIL);
   }
 }

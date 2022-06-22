@@ -16,31 +16,31 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class BitXorNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  abstract Object execute(Object _this, Object that);
+  abstract Object execute(Object self, Object that);
 
   static BitXorNode build() {
     return BitXorNodeGen.create();
   }
 
   @Specialization
-  Object doLong(EnsoBigInteger _this, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.bitXor(_this.getValue(), that));
+  Object doLong(EnsoBigInteger self, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitXor(self.getValue(), that));
   }
 
   @Specialization
-  Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.bitXor(_this.getValue(), that.getValue()));
+  Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitXor(self.getValue(), that.getValue()));
   }
 
   @Specialization
-  Object doAtomThis(Atom _this, Object that) {
+  Object doAtomThis(Atom self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(integer, _this, "this"), this);
+    throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
   }
 
   @Fallback
-  Object doOther(Object _this, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);

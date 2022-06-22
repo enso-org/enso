@@ -12,7 +12,7 @@ polyglot java import java.util.UUID
 type Foo
     type Foo x
     to_json : Json
-    to_json = Json.from_pairs [["x", this.x]]
+    to_json = Json.from_pairs [["x", self.x]]
 
 visualization_spec connection =
     t = connection.upload_table "T" <| Dataframe_Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]

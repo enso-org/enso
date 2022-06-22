@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.constant;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 /** Represents a compile-time constant. */
 @NodeInfo(shortName = "const", description = "Represents an arbitrary compile-time constant.")

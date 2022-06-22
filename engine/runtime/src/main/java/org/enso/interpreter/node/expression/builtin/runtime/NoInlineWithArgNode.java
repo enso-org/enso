@@ -29,11 +29,7 @@ public class NoInlineWithArgNode extends Node {
   }
 
   Stateful execute(
-      VirtualFrame frame,
-      @MonadicState Object state,
-      Object _this,
-      Object action,
-      Object argument) {
+      VirtualFrame frame, @MonadicState Object state, Object self, Object action, Object argument) {
     MaterializedFrame materializedFrame = null;
     if (frame != null) {
       materializedFrame = frame.materialize();

@@ -5,6 +5,7 @@ import java.nio.ByteBuffer
 
 import cats.Foldable
 import cats.implicits._
+import org.enso.interpreter.Constants
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
@@ -1002,9 +1003,9 @@ object AstToIr {
   def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
       case AST.Ident.Var(name) =>
-        if (name == "this") {
-          Name.This(getIdentifiedLocation(identifier))
-        } else if (name == "here") {
+        if (name == Constants.Names.SELF_ARGUMENT) {
+          Name.Self(getIdentifiedLocation(identifier))
+        } else if (name == Constants.Names.CURRENT_MODULE) {
           Name.Here(getIdentifiedLocation(identifier))
         } else {
           buildName(identifier)
