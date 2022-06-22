@@ -711,7 +711,6 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
     fn set_base_position_y(&self, position_y: f32, style: &Style) {
         match SECTION_HEADER_PLACEMENT {
             SectionHeaderPlacement::Top => {
-                // TODO[MM] This magic number will be removed with https://github.com/enso-org/enso/pull/3537
                 let label_pos = position_y - style.section.heading.text_offset;
                 self.label.set_position_y(label_pos);
                 self.divider.set_position_y(position_y);
@@ -723,7 +722,7 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
                 let label_offset = self.content.height() + style.section.heading.text_offset;
                 let label_pos = position_y - label_offset;
                 self.label.set_position_y(label_pos);
-                let divider_offset = self.content.height() - style.section.divider_height + 2.0;
+                let divider_offset = self.content.height();
                 let divider_pos = position_y - divider_offset;
                 self.divider.set_position_y(divider_pos);
                 self.content.set_position_top_y(position_y);
