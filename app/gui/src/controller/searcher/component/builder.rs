@@ -82,10 +82,8 @@ impl List {
     /// [`local_scope_module_id`] will be cloned into [`component::List::local_scope`].
     // FIXME: rename: drop `_id` suffix from name, adjust arg name and doc
     pub fn with_local_scope_module_id(self, id: component::Id) -> Self {
-        // FIXME: should the group be visible or not? is it relevant if we call update_filtering
-        // anyway?
         // FIXME: make "Local Scope" a constant
-        let local_scope = component::Group::new_empty_visible("Local Scope", Some(id));
+        let local_scope = component::Group::new_empty("Local Scope", Some(id));
         Self { local_scope, ..self }
     }
 

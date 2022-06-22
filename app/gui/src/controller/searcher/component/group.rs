@@ -56,13 +56,13 @@ pub struct Data {
 }
 
 impl Data {
-    fn new_empty_visible(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+    fn new_empty(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
         Data {
             name: name.into(),
             color: None,
             component_id,
             entries: default(),
-            visible: Cell::new(true),
+            visible: default(),
         }
     }
 }
@@ -87,11 +87,9 @@ impl Deref for Group {
 }
 
 impl Group {
-    pub fn new_empty_visible(
-        name: impl Into<ImString>,
-        component_id: Option<component::Id>,
-    ) -> Self {
-        Self { data: Rc::new(Data::new_empty_visible(name, component_id)) }
+    /// Construct a new group with no entries.
+    pub fn new_empty(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+        Self { data: Rc::new(Data::new_empty(name, component_id)) }
     }
 
     /// Create empty group referring to some module component.
@@ -101,7 +99,7 @@ impl Group {
         } else {
             entry.module.name().into()
         };
-        Self::new_empty_visible(name, Some(component_id))
+        Self::new_empty(name, Some(component_id))
     }
 
     /// Construct from [`execution_context::ComponentGroup`] components looked up in the suggestion
