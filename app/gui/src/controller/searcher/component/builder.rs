@@ -78,7 +78,7 @@ impl List {
     }
 
     /// Return [`List`] with the [`local_scope_module_id`] field set to `id`. When the field is
-    /// set, components passed to [`extend`] having their parent module ID equal to
+    /// set, components passed to [`extend`] which have their parent module ID equal to
     /// [`local_scope_module_id`] will be cloned into [`component::List::local_scope`].
     // FIXME: rename: drop `_id` suffix from name, adjust arg name and doc
     pub fn with_local_scope_module_id(self, id: component::Id) -> Self {
