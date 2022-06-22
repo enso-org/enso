@@ -32,7 +32,7 @@ pub struct Data {
 }
 
 impl Data {
-    fn new_empty(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+    fn from_name_and_id(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
         Data {
             name: name.into(),
             color: None,
@@ -68,7 +68,7 @@ impl Group {
         name: impl Into<ImString>,
         component_id: Option<component::Id>,
     ) -> Self {
-        Self { data: Rc::new(Data::new_empty(name, component_id)) }
+        Self { data: Rc::new(Data::from_name_and_id(name, component_id)) }
     }
 
     /// Create empty group referring to some module component.
