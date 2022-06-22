@@ -76,14 +76,10 @@ speed_.
 As an example you can download
 [sieve.enso](https://github.com/jtulach/sieve/blob/5b32450da35415322e683bb9769aa45f0d71f1df/enso/sieve.enso)
 which computes hundred thousand of prime numbers repeatedly and measures time of
-each round. Download the file and launch Enso with:
+each round. Download the file and launch Enso with `--dump-graphs` argument:
 
 ```bash
-enso$ JAVA_OPTS="-Dpolyglot.engine.AllowExperimentalOptions=true\
- -Dpolyglot.engine.TraceCompilation=true\
- -Dpolyglot.engine.MultiTier=false\
- -Dgraal.Dump=Truffle:1"\
- ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run sieve.enso
+enso$ ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --dump-graphs --run sieve.enso
 ```
 
 Bunch of files in `graal_dumps/*` subdirectory is going to be generated:
