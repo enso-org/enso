@@ -1032,6 +1032,111 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("5")
   }
 
+  it should "obey the execute parameter of edit command" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+
+    // foo definition
+    metadata.addItem(25, 22)
+    // foo name
+    metadata.addItem(25, 3)
+    val mainFoo = metadata.addItem(63, 8)
+    val mainRes = metadata.addItem(76, 12)
+
+    val code =
+      """import Standard.Base.IO
+        |
+        |foo =
+        |    x = 4
+        |    x
+        |
+        |main =
+        |    y = here.foo
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          mainFoo,
+          ConstantsGen.INTEGER,
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
+        ),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("4")
+
+    // Modify the foo method
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 8), model.Position(3, 9)),
+              "5"
+            )
+          ),
+          execute = false
+        )
+      )
+    )
+    context.receiveNone shouldEqual None
+
+    // Modify the foo method
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 8), model.Position(3, 9)),
+              "6"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveN(1) should contain theSameElementsAs Seq(
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("6")
+  }
+
   it should "not send updates when the type is not changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

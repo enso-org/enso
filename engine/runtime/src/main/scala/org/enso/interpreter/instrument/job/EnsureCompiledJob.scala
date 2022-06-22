@@ -68,15 +68,9 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
     val moduleCompilationStatus = modules.map(ensureCompiledModule)
-    val shouldRecompileScope    = moduleCompilationStatus.exists(_.isDefined)
-    val scopeCompilationStatus =
-      if (shouldRecompileScope) {
-        val modulesInScope =
-          getModulesInScope.filterNot(m => modules.exists(_ == m))
-        ensureCompiledScope(modulesInScope)
-      } else {
-        Seq()
-      }
+    val modulesInScope =
+      getModulesInScope.filterNot(m => modules.exists(_ == m))
+    val scopeCompilationStatus = ensureCompiledScope(modulesInScope)
     (moduleCompilationStatus.flatten ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
   }
@@ -251,12 +245,10 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     try {
       val pendingEdits = ctx.state.pendingEdits.dequeue(file)
       val edits        = pendingEdits.map(_.edit)
-      val shouldRecompile =
-        pendingEdits.exists(_.execute) || pendingEdits.isEmpty
-      ctx.executionService.getLogger
-        .log(Level.FINE, s"applyEdits recompile=$shouldRecompile edits=$edits")
+      val shouldExecute =
+        pendingEdits.isEmpty || pendingEdits.exists(_.execute)
       val changeset = ctx.executionService.modifyModuleSources(file, edits)
-      Option.when(shouldRecompile)(changeset)
+      Option.when(shouldExecute)(changeset)
     } finally {
       ctx.locking.releasePendingEditsLock()
       ctx.locking.releaseReadCompilationLock()
