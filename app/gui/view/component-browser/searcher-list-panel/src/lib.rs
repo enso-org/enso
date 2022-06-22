@@ -406,6 +406,7 @@ impl Model {
         let logger = Logger::new("ComponentBrowserPanel");
         let app = app.clone_ref();
         let display_object = display::object::Instance::new(&logger);
+        let navigator = default();
 
         let background = background::View::new(&logger);
         display_object.add_child(&background);
@@ -425,7 +426,12 @@ impl Model {
         local_scope_section.set_parent(scroll_area.content());
         sub_modules_section.set_parent(scroll_area.content());
 
-        let navigator = default();
+        // Required for correct clipping. The components need to be set up with the
+        // `scroll_area.content_layer` to be masked correctly by the [`ScrollArea`].
+        favourites_section.set_layers(&layers);
+        local_scope_section.set_layers(&layers);
+        sub_modules_section.set_layers(&layers);
+
         Self {
             app,
             display_object,
@@ -718,7 +724,7 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
                 let label_pos = position_y - label_offset;
                 self.label.set_position_y(label_pos);
                 let divider_offset = self.content.height() - style.section.divider_height + 2.0;
-                let divider_pos = position_y - divider_offset - offset_from_top;
+                let divider_pos = position_y - divider_offset;
                 self.divider.set_position_y(divider_pos);
                 self.content.set_position_top_y(position_y);
             }
