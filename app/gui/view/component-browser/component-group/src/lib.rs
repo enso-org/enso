@@ -545,9 +545,9 @@ impl component::Frp<Model> for Frp {
 /// module-level documentation to learn more.
 ///
 /// A component group consists of several shapes with a strict rendering order. The order of the
-/// fields in [`LayersInner`] struct represent the rendering order of layers, with `background`
-/// being the bottom-most and `header_text` being the top-most.
+/// fields in [`LayersInner`] struct represent the rendering order of layers.
 #[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)]
 pub struct Layers {
     normal:    LayersInner,
     selection: LayersInner,

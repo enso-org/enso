@@ -1494,6 +1494,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-component-list-panel-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-selector",
+ "ensogl-text-msdf-sys",
+ "ide-view-component-group",
+ "searcher-list-panel",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
@@ -1863,6 +1879,7 @@ name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
  "debug-scene-component-group",
+ "debug-scene-component-list-panel-view",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-visualization",
@@ -3560,7 +3577,7 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.11.0",
+ "base64 0.13.0",
  "bytes 1.1.0",
  "http",
  "httpdate 1.0.2",
@@ -3690,6 +3707,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl",
+ "ensogl-core",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-label",
@@ -4634,6 +4652,15 @@ name = "ordered-float"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7940cf2ca942593318d07fcf2596cdca60a85c9e7fab408a5e21a4f9dcd40d87"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "ordered-float"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96bcbab4bfea7a59c2c0fe47211a1ac4e3e96bea6eb446d704f310bc5c732ae2"
 dependencies = [
  "num-traits",
 ]
@@ -5651,6 +5678,24 @@ checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "searcher-list-panel"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ordered-float 3.0.0",
 ]
 
 [[package]]
