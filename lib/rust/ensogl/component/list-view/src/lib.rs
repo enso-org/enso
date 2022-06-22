@@ -248,7 +248,6 @@ impl<E: Entry> Model<E> {
     ) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
         let entry_width = view.size.x;
-        ERROR!(format!("___entry_width {}", entry_width));
         let entries = &self.entries;
         entries.update_entries_new_provider(provider, visible_entries, entry_width, style_prefix);
     }
