@@ -2,11 +2,13 @@ package org.enso.table.write;
 
 import org.enso.table.data.table.Table;
 import org.enso.table.formatting.DataFormatter;
-import org.enso.table.problems.WithProblems;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
 
 public class DelimitedWriter {
   private static final char NEWLINE = '\n';
@@ -98,9 +100,10 @@ public class DelimitedWriter {
     assert numberOfColumns == columnFormatters.length;
 
     if (writeHeaders) {
+      boolean quoteAllHeaders = writeQuoteBehavior == WriteQuoteBehavior.ALWAYS;
       for (int col = 0; col < numberOfColumns; ++col) {
         boolean isLast = col == numberOfColumns - 1;
-        writeCell(table.getColumns()[col].getName(), isLast);
+        writeCell(table.getColumns()[col].getName(), isLast, quoteAllHeaders);
       }
     }
 
@@ -110,19 +113,36 @@ public class DelimitedWriter {
         boolean isLast = col == numberOfColumns - 1;
         Object cellValue = table.getColumns()[col].getStorage().getItemBoxed(row);
         String formatted = columnFormatters[col].format(cellValue);
-        writeCell(formatted, isLast);
+        boolean wantsQuoting =
+            writeQuoteBehavior == WriteQuoteBehavior.ALWAYS && wantsQuotesInAlwaysMode(cellValue);
+        writeCell(formatted, isLast, wantsQuoting);
       }
     }
 
     output.flush();
   }
 
+  private boolean wantsQuotesInAlwaysMode(Object value) {
+    return value instanceof String || !isNonTextPrimitive(value);
+  }
+
+  private boolean isNonTextPrimitive(Object value) {
+    return value instanceof Long
+        || value instanceof Double
+        || value instanceof Boolean
+        || value instanceof LocalDate
+        || value instanceof LocalDateTime
+        || value instanceof LocalTime
+        || value instanceof ZonedDateTime;
+  }
+
   private boolean quotingEnabled() {
     return writeQuoteBehavior != WriteQuoteBehavior.NEVER;
   }
 
-  private void writeCell(String value, boolean isLastInRow) throws IOException {
-    String processed = value == null ? "" : quotingEnabled() ? quote(value) : value;
+  private void writeCell(String value, boolean isLastInRow, boolean wantsQuoting)
+      throws IOException {
+    String processed = value == null ? "" : quotingEnabled() ? quote(value, wantsQuoting) : value;
     output.write(processed);
     if (isLastInRow) {
       output.write(NEWLINE);
@@ -131,18 +151,27 @@ public class DelimitedWriter {
     }
   }
 
-  private String quote(String value) {
-    if (value.isEmpty()) {
-      return emptyValue;
-    }
-
+  private boolean needsQuoting(String value) {
     boolean containsDelimiter = value.indexOf(delimiter) >= 0;
     boolean containsQuote = value.indexOf(quoteChar) >= 0;
     boolean containsQuoteEscape = value.indexOf(quoteEscapeChar) >= 0;
 
-    boolean needsQuoting = containsDelimiter || containsQuote || containsQuoteEscape;
+    return containsDelimiter || containsQuote || containsQuoteEscape;
+  }
 
-    if (!needsQuoting) {
+  /**
+   * Wraps the value in quotes, escaping any characters if necessary.
+   *
+   * <p>The {@code wantsQuoting} parameter allows to request quoting even if it wouldn't normally be
+   * necessary. This is used to implement the `always_quote` mode for text and custom objects.
+   */
+  private String quote(String value, boolean wantsQuoting) {
+    if (value.isEmpty()) {
+      return emptyValue;
+    }
+
+    boolean shouldQuote = wantsQuoting || needsQuoting(value);
+    if (!shouldQuote) {
       return value;
     }
 
