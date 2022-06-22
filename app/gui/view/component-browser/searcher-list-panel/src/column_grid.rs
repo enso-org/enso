@@ -67,6 +67,8 @@ impl Model {
     }
 
     fn update_content_layout(&self, content: &[LabeledAnyModelProvider], style: &Style) -> Vector2 {
+        self.content.borrow().iter().for_each(|entry| entry.content.unset_parent());
+
         const NUMBER_OF_COLUMNS: usize = 3;
         let overall_width = style.content_width - 2.0 * style.content_padding;
         let column_width = (overall_width - 2.0 * style.column_gap) / NUMBER_OF_COLUMNS as f32;
