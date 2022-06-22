@@ -504,6 +504,7 @@ fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::It
     items
         .into_iter()
         .map(|item| match item {
+            syntax::Item::Block(_) => panic!(),
             syntax::Item::Token(_) => item,
             syntax::Item::Tree(ast) =>
                 match &*ast.variant {
@@ -539,7 +540,7 @@ fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree
         }
     };
     for item in items {
-        if item.span().left_offset.visible.width_in_spaces == 0 || no_space_group.is_empty() {
+        if item.left_visible_offset().width_in_spaces == 0 || no_space_group.is_empty() {
             no_space_group.push(item)
         } else if !no_space_group.is_empty() {
             processs_no_space_group(&mut flattened, &mut no_space_group);
@@ -632,6 +633,7 @@ fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
             _ => panic!(),
         },
         syntax::Item::Tree(ast) => ast,
+        syntax::Item::Block(_) => panic!(),
     }
 }
 
@@ -763,9 +765,9 @@ fn main() {
     println!("\n\n{}", ast.code());
     // println!("\n\n{:?}", ast2);
 
-    // let mut lexer = Lexer::new("type Bool\n    True\n    False");
-    // lexer.run();
-    // println!("{:#?}", lexer.output);
+    let mut lexer = Lexer::new("type Bool\n    True\n    False");
+    lexer.run();
+    println!("{:#?}", lexer.output);
 
     // lexer::main();
 }

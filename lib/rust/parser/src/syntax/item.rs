@@ -18,6 +18,7 @@ use crate::syntax::*;
 #[allow(missing_docs)]
 pub enum Item<'s> {
     Token(Token<'s>),
+    Block(Vec<Token<'s>>),
     Tree(Tree<'s>),
 }
 
@@ -32,20 +33,11 @@ impl<'s> Item<'s> {
     }
 
     /// [`location::Span`] of the element.
-    pub fn span(&self) -> span::Ref<'_, 's> {
+    pub fn left_visible_offset(&self) -> VisibleOffset {
         match self {
-            Self::Token(t) => t.span(),
-            Self::Tree(t) => t.span.as_ref(),
-        }
-    }
-}
-
-impl<'s> FirstChildTrim<'s> for Item<'s> {
-    #[inline(always)]
-    fn trim_as_first_child(&mut self) -> Span<'s> {
-        match self {
-            Self::Token(t) => t.trim_as_first_child(),
-            Self::Tree(t) => t.span.trim_as_first_child(),
+            Self::Token(t) => t.span().left_offset.visible,
+            Self::Tree(t) => t.span.left_offset.visible,
+            Self::Block(t) => t.first().map(|t| t.span().left_offset.visible).unwrap_or_default(),
         }
     }
 }
