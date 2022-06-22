@@ -6,6 +6,9 @@ import Standard.Table
 import Standard.Table.Data.Column
 from Standard.Table.Error import all
 
+import Standard.Base.Data.Time.Date
+import Standard.Base.Data.Time.Time_Of_Day
+
 import Standard.Table.Io.File_Read
 from Standard.Table.Io.File_Format import Delimited
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
@@ -16,18 +19,24 @@ import Standard.Test.Problems
 
 import project.Util
 
+type My_Type
+    type My_Type x
+
+    to_text : Text
+    to_text = "[[[My Type :: " + self.x.to_text + "]]]"
+
 spec =
     Test.group "Delimited File Writing" <|
         Test.specify "should correctly write a simple table" <|
-            table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
+            table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type 10]]]
             file = (Enso_Project.data / "transient" / "written.csv")
             file.delete_if_exists
             table.write file
             expected_text = """
-                A,B,C
-                1,1.0,x
-                2,1.5,y
-                3,2.2,z
+                A,B,C,D
+                1,1.0,x,a
+                2,1.5,y,2
+                3,2.2,z,[[[My Type :: 10]]]
             text = File.read_text file
             text.should_equal expected_text+'\n'
 
@@ -49,7 +58,7 @@ spec =
         Test.specify 'should quote values that contain the delimiter or quotes, in the [;\\\"] variant' <|
             data_formatter = Data_Formatter thousand_separator="'"
             table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b"]], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing]]]
-            file = (Enso_Project.data / "transient" / "quotes1.csv")
+            file = (Enso_Project.data / "transient" / "quotes2.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\')
             expected_text = """
@@ -65,7 +74,7 @@ spec =
         Test.specify "should quote values that contain the delimiter or quotes, in the [\t''] variant" <|
             data_formatter = Data_Formatter thousand_separator="'"
             table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2]]]
-            file = (Enso_Project.data / "transient" / "quotes1.csv")
+            file = (Enso_Project.data / "transient" / "quotes3.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'')
             expected_text = '''
@@ -87,6 +96,36 @@ spec =
                 1,
                 ,""
                 3,abc
+            text = File.read_text file
+            text.should_equal expected_text+'\n'
+
+        Test.specify 'should not quote values if quoting is disabled' <|
+            format = File_Format.Delimited "," value_formatter=(Data_Formatter decimal_point=",") . without_quotes
+            table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
+            file = (Enso_Project.data / "transient" / "quote_disabled.csv")
+            file.delete_if_exists
+            table.write file format
+            expected_text = """
+                The Column "Name",Hello, Column?
+                foo,1,0
+                'bar',1000000,5
+                "baz",2,2
+                one, two, three,-1,5
+            text = File.read_text file
+            text.should_equal expected_text+'\n'
+
+        Test.specify 'should allow to always quote text and custom values, but for non-text primitves only if absolutely necessary' <|
+            format = File_Format.Delimited "," value_formatter=(Data_Formatter thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
+            table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type 44, (Date.new 2022 06 21 . internal_local_date), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55 . internal_local_time), Nothing, Nothing]]]
+            file = (Enso_Project.data / "transient" / "quote_always.csv")
+            file.delete_if_exists
+            table.write file format
+            expected_text = """
+                "The Column ""Name""","B","C","D","E"
+                "foo",1.0,"foo",1,
+                "'bar'","1""000""000.5","[[[My Type :: 44]]]",2,13:55:00
+                """baz""",2.2,"Tue, 21 Jun 2022",3,
+                "one, two, three",-1.5,42,"4""000",
             text = File.read_text file
             text.should_equal expected_text+'\n'
 
