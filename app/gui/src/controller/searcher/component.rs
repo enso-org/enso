@@ -166,13 +166,19 @@ impl List {
         for component in &*self.all_components {
             component.update_matching_info(pattern)
         }
+        let pattern_not_empty = !pattern.is_empty();
+        let sort_order = if pattern_not_empty {
+            group::Order::ByMatchInfoReverse
+        } else {
+            group::Order::AlphabeticallyNonModulesThenModules
+        };
         for group in self.all_groups_not_in_favorites() {
-            group.update_sorting_and_visibility(pattern);
+            group.update_sorting_and_visibility(sort_order);
         }
         for group in self.favorites.iter() {
             group.update_visibility();
         }
-        self.filtered.set(!pattern.is_empty());
+        self.filtered.set(pattern_not_empty);
     }
 
     /// All groups from [`List`] without the groups found in [`List::favorites`].

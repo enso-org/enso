@@ -12,6 +12,31 @@ use ensogl::data::color;
 
 
 
+// =============
+// === Order ===
+// =============
+
+#[derive(Copy, Clone, Debug)]
+pub enum Order {
+    AlphabeticallyNonModulesThenModules,
+    ByMatchInfoReverse,
+}
+
+impl Order {
+    fn compare(&self, a: &Component, b: &Component) -> std::cmp::Ordering {
+        match self {
+            Order::AlphabeticallyNonModulesThenModules => {
+                let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+                cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
+            }
+            Order::ByMatchInfoReverse =>
+                a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse(),
+        }
+    }
+}
+
+
+
 // ============
 // === Data ===
 // ============
@@ -109,23 +134,10 @@ impl Group {
 
     /// Update the group sorting according to the current filtering pattern and call
     /// [`update_visibility`].
-    pub fn update_sorting_and_visibility(&self, pattern: impl AsRef<str>) {
-        {
-            let mut entries = self.entries.borrow_mut();
-            // The `sort_by_key` method is not suitable here, because the closure it takes
-            // cannot return reference nor [`Ref`], and we don't want to copy anything here.
-            if pattern.as_ref().is_empty() {
-                entries.sort_by(|a, b| {
-                    let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
-                    cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
-                });
-            } else {
-                let cmp_match_info = |a: &Component, b: &Component| {
-                    a.match_info.borrow().cmp(&*b.match_info.borrow())
-                };
-                entries.sort_by(|a, b| cmp_match_info(a, b).reverse());
-            }
-        }
+    pub fn update_sorting_and_visibility(&self, order: Order) {
+        // The `sort_by_key` method is not suitable here, because the closure it takes
+        // cannot return reference nor [`Ref`], and we don't want to copy anything here.
+        self.entries.borrow_mut().sort_by(|a, b| order.compare(a, b));
         self.update_visibility();
     }
 
