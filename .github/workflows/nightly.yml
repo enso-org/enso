@@ -70,7 +70,7 @@ jobs:
       - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - run: "./run wasm build --upload-artifacts ${{ runner.os == 'Linux' }}"
+      - run: "./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
