@@ -366,7 +366,6 @@ jobs:
       ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
 env:
   ENSO_BUILD_KIND: nightly
-  ENSO_BUILD_REPO_REMOTE: enso-org/enso-staging
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   RUST_BACKTRACE: full
 concurrency: release
