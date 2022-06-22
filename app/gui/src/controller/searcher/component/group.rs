@@ -16,13 +16,18 @@ use ensogl::data::color;
 // === EntriesOrder ===
 // ====================
 
+/// Defines supported sorting orders for [`Data::entries`]. Used by
+/// [`Group::update_sorting_and_visibility`].
 #[derive(Copy, Clone, Debug)]
 pub enum EntriesOrder {
+    /// Order non-modules by name, followed by modules (also by name).
     ByNameNonModulesThenModules,
+    /// Order entries by their [`Component::match_info`] score (best scores first).
     ByMatch,
 }
 
 impl EntriesOrder {
+    /// Compare two [`Component`]s according to [`EntriesOrder`].
     fn compare(&self, a: &Component, b: &Component) -> std::cmp::Ordering {
         match self {
             EntriesOrder::ByNameNonModulesThenModules => {
@@ -129,8 +134,7 @@ impl Group {
         })
     }
 
-    /// Update the group sorting according to the current filtering pattern and call
-    /// [`update_visibility`].
+    /// Update the group sorting according to the `order` and call [`update_visibility`].
     pub fn update_sorting_and_visibility(&self, order: EntriesOrder) {
         // The `sort_by_key` method is not suitable here, because the closure it takes
         // cannot return reference nor [`Ref`], and we don't want to copy anything here.
