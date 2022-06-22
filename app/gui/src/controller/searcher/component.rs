@@ -28,6 +28,36 @@ pub type Id = suggestion_database::entry::Id;
 pub type MatchInfo = controller::searcher::action::MatchInfo;
 
 
+
+// =============
+// === Order ===
+// =============
+
+/// Defines supported sorting orders for [`Component`]s. Used by
+/// [`Group::update_sorting_and_visibility`].
+#[derive(Copy, Clone, Debug)]
+pub enum Order {
+    /// Order non-modules by name, followed by modules (also by name).
+    ByNameNonModulesThenModules,
+    /// Order [`Component`]s by [`Component::match_info`] score (best scores first).
+    ByMatch,
+}
+
+impl Order {
+    /// Compare two [`Component`]s according to [`Order`].
+    fn compare(&self, a: &Component, b: &Component) -> std::cmp::Ordering {
+        match self {
+            Order::ByNameNonModulesThenModules => {
+                let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+                cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
+            }
+            Order::ByMatch => a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse(),
+        }
+    }
+}
+
+
+
 // =================
 // === Component ===
 // =================
@@ -167,13 +197,13 @@ impl List {
             component.update_matching_info(pattern)
         }
         let pattern_not_empty = !pattern.is_empty();
-        let entries_order = if pattern_not_empty {
-            group::EntriesOrder::ByMatch
+        let components_order = if pattern_not_empty {
+            Order::ByMatch
         } else {
-            group::EntriesOrder::ByNameNonModulesThenModules
+            Order::ByNameNonModulesThenModules
         };
         for group in self.all_groups_not_in_favorites() {
-            group.update_sorting_and_visibility(entries_order);
+            group.update_sorting_and_visibility(components_order);
         }
         for group in self.favorites.iter() {
             group.update_visibility();

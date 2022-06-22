@@ -166,14 +166,14 @@ impl List {
     /// Build the list, sorting all group lists and groups' contents appropriately. (Does not sort
     /// the [`component::List::favorites`].)
     pub fn build(self) -> component::List {
-        let entries_order = component::group::EntriesOrder::ByNameNonModulesThenModules;
+        let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
-            group.content.update_sorting_and_visibility(entries_order);
+            group.content.update_sorting_and_visibility(components_order);
             if let Some(flattened) = &group.flattened_content {
-                flattened.update_sorting_and_visibility(entries_order);
+                flattened.update_sorting_and_visibility(components_order);
             }
         }
-        self.local_scope.update_sorting_and_visibility(entries_order);
+        self.local_scope.update_sorting_and_visibility(components_order);
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
