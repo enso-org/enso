@@ -65,10 +65,10 @@ impl ModuleGroups {
 /// groups.
 #[derive(Clone, Debug)]
 pub struct List {
-    all_components:        Vec<Component>,
-    module_groups:         HashMap<component::Id, ModuleGroups>,
+    all_components: Vec<Component>,
+    module_groups:  HashMap<component::Id, ModuleGroups>,
     local_scope:    component::Group,
-    favorites:             component::group::List,
+    favorites:      component::group::List,
 }
 
 impl Default for List {

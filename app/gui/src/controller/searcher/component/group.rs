@@ -63,7 +63,10 @@ impl Deref for Group {
 }
 
 impl Group {
-    pub fn new_empty_visible(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+    pub fn new_empty_visible(
+        name: impl Into<ImString>,
+        component_id: Option<component::Id>,
+    ) -> Self {
         Self { data: Rc::new(Data::new_empty_visible(name, component_id)) }
     }
 
