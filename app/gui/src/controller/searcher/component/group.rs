@@ -110,7 +110,22 @@ impl Group {
     /// Update the group sorting according to the current filtering pattern and call
     /// [`update_visibility`].
     pub fn update_sorting_and_visibility(&self, pattern: impl AsRef<str>) {
-        sort(&mut self.entries.borrow_mut(), pattern);
+        {
+            let mut entries = self.entries.borrow_mut();
+            // The `sort_by_key` method is not suitable here, because the closure it takes
+            // cannot return reference nor [`Ref`], and we don't want to copy anything here.
+            if pattern.as_ref().is_empty() {
+                entries.sort_by(|a, b| {
+                    let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+                    cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
+                });
+            } else {
+                let cmp_match_info = |a: &Component, b: &Component| {
+                    a.match_info.borrow().cmp(&*b.match_info.borrow())
+                };
+                entries.sort_by(|a, b| cmp_match_info(a, b).reverse());
+            }
+        }
         self.update_visibility();
     }
 
@@ -119,29 +134,6 @@ impl Group {
     pub fn update_visibility(&self) {
         let visible = !self.entries.borrow().iter().all(|c| c.is_filtered_out());
         self.visible.set(visible);
-    }
-}
-
-
-
-/// ============
-/// === Sort ===
-/// ============
-
-/// Sort the components by [`Component::match_info`] if pattern is non-empty. Otherwise, sort
-/// non-module components alphabetically followed by modules alphabetically.
-pub fn sort(components: &mut [Component], pattern: impl AsRef<str>) {
-    // The `sort_by_key` method is not suitable here, because the closure it takes
-    // cannot return reference nor [`Ref`], and we don't want to copy anything here.
-    if pattern.as_ref().is_empty() {
-        components.sort_by(|a, b| {
-            let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
-            cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
-        });
-    } else {
-        let cmp_match_info =
-            |a: &Component, b: &Component| a.match_info.borrow().cmp(&*b.match_info.borrow());
-        components.sort_by(|a, b| cmp_match_info(a, b).reverse());
     }
 }
 
