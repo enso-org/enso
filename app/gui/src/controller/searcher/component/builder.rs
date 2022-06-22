@@ -81,8 +81,8 @@ impl List {
     /// set, components passed to [`extend`] which have their parent module ID equal to
     /// [`local_scope_module_id`] will be cloned into [`component::List::local_scope`].
     pub fn with_local_scope_module_id(self, id: component::Id) -> Self {
-        // FIXME: make "Local Scope" a constant
-        let local_scope = component::Group::new_empty("Local Scope", Some(id));
+        const LOCAL_SCOPE_GROUP_NAME: &'static str = "Local Scope";
+        let local_scope = component::Group::new_empty(LOCAL_SCOPE_GROUP_NAME, Some(id));
         Self { local_scope, ..self }
     }
 
