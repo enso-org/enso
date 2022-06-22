@@ -94,7 +94,7 @@ type Statistic
    - statistic: Statistic to calculate.
 compute : Vector -> Statistic -> Any
 compute data statistic=Count =
-    here.compute_bulk data [statistic] . first
+    compute_bulk data [statistic] . first
 
 
 ## Compute a set of statistics on a vector like object.
@@ -132,10 +132,10 @@ compute_bulk data statistics=[Count, Sum] =
             Maximum ->
                 if count_min_max_values.comparatorError then (Error.throw Vector.Incomparable_Values_Error) else
                     count_min_max_values.maximum
-            Covariance s -> here.calculate_correlation_statistics data s . covariance
-            Pearson s -> here.calculate_correlation_statistics data s . pearsonCorrelation
-            Spearman s -> here.calculate_spearman_rank data s
-            R_Squared s -> here.calculate_correlation_statistics data s . rSquared
+            Covariance s -> calculate_correlation_statistics data s . covariance
+            Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
+            Spearman s -> calculate_spearman_rank data s
+            R_Squared s -> calculate_correlation_statistics data s . rSquared
             _ -> stats_array.at i
 
 
@@ -145,7 +145,7 @@ compute_bulk data statistics=[Count, Sum] =
    - data: The input data sets
 covariance_matrix : [Vector] -> [Vector]
 covariance_matrix data =
-    stats_vectors = here.calculate_correlation_statistics_matrix data
+    stats_vectors = calculate_correlation_statistics_matrix data
     stats_vectors.map v->(v.map .covariance)
 
 
@@ -155,7 +155,7 @@ covariance_matrix data =
    - data: The input data sets
 pearson_correlation : [Vector] -> [Vector]
 pearson_correlation data =
-    stats_vectors = here.calculate_correlation_statistics_matrix data
+    stats_vectors = calculate_correlation_statistics_matrix data
     stats_vectors.map v->(v.map .pearsonCorrelation)
 
 
@@ -174,7 +174,7 @@ spearman_correlation data =
                     if j == i then 1 else
                         if j < i then (output.at j . at i) else
                             Panic.throw_wrapped_if_error <|
-                                here.calculate_spearman_rank (data.at i) (data.at j)
+                                calculate_spearman_rank (data.at i) (data.at j)
 
         output.to_vector
 
@@ -195,14 +195,14 @@ wrap_java_call ~function =
    Given two series, get a computed CorrelationStatistics object
 calculate_correlation_statistics : Vector -> Vector -> CorrelationStatistics
 calculate_correlation_statistics x_data y_data =
-    here.wrap_java_call <| CorrelationStatistics.compute x_data.to_array y_data.to_array
+    wrap_java_call <| CorrelationStatistics.compute x_data.to_array y_data.to_array
 
 
 ## PRIVATE
    Given two series, get a compute the Spearman Rank correlation
 calculate_spearman_rank : Vector -> Vector -> Decimal
 calculate_spearman_rank x_data y_data =
-    here.wrap_java_call <| CorrelationStatistics.spearmanRankCorrelation x_data.to_array y_data.to_array
+    wrap_java_call <| CorrelationStatistics.spearmanRankCorrelation x_data.to_array y_data.to_array
 
 
 ## PRIVATE
@@ -210,7 +210,7 @@ calculate_spearman_rank x_data y_data =
 calculate_correlation_statistics_matrix : [Vector] -> [CorrelationStatistics]
 calculate_correlation_statistics_matrix data =
     data_array = Vector.new data.length i->(data.at i).to_array . to_array
-    stats_array = here.wrap_java_call <| CorrelationStatistics.computeMatrix data_array
+    stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.Vector (stats_array.at i))
 
 
@@ -229,7 +229,7 @@ Vector.Vector.compute statistic=Count =
    - statistics: Set of statistics to calculate.
 Vector.Vector.compute_bulk : [Statistic] -> [Any]
 Vector.Vector.compute_bulk statistics=[Count, Sum] =
-    here.compute_bulk self statistics
+    compute_bulk self statistics
 
 
 ## Assigns a rank to each value of data, dealing with equal values according to the method.

@@ -320,4 +320,4 @@ spec =
             Number.nan . equals Number.nan . should_be_false
             Number.nan . equals 0 . should_be_false
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

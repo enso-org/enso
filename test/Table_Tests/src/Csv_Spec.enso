@@ -109,4 +109,4 @@ spec =
             out.delete_if_exists
 
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

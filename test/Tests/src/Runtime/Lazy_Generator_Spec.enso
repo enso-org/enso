@@ -13,11 +13,11 @@ Generator.next = case self of
 
 spec = Test.group "Lazy Generator" <|
     Test.specify "Generates four numbers properly" <|
-        two = here.natural
+        two = natural
         two.n . should_equal 2
         three = two.next
         three.n . should_equal 3
         four = three.next
         four.n . should_equal 4
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

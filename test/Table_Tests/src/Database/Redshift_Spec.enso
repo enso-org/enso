@@ -52,7 +52,7 @@ run_tests connection pending=Nothing =
     materialize = .to_dataframe
 
     Common_Spec.spec prefix connection pending=pending
-    here.redshift_specific_spec connection pending=pending
+    redshift_specific_spec connection pending=pending
     common_selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=True order_by=False
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection pending=pending
 
@@ -77,10 +77,10 @@ spec =
             user = creds.get 'db_user'
             props = [access_key, secret_key]
             connection = Database.connect uri user=user custom_properties=props
-            here.run_tests connection
+            run_tests connection
         False ->
             msg = """
                 Redshift connection is not set up. Please create a JSON file containing
                 the credentials in `data/redshift_credentials.json`
             connection = Error.throw msg
-            here.run_tests connection pending=msg
+            run_tests connection pending=msg

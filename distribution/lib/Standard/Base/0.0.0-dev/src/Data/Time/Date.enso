@@ -33,7 +33,7 @@ now = LocalDate.now
 
          example_today = Date.today
 today : Date
-today = here.now
+today = now
 
 ## Constructs a new Date from a year, month, and day.
 

@@ -136,4 +136,4 @@ read_characters decoder n =
         transfer_codepoints Nothing
         v.to_vector
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

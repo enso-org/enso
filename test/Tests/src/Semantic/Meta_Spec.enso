@@ -94,4 +94,4 @@ spec = Test.group "Meta-Value Manipulation" <|
         Enso_Project.name.should_equal 'Tests'
         Base.enso_project.name.should_equal 'Base'
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

@@ -355,4 +355,4 @@ spec =
             Delimited ',' . with_parsing custom_formatter . should_equal (Delimited ',' value_formatter=custom_formatter)
             Delimited ',' row_limit=456 . without_parsing . should_equal (Delimited ',' value_formatter=Nothing row_limit=456)
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

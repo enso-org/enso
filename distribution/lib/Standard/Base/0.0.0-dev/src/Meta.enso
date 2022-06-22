@@ -90,14 +90,14 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
    Returns a vector of field values of the given atom.
 Atom.fields : Vector.Vector
-Atom.fields = Vector.Vector (here.get_atom_fields self.value)
+Atom.fields = Vector.Vector (get_atom_fields self.value)
 
 ## UNSTABLE
    ADVANCED
 
    Returns a constructor value of the given atom.
 Atom.constructor : Atom_Constructor
-Atom.constructor = here.get_atom_constructor self.value
+Atom.constructor = get_atom_constructor self.value
 
 # Polyglot methods
 ## PRIVATE
@@ -115,7 +115,7 @@ get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
    Returns the language with which a polyglot value is associated.
 Polyglot.get_language : Language
 Polyglot.get_language =
-    lang_str = here.get_polyglot_language
+    lang_str = get_polyglot_language
     if lang_str == "java" then Java else Unknown
 
 # UnresolvedSymbol methods
@@ -157,21 +157,21 @@ get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol
    - new_name: The new name for the unresolved symbol.
 Unresolved_Symbol.rename : Text -> Any
 Unresolved_Symbol.rename new_name =
-    here.create_unresolved_symbol new_name self.scope
+    create_unresolved_symbol new_name self.scope
 
 ## UNSTABLE
    ADVANCED
 
    Returns the name of an unresolved symbol.
 Unresolved_Symbol.name : Text
-Unresolved_Symbol.name = here.get_unresolved_symbol_name self.value
+Unresolved_Symbol.name = get_unresolved_symbol_name self.value
 
 ## UNSTABLE
    ADVANCED
 
    Returns the definition scope of an unresolved symbol.
 Unresolved_Symbol.scope : Any
-Unresolved_Symbol.scope = here.get_unresolved_symbol_scope self.value
+Unresolved_Symbol.scope = get_unresolved_symbol_scope self.value
 
 
 # Constructor methods
@@ -208,14 +208,14 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
    Returns a vector of field names defined by a constructor.
 Constructor.fields : Vector.Vector
-Constructor.fields = Vector.Vector (here.get_constructor_fields self.value)
+Constructor.fields = Vector.Vector (get_constructor_fields self.value)
 
 ## UNSTABLE
    ADVANCED
 
    Returns the name of a constructor.
 Constructor.name : Text
-Constructor.name = here.get_constructor_name self.value
+Constructor.name = get_constructor_name self.value
 
 ## UNSTABLE
    ADVANCED
@@ -226,7 +226,7 @@ Constructor.name = here.get_constructor_name self.value
    - fields: A vector of arguments to pass to the constructor when creating the
      new atom.
 Constructor.new : Vector.Vector -> Any
-Constructor.new fields = here.new_atom self.value fields.to_array
+Constructor.new fields = new_atom self.value fields.to_array
 
 
 ## UNSTABLE
@@ -237,11 +237,11 @@ Constructor.new fields = here.new_atom self.value fields.to_array
    Arguments:
    - value: The runtime entity to get the meta representation of.
 meta : Any -> Meta
-meta value = if here.is_atom value then Atom value else
-    if here.is_atom_constructor value then Constructor value else
-        if here.is_polyglot value then Polyglot value else
-            if here.is_unresolved_symbol value then Unresolved_Symbol value else
-                if here.is_error value then Error value.catch else
+meta value = if is_atom value then Atom value else
+    if is_atom_constructor value then Constructor value else
+        if is_polyglot value then Polyglot value else
+            if is_unresolved_symbol value then Unresolved_Symbol value else
+                if is_error value then Error value.catch else
                     Primitive value
 
 ## UNSTABLE
@@ -263,7 +263,7 @@ is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
    Arguments:
    - typ: The type to check `self` against.
 Any.is_a : Any -> Boolean
-Any.is_a typ = here.is_a self typ
+Any.is_a typ = is_a self typ
 
 ## UNSTABLE
    ADVANCED
@@ -273,7 +273,7 @@ Any.is_a typ = here.is_a self typ
    Arguments:
    - typ: The type to check `self` against.
 Any.is_an : Any -> Boolean
-Any.is_an typ = here.is_a self typ
+Any.is_an typ = is_a self typ
 
 ## UNSTABLE
    ADVANCED
@@ -305,7 +305,7 @@ Base.Error.is_an typ = typ == Base.Error
    - typ: The type to check `self` against.
 is_a : Any -> Any -> Boolean
 is_a value typ = if typ == Any then True else
-    if here.is_error value then typ == Base.Error else
+    if is_error value then typ == Base.Error else
         case value of
             Array -> typ == Array
             Boolean -> if typ == Boolean then True else value == typ
@@ -315,12 +315,12 @@ is_a value typ = if typ == Any then True else
                 Decimal -> typ == Decimal
             Base.Polyglot -> typ == Base.Polyglot
             _ ->
-                meta_val = here.meta value
+                meta_val = meta value
                 case meta_val of
-                    Atom _ -> if here.is_atom typ then typ == value else
+                    Atom _ -> if is_atom typ then typ == value else
                         meta_val.constructor == typ
                     Constructor _ ->
-                        meta_typ = here.meta typ
+                        meta_typ = meta typ
                         case meta_typ of
                             Atom _ -> meta_val == meta_typ.constructor
                             Constructor _ -> meta_val == meta_typ
@@ -338,7 +338,7 @@ is_a value typ = if typ == Any then True else
    - value: The value to check for being an instance of `typ`.
    - typ: The type to check `self` against.
 is_an : Any -> Any -> Boolean
-is_an value typ = here.is_a value typ
+is_an value typ = is_a value typ
 
 ## Represents a polyglot language.
 type Language
@@ -426,7 +426,7 @@ get_source_location_builtin frames_to_skip = @Builtin_Method "Meta.get_source_lo
    used carefully.
 get_source_location : Integer -> Text
 get_source_location skip_frames =
-    here.get_source_location_builtin skip_frames+1
+    get_source_location_builtin skip_frames+1
 
 ## PRIVATE
 

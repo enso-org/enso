@@ -45,7 +45,7 @@ polyglot java import java.util.HashSet
 select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
 select_columns internal_columns selector reorder on_problems =
     problem_builder = Problem_Builder.new
-    result = here.select_columns_helper internal_columns selector reorder problem_builder
+    result = select_columns_helper internal_columns selector reorder problem_builder
     if result.is_empty then
         problem_builder.report_other_warning No_Output_Columns
     problem_builder.attach_problems_after on_problems result
@@ -69,7 +69,7 @@ select_columns internal_columns selector reorder on_problems =
 remove_columns : Vector -> Column_Selector -> Problem_Behavior -> Vector
 remove_columns internal_columns selector on_problems =
     problem_builder = Problem_Builder.new
-    selection = here.select_columns_helper internal_columns selector reorder=False problem_builder
+    selection = select_columns_helper internal_columns selector reorder=False problem_builder
     selected_names = Map.from_vector (selection.map column-> [column.name, True])
     result = internal_columns.filter column->
         should_be_removed = selected_names.get_or_else column.name False
@@ -100,7 +100,7 @@ remove_columns internal_columns selector on_problems =
 reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Behavior -> Vector
 reorder_columns internal_columns selector position on_problems =
     problem_builder = Problem_Builder.new
-    selection = here.select_columns_helper internal_columns selector reorder=True problem_builder
+    selection = select_columns_helper internal_columns selector reorder=True problem_builder
     problem_builder.attach_problems_before on_problems <|
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
         other_columns = internal_columns.filter column->
@@ -136,7 +136,7 @@ rename_columns internal_columns mapping on_problems =
     problem_builder = Problem_Builder.new
 
     name_mapper vec ms =
-        good_names = here.validate_unique vec (problem_callback = v-> problem_builder.report_duplicate_column_selectors (v.map c->(c.at 0))) (on = x-> (x.at 0))
+        good_names = validate_unique vec (problem_callback = v-> problem_builder.report_duplicate_column_selectors (v.map c->(c.at 0))) (on = x-> (x.at 0))
         matched = HashSet.new
 
         mapper = name->
@@ -161,7 +161,7 @@ rename_columns internal_columns mapping on_problems =
         Column_Name_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher case_sensitive=True)
         Column_Name_Mapping.By_Name map ms -> name_mapper map.to_vector ms
         Column_Name_Mapping.By_Index map ->
-            good_indices = here.validate_indices col_count map.keys problem_builder
+            good_indices = validate_indices col_count map.keys problem_builder
 
             index_map = Map.from_vector <| good_indices.map p->[p.at 0, map.get (p.at 1)]
 
@@ -236,19 +236,19 @@ sort_columns internal_columns direction text_ordering =
 select_columns_helper : Vector -> Column_Selector -> Boolean -> Problem_Builder -> Vector
 select_columns_helper internal_columns selector reorder problem_builder = case selector of
     By_Name names matcher ->
-        valid_names = here.validate_unique names problem_builder.report_duplicate_column_selectors
+        valid_names = validate_unique names problem_builder.report_duplicate_column_selectors
         Matching.match_criteria_callback matcher internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
     By_Index indices ->
-        good_indices = here.validate_indices internal_columns.length indices problem_builder . map .first
+        good_indices = validate_indices internal_columns.length indices problem_builder . map .first
         case reorder of
             True ->
-                here.select_indices_reordering internal_columns good_indices
+                select_indices_reordering internal_columns good_indices
             False ->
-                here.select_indices_preserving_order internal_columns good_indices
+                select_indices_preserving_order internal_columns good_indices
     By_Column columns ->
         column_names = columns.map .name
         new_selector = By_Name column_names (Text_Matcher case_sensitive=True)
-        here.select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
+        select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
 
 ## PRIVATE
    A helper function which selects a single column from the table. It is aligned with the
@@ -260,14 +260,14 @@ resolve_column_helper internal_columns selector problem_builder = case selector 
         if matched_columns.length == 1 then matched_columns.first else
             if matched_columns.length == 0 then Nothing else
                 Panic.throw (Illegal_State_Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
-    Integer -> case here.is_index_valid internal_columns.length selector of
+    Integer -> case is_index_valid internal_columns.length selector of
         True -> internal_columns.at selector
         False ->
             problem_builder.report_oob_indices [selector]
             Nothing
     ## A wildcard to match any backend's column.
     _ ->
-        here.resolve_column_helper internal_columns selector.name problem_builder=problem_builder
+        resolve_column_helper internal_columns selector.name problem_builder=problem_builder
 
 ## PRIVATE
    Converts the generic `No_Matches_Found` error to a more specific
@@ -309,7 +309,7 @@ resolve_index length ix =
    Checks if the given index is in the valid range for the provided vector.
 is_index_valid : Integer->Integer->Boolean
 is_index_valid length ix =
-    actual_ix = here.resolve_index length ix
+    actual_ix = resolve_index length ix
     actual_ix>=0 && actual_ix<length
 
 ## PRIVATE
@@ -326,15 +326,15 @@ is_index_valid length ix =
      integer.
 validate_indices : Integer -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
 validate_indices length indices problem_builder on=(x->x) =
-    partitioned_indices = indices.partition (here.is_index_valid length << on)
+    partitioned_indices = indices.partition (is_index_valid length << on)
     inbound_indices = partitioned_indices.first
     oob_indices = partitioned_indices.second
     problem_builder.report_oob_indices (oob_indices.map on)
 
-    uniques = here.validate_unique inbound_indices problem_builder.report_duplicate_column_selectors on=on
+    uniques = validate_unique inbound_indices problem_builder.report_duplicate_column_selectors on=on
 
-    resolver = ix->(here.resolve_index length (on ix))
-    alias_uniques = here.validate_unique uniques problem_builder.report_input_indices_already_matched on=resolver
+    resolver = ix->(resolve_index length (on ix))
+    alias_uniques = validate_unique uniques problem_builder.report_input_indices_already_matched on=resolver
     good_indices = alias_uniques.map i->[resolver i, i]
     good_indices
 
@@ -365,11 +365,11 @@ prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
         Sort_Column_Selector.By_Name name_selectors matcher ->
-            here.select_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor=(_.name)
+            select_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Index index_selectors ->
-            here.select_columns_by_index internal_columns index_selectors problem_builder index_extractor=(_.index)
+            select_columns_by_index internal_columns index_selectors problem_builder index_extractor=(_.index)
         Sort_Column_Selector.By_Column column_selectors ->
-            here.select_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor=(_.column)
+            select_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor=(_.column)
     if selected_elements.is_empty then
         problem_builder.report_other_warning No_Input_Columns_Selected
     selected_elements
@@ -422,7 +422,7 @@ transform_columns_by_name internal_columns name_selectors matcher problem_builde
    - problem_builder: Encapsulates the aggregation of encountered problems.
 transform_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
 transform_columns_by_index internal_columns index_selectors problem_builder index_extractor =
-    good_indices = here.validate_indices internal_columns.length index_selectors problem_builder index_extractor
+    good_indices = validate_indices internal_columns.length index_selectors problem_builder index_extractor
     selectors_map = Map.from_vector good_indices
     internal_columns.map_with_index i-> column->
         associated_selector = selectors_map.get_or_else i Nothing
@@ -450,7 +450,7 @@ transform_columns_by_column_reference internal_columns column_selectors problem_
     name_extractor = selector->
         column = column_extractor selector
         column.name
-    here.transform_columns_by_name internal_columns column_selectors (Text_Matcher case_sensitive=True) problem_builder name_extractor
+    transform_columns_by_name internal_columns column_selectors (Text_Matcher case_sensitive=True) problem_builder name_extractor
 
 ## PRIVATE
    A helper function which can be used by methods that select a subset of
@@ -509,7 +509,7 @@ select_columns_by_name internal_columns name_selectors matcher problem_builder n
    - problem_builder: Encapsulates the aggregation of encountered problems.
 select_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
 select_columns_by_index internal_columns index_selectors problem_builder index_extractor =
-    good_selectors = here.validate_indices internal_columns.length index_selectors problem_builder index_extractor
+    good_selectors = validate_indices internal_columns.length index_selectors problem_builder index_extractor
     good_selectors.map pair->
         Column_Transform_Element (internal_columns.at pair.first) pair.second
 
@@ -536,4 +536,4 @@ select_columns_by_column_reference internal_columns column_selectors problem_bui
     name_extractor = selector->
         column = column_extractor selector
         column.name
-    here.select_columns_by_name internal_columns column_selectors (Text_Matcher case_sensitive=True) problem_builder name_extractor
+    select_columns_by_name internal_columns column_selectors (Text_Matcher case_sensitive=True) problem_builder name_extractor

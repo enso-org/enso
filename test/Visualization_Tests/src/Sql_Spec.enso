@@ -21,6 +21,6 @@ spec =
     file = Enso_Project.data / "sqlite_test.db"
     file.delete_if_exists
     connection = Database.connect (SQLite file)
-    here.visualization_spec connection
+    visualization_spec connection
     connection.close
     file.delete

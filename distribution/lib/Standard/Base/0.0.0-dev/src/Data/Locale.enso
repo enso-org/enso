@@ -12,7 +12,7 @@ polyglot java import java.util.Locale as JavaLocale
    or variant and is used as the language/country-neutral setting for locale
    sensitive operations.
 default : Locale
-default = here.from_java JavaLocale.ROOT
+default = from_java JavaLocale.ROOT
 
 ## A locale representing Bangladesh.
 
@@ -23,7 +23,7 @@ default = here.from_java JavaLocale.ROOT
 
          example_locale = Locale.bangladesh
 bangladesh : Locale
-bangladesh = here.from_language_tag "bn-BD"
+bangladesh = from_language_tag "bn-BD"
 
 ## A locale representing Brazil.
 
@@ -34,7 +34,7 @@ bangladesh = here.from_language_tag "bn-BD"
 
          example_locale = Locale.brazil
 brazil : Locale
-brazil = here.from_language_tag "pt-BR"
+brazil = from_language_tag "pt-BR"
 
 ## A locale representing Canada with language English.
 
@@ -45,7 +45,7 @@ brazil = here.from_language_tag "pt-BR"
 
          example_locale = Locale.canada_english
 canada_english : Locale
-canada_english = here.from_language_tag "en-CA"
+canada_english = from_language_tag "en-CA"
 
 ## A locale representing Canada with language French.
 
@@ -56,7 +56,7 @@ canada_english = here.from_language_tag "en-CA"
 
          example_locale = Locale.canada_french
 canada_french : Locale
-canada_french = here.from_language_tag "fr-CA"
+canada_french = from_language_tag "fr-CA"
 
 ## A locale representing the PRC.
 
@@ -67,7 +67,7 @@ canada_french = here.from_language_tag "fr-CA"
 
          example_locale = Locale.china
 china : Locale
-china = here.from_language_tag "zh-CN"
+china = from_language_tag "zh-CN"
 
 ## A locale representing France.
 
@@ -78,7 +78,7 @@ china = here.from_language_tag "zh-CN"
 
          example_locale = Locale.france
 france : Locale
-france = here.from_language_tag "fr-FR"
+france = from_language_tag "fr-FR"
 
 ## A locale representing Germany.
 
@@ -89,7 +89,7 @@ france = here.from_language_tag "fr-FR"
 
          example_locale = Locale.germany
 germany : Locale
-germany = here.from_language_tag "de-DE"
+germany = from_language_tag "de-DE"
 
 ## A locale representing India with language Hindi.
 
@@ -100,7 +100,7 @@ germany = here.from_language_tag "de-DE"
 
          example_locale = Locale.india_hindi
 india_hindi : Locale
-india_hindi = here.from_language_tag "hi-IN"
+india_hindi = from_language_tag "hi-IN"
 
 ## A locale representing India with language English.
 
@@ -111,7 +111,7 @@ india_hindi = here.from_language_tag "hi-IN"
 
          example_locale = Locale.india_english
 india_english : Locale
-india_english = here.from_language_tag "en-IN"
+india_english = from_language_tag "en-IN"
 
 ## A locale representing Indonesia.
 
@@ -122,7 +122,7 @@ india_english = here.from_language_tag "en-IN"
 
          example_locale = Locale.indonesia
 indonesia : Locale
-indonesia = here.from_language_tag "id-ID"
+indonesia = from_language_tag "id-ID"
 
 ## A locale representing Italy.
 
@@ -133,7 +133,7 @@ indonesia = here.from_language_tag "id-ID"
 
          example_locale = Locale.italy
 italy : Locale
-italy = here.from_language_tag "it-IT"
+italy = from_language_tag "it-IT"
 
 ## A locale representing Japan.
 
@@ -144,7 +144,7 @@ italy = here.from_language_tag "it-IT"
 
          example_locale = Locale.japan
 japan : Locale
-japan = here.from_language_tag "jp-JP"
+japan = from_language_tag "jp-JP"
 
 ## A locale representing Mexico.
 
@@ -155,7 +155,7 @@ japan = here.from_language_tag "jp-JP"
 
          example_locale = Locale.mexico
 mexico : Locale
-mexico = here.from_language_tag "es-MX"
+mexico = from_language_tag "es-MX"
 
 ## A locale representing Nigeria.
 
@@ -166,7 +166,7 @@ mexico = here.from_language_tag "es-MX"
 
          example_locale = Locale.nigeria
 nigeria : Locale
-nigeria = here.from_language_tag "en-NG"
+nigeria = from_language_tag "en-NG"
 
 ## A locale representing paksitan with language Urdu.
 
@@ -177,7 +177,7 @@ nigeria = here.from_language_tag "en-NG"
 
          example_locale = Locale.pakistan_urdu
 pakistan_urdu : Locale
-pakistan_urdu = here.from_language_tag "ur-PK"
+pakistan_urdu = from_language_tag "ur-PK"
 
 ## A locale representing paksitan with language English.
 
@@ -188,7 +188,7 @@ pakistan_urdu = here.from_language_tag "ur-PK"
 
          example_locale = Locale.pakistan_english
 pakistan_english : Locale
-pakistan_english = here.from_language_tag "en-PK"
+pakistan_english = from_language_tag "en-PK"
 
 ## A locale representing Russia.
 
@@ -199,7 +199,7 @@ pakistan_english = here.from_language_tag "en-PK"
 
          example_locale = Locale.russia
 russia : Locale
-russia = here.from_language_tag "ru-RU"
+russia = from_language_tag "ru-RU"
 
 ## A locale representing South Korea.
 
@@ -210,7 +210,7 @@ russia = here.from_language_tag "ru-RU"
 
          example_locale = Locale.south_korea
 south_korea : Locale
-south_korea = here.from_language_tag "ko-KR"
+south_korea = from_language_tag "ko-KR"
 
 ## A locale representing the UK.
 
@@ -221,7 +221,7 @@ south_korea = here.from_language_tag "ko-KR"
 
          example_locale = Locale.uk
 uk : Locale
-uk = here.from_language_tag "en-GB"
+uk = from_language_tag "en-GB"
 
 ## A locale representing the United States.
 
@@ -232,7 +232,7 @@ uk = here.from_language_tag "en-GB"
 
          example_locale = Locale.us
 us : Locale
-us = here.from_language_tag "en-US"
+us = from_language_tag "en-US"
 
 ## Construct a new locale.
 
@@ -252,7 +252,7 @@ new language country=Nothing variant=Nothing =
     country_text = country.if_nothing ""
     variant_text = variant.if_nothing ""
     java_locale = JavaLocale.new language country_text variant_text
-    here.from_java java_locale
+    from_java java_locale
 
 ## Returns the locale specified by the provided IETF BCP47 language tag string.
 
@@ -288,7 +288,7 @@ new language country=Nothing variant=Nothing =
 from_language_tag : Text -> Locale
 from_language_tag tag =
     java_locale = JavaLocale.forLanguageTag tag
-    here.from_java java_locale
+    from_java java_locale
 
 ## A type representing a locale.
 

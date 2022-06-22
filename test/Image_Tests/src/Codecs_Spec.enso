@@ -18,7 +18,7 @@ spec =
     rgba_file = Enso_Project.root / "rgba.png"
     pending = case is_ci of
         True ->
-            case here.fetch rgba_addr rgba_file of
+            case fetch rgba_addr rgba_file of
                 Exit_Code.Exit_Failure _ ->
                     "The Codecs spec was not able to fetch the file from " + rgba_addr
                 Exit_Code.Exit_Success ->

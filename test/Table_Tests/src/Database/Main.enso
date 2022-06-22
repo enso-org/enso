@@ -13,4 +13,4 @@ databases_spec =
     Redshift_Spec.spec
 
 
-main = Test.Suite.run_main here.databases_spec
+main = Test.Suite.run_main databases_spec
