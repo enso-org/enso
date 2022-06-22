@@ -166,7 +166,6 @@ impl List {
         for component in &*self.all_components {
             component.update_matching_info(pattern)
         }
-        group::sort(&mut self.local_scope.borrow_mut(), pattern);
         for group in self.all_groups_not_in_favorites() {
             group.update_sorting_and_visibility(pattern);
         }
@@ -180,7 +179,7 @@ impl List {
     fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
-        normal.chain(flattened)
+        normal.chain(flattened).chain(std::iter::once(&self.local_scope))
     }
 }
 
@@ -277,23 +276,18 @@ pub(crate) mod tests {
 
     // === Filtering Component List ===
 
-    /// Assert IDs and order of all components which have their [`Component::match_info`] set to
-    /// [`MatchInfo::Matches`].
-    fn assert_ids_of_matches(components: &RefCell<Vec<Component>>, expected_ids: &[Id]) {
-        let ids_of_matches = components
+    /// Assert IDs and order of all entries in the group which have their [`Component::match_info`]
+    /// set to [`MatchInfo::Matches`]. Additionally, verify the [`Group::visible`] field is
+    /// [`true`] iff no IDs are expected.
+    fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
+        let ids_of_matches = group
+            .entries
             .borrow()
             .iter()
             .filter(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
             .map(|c| *c.id)
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
-    }
-
-    /// Assert IDs and order of all entries in the group which have their [`Component::match_info`]
-    /// set to [`MatchInfo::Matches`]. Additionally, verify the [`Group::visible`] field is
-    /// [`true`] iff no IDs are expected.
-    fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
-        assert_ids_of_matches(&group.entries, expected_ids);
         assert_eq!(group.visible.get(), !expected_ids.is_empty());
     }
 
@@ -318,27 +312,27 @@ pub(crate) mod tests {
         list.update_filtering("fu");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
-        assert_ids_of_matches(&list.local_scope, &[2]);
+        assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
         list.update_filtering("x");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3]);
-        assert_ids_of_matches(&list.local_scope, &[]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("Sub");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[1]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
-        assert_ids_of_matches(&list.local_scope, &[]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("y");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
-        assert_ids_of_matches(&list.local_scope, &[]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 1]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
-        assert_ids_of_matches(&list.local_scope, &[2]);
+        assert_ids_of_matches_entries(&list.local_scope, &[2]);
     }
 
 

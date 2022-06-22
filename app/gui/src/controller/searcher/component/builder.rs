@@ -321,7 +321,8 @@ mod tests {
         .collect();
         assert_eq!(module_subgroups, expected);
 
-        let local_scope_ids = list.local_scope.borrow().iter().map(|entry| *entry.id).collect_vec();
+        let local_scope_entries = &list.local_scope.entries;
+        let local_scope_ids = local_scope_entries.borrow().iter().map(|e| *e.id).collect_vec();
         let expected_ids = vec![5, 6];
         assert_eq!(local_scope_ids, expected_ids);
     }
