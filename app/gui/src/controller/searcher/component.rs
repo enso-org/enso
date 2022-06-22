@@ -197,11 +197,8 @@ impl List {
             component.update_matching_info(pattern)
         }
         let pattern_not_empty = !pattern.is_empty();
-        let components_order = if pattern_not_empty {
-            Order::ByMatch
-        } else {
-            Order::ByNameNonModulesThenModules
-        };
+        let components_order =
+            if pattern_not_empty { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
         for group in self.all_groups_not_in_favorites() {
             group.update_sorting_and_visibility(components_order);
         }
