@@ -63,13 +63,20 @@ impl ModuleGroups {
 ///
 /// The builder allow extending the list with new entries, and build a list with properly sorted
 /// groups.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct List {
     all_components:        Vec<Component>,
     module_groups:         HashMap<component::Id, ModuleGroups>,
-    local_scope_module_id: Option<component::Id>,
-    local_scope_entries:   Vec<Component>,
+    local_scope_module:    component::Group,
     favorites:             component::group::List,
+}
+
+impl Default for List {
+    fn default() -> Self {
+        // FIXME: make "Local Scope" a constant
+        let local_scope_module = component::Group::new_empty_visible("Local Scope", None);
+        Self { local_scope_module, ..default() }
+    }
 }
 
 impl List {
@@ -81,8 +88,13 @@ impl List {
     /// Return [`List`] with the [`local_scope_module_id`] field set to `id`. When the field is
     /// set, components passed to [`extend`] having their parent module ID equal to
     /// [`local_scope_module_id`] will be cloned into [`component::List::local_scope`].
+    // FIXME: rename: drop `_id` suffix from name, adjust arg name and doc
     pub fn with_local_scope_module_id(self, id: component::Id) -> Self {
-        Self { local_scope_module_id: Some(id), ..self }
+        // FIXME: should the group be visible or not? is it relevant if we call update_filtering
+        // anyway?
+        // FIXME: make "Local Scope" a constant
+        let local_scope_module = component::Group::new_empty_visible("Local Scope", Some(id));
+        Self { local_scope_module, ..self }
     }
 
     /// Extend the list with new entries looked up by ID in suggestion database.

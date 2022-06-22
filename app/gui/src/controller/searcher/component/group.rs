@@ -63,6 +63,10 @@ impl Deref for Group {
 }
 
 impl Group {
+    pub fn new_empty_visible(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+        Self { data: Rc::new(Data::new_empty_visible(name, component_id)) }
+    }
+
     /// Create empty group referring to some module component.
     pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
         let name: String = if entry.module.is_top_module() {
@@ -70,7 +74,7 @@ impl Group {
         } else {
             entry.module.name().into()
         };
-        Self { data: Rc::new(Data::new_empty_visible(name, Some(component_id))) }
+        Self::new_empty_visible(name, Some(component_id))
     }
 
     /// Construct from [`execution_context::ComponentGroup`] components looked up in the suggestion
