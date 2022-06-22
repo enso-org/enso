@@ -18,7 +18,7 @@ use ensogl::data::color;
 
 /// The [`Group`] fields, which are shared and available by [`AsRef`] and [`Deref`].
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Data {
     pub name:         ImString,
     pub color:        Option<color::Rgb>,
@@ -50,7 +50,7 @@ impl Data {
 // =============
 
 /// A group of [`Component`]s.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct Group {
     data: Rc<Data>,
 }

@@ -63,20 +63,12 @@ impl ModuleGroups {
 ///
 /// The builder allow extending the list with new entries, and build a list with properly sorted
 /// groups.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct List {
     all_components: Vec<Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
     local_scope:    component::Group,
     favorites:      component::group::List,
-}
-
-impl Default for List {
-    fn default() -> Self {
-        // FIXME: make "Local Scope" a constant
-        let local_scope = component::Group::new_empty_visible("Local Scope", None);
-        Self { local_scope, ..default() }
-    }
 }
 
 impl List {
