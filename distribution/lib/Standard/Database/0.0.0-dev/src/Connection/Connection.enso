@@ -59,16 +59,18 @@ type Connection
     databases : [Text]
     databases =
         here.wrap_sql_errors <|
-            metadata = this.connection_resource . getMetaData
-            schema_result_set = metadata.getCatalogs
-            Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_CAT")
+            self.connection_resource.with connection->
+                metadata = connection.getMetaData
+                schema_result_set = metadata.getCatalogs
+                Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_CAT")
 
     schemas : [Text]
     schemas =
         here.wrap_sql_errors <|
-            metadata = this.connection_resource . getMetaData
-            schema_result_set = metadata.getSchemas
-            Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_SCHEM")
+            self.connection_resource.with connection->
+                metadata = connection.getMetaData
+                schema_result_set = metadata.getSchemas
+                Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_SCHEM")
 
     ## ADVANCED
 

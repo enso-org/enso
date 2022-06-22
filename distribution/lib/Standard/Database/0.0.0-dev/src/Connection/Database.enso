@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Database.Connection.Connection import all
+import Standard.Database.Data.Dialect
 
 ## UNSTABLE
 
@@ -43,8 +44,7 @@ connect url user=Nothing password=Nothing custom_properties=[] = case url of
         properties = user_prop + pass_prop + custom_properties
         Connection.create_jdbc_connection full_url properties
     _ ->
-        full_url = url.jdbc_url
-
+        Connection.create_jdbc_connection url.jdbc_url url.jdbc_properties url.dialect
 
 ## UNSTABLE
 
@@ -60,7 +60,7 @@ open_sqlite_file file =
     here.connect url
 
 type SQLite
-    type SQLite location:InMemory|File|Text
+    type SQLite location:(InMemory|File|Text)
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
@@ -80,7 +80,7 @@ type SQLite
 type InMemory
 
 type PostgreSQL
-    type PostgreSQL (host:Text='localhost') (port:Int=5432) (database:Text='postgres') (credentials:Credentials|Nothing=Nothing) (use_ssl:SSLMode=Prefer) (client_cert:Client_Certificate|Nothing=Nothing)
+    type PostgreSQL (host:Text='localhost') (port:Integer=5432) (database:Text='postgres') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSLMode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
@@ -115,6 +115,9 @@ type PostgreSQL
     dialect : Dialect
     dialect = Dialect.postgres
 
+type Credentials
+    type Credentials username:Text password:Text
+
 type SSLMode
     ## Do not use SSL for the connection.
        sslmode=disable
@@ -130,14 +133,14 @@ type SSLMode
 
     ## Will use SSL, validating the certificate but not verifying the hostname.
        sslmode=verify-ca
-    type Verify_CA ca_file:Nothing|File|Text=Nothing
+    type Verify_CA ca_file:(Nothing|File|Text)=Nothing
 
     ## Will use SSL, validating the certificate and checking the hostname matches.
        sslmode=verify-full
-    type Full_Verification ca_file:Nothing|File|Text=Nothing
+    type Full_Verification ca_file:(Nothing|File|Text)=Nothing
 
 type Client_Certificate
-    type Client_Certificate cert_file:File|Text key_file:File|Text key_password:Text=''
+    type Client_Certificate cert_file:(File|Text) key_file:(File|Text) (key_password:Text='')
 
     properties : [Pair Text Text]
     properties =
