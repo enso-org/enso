@@ -82,7 +82,7 @@ public class DelimitedWriter {
       this.quoteEscapeChar = '\0';
     }
 
-    if (this.quoteEscape == this.quote) {
+    if (this.quoteEscapeChar == this.quoteChar) {
       quoteReplacement = this.quote + "" + this.quote;
       quoteEscapeReplacement = null;
     } else {
@@ -151,14 +151,6 @@ public class DelimitedWriter {
     }
   }
 
-  private boolean needsQuoting(String value) {
-    boolean containsDelimiter = value.indexOf(delimiter) >= 0;
-    boolean containsQuote = value.indexOf(quoteChar) >= 0;
-    boolean containsQuoteEscape = value.indexOf(quoteEscapeChar) >= 0;
-
-    return containsDelimiter || containsQuote || containsQuoteEscape;
-  }
-
   /**
    * Wraps the value in quotes, escaping any characters if necessary.
    *
@@ -170,16 +162,21 @@ public class DelimitedWriter {
       return emptyValue;
     }
 
-    boolean shouldQuote = wantsQuoting || needsQuoting(value);
+    boolean containsQuote = value.indexOf(quoteChar) >= 0;
+    boolean containsQuoteEscape = quoteEscape != null && value.indexOf(quoteEscapeChar) >= 0;
+    boolean shouldQuote =
+        wantsQuoting || containsQuote || containsQuoteEscape || value.indexOf(delimiter) >= 0;
     if (!shouldQuote) {
       return value;
     }
 
-    String escaped;
-    if (quoteEscapeChar == quoteChar) {
-      escaped = value.replace(quote, quoteReplacement);
-    } else {
-      escaped = value.replace(quoteEscape, quoteEscapeReplacement).replace(quote, quoteReplacement);
+    String escaped = value;
+    if (quoteEscapeChar != quoteChar && containsQuoteEscape) {
+      escaped = escaped.replace(quoteEscape, quoteEscapeReplacement);
+    }
+
+    if (containsQuote) {
+      escaped = escaped.replace(quote, quoteReplacement);
     }
 
     StringBuilder builder = new StringBuilder(escaped.length() + 2);
