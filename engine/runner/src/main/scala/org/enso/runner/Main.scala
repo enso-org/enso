@@ -17,7 +17,7 @@ import org.graalvm.polyglot.PolyglotException
 
 import java.io.File
 import java.nio.file.{Path, Paths}
-import java.util.{Collections, UUID}
+import java.util.{HashMap, UUID}
 
 import scala.Console.err
 import scala.concurrent.duration._
@@ -30,6 +30,7 @@ object Main {
 
   private val RUN_OPTION                     = "run"
   private val INSPECT_OPTION                 = "inspect"
+  private val DUMP_GRAPHS_OPTION             = "dump-graphs"
   private val HELP_OPTION                    = "help"
   private val NEW_OPTION                     = "new"
   private val PROJECT_NAME_OPTION            = "new-project-name"
@@ -98,6 +99,10 @@ object Main {
     val inspect = CliOption.builder
       .longOpt(INSPECT_OPTION)
       .desc("Start the Chrome inspector when --run is used.")
+      .build
+    val dumpGraphs = CliOption.builder
+      .longOpt(DUMP_GRAPHS_OPTION)
+      .desc("Dumps IGV graphs when --run is used.")
       .build
     val docs = CliOption.builder
       .longOpt(DOCS_OPTION)
@@ -345,6 +350,7 @@ object Main {
       .addOption(repl)
       .addOption(run)
       .addOption(inspect)
+      .addOption(dumpGraphs)
       .addOption(docs)
       .addOption(preinstall)
       .addOption(newOpt)
@@ -505,6 +511,7 @@ object Main {
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
     * @param inspect        shall inspect option be enabled
+    * @param dump           shall graphs be sent to the IGV
     */
   private def run(
     path: String,
@@ -513,7 +520,8 @@ object Main {
     logMasking: Boolean,
     enableIrCaches: Boolean,
     enableAutoParallelism: Boolean,
-    inspect: Boolean
+    inspect: Boolean,
+    dump: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -535,6 +543,14 @@ object Main {
         }
         file.getAbsolutePath
       } else projectPath.getOrElse("")
+    val options = new HashMap[String, String]()
+    if (dump) {
+      options.put("engine.TraceCompilation", "true")
+      options.put("engine.MultiTier", "false")
+    }
+    if (inspect) {
+      options.put("inspect", "")
+    }
     val context = new ContextFactory().create(
       projectRoot,
       System.in,
@@ -545,9 +561,7 @@ object Main {
       enableIrCaches,
       strictErrors          = true,
       enableAutoParallelism = enableAutoParallelism,
-      options =
-        if (inspect) Collections.singletonMap("inspect", "")
-        else Collections.emptyMap
+      options               = options
     )
     if (projectMode) {
       PackageManager.Default.loadPackage(file) match {
@@ -1013,7 +1027,8 @@ object Main {
         logMasking,
         shouldEnableIrCaches(line),
         line.hasOption(AUTO_PARALLELISM_OPTION),
-        line.hasOption(INSPECT_OPTION)
+        line.hasOption(INSPECT_OPTION),
+        line.hasOption(DUMP_GRAPHS_OPTION)
       )
     }
     if (line.hasOption(REPL_OPTION)) {

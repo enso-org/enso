@@ -1,6 +1,6 @@
 # Options intended to be common for all developers.
 
-wasm-size-limit: 4.86 MiB
+wasm-size-limit: 4.98 MiB
 
 required-versions:
   node: =16.15.0

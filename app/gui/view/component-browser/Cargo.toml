@@ -9,3 +9,4 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ide-view-component-group = { path = "component-group" }
+ensogl-text = { path = "../../../../lib/rust/ensogl/component/text" }
