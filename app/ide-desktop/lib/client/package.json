@@ -25,7 +25,7 @@
   "devDependencies": {
     "compression-webpack-plugin": "^9.2.0",
     "copy-webpack-plugin": "^10.2.4",
-    "electron": "17.1.0",
+    "electron": "19.0.0",
     "electron-builder": "^23.0.6",
     "crypto-js": "4.1.1",
     "electron-notarize": "1.2.1",
