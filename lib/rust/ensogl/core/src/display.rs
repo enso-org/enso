@@ -28,6 +28,7 @@ pub mod world;
 pub mod traits {
     use super::*;
     pub use object::traits::*;
+    pub use object::ObjectOps;
 }
 
 /// Common types.
