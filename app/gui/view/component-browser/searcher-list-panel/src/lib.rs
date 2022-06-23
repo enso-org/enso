@@ -119,9 +119,10 @@ const INFINITE: f32 = 999999.0;
 
 #[derive(Clone, Debug, Default)]
 struct Style {
-    content: ContentStyle,
-    section: SectionStyle,
-    menu:    MenuStyle,
+    content:   ContentStyle,
+    section:   SectionStyle,
+    menu:      MenuStyle,
+    navigator: NavigatorStyle,
 }
 
 impl Style {
@@ -133,6 +134,10 @@ impl Style {
 
     fn size(&self) -> Vector2 {
         self.size_inner().map(|value| value + 2.0 * SHADOW_PADDING)
+    }
+
+    fn navigator_size(&self) -> Vector2 {
+        self.size() + Vector2(self.navigator.width, 0.0)
     }
 
     fn menu_divider_y_pos(&self) -> f32 {
@@ -193,6 +198,12 @@ struct MenuStyle {
     divider_color:  color::Rgba,
 }
 
+#[derive(Clone, Debug, Default)]
+struct NavigatorStyle {
+    width:  f32,
+    height: f32,
+}
+
 impl Style {
     fn from_theme(
         network: &enso_frp::Network,
@@ -209,6 +220,9 @@ impl Style {
         let menu_height = style.get_number(theme_path.sub("menu_height"));
         let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
         let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
+
+        let navigator_width = style.get_number(theme_path.sub("section_navigator_width"));
+        let navigator_height = content_height.clone_ref();
 
         let section_divider_height = style.get_number(theme_path.sub("section_divider_height"));
         let section_heading_size = style.get_number(theme_path.sub("section_heading_size"));
@@ -280,12 +294,22 @@ impl Style {
                 }
             });
 
-            layout_data <- all4(&init,&content_layout,&section_layout,&menu_layout);
-            layout <- layout_data.map(|(_,content,section,menu)| {
+            navigator_layout_data <- all3(&init, &navigator_width, &navigator_height);
+            navigator_layout <- navigator_layout_data.map(|(_,width,height)| {
+                NavigatorStyle {
+                    width: *width,
+                    height: *height,
+                }
+            });
+
+            layout_data <- all5(&init,&content_layout,&section_layout,&menu_layout,
+                &navigator_layout);
+            layout <- layout_data.map(|(_,content,section,menu,navigator)| {
                 Style {
                     content:content.clone(),
                     section:section.clone(),
                     menu:menu.clone(),
+                    navigator:navigator.clone(),
                 }
             });
 
@@ -351,6 +375,36 @@ mod background {
     }
 }
 
+mod section_navigator {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        below = [background];
+        (style:Style,bg_color:Vector4) {
+            let theme_path: style::Path = list_panel_theme::HERE.into();
+
+            let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
+            let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
+
+            let content_width = style.get_number(theme_path.sub("content_width"));
+            let content_height = style.get_number(theme_path.sub("content_height"));
+            let content_corner_radius = style.get_number(theme_path.sub("content_corner_radius"));
+            let menu_height = style.get_number(theme_path.sub("menu_height"));
+            let width = style.get_number(theme_path.sub("section_navigator_width"));
+
+            let width = width * 2.0;
+            let height = content_height + menu_height;
+
+            let base_shape = Rect((width.px(), height.px())).corners_radius(content_corner_radius
+                .px()).translate_x(-content_width.px()/2.0);
+            let background = base_shape.fill(bg_color);
+            let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
+
+            (shadow + background).into()
+        }
+    }
+}
+
 mod hline {
     use super::*;
 
@@ -364,6 +418,71 @@ mod hline {
             let rect = rect.fill(section_divider_color);
             rect.into()
         }
+    }
+}
+
+/// TODO: docs
+#[derive(Debug, Clone, CloneRef)]
+pub struct Navigator {
+    display_object: display::object::Instance,
+    background:     section_navigator::View,
+    libraries:      Rc<crate::component_group::icon::Any>,
+    marketplace:    Rc<crate::component_group::icon::Any>,
+    data_science:   Rc<crate::component_group::icon::Any>,
+    local_scope:    Rc<crate::component_group::icon::Any>,
+    favourites:     Rc<crate::component_group::icon::Any>,
+}
+
+impl Navigator {
+    pub fn new(app: &Application) -> Self {
+        let display_object = display::object::Instance::new(&app.logger);
+        use crate::component_group::icon;
+        let background = section_navigator::View::new(&app.logger);
+        display_object.add_child(&background);
+        // TODO: remove
+        app.display.default_scene.layers.below_main.add_exclusive(&background);
+
+        let size = Vector2(icon::SIZE, icon::SIZE);
+        let libraries = icon::Id::Libraries.create_shape(&app.logger, size);
+        let marketplace = icon::Id::Marketplace.create_shape(&app.logger, size);
+        let data_science = icon::Id::DataScienceTools.create_shape(&app.logger, size);
+        let local_scope = icon::Id::LocalScope.create_shape(&app.logger, size);
+        let favourites = icon::Id::Star.create_shape(&app.logger, size);
+        data_science.strong_color.set(color::Rgba::black().into());
+        local_scope.strong_color.set(color::Rgba::black().into());
+        favourites.strong_color.set(color::Rgba::black().into());
+
+        display_object.add_child(&libraries);
+        display_object.add_child(&marketplace);
+        display_object.add_child(&data_science);
+        display_object.add_child(&local_scope);
+        display_object.add_child(&favourites);
+
+        Self {
+            display_object,
+            background,
+            libraries: Rc::new(libraries),
+            marketplace: Rc::new(marketplace),
+            data_science: Rc::new(data_science),
+            local_scope: Rc::new(local_scope),
+            favourites: Rc::new(favourites),
+        }
+    }
+
+    fn update_layout(&self, style: NavigatorStyle) {
+        let top_y = style.height / 2.0;
+        self.libraries.set_position_xy(Vector2(-216.0, top_y));
+        self.marketplace.set_position_xy(Vector2(-216.0, top_y - 30.0));
+        let bottom_y = -style.height / 2.0;
+        self.data_science.set_position_xy(Vector2(-216.0, bottom_y));
+        self.local_scope.set_position_xy(Vector2(-216.0, bottom_y + 30.0));
+        self.favourites.set_position_xy(Vector2(-216.0, bottom_y + 60.0));
+    }
+}
+
+impl display::Object for Navigator {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }
 
@@ -384,6 +503,7 @@ pub struct Model {
     favourites_section:  ColumnSection,
     local_scope_section: WideSection,
     sub_modules_section: ColumnSection,
+    section_navigator:   Navigator,
     layers:              Layers,
 }
 
@@ -400,6 +520,9 @@ impl Model {
         let favourites_section = Self::init_column_section(&app);
         let local_scope_section = Self::init_wide_section(&app);
         let sub_modules_section = Self::init_column_section(&app);
+
+        let section_navigator = Navigator::new(&app);
+        display_object.add_child(&section_navigator);
 
         let scroll_area = ScrollArea::new(&app);
         display_object.add_child(&scroll_area);
@@ -426,6 +549,7 @@ impl Model {
             local_scope_section,
             sub_modules_section,
             layers,
+            section_navigator,
             logger,
         }
     }
@@ -448,6 +572,9 @@ impl Model {
 
         self.background.bg_color.set(style.content.background_color.into());
         self.background.size.set(style.size());
+        self.section_navigator.background.bg_color.set(style.content.background_color.into());
+        self.section_navigator.background.size.set(style.navigator_size());
+        self.section_navigator.update_layout(style.navigator.clone());
 
         let local_scope_content = &self.local_scope_section.content;
         local_scope_content.set_position_x(style.content.padding + style.content.size.x / 2.0);

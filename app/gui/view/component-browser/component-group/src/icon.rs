@@ -98,6 +98,40 @@ crate::define_icons! {
         }
     }
 
+    /// Local scope section button. A dot inside a circle.
+    pub mod local_scope(LocalScope) {
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let dot = Circle(2.0.px()).fill(strong_color.clone());
+                let outer = (Circle(6.5.px()) - Circle(5.5.px())).fill(strong_color);
+                let shape = dot + outer;
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// Data science tools section button. Three rectangles placed behind each other with
+    /// perspective.
+    pub mod data_science_tools(DataScienceTools) {
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let top = Rect((10.0.px(), 1.4.px()));
+                let top = top.corners_radius(0.5.px()).translate_y(4.75.px());
+                let middle = Rect((12.8.px(), 1.9.px()));
+                let middle = middle.corners_radius(0.5.px()).translate_y(2.4.px());
+                let bottom = Rect((16.0.px(), 6.2.px()));
+                let bottom = bottom.corners_radius(1.0.px()).translate_y(-2.4.px());
+                let shape = top + middle + bottom;
+                let shape = shape.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
     /// A rounded rectangle with an arrow pointing in from the left.
     pub mod data_input(DataInput) {
         ensogl::define_shape_system! {
