@@ -1,8 +1,6 @@
 use super::*;
 use crate::generic;
 use std::collections::BTreeMap;
-use std::collections::HashMap;
-
 
 // =======================
 // === Rust to Generic ===
@@ -19,12 +17,13 @@ pub fn to_generic(ty: TypeData) -> (generic::TypeId, generic::TypeGraph) {
 #[derive(Debug)]
 pub struct Genericize {
     // Outputs
-    generic_of_rust: HashMap<TypeId, generic::TypeId>,
+    generic_of_rust: BTreeMap<TypeId, generic::TypeId>,
     generic_graph:   generic::TypeGraph,
     // Intermediate state
     interfaces:      Vec<(generic::TypeId, generic::TypeId)>,
-    parent_types:    HashMap<GenericTypeId, (generic::TypeName, generic::Data, usize)>,
+    parent_types:    BTreeMap<GenericTypeId, (generic::TypeName, generic::Data, usize)>,
     subtypings:      Vec<(GenericTypeId, TypeId, generic::TypeId)>,
+    //transparented_types: BTreeMap<generic::TypeId, TypeId>,
 }
 
 impl Genericize {
@@ -34,6 +33,7 @@ impl Genericize {
         let interfaces = Default::default();
         let parent_types = Default::default();
         let subtypings = Default::default();
+        //let transparented_types = Default::default();
         Genericize { generic_of_rust, generic_graph, interfaces, parent_types, subtypings }
     }
 }
@@ -74,7 +74,7 @@ impl Genericize {
             self.subtypings.push((erased, field, id_));
             return;
         }
-        let mut ty = generic::Type::new(name, data);
+        let ty = generic::Type::new(name, data);
         self.generic_graph.set(id_, ty);
     }
 
@@ -116,6 +116,7 @@ impl Genericize {
         let children = variants.into_iter().map(|Variant { ident, fields, transparent }| {
             if *transparent {
                 let id = &fields.as_wrapped_type().unwrap().id;
+                //self.transparented_types.insert(generic_id, id);
                 let id_ = self.generic_of_rust[id];
                 self.interfaces.push((generic_id, id_));
                 id_
@@ -157,7 +158,7 @@ impl Genericize {
 impl Genericize {
     fn remove_transparent(
         &mut self,
-        types: &mut HashMap<TypeId, TypeData>,
+        types: &mut BTreeMap<TypeId, TypeData>,
     ) -> Vec<(TypeId, TypeId)> {
         let mut alias = vec![];
         types.retain(|id, TypeData { transparent, data, .. }| {
@@ -204,12 +205,12 @@ impl Genericize {
             let old_parent = self.generic_graph[child_].parent.replace(parent_);
             assert_eq!(None, old_parent);
         }
-        let mut aliases = vec![];
         // parent_types:    HashMap<GenericTypeId, generic::Type>,
         // subtypings:      Vec<(GenericTypeId, TypeId, generic::TypeId)>,
         // child_types:     HashMap<(GenericTypeId, TypeId), generic::TypeId>,
-        let mut child_types = HashMap::new();
-        let mut parent_ids = HashMap::new();
+        let mut parent_ids = BTreeMap::new();
+        //let mut child_types = HashMap::new();
+        let mut aliases = vec![];
         let subtypings = std::mem::take(&mut self.subtypings);
         // Handle the variant first; that way we can generate its type family with `enum_`, which
         // doesn't handle checking for already-created child types.
@@ -219,7 +220,7 @@ impl Genericize {
                 Data::Enum(_) => {
                     let field_ = self.generic_of_rust[field];
                     let (name, wrapper_data, index) = self.parent_types.remove(erased).unwrap();
-                    // Move the Variant: We're merging the wrapper data into it, so any reference
+                    // Move the Enum: We're merging the wrapper data into it, so any reference
                     // to it that wasn't through the wrapper must be an error.
                     // Note: This approach won't allow types that are subsetted by multiple enums.
                     let mut enum_ty_ = self.generic_graph.take(field_);
@@ -238,7 +239,6 @@ impl Genericize {
                     for child_ in children_ {
                         let old_parent = self.generic_graph[child_].parent.replace(*id_);
                         assert_eq!(old_parent, Some(field_));
-                        child_types.insert((*erased, *field), child_);
                     }
                     parent_ids.insert(erased, *id_);
                 }
@@ -246,21 +246,16 @@ impl Genericize {
                 Data::Primitive(_) => panic!("Cannot transform a builtin to a subtype."),
             };
         }
-        for (erased, field, id_) in &subtypings {
+        for (_erased, field, id_) in &subtypings {
             let field_ty = &rust_types[field];
-            if let Data::Struct(Struct { fields }) = &field_ty.data {
+            if let Data::Struct(_) = &field_ty.data {
                 // FIXME: Would be simple to handle, but doesn't occur in our data. Needs testing.
-                let instantiated_with_enum =
-                    "Unhandled: #[reflect(subtype)] that is never instantiated with an enum.";
-                let parent_ = parent_ids.get(erased).expect(instantiated_with_enum);
-                let child_key = (*erased, *field);
-                if let Some(existing) = child_types.get(&child_key) {
-                    aliases.push((*id_, *existing));
-                } else {
-                    self.struct_(*id_, &field_ty.name, fields, None);
-                    self.generic_graph[*id_].parent = Some(*parent_);
-                    child_types.insert(child_key, *id_);
-                }
+                //let instantiated_with_enum =
+                //    "Unhandled: #[reflect(subtype)] that is never instantiated with an enum.";
+                //let parent_ = parent_ids.get(erased).expect(instantiated_with_enum);
+                //let id = *self.transparented_types.get(field).expect("Unimplemented.");
+                let id = *self.generic_of_rust.get(field).expect("Unimplemented.");
+                aliases.push((*id_, id));
             }
         }
         self.generic_graph.apply_aliases(&aliases);
@@ -270,22 +265,22 @@ impl Genericize {
 
 /// Gather the Rust type IDs and definitions for the given type and its closure in the type
 /// graph.
-fn collect_types(root: TypeData) -> HashMap<TypeId, TypeData> {
+fn collect_types(root: TypeData) -> BTreeMap<TypeId, TypeData> {
     let mut to_visit = BTreeMap::new();
-    let mut new_types = HashMap::new();
+    let mut new_types = BTreeMap::new();
     for lazy in root.referenced_types() {
-        to_visit.insert(lazy.id, lazy.evaluate);
+        to_visit.insert(lazy.id, lazy);
     }
     let root_id = root.id;
     new_types.insert(root_id, root);
-    while let Some((id, evaluate)) = to_visit.pop_last() {
+    while let Some((id, lazy)) = to_visit.pop_last() {
         new_types.entry(id).or_insert_with(|| {
-            let type_ = (evaluate)();
+            let type_ = lazy.evaluate();
             debug_assert_eq!(id, type_.id);
             let refs = type_
                 .referenced_types()
                 .into_iter()
-                .map(|LazyType { id, evaluate }| (id, evaluate));
+                .map(|lazy: LazyType| (lazy.id, lazy));
             to_visit.extend(refs);
             type_
         });

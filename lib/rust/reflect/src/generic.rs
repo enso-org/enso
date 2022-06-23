@@ -1,7 +1,87 @@
+pub mod graphviz;
+
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
 
+
+// ======================
+// === Datatype Types ===
+// ======================
+
+/// A datatype.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Type {
+    // data
+    pub name:            TypeName,
+    pub data:            Data,
+    pub parent:          Option<TypeId>,
+    pub mixins:          Vec<TypeId>,
+    pub weak_interfaces: Vec<TypeId>,
+    pub abstract_:       bool,
+    pub closed:          bool,
+    // attributes
+    pub child_attrs:     Option<ChildAttrs>,
+}
+
+impl Type {
+    /// Create a new datatype, with defaults for most fields.
+    pub fn new(name: TypeName, data: Data) -> Self {
+        let parent = Default::default();
+        let mixins = Default::default();
+        let weak_interfaces = Default::default();
+        let abstract_ = Default::default();
+        let child_attrs = Default::default();
+        let closed = Default::default();
+        Type { name, data, parent, mixins, weak_interfaces, abstract_, child_attrs, closed }
+    }
+}
+
+/// Provides information for a type about how its child types are encoded.
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct ChildAttrs {
+    /// When serializing/deserializing, indicates the index of the field in a `Type` before which a
+    /// child object's data will be placed/expected.
+    pub child_field:   Option<usize>,
+    pub discriminants: BTreeMap<usize, TypeId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Data {
+    Struct(Struct),
+    Primitive(Primitive),
+}
+
+/// Standard types.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub enum Primitive {
+    Bool,
+    Usize,
+    U32,
+    String,
+    Sequence(TypeId),
+    // Rust's option-types are more general than Java's optional (by default) fields.
+    Option(TypeId),
+    Result(TypeId, TypeId),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Named<T> {
+    pub name:  FieldName,
+    pub value: T,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub struct Field {
+    pub type_: TypeId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Struct {
+    Named(Vec<Named<Field>>),
+    Unnamed(Vec<Field>),
+    Unit,
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeId(pub usize);
@@ -11,6 +91,12 @@ impl std::fmt::Display for TypeId {
         write!(f, "{}", self.0)
     }
 }
+
+
+
+// ===================
+// === Identifiers ===
+// ===================
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Identifier {
@@ -74,6 +160,9 @@ impl Identifier {
     }
 }
 
+
+// === Type Names ===
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeName(Identifier);
 
@@ -87,11 +176,13 @@ impl TypeName {
     pub fn from_pascal_case(s: &str) -> Self {
         Self(Identifier::from_pascal_case(s))
     }
-
     pub fn to_pascal_case(&self) -> String {
         self.0.to_pascal_case()
     }
 }
+
+
+// === Field Names ===
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FieldName(Identifier);
@@ -106,11 +197,16 @@ impl FieldName {
     pub fn from_snake_case(s: &str) -> Self {
         Self(Identifier::from_snake_case(s))
     }
-
     pub fn to_camel_case(&self) -> String {
         self.0.to_camel_case()
     }
 }
+
+
+
+// ===========================
+// === System of Datatypes ===
+// ===========================
 
 #[derive(Debug, Default)]
 pub struct TypeGraph {
@@ -143,7 +239,8 @@ impl TypeGraph {
         id
     }
 
-    pub fn apply_aliases<'a>(&mut self, aliases: impl IntoIterator<Item=&'a (TypeId, TypeId)>) {
+    /// Replace all occurrences of certain IDs with other IDs.
+    pub fn apply_aliases<'a>(&mut self, aliases: impl IntoIterator<Item = &'a (TypeId, TypeId)>) {
         let mut canonical = BTreeMap::new();
         for (from_, to_) in aliases.into_iter() {
             canonical.insert(*from_, *to_);
@@ -191,7 +288,9 @@ impl TypeGraph {
         }
     }
 
-    pub fn gc(&mut self, roots: Vec<TypeId>) {
+    /// Eliminate types that are not in the referential transitive closure of the given collection
+    /// of roots.
+    pub fn gc(&mut self, roots: impl IntoIterator<Item = TypeId>) {
         let mut visited = BTreeSet::new();
         let mut to_visit = BTreeSet::new();
         to_visit.extend(roots);
@@ -200,7 +299,16 @@ impl TypeGraph {
                 Some(ty) => ty,
                 None => continue,
             };
-            let Type { name: _, data, parent, mixins, weak_interfaces: _, abstract_: _, closed: _, child_attrs } = ty;
+            let Type {
+                name: _,
+                data,
+                parent,
+                mixins,
+                weak_interfaces: _,
+                abstract_: _,
+                closed: _,
+                child_attrs,
+            } = ty;
             let already_visited = !visited.insert(id);
             if already_visited {
                 continue;
@@ -254,174 +362,5 @@ impl std::ops::Index<TypeId> for TypeGraph {
 impl std::ops::IndexMut<TypeId> for TypeGraph {
     fn index_mut(&mut self, index: TypeId) -> &mut Self::Output {
         self.types[index.0].as_mut().unwrap()
-    }
-}
-
-impl Type {
-    pub fn new(name: TypeName, data: Data) -> Self {
-        let parent = Default::default();
-        let mixins = Default::default();
-        let weak_interfaces = Default::default();
-        let abstract_ = Default::default();
-        let child_attrs = Default::default();
-        let closed = Default::default();
-        Type { name, data, parent, mixins, weak_interfaces, abstract_, child_attrs, closed }
-    }
-}
-
-//////////////////////////
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Type {
-    // data
-    pub name:        TypeName,
-    pub data:        Data,
-    pub parent:      Option<TypeId>,
-    pub mixins:      Vec<TypeId>,
-    pub weak_interfaces:      Vec<TypeId>,
-    pub abstract_:   bool,
-    // XXX: java: This translates to `sealed` or `final`, depending on whether the type has
-    // children.
-    pub closed:      bool,
-    // attributes
-    pub child_attrs: Option<ChildAttrs>,
-}
-
-/// Provides information for a type about how its child types are encoded.
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct ChildAttrs {
-    /// When serializing/deserializing, indicates the index of the field in a `Type` before which a
-    /// child object's data will be placed/expected.
-    pub child_field:   Option<usize>,
-    pub discriminants: BTreeMap<usize, TypeId>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Data {
-    Struct(Struct),
-    Primitive(Primitive),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Primitive {
-    Bool,
-    Usize,
-    U32,
-    String,
-    Sequence(TypeId),
-    // Rust's option-types are more general than Java's optional (by default) fields.
-    Option(TypeId),
-    Result(TypeId, TypeId),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Named<T> {
-    pub name:  FieldName,
-    pub value: T,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Field {
-    pub type_: TypeId,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Struct {
-    Named(Vec<Named<Field>>),
-    Unnamed(Vec<Field>),
-    Unit,
-}
-
-
-
-// ==============
-// === Graphs ===
-// ==============
-
-pub mod graphviz {
-    use super::*;
-    use crate::graphviz::EdgeType;
-    use crate::graphviz::Graph;
-    use crate::graphviz::Node;
-    use crate::graphviz::NodeType;
-
-    pub fn graph(typegraph: &TypeGraph) {
-        let mut graph = Graph::default();
-        let types = &typegraph.types;
-        for (i, ty) in types.iter().enumerate() {
-            let ty = match ty.as_ref() {
-                Some(ty) => ty,
-                None => continue,
-            };
-            let sname = format!("{}{}", ty.name, i);
-            let node_type = match &ty.data {
-                Data::Struct(_) if ty.abstract_ => NodeType::AbstractStruct,
-                Data::Struct(_) => NodeType::Struct,
-                Data::Struct(_) if ty.abstract_ && ty.closed => NodeType::Enum,
-                // FIXME
-                Data::Primitive(_) => NodeType::Struct,
-            };
-            let primitive = matches!(&ty.data, Data::Primitive(_));
-            let label = ty.name.to_string();
-            graph.nodes.insert(sname.clone(), Node { primitive, node_type, label });
-            if let Some(&parent) = ty.parent.as_ref() {
-                let id = parent.0;
-                let sparent = format!("{}{}", types[id].as_ref().unwrap().name, id);
-                graph.edges.push((sparent.clone(), sname.clone(), EdgeType::Subtype));
-            }
-            for parent in &ty.mixins {
-                let id = parent.0;
-                let sparent = format!("{}{}", types[id].as_ref().unwrap().name, id);
-                graph.edges.push((sparent.clone(), sname.clone(), EdgeType::Subtype));
-            }
-            for parent in &ty.weak_interfaces {
-                let id = parent.0;
-                let sparent = format!("{}{}", types[id].as_ref().unwrap().name, id);
-                graph.edges.push((sparent.clone(), sname.clone(), EdgeType::Subtype));
-            }
-            match &ty.data {
-                Data::Struct(Struct::Named(fields)) => {
-                    for Named { value: Field { type_ }, .. } in fields {
-                        let id = type_.0;
-                        let sname2 = format!("{}{}", types[id].as_ref().unwrap().name, id);
-                        graph.edges.push((sname.clone(), sname2, EdgeType::Field));
-                    }
-                }
-                Data::Struct(Struct::Unnamed(fields)) =>
-                    for Field { type_ } in fields {
-                        let id = type_.0;
-                        let sname2 = format!("{}{}", types[id].as_ref().unwrap().name, id);
-                        graph.edges.push((sname.clone(), sname2, EdgeType::Field));
-                    },
-                Data::Struct(Struct::Unit)
-                | Data::Primitive(Primitive::U32)
-                | Data::Primitive(Primitive::Bool)
-                | Data::Primitive(Primitive::Usize)
-                | Data::Primitive(Primitive::String) => {}
-                Data::Primitive(Primitive::Sequence(TypeId(t0))) => graph.edges.push((
-                    sname.clone(),
-                    format!("{}{}", types[*t0].as_ref().unwrap().name, t0),
-                    EdgeType::Field,
-                )),
-                Data::Primitive(Primitive::Option(TypeId(t0))) => graph.edges.push((
-                    sname.clone(),
-                    format!("{}{}", types[*t0].as_ref().unwrap().name, t0),
-                    EdgeType::Field,
-                )),
-                Data::Primitive(Primitive::Result(TypeId(t0), TypeId(t1))) => {
-                    graph.edges.push((
-                        sname.clone(),
-                        format!("{}{}", types[*t0].as_ref().unwrap().name, t0),
-                        EdgeType::Field,
-                    ));
-                    graph.edges.push((
-                        sname.clone(),
-                        format!("{}{}", types[*t1].as_ref().unwrap().name, t1),
-                        EdgeType::Field,
-                    ));
-                }
-            }
-        }
-        println!("{}", graph);
     }
 }

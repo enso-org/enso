@@ -5,10 +5,19 @@ use super::*;
 use syn::punctuated::Punctuated;
 use syn::Token;
 
+
+
+// =============
+// === Quote ===
+// =============
+
 /// Values that can be converted to syntax that evaluates to an analogous type at runtime.
 pub(crate) trait Quote {
     fn quote(&self) -> TokenStream;
 }
+
+
+// === Implementations ===
 
 impl Quote for Type {
     fn quote(&self) -> TokenStream {
@@ -79,10 +88,7 @@ impl Quote for NamedField {
         quote! {
             reflect::rust::NamedField {
                 name: #name.to_owned(),
-                type_: reflect::rust::LazyType {
-                    id: reflect::rust::TypeId::of::<#typename>(),
-                    evaluate: <#typename as reflect::Reflect>::reflect,
-                },
+                type_: reflect::rust::LazyType::of::<#typename>(),
                 subtype: #subtype,
             }
         }
@@ -94,10 +100,7 @@ impl Quote for UnnamedField {
         let typename = &self.type_;
         quote! {
             reflect::rust::UnnamedField {
-                type_: reflect::rust::LazyType {
-                    id: reflect::rust::TypeId::of::<#typename>(),
-                    evaluate: <#typename as reflect::Reflect>::reflect,
-                },
+                type_: reflect::rust::LazyType::of::<#typename>(),
             }
         }
     }
@@ -118,6 +121,12 @@ impl Quote for Variant {
         quoted.into()
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {

@@ -1,3 +1,6 @@
+// The type definitions in this crate exercise `#[derive(Reflect)]`.
+#![allow(dead_code)]
+
 use enso_reflect as reflect;
 use enso_reflect_macros::Reflect;
 
@@ -17,16 +20,16 @@ enum Baz {
 
 #[derive(Reflect)]
 struct Quux<T> {
-    quux: T,
+    _quux: T,
 }
 
 #[derive(Reflect)]
 pub struct Code<'s> {
-    pub repr: std::borrow::Cow<'s, str>,
+    pub _repr: std::borrow::Cow<'s, str>,
 }
 
 #[test]
 fn test() {
     use reflect::Reflect;
-    let type_ = Baz::reflect();
+    let _type = Baz::reflect();
 }
