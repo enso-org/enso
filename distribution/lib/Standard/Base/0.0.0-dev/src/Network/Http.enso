@@ -650,7 +650,7 @@ type Http
                     req.headers.map h-> builder.header h.name h.value
             http_request = builder.build
             body_handler = HttpResponse.BodyHandlers . ofByteArray
-            Response.response (self.internal_http_client.send http_request body_handler)
+            Response.Response (self.internal_http_client.send http_request body_handler)
         response.catch e-> case e of
             Polyglot_Error err ->
                 Error.throw (Request_Error err.getClass.getSimpleName err.getMessage)
@@ -664,7 +664,7 @@ type Http
     internal_http_client =
         builder = HttpClient.newBuilder
         # timeout
-        if self.timeout.is_date then Panic.throw (Time.time_error "Connection timeout does not support date intervals") else
+        if self.timeout.is_date then Panic.throw (Time.Time_Error "Connection timeout does not support date intervals") else
             builder.connectTimeout self.timeout.internal_duration
         # redirect
         redirect = HttpClient.Redirect

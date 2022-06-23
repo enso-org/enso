@@ -266,7 +266,7 @@ case object UppercaseNames extends IRPass {
             BindingAnalysis,
             "Imported module without bindings analysis results"
           )
-          .resolveExportedName(consName.name, caseSensitive = false)
+          .resolveExportedName(consName.name, caseSensitive = true)
         resolution match {
           case Right(cons @ ResolvedConstructor(_, _)) => Some(cons)
           case _                                       => None

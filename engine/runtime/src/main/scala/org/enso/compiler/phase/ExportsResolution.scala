@@ -166,26 +166,26 @@ class ExportsResolution {
     modules.foreach { module =>
       val bindings = getBindings(module)
       val ownMethods = bindings.moduleMethods.map { method =>
-        val name = method.name.toLowerCase
+        val name = method.name
         val syms =
           List(ResolvedMethod(ModuleReference.Concrete(module), method))
         (name, syms)
       }
       val ownConstructors = bindings.constructors.map { tp =>
-        val name = tp.name.toLowerCase
+        val name = tp.name
         val types =
           List(ResolvedConstructor(ModuleReference.Concrete(module), tp))
         (name, types)
       }
       val ownPolyglotBindings = bindings.polyglotSymbols.map { poly =>
-        val name = poly.name.toLowerCase
+        val name = poly.name
         val syms =
           List(ResolvedPolyglotSymbol(ModuleReference.Concrete(module), poly))
         (name, syms)
       }
       val exportedModules = bindings.resolvedExports.collect {
         case ExportedModule(mod, Some(name), _) =>
-          (name.toLowerCase, List(ResolvedModule(mod)))
+          (name, List(ResolvedModule(mod)))
       }
       val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
         getBindings(export.module.unsafeAsModule()).exportedSymbols.toList

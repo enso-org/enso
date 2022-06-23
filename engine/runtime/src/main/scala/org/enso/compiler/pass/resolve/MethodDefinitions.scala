@@ -107,7 +107,7 @@ case object MethodDefinitions extends IRPass {
         }
         availableSymbolsMap.resolveQualifiedName(
           items,
-          caseSensitive = false
+          caseSensitive = true
         ) match {
           case Left(err) =>
             IR.Error.Resolution(

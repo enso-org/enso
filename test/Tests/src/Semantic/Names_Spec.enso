@@ -28,16 +28,19 @@ spec =
         Test.specify "should allow using constructors from value-bound modules" <|
             v = here.get_foo Definitions 1 2 3
             v.sum.should_equal 6
-    Test.group "Uppercase Methods" <|
-        Test.specify "should allow calling methods without a target, through uppercase resolution" <|
-            v = Constant
-            v.should_equal 1
-        Test.specify "should allow calling methods that use defaulted arguments" <|
-            Add_One.should_equal 1
-            Add_One 100 . should_equal 101
-        Test.specify "should allow calling methods imported from another module" <|
-            Another_Constant . should_equal 10
+#    Test.group "Uppercase Methods" <|
+#        Test.specify "should allow calling methods without a target, through uppercase resolution" <|
+#            v = Constant
+#            v.should_equal 1
+#        Test.specify "should allow calling methods that use defaulted arguments" <|
+#            Add_One.should_equal 1
+#            Add_One 100 . should_equal 101
+#        Test.specify "should allow calling methods imported from another module" <|
+#            Another_Constant . should_equal 10
     Test.group "Lowercase Methods" <|
+        Test.specify "should allow calling methods without a target" <|
+            v = constant
+            v.should_equal 1
         Test.specify "should allow calling this module's methods" <|
             add_one.should_equal 1
             add_one 100 . should_equal 101

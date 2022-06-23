@@ -241,7 +241,7 @@ case class BindingsMap(
       return handleAmbiguity(qualifiedImps)
     }
     handleAmbiguity(
-      findExportedCandidatesInImports(name, caseSensitive = false)
+      findExportedCandidatesInImports(name, caseSensitive = true)
     )
   }
 
