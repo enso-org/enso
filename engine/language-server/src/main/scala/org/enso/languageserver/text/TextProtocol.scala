@@ -53,8 +53,9 @@ object TextProtocol {
     *
     * @param clientId the client closing the file.
     * @param edit a diff describing changes made to a file
+    * @param execute whether to execute the program after applying the edits
     */
-  case class ApplyEdit(clientId: ClientId, edit: FileEdit)
+  case class ApplyEdit(clientId: ClientId, edit: FileEdit, execute: Boolean)
 
   /** Signals the result of applying a series of edits.
     */
