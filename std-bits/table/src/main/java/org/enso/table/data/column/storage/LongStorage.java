@@ -383,7 +383,6 @@ public class LongStorage extends NumericStorage {
     return new LongStorage(newData, newSize, newMask);
   }
 
-
   @Override
   public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
     cell.setCellValue(getItem(index));

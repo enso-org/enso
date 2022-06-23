@@ -147,7 +147,6 @@ public class StringStorage extends ObjectStorage {
     return new StringStorage(storage.getData(), storage.size());
   }
 
-
   @Override
   public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
     cell.setCellValue(getItem(index));

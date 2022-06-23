@@ -321,7 +321,6 @@ public class BoolStorage extends Storage {
         negated);
   }
 
-
   @Override
   public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
     cell.setCellValue(getItem(index));

@@ -158,7 +158,6 @@ public class ObjectStorage extends Storage {
     return new ObjectStorage(newData, newSize);
   }
 
-
   @Override
   public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
     writeCell.accept(getItem(index), cell);
