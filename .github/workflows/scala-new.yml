@@ -9,6 +9,9 @@ on:
     branches: ["*"]
   workflow_dispatch:
 
+env:
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"
+
 jobs:
   # Engine builds are slow and our runners limited in capacity. Thus we cancel any workflow runs for older commits
   # on this branch.
