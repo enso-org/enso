@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.debugger.DebugServerInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -38,8 +39,6 @@ import scala.util.Right;
 /** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(id = DebugServerInfo.INSTRUMENT_NAME)
 public class ReplDebuggerInstrument extends TruffleInstrument {
-  private Env env;
-
   /**
    * Called by Truffle when this instrument is installed.
    *
@@ -48,8 +47,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   @Override
   protected void onCreate(Env env) {
     SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
-    this.env = env;
+        SourceSectionFilter.newBuilder()
+            .mimeTypeIs(LanguageInfo.MIME_TYPE)
+            .tagIs(DebuggerTags.AlwaysHalt.class)
+            .build();
 
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
