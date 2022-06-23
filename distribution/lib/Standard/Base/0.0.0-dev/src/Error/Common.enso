@@ -61,7 +61,7 @@ type Error
 
        Returns a human-readable text representing this error.
     to_display_text : Text
-    to_display_text  = "Error: " + (this.catch .to_display_text)
+    to_display_text  = "Error: " + (self.catch .to_display_text)
 
     ## Executes the provided handler on a dataflow error, or returns a non-error
        value unchanged.
@@ -78,7 +78,7 @@ type Error
              example_catch =
                  Examples.throw_error.catch (err -> err.message.length)
     catch : (Error -> Any) -> Any
-    catch (handler = x->x) = this.catch_primitive handler
+    catch (handler = x->x) = self.catch_primitive handler
 
     ## UNSTABLE
 
@@ -91,7 +91,7 @@ type Error
 
              example_display = Examples.throw_error.to_default_visualization_data
     to_default_visualization_data : Text
-    to_default_visualization_data = this.catch .to_default_visualization_data
+    to_default_visualization_data = self.catch .to_default_visualization_data
 
     ## UNSTABLE
 
@@ -106,8 +106,8 @@ type Error
     to_json : Json.Object
     to_json =
         error_type = ["type", "Error"]
-        error_content = ["content", this.catch .to_json]
-        error_message = ["message", this.catch .to_display_text]
+        error_content = ["content", self.catch .to_json]
+        error_message = ["message", self.catch .to_display_text]
         Json.from_pairs [error_type, error_content, error_message]
 
     ## Transforms an error.
@@ -115,7 +115,7 @@ type Error
        Arguments:
        - f: The function used to transform the error.
 
-       If `this` is a non-error value it is returned unchanged. However, if `this`
+       If `self` is a non-error value it is returned unchanged. However, if `self`
        is an error, the error is transformed using the provided function
 
        > Example
@@ -127,7 +127,7 @@ type Error
                  map = Examples.map
                  map.get 10 . map_error (_ -> "The element 10 was not found.")
     map_error : (Error -> Error) -> Any
-    map_error f = this.catch (x -> Error.throw (f x))
+    map_error f = self.catch (x -> Error.throw (f x))
 
     ## ADVANCED
        UNSTABLE
@@ -138,9 +138,9 @@ type Error
        first element.
     stack_trace : Vector.Vector Runtime.Stack_Trace_Element
     stack_trace =
-        Panic.get_attached_stack_trace this
+        Panic.get_attached_stack_trace self
 
-    ## Checks if `this` is an error.
+    ## Checks if `self` is an error.
 
        > Example
          Checking if the value 1 is an error.
@@ -182,7 +182,7 @@ type Wrapped_Dataflow_Error payload
 
 ## PRIVATE
    Throws the original error.
-Wrapped_Dataflow_Error.unwrap = Error.throw this.payload
+Wrapped_Dataflow_Error.unwrap = Error.throw self.payload
 
 type Caught_Panic
     ## A wrapper for a caught panic.
@@ -204,7 +204,7 @@ type Caught_Panic
     ## Returns the stack trace of the caught panic.
     stack_trace : Vector.Vector Runtime.Stack_Trace_Element
     stack_trace =
-        Panic.get_attached_stack_trace this
+        Panic.get_attached_stack_trace self
 
 ## Panics.
 type Panic
@@ -475,7 +475,7 @@ type No_Such_Method_Error target symbol
              error.method_name
 No_Such_Method_Error.method_name : Text
 No_Such_Method_Error.method_name =
-    Meta.meta this.symbol . name
+    Meta.meta self.symbol . name
 
 
 ## An error that occurred across a polyglot boundary.
@@ -559,7 +559,7 @@ type Unimplemented_Error message
 
    Converts the unimplemented error to a human-readable error message.
 Unimplemented_Error.to_display_text : Text
-Unimplemented_Error.to_display_text = "An implementation is missing: " + this.message
+Unimplemented_Error.to_display_text = "An implementation is missing: " + self.message
 
 ## ADVANCED
 

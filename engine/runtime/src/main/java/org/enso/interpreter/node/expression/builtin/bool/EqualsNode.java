@@ -11,27 +11,27 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 @BuiltinMethod(type = "Boolean", name = "==", description = "Computes the equality of two booleans")
 public abstract class EqualsNode extends Node {
-  abstract boolean execute(Object _this, Object that);
+  abstract boolean execute(Object self, Object that);
 
   static EqualsNode build() {
     return EqualsNodeGen.create();
   }
 
   @Specialization
-  boolean doBoolean(boolean _this, boolean that) {
-    return _this == that;
+  boolean doBoolean(boolean self, boolean that) {
+    return self == that;
   }
 
   @Specialization
   boolean doAtom(
-      Atom _this, Atom that, @Cached("getBooleanConstructor()") AtomConstructor boolCons) {
-    var thisCons = _this.getConstructor();
+      Atom self, Atom that, @Cached("getBooleanConstructor()") AtomConstructor boolCons) {
+    var thisCons = self.getConstructor();
     var thatCons = that.getConstructor();
     return (thatCons == boolCons) && (thisCons == thatCons);
   }
 
   @Fallback
-  boolean doOther(Object _this, Object that) {
+  boolean doOther(Object self, Object that) {
     return false;
   }
 

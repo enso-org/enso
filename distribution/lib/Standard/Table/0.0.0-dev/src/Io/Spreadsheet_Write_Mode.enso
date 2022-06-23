@@ -18,7 +18,7 @@ type Spreadsheet_Write_Mode
     ## PRIVATE
 
        Converts this into a Java-side representation.
-    to_java = case this of
+    to_java = case self of
         Append -> Writer.WriteMode.APPEND
         Create -> Writer.WriteMode.CREATE_SHEET
         Overwrite -> Writer.WriteMode.OVERWRITE_SHEET

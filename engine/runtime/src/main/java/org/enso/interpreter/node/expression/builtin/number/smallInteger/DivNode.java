@@ -13,16 +13,16 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "div", description = "Division of numbers.")
 public abstract class DivNode extends Node {
-  abstract Object execute(long _this, Object that);
+  abstract Object execute(long self, Object that);
 
   static DivNode build() {
     return DivNodeGen.create();
   }
 
   @Specialization
-  Object doLong(long _this, long that) {
+  Object doLong(long self, long that) {
     try {
-      return _this / that;
+      return self / that;
     } catch (ArithmeticException e) {
       return DataflowError.withoutTrace(
           Context.get(this).getBuiltins().error().getDivideByZeroError(), this);
@@ -30,13 +30,13 @@ public abstract class DivNode extends Node {
   }
 
   @Specialization
-  Object doBigInteger(long _this, EnsoBigInteger that) {
+  Object doBigInteger(long self, EnsoBigInteger that) {
     // No need to trap, as 0 is never represented as an EnsoBigInteger.
     return 0L;
   }
 
   @Fallback
-  Object doOther(long _this, Object that) {
+  Object doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);

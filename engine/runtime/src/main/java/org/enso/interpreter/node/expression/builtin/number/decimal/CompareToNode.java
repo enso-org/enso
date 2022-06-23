@@ -18,13 +18,13 @@ public abstract class CompareToNode extends Node {
     return CompareToNodeGen.create();
   }
 
-  abstract Atom execute(double _this, Object that);
+  abstract Atom execute(double self, Object that);
 
   @Specialization
-  Atom doLong(double _this, long that) {
-    if (_this == that) {
+  Atom doLong(double self, long that) {
+    if (self == that) {
       return getOrdering().newEqual();
-    } else if (_this > that) {
+    } else if (self > that) {
       return getOrdering().newGreater();
     } else {
       return getOrdering().newLess();
@@ -32,15 +32,15 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doBigInt(double _this, EnsoBigInteger that) {
-    return getOrdering().fromJava(BigIntegerOps.compareTo(_this, that.getValue()));
+  Atom doBigInt(double self, EnsoBigInteger that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(self, that.getValue()));
   }
 
   @Specialization
-  Atom doDecimal(double _this, double that) {
-    if (_this == that) {
+  Atom doDecimal(double self, double that) {
+    if (self == that) {
       return getOrdering().newEqual();
-    } else if (_this > that) {
+    } else if (self > that) {
       return getOrdering().newGreater();
     } else {
       return getOrdering().newLess();
@@ -48,7 +48,7 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doOther(double _this, Object that) {
+  Atom doOther(double self, Object that) {
     CompilerDirectives.transferToInterpreter();
     var number = Context.get(this).getBuiltins().number().getNumber().newInstance();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");

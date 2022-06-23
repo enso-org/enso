@@ -200,7 +200,7 @@ type File
                  file.with_output_stream [Option.Create, Option.Write] action
     with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream open_options action =
-        Resource.bracket (this.new_output_stream open_options) (_.close) action
+        Resource.bracket (self.new_output_stream open_options) (_.close) action
 
     ## PRIVATE
 
@@ -248,7 +248,7 @@ type File
                  file.with_input_stream [Option.Create, Option.Read] action
     with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream open_options action =
-        Resource.bracket (this.new_input_stream open_options) (_.close) action
+        Resource.bracket (self.new_input_stream open_options) (_.close) action
 
     ## Reads all bytes in this file into a byte vector.
 
@@ -261,7 +261,7 @@ type File
     read_bytes : Vector.Vector ! File_Error
     read_bytes =
         opts = [Option.Read]
-        this.with_input_stream opts (_.read_all_bytes)
+        self.with_input_stream opts (_.read_all_bytes)
 
     ## Reads the whole file into a `Text`, with specified encoding.
 
@@ -281,7 +281,7 @@ type File
              example_read = Examples.csv.read
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
     read_text (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
-        bytes = this.read_bytes
+        bytes = self.read_bytes
         Text.from_bytes bytes encoding on_problems
 
     ## Appends a number of bytes at the end of this file.
@@ -298,7 +298,7 @@ type File
     append_bytes : Vector.Vector -> Nothing ! File_Error
     append_bytes contents =
         opts = [Option.Append, Option.Create]
-        this.with_output_stream opts (_.write_bytes contents)
+        self.with_output_stream opts (_.write_bytes contents)
 
     ## Writes a number of bytes into this file, replacing any existing contents.
 
@@ -316,13 +316,13 @@ type File
     write_bytes : Vector.Vector -> Nothing ! File_Error
     write_bytes contents =
         opts = [Option.Write, Option.Create, Option.Truncate_Existing]
-        this.with_output_stream opts (_.write_bytes contents)
+        self.with_output_stream opts (_.write_bytes contents)
         Nothing
 
     ## Join two path segments together.
 
        Arguments:
-       - subpath: The path to join to the path of `this`.
+       - subpath: The path to join to the path of `self`.
 
        > Example
          Concatenate two file path segments.
@@ -331,7 +331,7 @@ type File
 
              example_append = Examples.data_dir / "scratch_file"
     / : (Text | File) -> File
-    / subpath = this.resolve subpath
+    / subpath = self.resolve subpath
 
     resolve : (Text | File) -> File
     resolve = @Builtin_Method "File.resolve"
@@ -345,7 +345,7 @@ type File
 
              example_to_json = Examples.csv.to_json
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "File"], ["path", this.path]]
+    to_json = Json.from_pairs [["type", "File"], ["path", self.path]]
 
     ## Checks whether the file exists.
 
@@ -442,7 +442,7 @@ type File
              Examples.csv.extension == ".csv"
     extension : Text
     extension =
-        name = this.name
+        name = self.name
         last_dot = name.location_of "." mode=Matching_Mode.last
         if last_dot.is_nothing then "" else
             extension = name.drop (Text_Sub_Range.First last_dot.start)
@@ -509,7 +509,7 @@ type File
                  file.delete
     delete : Nothing ! File_Error
     delete =
-        here.handle_java_exceptions this this.delete_builtin
+        here.handle_java_exceptions self self.delete_builtin
 
     ## PRIVATE
 
@@ -526,11 +526,11 @@ type File
          destination file already exists. Defaults to `True`.
     move_to : File -> Boolean -> Nothing ! File_Error
     move_to destination replace_existing=True =
-        here.handle_java_exceptions this <| case replace_existing of
+        here.handle_java_exceptions self <| case replace_existing of
             True ->
               copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
-              this.move_builtin destination copy_options
-            False -> this.move_builtin destination Array.empty
+              self.move_builtin destination copy_options
+            False -> self.move_builtin destination Array.empty
 
     ## PRIVATE
 
@@ -551,7 +551,7 @@ type File
 
              example_del_if_exists = Examples.scratch_file.delete_if_exists
     delete_if_exists : Nothing ! File_Error
-    delete_if_exists = if this.exists then this.delete else Nothing
+    delete_if_exists = if self.exists then self.delete else Nothing
 
     ## ADVANCED
 
@@ -566,9 +566,9 @@ type File
     new_input_stream : Vector.Vector -> Input_Stream ! File_Error
     new_input_stream open_options =
         opts = open_options . map (_.to_java) . to_array
-        stream = here.handle_java_exceptions this (this.input_stream opts)
+        stream = here.handle_java_exceptions self (self.input_stream opts)
         resource = Managed_Resource.register stream here.close_stream
-        Input_Stream this resource
+        Input_Stream self resource
 
     ## ADVANCED
 
@@ -583,10 +583,10 @@ type File
     new_output_stream : Vector.Vector -> Output_Stream ! File_Error
     new_output_stream open_options =
         opts = open_options . map (_.to_java) . to_array
-        stream = here.handle_java_exceptions this <|
-            this.output_stream opts
+        stream = here.handle_java_exceptions self <|
+            self.output_stream opts
         resource = Managed_Resource.register stream here.close_stream
-        Output_Stream this resource
+        Output_Stream self resource
 
     ## Lists files contained in the directory denoted by this file.
 
@@ -643,27 +643,27 @@ type File
     list : Text -> Boolean -> Vector.Vector File
     list name_filter=Nothing recursive=False =
         all_files = case recursive of
-            True -> here.list_descendants this
-            False -> this.list_immediate_children
+            True -> here.list_descendants self
+            False -> self.list_immediate_children
         filtered = case name_filter of
             Nothing -> all_files
             _ ->
                 fs = FileSystems.getDefault
                 matcher = fs.getPathMatcher "glob:"+name_filter
                 all_files.filter file->
-                    pathStr = this.relativize file . path
+                    pathStr = self.relativize file . path
                     matcher.matches (Path.of pathStr)
         filtered
 
     ## UNSTABLE
 
-       Checks if `this` is a child path of `other`.
+       Checks if `self` is a child path of `other`.
     is_child_of : File -> Boolean
-    is_child_of other = this.starts_with other
+    is_child_of other = self.starts_with other
 
     ## UNSTABLE
 
-       Transforms `child` to a relative path with respect to `this`.
+       Transforms `child` to a relative path with respect to `self`.
     relativize : File -> Boolean
     relativize child = @Builtin_Method "File.relativize"
 
@@ -672,7 +672,7 @@ type File
 
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector.Vector File
-    list_immediate_children = Vector.Vector (this.list_immediate_children_array)
+    list_immediate_children = Vector.Vector (self.list_immediate_children_array)
 
     ## PRIVATE
 
@@ -684,7 +684,7 @@ type File
 
        Return the absolute path of this File
     to_text : Text
-    to_text = this.absolute . path
+    to_text = self.absolute . path
 
 ## An output stream, allowing for interactive writing of contents into an
    open file.
@@ -720,8 +720,8 @@ type Output_Stream
                  out_stream.write_bytes "hello".utf_8
                  out_stream.close
     write_bytes : Vector.Vector -> Nothing ! File_Error
-    write_bytes contents = this.stream_resource . with java_stream->
-        here.handle_java_exceptions this.file <|
+    write_bytes contents = self.stream_resource . with java_stream->
+        here.handle_java_exceptions self.file <|
             java_stream.write contents.to_array
             java_stream.flush
         Nothing
@@ -745,7 +745,7 @@ type Output_Stream
                  out_stream = file.new_output_stream [Option.Create]
                  out_stream.close
     close : Nothing
-    close = this.stream_resource . finalize
+    close = self.stream_resource . finalize
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.
@@ -779,8 +779,8 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_all_bytes : Vector.Vector ! File_Error
-    read_all_bytes = this.stream_resource . with java_stream->
-        here.handle_java_exceptions this.file <|
+    read_all_bytes = self.stream_resource . with java_stream->
+        here.handle_java_exceptions self.file <|
             Vector.Vector java_stream.readAllBytes
 
     ## ADVANCED
@@ -809,8 +809,8 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_n_bytes : Integer -> Vector.Vector ! File_Error
-    read_n_bytes n = this.stream_resource . with java_stream->
-        here.handle_java_exceptions this.file <|
+    read_n_bytes n = self.stream_resource . with java_stream->
+        here.handle_java_exceptions self.file <|
             bytes = java_stream.readNBytes n
             Vector.Vector bytes
 
@@ -834,8 +834,8 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_byte : Integer ! File_Error
-    read_byte = this.stream_resource . with java_stream->
-        here.handle_java_exceptions this.file <|
+    read_byte = self.stream_resource . with java_stream->
+        here.handle_java_exceptions self.file <|
             java_stream.read
 
     ## ADVANCED
@@ -857,7 +857,7 @@ type Input_Stream
                  in_stream = file.new_input_stream [Option.Read]
                  in_stream.close
     close : Nothing
-    close = this.stream_resource . finalize
+    close = self.stream_resource . finalize
 
     ## PRIVATE
 
@@ -869,7 +869,7 @@ type Input_Stream
        Useful when integrating with polyglot functions requiring an
        `InputStream` as an argument.
     with_java_stream : (Java_Input_Stream -> Any) -> Any
-    with_java_stream f = this.stream_resource . with f
+    with_java_stream f = self.stream_resource . with f
 
 
 ## PRIVATE
@@ -919,7 +919,7 @@ type File_Error
 
        Convert the File error to a human-readable format.
     to_display_text : Text
-    to_display_text = case this of
+    to_display_text = case self of
         File_Not_Found  file -> "The file at " + file.path + " does not exist."
         Io_Error file msg -> msg.to_text + " (" + file.path + ")."
         File_Already_Exists_Error file -> "The file at "+file.path+" already exists."
@@ -980,7 +980,7 @@ get_file path = @Builtin_Method "File.get_file"
    Otherwise, the file is created with the encoded text written to it.
 Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
 Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
-    bytes = this.bytes encoding on_problems
+    bytes = self.bytes encoding on_problems
     file = here.new path
     on_existing_file.write file stream->
         stream.write_bytes bytes

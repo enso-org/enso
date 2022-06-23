@@ -58,31 +58,31 @@ class ModuleThisToHereTest extends CompilerTest {
         |type Foo a b c
         |
         |Foo.method =
-        |    x = this * this + this
-        |    y = case this of
-        |        A -> this * here
-        |    z = y -> this + y
+        |    x = self * self + self
+        |    y = case self of
+        |        A -> self * here
+        |    z = y -> self + y
         |
         |method =
-        |    x = this * this + this
-        |    y = case this of
-        |        A -> this * here
-        |    z = y -> this + y
+        |    x = self * self + self
+        |    y = case self of
+        |        A -> self * here
+        |    z = y -> self + y
         |
         |from (that : Foo) =
-        |    x = this * this + this
-        |    y = case this of
-        |        A -> this * here
-        |    z = y -> this + y
+        |    x = self * self + self
+        |    y = case self of
+        |        A -> self * here
+        |    z = y -> self + y
         |
         |Foo.from (that : Foo) =
-        |    x = this * this + this
-        |    y = case this of
-        |        A -> this * here
-        |    z = y -> this + y
+        |    x = self * self + self
+        |    y = case self of
+        |        A -> self * here
+        |    z = y -> self + y
         |""".stripMargin.preprocessModule.analyse
 
-    "desugar this to here in module methods" in {
+    "desugar self to here in module methods" in {
       val method2 = ir
         .bindings(2)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
@@ -90,13 +90,13 @@ class ModuleThisToHereTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
       val children        = method2.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val selfOccurrences = children.collect { case n: IR.Name.Self => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
-      thisOccurrences.length shouldEqual 0
+      selfOccurrences.length shouldEqual 0
       hereOccurrences.length shouldEqual 7
     }
 
-    "leave occurrences of this and here untouched in non-module methods" in {
+    "leave occurrences of self and here untouched in non-module methods" in {
       val method1 = ir
         .bindings(1)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
@@ -104,13 +104,13 @@ class ModuleThisToHereTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
       val children        = method1.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val selfOccurrences = children.collect { case n: IR.Name.Self => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
-      thisOccurrences.length shouldEqual 6
+      selfOccurrences.length shouldEqual 6
       hereOccurrences.length shouldEqual 1
     }
 
-    "desugar this to here in module conversions" in {
+    "desugar self to here in module conversions" in {
       val conv1 = ir
         .bindings(3)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
@@ -118,13 +118,13 @@ class ModuleThisToHereTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
       val children        = conv1.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val selfOccurrences = children.collect { case n: IR.Name.Self => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
-      thisOccurrences.length shouldEqual 0
+      selfOccurrences.length shouldEqual 0
       hereOccurrences.length shouldEqual 7
     }
 
-    "leave occurrences of this and here untouched in non-module conversions" in {
+    "leave occurrences of self and here untouched in non-module conversions" in {
       val conv2 = ir
         .bindings(4)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
@@ -132,9 +132,9 @@ class ModuleThisToHereTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
       val children        = conv2.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val selfOccurrences = children.collect { case n: IR.Name.Self => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
-      thisOccurrences.length shouldEqual 6
+      selfOccurrences.length shouldEqual 6
       hereOccurrences.length shouldEqual 1
     }
   }

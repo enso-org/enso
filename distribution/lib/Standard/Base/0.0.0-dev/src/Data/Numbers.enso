@@ -112,7 +112,7 @@ type Number
 
              1.asin
     asin : Decimal
-    asin = Math.asin this.to_decimal
+    asin = Math.asin self.to_decimal
 
     ## ALIAS Inverse Cosine
 
@@ -125,7 +125,7 @@ type Number
 
              1.acos
     acos : Decimal
-    acos = Math.acos this.to_decimal
+    acos = Math.acos self.to_decimal
 
     ## ALIAS Inverse Tangent
 
@@ -138,10 +138,10 @@ type Number
 
              1.atan
     atan : Decimal
-    atan = Math.atan this.to_decimal
+    atan = Math.atan self.to_decimal
 
     ## Computes the argument (angle) in the conversion from cartesian
-       to polar coordinates, taking `this` as the x coordinate.
+       to polar coordinates, taking `self` as the x coordinate.
 
        Arguments:
        - y: The y coordinate.
@@ -153,7 +153,7 @@ type Number
 
              1.atan_2 2
     atan_2 : Number -> Decimal
-    atan_2 y = Math.atan2 this.to_decimal y.to_decimal
+    atan_2 y = Math.atan2 self.to_decimal y.to_decimal
 
     ## ALIAS Sine
 
@@ -164,7 +164,7 @@ type Number
 
              2.sin
     sin : Decimal
-    sin = Math.sin this.to_decimal
+    sin = Math.sin self.to_decimal
 
     ## ALIAS Cosine
 
@@ -175,7 +175,7 @@ type Number
 
              2.cos
     cos : Decimal
-    cos = Math.cos this.to_decimal
+    cos = Math.cos self.to_decimal
 
     ## ALIAS Tangent
 
@@ -186,7 +186,7 @@ type Number
 
              2.tan
     tan : Decimal
-    tan = Math.tan this.to_decimal
+    tan = Math.tan self.to_decimal
 
     ## Computes the hyperbolic sine function.
 
@@ -195,7 +195,7 @@ type Number
 
              1.sinh
     sinh : Decimal
-    sinh = Math.sinh this.to_decimal
+    sinh = Math.sinh self.to_decimal
 
     ## Computes the hyperbolic cosine function.
 
@@ -204,7 +204,7 @@ type Number
 
              1.cosh
     cosh : Decimal
-    cosh = Math.cosh this.to_decimal
+    cosh = Math.cosh self.to_decimal
 
     ## Computes the hyperbolic tangent function.
 
@@ -213,19 +213,19 @@ type Number
 
              1.tanh
     tanh : Decimal
-    tanh = Math.tanh this.to_decimal
+    tanh = Math.tanh self.to_decimal
 
     ## ALIAS Exponential
 
        Computes the exponential function, raising Euler's number `r` to the power of
-       `this`.
+       `self`.
 
        > Example
          Calculate e to the 4th power.
 
              4.exp
     exp : Decimal
-    exp = Math.exp this.to_decimal
+    exp = Math.exp self.to_decimal
 
     ## ALIAS Natural Logarithm
 
@@ -236,22 +236,22 @@ type Number
 
              2.ln
     ln : Decimal
-    ln = Math.log this.to_decimal
+    ln = Math.log self.to_decimal
 
     ## ALIAS Square Root
 
-       Computes the square root of `this`.
+       Computes the square root of `self`.
 
        > Example
          Calculate the square root of 8.
 
              8.sqrt
     sqrt : Decimal
-    sqrt = Math.sqrt this.to_decimal
+    sqrt = Math.sqrt self.to_decimal
 
     ## ALIAS Logarithm
 
-       Computes the `base`-log of `this`.
+       Computes the `base`-log of `self`.
 
        Arguments:
        - base: The base for the logarithm.
@@ -261,7 +261,7 @@ type Number
 
              4.log 2
     log : Number -> Decimal
-    log base = this.ln / base.ln
+    log base = self.ln / base.ln
 
     ## UNSTABLE This API is not user-friendly and will be improved in the future.
 
@@ -276,13 +276,13 @@ type Number
 
              5.format "%x"
     format : Text -> Text
-    format fmt = String.format fmt this
+    format fmt = String.format fmt self
 
     ## Checks equality of numbers, using an `epsilon` value.
 
        Arguments:
        - that: The number to check equality against.
-       - epsilon: The value by which `this` and `that` can be separated by before
+       - epsilon: The value by which `self` and `that` can be separated by before
          counting as not equal.
 
        > Example
@@ -291,12 +291,12 @@ type Number
              1.equals 1.0000001 epsilon=0.001
     equals : Number -> Number -> Boolean
     equals that epsilon=0.0 =
-        (this == that) || ((this - that).abs <= epsilon)
+        (self == that) || ((self - that).abs <= epsilon)
 
-    ## Returns the smaller value of `this` and `that`.
+    ## Returns the smaller value of `self` and `that`.
 
        Arguments:
-       - that: The number to compare `this` against.
+       - that: The number to compare `self` against.
 
        ? Math.min or Number.min
          While we provide the min method on `Number`, we find it more intuitive to
@@ -308,12 +308,12 @@ type Number
 
              2.min 5
     min : Number -> Number
-    min that = if this < that then this else that
+    min that = if self < that then self else that
 
-    ## Returns the larger value of `this` and `that`.
+    ## Returns the larger value of `self` and `that`.
 
        Arguments:
-       - that: The number to compare `this` against.
+       - that: The number to compare `self` against.
 
        ? Math.max or Number.max
          While we provide the max method on `Number`, we find it more intuitive to
@@ -325,7 +325,7 @@ type Number
 
              2.max 5
     max : Number -> Number
-    max that = if this > that then this else that
+    max that = if self > that then self else that
 
     ## Number to JSON conversion.
 
@@ -334,7 +334,7 @@ type Number
 
              8.to_json
     to_json : Json.Number
-    to_json = Json.Number this
+    to_json = Json.Number self
 
     ## A constant holding the floating-point positive infinity.
     positive_infinity : Decimal
@@ -353,15 +353,15 @@ type Number
        This is needed, because the NaN value will return `False` even when being
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
-    is_nan = case this of
-        Decimal -> Double.isNaN this
+    is_nan = case self of
+        Decimal -> Double.isNaN self
         _ -> False
 
     ## Returns the sign of the number.
     signum : Integer
     signum =
-        if this > 0 then 1 else
-            if this < 0 then -1 else 0
+        if self > 0 then 1 else
+            if self < 0 then -1 else 0
 
 
 ## Decimal numbers.
@@ -1000,4 +1000,4 @@ type Parse_Error text
    Pretty print the syntax error.
 Parse_Error.to_display_text : Text
 Parse_Error.to_display_text =
-    "Could not parse " + this.text.to_text + " as a double."
+    "Could not parse " + self.text.to_text + " as a double."

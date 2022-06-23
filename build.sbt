@@ -1158,7 +1158,7 @@ lazy val frgaalJavaCompilerSetting = Seq(
   // accessible from the non-meta build definition.
   libraryDependencies += FrgaalJavaCompiler.frgaal,
   // Ensure that our tooling uses the right Java version for checking the code.
-  Compile / javacOptions ++= Seq("-source", frgaalSourceLevel)
+  Compile / javacOptions ++= Seq("-source", frgaalSourceLevel, "--enable-preview"),
 )
 
 
@@ -1167,7 +1167,7 @@ lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
   commands += WithDebugCommand.withDebug,
   Compile/logManager :=
     sbt.internal.util.CustomLogManager.excludeMsg("Could not determine source for class ", Level.Warn),
-  Compile / javacOptions --= Seq("-source", frgaalSourceLevel),
+  Compile / javacOptions --= Seq("-source", frgaalSourceLevel, "--enable-preview"),
   libraryDependencies ++= Seq(
     "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
     "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
@@ -1198,7 +1198,7 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Benchmark)(
       Defaults.compilersSetting
     ), // Compile benchmarks with javac, due to jmh issues
-    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel, "--enable-preview"),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
@@ -1326,7 +1326,7 @@ lazy val `runtime-with-instruments`  = (project in file("engine/runtime-with-ins
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     commands += WithDebugCommand.withDebug,
-    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel, "--enable-preview"),
     Test / javaOptions ++= Seq(
       "-Dgraalvm.locatorDisabled=true",
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"

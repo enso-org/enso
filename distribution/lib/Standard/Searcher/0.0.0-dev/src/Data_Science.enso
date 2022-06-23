@@ -9,9 +9,10 @@
      Read the active sheet of an XLSX from disk and convert it into a table.
 
          import Standard.Table
+         import Standard.Table.Io.File_Read
          import Standard.Examples
 
-         example_xlsx_to_table = Examples.xlsx.read_xlsx
+         example_xlsx_to_table = Examples.xlsx.read
 
    > Example
      Write a table to an XLSX file.

@@ -85,7 +85,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |type MyRecovered x
           |type MyError x
           |
-          |MyError.recover = case this of
+          |MyError.recover = case self of
           |    MyError x -> MyRecovered x
           |
           |main =

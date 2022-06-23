@@ -1,16 +1,12 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.WeakHashMap;
 import java.util.function.Consumer;
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
@@ -270,26 +266,6 @@ public interface IdExecutionService {
     /** @return the name of this function. */
     public String getFunctionName() {
       return functionName;
-    }
-  }
-
-  /** Allows communication between patched module values & ID execution instrument. */
-  public static final UnwindHelper UNWIND_HELPER = new UnwindHelper();
-
-  /** Support for communication between patched module values & ID execution instrument. */
-  public static final class UnwindHelper {
-    private final Map<Throwable, Object> VALUES = new WeakHashMap<>();
-
-    private UnwindHelper() {}
-
-    public synchronized void registerValue(Throwable t, Object v) {
-      CompilerAsserts.neverPartOfCompilation();
-      VALUES.put(t, v);
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    public synchronized Object patchedValue(Throwable t) {
-      return VALUES.get(t);
     }
   }
 }

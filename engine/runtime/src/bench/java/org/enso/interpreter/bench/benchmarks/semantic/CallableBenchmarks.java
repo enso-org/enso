@@ -3,7 +3,6 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 import java.util.concurrent.TimeUnit;
 
 import org.enso.interpreter.bench.fixtures.semantic.CallableFixtures;
-import org.enso.interpreter.bench.fixtures.semantic.NamedDefaultedArgumentFixtures;
 import org.enso.interpreter.test.DefaultInterpreterRunner;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;

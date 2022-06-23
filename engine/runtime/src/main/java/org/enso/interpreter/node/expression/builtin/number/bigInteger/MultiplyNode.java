@@ -16,29 +16,29 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class MultiplyNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  public abstract Object execute(EnsoBigInteger _this, Object that);
+  public abstract Object execute(EnsoBigInteger self, Object that);
 
   public static MultiplyNode build() {
     return MultiplyNodeGen.create();
   }
 
   @Specialization
-  Object doLong(EnsoBigInteger _this, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.multiply(_this.getValue(), that));
+  Object doLong(EnsoBigInteger self, long that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.multiply(self.getValue(), that));
   }
 
   @Specialization
-  Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.multiply(_this.getValue(), that.getValue()));
+  Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.multiply(self.getValue(), that.getValue()));
   }
 
   @Specialization
-  double doDouble(EnsoBigInteger _this, double that) {
-    return BigIntegerOps.toDouble(_this.getValue()) * that;
+  double doDouble(EnsoBigInteger self, double that) {
+    return BigIntegerOps.toDouble(self.getValue()) * that;
   }
 
   @Fallback
-  Object doOther(EnsoBigInteger _this, Object that) {
+  Object doOther(EnsoBigInteger self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

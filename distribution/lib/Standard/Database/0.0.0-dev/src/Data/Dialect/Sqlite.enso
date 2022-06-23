@@ -34,7 +34,7 @@ type Sqlite_Dialect
        according to the specific dialect.
     generate_sql : Query -> Sql.Statement
     generate_sql query =
-        Base_Generator.generate_query this.internal_generator_dialect query . build
+        Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
        Deduces the result type for an aggregation operation.

@@ -247,7 +247,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
             + suffix
             + "("
             + thisParamTpe
-            + " _this"
+            + " self"
             + paramsDef
             + ")";
     String paramsApplied;
@@ -268,7 +268,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     if (isConstructor) {
       methodBody.add("  return new " + owner + "(" + paramsApplied + ");");
     } else {
-      String qual = isStatic ? owner : "_this";
+      String qual = isStatic ? owner : "self";
       switch (returnTpe.kind()) {
         case VOID:
           methodBody.add("  " + qual + "." + name + "(" + paramsApplied + ");");

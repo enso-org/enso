@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
     name = "set_atom_field",
     description = "Unsafely, in place, sets the value of an atom field by index.")
 public class SetAtomFieldNode extends Node {
-  Atom execute(Object _this, Atom atom, long index, Object value) {
+  Atom execute(Object self, Atom atom, long index, Object value) {
     atom.getFields()[(int) index] = value;
     return atom;
   }

@@ -12,7 +12,7 @@ from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
 Text.slice_utf_16 start end =
-    chars = this.utf_16.drop_start start . drop_end (this.length - end)
+    chars = self.utf_16.drop_start start . drop_end (self.length - end)
     Text.from_utf_16 chars
 
 default_mask = Java_Pattern.CANON_EQ.bit_or Java_Pattern.UNICODE_CASE . bit_or Java_Pattern.UNICODE_CHARACTER_CLASS
@@ -584,7 +584,7 @@ spec =
         match = pattern.match input mode=Mode.First
         match . should_be_a Default_Engine.Match
 
-        Test.specify "should return the region start over which this match was performed" <|
+        Test.specify "should return the region start over which self match was performed" <|
             match.start_position . should_equal 0
 
     Test.group "Match.end_position" <|
@@ -594,7 +594,7 @@ spec =
         match = pattern.match input mode=Mode.First
         match . should_be_a Default_Engine.Match
 
-        Test.specify "should return the region end over which this match was performed" <|
+        Test.specify "should return the region end over which self match was performed" <|
             match.end_position . should_equal 18
 
 main = Test.Suite.run_main here.spec

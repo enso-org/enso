@@ -44,7 +44,7 @@ type Column
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
-        this.to_table.display show_rows format_terminal
+        self.to_table.display show_rows format_terminal
 
     ## UNSTABLE
 
@@ -54,21 +54,21 @@ type Column
          - show_rows: the number of initial rows that should be displayed.
     print : Nothing
     print show_rows=10 =
-        IO.println (this.display show_rows format_terminal=True)
+        IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
     ## UNSTABLE
 
        Converts this column to JSON.
     to_json : Json
-    to_json = this.to_sql.to_json
+    to_json = self.to_sql.to_json
 
     ## UNSTABLE
 
        Converts this column into a single-column table.
     to_table : Table.Table
     to_table =
-        Table.Table this.name this.connection [this.as_internal] this.context
+        Table.Table self.name self.connection [self.as_internal] self.context
 
     ## UNSTABLE
 
@@ -79,8 +79,8 @@ type Column
          available rows are fetched.
     to_dataframe : (Nothing | Integer) -> Materialized_Column.Column
     to_dataframe max_rows=Nothing =
-        df = this.to_table.to_dataframe max_rows
-        df.at this.name
+        df = self.to_table.to_dataframe max_rows
+        df.at self.name
 
     ## UNSTABLE
 
@@ -89,16 +89,16 @@ type Column
     to_vector =
         ## We remove the index to avoid fetching index data that will not be
            used anyway when constructing the raw Vector.
-        without_ix = this.to_table.set_index []
+        without_ix = self.to_table.set_index []
         df = without_ix . to_dataframe
-        raw_column = df.at this.name
+        raw_column = df.at self.name
         raw_column.to_vector
 
     ## UNSTABLE
 
        Returns an Sql statement that will be used for materializing this column.
     to_sql : Sql.Statement
-    to_sql = this.to_table.to_sql
+    to_sql = self.to_table.to_sql
 
     ## PRIVATE
 
@@ -116,20 +116,20 @@ type Column
        defaults to the current type if not provided.
     make_binary_op : Text -> Text -> (Column | Any) -> (Sql_Type | Nothing) -> (Sql_Type | Nothing) -> Column
     make_binary_op op_kind operand new_type=Nothing operand_type=Nothing =
-        actual_new_type = new_type.if_nothing this.sql_type
+        actual_new_type = new_type.if_nothing self.sql_type
         case operand of
             Column _ _ _ other_expr _ ->
-                case Helpers.check_integrity this operand of
+                case Helpers.check_integrity self operand of
                     False ->
                         Error.throw <| Unsupported_Database_Operation_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
-                        new_expr = IR.Operation op_kind [this.expression, other_expr]
-                        Column this.name this.connection actual_new_type new_expr this.context
+                        new_expr = IR.Operation op_kind [self.expression, other_expr]
+                        Column self.name self.connection actual_new_type new_expr self.context
             _ ->
-                actual_operand_type = operand_type.if_nothing this.sql_type
+                actual_operand_type = operand_type.if_nothing self.sql_type
                 other = IR.make_constant actual_operand_type operand
-                new_expr = IR.Operation op_kind [this.expression, other]
-                Column this.name this.connection actual_new_type new_expr this.context
+                new_expr = IR.Operation op_kind [self.expression, other]
+                Column self.name self.connection actual_new_type new_expr self.context
 
     ## PRIVATE
 
@@ -141,9 +141,9 @@ type Column
          operator.
     make_unary_op : Text -> Text -> (Sql_Type | Nothing) -> Column
     make_unary_op op_kind new_type=Nothing =
-        actual_new_type = new_type.if_nothing this.sql_type
-        new_expr = IR.Operation op_kind [this.expression]
-        Column this.name this.connection actual_new_type new_expr this.context
+        actual_new_type = new_type.if_nothing self.sql_type
+        new_expr = IR.Operation op_kind [self.expression]
+        Column self.name self.connection actual_new_type new_expr self.context
 
     ## UNSTABLE
 
@@ -151,46 +151,46 @@ type Column
 
        Arguments:
        - other: the table being the right operand of this join operation.
-       - on: the column(s) or expression(s) of `this` that should be used as
-         the join key. If this argument is not provided, the index of `this`
+       - on: the column(s) or expression(s) of `self` that should be used as
+         the join key. If this argument is not provided, the index of `self`
          will be used.
-       - drop_unmatched: whether the rows of `this` without corresponding
+       - drop_unmatched: whether the rows of `self` without corresponding
          matches in `other` should be dropped from the result.
-       - left_suffix: a suffix that should be added to the columns of `this`
+       - left_suffix: a suffix that should be added to the columns of `self`
          when there's a name conflict with a column of `other`.
        - right_suffix: a suffix that should be added to the columns of `other`
-         when there's a name conflict with a column of `this`.
+         when there's a name conflict with a column of `self`.
 
-       The resulting table contains rows of `this` extended with rows of
+       The resulting table contains rows of `self` extended with rows of
        `other` with matching indexes. If the index in `other` is not unique,
-       the corresponding rows of `this` will be duplicated in the result.
+       the corresponding rows of `self` will be duplicated in the result.
     join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
-        this.to_table.join other on drop_unmatched left_suffix right_suffix
+        self.to_table.join other on drop_unmatched left_suffix right_suffix
 
     ## UNSTABLE
 
        Sums the values in this column.
     sum : Any
-    sum = this.compute_aggregate "SUM"
+    sum = self.compute_aggregate "SUM"
 
     ## UNSTABLE
 
        Computes the maximum element of this column.
     max : Any
-    max = this.compute_aggregate "MAX"
+    max = self.compute_aggregate "MAX"
 
     ## UNSTABLE
 
        Computes the minimum element of this column.
     min : Any
-    min = this.compute_aggregate "MIN"
+    min = self.compute_aggregate "MIN"
 
     ## UNSTABLE
 
        Computes the mean of non-missing elements of this column.
     mean : Any
-    mean = this.compute_aggregate "AVG"
+    mean = self.compute_aggregate "AVG"
 
     ## PRIVATE
 
@@ -200,26 +200,26 @@ type Column
        - op_name: The name of the operator to compute.
     compute_aggregate : Text
     compute_aggregate op_name =
-        agg = here.make_aggregate this op_name
+        agg = here.make_aggregate self op_name
         agg.to_vector . at 0
 
     ## UNSTABLE
 
        Returns the length of this column.
     length : Integer
-    length = this.to_table.row_count
+    length = self.to_table.row_count
 
     ## UNSTABLE
 
        Returns the number of missing items in this column.
     count_missing : Integer
-    count_missing = this.where this.is_missing . length
+    count_missing = self.where self.is_missing . length
 
     ## UNSTABLE
 
        Returns the number of non-null items in this column.
     count : Integer
-    count = this.where this.is_missing.not . length
+    count = self.where self.is_missing.not . length
 
     ## UNSTABLE
 
@@ -230,9 +230,9 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `this` and `other`.
+       between corresponding elements of `self` and `other`.
     == : Column | Any -> Column
-    == other = this.make_binary_op "=" other new_type=Sql_Type.boolean
+    == other = self.make_binary_op "=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -243,9 +243,9 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `this` and `other`.
+       between corresponding elements of `self` and `other`.
     != : Column | Any -> Column
-    != other = this.make_binary_op "!=" other new_type=Sql_Type.boolean
+    != other = self.make_binary_op "!=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -256,9 +256,9 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `this` and `other`.
+       between corresponding elements of `self` and `other`.
     >= : Column | Any -> Column
-    >= other = this.make_binary_op ">=" other new_type=Sql_Type.boolean
+    >= other = self.make_binary_op ">=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -269,9 +269,9 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `this` and `other`.
+       between corresponding elements of `self` and `other`.
     <= : Column | Any -> Column
-    <= other = this.make_binary_op "<=" other new_type=Sql_Type.boolean
+    <= other = self.make_binary_op "<=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -282,9 +282,9 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `this` and `other`.
+       between corresponding elements of `self` and `other`.
     > : Column | Any -> Column
-    > other = this.make_binary_op ">" other new_type=Sql_Type.boolean
+    > other = self.make_binary_op ">" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -295,9 +295,9 @@ type Column
 
        Returns a column with results of comparing this column's elements against
        `other`.  If `other` is a column, the comparison is performed pairwise
-       between corresponding elements of `this` and `other`.
+       between corresponding elements of `self` and `other`.
     < : Column | Any -> Column
-    < other = this.make_binary_op "<" other new_type=Sql_Type.boolean
+    < other = self.make_binary_op "<" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -307,10 +307,10 @@ type Column
        - other: The other column to add to this column.
 
        Returns a column containing the result of adding `other` to each element
-       of `this`.  If `other` is a column, the operation is performed pairwise
-       between corresponding elements of `this` and `other`.
+       of `self`.  If `other` is a column, the operation is performed pairwise
+       between corresponding elements of `self` and `other`.
     + : Column | Any -> Column
-    + other = this.make_binary_op "+" other
+    + other = self.make_binary_op "+" other
 
     ## UNSTABLE
 
@@ -320,36 +320,36 @@ type Column
        - other: The other column to subtract from this column.
 
        Returns a column containing the result of subtracting `other` from each
-       element of `this`.  If `other` is a column, the operation is performed
-       pairwise between corresponding elements of `this` and `other`.
+       element of `self`.  If `other` is a column, the operation is performed
+       pairwise between corresponding elements of `self` and `other`.
     - : Column | Any -> Column
-    - other = this.make_binary_op "-" other
+    - other = self.make_binary_op "-" other
 
     ## UNSTABLE
 
        Element-wise multiplication.
 
        Arguments:
-       - other: The other column to multiply `this` by.
+       - other: The other column to multiply `self` by.
 
        Returns a column containing the result of multiplying `other` by each
-       element of `this`.  If `other` is a column, the operation is performed
-       pairwise between corresponding elements of `this` and `other`.
+       element of `self`.  If `other` is a column, the operation is performed
+       pairwise between corresponding elements of `self` and `other`.
     * : Column | Any -> Column
-    * other = this.make_binary_op "*" other
+    * other = self.make_binary_op "*" other
 
     ## UNSTABLE
 
        Element-wise division.
 
        Arguments:
-       - other: The other column to divide `this` column by.
+       - other: The other column to divide `self` column by.
 
-       Returns a column containing the result of dividing each element of `this`
+       Returns a column containing the result of dividing each element of `self`
        by `other`.  If `other` is a column, the operation is performed pairwise
-       between corresponding elements of `this` and `other`.
+       between corresponding elements of `self` and `other`.
     / : Column | Any -> Column
-    / other = this.make_binary_op "/" other
+    / other = self.make_binary_op "/" other
 
     ## UNSTABLE
 
@@ -359,11 +359,11 @@ type Column
        - other: The other column to compute the conjunction with.
 
        Returns a column containing the result of performing the boolean `and` on
-       `other` and each element of `this`.  If `other` is a column, the
-       operation is performed pairwise between corresponding elements of `this` ]
+       `other` and each element of `self`.  If `other` is a column, the
+       operation is performed pairwise between corresponding elements of `self`
        and `other`.
     && : Column | Any -> Column
-    && other = this.make_binary_op "AND" other
+    && other = self.make_binary_op "AND" other
 
     ## UNSTABLE
 
@@ -373,31 +373,31 @@ type Column
        - other: The other column to compute the disjunction with.
 
        Returns a column containing the result of performing the boolean `or` on
-       `other` and each element of `this`.  If `other` is a column, the
-       operation is performed pairwise between corresponding elements of `this`
+       `other` and each element of `self`.  If `other` is a column, the
+       operation is performed pairwise between corresponding elements of `self`
        and `other`.
     || : Column | Any -> Column
-    || other = this.make_binary_op "OR" other
+    || other = self.make_binary_op "OR" other
 
     ## UNSTABLE
 
        Boolean negation of each element in this column.
     not : Column
-    not = this.make_unary_op "NOT"
+    not = self.make_unary_op "NOT"
 
     ## UNSTABLE
 
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing = this.make_unary_op "ISNULL" new_type=Sql_Type.boolean
+    is_missing = self.make_unary_op "ISNULL" new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
        Returns a new column where missing values have been replaced with the
        provided default.
     fill_missing : Any -> Column
-    fill_missing default = this.make_binary_op "FILLNULL" default
+    fill_missing default = self.make_binary_op "FILLNULL" default
 
     ## UNSTABLE
 
@@ -405,7 +405,7 @@ type Column
        `filter`.
 
        Arguments:
-       - filter: A column of booleans to mask `this` by.
+       - filter: A column of booleans to mask `self` by.
 
        This is useful for filtering the rows by given predicate.
 
@@ -415,34 +415,34 @@ type Column
              my_column.where (status_column == "Valid")
     where : Column -> Column
     where filter =
-        case Helpers.check_integrity this filter of
+        case Helpers.check_integrity self filter of
             False ->
                 Error.throw (Integrity_Error "Column "+filter.name)
             True ->
-                new_filters = this.context.where_filters + [filter.expression]
-                new_ctx = this.context.set_where_filters new_filters
-                Column this.name this.connection this.sql_type this.expression new_ctx
+                new_filters = self.context.where_filters + [filter.expression]
+                new_ctx = self.context.set_where_filters new_filters
+                Column self.name self.connection self.sql_type self.expression new_ctx
 
     ## UNSTABLE
 
        Returns a new column without rows that had missing values.
     drop_missing : Any -> Column
-    drop_missing = this.where this.is_missing.not
+    drop_missing = self.where self.is_missing.not
 
     ## UNSTABLE
 
        Returns the same column with changed name.
 
        Arguments:
-       - new_name: The name to rename `this` column to.
+       - new_name: The name to rename `self` column to.
     rename : Text -> Column
     rename new_name = case Helpers.ensure_name_is_sane new_name of
         True ->
-            is_used_in_index = this.context.meta_index.exists i-> i.name == new_name
+            is_used_in_index = self.context.meta_index.exists i-> i.name == new_name
             case is_used_in_index of
                 True -> Error.throw <| Illegal_State_Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
                 False ->
-                    Column new_name this.connection this.sql_type this.expression this.context
+                    Column new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 
@@ -464,53 +464,53 @@ type Column
              column.sort order=Sort_Direction.Descending
     sort : Sort_Direction -> Column
     sort order=Sort_Direction.Ascending =
-        this.to_table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column this order]) . at this.name
+        self.to_table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column self order]) . at self.name
 
     ## UNSTABLE
 
        Checks for each element of the column if it starts with `other`.
 
        Arguments:
-       - other: A column or text to check for each item in `this`.
+       - other: A column or text to check for each item in `self`.
 
        If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.  If the argument is a
+       corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     starts_with : Column | Text -> Column
-    starts_with other = this.make_binary_op "starts_with" other new_type=Sql_Type.boolean
+    starts_with other = self.make_binary_op "starts_with" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
        Checks for each element of the column if it ends with `other`.
 
        Arguments:
-       - other: A column ot text to check for each item in `this`.
+       - other: A column ot text to check for each item in `self`.
 
        If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.  If the argument is a
+       corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     ends_with : Column | Text -> Column
-    ends_with other = this.make_binary_op "ends_with" other new_type=Sql_Type.boolean
+    ends_with other = self.make_binary_op "ends_with" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
        Checks for each element of the column if it contains `other`.
 
        Arguments:
-       - other: A column ot text to check for each item in `this`.
+       - other: A column ot text to check for each item in `self`.
 
        If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.  If the argument is a
+       corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
     contains : Column | Text -> Column
-    contains other = this.make_binary_op "contains" other new_type=Sql_Type.boolean
+    contains other = self.make_binary_op "contains" other new_type=Sql_Type.boolean
 
     ## PRIVATE
     as_internal : IR.Internal_Column
-    as_internal = IR.Internal_Column this.name this.sql_type this.expression
+    as_internal = IR.Internal_Column self.name self.sql_type self.expression
 
 type Aggregate_Column_Builder
 
@@ -540,7 +540,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     sum : Text -> Column
     sum name_suffix='_sum' =
-        here.make_aggregate this "SUM" name_suffix
+        here.make_aggregate self "SUM" name_suffix
 
     ## UNSTABLE
 
@@ -551,7 +551,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     max : Text -> Column
     max name_suffix='_max' =
-        here.make_aggregate this "MAX" name_suffix
+        here.make_aggregate self "MAX" name_suffix
 
     ## UNSTABLE
 
@@ -562,7 +562,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     min : Text -> Column
     min name_suffix='_min' =
-        here.make_aggregate this "MIN" name_suffix
+        here.make_aggregate self "MIN" name_suffix
 
     ## UNSTABLE
 
@@ -573,7 +573,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     count : Text -> Column
     count name_suffix='_count' =
-        here.make_aggregate this "COUNT" name_suffix new_type=Sql_Type.integer
+        here.make_aggregate self "COUNT" name_suffix new_type=Sql_Type.integer
 
     ## UNSTABLE
 
@@ -584,15 +584,15 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     mean : Text -> Column
     mean name_suffix='_mean' =
-        here.make_aggregate this "AVG" name_suffix
+        here.make_aggregate self "AVG" name_suffix
 
     ## PRIVATE
 
        A helper that returns the underlying column from before grouping.
     ungrouped : Column
     ungrouped =
-        new_ctx = this.context.set_groups []
-        Column this.name this.connection this.sql_type this.expression new_ctx
+        new_ctx = self.context.set_groups []
+        Column self.name self.connection self.sql_type self.expression new_ctx
 
 ## PRIVATE
 
@@ -638,3 +638,4 @@ lift_aggregate new_name connection expected_type expr context =
     new_ixes = cols.second
     new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
     Column new_name connection new_col.sql_type new_col.expression new_ctx
+

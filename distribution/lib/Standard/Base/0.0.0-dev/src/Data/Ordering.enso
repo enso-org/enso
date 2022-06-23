@@ -16,8 +16,8 @@ from_sign sign = if sign == 0 then Equal else
    These are intended to be returned from the `compare_to` function, that has a
    type as follows for a type `A`: `A.compare_to : A -> Ordering`.
 
-   The result should be returned in terms of how `this` orders in comparison to
-   `that`. So, if `this` is greater than `that`, you should return `Greater.`
+   The result should be returned in terms of how `self` orders in comparison to
+   `that`. So, if `self` is greater than `that`, you should return `Greater.`
 type Ordering
 
     ## A representation that the first value orders as less than the second.
@@ -41,7 +41,7 @@ type Ordering
 
              example_to_sign = Ordering.Equal.to_sign
     to_sign : Integer
-    to_sign = case this of
+    to_sign = case self of
         Less -> -1
         Greater -> 1
         Equal -> 0

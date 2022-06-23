@@ -136,7 +136,7 @@ class RuntimeServerTest
             |    z
             |
             |Number.foo = x ->
-            |    y = this + 3
+            |    y = self + 3
             |    z = y * x
             |    z
             |""".stripMargin.linesIterator.mkString("\n")
@@ -626,7 +626,7 @@ class RuntimeServerTest
       """foo a b = a + b
         |
         |main =
-        |    this.foo 1 2
+        |    self.foo 1 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -685,7 +685,7 @@ class RuntimeServerTest
         |foo a b = a + b
         |
         |main =
-        |    IO.println (this.foo 1 2)
+        |    IO.println (self.foo 1 2)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -744,7 +744,7 @@ class RuntimeServerTest
         |import Standard.Base.IO
         |import Standard.Base.Runtime.State
         |
-        |main = IO.println (State.run Number 42 this.bar)
+        |main = IO.println (State.run Number 42 self.bar)
         |
         |bar = State.get Number
         |""".stripMargin
@@ -805,7 +805,7 @@ class RuntimeServerTest
         |import Standard.Base.IO
         |import Standard.Base.Runtime.State
         |
-        |main = IO.println (State.run Number 0 this.bar)
+        |main = IO.println (State.run Number 0 self.bar)
         |
         |bar =
         |    State.put Number 10
@@ -867,7 +867,7 @@ class RuntimeServerTest
       """foo a b = a + b
         |
         |main =
-        |    this.foo 1 2
+        |    self.foo 1 2
         |    1
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -2229,7 +2229,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar 40 2 123
+      """main = self.bar 40 2 123
         |
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2297,7 +2297,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar .x .y
+      """main = self.bar .x .y
         |
         |bar one two = one + two
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2373,7 +2373,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar "one" 2
+      """main = self.bar "one" 2
         |
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2581,13 +2581,13 @@ class RuntimeServerTest
 
     val code =
       """main =
-        |    this.foo
+        |    self.foo
         |
         |foo =
-        |    x = this.bar
+        |    x = self.bar
         |    x
         |bar =
-        |    x = this.baz
+        |    x = self.baz
         |    x
         |baz =
         |    x = 1 + .quux
@@ -2992,7 +2992,7 @@ class RuntimeServerTest
         |foo = 1
         |foo = 2
         |
-        |main = IO.println this.foo
+        |main = IO.println self.foo
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)

@@ -21,8 +21,6 @@ import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.IR$Literal$Number;
-import org.enso.compiler.core.IR$Literal$Text;
 import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
@@ -216,7 +214,7 @@ public class Module implements TruffleObject {
       if (this.patchedValues == null) {
         this.patchedValues = new PatchedModuleValues(this);
       }
-      if (patchedValues.simpleUpdate(this, update)) {
+      if (patchedValues.simpleUpdate(update)) {
         this.sources = this.sources.newWith(source);
         final Function1<IR.Expression, IR.Expression> fn =
             new Function1<IR.Expression, IR.Expression>() {

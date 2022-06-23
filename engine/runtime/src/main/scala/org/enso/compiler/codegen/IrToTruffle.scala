@@ -39,12 +39,7 @@ import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
-import org.enso.interpreter.node.expression.literal.{
-  BigIntegerLiteralNode,
-  DecimalLiteralNode,
-  IntegerLiteralNode,
-  TextLiteralNode
-}
+import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
   BaseNode,
@@ -528,7 +523,7 @@ class IrToTruffle(
     val schema = new FunctionSchema(
       new ArgumentDefinition(
         0,
-        "this",
+        Constants.Names.SELF_ARGUMENT,
         ArgumentDefinition.ExecutionMode.EXECUTE
       )
     )
@@ -546,7 +541,7 @@ class IrToTruffle(
         new FunctionSchema(
           new ArgumentDefinition(
             0,
-            "this",
+            Constants.Names.SELF_ARGUMENT,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
@@ -1099,10 +1094,10 @@ class IrToTruffle(
           }
         case IR.Name.Here(_, _, _) =>
           ConstructorNode.build(moduleScope.getAssociatedType)
-        case IR.Name.This(location, passData, _) =>
+        case IR.Name.Self(location, passData, _) =>
           processName(
             IR.Name.Literal(
-              Constants.Names.THIS_ARGUMENT,
+              Constants.Names.SELF_ARGUMENT,
               isReferent = false,
               isMethod   = false,
               location,
@@ -1152,13 +1147,13 @@ class IrToTruffle(
       literal match {
         case lit @ IR.Literal.Number(_, _, location, _, _) =>
           val node = lit.numericValue match {
-            case l: Long       => IntegerLiteralNode.build(l)
-            case d: Double     => DecimalLiteralNode.build(d)
-            case b: BigInteger => BigIntegerLiteralNode.build(b)
+            case l: Long       => LiteralNode.build(l)
+            case d: Double     => LiteralNode.build(d)
+            case b: BigInteger => LiteralNode.build(b)
           }
           setLocation(node, location)
         case IR.Literal.Text(text, location, _, _) =>
-          setLocation(TextLiteralNode.build(text), location)
+          setLocation(LiteralNode.build(text), location)
       }
 
     /** Generates a runtime implementation for compile error nodes.
@@ -1194,7 +1189,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.ThisArg =>
+        case err: Error.Redefined.SelfArg =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))

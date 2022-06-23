@@ -177,7 +177,7 @@ public class Array implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Array _this,
+        Array self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -185,7 +185,7 @@ public class Array implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Array _this, UnresolvedSymbol symbol)
+    static Function resolve(Array self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -224,7 +224,7 @@ public class Array implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Array _this,
+        Array self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
@@ -234,7 +234,7 @@ public class Array implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Array _this, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Array self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {
