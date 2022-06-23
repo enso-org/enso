@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+OpenIDE-Module-Layer: org/enso/tools/enso4igv/layer.xml
+OpenIDE-Module-Localizing-Bundle: org/enso/tools/enso4igv/Bundle.properties
+
