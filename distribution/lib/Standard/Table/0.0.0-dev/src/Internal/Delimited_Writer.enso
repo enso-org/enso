@@ -95,5 +95,6 @@ write_to_writer table format java_writer =
         True -> True
         Infer -> True
         False -> False
-    writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter quote_characters.first quote_characters.second quote_behavior write_headers
+    new_line = '\n'
+    writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter new_line quote_characters.first quote_characters.second quote_behavior write_headers
     writer.write table.java_table

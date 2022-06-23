@@ -11,7 +11,7 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 
 public class DelimitedWriter {
-  private static final char NEWLINE = '\n';
+  private final String newline;
   private final Writer output;
   private final DataFormatter[] columnFormatters;
   private final char delimiter;
@@ -32,10 +32,12 @@ public class DelimitedWriter {
       Writer output,
       DataFormatter[] columnFormatters,
       String delimiter,
+      String newline,
       String quote,
       String quoteEscape,
       WriteQuoteBehavior writeQuoteBehavior,
       boolean writeHeaders) {
+    this.newline = newline;
     this.output = output;
     this.columnFormatters = columnFormatters;
 
@@ -82,12 +84,17 @@ public class DelimitedWriter {
       this.quoteEscapeChar = '\0';
     }
 
-    if (this.quoteEscapeChar == this.quoteChar) {
-      quoteReplacement = this.quote + "" + this.quote;
-      quoteEscapeReplacement = null;
+    if (this.quote != null) {
+      if (this.quote.equals(this.quoteEscape)) {
+        quoteReplacement = this.quote + "" + this.quote;
+        quoteEscapeReplacement = null;
+      } else {
+        quoteReplacement = this.quoteEscape + "" + this.quote;
+        quoteEscapeReplacement = this.quoteEscape + "" + this.quoteEscape;
+      }
     } else {
-      quoteReplacement = this.quoteEscape + "" + this.quote;
-      quoteEscapeReplacement = this.quoteEscape + "" + this.quoteEscape;
+      quoteReplacement = null;
+      quoteEscapeReplacement = null;
     }
 
     this.writeQuoteBehavior = writeQuoteBehavior;
@@ -145,7 +152,7 @@ public class DelimitedWriter {
     String processed = value == null ? "" : quotingEnabled() ? quote(value, wantsQuoting) : value;
     output.write(processed);
     if (isLastInRow) {
-      output.write(NEWLINE);
+      output.write(newline);
     } else {
       output.write(delimiter);
     }
