@@ -120,8 +120,8 @@ class CollaborativeBuffer(
         sender() ! FileNotOpened
       }
 
-    case ApplyEdit(clientId, change) =>
-      edit(buffer, clients, lockHolder, clientId, change)
+    case ApplyEdit(clientId, change, execute) =>
+      edit(buffer, clients, lockHolder, clientId, change, execute)
 
     case SaveFile(clientId, _, clientVersion) =>
       saveFile(
@@ -196,7 +196,8 @@ class CollaborativeBuffer(
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
     clientId: ClientId,
-    change: FileEdit
+    change: FileEdit,
+    execute: Boolean
   ): Unit = {
     applyEdits(buffer, lockHolder, clientId, change) match {
       case Left(failure) =>
@@ -207,7 +208,7 @@ class CollaborativeBuffer(
         val subscribers = clients.filterNot(_._1 == clientId).values
         subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
         runtimeConnector ! Api.Request(
-          Api.EditFileNotification(buffer.file, change.edits)
+          Api.EditFileNotification(buffer.file, change.edits, execute)
         )
         context.become(
           collaborativeEditing(modifiedBuffer, clients, lockHolder)

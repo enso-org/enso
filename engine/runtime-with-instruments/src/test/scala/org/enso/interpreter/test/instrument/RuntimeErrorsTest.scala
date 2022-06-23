@@ -581,7 +581,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(5, 8), model.Position(5, 27)),
               "1234567890123456789"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -602,7 +603,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(5, 8), model.Position(5, 27)),
               "1000000000000.div 0"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -633,7 +635,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(5, 8), model.Position(5, 27)),
               "1000000000000.div 2"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -721,7 +724,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(6, 20), model.Position(6, 28)),
               "MyError2"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -812,7 +816,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(6, 16), model.Position(6, 24)),
               "MyError2"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -910,7 +915,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(5, 8), model.Position(5, 27)),
               "1234567890123456789"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1023,7 +1029,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(3, 12), model.Position(3, 15)),
               "101"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1126,7 +1133,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(6, 20), model.Position(6, 28)),
               "MyError2"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1250,7 +1258,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(3, 4), model.Position(3, 17)),
               "10002 - 10000"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1350,7 +1359,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(4, 4), model.Position(4, 17)),
               "10002 - 10000"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1458,7 +1468,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(0, 0), model.Position(0, 0)),
               s"import Standard.Base.IO$newline$newline"
             )
-          )
+          ),
+          execute = true
         )
       )
     )

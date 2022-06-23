@@ -1,8 +1,8 @@
 package org.enso.interpreter.instrument.execution
 
-import java.io.File
+import org.enso.interpreter.instrument.execution.model.PendingEdit
 
-import org.enso.text.editing.model.TextEdit
+import java.io.File
 
 trait PendingEdits {
 
@@ -11,12 +11,12 @@ trait PendingEdits {
     * @param file the edited file
     * @param edits the list of file edits
     */
-  def enqueue(file: File, edits: Seq[TextEdit]): Unit
+  def enqueue(file: File, edits: Seq[PendingEdit]): Unit
 
   /** Dequeue pending file edits.
     *
     * @param file the edited file
     * @return the list of pending edits
     */
-  def dequeue(file: File): Seq[TextEdit]
+  def dequeue(file: File): Seq[PendingEdit]
 }
