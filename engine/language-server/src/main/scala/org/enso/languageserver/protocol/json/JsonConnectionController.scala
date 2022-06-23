@@ -438,6 +438,8 @@ class JsonConnectionController(
         .props(bufferRegistry, requestTimeout, rpcSession),
       ApplyEdit -> ApplyEditHandler
         .props(bufferRegistry, requestTimeout, rpcSession),
+      ApplyExpressionValue -> ApplyExpressionValueHandler
+        .props(bufferRegistry, requestTimeout, rpcSession),
       SaveFile -> SaveFileHandler
         .props(bufferRegistry, requestTimeout, rpcSession),
       WriteFile -> file.WriteTextualFileHandler

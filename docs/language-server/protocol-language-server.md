@@ -2823,14 +2823,8 @@ interface TextApplyExpressionValue {
   /** The new value of the expression. */
   expressionValue: string;
 
-  /** Edited file. */
-  path: Path;
-
-  /** The SHA hash of the file before setting the new value to the node. */
-  oldVersion: SHA3-224;
-
-  /** The SHA hash of the file after setting the new value to the node. */
-  newVersion: SHA3-224;
+  /** The file edit. */
+  edit: FileEdit;
 }
 ```
 
