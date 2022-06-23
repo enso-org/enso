@@ -270,11 +270,6 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public String getPresentCsvString(int index, Function<Object, String> toCsvString) {
-    return String.valueOf(getItem(index));
-  }
-
-  @Override
   public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
     cell.setCellValue(getItem(index));
   }
