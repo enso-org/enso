@@ -1158,6 +1158,10 @@ type Table
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Column_Mapping.By_Name on_problems=Report_Warning =
         format.write_table (File.new path) self on_existing_file column_mapping on_problems
 
+    ## Creates a text representation of the table using the CSV format.
+    to_csv : Text
+    to_csv = Text.from self (File_Format.Delimited delimiter=",")
+
 ## UNSTABLE
    ADVANCED
 

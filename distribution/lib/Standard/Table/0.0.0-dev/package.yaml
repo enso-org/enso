@@ -35,5 +35,4 @@ component-groups:
           - Standard.Table.Data.Column.Column.to_table
     - Standard.Base.Output:
         exports:
-          - Standard.Table.Data.Table.Table.write_csv
           - Standard.Table.Data.Table.Table.write_xlsx
