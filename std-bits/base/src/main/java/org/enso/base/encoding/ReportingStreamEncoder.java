@@ -1,7 +1,5 @@
 package org.enso.base.encoding;
 
-import org.enso.base.Encoding_Utils;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -11,10 +9,15 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 
-import static org.enso.base.Encoding_Utils.INVALID_CHARACTER;
-
 public class ReportingStreamEncoder extends Writer {
-  public ReportingStreamEncoder(OutputStream outputStream, CharsetEncoder encoder) {
+  /**
+   * Creates a writer which encodes characters and writes them to the provided output stream.
+   *
+   * <p>The encoder reports any malformed or unmappable characters as problems and replaces them
+   * with the provided replacement sequence.
+   */
+  public ReportingStreamEncoder(
+      OutputStream outputStream, CharsetEncoder encoder, byte[] replacementSequence) {
     this.encoder = encoder;
     bufferedOutputStream = new BufferedOutputStream(outputStream);
   }
@@ -71,7 +74,8 @@ public class ReportingStreamEncoder extends Writer {
   }
 
   private void runEncoderOnInputBuffer() {
-    ByteBuffer outputBuffer = ByteBuffer.allocate((int) (inputBuffer.remaining() * encoder.averageBytesPerChar()));
+    ByteBuffer outputBuffer =
+        ByteBuffer.allocate((int) (inputBuffer.remaining() * encoder.averageBytesPerChar()));
     while (inputBuffer.hasRemaining()) {
       CoderResult cr = encoder.encode(inputBuffer, outputBuffer, false);
 
@@ -92,7 +96,7 @@ public class ReportingStreamEncoder extends Writer {
     }
 
     // TODO move this to main write
-//    bufferedOutputStream.write(output);
+    //    bufferedOutputStream.write(output);
   }
 
   private void reportEncodingProblem() {

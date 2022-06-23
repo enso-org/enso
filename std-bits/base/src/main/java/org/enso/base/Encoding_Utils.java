@@ -2,6 +2,7 @@ package org.enso.base;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -15,6 +16,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import org.enso.base.encoding.ReportingStreamDecoder;
+import org.enso.base.encoding.ReportingStreamEncoder;
 import org.enso.base.text.ResultWithWarnings;
 
 public class Encoding_Utils {
@@ -170,6 +172,28 @@ public class Encoding_Utils {
       throws IOException {
     try (ReportingStreamDecoder decoder = create_stream_decoder(stream, charset)) {
       return action.apply(decoder);
+    }
+  }
+
+  /** Creates a new instance of {@code ReportingStreamEncoder} encoding a given charset. */
+  private static ReportingStreamEncoder create_stream_encoder(OutputStream stream, Charset charset, byte[] replacementSequence) {
+    CharsetEncoder encoder =
+        charset
+            .newEncoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .reset();
+    return new ReportingStreamEncoder(stream, encoder, replacementSequence);
+  }
+
+  /**
+   * A helper function which runs an action with a created stream encoder and closes it afterwards.
+   */
+  public static <R> R with_stream_encoder(
+      OutputStream stream, Charset charset, Function<ReportingStreamEncoder, R> action, byte[] replacementSequence)
+      throws IOException {
+    try (ReportingStreamEncoder encoder = create_stream_encoder(stream, charset, replacementSequence)) {
+      return action.apply(encoder);
     }
   }
 
