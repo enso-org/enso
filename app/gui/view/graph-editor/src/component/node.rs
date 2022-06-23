@@ -1025,7 +1025,7 @@ fn bounding_box(
             BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
         node_bbox.concat_ref(visualization_bbox)
     } else {
-        DEBUG!("MCDBG--bounding_box=" node_bbox;?);
+        // DEBUG!("MCDBG--bounding_box=" node_bbox;?);
         node_bbox
     }
 }
