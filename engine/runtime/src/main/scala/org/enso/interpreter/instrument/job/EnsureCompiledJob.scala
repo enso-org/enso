@@ -71,7 +71,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     val modulesInScope =
       getModulesInScope.filterNot(m => modules.exists(_ == m))
     val scopeCompilationStatus = ensureCompiledScope(modulesInScope)
-    (moduleCompilationStatus ++ scopeCompilationStatus).maxOption
+    (moduleCompilationStatus.flatten ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
   }
 
@@ -83,27 +83,28 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def ensureCompiledModule(
     module: Module
-  )(implicit ctx: RuntimeContext): CompilationStatus = {
+  )(implicit ctx: RuntimeContext): Option[CompilationStatus] = {
     compile(module)
-    val changeset = applyEdits(new File(module.getPath))
-    compile(module)
-      .map { compilerResult =>
-        val cacheInvalidationCommands =
-          buildCacheInvalidationCommands(
-            changeset,
-            module.getSource.getCharacters
+    applyEdits(new File(module.getPath)).map { changeset =>
+      compile(module)
+        .map { compilerResult =>
+          val cacheInvalidationCommands =
+            buildCacheInvalidationCommands(
+              changeset,
+              module.getSource.getCharacters
+            )
+          runInvalidationCommands(cacheInvalidationCommands)
+          ctx.jobProcessor.runBackground(
+            AnalyzeModuleInScopeJob(
+              module.getName,
+              compilerResult.compiledModules
+            )
           )
-        runInvalidationCommands(cacheInvalidationCommands)
-        ctx.jobProcessor.runBackground(
-          AnalyzeModuleInScopeJob(
-            module.getName,
-            compilerResult.compiledModules
-          )
-        )
-        ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
-        runCompilationDiagnostics(module)
-      }
-      .getOrElse(CompilationStatus.Failure)
+          ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
+          runCompilationDiagnostics(module)
+        }
+        .getOrElse(CompilationStatus.Failure)
+    }
   }
 
   /** Compile all modules in the scope and send the extracted suggestions.
@@ -237,13 +238,19 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def applyEdits(
     file: File
-  )(implicit ctx: RuntimeContext): Changeset[Rope] = {
+  )(implicit ctx: RuntimeContext): Option[Changeset[Rope]] = {
     ctx.locking.acquireFileLock(file)
     ctx.locking.acquireReadCompilationLock()
+    ctx.locking.acquirePendingEditsLock()
     try {
-      val edits = ctx.state.pendingEdits.dequeue(file)
-      ctx.executionService.modifyModuleSources(file, edits)
+      val pendingEdits = ctx.state.pendingEdits.dequeue(file)
+      val edits        = pendingEdits.map(_.edit)
+      val shouldExecute =
+        pendingEdits.isEmpty || pendingEdits.exists(_.execute)
+      val changeset = ctx.executionService.modifyModuleSources(file, edits)
+      Option.when(shouldExecute)(changeset)
     } finally {
+      ctx.locking.releasePendingEditsLock()
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)
     }

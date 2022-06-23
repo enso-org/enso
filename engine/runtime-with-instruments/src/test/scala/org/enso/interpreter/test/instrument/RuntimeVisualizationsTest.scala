@@ -589,7 +589,8 @@ class RuntimeVisualisationsTest
               model.Range(model.Position(4, 8), model.Position(4, 9)),
               "5"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -711,7 +712,8 @@ class RuntimeVisualisationsTest
               model.Range(model.Position(4, 8), model.Position(4, 9)),
               "5"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1087,7 +1089,8 @@ class RuntimeVisualisationsTest
               model.Range(model.Position(6, 12), model.Position(6, 13)),
               "6"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
