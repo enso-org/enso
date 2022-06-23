@@ -1651,7 +1651,9 @@ impl GraphEditorModelWithNetwork {
                 // let corner = Vector2(w, h)/2.0;
                 // let corner = Vector3(corner.x, corner.y, 0.0);
                 // let corner = scn.screen_to_scene_coordinates(corner.into());
-        let node_bbox = self.node_bounding_box(node_id);
+        let node_pos_tmp = self.node_position(node_id);
+        let node_bbox = selection::BoundingBox::from_corners(node_pos_tmp, node_pos_tmp);
+        // let node_bbox = self.node_bounding_box(node_id);
         // FIXME: add a predefined margin around node_bbox - see Design Doc
         let pan_y = if node_bbox.top() > screen_bbox.top() {
             Some(node_bbox.top() - screen_bbox.top())
@@ -1667,7 +1669,7 @@ impl GraphEditorModelWithNetwork {
         } else {
             None
         };
-        let pan = PanEvent::new(Vector2(pan_x.unwrap_or_default(), pan_y.unwrap_or_default()));
+        let pan = PanEvent::new(Vector2(-pan_x.unwrap_or_default(), -pan_y.unwrap_or_default()));
         DEBUG!("MCDBG  node bbox = " node_bbox;?);
         DEBUG!("MCDBG  pan = " pan;?);
         self.navigator.emit_pan_event(pan);
