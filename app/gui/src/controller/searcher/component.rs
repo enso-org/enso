@@ -264,7 +264,7 @@ impl List {
             group.update_sorting_and_visibility(components_order);
         }
         for group in self.favorites.iter() {
-            group.update_visibility();
+            group.update_sorting_and_visibility(pattern);
         }
         self.filtered.set(pattern_not_empty);
     }

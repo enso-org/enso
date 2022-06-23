@@ -108,8 +108,8 @@ impl Layers {
         let selection = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
         let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
         selection.set_mask(&selection_mask);
-        app.display.default_scene.layers.main.add_sublayer(&base);
-        app.display.default_scene.layers.main.add_sublayer(&selection);
+        app.display.default_scene.layers.node_searcher.add_sublayer(&base);
+        app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
         let content = &scroll_area.content_layer();
         let groups = GroupLayers::new(&app.logger, content, &selection);
         let scroll_layer = scroll_area.content_layer().clone_ref();
@@ -201,6 +201,7 @@ mod background {
     use super::*;
 
     ensogl_core::define_shape_system! {
+        below = [component_group::background];
         (style:Style,bg_color:Vector4) {
             let theme_path: style::Path = list_panel_theme::HERE.into();
 
@@ -289,7 +290,10 @@ impl Model {
 
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        app.display.default_scene.layers.below_main.add_exclusive(&background);
+        display_object.set_on_scene_layer_changed(|_, _, layers| {
+            DEBUG!("Set layers to {layers.get(0).and_then(|l| l.upgrade()):?}");
+        });
+        // app.display.default_scene.layers.below_main.add_exclusive(&background);
 
         let favourites_section = Self::init_column_section(&app);
         let local_scope_section = Self::init_wide_section(&app);
