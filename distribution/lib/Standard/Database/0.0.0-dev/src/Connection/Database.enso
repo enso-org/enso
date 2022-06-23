@@ -46,21 +46,8 @@ connect url user=Nothing password=Nothing custom_properties=[] = case url of
     _ ->
         Connection.create_jdbc_connection url.jdbc_url url.jdbc_properties url.dialect
 
-## UNSTABLE
-
-   Connects to an SQLite database in a file on the filesystem.
-
-   Arguments:
-   - file: The path to the database.
-
-   It is an alternative to `connect` that resolves a path to the database file.
-open_sqlite_file : File -> Connection ! Sql_Error
-open_sqlite_file file =
-    url = 'sqlite:' + file.absolute.path
-    here.connect url
-
 type SQLite
-    type SQLite location:(InMemory|File|Text)
+    type SQLite (location:(InMemory|File|Text))
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
@@ -69,7 +56,7 @@ type SQLite
         _ -> "jdbc:sqlite:" + ((File.new self.location).absolute.path.replace '\\' '/')
 
     ## Provides the properties for the connection.
-    jdbc_properties : [Pair Text Text]
+    jdbc_properties : Vector
     jdbc_properties = []
 
     ## Provides the dialect needed for creating SQL statements.
@@ -88,7 +75,7 @@ type PostgreSQL
         'jdbc:postgresql://' + self.host + ':' + self.port.to_text + '/' + self.database
 
     ## Provides the properties for the connection.
-    jdbc_properties : [Pair Text Text]
+    jdbc_properties : Vector
     jdbc_properties =
         credentials = case self.credentials of
             Nothing -> []
@@ -96,13 +83,13 @@ type PostgreSQL
                 [ Pair 'user' username, Pair 'password' password ]
 
         ssl_properties = case self.use_ssl of
-            case Disable -> []
-            case Prefer -> [Pair 'sslmode' 'prefer']
-            case Require -> [Pair 'sslmode' 'require']
-            case Verify_CA cert_file ->
+            Disable -> []
+            Prefer -> [Pair 'sslmode' 'prefer']
+            Require -> [Pair 'sslmode' 'require']
+            Verify_CA cert_file ->
                 if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
                     [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
-            case Full_Verification cert_file ->
+            Full_Verification cert_file ->
                 if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
                     [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
 
@@ -142,7 +129,7 @@ type SSLMode
 type Client_Certificate
     type Client_Certificate cert_file:(File|Text) key_file:(File|Text) (key_password:Text='')
 
-    properties : [Pair Text Text]
+    properties : Vector
     properties =
         base = [Pair 'sslcert' (File.new self.cert_file).absolute.path, Pair 'sslkey' (File.new self.key_file).absolute.path]
         if self.key_password == "" then base else base + [Pair 'sslpassword' self.key_password]

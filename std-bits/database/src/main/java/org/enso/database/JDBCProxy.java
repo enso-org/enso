@@ -54,6 +54,10 @@ public class JDBCProxy {
 
   public static String[] getStringColumn(ResultSet resultSet, String column)
     throws SQLException {
+    if (resultSet.isClosed()) {
+      return new String[0];
+    }
+
     int colIndex = resultSet.findColumn(column);
     List<String> values = new ArrayList<>();
     while (resultSet.next()) {

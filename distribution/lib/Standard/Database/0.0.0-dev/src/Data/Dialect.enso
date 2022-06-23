@@ -64,6 +64,6 @@ sqlite = Sqlite_Module.sqlite
 
    The dialect of PostgreSQL databases.
 postgres : Dialect
-postgres = Postgres_Module.sqlite
+postgres = Postgres_Module.postgresql
 
 
