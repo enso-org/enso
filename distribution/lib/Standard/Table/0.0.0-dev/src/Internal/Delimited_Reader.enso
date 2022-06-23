@@ -7,6 +7,7 @@ from Standard.Table.Error as Table_Errors import Duplicate_Output_Column_Names, 
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+import Standard.Table.Io.Quote_Style
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
@@ -21,6 +22,7 @@ polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream
 polyglot java import java.io.Reader
+polyglot java import java.io.StringReader
 
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
@@ -44,6 +46,11 @@ read_file format file on_problems =
     file.with_input_stream [File.Option.Read] stream->
         stream.with_java_stream java_stream->
             here.read_stream format java_stream on_problems related_file=file
+
+read_text : Text -> Delimited -> Problem_Behavior -> Table
+read_text text format on_problems =
+    java_reader = StringReader.new text
+    Delimited_Reader.read_from_reader format java_reader on_problems
 
 ## PRIVATE
    Reads an input stream according to the provided format.
@@ -88,7 +95,7 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
    - max_columns: Specifies the limit of columns to read. The limit is set to
      avoid `OutOfMemory` errors on malformed files. It must be a positive
      integer.
-read_from_reader : Delimited -> InputStream -> Problem_Behavior -> Integer -> Any
+read_from_reader : Delimited -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
@@ -115,15 +122,20 @@ read_from_reader format java_reader on_problems max_columns=4096 =
 
     handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
         warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-        base_parser = if format.quote.is_nothing then IdentityParser.new else
-            QuoteStrippingParser.new format.quote
+        quote_characters = case format.quote_style of
+            Quote_Style.No_Quotes -> Pair Nothing Nothing
+            Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
+        base_parser = case format.quote_style of
+            Quote_Style.No_Quotes -> IdentityParser.new
+            Quote_Style.With_Quotes _ quote _ ->
+                QuoteStrippingParser.new quote
         value_parser = if format.value_formatter.is_nothing then base_parser else
             wrapped = format.value_formatter.wrap_base_parser base_parser
             TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
         cell_type_guesser = if format.headers != Infer then Nothing else
             formatter = format.value_formatter.if_nothing Data_Formatter
             TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-        reader = DelimitedReader.new java_reader format.delimiter format.quote format.quote_escape java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
+        reader = DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
         result_with_problems = reader.read
         parsing_problems = Vector.Vector (result_with_problems.problems) . map here.translate_reader_problem
         on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems

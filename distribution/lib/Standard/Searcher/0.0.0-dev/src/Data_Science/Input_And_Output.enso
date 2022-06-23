@@ -39,5 +39,5 @@
 
          example_to_csv =
              path = Enso_Project.data / example_csv_output.csv
-             Examples.inventory_table.write_csv path
+             Examples.inventory_table.write path
 
