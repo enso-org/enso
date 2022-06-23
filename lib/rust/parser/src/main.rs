@@ -99,9 +99,12 @@
 #![warn(unused_qualifications)]
 
 use crate::prelude::*;
+use std::collections::VecDeque;
 
 use crate::source::VisibleOffset;
 
+use crate::macros::pattern::Match2;
+use crate::macros::pattern::MatchResult;
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use lexer::Lexer;
@@ -140,6 +143,15 @@ pub mod prelude {
 pub enum SyntaxItemOrMacroResolver<'s> {
     SyntaxItem(syntax::Item<'s>),
     MacroResolver(MacroResolver<'s>),
+}
+
+impl<'s> SyntaxItemOrMacroResolver<'s> {
+    pub fn is_variant(&self, variant: token::variant::VariantMarker) -> bool {
+        match self {
+            Self::SyntaxItem(item) => item.is_variant(variant),
+            _ => false,
+        }
+    }
 }
 
 impl<'s> From<syntax::Item<'s>> for SyntaxItemOrMacroResolver<'s> {
@@ -230,22 +242,22 @@ impl<'a> MacroResolver<'a> {
         let resolved_segments = default();
         let possible_next_segments = default();
         let matched_macro_def = Some(Rc::new(macros::Definition {
-            rev_prefix_pattern: None,
-            segments:           im_list::NonEmpty::singleton(macros::SegmentDefinition {
+            segments: im_list::NonEmpty::singleton(macros::SegmentDefinition {
                 header:  "__ROOT__",
                 pattern: Pattern::Everything,
             }),
-            body:               Rc::new(|_, v| {
+            body:     Rc::new(|v| {
                 if v.len() != 1 {
                     panic!()
                 }
                 let t = v.into_vec().pop().unwrap().1;
-                resolve_operator_precedence(t)
+                resolve_operator_precedence(t.tokens())
             }),
         }));
         Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
     }
 }
+
 
 /// A matched macro segment. Partial macro resolution product.
 #[derive(Debug)]
@@ -331,71 +343,111 @@ impl<'s> Resolver<'s> {
             }
         }
 
+
+        event!(TRACE, "Finishing resolution. Popping the macro stack.");
+
         while let Some(parent_macro) = self.macro_stack.pop() {
             self.replace_current_with_parent_macro(parent_macro);
         }
 
         trace_state!();
 
-        Self::resolve(self.current_macro, None)
+        let (tree, rest) = Self::resolve(self.current_macro);
+        if !rest.is_empty() {
+            panic!("Internal error.");
+        }
+        tree
     }
 
     fn replace_current_with_parent_macro(&mut self, mut parent_macro: MacroResolver<'s>) {
         mem::swap(&mut parent_macro, &mut self.current_macro);
         let mut child_macro = parent_macro;
-        if let Some(def) = &child_macro.matched_macro_def {
-            let pattern = &def.segments.last().pattern;
-            let child_tokens = mem::take(&mut child_macro.current_segment.body);
-            // FIXME: the first [`false`] below is invalid.
-            let match_result = pattern.resolve(child_tokens, false, false);
-            if match_result.error.is_some() {
-                panic!()
-            }
-            let mut new_child_tokens = match_result.matched;
-            let new_parent_tokens = match_result.rest;
-            mem::swap(&mut child_macro.current_segment.body, &mut new_child_tokens);
-            self.current_macro.current_segment.body.push(child_macro.into());
-            self.current_macro.current_segment.body.extend(new_parent_tokens);
-        } else {
-            panic!()
-        }
+        self.current_macro.current_segment.body.push(child_macro.into());
     }
 
-    fn resolve(
-        m: MacroResolver<'s>,
-        prefix_tokens: Option<Vec<syntax::Item<'s>>>,
-    ) -> syntax::Tree<'s> {
+    // fn replace_current_with_parent_macro(&mut self, mut parent_macro: MacroResolver<'s>) {
+    //     mem::swap(&mut parent_macro, &mut self.current_macro);
+    //     let mut child_macro = parent_macro;
+    //     if let Some(def) = &child_macro.matched_macro_def {
+    //         let pattern = &def.segments.last().pattern;
+    //         let child_tokens = mem::take(&mut child_macro.current_segment.body);
+    //         // FIXME: the first [`false`] below is invalid.
+    //         let match_result = pattern.resolve_old(child_tokens, false, false);
+    //         if match_result.error.is_some() {
+    //             panic!()
+    //         }
+    //         let mut new_child_tokens = match_result.matched;
+    //         let new_parent_tokens = match_result.rest;
+    //         mem::swap(&mut child_macro.current_segment.body, &mut new_child_tokens);
+    //         self.current_macro.current_segment.body.push(child_macro.into());
+    //         self.current_macro.current_segment.body.extend(new_parent_tokens);
+    //     } else {
+    //         panic!()
+    //     }
+    // }
+
+    // [a b] c -> d
+
+    // fn resolve(m: MacroResolver<'s>) -> syntax::Tree<'s> {
+    //     let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
+    //     let sss: NonEmptyVec<(Token, Vec<syntax::Item<'s>>)> = segments.mapped(|segment| {
+    //         let mut ss: Vec<syntax::Item<'s>> = vec![];
+    //         for item in segment.body {
+    //             let resolved_token = match item {
+    //                 SyntaxItemOrMacroResolver::MacroResolver(m2) => Self::resolve(m2).into(),
+    //                 SyntaxItemOrMacroResolver::SyntaxItem(t) => t,
+    //             };
+    //             ss.push(resolved_token);
+    //         }
+    //         (segment.header, ss)
+    //     });
+    //
+    //     if let Some(macro_def) = m.matched_macro_def {
+    //         todo!()
+    //         // (macro_def.body)(sss)
+    //     } else {
+    //         todo!("Handling non-fully-resolved macros")
+    //     }
+    // }
+
+    fn resolve(m: MacroResolver<'s>) -> (syntax::Tree<'s>, Vec<syntax::Item<'s>>) {
         let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
-        let sss: NonEmptyVec<(Token, Vec<syntax::Item<'s>>)> = segments.mapped(|segment| {
+        let resolved_segments = segments.mapped(|segment| {
             let mut ss: Vec<syntax::Item<'s>> = vec![];
             for item in segment.body {
-                let resolved_token = match item {
+                match item {
+                    SyntaxItemOrMacroResolver::SyntaxItem(t) => ss.push(t),
                     SyntaxItemOrMacroResolver::MacroResolver(m2) => {
-                        if let Some(macro_def) = &m2.matched_macro_def
-                        && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
-                            ss.reverse();
-                            let spacing = m2.current_segment.header.left_offset.visible > VisibleOffset(0);
-                            let mut match_result = pfx_pattern.resolve(ss,spacing,true);
-                            if match_result.error.is_some() {
-                                panic!()
-                            }
-                            match_result.matched.reverse();
-                            ss = match_result.rest;
-                            ss.reverse();
-                            Self::resolve(m2, Some(match_result.matched)).into()
-                        } else {
-                            Self::resolve(m2, None).into()
-                        }
-                    },
-                    SyntaxItemOrMacroResolver::SyntaxItem(t) => t,
-                };
-                ss.push(resolved_token);
+                        let (tree, rest) = Self::resolve(m2);
+                        ss.push(tree.into());
+                        ss.extend(rest);
+                    }
+                }
             }
             (segment.header, ss)
         });
 
         if let Some(macro_def) = m.matched_macro_def {
-            (macro_def.body)(prefix_tokens, sss)
+            let mut def_segments = macro_def.segments.to_vec().into_iter();
+            let mut sx = resolved_segments.mapped(|(header, items)| {
+                let def = def_segments.next().unwrap_or_else(|| panic!("Internal error."));
+                // FIXME: Vec -> VecDeque
+                let items = items.into();
+                (header, def.pattern.resolve(items))
+            });
+
+            // Moving not pattern-matched tokens of the last segment to parent.
+            let mut rest = VecDeque::new();
+            match &mut sx.last_mut().1 {
+                Err(rest2) => mem::swap(&mut rest, rest2),
+                Ok(t) => mem::swap(&mut rest, &mut t.rest),
+            }
+            // TODO: handle unmatched cases, handle .rest
+            let sx = sx.mapped(|t| (t.0, t.1.unwrap().matched));
+
+            let out = (macro_def.body)(sx);
+            // FIXME: VecDeque -> Vec
+            (out, rest.into())
         } else {
             todo!("Handling non-fully-resolved macros")
         }
@@ -473,6 +525,13 @@ impl<'s> Resolver<'s> {
         new_section_tree
     }
 }
+
+#[derive(Copy, Clone, Debug)]
+pub enum Either<L, R> {
+    Left(L),
+    Right(R),
+}
+
 
 
 // FIXME: hardcoded values + not finished implementation.
@@ -638,8 +697,7 @@ fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
 }
 
 fn matched_segments_into_multi_segment_app<'s>(
-    prefix_tokens: Option<Vec<syntax::Item<'s>>>,
-    matched_segments: NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>,
+    matched_segments: NonEmptyVec<(Token<'s>, MatchResult<'s>)>,
 ) -> syntax::Tree<'s> {
     // FIXME: remove into_vec and use NonEmptyVec::mapped
     let segments = matched_segments
@@ -647,14 +705,13 @@ fn matched_segments_into_multi_segment_app<'s>(
         .into_iter()
         .map(|segment| {
             let header = segment.0;
-            let body =
-                (!segment.1.is_empty()).as_some_from(|| resolve_operator_precedence(segment.1));
+            let tokens = segment.1.tokens();
+            let body = (!tokens.is_empty()).as_some_from(|| resolve_operator_precedence(tokens));
             syntax::tree::MultiSegmentAppSegment { header, body }
         })
         .collect_vec();
     if let Ok(segments) = NonEmptyVec::try_from(segments) {
-        let prefix = prefix_tokens.map(resolve_operator_precedence);
-        syntax::Tree::multi_segment_app(prefix, segments)
+        syntax::Tree::multi_segment_app(segments)
     } else {
         panic!()
     }
@@ -687,16 +744,16 @@ fn macro_group<'s>() -> macros::Definition<'s> {
     }
 }
 
-fn macro_lambda<'s>() -> macros::Definition<'s> {
-    let prefix = Pattern::Or(
-        Box::new(Pattern::Item(macros::pattern::Item { has_rhs_spacing: Some(false) })),
-        Box::new(Pattern::Everything),
-    );
-    macro_definition! {
-        (prefix, "->", Pattern::Everything)
-        matched_segments_into_multi_segment_app
-    }
-}
+// fn macro_lambda<'s>() -> macros::Definition<'s> {
+//     let prefix = Pattern::Or(
+//         Box::new(Pattern::Item(macros::pattern::Item { has_rhs_spacing: Some(false) })),
+//         Box::new(Pattern::Everything),
+//     );
+//     macro_definition! {
+//         (prefix, "->", Pattern::Everything)
+//         matched_segments_into_multi_segment_app
+//     }
+// }
 
 fn macro_type_def<'s>() -> macros::Definition<'s> {
     macro_definition! {
@@ -705,10 +762,7 @@ fn macro_type_def<'s>() -> macros::Definition<'s> {
     }
 }
 
-fn ttt<'s>(
-    prefix_tokens: Option<Vec<syntax::Item<'s>>>,
-    matched_segments: NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>,
-) -> syntax::Tree<'s> {
+fn ttt<'s>(matched_segments: NonEmptyVec<(Token<'s>, MatchResult<'s>)>) -> syntax::Tree<'s> {
     syntax::Tree::type_def(matched_segments.first().0.clone())
 }
 
@@ -716,9 +770,9 @@ fn builtin_macros() -> MacroMatchTree<'static> {
     let mut macro_map = MacroMatchTree::default();
     macro_map.register(macro_if_then());
     macro_map.register(macro_if_then_else());
-    macro_map.register(macro_group());
-    macro_map.register(macro_lambda());
-    macro_map.register(macro_type_def());
+    // macro_map.register(macro_group());
+    // macro_map.register(macro_lambda());
+    // macro_map.register(macro_type_def());
     macro_map
 }
 
@@ -728,13 +782,38 @@ fn builtin_macros() -> MacroMatchTree<'static> {
 // === Main ===
 // ============
 
-pub fn parse<'a>(code: &'a str) -> syntax::Tree<'a> {
+pub fn build_block_hierarchy<'s>(tokens: Vec<Token<'s>>) -> Vec<syntax::Item<'s>> {
+    let mut stack = vec![];
+    let mut out: Vec<syntax::Item<'s>> = vec![];
+    for token in tokens {
+        match token.variant {
+            token::Variant::BlockStart(_) => stack.push(mem::take(&mut out)),
+            token::Variant::BlockEnd(_) => {
+                let new_out = stack.pop().unwrap();
+                let block = mem::replace(&mut out, new_out);
+                out.push(syntax::Item::Block(block));
+            }
+            _ => out.push(token.into()),
+        }
+    }
+    if !stack.is_empty() {
+        panic!("Internal error. Block start token not paired with block end token.");
+    }
+    out
+}
+
+pub fn lex<'a>(code: &'a str) -> Vec<syntax::Item<'a>> {
     let mut lexer = Lexer::new(code);
     lexer.run();
+    build_block_hierarchy(lexer.output)
+}
+
+pub fn parse<'a>(code: &'a str) -> syntax::Tree<'a> {
+    let mut tokens = lex(code);
     let root_macro_map = builtin_macros();
     event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
     let resolver = Resolver::new_root();
-    resolver.run(&root_macro_map, lexer.output.iter().map(|t| t.clone().into()).collect_vec())
+    resolver.run(&root_macro_map, tokens)
 }
 
 use enso_parser_syntax_tree_builder::ast_builder;
@@ -753,8 +832,8 @@ fn main() {
     // let str = "foo *(a)";
     // let ast = parse("foo if a then b else c");
     // let ast = parse("type Bool\n    True\n    False");
-    let ast = parse("type Bool a");
-    let ast2 = ast_builder! {{if} a {then} b};
+    let ast = parse("if if a then b then c else d");
+    // let ast2 = ast_builder! {{if} a {then} b};
     // MultiSegmentApp<'s>(prefix: Option<Tree<'s>>, segments:
     // NonEmptyVec<MultiSegmentAppSegment<'s>>)
 
@@ -762,12 +841,11 @@ fn main() {
 
     // let ast2 = Token("", "foo", syntax::token::Variant::new_ident_unchecked("foo"));
     println!("{:#?}", ast);
-    println!("\n\n{}", ast.code());
+    // println!("\n\n{}", ast.code());
     // println!("\n\n{:?}", ast2);
 
-    let mut lexer = Lexer::new("type Bool\n    True\n    False");
-    lexer.run();
-    println!("{:#?}", lexer.output);
+    // let tokens = lex("type Bool\n    True\n    False");
+    // println!("{:#?}", tokens);
 
     // lexer::main();
 }

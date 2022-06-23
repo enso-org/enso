@@ -97,7 +97,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// `x + y + z` is the section body, and `Vector x y z` is the prefix of this function
         /// application.
         MultiSegmentApp {
-            pub prefix: Option<Tree<'s>>,
             pub segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
         },
 

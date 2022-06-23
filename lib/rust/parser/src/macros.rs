@@ -10,6 +10,7 @@ use crate::prelude::*;
 use crate::syntax;
 use crate::syntax::token::Token;
 
+use crate::macros::pattern::MatchResult;
 use enso_data_structures::im_list;
 use pattern::Pattern;
 
@@ -38,21 +39,16 @@ pub mod pattern;
 #[derivative(Debug)]
 #[allow(missing_docs)]
 pub struct Definition<'a> {
-    /// The pattern in this field will be matched from right to left, unlike patterns in segments.
-    pub rev_prefix_pattern: Option<Pattern>,
-    pub segments:           im_list::NonEmpty<SegmentDefinition<'a>>,
+    pub segments: im_list::NonEmpty<SegmentDefinition<'a>>,
     #[derivative(Debug = "ignore")]
-    pub body:               Rc<Body>,
+    pub body:     Rc<Body>,
 }
 
-/// All the tokens matched as prefix of the resolved macro.
-pub type PrefixTokens<'s> = Option<Vec<syntax::Item<'s>>>;
-
 /// All the sections of the resolved macro.
-pub type MatchedSections<'s> = NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>;
+pub type MatchedSections<'s> = NonEmptyVec<(Token<'s>, MatchResult<'s>)>;
 
 /// A function that transforms matched macro tokens into [`syntax::Tree`].
-pub type Body = dyn for<'s> Fn(PrefixTokens<'s>, MatchedSections<'s>) -> syntax::Tree<'s>;
+pub type Body = dyn for<'s> Fn(MatchedSections<'s>) -> syntax::Tree<'s>;
 
 
 
@@ -94,14 +90,7 @@ impl<'a> SegmentDefinition<'a> {
 #[macro_export]
 macro_rules! macro_definition {
     ( ($($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
-        $crate::macro_definition!{[None] ($($section, $pattern),*) $body}
-    };
-    ( ($prefix:expr, $($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
-        $crate::macro_definition!{[Some($prefix)] ($($section, $pattern),*) $body}
-    };
-    ( [$prefix:expr] ($($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
         macros::Definition {
-            rev_prefix_pattern: $prefix,
             segments: im_list::NonEmpty::try_from(vec![
                 $(macros::SegmentDefinition::new($section, $pattern)),*]).unwrap(),
             body: Rc::new($body),

@@ -18,13 +18,13 @@ use crate::syntax::*;
 #[allow(missing_docs)]
 pub enum Item<'s> {
     Token(Token<'s>),
-    Block(Vec<Token<'s>>),
+    Block(Vec<Item<'s>>),
     Tree(Tree<'s>),
 }
 
 impl<'s> Item<'s> {
-    /// Check whether the element is the provided token variant. Returns [`false`] if it was an
-    /// [`Tree`] node.
+    /// Check whether the element is the provided token variant. Returns [`false`] if it was not a
+    /// token.
     pub fn is_variant(&self, variant: token::variant::VariantMarker) -> bool {
         match self {
             Item::Token(token) => token.is(variant),
@@ -37,7 +37,7 @@ impl<'s> Item<'s> {
         match self {
             Self::Token(t) => t.span().left_offset.visible,
             Self::Tree(t) => t.span.left_offset.visible,
-            Self::Block(t) => t.first().map(|t| t.span().left_offset.visible).unwrap_or_default(),
+            Self::Block(t) => t.first().map(|t| t.left_visible_offset()).unwrap_or_default(),
         }
     }
 }

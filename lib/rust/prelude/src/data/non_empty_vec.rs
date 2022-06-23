@@ -49,6 +49,10 @@ impl<T> NonEmptyVec<T> {
         NonEmptyVec { elems }
     }
 
+    pub fn len(&self) -> usize {
+        self.elems.len()
+    }
+
     /// Construct a `NonEmptyVec` containing a single element.
     ///
     /// # Examples
