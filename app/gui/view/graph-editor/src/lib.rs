@@ -1651,8 +1651,12 @@ impl GraphEditorModelWithNetwork {
                 // let corner = Vector2(w, h)/2.0;
                 // let corner = Vector3(corner.x, corner.y, 0.0);
                 // let corner = scn.screen_to_scene_coordinates(corner.into());
-        let node_pos_tmp = self.node_position(node_id);
-        let node_bbox = selection::BoundingBox::from_corners(node_pos_tmp, node_pos_tmp);
+        let node = self.nodes.get_cloned_ref(&node_id);
+        let node_pos = node.map(|n| node.position().xy()).unwrap_or_default();
+        let node_bbox = selection::BoundingBox::from_corners(node_pos, node_pos);
+        // let node_size = node.map(|n| node.size().
+        // let node_pos_tmp = self.node_position(node_id);
+        // let node_bbox = selection::BoundingBox::from_corners(node_pos_tmp, node_pos_tmp);
         // let node_bbox = self.node_bounding_box(node_id);
         // FIXME: add a predefined margin around node_bbox - see Design Doc
         let pan_y = if node_bbox.top() > screen_bbox.top() {
