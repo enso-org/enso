@@ -22,6 +22,7 @@ polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream
 polyglot java import java.io.Reader
+polyglot java import java.io.StringReader
 
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
@@ -45,6 +46,11 @@ read_file format file on_problems =
     file.with_input_stream [File.Option.Read] stream->
         stream.with_java_stream java_stream->
             here.read_stream format java_stream on_problems related_file=file
+
+read_text : Text -> Delimited -> Problem_Behavior -> Table
+read_text text format on_problems =
+    java_reader = StringReader.new text
+    Delimited_Reader.read_from_reader format java_reader on_problems
 
 ## PRIVATE
    Reads an input stream according to the provided format.

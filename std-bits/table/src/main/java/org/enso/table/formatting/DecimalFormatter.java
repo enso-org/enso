@@ -51,15 +51,11 @@ public class DecimalFormatter implements DataFormatter {
       return format(decimal.doubleValue());
     }
 
-    if (value instanceof Long integer) {
-      return format(integer.doubleValue());
-    }
-
     throw new IllegalArgumentException("Unsupported type for DecimalFormatter.");
   }
 
   @Override
   public boolean canFormat(Object value) {
-    return value instanceof Double || value instanceof Long;
+    return value instanceof Double;
   }
 }

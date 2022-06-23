@@ -1,6 +1,5 @@
 package org.enso.table.formatting;
 
-import java.math.BigInteger;
 import java.text.DecimalFormat;
 
 public class IntegerFormatter implements DataFormatter {
@@ -42,7 +41,7 @@ public class IntegerFormatter implements DataFormatter {
       return format(integer.longValue());
     }
 
-    throw new IllegalArgumentException("Unsupported type for DecimalFormatter.");
+    throw new IllegalArgumentException("Unsupported type for IntegerFormatter.");
   }
 
   @Override

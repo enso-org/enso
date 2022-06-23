@@ -8,6 +8,7 @@ import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.File_Format
 import Standard.Base.System.File
 import Standard.Base.System.File.Existing_File_Behavior
+import Standard.Base.Error.Common as Errors
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
@@ -34,8 +35,6 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
 polyglot java import org.enso.table.operations.OrderBuilder
-polyglot java import java.io.StringReader
-polyglot java import java.io.StringWriter
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -1284,10 +1283,9 @@ print_table header rows indices_count format_term =
     ([" " + header_line, divider] + row_lines).join '\n'
 
 Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    java_reader = StringReader.new that
-    Delimited_Reader.read_from_reader format java_reader on_problems
+    if format.is_a File_Format.Delimited then Delimited_Reader.read_text that format on_problems else
+        Errors.unimplemented "Table.from for fixed-width files is not yet implemented."
 
 Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') =
-    java_writer = StringWriter.new
-    Delimited_Writer.write_to_writer that format java_writer
-    java_writer.toString
+    if format.is_a File_Format.Delimited then Delimited_Writer.write_text that format else
+        Errors.unimplemented "Text.from for fixed-width files is not yet implemented."
