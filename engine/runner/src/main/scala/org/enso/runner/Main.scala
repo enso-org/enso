@@ -752,9 +752,9 @@ object Main {
     rootPkgPath: Option[File],
     mainMethodName: String = "main"
   ): Unit = {
-    val mainCons = mainModule.getAssociatedConstructor
-    val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
     try {
+      val mainCons = mainModule.getAssociatedConstructor
+      val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
       mainFun match {
         case Some(main) => main.execute(mainCons.newInstance())
         case None =>
