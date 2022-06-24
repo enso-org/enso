@@ -93,7 +93,7 @@ spec =
     Enso_Project.data.create_directory
     file = Enso_Project.data / "sqlite_test.db"
     file.delete_if_exists
-    connection = Database.open_sqlite_file file
+    connection = Database.connect (SQLite file)
     here.visualization_spec connection
     connection.close
     file.delete

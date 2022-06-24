@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+type Client_Certificate
+    type Client_Certificate cert_file:(File|Text) key_file:(File|Text) (key_password:Text='')
+
+    properties : Vector
+    properties =
+        base = [Pair 'sslcert' (File.new self.cert_file).absolute.path, Pair 'sslkey' (File.new self.key_file).absolute.path]
+        if self.key_password == "" then base else base + [Pair 'sslpassword' self.key_password]

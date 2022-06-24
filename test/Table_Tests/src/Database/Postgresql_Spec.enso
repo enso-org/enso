@@ -124,10 +124,7 @@ spec =
             connection = Error.throw message
             here.run_tests connection pending=message
         False ->
-            url = case db_host.is_nothing of
-                True -> "postgresql:" + db_name
-                False -> "postgresql://" + db_host + "/" + db_name
-            connection = Database.connect url user=db_user password=db_password
+            connection = Database.connect (Postgres (db_host.if_nothing 'localhost') 5432 db_name (Credentials db_user db_password))
             here.run_tests connection
 
 main = Test.Suite.run_main here.spec
