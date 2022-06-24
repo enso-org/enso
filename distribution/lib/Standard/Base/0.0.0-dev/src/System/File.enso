@@ -11,6 +11,7 @@ from Standard.Base.Runtime.Resource import all
 export Standard.Base.System.File.Option
 
 polyglot java import java.io.InputStream as Java_Input_Stream
+polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.NoSuchFileException
@@ -746,6 +747,19 @@ type Output_Stream
                  out_stream.close
     close : Nothing
     close = self.stream_resource . finalize
+
+    ## PRIVATE
+
+       Exposes operations on the underlying Java output stream.
+
+       Arguments:
+       - f: Applies a function over the internal java stream.
+
+       Useful when integrating with polyglot functions requiring an
+       `OutputStream` as an argument.
+    with_java_stream : (Java_Output_Stream -> Any) -> Any
+    with_java_stream f = self.stream_resource . with f
+
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.

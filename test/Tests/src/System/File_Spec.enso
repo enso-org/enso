@@ -195,27 +195,54 @@ spec =
             new_file = transient / "work.txt.new"
             [bak_file, new_file].each .delete_if_exists
 
-            result = Panic.recover Illegal_State_Error <|
+            result = Panic.catch Illegal_State_Error handler=(caught_panic-> caught_panic.payload.message) <|
                 Existing_File_Behavior.Backup.write f output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State_Error "baz")
                     output_stream.write_bytes "bar".utf_8
-            result.should_fail_with Illegal_State_Error
-            result.catch.message . should_equal "baz"
+                Test.fail "Control flow should never get here, because the panic should have been propagated and handled."
+            result.should_equal "baz"
             f.read_text . should_equal "OLD"
             if bak_file.exists then
                 Test.fail "If the operation failed, we shouldn't have even created the backup."
             if new_file.exists then
                 Test.fail "The temporary file should have been cleaned up."
-
             f.delete
-            result2 = Panic.recover Illegal_State_Error <|
+
+            result2 = Panic.catch Illegal_State_Error handler=(caught_panic-> caught_panic.payload.message) <|
                 Existing_File_Behavior.Backup.write f output_stream->
                     output_stream.write_bytes "foo".utf_8
                     Panic.throw (Illegal_State_Error "baz")
                     output_stream.write_bytes "bar".utf_8
-            result2.should_fail_with Illegal_State_Error
-            result2.catch.message . should_equal "baz"
+                Test.fail "Control flow should never get here, because the panic should have been propagated and handled."
+            result2.should_equal "baz"
+            if f.exists.not then
+                Test.fail "Since we were writing to the original destination, the partially written file should have been preserved even upon failure."
+            f.read_text . should_equal "foo"
+            if bak_file.exists then
+                Test.fail "If the operation failed, we shouldn't have even created the backup."
+            if new_file.exists then
+                Test.fail "The temporary file should have been cleaned up."
+            f.delete
+
+            "OLD".write f on_existing_file=Existing_File_Behavior.Overwrite
+            result3 = Existing_File_Behavior.Backup.write f output_stream->
+                output_stream.write_bytes "foo".utf_8
+                Error.throw (Illegal_State_Error "HMM...")
+            result3.should_fail_with Illegal_State_Error
+            result3.catch.message . should_equal "HMM..."
+            f.read_text . should_equal "OLD"
+            if bak_file.exists then
+                Test.fail "If the operation failed, we shouldn't have even created the backup."
+            if new_file.exists then
+                Test.fail "The temporary file should have been cleaned up."
+            f.delete
+
+            result4 = Existing_File_Behavior.Backup.write f output_stream->
+                output_stream.write_bytes "foo".utf_8
+                Error.throw (Illegal_State_Error "HMM...")
+            result4.should_fail_with Illegal_State_Error
+            result4.catch.message . should_equal "HMM..."
             if f.exists.not then
                 Test.fail "Since we were writing to the original destination, the partially written file should have been preserved even upon failure."
             f.read_text . should_equal "foo"

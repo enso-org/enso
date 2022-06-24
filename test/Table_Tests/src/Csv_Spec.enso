@@ -48,7 +48,7 @@ spec =
     Test.group 'Writing' <|
         Test.specify 'should properly serialize simple tables' <|
             varied_column = (Enso_Project.data / "varied_column.csv") . read
-            res = varied_column.to_csv
+            res = Text.from varied_column format=(File_Format.Delimited ",")
             exp = '''
                 Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
                 2005-02-25,2005-02-25,1,1,1.0,1
@@ -61,20 +61,19 @@ spec =
                 2005-03-08,2005-03-08,8,8,8.0,osiem\n
             res.should_equal exp
 
-        Test.specify 'should properly handle quoting of records and allow specifying separators and newlines' <|
+        Test.specify 'should properly handle quoting of records and allow specifying separators' <|
             c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
             c2 = ['grade', [10, 20, 'hello;world']]
             t = Table.new [c1, c2]
 
-            expected_wrong_newline = """
+            expected = """
                 name;grade
                 "Robert"");DROP TABLE Students;--";10
                 "This;Name;;Is""""Strange";20
                 Marcin,,;"hello;world"
 
-            expected = expected_wrong_newline.lines . join '\r\n'
-            res = t.to_csv separator=';' line_ending=Line_Ending_Style.Windows
-            res.should_equal expected+'\r\n'
+            res = Text.from t format=(File_Format.Delimited ";")
+            res.should_equal expected+'\n'
 
         Test.specify 'should allow forced quoting of records'
             c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
@@ -83,11 +82,11 @@ spec =
 
             expected = """
                 "name","grade"
-                "Robert"");DROP TABLE Students;--","10"
-                "This;Name;;Is""""Strange","20"
+                "Robert"");DROP TABLE Students;--",10
+                "This;Name;;Is""""Strange",20
                 "Marcin,,","hello;world"
 
-            res = t.to_csv always_quote=True
+            res = Text.from t format=(File_Format.Delimited "," . with_quotes always_quote=True)
             res.should_equal expected+'\n'
 
 
@@ -95,7 +94,7 @@ spec =
             varied_column = (Enso_Project.data / "varied_column.csv") . read
             out = Enso_Project.data / 'out.csv'
             out.delete_if_exists
-            varied_column.write_csv out
+            varied_column.write out
             exp = '''
                 Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
                 2005-02-25,2005-02-25,1,1,1.0,1
@@ -108,37 +107,6 @@ spec =
                 2005-03-08,2005-03-08,8,8,8.0,osiem\n
             out.read_text.should_equal exp
             out.delete_if_exists
-
-        Test.specify 'should write CSV to multiple files, when row limit specified' <|
-            varied_column = (Enso_Project.data / "varied_column.csv") . read
-            out = Enso_Project.data / 'out.csv'
-            out_1 = Enso_Project.data / 'out_1.csv'
-            out_2 = Enso_Project.data / 'out_2.csv'
-            out_3 = Enso_Project.data / 'out_3.csv'
-            out_1.delete_if_exists
-            out_2.delete_if_exists
-            out_3.delete_if_exists
-            varied_column.write_csv out max_rows_per_file=3
-            exp_1 = '''
-                Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
-                2005-02-25,2005-02-25,1,1,1.0,1
-                2005-02-28,2005-02-28,2,2,2.0,2
-                4,2005-03-01,3,3,3.0,3\n
-            exp_2 = '''
-                Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
-                2005-03-02,,4,4,4.0,4
-                ,2005-03-03,5,5,5.0,5
-                2005-03-04,2005-03-04,,6,6.25,6.25\n
-            exp_3 = '''
-                Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
-                2005-03-07,2005-03-07,7,7,7.0,7
-                2005-03-08,2005-03-08,8,8,8.0,osiem\n
-            out_1.read_text.should_equal exp_1
-            out_2.read_text.should_equal exp_2
-            out_3.read_text.should_equal exp_3
-            out_1.delete_if_exists
-            out_2.delete_if_exists
-            out_3.delete_if_exists
 
 
 main = Test.Suite.run_main here.spec

@@ -3,6 +3,11 @@ from Standard.Base import all
 from Standard.Base.Data.Time.Date as Date_Module import Date
 from Standard.Base.Data.Time as Time_Module import Time
 from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
+from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Auto
+import Standard.Base.Error.Common as Errors
+import Standard.Base.Error.Problem_Behavior
+import Standard.Table.Data.Storage
+import Standard.Table.Internal.Parse_Values_Helper
 
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
@@ -14,85 +19,224 @@ polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
 
-## Specifies options for reading text data in a table to more specific types and
-   serializing them back.
+polyglot java import org.enso.table.formatting.AnyObjectFormatter
+polyglot java import org.enso.table.formatting.BooleanFormatter
+polyglot java import org.enso.table.formatting.DecimalFormatter
+polyglot java import org.enso.table.formatting.IntegerFormatter
+polyglot java import org.enso.table.formatting.DateFormatter
+polyglot java import org.enso.table.formatting.DateTimeFormatter
+polyglot java import org.enso.table.formatting.TimeFormatter
+polyglot java import org.enso.table.formatting.TextFormatter
 
-   Arguments:
-   - trim_values: Trim whitespace before parsing.
-   - allow_leading_zeros: Specifies how to treat numeric values starting with
-     leading zeroes. Defaults to `False`, because converting such
-     values to numbers is a lossy operation - after converting such a number
-     back to text the leading zeroes will get lost. If leading zeroes are not
-     allowed and the column contains any values with leading zeroes, it will not
-     get automatically converted to numbers, remaining as text. However, if the
-     column is specifically requested to be converted to a numeric column, only
-     a warning will be issued indicating that some leading zeroes were present,
-     but the conversion will proceed.
-   - decimal_point: The character used to separate the integer part from the
-     fractional part of a number. Defaults to '.'. Can be changed for example to
-     ',' to allow for European format.
-   - thousand_separator: A separator that can be used to separate groups of
-     digits in numbers. For example, it can be set to ',' to allow for notation
-     like '1,000,000.0'.
-   - datetime_formats: Expected datetime formats.
-   - date_formats: Expected date formats.
-   - time_formats: Expected time formats.
-   - locale: The locale to use when parsing dates and times.
-   - true_values: Values representing True.
-   - false_values: Values representing False.
-type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
+type Data_Formatter
+    ## Specifies options for reading text data in a table to more specific types and
+       serializing them back.
 
-## PRIVATE
-Data_Formatter.get_thousand_separator = if self.thousand_separator.is_empty then Nothing else self.thousand_separator
+       Arguments:
+       - trim_values: Trim whitespace before parsing.
+       - allow_leading_zeros: Specifies how to treat numeric values starting with
+         leading zeroes. Defaults to `False`, because converting such
+         values to numbers is a lossy operation - after converting such a number
+         back to text the leading zeroes will get lost. If leading zeroes are not
+         allowed and the column contains any values with leading zeroes, it will not
+         get automatically converted to numbers, remaining as text. However, if the
+         column is specifically requested to be converted to a numeric column, only
+         a warning will be issued indicating that some leading zeroes were present,
+         but the conversion will proceed.
+       - decimal_point: The character used to separate the integer part from the
+         fractional part of a number. Defaults to '.'. Can be changed for example to
+         ',' to allow for European format.
+       - thousand_separator: A separator that can be used to separate groups of digits in numbers.
+       - allow_exponential_notation: Specifies if exponential notation is allowed.
+       - thousand_separator: A separator that can be used to separate groups of
+         digits in numbers. For example, it can be set to ',' to allow for notation
+         like '1,000,000.0'.
+       - datetime_formats: Expected datetime formats.
+       - date_formats: Expected date formats.
+       - time_formats: Expected time formats.
+       - datetime_locale: The locale to use when parsing dates and times.
+       - true_values: Values representing True.
+       - false_values: Values representing False.
+    type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
 
-## PRIVATE
-Data_Formatter.wrap_base_parser base_parser =
-    if self.trim_values.not then base_parser else
-        WhitespaceStrippingParser.new base_parser
+    ## Parse a Text into a value.
 
-## PRIVATE
-Data_Formatter.make_integer_parser = self.wrap_base_parser <|
-    IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
+       Arguments:
+       - text: Text value to parse.
+       - datatype: Text value to parse.
+       - on_problems: Specifies the behavior when a problem occurs.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
+    parse : Text -> (Auto|Integer|Number|Date|Time|DateTime|Boolean) -> Problem_Behavior -> Any
+    parse text datatype=Auto on_problems=Problem_Behavior.Report_Warning =
+        parser = case datatype of
+            Auto -> self.make_auto_parser
+            _ -> self.make_datatype_parser datatype
+        result = parser.parseIndependentValue text
+        problems = Vector.Vector result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
+        on_problems.attach_problems_after result.value problems
 
-## PRIVATE
-Data_Formatter.make_decimal_parser = self.wrap_base_parser <|
-    DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros
+    ## Format a value into a Text.
 
-## PRIVATE
-Data_Formatter.make_boolean_parser = self.wrap_base_parser <|
-    BooleanParser.new self.true_values.to_array self.false_values.to_array
+       Arguments:
+       - value: Value to format.
+    format : Any -> Text
+    format value =
+        formatter = self.make_auto_formatter
+        formatter.format value
 
-## PRIVATE
-Data_Formatter.make_date_parser = self.wrap_base_parser <|
-    DateParser.new self.date_formats.to_array self.locale.java_locale
+    ## Create a clone of self with specified number formatting options.
 
-## PRIVATE
-Data_Formatter.make_datetime_parser = self.wrap_base_parser <|
-    DateTimeParser.new self.datetime_formats.to_array self.locale.java_locale
+       Arguments:
+       - decimal_point: The character used to separate the integer part from the fractional part of a number.
+       - thousand_separator: A separator that can be used to separate groups of digits in numbers.
+       - allow_leading_zeros: Specifies if values starting with leading zeroes should be treated as numbers.
+       - allow_exponential_notation: Allow parsing of exponential notation format.
+    with_number_formatting : Text -> Text -> Boolean -> Boolean -> Data_Formatter
+    with_number_formatting (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_leading_zeros=self.allow_leading_zeros) (allow_exponential_notation=self.allow_exponential_notation) =
+        self.clone decimal_point=decimal_point thousand_separator=thousand_separator allow_leading_zeros=allow_leading_zeros allow_exponential_notation=allow_exponential_notation
 
-## PRIVATE
-Data_Formatter.make_time_parser = self.wrap_base_parser <|
-    TimeParser.new self.time_formats.to_array self.locale.java_locale
+    ## Specify values for Date/Time parsing.
 
-## PRIVATE
-Data_Formatter.make_identity_parser = self.wrap_base_parser IdentityParser.new
+       Arguments:
+       - datetime_formats: Expected datetime formats.
+       - date_formats: Expected date formats.
+       - time_formats: Expected time formats.
+    with_datetime_formats : (Text|[Text]) -> (Text|[Text]) -> (Text|[Text]) -> Data_Formatter
+    with_datetime_formats datetime_formats=self.datetime_formats date_formats=self.date_formats time_formats=self.time_formats =
+        datetime_vector = if datetime_formats.is_a Text then [datetime_formats] else datetime_formats
+        date_vector = if date_formats.is_a Text then [date_formats] else date_formats
+        time_vector = if time_formats.is_a Text then [time_formats] else time_formats
+        self.clone datetime_formats=datetime_vector date_formats=date_vector time_formats=time_vector
 
-## PRIVATE
-Data_Formatter.make_datatype_parser datatype = case datatype of
-    Integer -> self.make_integer_parser
-    Decimal -> self.make_decimal_parser
-    Boolean -> self.make_boolean_parser
-    _ ->
-        if datatype == Date then self.make_date_parser else
-            if datatype == Time then self.make_datetime_parser else
-                if datatype == Time_Of_Day then self.make_time_parser else
-                    Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
+    ## Specify values for Boolean parsing.
 
-## PRIVATE
-Data_Formatter.get_specific_type_parsers =
-    [self.make_integer_parser, self.make_decimal_parser, self.make_datetime_parser, self.make_date_parser, self.make_time_parser, self.make_boolean_parser]
+       Arguments:
+       - true_values: Values representing True.
+       - false_values: Values representing False.
+    with_boolean_values : (Text|[Text]) -> (Text|[Text]) -> Data_Formatter
+    with_boolean_values true_values false_values =
+        true_vector = if true_values.is_a Text then [true_values] else true_values
+        false_vector = if false_values.is_a Text then [false_values] else false_values
+        self.clone true_values=true_vector false_values=false_vector
 
-## PRIVATE
-Data_Formatter.make_auto_parser =
-    fallback_parser = self.make_identity_parser
-    TypeInferringParser.new self.get_specific_type_parsers.to_array fallback_parser
+    ## Create a clone of self with a specified Locale.
+
+       Arguments:
+       - locale: The locale to use when parsing dates and times.
+    with_locale : Locale -> Delimited
+    with_locale datetime_locale = self.clone datetime_locale=datetime_locale
+
+    ## PRIVATE
+       Clone the instance with some properties overridden.
+    clone : Boolean->Boolean->Text->Text->Boolean->[Text]->[Text]->[Text]->Locale->[Text]->[Text]->Data_Formatter
+    clone (trim_values=self.trim_values) (allow_leading_zeros=self.allow_leading_zeros) (decimal_point=self.decimal_point) (thousand_separator=self.thousand_separator) (allow_exponential_notation=self.allow_exponential_notation) (datetime_formats=self.datetime_formats) (date_formats=self.date_formats) (time_formats=self.time_formats) (datetime_locale=self.datetime_locale) (true_values=self.true_values) (false_values=self.false_values) =
+        Data_Formatter trim_values=trim_values allow_leading_zeros=allow_leading_zeros decimal_point=decimal_point thousand_separator=thousand_separator allow_exponential_notation=allow_exponential_notation datetime_formats=datetime_formats date_formats=date_formats time_formats=time_formats datetime_locale=datetime_locale true_values=true_values false_values=false_values
+
+    ## PRIVATE
+    get_thousand_separator =
+        if self.thousand_separator.is_empty then Nothing else self.thousand_separator
+
+    ## PRIVATE
+    wrap_base_parser base_parser =
+        if self.trim_values.not then base_parser else
+            WhitespaceStrippingParser.new base_parser
+
+    ## PRIVATE
+    make_integer_parser = self.wrap_base_parser <|
+        IntegerParser.new self.get_thousand_separator self.allow_leading_zeros
+
+    ## PRIVATE
+    make_decimal_parser = self.wrap_base_parser <|
+        DecimalParser.new self.decimal_point self.get_thousand_separator self.allow_leading_zeros self.allow_exponential_notation
+
+    ## PRIVATE
+    make_boolean_parser = self.wrap_base_parser <|
+        BooleanParser.new self.true_values.to_array self.false_values.to_array
+
+    ## PRIVATE
+    make_date_parser = self.wrap_base_parser <|
+        DateParser.new self.date_formats.to_array self.datetime_locale.java_locale
+
+    ## PRIVATE
+    make_datetime_parser = self.wrap_base_parser <|
+        DateTimeParser.new self.datetime_formats.to_array self.datetime_locale.java_locale
+
+    ## PRIVATE
+    make_time_parser = self.wrap_base_parser <|
+        TimeParser.new self.time_formats.to_array self.datetime_locale.java_locale
+
+    ## PRIVATE
+    make_identity_parser = self.wrap_base_parser IdentityParser.new
+
+    ## PRIVATE
+    make_datatype_parser datatype = case datatype of
+        Integer -> self.make_integer_parser
+        Decimal -> self.make_decimal_parser
+        Boolean -> self.make_boolean_parser
+        _ ->
+            if datatype == Date then self.make_date_parser else
+                if datatype == Time then self.make_datetime_parser else
+                    if datatype == Time_Of_Day then self.make_time_parser else
+                        Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
+
+    ## PRIVATE
+    get_specific_type_parsers =
+        [self.make_integer_parser, self.make_decimal_parser, self.make_datetime_parser, self.make_date_parser, self.make_time_parser, self.make_boolean_parser]
+
+    ## PRIVATE
+    make_auto_parser =
+        fallback_parser = self.make_identity_parser
+        TypeInferringParser.new self.get_specific_type_parsers.to_array fallback_parser
+
+    ## PRIVATE
+    make_integer_formatter =
+        IntegerFormatter.new self.get_thousand_separator
+
+    ## PRIVATE
+    make_decimal_formatter =
+        DecimalFormatter.new self.get_thousand_separator self.decimal_point
+
+    ## PRIVATE
+    make_date_formatter =
+        if self.date_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting dates requires at least one entry in the `date_formats` parameter") else
+            DateFormatter.new self.date_formats.first self.datetime_locale.java_locale
+
+    ## PRIVATE
+    make_time_formatter =
+        if self.time_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting times requires at least one entry in the `time_formats` parameter") else
+            TimeFormatter.new self.time_formats.first self.datetime_locale.java_locale
+
+    ## PRIVATE
+    make_datetime_formatter =
+        if self.datetime_formats.is_empty then Error.throw (Illegal_Argument_Error "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
+            DateTimeFormatter.new self.datetime_formats.first self.datetime_locale.java_locale
+
+    ## PRIVATE
+    make_boolean_formatter =
+        if self.true_values.is_empty then Error.throw (Illegal_Argument_Error "Formatting booleans requires at least one entry in the `true_values` parameter") else
+            if self.false_values.is_empty then Error.throw (Illegal_Argument_Error "Formatting booleans requires at least one entry in the `false_values` parameter") else
+                BooleanFormatter.new self.true_values.first self.false_values.first
+
+    ## PRIVATE
+    make_text_formatter =
+        TextFormatter.new
+
+    ## PRIVATE
+    get_specific_type_formatters =
+        [self.make_integer_formatter, self.make_decimal_formatter, self.make_boolean_formatter, self.make_datetime_formatter, self.make_date_formatter, self.make_time_formatter, self.make_text_formatter]
+
+    ## PRIVATE
+    make_auto_formatter =
+        # TODO The panic rethrow+recover is a workaround for the vector error propagation bug.
+        formatters = Panic.recover Illegal_Argument_Error (self.get_specific_type_formatters.map Panic.rethrow)
+        AnyObjectFormatter.new formatters.to_array
+
+    ## PRIVATE
+    make_formatter_for_column_type (column_type : Storage) = case column_type of
+        Storage.Text -> self.make_text_formatter
+        Storage.Integer -> self.make_integer_formatter
+        Storage.Decimal -> self.make_decimal_formatter
+        Storage.Boolean -> self.make_boolean_formatter
+        Storage.Any -> self.make_auto_formatter

@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
+import Standard.Base.Error.Common
 from Standard.Base.System.File import File_Already_Exists_Error, Io_Error, File_Not_Found
 
 ## Specifies the behavior of a write operation when the destination file
@@ -46,12 +47,18 @@ type Existing_File_Behavior
             Backup -> Panic.recover [Io_Error, File_Not_Found] <|
                 handle_existing_file _ =
                     here.write_file_backing_up_old_one file action
+                handle_write_failure_dataflow caught_panic =
+                    Common.Error.throw caught_panic.payload.cause
+                handle_file_already_exists = Panic.catch File_Already_Exists_Error handler=handle_existing_file
+                handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
                 ## We first attempt to write the file to the original
                    destination, but if that files due to the file already
                    existing, we will run the alternative algorithm which uses a
                    temporary file and creates a backup.
-                Panic.catch File_Already_Exists_Error handler=handle_existing_file <|
-                    Panic.rethrow <| file.with_output_stream [Option.Write, Option.Create_New] action
+                handle_file_already_exists <| handle_internal_dataflow <|
+                    Panic.rethrow <| file.with_output_stream [Option.Write, Option.Create_New] output_stream->
+                        action output_stream . catch dataflow_error->
+                            Panic.throw (Internal_Write_Operation_Errored dataflow_error)
 
 ## PRIVATE
 write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | Io_Error | File_Already_Exists_Error
@@ -62,17 +69,26 @@ write_file_backing_up_old_one file action = Panic.recover [Io_Error, File_Not_Fo
         new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text
         new_file = parent / new_name
         handle_existing_file _ = go i+1
-        handle_write_failure panic =
+        handle_write_failure_panic panic =
             ## Since we were already inside of the write operation,
                the file must have been created, but since we failed, we need to clean it up.
             new_file.delete
             Panic.throw panic.payload.cause
-        Panic.catch File_Already_Exists_Error handler=handle_existing_file <|
-            Panic.catch Internal_Write_Operation_Failed handler=handle_write_failure <|
-                Panic.rethrow <|
-                    new_file.with_output_stream [Option.Write, Option.Create_New] output_stream->
-                        Panic.catch Any (action output_stream) caught_panic->
-                            Panic.throw (Internal_Write_Operation_Failed caught_panic)
+        handle_write_failure_dataflow caught_panic =
+            ## Since we were already inside of the write operation,
+               the file must have been created, but since we failed, we need to clean it up.
+            new_file.delete
+            Common.Error.throw caught_panic.payload.cause
+        handle_file_already_exists = Panic.catch File_Already_Exists_Error handler=handle_existing_file
+        handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
+        handle_internal_panic = Panic.catch Internal_Write_Operation_Panicked handler=handle_write_failure_panic
+        handle_file_already_exists <| handle_internal_dataflow <| handle_internal_panic <|
+            Panic.rethrow <|
+                new_file.with_output_stream [Option.Write, Option.Create_New] output_stream->
+                    result = Panic.catch Any (action output_stream) caught_panic->
+                        Panic.throw (Internal_Write_Operation_Panicked caught_panic)
+                    result.catch dataflow_error->
+                        Panic.throw (Internal_Write_Operation_Errored dataflow_error)
             ## We ignore the file not found error, because it means that there
                is no file to back-up. This may also be caused by someone
                removing the original file during the time when we have been
@@ -86,4 +102,7 @@ write_file_backing_up_old_one file action = Panic.recover [Io_Error, File_Not_Fo
 
 
 ## PRIVATE
-type Internal_Write_Operation_Failed (cause : Caught_Panic)
+type Internal_Write_Operation_Panicked (cause : Caught_Panic)
+
+## PRIVATE
+type Internal_Write_Operation_Errored (cause : Any)
