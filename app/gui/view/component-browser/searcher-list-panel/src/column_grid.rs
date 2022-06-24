@@ -27,6 +27,7 @@ use ordered_float::OrderedFloat;
 
 #[derive(Clone, Debug)]
 struct Entry {
+    index:   usize,
     content: component_group::View,
     visible: bool,
 }
@@ -72,18 +73,23 @@ impl Model {
         let column_width = (overall_width - 2.0 * style.column_gap) / NUMBER_OF_COLUMNS as f32;
         let content = content
             .iter()
-            .map(|LabeledAnyModelProvider { content, label }| {
-                let view = self.app.new_view::<component_group::View>();
-                if let Some(layers) = self.layers.borrow().as_ref() {
-                    view.model().set_layers(&layers.groups);
+            .enumerate()
+            .filter_map(|(index, LabeledAnyModelProvider { content, label })| {
+                if content.entry_count() > 0 {
+                    let view = self.app.new_view::<component_group::View>();
+                    if let Some(layers) = self.layers.borrow().as_ref() {
+                        view.model().set_layers(&layers.groups);
+                    } else {
+                        tracing::log::warn!("Created ColumnGrid entry without layers.");
+                    }
+                    view.set_width(column_width);
+                    view.set_entries(content);
+                    view.set_header(label.as_str());
+                    self.display_object.add_child(&view);
+                    Some(Entry { index, content: view, visible: false })
                 } else {
-                    tracing::log::warn!("Created ColumnGrid entry without layers.");
+                    None
                 }
-                view.set_width(column_width);
-                view.set_entries(content);
-                view.set_header(label.as_str());
-                self.display_object.add_child(&view);
-                Entry { content: view, visible: false }
             })
             .collect_vec();
 
@@ -92,18 +98,18 @@ impl Model {
         // below we add one gap per item. So we initialise the heights with `-column_gap`.
         let mut heights = [-style.column_gap; NUMBER_OF_COLUMNS];
 
-        for (ix, entry) in content.iter().enumerate() {
-            let column_index = ix % NUMBER_OF_COLUMNS;
+        for entry in content.iter() {
+            let column_index = entry.index % NUMBER_OF_COLUMNS;
             columns[column_index].push(&entry.content);
             heights[column_index] += entry.content.size.value().y + style.column_gap;
         }
         let height: f32 = heights.into_iter().map(OrderedFloat).max().unwrap_or_default().into();
 
         let mut entry_ix = 0;
-        for (ix, column) in columns.iter().enumerate() {
+        for (column_index, column) in columns.iter().enumerate() {
             // The +0.5 required as a way to center the columns in the x direction by shifting by an
             // additional half-width.
-            let pos_x = (column_width + style.column_gap) * (ix as f32 + 0.5);
+            let pos_x = (column_width + style.column_gap) * (column_index as f32 + 0.5);
             let mut pos_y = -height;
             for entry in column {
                 let entry_height = entry.size.value().y;

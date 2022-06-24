@@ -119,6 +119,10 @@ fn mock_data() -> Vec<LabeledAnyModelProvider> {
     // entries.
     let random_entry = |n: usize| MockEntries::new(n + (Math::random() * 5.0) as usize);
     vec![
+        // Three empty lists to check they are filtered correctly.
+        MockEntries::new(0),
+        MockEntries::new(0),
+        MockEntries::new(0),
         random_entry(1),
         random_entry(1),
         random_entry(3),
