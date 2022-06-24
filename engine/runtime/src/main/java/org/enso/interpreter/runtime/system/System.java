@@ -32,8 +32,8 @@ public class System {
 
   @Builtin.Method(description = "Gets the nanosecond resolution system time.")
   @CompilerDirectives.TruffleBoundary
-  public static void nanoTime() {
-    java.lang.System.nanoTime();
+  public static long nanoTime() {
+    return java.lang.System.nanoTime();
   }
 
   @Builtin.Method(description = "Exits the process, returning the provided code.")
