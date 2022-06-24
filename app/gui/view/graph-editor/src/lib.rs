@@ -1631,6 +1631,7 @@ impl GraphEditorModelWithNetwork {
 
     fn pan_to_node(&self, node_id: impl Into<NodeId>) {
         use ensogl::display::navigation::navigator::PanEvent;
+        let node_id = node_id.into();
         let scene = &self.app.display.default_scene;
         let screen_size_halved = Vector2::from(scene.camera().screen()) / 2.0;
         DEBUG!("MCDBG screen_size_halved=" screen_size_halved;?);
@@ -1652,7 +1653,7 @@ impl GraphEditorModelWithNetwork {
                 // let corner = Vector3(corner.x, corner.y, 0.0);
                 // let corner = scn.screen_to_scene_coordinates(corner.into());
         let node = self.nodes.get_cloned_ref(&node_id);
-        let node_pos = node.map(|n| node.position().xy()).unwrap_or_default();
+        let node_pos = node.map(|n| n.position().xy()).unwrap_or_default();
         let node_bbox = selection::BoundingBox::from_corners(node_pos, node_pos);
         // let node_size = node.map(|n| node.size().
         // let node_pos_tmp = self.node_position(node_id);
