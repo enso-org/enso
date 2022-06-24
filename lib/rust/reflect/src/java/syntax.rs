@@ -211,7 +211,7 @@ impl std::fmt::Display for Class {
 impl std::fmt::Display for Field {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let Field { type_, name, final_ } = &self;
-        let mut tokens = vec!["public".to_string()];
+        let mut tokens = vec!["protected".to_string()];
         final_.then(|| tokens.push("final".to_string()));
         tokens.push(type_.to_string());
         tokens.push(name.clone());

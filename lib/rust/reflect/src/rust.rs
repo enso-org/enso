@@ -107,7 +107,7 @@ impl NamedFields {
         for field in self.fields {
             if field.flatten {
                 let ty = field.type_.evaluate();
-                let base = crate::generic::Identifier::from_pascal_case(&ty.name).to_snake_case();
+                let base = &field.name;
                 match ty.data {
                     Data::Struct(Struct { fields: Fields::Named(fields), .. }) => {
                         let mut fields = fields.into_vec();

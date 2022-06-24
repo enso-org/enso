@@ -113,7 +113,9 @@ fn deserialize_nullable<F>(graph: &TypeGraph, id: TypeId, message: &str, output:
     let ty_name = quote_class_type(graph, id);
     body.push(format!("{} {} = null;", ty_name, &output));
     body.push(format!("if ({}.getBoolean()) {{", message));
-    deserialize_object(graph, id, message, output, get_temp, body);
+    let value = get_temp();
+    deserialize_object(graph, id, message, &value, get_temp, body);
+    body.push(format!("{} = {};", &output, &value));
     body.push(format!("}}"));
 }
 
