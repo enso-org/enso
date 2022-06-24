@@ -32,36 +32,75 @@ pub enum Pattern {
     Seq(Box<Pattern>, Box<Pattern>),
     Many(Box<Pattern>),
     /// Consume a single item if it matches the configuration.
-    Item(Item),
+    // Item(Item),
     Identifier,
     Block(Box<Pattern>),
+    Expected(String, Box<Pattern>),
+}
+
+pub use Pattern::Everything;
+pub use Pattern::Identifier;
+pub use Pattern::Nothing;
+
+pub fn Or(fst: Pattern, snd: Pattern) -> Pattern {
+    Pattern::Or(Box::new(fst), Box::new(snd))
+}
+
+pub fn Seq(fst: Pattern, snd: Pattern) -> Pattern {
+    Pattern::Seq(Box::new(fst), Box::new(snd))
+}
+
+pub fn Many(item: Pattern) -> Pattern {
+    Pattern::Many(Box::new(item))
+}
+
+pub fn Block(body: Pattern) -> Pattern {
+    Pattern::Block(Box::new(body))
+}
+
+pub fn Expected(message: impl Into<String>, item: Pattern) -> Pattern {
+    Pattern::Expected(message.into(), Box::new(item))
 }
 
 impl Pattern {
     pub fn many(self) -> Self {
-        Pattern::Many(Box::new(self))
+        Many(self)
     }
 
-    pub fn block(body: Pattern) -> Self {
-        Pattern::Block(Box::new(body))
+    pub fn many1(self) -> Self {
+        Seq(self.clone(), Many(self))
     }
 }
 
 impl std::ops::Shr for Pattern {
     type Output = Pattern;
     fn shr(self, rhs: Pattern) -> Self::Output {
-        Pattern::Seq(Box::new(self), Box::new(rhs))
+        Seq(self, rhs)
     }
 }
 
-/// Item pattern configuration.
-#[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)]
-pub struct Item {
-    /// Check whether the token has spaces on right-hand-side. The [`None`] value means that the
-    /// condition would not be checked.
-    pub has_rhs_spacing: Option<bool>,
+impl std::ops::BitOr for Pattern {
+    type Output = Pattern;
+    fn bitor(self, rhs: Pattern) -> Self::Output {
+        Or(self, rhs)
+    }
 }
+
+impl<T: Into<String>> std::ops::Rem<T> for Pattern {
+    type Output = Pattern;
+    fn rem(self, message: T) -> Self::Output {
+        self | Expected(message, Nothing)
+    }
+}
+
+// /// Item pattern configuration.
+// #[derive(Clone, Copy, Debug)]
+// #[allow(missing_docs)]
+// pub struct Item {
+//     /// Check whether the token has spaces on right-hand-side. The [`None`] value means that the
+//     /// condition would not be checked.
+//     pub has_rhs_spacing: Option<bool>,
+// }
 
 
 #[derive(Debug)]
@@ -95,6 +134,7 @@ pub enum MatchResult<'s> {
     Seq(Box<MatchResult<'s>>, Box<MatchResult<'s>>),
     Many(Vec<MatchResult<'s>>),
     Identifier(syntax::Item<'s>),
+    Expected(String, Box<MatchResult<'s>>),
 }
 
 impl<'s> MatchResult<'s> {
@@ -105,6 +145,7 @@ impl<'s> MatchResult<'s> {
             Self::Seq(fst, snd) => fst.tokens().extended(snd.tokens()),
             Self::Many(t) => t.into_iter().map(|s| s.tokens()).flatten().collect(),
             Self::Identifier(ident) => vec![ident],
+            Self::Expected(_, item) => item.tokens(),
         }
     }
 
@@ -119,6 +160,9 @@ impl Pattern {
         mut input: VecDeque<syntax::Item<'s>>,
     ) -> Result<Match2<'s>, VecDeque<syntax::Item<'s>>> {
         match self {
+            Self::Expected(msg, item) => item
+                .resolve(input)
+                .map(|t| t.map(|s| MatchResult::Expected(msg.clone(), Box::new(s)))),
             Self::Everything => Ok(Match2::new(MatchResult::Everything(input), default())),
             Self::Nothing => Ok(Match2::new(MatchResult::Nothing, input)),
             Self::Or(fst, snd) => fst.resolve(input).or_else(|t| snd.resolve(t)),
@@ -160,7 +204,6 @@ impl Pattern {
                 }
                 None => Err(default()),
             },
-            _ => todo!(),
         }
     }
 }
@@ -211,124 +254,124 @@ impl<T> Match<T> {
 }
 
 
-
-impl Pattern {
-    /// Match the token stream with this pattern.
-    pub fn resolve_old<'s, T: TryAsRef<syntax::Item<'s>>>(
-        &self,
-        mut input: Vec<T>,
-        has_spacing_at_end: bool,
-        right_to_left_mode: bool,
-    ) -> Match<T> {
-        let reject = |input: Vec<T>, message: &str| {
-            Match::new(default(), input, Some(ResolutionError::new(message)))
-        };
-
-        match self {
-            Self::Everything => Match::new(input, default(), None),
-            Self::Nothing => Match::new(default(), input, None),
-            Self::Or(fst, snd) => {
-                let fst_result = fst.resolve_old(input, has_spacing_at_end, right_to_left_mode);
-                if fst_result.error.is_none() {
-                    fst_result
-                } else {
-                    let input =
-                        fst_result.matched.into_iter().chain(fst_result.rest.into_iter()).collect();
-                    snd.resolve_old(input, has_spacing_at_end, right_to_left_mode)
-                }
-            }
-            Self::Seq(fst, snd) => {
-                let fst_result = fst.resolve_old(input, has_spacing_at_end, right_to_left_mode);
-                if fst_result.error.is_none() {
-                    let snd_result =
-                        snd.resolve_old(fst_result.rest, has_spacing_at_end, right_to_left_mode);
-                    Match::new(
-                        fst_result
-                            .matched
-                            .into_iter()
-                            .chain(snd_result.matched.into_iter())
-                            .collect(),
-                        snd_result.rest,
-                        snd_result.error,
-                    )
-                } else {
-                    fst_result
-                }
-            }
-            Self::Many(pat) => {
-                let mut matched = vec![];
-                loop {
-                    let result =
-                        pat.resolve_old(mem::take(&mut input), has_spacing_at_end, right_to_left_mode);
-                    if result.error.is_none() {
-                        matched.extend(result.matched);
-                        input = result.rest;
-                    } else {
-                        input = result.matched.into_iter().chain(result.rest.into_iter()).collect();
-                        break;
-                    }
-                }
-                Match::new(matched, input, None)
-            }
-            Self::Item(item) => match input.first() {
-                None => reject(input, "Expected item"),
-                Some(first) => match first.try_as_ref() {
-                    None => reject(input, "Expected item"),
-                    Some(_) => match item.has_rhs_spacing {
-                        Some(spacing) =>
-                            if right_to_left_mode {
-                                if spacing == has_spacing_at_end {
-                                    Match::new(vec![input.pop_front().unwrap()], input, None)
-                                } else {
-                                    reject(input, "Expected item")
-                                }
-                            } else {
-                                todo!()
-                            },
-                        None => Match::new(vec![input.pop_front().unwrap()], input, None),
-                    },
-                },
-            },
-            Self::Identifier => match input.first() {
-                None => reject(input, "Expected identifier, got nothing."),
-                Some(first) => match first.try_as_ref() {
-                    None => reject(input, "Expected identifier, got ..."),
-                    Some(item) =>
-                        if item.is_variant(syntax::token::variant::VariantMarker::Ident) {
-                            Match::new(vec![input.pop_front().unwrap()], input, None)
-                        } else {
-                            reject(input, "Expected identifier, got ...")
-                        },
-                },
-            },
-            Self::Block(body) => todo!()
-            // match input.first() {
-            //     None => reject(input, "Expected block, got nothing."),
-            //     Some(first) => match first.try_as_ref() {
-            //         None => reject(input, "Expected block, got ..."),
-            //         Some(item) => match item {
-            //             syntax::Item::Block(tokens) => {
-            //                 let tokens = tokens.clone(); // FIXME: perf
-            //                 let front = input.pop_front().unwrap();
-            //                 let m = body.resolve_old(tokens, has_spacing_at_end, right_to_left_mode);
-            //                 if m.error.is_none() {
-            //                     Match::new(vec![front], input, None)
-            //                 } else {
-            //                     Match::new(vec![front], input, None)
-            //                 }
-            //                 // pub fn resolve_old<'s, T: TryAsRef<syntax::Item<'s>>>(
-            //                 //     &self,
-            //                 //     mut input: Vec<T>,
-            //                 //     has_spacing_at_end: bool,
-            //                 //     right_to_left_mode: bool,
-            //             }
-            //             _ => reject(input, "Expected identifier, got ...")
-            //         }
-            //     },
-            // },
-        }
-    }
-}
+//
+// impl Pattern {
+//     /// Match the token stream with this pattern.
+//     pub fn resolve_old<'s, T: TryAsRef<syntax::Item<'s>>>(
+//         &self,
+//         mut input: Vec<T>,
+//         has_spacing_at_end: bool,
+//         right_to_left_mode: bool,
+//     ) -> Match<T> {
+//         let reject = |input: Vec<T>, message: &str| {
+//             Match::new(default(), input, Some(ResolutionError::new(message)))
+//         };
+//
+//         match self {
+//             Self::Everything => Match::new(input, default(), None),
+//             Self::Nothing => Match::new(default(), input, None),
+//             Self::Or(fst, snd) => {
+//                 let fst_result = fst.resolve_old(input, has_spacing_at_end, right_to_left_mode);
+//                 if fst_result.error.is_none() {
+//                     fst_result
+//                 } else {
+//                     let input =
+//
+// fst_result.matched.into_iter().chain(fst_result.rest.into_iter()).collect();
+// snd.resolve_old(input, has_spacing_at_end, right_to_left_mode)                 }
+//             }
+//             Self::Seq(fst, snd) => {
+//                 let fst_result = fst.resolve_old(input, has_spacing_at_end, right_to_left_mode);
+//                 if fst_result.error.is_none() {
+//                     let snd_result =
+//                         snd.resolve_old(fst_result.rest, has_spacing_at_end, right_to_left_mode);
+//                     Match::new(
+//                         fst_result
+//                             .matched
+//                             .into_iter()
+//                             .chain(snd_result.matched.into_iter())
+//                             .collect(),
+//                         snd_result.rest,
+//                         snd_result.error,
+//                     )
+//                 } else {
+//                     fst_result
+//                 }
+//             }
+//             Self::Many(pat) => {
+//                 let mut matched = vec![];
+//                 loop {
+//                     let result =
+//                         pat.resolve_old(mem::take(&mut input), has_spacing_at_end,
+// right_to_left_mode);                     if result.error.is_none() {
+//                         matched.extend(result.matched);
+//                         input = result.rest;
+//                     } else {
+//                         input =
+// result.matched.into_iter().chain(result.rest.into_iter()).collect();
+// break;                     }
+//                 }
+//                 Match::new(matched, input, None)
+//             }
+//             Self::Item(item) => match input.first() {
+//                 None => reject(input, "Expected item"),
+//                 Some(first) => match first.try_as_ref() {
+//                     None => reject(input, "Expected item"),
+//                     Some(_) => match item.has_rhs_spacing {
+//                         Some(spacing) =>
+//                             if right_to_left_mode {
+//                                 if spacing == has_spacing_at_end {
+//                                     Match::new(vec![input.pop_front().unwrap()], input, None)
+//                                 } else {
+//                                     reject(input, "Expected item")
+//                                 }
+//                             } else {
+//                                 todo!()
+//                             },
+//                         None => Match::new(vec![input.pop_front().unwrap()], input, None),
+//                     },
+//                 },
+//             },
+//             Self::Identifier => match input.first() {
+//                 None => reject(input, "Expected identifier, got nothing."),
+//                 Some(first) => match first.try_as_ref() {
+//                     None => reject(input, "Expected identifier, got ..."),
+//                     Some(item) =>
+//                         if item.is_variant(syntax::token::variant::VariantMarker::Ident) {
+//                             Match::new(vec![input.pop_front().unwrap()], input, None)
+//                         } else {
+//                             reject(input, "Expected identifier, got ...")
+//                         },
+//                 },
+//             },
+//             Self::Block(body) => todo!()
+//             // match input.first() {
+//             //     None => reject(input, "Expected block, got nothing."),
+//             //     Some(first) => match first.try_as_ref() {
+//             //         None => reject(input, "Expected block, got ..."),
+//             //         Some(item) => match item {
+//             //             syntax::Item::Block(tokens) => {
+//             //                 let tokens = tokens.clone(); // FIXME: perf
+//             //                 let front = input.pop_front().unwrap();
+//             //                 let m = body.resolve_old(tokens, has_spacing_at_end,
+// right_to_left_mode);             //                 if m.error.is_none() {
+//             //                     Match::new(vec![front], input, None)
+//             //                 } else {
+//             //                     Match::new(vec![front], input, None)
+//             //                 }
+//             //                 // pub fn resolve_old<'s, T: TryAsRef<syntax::Item<'s>>>(
+//             //                 //     &self,
+//             //                 //     mut input: Vec<T>,
+//             //                 //     has_spacing_at_end: bool,
+//             //                 //     right_to_left_mode: bool,
+//             //             }
+//             //             _ => reject(input, "Expected identifier, got ...")
+//             //         }
+//             //     },
+//             // },
+//         }
+//     }
+// }
 
 
 // pub struct Match<T> {
