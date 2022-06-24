@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+import Standard.Base.System
+import Standard.Test
+
+spec = Test.group "System" <|
+    Test.specify "should provide nanosecond timer" <|
+        result = System.nano_time
+        (result > 0).should_equal True
