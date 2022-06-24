@@ -23,33 +23,33 @@ impl Quote for Type {
     fn quote(&self) -> TokenStream {
         let ident = &self.ident;
         let generics = &self.generics;
-        let data = self.data.quote();
+        let data = self.data.quote(self.attrs.transparent);
         let name = self.ident.to_string();
-        let transparent = self.attrs.transparent;
         quote! {
             reflect::rust::TypeData {
                 id: reflect::rust::TypeId::of::<#ident<#generics>>(),
                 name: #name.to_owned(),
                 data: #data,
-                transparent: #transparent,
                 subtype_erased: Self::subtype_erased_type(),
             }
         }
     }
 }
 
-impl Quote for Data {
-    fn quote(&self) -> TokenStream {
+impl Data {
+    fn quote(&self, transparent: bool) -> TokenStream {
         match self {
             Data::Struct(fields) => {
                 let fields = fields.quote();
                 quote! {
                     reflect::rust::Data::Struct(reflect::rust::Struct {
                         fields: #fields,
+                        transparent: #transparent,
                     })
                 }
             }
             Data::Enum(variants) => {
+                assert!(!transparent, "`#[reflect(transparent)]` is not applicable to `enum`s.");
                 let variants: Punctuated<_, Token![,]> =
                     variants.into_iter().map(Quote::quote).collect();
                 quote! {
@@ -68,7 +68,9 @@ impl Quote for Fields {
             Fields::Named { fields } => {
                 let fields: Punctuated<_, Token![,]> =
                     fields.into_iter().map(Quote::quote).collect();
-                quote! { reflect::rust::Fields::Named(vec![#fields]) }
+                quote! {
+                    reflect::rust::Fields::Named(reflect::rust::NamedFields::new(vec![#fields]))
+                }
             }
             Fields::Unnamed(fields) => {
                 let fields: Punctuated<_, Token![,]> =
@@ -88,11 +90,13 @@ impl Quote for NamedField {
             None => &self.type_,
         };
         let subtype = self.subtype;
+        let flatten = self.flatten;
         quote! {
             reflect::rust::NamedField {
                 name: #name.to_owned(),
                 type_: reflect::rust::LazyType::of::<#typename>(),
                 subtype: #subtype,
+                flatten: #flatten,
             }
         }
     }

@@ -8,9 +8,12 @@ use crate::rust::*;
 
 /// Supports obtaining descriptions of the definitions of types at runtime.
 pub trait Reflect {
-    /// (For internal use by `crate`.)
+    /// This must be a type that uniquely identifies `Self`, ignoring any lifetime parameters.
     type Static: 'static;
-    /// (For internal use by `crate`.)
+    /// This must be a type that uniquely identifies `Self`, ignoring any lifetime parameters, and
+    /// invariant to any one generic parameter that may occur in the definition of a field marked
+    /// `#[reflect(subtype)]`, if present. The type used for the erased parameter can be any type
+    /// that satisfies `Self`'s bounds.
     type SubtypeErased: 'static;
     /// Get information about the type's definition.
     fn reflect() -> TypeData;
@@ -29,7 +32,7 @@ pub trait Reflect {
     /// if and only if that ID corresponds to a type that is an instantiation of the same generic
     /// with all the same parameters *ignoring* the parameter that occurs in the `subtype` field.
     ///
-    /// Don't worry, it's for internal use in `crate`.
+    /// This is used to implement the `subtype` transform.
     fn subtype_erased_type() -> GenericTypeId {
         GenericTypeId(std::any::TypeId::of::<Self::SubtypeErased>())
     }
@@ -78,9 +81,8 @@ impl<T> Reflect for Option<T>
         let id = TypeId::of::<Self>();
         let name = "Option".to_owned();
         let data = Data::Primitive(Primitive::Option(T::reflect_lazy()));
-        let transparent = false;
         let subtype_erased = Self::subtype_erased_type();
-        TypeData { id, name, data, subtype_erased, transparent }
+        TypeData { id, name, data, subtype_erased }
     }
 }
 
@@ -97,9 +99,8 @@ impl<T, E> Reflect for Result<T, E>
         let ok = T::reflect_lazy();
         let err = E::reflect_lazy();
         let data = Data::Primitive(Primitive::Result(ok, err));
-        let transparent = false;
         let subtype_erased = Self::subtype_erased_type();
-        TypeData { id, name, data, subtype_erased, transparent }
+        TypeData { id, name, data, subtype_erased }
     }
 }
 
@@ -121,9 +122,8 @@ impl<T> Reflect for Vec<T>
         let id = TypeId::of::<Vec<T>>();
         let name = "Vec".to_owned();
         let data = Data::Primitive(Primitive::Vec(T::reflect_lazy()));
-        let transparent = false;
         let subtype_erased = Self::subtype_erased_type();
-        TypeData { id, name, data, subtype_erased, transparent }
+        TypeData { id, name, data, subtype_erased }
     }
 }
 
@@ -136,9 +136,8 @@ macro_rules! reflect_primitive {
                 let id = TypeId::of::<$ty>();
                 let name = stringify!($ty).to_owned();
                 let data = Data::Primitive($primitive);
-                let transparent = false;
                 let subtype_erased = Self::subtype_erased_type();
-                TypeData { id, name, data, subtype_erased, transparent }
+                TypeData { id, name, data, subtype_erased }
             }
         }
     };

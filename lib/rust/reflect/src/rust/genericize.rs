@@ -51,12 +51,12 @@ impl Genericize {
         &mut self,
         id_: generic::TypeId,
         name: &str,
-        fields: &[NamedField],
+        fields: &NamedFields,
         erased: Option<GenericTypeId>,
     ) {
         let mut body = vec![];
         let mut child_field = None;
-        for (i, field) in fields.iter().enumerate() {
+        for (i, field) in fields.clone().into_vec().into_iter().enumerate() {
             if field.subtype {
                 assert_eq!(child_field, None);
                 child_field = Some((i, field.type_.id));
@@ -116,7 +116,6 @@ impl Genericize {
         let children = variants.into_iter().map(|Variant { ident, fields, transparent }| {
             if *transparent {
                 let id = &fields.as_wrapped_type().unwrap().id;
-                //self.transparented_types.insert(generic_id, id);
                 let id_ = self.generic_of_rust[id];
                 self.interfaces.push((generic_id, id_));
                 id_
@@ -161,19 +160,25 @@ impl Genericize {
         types: &mut BTreeMap<TypeId, TypeData>,
     ) -> BTreeMap<TypeId, TypeId> {
         let mut alias = BTreeMap::new();
-        types.retain(|id, TypeData { transparent, data, .. }| {
-            if *transparent {
-                let target_id = match data {
-                    Data::Struct(Struct { fields: Fields::Named(fields) }) if fields.len() == 1 =>
-                        fields[0].type_.id,
-                    Data::Struct(Struct { fields: Fields::Unnamed(fields) })
-                        if fields.len() == 1 =>
-                        fields[0].type_.id,
-                    _ => panic!(),
-                };
-                alias.insert(*id, target_id);
-            }
-            !*transparent
+        types.retain(|id, TypeData { data, .. }| {
+            let target = match data {
+                Data::Struct(Struct { fields: Fields::Named(fields), transparent })
+                    if *transparent =>
+                {
+                    let fields = fields.clone().into_vec();
+                    assert_eq!(fields.len(), 1);
+                    fields[0].type_.id
+                }
+                Data::Struct(Struct { fields: Fields::Unnamed(fields), transparent })
+                    if *transparent =>
+                {
+                    assert_eq!(fields.len(), 1);
+                    fields[0].type_.id
+                }
+                _ => return true,
+            };
+            alias.insert(*id, target);
+            false
         });
         let entries: Vec<_> = alias.iter().map(|(k, v)| (*k, *v)).collect();
         for (key, mut value) in entries {
@@ -202,7 +207,8 @@ impl Genericize {
             let generic_id = self.generic_of_rust[&rust_id];
             let erased = Some(rust.subtype_erased);
             match &rust.data {
-                Data::Struct(Struct { fields }) => self.struct_(generic_id, name, fields, erased),
+                Data::Struct(Struct { fields, transparent: _ }) =>
+                    self.struct_(generic_id, name, fields, erased),
                 Data::Enum(Enum { variants }) => self.enum_(generic_id, name, variants),
                 Data::Primitive(primitive) => self.primitive(generic_id, name, &primitive),
             };
@@ -211,11 +217,7 @@ impl Genericize {
             let old_parent = self.generic_graph[child_].parent.replace(parent_);
             assert_eq!(None, old_parent);
         }
-        // parent_types:    HashMap<GenericTypeId, generic::Type>,
-        // subtypings:      Vec<(GenericTypeId, TypeId, generic::TypeId)>,
-        // child_types:     HashMap<(GenericTypeId, TypeId), generic::TypeId>,
         let mut parent_ids = BTreeMap::new();
-        //let mut child_types = HashMap::new();
         let mut aliases = vec![];
         let subtypings = std::mem::take(&mut self.subtypings);
         // Handle the variant first; that way we can generate its type family with `enum_`, which
@@ -283,10 +285,7 @@ fn collect_types(root: TypeData) -> BTreeMap<TypeId, TypeData> {
         new_types.entry(id).or_insert_with(|| {
             let type_ = lazy.evaluate();
             debug_assert_eq!(id, type_.id);
-            let refs = type_
-                .referenced_types()
-                .into_iter()
-                .map(|lazy: LazyType| (lazy.id, lazy));
+            let refs = type_.referenced_types().into_iter().map(|lazy: LazyType| (lazy.id, lazy));
             to_visit.extend(refs);
             type_
         });

@@ -21,8 +21,6 @@ pub struct TypeData {
     pub name:           String,
     pub data:           Data,
     pub subtype_erased: GenericTypeId,
-    // attributes
-    pub transparent:    bool,
 }
 
 /// A type's data content.
@@ -48,10 +46,11 @@ pub struct Variant {
     pub transparent: bool,
 }
 
-/// A `struct` with named fields.
 #[derive(Debug, Clone)]
 pub struct Struct {
-    pub fields: Fields,
+    pub fields:      Fields,
+    // attributes
+    pub transparent: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -61,6 +60,7 @@ pub struct NamedField {
     pub type_:   LazyType,
     // attributes
     pub subtype: bool,
+    pub flatten: bool,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -70,18 +70,60 @@ pub struct UnnamedField {
 
 #[derive(Debug, Clone)]
 pub enum Fields {
-    Named(Vec<NamedField>),
+    Named(NamedFields),
     Unnamed(Vec<UnnamedField>),
     Unit,
 }
 
 impl Fields {
-    pub fn as_wrapped_type(&self) -> Option<&LazyType> {
+    pub fn as_wrapped_type(&self) -> Option<LazyType> {
         match self {
-            Fields::Named(fields) if fields.len() == 1 => Some(&fields[0].type_),
-            Fields::Unnamed(fields) if fields.len() == 1 => Some(&fields[0].type_),
+            Fields::Named(fields) => {
+                let fields = fields.clone().into_vec();
+                match fields.len() {
+                    1 => Some(fields[0].type_),
+                    _ => None,
+                }
+            }
+            Fields::Unnamed(fields) if fields.len() == 1 => Some(fields[0].type_),
             _ => None,
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NamedFields {
+    fields: Vec<NamedField>,
+}
+
+impl NamedFields {
+    pub fn new(fields: Vec<NamedField>) -> Self {
+        Self { fields }
+    }
+
+    // FIXME: Replace this interface with a custom iterator.
+    pub fn into_vec(self) -> Vec<NamedField> {
+        let mut out = Vec::with_capacity(self.fields.len());
+        for field in self.fields {
+            if field.flatten {
+                let ty = field.type_.evaluate();
+                let base = crate::generic::Identifier::from_pascal_case(&ty.name).to_snake_case();
+                match ty.data {
+                    Data::Struct(Struct { fields: Fields::Named(fields), .. }) => {
+                        let mut fields = fields.into_vec();
+                        for field in &mut fields {
+                            let renamed = format!("{}_{}", base, &field.name);
+                            field.name = renamed;
+                        }
+                        out.extend(fields);
+                    }
+                    _ => panic!("`#[reflect(flatten)]` is only supported for named structs."),
+                }
+            } else {
+                out.push(field);
+            }
+        }
+        out
     }
 }
 
@@ -255,7 +297,7 @@ impl ReferencedTypes for UnnamedField {
 impl ReferencedTypes for Fields {
     fn referenced_types(&self) -> Vec<LazyType> {
         match self {
-            Fields::Named(fields) => fields.iter().map(|field| field.type_.clone()).collect(),
+            Fields::Named(fields) => fields.clone().into_vec().into_iter().map(|field| field.type_).collect(),
             Fields::Unnamed(fields) => fields.iter().map(|field| field.type_.clone()).collect(),
             Fields::Unit => vec![],
         }

@@ -119,7 +119,7 @@ impl Identifier {
         n
     }
 
-    fn to_pascal_case(&self) -> String {
+    pub fn to_pascal_case(&self) -> String {
         let mut pascal = String::with_capacity(self.segments_len() + self.segments.len());
         for segment in &self.segments {
             let mut chars = segment.chars();
@@ -129,7 +129,7 @@ impl Identifier {
         pascal
     }
 
-    fn to_camel_case(&self) -> String {
+    pub fn to_camel_case(&self) -> String {
         let mut camel = String::with_capacity(self.segments_len());
         let (head, tail) = self.segments.split_first().unwrap();
         camel.push_str(head);
@@ -141,12 +141,16 @@ impl Identifier {
         camel
     }
 
-    fn from_snake_case(s: &str) -> Self {
+    pub fn to_snake_case(&self) -> String {
+        self.segments.join("_")
+    }
+
+    pub fn from_snake_case(s: &str) -> Self {
         let segments = s.split("_").map(|s| s.to_string()).collect();
         Self::new(segments)
     }
 
-    fn from_pascal_case(s: &str) -> Self {
+    pub fn from_pascal_case(s: &str) -> Self {
         let mut segments = vec![];
         let mut current = String::new();
         for c in s.chars() {
@@ -157,6 +161,10 @@ impl Identifier {
         }
         segments.push(current);
         Self::new(segments)
+    }
+
+    pub fn concat(&mut self, other: Self) {
+        self.segments.extend(other.segments)
     }
 }
 
