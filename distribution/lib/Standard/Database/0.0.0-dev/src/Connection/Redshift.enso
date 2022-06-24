@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 import Standard.Database.Data.Dialect
+import Standard.Database.Connection.Connection
+from Standard.Database.Connection.Credentials as Credentials_Module import Credentials
 import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
@@ -36,7 +38,7 @@ type Redshift
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url =
-        prefix = case credentials of
+        prefix = case self.credentials of
             AWS_Profile _ -> 'jdbc:redshift:iam://'
             _ -> 'jdbc:redshift://'
         prefix + self.host + ':' + self.port.to_text + (if self.schema == '' then '' else '/' + self.schema)

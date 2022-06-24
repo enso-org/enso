@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Database.Data.Dialect
+import Standard.Database.Connection.Connection
 import Standard.Database.Connection.Connection_Options
 
 ## Connect to a SQLite DB File or InMemory DB.

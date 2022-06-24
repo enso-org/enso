@@ -124,7 +124,7 @@ spec =
             connection = Error.throw message
             here.run_tests connection pending=message
         False ->
-            connection = Database.connect (Postgres (db_host.if_nothing 'localhost') 5432 db_name (Credentials db_user db_password))
+            connection = Database.connect (PostgreSQL (db_host.if_nothing 'localhost') 5432 db_name (Credentials db_user db_password))
             here.run_tests connection
 
 main = Test.Suite.run_main here.spec
