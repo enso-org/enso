@@ -203,7 +203,7 @@ post uri body (headers = []) = new.post uri body headers
          import Standard.Base.Network.Http.Form
 
          example_post_form =
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
              Http.post_form "http://httpbin.org/post" form
 
    > Example
@@ -215,7 +215,7 @@ post uri body (headers = []) = new.post uri body headers
          import Standard.Base.Network.Http.Header
 
          example_post_form =
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
              Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
 post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
 post_form uri parts (headers = []) = new.post_form uri parts headers
@@ -411,7 +411,7 @@ type Http
              import Standard.Examples
 
              example_post_form =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  Examples.http_client.post_form "http://httpbin.org/post" form
 
        > Example
@@ -423,7 +423,7 @@ type Http
              import Standard.Examples
 
              example_post_form =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  Examples.http_client.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
     post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
     post_form uri parts (headers = []) =
@@ -559,7 +559,7 @@ type Http
              import Standard.Examples
 
              example_request =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  req = Request.post "http://httpbin.org/post" Body.Empty . with_form form
                  Examples.http_client.request req
 
@@ -574,7 +574,7 @@ type Http
              import Standard.Examples
 
              example_request =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  req = Request.post "http://httpbin.org/post" Body.Empty
                  with_form = req.with_form form
                  with_headers = with_form.with_headers [Header.multipart_form_data]

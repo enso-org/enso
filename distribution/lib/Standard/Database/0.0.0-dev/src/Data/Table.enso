@@ -915,7 +915,7 @@ type Table
              example_to_csv =
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
                  table = connection.access_table "Table"
-                 table.write (Enso_Project.data / "example_csv_output.csv")
+                 table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.

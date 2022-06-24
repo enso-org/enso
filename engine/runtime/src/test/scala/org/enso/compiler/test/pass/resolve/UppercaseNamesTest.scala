@@ -7,8 +7,7 @@ import org.enso.compiler.data.BindingsMap.{
   Cons,
   ModuleReference,
   Resolution,
-  ResolvedConstructor,
-  ResolvedModule
+  ResolvedConstructor
 }
 import org.enso.compiler.pass.resolve.UppercaseNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -62,7 +61,6 @@ class UppercaseNamesTest extends CompilerTest {
                  |main =
                  |    x1 = My_Cons 1 2 3
                  |    x2 = Constant
-                 |    x3 = Add_One 1
                  |    x4 = Test_Module.My_Cons 1 2 3
                  |    x5 = Does_Not_Exist 32
                  |    0
@@ -70,8 +68,6 @@ class UppercaseNamesTest extends CompilerTest {
                  |type My_Cons a b c
                  |
                  |constant = 2
-                 |
-                 |add_one x = x + 1
                  |
                  |""".stripMargin
     val parsed       = code.toIrModule
@@ -106,30 +102,13 @@ class UppercaseNamesTest extends CompilerTest {
       )
     }
 
-    "resolve uppercase method names to applications" in {
+    "not resolve uppercase method names to applications" in {
       val expr = bodyExprs(1)
-      expr shouldBe an[IR.Application.Prefix]
-      val app = expr.asInstanceOf[IR.Application.Prefix]
-      app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "constant"
-      app.arguments.length shouldEqual 1
-      app.arguments(0).value.getMetadata(UppercaseNames) shouldEqual Some(
-        Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
-      )
-    }
-
-    "resolve uppercase method names in applications by adding the self argument" in {
-      val expr = bodyExprs(2)
-      expr shouldBe an[IR.Application.Prefix]
-      val app = expr.asInstanceOf[IR.Application.Prefix]
-      app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
-      app.arguments.length shouldEqual 2
-      app.arguments(0).value.getMetadata(UppercaseNames) shouldEqual Some(
-        Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
-      )
+      expr shouldBe an[IR.Error.Resolution]
     }
 
     "resolve qualified uses of constructors into a simplified form when possible" in {
-      val app = bodyExprs(3).asInstanceOf[IR.Application.Prefix]
+      val app = bodyExprs(2).asInstanceOf[IR.Application.Prefix]
       app.arguments.length shouldBe 3
       app.function.getMetadata(UppercaseNames) shouldEqual Some(
         Resolution(
@@ -142,7 +121,7 @@ class UppercaseNamesTest extends CompilerTest {
     }
 
     "indicate resolution failures" in {
-      val app = bodyExprs(4).asInstanceOf[IR.Application.Prefix]
+      val app = bodyExprs(3).asInstanceOf[IR.Application.Prefix]
       app.function shouldBe an[IR.Error.Resolution]
     }
   }

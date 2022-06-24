@@ -9,11 +9,11 @@ import Standard.Test
 import Standard.Test.Problems
 
 spec =
-    windows_file = Enso_Project.data / "windows.txt"
+    windows_file = enso_project.data / "windows.txt"
 
     Test.group "ReportingStreamDecoder" <|
         Test.specify "should allow reading a file character by character" <|
-            f = Enso_Project.data / "short.txt"
+            f = enso_project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
             "Cup".write f
@@ -27,7 +27,7 @@ spec =
             f.exists.should_be_false
 
         Test.specify "should work correctly when reading chunks of varying sizes" <|
-            f = Enso_Project.data / "transient" / "varying_chunks.txt"
+            f = enso_project.data / "transient" / "varying_chunks.txt"
             fragment = 'Hello 😎🚀🚧!'
             contents = 1.up_to 1000 . map _->fragment . join '\n'
             contents.write f
@@ -76,7 +76,7 @@ spec =
             f.delete
 
         Test.specify "should allow reading a UTF-8 file" <|
-            f = Enso_Project.data / "transient" / "utf8.txt"
+            f = enso_project.data / "transient" / "utf8.txt"
             encoding = Encoding.utf_8
             ((0.up_to 100).map _->'Hello World!' . join '\n').write f
             expected_contents = f.read_text

@@ -19,7 +19,7 @@ type Test_Selection problem_handling=True advanced_stats=True text_concat=True t
 all_tests = Test_Selection True True True True True True True True True True
 
 spec =
-    table = (Enso_Project.data / "data.csv") . read
+    table = (enso_project.data / "data.csv") . read
     empty_table = Table.new <| table.columns.map c->[c.name, []]
     materialize = x->x
     aggregate_spec "[In-Memory] " table empty_table Table.new materialize is_database=False

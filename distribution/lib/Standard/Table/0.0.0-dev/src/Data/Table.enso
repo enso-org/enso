@@ -1045,7 +1045,7 @@ type Table
 
              import Standard.Examples
 
-             example_to_json = Examples.inventory_table.write_json (Enso_Project.data / 'example.json')
+             example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
     write_json : File.File -> Nothing
     write_json file = self.to_json.to_text.write file
 
@@ -1109,7 +1109,7 @@ type Table
              import Standard.Examples
              import Standard.Table
 
-             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") File_Format.Excel
+             example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") File_Format.Excel
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         format.write_table (File.new path) self on_existing_file match_columns on_problems

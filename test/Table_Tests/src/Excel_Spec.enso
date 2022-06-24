@@ -425,10 +425,10 @@ spec =
             Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument_Error
             Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument_Error
 
-    xlsx_sheet = Enso_Project.data / "TestSheet.xlsx"
+    xlsx_sheet = enso_project.data / "TestSheet.xlsx"
     xlsx_path = xlsx_sheet.path
 
-    xls_sheet = Enso_Project.data / "TestSheetOld.xls"
+    xls_sheet = enso_project.data / "TestSheetOld.xls"
     xls_path = xls_sheet.path
 
     col_a = ["Test", "Here", "Is", "Data"]
@@ -535,7 +535,7 @@ spec =
 
     Test.group "Problems" <|
         Test.specify "should handle non-existing file gracefully" <|
-            bad_file = Enso_Project.data / "DoesNotExists.xlsx"
+            bad_file = enso_project.data / "DoesNotExists.xlsx"
             bad_file.read (File_Format.Excel (Cell_Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
@@ -547,7 +547,7 @@ spec =
     spec_fmt 'XLS reading' Examples.xls .read
 
     Test.group "Reading single cells correctly" <|
-        file = Enso_Project.data / "RangeTests.xlsx"
+        file = enso_project.data / "RangeTests.xlsx"
 
         check_table table col_names data =
             table.columns.length . should_equal col_names.length
