@@ -24,7 +24,7 @@ default-members = ["app/gui", "lib/rust/*"]
 console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }
 
 [profile.dev]
-opt-level = 3
+opt-level = 0
 lto = false
 debug = 0
 debug-assertions = true

@@ -503,8 +503,8 @@ impl Model {
 
         self.sub_modules_section.set_base_position_y(0.0, style);
         self.favourites_section.set_base_position_y(-sub_modules_height, style);
-        self.local_scope_section
-            .set_base_position_y(-favourites_section_height - sub_modules_height, style);
+        let local_scope_y = -favourites_section_height - sub_modules_height;
+        self.local_scope_section.set_base_position_y(local_scope_y, style);
 
         self.scroll_area.set_content_height(full_height);
         self.scroll_area.jump_to_y(full_height);
@@ -535,12 +535,13 @@ impl Model {
         if let Some(navigator) = self.navigator.borrow().as_ref() {
             navigator.disable()
         } else {
-            WARNING!(
+            tracing::log::warn!(
                 "Navigator was not initialised on ComponentBrowserPanel. \
             Scroll events will not be handled correctly."
             )
         }
     }
+
     fn on_hover_end(&self) {
         if let Some(navigator) = self.navigator.borrow().as_ref() {
             navigator.enable()

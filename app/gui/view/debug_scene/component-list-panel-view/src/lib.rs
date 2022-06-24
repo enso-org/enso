@@ -46,10 +46,10 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ide_view_component_group as component_group;
+use js_sys::Math;
 use list_view::entry::AnyModelProvider;
 use searcher_list_panel::ComponentBrowserPanel;
 use searcher_list_panel::LabeledAnyModelProvider;
-use js_sys::Math;
 
 
 
@@ -117,7 +117,7 @@ impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
 fn mock_data() -> Vec<LabeledAnyModelProvider> {
     // Items with random length but somewhat controlled distribution to get shorter and longer
     // entries.
-    let random_entry = |n:usize| MockEntries::new((n + (Math::random() * 5.0) as usize));
+    let random_entry = |n: usize| MockEntries::new(n + (Math::random() * 5.0) as usize);
     vec![
         random_entry(1),
         random_entry(1),
@@ -125,12 +125,13 @@ fn mock_data() -> Vec<LabeledAnyModelProvider> {
         random_entry(3),
         random_entry(6),
         random_entry(6),
-    ].into_iter()
-        .map(|mock_entries| LabeledAnyModelProvider {
-            content: AnyModelProvider::from(mock_entries.clone_ref()),
-            label:   "Header".into(),
-        })
-        .collect_vec()
+    ]
+    .into_iter()
+    .map(|mock_entries| LabeledAnyModelProvider {
+        content: AnyModelProvider::from(mock_entries.clone_ref()),
+        label:   "Header".into(),
+    })
+    .collect_vec()
 }
 
 fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
