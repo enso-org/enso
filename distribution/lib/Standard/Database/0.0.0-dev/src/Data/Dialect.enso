@@ -5,7 +5,7 @@ import Standard.Table.Data.Aggregate_Column
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Dialect.Postgres as Postgres_Module
-import Standard.Database.Data.Dialect.Redshift
+import Standard.Database.Data.Dialect.Redshift as Redshift_Module
 import Standard.Database.Data.Dialect.Sqlite as Sqlite_Module
 
 ## PRIVATE
@@ -65,5 +65,11 @@ sqlite = Sqlite_Module.sqlite
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres = Postgres_Module.postgresql
+
+## PRIVATE
+
+   The dialect of Redshift databases.
+redshift : Dialect
+redshit = Redshift_Module.redshift
 
 
