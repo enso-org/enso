@@ -5,6 +5,7 @@ mod from_generic;
 pub mod graphviz;
 pub mod implementation;
 mod syntax;
+pub mod transform;
 
 pub use from_generic::from_generic;
 use std::collections::BTreeMap;
@@ -147,6 +148,18 @@ impl std::ops::Index<&TypeId> for TypeGraph {
     }
 }
 
+impl std::ops::IndexMut<TypeId> for TypeGraph {
+    fn index_mut(&mut self, TypeId(i): TypeId) -> &mut Self::Output {
+        self.types.get_mut(i).unwrap().as_mut().unwrap()
+    }
+}
+
+impl std::ops::IndexMut<&TypeId> for TypeGraph {
+    fn index_mut(&mut self, id: &TypeId) -> &mut Self::Output {
+        &mut self[*id]
+    }
+}
+
 impl TypeGraph {
     fn reserve_type_id(&mut self) -> TypeId {
         let id = TypeId(self.types.len());
@@ -164,7 +177,23 @@ impl TypeGraph {
         id
     }
 
+    pub fn remove(&mut self, TypeId(i): TypeId) -> Class {
+        self.types[i].take().unwrap()
+    }
+
     pub fn implement(&self) -> Vec<syntax::Class> {
         implementation::implement(self)
+    }
+
+    pub fn type_ids(&self) -> impl Iterator<Item=TypeId> + '_ {
+        self.types.iter().enumerate().filter_map(|(i, ty)| ty.as_ref().map(|_| TypeId(i)))
+    }
+
+    pub fn classes(&self) -> impl Iterator<Item=&Class> {
+        self.types.iter().filter_map(|ty| ty.as_ref())
+    }
+
+    pub fn classes_mut(&mut self) -> impl Iterator<Item=&mut Class> {
+        self.types.iter_mut().filter_map(|ty| ty.as_mut())
     }
 }

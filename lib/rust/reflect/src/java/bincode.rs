@@ -84,10 +84,11 @@ fn deserialize_concrete(graph: &TypeGraph, id: TypeId) -> syntax::Method {
         let ty_name = quote_type(graph, &field.data);
         let expr = match &field.data {
             FieldData::Object { type_, nonnull } => {
-                if !nonnull {
-                    unimplemented!();
+                if *nonnull {
+                    deserialize_object(graph, *type_, message, &field.name, &mut get_temp, &mut body);
+                } else {
+                    deserialize_nullable(graph, *type_, message, &field.name, &mut get_temp, &mut body);
                 }
-                deserialize_object(graph, *type_, message, &field.name, &mut get_temp, &mut body);
                 continue;
             }
             FieldData::Primitive(Primitive::Int { .. }) => format!("{}.get32()", message),
@@ -104,6 +105,16 @@ fn deserialize_concrete(graph: &TypeGraph, id: TypeId) -> syntax::Method {
     method.body = syntax::Body::Verbatim(body);
     method.arguments = vec![(syntax::Type::named("utils.BincodeMessage"), message.to_owned())];
     method
+}
+
+fn deserialize_nullable<F>(graph: &TypeGraph, id: TypeId, message: &str, output: &str, get_temp: &mut F, body: &mut Vec<String>)
+    where F: FnMut() -> String
+{
+    let ty_name = quote_class_type(graph, id);
+    body.push(format!("{} {} = null;", ty_name, &output));
+    body.push(format!("if ({}.getBoolean()) {{", message));
+    deserialize_object(graph, id, message, output, get_temp, body);
+    body.push(format!("}}"));
 }
 
 fn deserialize_object<F>(graph: &TypeGraph, id: TypeId, message: &str, output: &str, get_temp: &mut F, body: &mut Vec<String>)

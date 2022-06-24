@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 
 const PRUNE_PRIMITIVE_LEAFS: bool = true;
 
@@ -64,17 +65,13 @@ impl std::fmt::Display for Graph {
             format!("fillcolor={:?}", "#6D1321"),
             format!("fontcolor={:?}", "white"),
         ];
-        let variant_edge_attrs = vec![
-            format!("weight=2"),
-            format!("color={:?}", variant_color),
-        ];
+        let variant_edge_attrs = vec![format!("color={:?}", variant_color)];
         let field_edge_attrs = vec![];
-        let optional_field_edge_attrs = vec![format!("style=dotted")];
+        let optional_field_edge_attrs = vec![format!("style=dashed")];
         let subtype_edge_attrs = vec![format!("arrowhead=dot")];
         writeln!(f, "digraph refs {{")?;
-        let non_leafs: std::collections::HashSet<_> =
-            self.edges.iter().map(|(x, _, _)| x).cloned().collect();
-        let mut pruned = std::collections::HashSet::new();
+        let non_leafs: BTreeSet<_> = self.edges.iter().map(|(x, _, _)| x).cloned().collect();
+        let mut pruned = BTreeSet::new();
         for (id, node) in &self.nodes {
             let mut attrs;
             if node.primitive {
