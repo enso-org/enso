@@ -41,8 +41,7 @@ public class JDBCProxy {
     return DriverManager.getConnection(url, properties);
   }
 
-  public static String[] getStringColumn(ResultSet resultSet, String column)
-    throws SQLException {
+  public static String[] getStringColumn(ResultSet resultSet, String column) throws SQLException {
     if (resultSet.isClosed()) {
       return new String[0];
     }
