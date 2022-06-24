@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-const PRUNE_PRIMITIVE_LEAFS: bool = true;
+const PRUNE_PRIMITIVE_LEAFS: bool = false;
 
 
 

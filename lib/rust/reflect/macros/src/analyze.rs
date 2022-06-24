@@ -60,19 +60,21 @@ fn parse_fields(fields: syn::Fields) -> (Fields, FieldsAttrs) {
                 let type_ = field.ty;
                 let mut skip = false;
                 let mut subtype = false;
+                let mut refer = None;
                 for attr in field.attrs {
                     let annotations = parse_field_attrs(&attr);
                     for annotation in annotations {
                         match annotation {
                             FieldAttr::Skip => skip = true,
                             FieldAttr::Subtype => subtype = true,
+                            FieldAttr::As(ty) => refer = Some(ty),
                         }
                     }
                 }
                 if skip {
                     continue;
                 }
-                fields.push(NamedField { name, type_, subtype });
+                fields.push(NamedField { name, type_, subtype, refer });
             }
             Fields::Named { fields }
         }
@@ -126,6 +128,7 @@ const HELPER_ATTRIBUTE_PATH: &str = "reflect";
 enum FieldAttr {
     Skip,
     Subtype,
+    As(syn::Type),
 }
 
 fn parse_field_attrs(attr: &syn::Attribute) -> Vec<FieldAttr> {
@@ -138,23 +141,36 @@ fn parse_field_attrs(attr: &syn::Attribute) -> Vec<FieldAttr> {
     }
     let meta = attr.parse_meta().unwrap();
     match meta {
-        syn::Meta::List(metalist) => metalist
-            .nested
-            .iter()
-            .map(|meta| {
-                let ident = match meta {
-                    syn::NestedMeta::Meta(syn::Meta::Path(path)) => path.get_ident().unwrap(),
-                    _ => panic!(),
-                };
-                match ident.to_string().as_str() {
-                    "skip" => FieldAttr::Skip,
-                    "subtype" => FieldAttr::Subtype,
-                    _ => panic!("Unexpected helper attribute: {}", attr.into_token_stream()),
-                }
-            })
-            .collect(),
+        syn::Meta::List(metalist) => metalist.nested.iter().map(|meta| parse_field_annotation(meta, &attr)).collect(),
         syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
             panic!("Unexpected helper attribute type: {}", attr.into_token_stream()),
+    }
+}
+
+fn parse_field_annotation(meta: &syn::NestedMeta, attr: &syn::Attribute) -> FieldAttr {
+    let unsupported_syntax = "Unsupported helper attribute syntax";
+    let meta = match meta {
+        syn::NestedMeta::Meta(meta) => meta,
+        _ => panic!("{}: {}", unsupported_syntax, attr.into_token_stream()),
+    };
+    let unknown_attribute = "Unknown helper attribute";
+    match meta {
+        syn::Meta::Path(path) => {
+            let ident = path.get_ident().expect(unsupported_syntax);
+            match ident.to_string().as_str() {
+                "skip" => FieldAttr::Skip,
+                "subtype" => FieldAttr::Subtype,
+                _ => panic!("{}: {}", unknown_attribute, attr.into_token_stream()),
+            }
+        }
+        syn::Meta::NameValue(syn::MetaNameValue { path, lit: syn::Lit::Str(lit), .. }) => {
+            let ident = path.get_ident().expect(unsupported_syntax);
+            match ident.to_string().as_str() {
+                "as" => FieldAttr::As(lit.parse().expect(unsupported_syntax)),
+                _ => panic!("{}: {}", unknown_attribute, attr.into_token_stream()),
+            }
+        }
+        _ => panic!("{}: {}", unsupported_syntax, attr.into_token_stream()),
     }
 }
 

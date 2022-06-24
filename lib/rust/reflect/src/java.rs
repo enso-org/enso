@@ -196,4 +196,15 @@ impl TypeGraph {
     pub fn classes_mut(&mut self) -> impl Iterator<Item=&mut Class> {
         self.types.iter_mut().filter_map(|ty| ty.as_mut())
     }
+
+    pub fn find_by_name(&self, name: &str) -> Option<TypeId> {
+        let mut class = None;
+        for id in self.type_ids() {
+            if self[id].name == name {
+                assert_eq!(class, None);
+                class = Some(id);
+            }
+        }
+        class
+    }
 }

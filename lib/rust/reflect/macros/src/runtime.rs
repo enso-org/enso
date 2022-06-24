@@ -83,7 +83,10 @@ impl Quote for Fields {
 impl Quote for NamedField {
     fn quote(&self) -> TokenStream {
         let name = self.name.to_string();
-        let typename = &self.type_;
+        let typename = match &self.refer {
+            Some(ty) => ty,
+            None => &self.type_,
+        };
         let subtype = self.subtype;
         quote! {
             reflect::rust::NamedField {

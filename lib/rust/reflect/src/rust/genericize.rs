@@ -159,8 +159,8 @@ impl Genericize {
     fn remove_transparent(
         &mut self,
         types: &mut BTreeMap<TypeId, TypeData>,
-    ) -> Vec<(TypeId, TypeId)> {
-        let mut alias = vec![];
+    ) -> BTreeMap<TypeId, TypeId> {
+        let mut alias = BTreeMap::new();
         types.retain(|id, TypeData { transparent, data, .. }| {
             if *transparent {
                 let target_id = match data {
@@ -171,10 +171,17 @@ impl Genericize {
                         fields[0].type_.id,
                     _ => panic!(),
                 };
-                alias.push((*id, target_id));
+                alias.insert(*id, target_id);
             }
             !*transparent
         });
+        let entries: Vec<_> = alias.iter().map(|(k, v)| (*k, *v)).collect();
+        for (key, mut value) in entries {
+            while let Some(value_) = alias.get(&value).copied() {
+                alias.insert(key, value_);
+                value = value_;
+            }
+        }
         alias
     }
 
@@ -186,7 +193,6 @@ impl Genericize {
             let generic_id = self.generic_graph.reserve_type_id();
             self.generic_of_rust.insert(*id, generic_id);
         }
-        // FIXME: 1-pass alias resolution here will panic if the target of an alias is an alias.
         for (id, target) in aliases {
             let generic_target = self.generic_of_rust[&target];
             self.generic_of_rust.insert(id, generic_target);

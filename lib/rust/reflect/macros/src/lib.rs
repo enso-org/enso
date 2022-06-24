@@ -72,6 +72,7 @@ struct NamedField {
     name:    syn::Ident,
     type_:   syn::Type,
     subtype: bool,
+    refer:   Option<syn::Type>,
 }
 
 #[derive(Debug)]
