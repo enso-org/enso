@@ -59,6 +59,7 @@ fn parse_fields(fields: syn::Fields) -> (Fields, FieldsAttrs) {
                 let name = field.ident.unwrap();
                 let type_ = field.ty;
                 let mut flatten = false;
+                let mut hide = false;
                 let mut skip = false;
                 let mut subtype = false;
                 let mut refer = None;
@@ -67,6 +68,7 @@ fn parse_fields(fields: syn::Fields) -> (Fields, FieldsAttrs) {
                     for annotation in annotations {
                         match annotation {
                             FieldAttr::Flatten => flatten = true,
+                            FieldAttr::Hide => hide = true,
                             FieldAttr::Skip => skip = true,
                             FieldAttr::Subtype => subtype = true,
                             FieldAttr::As(ty) => refer = Some(ty),
@@ -76,7 +78,7 @@ fn parse_fields(fields: syn::Fields) -> (Fields, FieldsAttrs) {
                 if skip {
                     continue;
                 }
-                fields.push(NamedField { name, type_, subtype, refer, flatten });
+                fields.push(NamedField { name, type_, subtype, refer, flatten, hide });
             }
             Fields::Named { fields }
         }
@@ -129,6 +131,7 @@ const HELPER_ATTRIBUTE_PATH: &str = "reflect";
 #[derive(PartialEq, Eq)]
 enum FieldAttr {
     Flatten,
+    Hide,
     Skip,
     Subtype,
     As(syn::Type),
@@ -162,6 +165,7 @@ fn parse_field_annotation(meta: &syn::NestedMeta, attr: &syn::Attribute) -> Fiel
             let ident = path.get_ident().expect(unsupported_syntax);
             match ident.to_string().as_str() {
                 "flatten" => FieldAttr::Flatten,
+                "hide" => FieldAttr::Hide,
                 "skip" => FieldAttr::Skip,
                 "subtype" => FieldAttr::Subtype,
                 _ => panic!("{}: {}", unknown_attribute, attr.into_token_stream()),

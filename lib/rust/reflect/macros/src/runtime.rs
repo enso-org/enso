@@ -91,12 +91,14 @@ impl Quote for NamedField {
         };
         let subtype = self.subtype;
         let flatten = self.flatten;
+        let hide = self.hide;
         quote! {
             reflect::rust::NamedField {
                 name: #name.to_owned(),
                 type_: reflect::rust::LazyType::of::<#typename>(),
                 subtype: #subtype,
                 flatten: #flatten,
+                hide: #hide,
             }
         }
     }

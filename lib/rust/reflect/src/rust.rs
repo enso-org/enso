@@ -61,6 +61,21 @@ pub struct NamedField {
     // attributes
     pub subtype: bool,
     pub flatten: bool,
+    pub hide:    bool,
+}
+
+impl NamedField {
+    pub fn flatten(&self, inner: &Self) -> Self {
+        let no_flatten_subtype = "Unsupported: flatten with subtype";
+        assert!(!self.subtype, "{}", no_flatten_subtype);
+        assert!(!inner.subtype, "{}", no_flatten_subtype);
+        let name = format!("{}_{}", &self.name, &inner.name);
+        let type_ = inner.type_;
+        let subtype = false;
+        let flatten = inner.flatten;
+        let hide = self.hide || inner.hide;
+        Self { name, type_, subtype, flatten, hide }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -107,16 +122,9 @@ impl NamedFields {
         for field in self.fields {
             if field.flatten {
                 let ty = field.type_.evaluate();
-                let base = &field.name;
                 match ty.data {
-                    Data::Struct(Struct { fields: Fields::Named(fields), .. }) => {
-                        let mut fields = fields.into_vec();
-                        for field in &mut fields {
-                            let renamed = format!("{}_{}", base, &field.name);
-                            field.name = renamed;
-                        }
-                        out.extend(fields);
-                    }
+                    Data::Struct(Struct { fields: Fields::Named(fields), .. }) =>
+                        out.extend(fields.into_vec().into_iter().map(|inner| field.flatten(&inner))),
                     _ => panic!("`#[reflect(flatten)]` is only supported for named structs."),
                 }
             } else {
@@ -166,7 +174,7 @@ pub struct GenericTypeId(std::any::TypeId);
 /// This is used for the fields of a type's `TypeData` because type graphs may contain cycles.
 #[derive(Copy, Clone, Debug)]
 pub struct LazyType {
-    pub id:       TypeId,
+    pub id:   TypeId,
     evaluate: Thunk<TypeData>,
 }
 
@@ -297,7 +305,8 @@ impl ReferencedTypes for UnnamedField {
 impl ReferencedTypes for Fields {
     fn referenced_types(&self) -> Vec<LazyType> {
         match self {
-            Fields::Named(fields) => fields.clone().into_vec().into_iter().map(|field| field.type_).collect(),
+            Fields::Named(fields) =>
+                fields.clone().into_vec().into_iter().map(|field| field.type_).collect(),
             Fields::Unnamed(fields) => fields.iter().map(|field| field.type_.clone()).collect(),
             Fields::Unit => vec![],
         }

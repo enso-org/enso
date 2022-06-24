@@ -74,6 +74,7 @@ struct NamedField {
     subtype: bool,
     refer:   Option<syn::Type>,
     flatten: bool,
+    hide:    bool,
 }
 
 #[derive(Debug)]

@@ -74,6 +74,14 @@ pub struct Named<T> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub struct Field {
     pub type_: TypeId,
+    pub hide: bool,
+}
+
+impl Field {
+    pub fn new(type_: TypeId) -> Self {
+        let hide = false;
+        Self { type_, hide }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

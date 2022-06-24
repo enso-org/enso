@@ -69,7 +69,7 @@ pub fn from_generic(root: generic::TypeId, graph: &generic::TypeGraph) -> (TypeI
             generic::Data::Struct(generic::Struct::Named(fields_)) => {
                 fields = fields_
                     .iter()
-                    .map(|generic::Named { name, value: generic::Field { type_ } }| {
+                    .map(|generic::Named { name, value: generic::Field { type_, hide } }| {
                         let name = name.clone();
                         let data = if let Some(primitive) = primitives.get(type_) {
                             FieldData::Primitive(primitive.clone())
@@ -78,7 +78,7 @@ pub fn from_generic(root: generic::TypeId, graph: &generic::TypeGraph) -> (TypeI
                             FieldData::Object { type_, nonnull: true }
                         };
                         let name = name.to_camel_case();
-                        let getter = true; // TODO
+                        let getter = !hide;
                         Field { name, data, getter }
                     })
                     .collect();

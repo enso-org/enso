@@ -36,14 +36,14 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
         }
         match &ty.data {
             Data::Struct(Struct::Named(fields)) => {
-                for Named { value: Field { type_ }, .. } in fields {
+                for Named { value: Field { type_, hide: _ }, .. } in fields {
                     let id = type_.0;
                     let sname2 = format!("{}{}", types[id].as_ref().unwrap().name, id);
                     graph.edges.push((sname.clone(), sname2, EdgeType::Field));
                 }
             }
             Data::Struct(Struct::Unnamed(fields)) =>
-                for Field { type_ } in fields {
+                for Field { type_, hide: _ } in fields {
                     let id = type_.0;
                     let sname2 = format!("{}{}", types[id].as_ref().unwrap().name, id);
                     graph.edges.push((sname.clone(), sname2, EdgeType::Field));

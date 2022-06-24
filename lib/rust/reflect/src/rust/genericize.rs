@@ -63,7 +63,9 @@ impl Genericize {
                 continue;
             }
             let name = self.field_name(&field.name);
-            let value = generic::Field { type_: self.generic_of_rust[&field.type_.id] };
+            let type_ = self.generic_of_rust[&field.type_.id];
+            let hide = field.hide;
+            let value = generic::Field { type_, hide };
             body.push(generic::Named { name, value });
         }
         let data = generic::Data::Struct(generic::Struct::Named(body));
@@ -82,7 +84,7 @@ impl Genericize {
         let data = generic::Data::Struct(generic::Struct::Unnamed(
             fields
                 .into_iter()
-                .map(|field| generic::Field { type_: self.generic_of_rust[&field.type_.id] })
+                .map(|field| generic::Field::new(self.generic_of_rust[&field.type_.id]))
                 .collect(),
         ));
         let name = self.type_name(name);
