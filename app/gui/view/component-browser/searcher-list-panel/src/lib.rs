@@ -723,7 +723,7 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
                 let label_pos = position_y - label_offset;
                 self.label.set_position_y(label_pos);
                 let divider_offset = self.content.height();
-                let divider_pos = position_y - divider_offset;
+                let divider_pos = position_y - divider_offset - style.section.divider_height / 2.0;
                 self.divider.set_position_y(divider_pos);
                 self.content.set_position_top_y(position_y);
             }

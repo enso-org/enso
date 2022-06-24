@@ -49,6 +49,7 @@ use ide_view_component_group as component_group;
 use list_view::entry::AnyModelProvider;
 use searcher_list_panel::ComponentBrowserPanel;
 use searcher_list_panel::LabeledAnyModelProvider;
+use js_sys::Math;
 
 
 
@@ -113,41 +114,38 @@ impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
 // === Initialisation Helpers ===
 // ===============================
 
-fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
-    let sub_module_data = vec![
-        MockEntries::new(4),
-        MockEntries::new(6),
-        MockEntries::new(18),
-        MockEntries::new(6),
-        MockEntries::new(4),
-        MockEntries::new(4),
-    ];
-    let sub_module_data = sub_module_data
-        .into_iter()
+fn mock_data() -> Vec<LabeledAnyModelProvider> {
+    // Items with random length but somewhat controlled distribution to get shorter and longer
+    // entries.
+    let random_entry = |n:usize| MockEntries::new((n + (Math::random() * 5.0) as usize));
+    vec![
+        random_entry(1),
+        random_entry(1),
+        random_entry(3),
+        random_entry(3),
+        random_entry(6),
+        random_entry(6),
+    ].into_iter()
         .map(|mock_entries| LabeledAnyModelProvider {
             content: AnyModelProvider::from(mock_entries.clone_ref()),
             label:   "Header".into(),
         })
-        .collect_vec();
+        .collect_vec()
+}
+
+fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
+    let sub_module_data = mock_data();
+    searcher_list_panel.set_sub_modules_section(sub_module_data);
+    // Doing this twice to reveal potential issues with setting new data.
+    let sub_module_data = mock_data();
     searcher_list_panel.set_sub_modules_section(sub_module_data);
 }
 
 fn init_favourites_section(searcher_list_panel: &ComponentBrowserPanel) {
-    let local_scope_data = vec![
-        MockEntries::new(6),
-        MockEntries::new(4),
-        MockEntries::new(3),
-        MockEntries::new(6),
-        MockEntries::new(3),
-        MockEntries::new(6),
-    ];
-    let local_scope_data = local_scope_data
-        .into_iter()
-        .map(|mock_entries| LabeledAnyModelProvider {
-            content: AnyModelProvider::from(mock_entries.clone_ref()),
-            label:   "Header".into(),
-        })
-        .collect_vec();
+    let local_scope_data = mock_data();
+    searcher_list_panel.set_favourites_section(local_scope_data);
+    // Doing this twice to reveal potential issues with setting new data.
+    let local_scope_data = mock_data();
     searcher_list_panel.set_favourites_section(local_scope_data);
 }
 
