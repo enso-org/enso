@@ -5,6 +5,9 @@ import Standard.Test
 foreign js my_method a b = """
     return a + b;
 
+foreign js debug = """
+    debugger;
+
 type My_Type
     type My_Type a b
 
@@ -178,5 +181,8 @@ spec = Test.group "Polyglot JS" <|
     Test.specify "should propagate dataflow errors" <|
         error = Error.throw 42
         here.my_method error 0 . should_fail_with Integer
+
+    Test.specify "allow use of JavaScript debugger statement" <|
+        here.debug
 
 main = Test.Suite.run_main here.spec
