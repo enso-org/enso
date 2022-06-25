@@ -50,7 +50,11 @@ pub fn path(graph: &TypeGraph, id: TypeId) -> String {
     components.join(".")
 }
 
-fn class_fields_<'v, 's: 'v, 'c: 'v>(graph: &'s TypeGraph, class: &'c Class, out: &mut Vec<&'v Field>) {
+fn class_fields_<'v, 's: 'v, 'c: 'v>(
+    graph: &'s TypeGraph,
+    class: &'c Class,
+    out: &mut Vec<&'v Field>,
+) {
     out.extend(&class.fields);
     if let Some(parent) = class.parent {
         class_fields_(graph, &graph[parent], out);
@@ -84,7 +88,7 @@ pub fn quote_class_type(graph: &TypeGraph, id: TypeId) -> syntax::Type {
 }
 
 fn quote_field(graph: &TypeGraph, field: &Field) -> syntax::Field {
-    let Field { name, data, getter: _ } = field;
+    let Field { name, data, id: _ } = field;
     let type_ = quote_type(graph, data);
     let name = name.clone();
     let final_ = true;
@@ -111,13 +115,11 @@ fn implement_constructor(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let suffix = "__GeneratedArgument";
     let arguments = class_fields(graph, class)
         .into_iter()
-        .map(|field| {
-            (quote_type(graph, &field.data), format!("{}{}", &field.name, &suffix))
-        })
+        .map(|field| (quote_type(graph, &field.data), format!("{}{}", &field.name, &suffix)))
         .collect();
     let mut body = vec![];
     if let Some(parent) = class.parent {
-       let fields: Vec<_> = class_fields(graph, &graph[parent])
+        let fields: Vec<_> = class_fields(graph, &graph[parent])
             .into_iter()
             .map(|field| format!("{}{}", &field.name, &suffix))
             .collect();
@@ -126,10 +128,8 @@ fn implement_constructor(graph: &TypeGraph, class: &Class) -> syntax::Method {
     // TODO?
     //   - could do: java.util.Objects.requireNonNull, but if we only construct by deserialize,
     //     correct-by-construction probably OK
-    let own_field_initializers = class
-        .fields
-        .iter()
-        .map(|field| format!("{} = {}{};", &field.name, &field.name, &suffix));
+    let own_field_initializers =
+        class.fields.iter().map(|field| format!("{} = {}{};", &field.name, &field.name, &suffix));
     body.extend(own_field_initializers);
     let mut method = syntax::Method::constructor(class.name.clone());
     method.arguments = arguments;
@@ -153,10 +153,9 @@ fn implement_hash_code(graph: &TypeGraph, class: &Class) -> syntax::Method {
 fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let object = "object";
     let that = "that";
-    let field_comparisons =
-        class_fields(graph, class).into_iter().map(|field| {
-            field.data.fmt_equals(&field.name, &format!("{}.{}", that, &field.name))
-        });
+    let field_comparisons = class_fields(graph, class)
+        .into_iter()
+        .map(|field| field.data.fmt_equals(&field.name, &format!("{}.{}", that, &field.name)));
     let mut values = vec!["true".to_string()];
     values.extend(field_comparisons);
     let expr = values.join(" && ");
@@ -200,16 +199,11 @@ fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     method
 }
 
-fn implement_getters(graph: &TypeGraph, class: &Class, methods: &mut Vec<syntax::Method>) {
-    for field in &class.fields {
-        if !field.getter {
-            continue;
-        }
-        let type_ = quote_type(graph, &field.data);
-        let mut method = syntax::Method::new(field.name.clone(), type_);
-        method.body = syntax::Body::Verbatim(vec![format!("return {};", &field.name)]);
-        methods.push(method);
-    }
+pub fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
+    let type_ = quote_type(graph, &field.data);
+    let mut method = syntax::Method::new(field.name.clone(), type_);
+    method.body = syntax::Body::Verbatim(vec![format!("return {};", &field.name)]);
+    method
 }
 
 fn implement_class(graph: &TypeGraph, id: TypeId) -> syntax::Class {
@@ -222,7 +216,6 @@ fn implement_class(graph: &TypeGraph, id: TypeId) -> syntax::Class {
     let fields = class.fields.iter().map(|field| quote_field(graph, field)).collect();
     let nested = vec![];
     let mut methods = class.methods.iter().map(|m| method(graph, m, class)).collect();
-    implement_getters(graph, class, &mut methods);
     let package = Default::default();
     let sealed = class.sealed.then(|| Default::default());
     syntax::Class {

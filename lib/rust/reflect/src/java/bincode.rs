@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
-use crate::java::*;
 use crate::java::implementation::*;
+use crate::java::*;
 
 
 
@@ -8,23 +7,10 @@ use crate::java::implementation::*;
 // === Derive Deserialize ===
 // ==========================
 
-pub fn derive_deserialize(graph: &mut TypeGraph) {
-    let mut impls = BTreeMap::new();
-    for (i, class) in graph.types.iter().enumerate() {
-        let class = match class {
-            Some(class) => class,
-            None => continue,
-        };
-        if class.builtin {
-            continue;
-        }
-        let id = TypeId(i);
-        let method = deserialize_class(graph, id);
-        impls.insert(i, method);
-    }
-    for (i, method) in impls {
-        graph.types[i].as_mut().unwrap().methods.push(Method::Raw(method));
-    }
+pub fn derive_deserialize(graph: &mut TypeGraph, id: TypeId) {
+    let class = &graph[id];
+    let method = deserialize_class(graph, id);
+    graph[id].methods.push(Method::Raw(method));
 }
 
 pub fn deserialize_class(graph: &TypeGraph, id: TypeId) -> syntax::Method {
@@ -85,9 +71,23 @@ fn deserialize_concrete(graph: &TypeGraph, id: TypeId) -> syntax::Method {
         let expr = match &field.data {
             FieldData::Object { type_, nonnull } => {
                 if *nonnull {
-                    deserialize_object(graph, *type_, message, &field.name, &mut get_temp, &mut body);
+                    deserialize_object(
+                        graph,
+                        *type_,
+                        message,
+                        &field.name,
+                        &mut get_temp,
+                        &mut body,
+                    );
                 } else {
-                    deserialize_nullable(graph, *type_, message, &field.name, &mut get_temp, &mut body);
+                    deserialize_nullable(
+                        graph,
+                        *type_,
+                        message,
+                        &field.name,
+                        &mut get_temp,
+                        &mut body,
+                    );
                 }
                 continue;
             }
@@ -107,8 +107,15 @@ fn deserialize_concrete(graph: &TypeGraph, id: TypeId) -> syntax::Method {
     method
 }
 
-fn deserialize_nullable<F>(graph: &TypeGraph, id: TypeId, message: &str, output: &str, get_temp: &mut F, body: &mut Vec<String>)
-    where F: FnMut() -> String
+fn deserialize_nullable<F>(
+    graph: &TypeGraph,
+    id: TypeId,
+    message: &str,
+    output: &str,
+    get_temp: &mut F,
+    body: &mut Vec<String>,
+) where
+    F: FnMut() -> String,
 {
     let ty_name = quote_class_type(graph, id);
     body.push(format!("{} {} = null;", ty_name, &output));
@@ -119,8 +126,15 @@ fn deserialize_nullable<F>(graph: &TypeGraph, id: TypeId, message: &str, output:
     body.push(format!("}}"));
 }
 
-fn deserialize_object<F>(graph: &TypeGraph, id: TypeId, message: &str, output: &str, get_temp: &mut F, body: &mut Vec<String>)
-    where F: FnMut() -> String
+fn deserialize_object<F>(
+    graph: &TypeGraph,
+    id: TypeId,
+    message: &str,
+    output: &str,
+    get_temp: &mut F,
+    body: &mut Vec<String>,
+) where
+    F: FnMut() -> String,
 {
     let ty = &graph[id];
     let ty_name = quote_class_type(graph, id);
@@ -140,7 +154,7 @@ fn deserialize_object<F>(graph: &TypeGraph, id: TypeId, message: &str, output: &
             deserialize_object(graph, base, message, &value, get_temp, body);
             body.push(format!("{} = java.util.Optional.of({});", &output, &value));
             body.push(format!("}} else {} = java.util.Optional.empty();", &output));
-        },
+        }
         "java.util.ArrayList" => {
             let base = ty.params[0];
             let count = get_temp();
@@ -162,7 +176,7 @@ fn deserialize_object<F>(graph: &TypeGraph, id: TypeId, message: &str, output: &
             // TODO: throw
             body.push(format!("}} else {{ }}"));
              */
-        },
+        }
         _ => unimplemented!("Deserialize builtin: {}", &ty.name),
     }
 }

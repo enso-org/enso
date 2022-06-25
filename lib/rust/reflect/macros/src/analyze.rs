@@ -147,7 +147,8 @@ fn parse_field_attrs(attr: &syn::Attribute) -> Vec<FieldAttr> {
     }
     let meta = attr.parse_meta().unwrap();
     match meta {
-        syn::Meta::List(metalist) => metalist.nested.iter().map(|meta| parse_field_annotation(meta, &attr)).collect(),
+        syn::Meta::List(metalist) =>
+            metalist.nested.iter().map(|meta| parse_field_annotation(meta, &attr)).collect(),
         syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
             panic!("Unexpected helper attribute type: {}", attr.into_token_stream()),
     }

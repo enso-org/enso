@@ -35,21 +35,13 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
             graph.edges.push((sparent.clone(), sname.clone(), EdgeType::Subtype));
         }
         match &ty.data {
-            Data::Struct(Struct::Named(fields)) => {
-                for Named { value: Field { type_, hide: _ }, .. } in fields {
-                    let id = type_.0;
-                    let sname2 = format!("{}{}", types[id].as_ref().unwrap().name, id);
-                    graph.edges.push((sname.clone(), sname2, EdgeType::Field));
-                }
-            }
-            Data::Struct(Struct::Unnamed(fields)) =>
-                for Field { type_, hide: _ } in fields {
+            Data::Struct(fields) =>
+                for Field { type_, name: _, hide: _, id: _ } in fields {
                     let id = type_.0;
                     let sname2 = format!("{}{}", types[id].as_ref().unwrap().name, id);
                     graph.edges.push((sname.clone(), sname2, EdgeType::Field));
                 },
-            Data::Struct(Struct::Unit)
-            | Data::Primitive(Primitive::U32)
+            Data::Primitive(Primitive::U32)
             | Data::Primitive(Primitive::Bool)
             | Data::Primitive(Primitive::Usize)
             | Data::Primitive(Primitive::String) => {}

@@ -1,9 +1,9 @@
 use derivative::Derivative;
-pub use genericize::to_generic;
+pub use to_generic::to_generic;
 
-mod genericize;
 pub mod graphviz;
 mod reflect;
+mod to_generic;
 
 pub use reflect::Reflect;
 
@@ -85,7 +85,7 @@ pub struct UnnamedField {
 
 #[derive(Debug, Clone)]
 pub enum Fields {
-    Named(NamedFields),
+    Named(Vec<NamedField>),
     Unnamed(Vec<UnnamedField>),
     Unit,
 }
@@ -93,45 +93,10 @@ pub enum Fields {
 impl Fields {
     pub fn as_wrapped_type(&self) -> Option<LazyType> {
         match self {
-            Fields::Named(fields) => {
-                let fields = fields.clone().into_vec();
-                match fields.len() {
-                    1 => Some(fields[0].type_),
-                    _ => None,
-                }
-            }
+            Fields::Named(fields) if fields.len() == 1 => Some(fields[0].type_),
             Fields::Unnamed(fields) if fields.len() == 1 => Some(fields[0].type_),
             _ => None,
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct NamedFields {
-    fields: Vec<NamedField>,
-}
-
-impl NamedFields {
-    pub fn new(fields: Vec<NamedField>) -> Self {
-        Self { fields }
-    }
-
-    // FIXME: Replace this interface with a custom iterator.
-    pub fn into_vec(self) -> Vec<NamedField> {
-        let mut out = Vec::with_capacity(self.fields.len());
-        for field in self.fields {
-            if field.flatten {
-                let ty = field.type_.evaluate();
-                match ty.data {
-                    Data::Struct(Struct { fields: Fields::Named(fields), .. }) =>
-                        out.extend(fields.into_vec().into_iter().map(|inner| field.flatten(&inner))),
-                    _ => panic!("`#[reflect(flatten)]` is only supported for named structs."),
-                }
-            } else {
-                out.push(field);
-            }
-        }
-        out
     }
 }
 
@@ -305,9 +270,8 @@ impl ReferencedTypes for UnnamedField {
 impl ReferencedTypes for Fields {
     fn referenced_types(&self) -> Vec<LazyType> {
         match self {
-            Fields::Named(fields) =>
-                fields.clone().into_vec().into_iter().map(|field| field.type_).collect(),
-            Fields::Unnamed(fields) => fields.iter().map(|field| field.type_.clone()).collect(),
+            Fields::Named(fields) => fields.iter().map(|field| field.type_).collect(),
+            Fields::Unnamed(fields) => fields.iter().map(|field| field.type_).collect(),
             Fields::Unit => vec![],
         }
     }

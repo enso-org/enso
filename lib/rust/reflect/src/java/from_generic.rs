@@ -1,6 +1,6 @@
 use crate::generic;
 use crate::java::*;
-
+use std::collections::BTreeSet;
 
 
 // =========================
@@ -8,94 +8,101 @@ use crate::java::*;
 // =========================
 
 /// Lower a data model in the generic representation to a data model in the Java typesystem.
-pub fn from_generic(root: generic::TypeId, graph: &generic::TypeGraph) -> (TypeId, TypeGraph) {
-    let mut java_of_generic = std::collections::HashMap::new();
-    let mut primitives = std::collections::HashMap::new();
+pub fn from_generic(graph: &generic::TypeGraph) -> (TypeGraph, BTreeMap<generic::TypeId, TypeId>) {
+    let mut primitives = BTreeMap::new();
     let mut java = TypeGraph::default();
-    for (id, _) in graph.types.iter().enumerate() {
-        let id = generic::TypeId(id);
-        let id_ = java.reserve_type_id();
-        java_of_generic.insert(id, id_);
+    let mut generic_to_java: BTreeMap<_, _> =
+        graph.type_ids().map(|id| (id, java.reserve_type_id())).collect();
+    let mut from_generic = FromGeneric { java, generic_to_java, primitives };
+    // Translate primitives first, because in Java we need to know whether a type is primitive when
+    // we reference the type.
+    for (&id_, &id) in &from_generic.generic_to_java {
+        if let generic::Data::Primitive(ty) = &graph[id_].data {
+            match from_generic.primitive(ty) {
+                Ok(prim) => {
+                    from_generic.primitives.insert(id_, prim);
+                }
+                Err(class) => from_generic.java.set(id, class),
+            }
+        }
     }
-    for (id, ty) in graph.types.iter().enumerate() {
-        let id = generic::TypeId(id);
-        let id_ = java_of_generic[&id];
-        let ty = match ty.as_ref() {
-            Some(generic::Type { data: generic::Data::Primitive(ty), .. }) => ty,
-            _ => continue,
+    // Translate structs.
+    let mut getters_wanted = vec![];
+    for (&id_, &id) in &from_generic.generic_to_java {
+        let ty = &graph[id_];
+        let fields_ = match &ty.data {
+            generic::Data::Primitive(_) => continue,
+            generic::Data::Struct(fields_) => fields_,
         };
-        let primitive = match ty {
-            generic::Primitive::Bool => Primitive::Bool,
+        let (class, getters) = from_generic.class(ty, fields_);
+        getters_wanted.push((id, getters));
+        from_generic.java.set(id, class);
+    }
+    // Generate getters. We do this after translating structs because we need field type info.
+    for (id, mut fields) in getters_wanted {
+        let mut methods = vec![];
+        for field in &from_generic.java[id].fields {
+            if fields.remove(&field.id()) {
+                methods.push(implementation::getter(&from_generic.java, &field));
+            }
+        }
+        assert!(fields.is_empty());
+        from_generic.java[id].methods.extend(methods.into_iter().map(Method::Raw))
+    }
+    let FromGeneric { java, generic_to_java, .. } = from_generic;
+    (java, generic_to_java)
+}
+
+#[derive(Debug)]
+struct FromGeneric {
+    java:            TypeGraph,
+    generic_to_java: BTreeMap<generic::TypeId, TypeId>,
+    primitives:      BTreeMap<generic::TypeId, Primitive>,
+}
+
+impl FromGeneric {
+    fn primitive(&self, ty: &generic::Primitive) -> Result<Primitive, Class> {
+        match ty {
+            generic::Primitive::Bool => Ok(Primitive::Bool),
             // FIXME the right way to handle this varies; needs to be configurable
-            generic::Primitive::Usize => Primitive::Long { unsigned: true },
-            generic::Primitive::U32 => Primitive::Int { unsigned: true },
-            generic::Primitive::String => {
-                java.set(id_, Class::builtin("String", vec![]));
-                continue;
-            }
-            generic::Primitive::Option(t0) => {
-                java.set(id_, Class::builtin("java.util.Optional", vec![java_of_generic[t0]]));
-                continue;
-            }
-            generic::Primitive::Sequence(t0) => {
-                java.set(id_, Class::builtin("java.util.ArrayList", vec![java_of_generic[t0]]));
-                continue;
-            }
+            generic::Primitive::Usize => Ok(Primitive::Long { unsigned: true }),
+            generic::Primitive::U32 => Ok(Primitive::Int { unsigned: true }),
+            generic::Primitive::String => Err(Class::builtin(&self.java, "String", vec![])),
+            generic::Primitive::Option(t0) =>
+                Err(Class::builtin(&self.java, "java.util.Optional", vec![
+                    self.generic_to_java[t0],
+                ])),
+            generic::Primitive::Sequence(t0) =>
+                Err(Class::builtin(&self.java, "java.util.ArrayList", vec![
+                    self.generic_to_java[t0],
+                ])),
             generic::Primitive::Result(t0, t1) => {
-                let t0_ = java_of_generic[t0];
-                let t1_ = java_of_generic[t1];
-                java.set(id_, Class::builtin("utils.Either", vec![t0_, t1_]));
-                continue;
+                let t0_ = self.generic_to_java[t0];
+                let t1_ = self.generic_to_java[t1];
+                Err(Class::builtin(&self.java, "utils.Either", vec![t0_, t1_]))
             }
-        };
-        primitives.insert(id, primitive);
+        }
     }
-    for (id, ty) in graph.types.iter().enumerate() {
-        let ty = match ty.as_ref() {
-            Some(ty) => ty,
-            None => continue,
-        };
-        let id = generic::TypeId(id);
-        let id_ = java_of_generic[&id];
+
+    fn class<'f>(
+        &self,
+        ty: &generic::Type,
+        fields_: impl IntoIterator<Item = &'f generic::Field>,
+    ) -> (Class, BTreeSet<FieldId>) {
         let name = ty.name.to_pascal_case();
         let abstract_ = ty.abstract_;
         let sealed = ty.closed;
-        let parent = ty.parent.as_ref().map(|id| java_of_generic[id]);
+        let parent = ty.parent.as_ref().map(|id| self.generic_to_java[id]);
         let builtin = false;
-        let fields;
-        match &ty.data {
-            generic::Data::Primitive(_) => continue,
-            generic::Data::Struct(generic::Struct::Unit) => fields = vec![],
-            generic::Data::Struct(generic::Struct::Named(fields_)) => {
-                fields = fields_
-                    .iter()
-                    .map(|generic::Named { name, value: generic::Field { type_, hide } }| {
-                        let name = name.clone();
-                        let data = if let Some(primitive) = primitives.get(type_) {
-                            FieldData::Primitive(primitive.clone())
-                        } else {
-                            let type_ = java_of_generic[type_];
-                            FieldData::Object { type_, nonnull: true }
-                        };
-                        let name = name.to_camel_case();
-                        let getter = !hide;
-                        Field { name, data, getter }
-                    })
-                    .collect();
-            }
-            generic::Data::Struct(generic::Struct::Unnamed(_fields)) =>
-                unimplemented!("Promotion of tuples to structs with named fields."),
-        }
-        let params = vec![];
-        let methods = match abstract_ {
+        let mut methods = match abstract_ {
             true => abstract_methods(),
             false => standard_methods(),
         };
-        let discriminants = if let Some(attrs) = &ty.child_attrs {
-            attrs.discriminants.iter().map(|(key, id)| (*key, java_of_generic[id])).collect()
-        } else {
-            Default::default()
-        };
+        let mut getters = BTreeSet::new();
+        let fields = fields_.into_iter().map(|field| self.field(field, &mut getters)).collect();
+        let params = vec![];
+        let discriminants =
+            ty.discriminants.iter().map(|(key, id)| (*key, self.generic_to_java[id])).collect();
         let class = Class {
             name,
             params,
@@ -107,8 +114,23 @@ pub fn from_generic(root: generic::TypeId, graph: &generic::TypeGraph) -> (TypeI
             methods,
             discriminants,
         };
-        java.set(id_, class);
+        (class, getters)
     }
-    let root = java_of_generic[&root];
-    (root, java)
+
+    fn field(&self, field: &generic::Field, getters: &mut BTreeSet<FieldId>) -> Field {
+        let generic::Field { name, type_, hide, .. } = field;
+        let name = name.clone();
+        let data = if let Some(primitive) = self.primitives.get(&type_) {
+            FieldData::Primitive(primitive.clone())
+        } else {
+            let type_ = self.generic_to_java[type_];
+            FieldData::Object { type_, nonnull: true }
+        };
+        let name = name.to_camel_case().expect("Unimplemented: Tuples.");
+        let field = self.java.field(name, data);
+        if !hide {
+            getters.insert(field.id());
+        }
+        field
+    }
 }

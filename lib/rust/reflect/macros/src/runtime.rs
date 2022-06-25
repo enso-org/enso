@@ -68,9 +68,7 @@ impl Quote for Fields {
             Fields::Named { fields } => {
                 let fields: Punctuated<_, Token![,]> =
                     fields.into_iter().map(Quote::quote).collect();
-                quote! {
-                    reflect::rust::Fields::Named(reflect::rust::NamedFields::new(vec![#fields]))
-                }
+                quote! { reflect::rust::Fields::Named(vec![#fields]) }
             }
             Fields::Unnamed(fields) => {
                 let fields: Punctuated<_, Token![,]> =

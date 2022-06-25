@@ -1,21 +1,25 @@
 use super::*;
 use crate::generic;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::mem::take;
+
+
 
 // =======================
 // === Rust to Generic ===
 // =======================
 
 pub fn to_generic(ty: TypeData) -> (generic::TypeId, generic::TypeGraph) {
-    let mut genericize = Genericize::new();
-    let root_generic_id = genericize.run(ty);
+    let mut to_generic = ToGeneric::new();
+    let root_generic_id = to_generic.run(ty);
     let roots = vec![root_generic_id];
-    genericize.generic_graph.gc(roots);
-    (root_generic_id, genericize.generic_graph)
+    to_generic.generic_graph.gc(roots);
+    (root_generic_id, to_generic.generic_graph)
 }
 
-#[derive(Debug)]
-pub struct Genericize {
+#[derive(Debug, Default)]
+pub struct ToGeneric {
     // Outputs
     generic_of_rust: BTreeMap<TypeId, generic::TypeId>,
     generic_graph:   generic::TypeGraph,
@@ -23,53 +27,44 @@ pub struct Genericize {
     interfaces:      Vec<(generic::TypeId, generic::TypeId)>,
     parent_types:    BTreeMap<GenericTypeId, (generic::TypeName, generic::Data, usize)>,
     subtypings:      Vec<(GenericTypeId, TypeId, generic::TypeId)>,
-    //transparented_types: BTreeMap<generic::TypeId, TypeId>,
+    flatten:         BTreeSet<generic::FieldId>,
 }
 
-impl Genericize {
+impl ToGeneric {
     fn new() -> Self {
-        let generic_of_rust = Default::default();
-        let generic_graph = Default::default();
-        let interfaces = Default::default();
-        let parent_types = Default::default();
-        let subtypings = Default::default();
-        //let transparented_types = Default::default();
-        Genericize { generic_of_rust, generic_graph, interfaces, parent_types, subtypings }
+        Default::default()
     }
 }
 
-impl Genericize {
-    fn field_name(&self, s: &str) -> generic::FieldName {
-        generic::FieldName::from_snake_case(s)
-    }
-
-    fn type_name(&self, s: &str) -> generic::TypeName {
-        generic::TypeName::from_pascal_case(s)
-    }
-
-    fn named_struct(
+impl ToGeneric {
+    fn named_struct<'f>(
         &mut self,
         id_: generic::TypeId,
         name: &str,
-        fields: &NamedFields,
+        fields: impl IntoIterator<Item = &'f NamedField>,
         erased: Option<GenericTypeId>,
     ) {
         let mut body = vec![];
         let mut child_field = None;
-        for (i, field) in fields.clone().into_vec().into_iter().enumerate() {
+        for (i, field) in fields.into_iter().enumerate() {
+            assert!(!(field.flatten && field.subtype));
             if field.subtype {
                 assert_eq!(child_field, None);
                 child_field = Some((i, field.type_.id));
                 continue;
             }
-            let name = self.field_name(&field.name);
             let type_ = self.generic_of_rust[&field.type_.id];
-            let hide = field.hide;
-            let value = generic::Field { type_, hide };
-            body.push(generic::Named { name, value });
+            let name = field_name(&field.name);
+            let mut field_ = self.generic_graph.field(type_);
+            if field.flatten {
+                self.flatten.insert(field_.id());
+            }
+            field_.hide = field.hide;
+            field_.name = name;
+            body.push(field_);
         }
-        let data = generic::Data::Struct(generic::Struct::Named(body));
-        let name = self.type_name(name);
+        let data = generic::Data::Struct(body);
+        let name = type_name(name);
         if let Some((index, field)) = child_field {
             let erased = erased.unwrap();
             self.parent_types.insert(erased, (name.to_owned(), data, index));
@@ -81,13 +76,12 @@ impl Genericize {
     }
 
     fn unnamed_struct(&mut self, id_: generic::TypeId, name: &str, fields: &[UnnamedField]) {
-        let data = generic::Data::Struct(generic::Struct::Unnamed(
-            fields
-                .into_iter()
-                .map(|field| generic::Field::new(self.generic_of_rust[&field.type_.id]))
-                .collect(),
-        ));
-        let name = self.type_name(name);
+        let data = fields
+            .into_iter()
+            .map(|field| self.generic_graph.field(self.generic_of_rust[&field.type_.id]))
+            .collect();
+        let data = generic::Data::Struct(data);
+        let name = type_name(name);
         let ty = generic::Type::new(name, data);
         self.generic_graph.set(id_, ty);
     }
@@ -107,14 +101,14 @@ impl Genericize {
     }
 
     fn unit_struct(&mut self, id_: generic::TypeId, name: &str) {
-        let data = generic::Data::Struct(generic::Struct::Unit);
-        let name = self.type_name(name);
+        let data = generic::Data::Struct(vec![]);
+        let name = type_name(name);
         let ty = generic::Type::new(name, data);
         self.generic_graph.set(id_, ty);
     }
 
     fn enum_(&mut self, generic_id: generic::TypeId, name: &str, variants: &[Variant]) {
-        let name = self.type_name(name);
+        let name = type_name(name);
         let children = variants.into_iter().map(|Variant { ident, fields, transparent }| {
             if *transparent {
                 let id = &fields.as_wrapped_type().unwrap().id;
@@ -128,11 +122,11 @@ impl Genericize {
                 id_
             }
         });
-        let data = generic::Data::Struct(generic::Struct::Unit);
+        let data = generic::Data::Struct(vec![]);
         let mut ty = generic::Type::new(name, data);
         ty.abstract_ = true;
         ty.closed = true;
-        ty.child_attrs.get_or_insert_default().discriminants = children.enumerate().collect();
+        ty.discriminants = children.enumerate().collect();
         self.generic_graph.set(generic_id, ty);
     }
 
@@ -150,13 +144,13 @@ impl Genericize {
             ),
         };
         let data = generic::Data::Primitive(primitive);
-        let name = self.type_name(name);
+        let name = type_name(name);
         let ty = generic::Type::new(name, data);
         self.generic_graph.set(id_, ty);
     }
 }
 
-impl Genericize {
+impl ToGeneric {
     fn remove_transparent(
         &mut self,
         types: &mut BTreeMap<TypeId, TypeData>,
@@ -167,7 +161,6 @@ impl Genericize {
                 Data::Struct(Struct { fields: Fields::Named(fields), transparent })
                     if *transparent =>
                 {
-                    let fields = fields.clone().into_vec();
                     assert_eq!(fields.len(), 1);
                     fields[0].type_.id
                 }
@@ -219,11 +212,15 @@ impl Genericize {
             let old_parent = self.generic_graph[child_].parent.replace(parent_);
             assert_eq!(None, old_parent);
         }
+        self.generate_subtypes(&rust_types);
+        generic::transform::flatten(&mut self.generic_graph, &mut self.flatten);
+        self.generic_of_rust[&root_rust_id]
+    }
+
+    fn generate_subtypes(&mut self, rust_types: &BTreeMap<TypeId, TypeData>) {
         let mut parent_ids = BTreeMap::new();
         let mut aliases = vec![];
-        let subtypings = std::mem::take(&mut self.subtypings);
-        // Handle the variant first; that way we can generate its type family with `enum_`, which
-        // doesn't handle checking for already-created child types.
+        let subtypings = take(&mut self.subtypings);
         for (erased, field, id_) in &subtypings {
             let field_ty = &rust_types[field];
             match &field_ty.data {
@@ -236,15 +233,8 @@ impl Genericize {
                     let mut enum_ty_ = self.generic_graph.take(field_);
                     enum_ty_.name = name;
                     enum_ty_.data = wrapper_data;
-                    enum_ty_.child_attrs.as_mut().unwrap().child_field = Some(index);
-                    let children_: Vec<_> = enum_ty_
-                        .child_attrs
-                        .as_ref()
-                        .unwrap()
-                        .discriminants
-                        .values()
-                        .copied()
-                        .collect();
+                    enum_ty_.child_field = Some(index);
+                    let children_: Vec<_> = enum_ty_.discriminants.values().copied().collect();
                     self.generic_graph.set(*id_, enum_ty_);
                     for child_ in children_ {
                         let old_parent = self.generic_graph[child_].parent.replace(*id_);
@@ -269,7 +259,6 @@ impl Genericize {
             }
         }
         self.generic_graph.apply_aliases(&aliases);
-        self.generic_of_rust[&root_rust_id]
     }
 }
 
@@ -293,4 +282,12 @@ fn collect_types(root: TypeData) -> BTreeMap<TypeId, TypeData> {
         });
     }
     new_types
+}
+
+fn field_name(s: &str) -> generic::FieldName {
+    generic::FieldName::from_snake_case(s)
+}
+
+fn type_name(s: &str) -> generic::TypeName {
+    generic::TypeName::from_pascal_case(s)
 }

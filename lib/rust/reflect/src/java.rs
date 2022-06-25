@@ -19,6 +19,9 @@ use std::collections::BTreeMap;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TypeId(usize);
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct FieldId(u32);
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Class {
     name:          String,
@@ -34,7 +37,7 @@ pub struct Class {
 }
 
 impl Class {
-    fn builtin(name: &str, fields: impl IntoIterator<Item = TypeId>) -> Self {
+    fn builtin(graph: &TypeGraph, name: &str, fields: impl IntoIterator<Item = TypeId>) -> Self {
         let params: Vec<_> = fields.into_iter().collect();
         let name = name.to_owned();
         let parent = None;
@@ -42,10 +45,8 @@ impl Class {
         let builtin = true;
         let fields = params
             .iter()
-            .map(|&type_| Field {
-                name:   "data".to_owned(),
-                data:   FieldData::Object { type_, nonnull: true },
-                getter: Default::default(),
+            .map(|&type_| {
+                graph.field("data".to_owned(), FieldData::Object { type_, nonnull: true })
             })
             .collect();
         let methods = Default::default();
@@ -91,9 +92,15 @@ fn standard_methods() -> Vec<Method> {
 /// Definition of a field.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Field {
-    name:   String,
-    data:   FieldData,
-    getter: bool,
+    name: String,
+    data: FieldData,
+    id:   FieldId,
+}
+
+impl Field {
+    pub fn id(&self) -> FieldId {
+        self.id
+    }
 }
 
 /// Typeinfo for a field.
@@ -131,7 +138,8 @@ pub enum Primitive {
 
 #[derive(Debug, Default)]
 pub struct TypeGraph {
-    types: Vec<Option<Class>>,
+    types:      Vec<Option<Class>>,
+    next_field: std::cell::Cell<u32>,
 }
 
 impl std::ops::Index<TypeId> for TypeGraph {
@@ -181,19 +189,30 @@ impl TypeGraph {
         self.types[i].take().unwrap()
     }
 
+    pub fn get(&self, TypeId(i): TypeId) -> Option<&Class> {
+        self.types[i].as_ref()
+    }
+
+    pub fn field(&self, name: String, data: FieldData) -> Field {
+        let id = self.next_field.get();
+        self.next_field.set(id + 1);
+        let id = FieldId(id);
+        Field { name, data, id }
+    }
+
     pub fn implement(&self) -> Vec<syntax::Class> {
         implementation::implement(self)
     }
 
-    pub fn type_ids(&self) -> impl Iterator<Item=TypeId> + '_ {
+    pub fn type_ids(&self) -> impl Iterator<Item = TypeId> + '_ {
         self.types.iter().enumerate().filter_map(|(i, ty)| ty.as_ref().map(|_| TypeId(i)))
     }
 
-    pub fn classes(&self) -> impl Iterator<Item=&Class> {
+    pub fn classes(&self) -> impl Iterator<Item = &Class> {
         self.types.iter().filter_map(|ty| ty.as_ref())
     }
 
-    pub fn classes_mut(&mut self) -> impl Iterator<Item=&mut Class> {
+    pub fn classes_mut(&mut self) -> impl Iterator<Item = &mut Class> {
         self.types.iter_mut().filter_map(|ty| ty.as_mut())
     }
 

@@ -51,7 +51,7 @@ impl Reflect for std::borrow::Cow<'_, str> {
 }
 
 impl<T> Reflect for std::rc::Rc<T>
-    where T: Reflect
+where T: Reflect
 {
     type Static = T::Static;
     type SubtypeErased = Self::Static;
@@ -62,7 +62,7 @@ impl<T> Reflect for std::rc::Rc<T>
 }
 
 impl<T> Reflect for Box<T>
-    where T: Reflect
+where T: Reflect
 {
     type Static = T::Static;
     type SubtypeErased = Self::Static;
@@ -73,7 +73,7 @@ impl<T> Reflect for Box<T>
 }
 
 impl<T> Reflect for Option<T>
-    where T: Reflect
+where T: Reflect
 {
     type Static = Option<T::Static>;
     type SubtypeErased = Self::Static;
@@ -87,9 +87,9 @@ impl<T> Reflect for Option<T>
 }
 
 impl<T, E> Reflect for Result<T, E>
-    where
-        T: Reflect,
-        E: Reflect,
+where
+    T: Reflect,
+    E: Reflect,
 {
     type Static = Result<T::Static, E::Static>;
     type SubtypeErased = Self::Static;
@@ -114,7 +114,7 @@ impl Reflect for &'_ str {
 }
 
 impl<T> Reflect for Vec<T>
-    where T: Reflect
+where T: Reflect
 {
     type Static = Vec<T::Static>;
     type SubtypeErased = Self::Static;

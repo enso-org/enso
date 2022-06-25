@@ -1,4 +1,5 @@
 pub mod graphviz;
+pub mod transform;
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -21,7 +22,10 @@ pub struct Type {
     pub abstract_:       bool,
     pub closed:          bool,
     // attributes
-    pub child_attrs:     Option<ChildAttrs>,
+    /// When serializing/deserializing, indicates the index of the field in a `Type` before which a
+    /// child object's data will be placed/expected.
+    pub child_field:     Option<usize>,
+    pub discriminants:   BTreeMap<usize, TypeId>,
 }
 
 impl Type {
@@ -31,24 +35,26 @@ impl Type {
         let mixins = Default::default();
         let weak_interfaces = Default::default();
         let abstract_ = Default::default();
-        let child_attrs = Default::default();
         let closed = Default::default();
-        Type { name, data, parent, mixins, weak_interfaces, abstract_, child_attrs, closed }
+        let child_field = Default::default();
+        let discriminants = Default::default();
+        Type {
+            name,
+            data,
+            parent,
+            mixins,
+            weak_interfaces,
+            abstract_,
+            closed,
+            child_field,
+            discriminants,
+        }
     }
-}
-
-/// Provides information for a type about how its child types are encoded.
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct ChildAttrs {
-    /// When serializing/deserializing, indicates the index of the field in a `Type` before which a
-    /// child object's data will be placed/expected.
-    pub child_field:   Option<usize>,
-    pub discriminants: BTreeMap<usize, TypeId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Data {
-    Struct(Struct),
+    Struct(Vec<Field>),
     Primitive(Primitive),
 }
 
@@ -66,29 +72,17 @@ pub enum Primitive {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Named<T> {
-    pub name:  FieldName,
-    pub value: T,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub struct Field {
+    pub name:  FieldName,
     pub type_: TypeId,
-    pub hide: bool,
+    pub hide:  bool,
+    id:        FieldId,
 }
 
 impl Field {
-    pub fn new(type_: TypeId) -> Self {
-        let hide = false;
-        Self { type_, hide }
+    pub fn id(&self) -> FieldId {
+        self.id
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Struct {
-    Named(Vec<Named<Field>>),
-    Unnamed(Vec<Field>),
-    Unit,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -100,13 +94,22 @@ impl std::fmt::Display for TypeId {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FieldId(u32);
+
+impl std::fmt::Display for FieldId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 
 
 // ===================
 // === Identifiers ===
 // ===================
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Identifier {
     segments: Vec<String>,
 }
@@ -171,7 +174,7 @@ impl Identifier {
         Self::new(segments)
     }
 
-    pub fn concat(&mut self, other: Self) {
+    pub fn append(&mut self, other: Self) {
         self.segments.extend(other.segments)
     }
 }
@@ -195,12 +198,15 @@ impl TypeName {
     pub fn to_pascal_case(&self) -> String {
         self.0.to_pascal_case()
     }
+    pub fn append(&mut self, other: Self) {
+        self.0.append(other.0)
+    }
 }
 
 
 // === Field Names ===
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct FieldName(Identifier);
 
 impl std::fmt::Display for FieldName {
@@ -213,8 +219,14 @@ impl FieldName {
     pub fn from_snake_case(s: &str) -> Self {
         Self(Identifier::from_snake_case(s))
     }
-    pub fn to_camel_case(&self) -> String {
-        self.0.to_camel_case()
+    pub fn to_camel_case(&self) -> Option<String> {
+        match self.0.to_camel_case() {
+            ident if ident.is_empty() => None,
+            ident => Some(ident),
+        }
+    }
+    pub fn append(&mut self, other: Self) {
+        self.0.append(other.0)
     }
 }
 
@@ -226,7 +238,8 @@ impl FieldName {
 
 #[derive(Debug, Default)]
 pub struct TypeGraph {
-    pub types: Vec<Option<Type>>,
+    pub types:  Vec<Option<Type>>,
+    next_field: std::cell::Cell<u32>,
 }
 
 impl TypeGraph {
@@ -255,6 +268,19 @@ impl TypeGraph {
         id
     }
 
+    pub fn type_ids(&self) -> impl Iterator<Item = TypeId> + '_ {
+        self.types.iter().enumerate().filter_map(|(i, ty)| ty.as_ref().map(|_| TypeId(i)))
+    }
+
+    pub fn field(&self, type_: TypeId) -> Field {
+        let hide = false;
+        let id = self.next_field.get();
+        self.next_field.set(id + 1);
+        let id = FieldId(id);
+        let name = FieldName::default();
+        Field { name, type_, hide, id }
+    }
+
     /// Replace all occurrences of certain IDs with other IDs.
     pub fn apply_aliases<'a>(&mut self, aliases: impl IntoIterator<Item = &'a (TypeId, TypeId)>) {
         let mut canonical = BTreeMap::new();
@@ -281,11 +307,7 @@ impl TypeGraph {
                 rewrite(parent);
             }
             match &mut ty.data {
-                Data::Struct(Struct::Named(fields)) =>
-                    for field in fields {
-                        rewrite(&mut field.value.type_);
-                    },
-                Data::Struct(Struct::Unnamed(fields)) =>
+                Data::Struct(fields) =>
                     for field in fields {
                         rewrite(&mut field.type_);
                     },
@@ -295,8 +317,7 @@ impl TypeGraph {
                     rewrite(t0);
                     rewrite(t1);
                 }
-                Data::Struct(Struct::Unit)
-                | Data::Primitive(Primitive::U32)
+                Data::Primitive(Primitive::U32)
                 | Data::Primitive(Primitive::Bool)
                 | Data::Primitive(Primitive::Usize)
                 | Data::Primitive(Primitive::String) => {}
@@ -323,7 +344,8 @@ impl TypeGraph {
                 weak_interfaces: _,
                 abstract_: _,
                 closed: _,
-                child_attrs,
+                child_field: _,
+                discriminants,
             } = ty;
             let already_visited = !visited.insert(id);
             if already_visited {
@@ -333,14 +355,9 @@ impl TypeGraph {
                 to_visit.insert(*parent);
             }
             to_visit.extend(mixins);
-            if let Some(child_attrs) = child_attrs {
-                to_visit.extend(child_attrs.discriminants.values());
-            }
+            to_visit.extend(discriminants.values());
             match data {
-                Data::Struct(Struct::Named(fields)) =>
-                    to_visit.extend(fields.iter().map(|field| field.value.type_)),
-                Data::Struct(Struct::Unnamed(fields)) =>
-                    to_visit.extend(fields.iter().map(|field| field.type_)),
+                Data::Struct(fields) => to_visit.extend(fields.iter().map(|field| field.type_)),
                 Data::Primitive(Primitive::Sequence(t0))
                 | Data::Primitive(Primitive::Option(t0)) => {
                     to_visit.insert(*t0);
@@ -349,8 +366,7 @@ impl TypeGraph {
                     to_visit.insert(*t0);
                     to_visit.insert(*t1);
                 }
-                Data::Struct(Struct::Unit)
-                | Data::Primitive(Primitive::U32)
+                Data::Primitive(Primitive::U32)
                 | Data::Primitive(Primitive::Bool)
                 | Data::Primitive(Primitive::Usize)
                 | Data::Primitive(Primitive::String) => {}
