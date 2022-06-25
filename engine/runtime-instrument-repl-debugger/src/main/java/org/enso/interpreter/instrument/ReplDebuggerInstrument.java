@@ -16,6 +16,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
@@ -25,7 +26,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.debugger.DebugServerInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -47,10 +47,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   @Override
   protected void onCreate(Env env) {
     SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder()
-            .mimeTypeIs(LanguageInfo.MIME_TYPE)
-            .tagIs(DebuggerTags.AlwaysHalt.class)
-            .build();
+        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
 
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
@@ -61,8 +58,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
         instrumenter.attachExecutionEventFactory(
             filter,
             ctx ->
-                new ReplExecutionEventNodeImpl(
-                    ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class)));
+                ctx.getInstrumentedNode() instanceof DebugBreakpointNode
+                    ? new ReplExecutionEventNodeImpl(
+                        ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                    : null);
       } else {
         env.getLogger(ReplDebuggerInstrument.class)
             .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");
