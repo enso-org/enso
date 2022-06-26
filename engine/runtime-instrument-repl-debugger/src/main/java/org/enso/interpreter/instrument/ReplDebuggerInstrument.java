@@ -16,6 +16,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
@@ -38,8 +39,6 @@ import scala.util.Right;
 /** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(id = DebugServerInfo.INSTRUMENT_NAME)
 public class ReplDebuggerInstrument extends TruffleInstrument {
-  private Env env;
-
   /**
    * Called by Truffle when this instrument is installed.
    *
@@ -49,7 +48,6 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   protected void onCreate(Env env) {
     SourceSectionFilter filter =
         SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
-    this.env = env;
 
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
@@ -60,8 +58,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
         instrumenter.attachExecutionEventFactory(
             filter,
             ctx ->
-                new ReplExecutionEventNodeImpl(
-                    ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class)));
+                ctx.getInstrumentedNode() instanceof DebugBreakpointNode
+                    ? new ReplExecutionEventNodeImpl(
+                        ctx, handler, env.getLogger(ReplExecutionEventNodeImpl.class))
+                    : null);
       } else {
         env.getLogger(ReplDebuggerInstrument.class)
             .warning("ReplDebuggerInstrument was initialized, " + "but no client connected");

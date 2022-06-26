@@ -184,10 +184,10 @@ spec =
             t1.at 'a' . to_vector . should_equal ['a, x', '"a']
             t1.at 'c' . to_vector . should_equal ['3', '"']
 
-            t2 = File.read (Enso_Project.data / "escape_quoted.csv") (Delimited "," headers=True quote_escape="\" value_formatter=Nothing)
+            t2 = File.read (Enso_Project.data / "escape_quoted.csv") (Delimited "," headers=True value_formatter=Nothing . with_quotes quote_escape="\")
             t2.at 'a' . to_vector . should_equal ['a"b', 'a\\\"z']
 
-            t3 = File.read (Enso_Project.data / "no_quoting.csv") (Delimited "," quote=Nothing headers=True value_formatter=Nothing)
+            t3 = File.read (Enso_Project.data / "no_quoting.csv") (Delimited "," headers=True value_formatter=Nothing . without_quotes)
             t3.at 'a' . to_vector . should_equal ['"y']
             t3.at 'b' . to_vector . should_equal ['z"']
             t3.at 'c' . to_vector . should_equal ['a']
@@ -286,9 +286,9 @@ spec =
         Test.specify "should check arguments" <|
             path = (Enso_Project.data / "simple_empty.csv")
             pb = Problem_Behavior.Report_Error
-            path.read (Delimited "," headers=False quote='abc') pb . should_fail_with Illegal_Argument_Error
-            path.read (Delimited "," headers=False quote='🚧') pb . should_fail_with Illegal_Argument_Error
-            path.read (Delimited "," headers=False quote_escape='//') pb . should_fail_with Illegal_Argument_Error
+            path.read (Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument_Error
+            path.read (Delimited "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument_Error
+            path.read (Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument_Error
             path.read (Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument_Error
 
         Test.specify "should correctly guess column types" <|
@@ -338,16 +338,16 @@ spec =
         Test.specify "should allow to build the Delimited configuration using builders" <|
             Delimited "," . clone . should_equal (Delimited ",")
             Delimited "," encoding=Encoding.ascii skip_rows=123 row_limit=100 headers=False value_formatter=Nothing . clone . should_equal (Delimited "," headers=False value_formatter=Nothing skip_rows=123 row_limit=100 encoding=Encoding.ascii)
-            Delimited "," . clone quote="'" quote_escape='\\' quote_style=Quote_Style.Always headers=False value_formatter=Nothing . should_equal (Delimited "," headers=False value_formatter=Nothing quote="'" quote_escape='\\' quote_style=Quote_Style.Always)
+            Delimited "," . clone quote_style=Quote_Style.No_Quotes headers=False value_formatter=Nothing . should_equal (Delimited "," headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes)
 
-            Delimited '\t' . with_quotes "|" . should_equal (Delimited '\t' quote='|' quote_escape='|')
-            Delimited '\t' quote_style=Quote_Style.Always . with_quotes "-" '\\' . should_equal (Delimited '\t' quote='-' quote_escape='\\' quote_style=Quote_Style.Always)
-            Delimited '\t' quote_style=Quote_Style.Always . with_quotes "-" '\\' Quote_Style.Never . should_equal (Delimited '\t' quote='-' quote_escape='\\' quote_style=Quote_Style.Never)
+            Delimited '\t' . with_quotes "|" . should_equal (Delimited '\t' quote_style=(Quote_Style.With_Quotes quote='|' quote_escape='|'))
+            Delimited '\t' . with_quotes "-" '\\' True . should_equal (Delimited '\t' quote_style=(Quote_Style.With_Quotes always_quote=True quote='-' quote_escape='\\'))
+            Delimited '\t' . without_quotes . should_equal (Delimited '\t' quote_style=Quote_Style.No_Quotes)
 
             Delimited ',' . with_headers . should_equal (Delimited ',' headers=True)
             Delimited ',' . without_headers . should_equal (Delimited ',' headers=False)
-            Delimited "," skip_rows=123 headers=False value_formatter=Nothing quote_style=Quote_Style.Never . with_headers . should_equal (Delimited "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.Never headers=True)
-            Delimited "," skip_rows=123 headers=True value_formatter=Nothing quote_style=Quote_Style.Never . without_headers . should_equal (Delimited "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.Never headers=False)
+            Delimited "," skip_rows=123 headers=False value_formatter=Nothing quote_style=Quote_Style.No_Quotes . with_headers . should_equal (Delimited "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.No_Quotes headers=True)
+            Delimited "," skip_rows=123 headers=True value_formatter=Nothing quote_style=Quote_Style.No_Quotes . without_headers . should_equal (Delimited "," skip_rows=123 value_formatter=Nothing quote_style=Quote_Style.No_Quotes headers=False)
 
             Delimited ',' . with_parsing . should_equal (Delimited ',')
             Delimited ',' . without_parsing . should_equal (Delimited ',' value_formatter=Nothing)

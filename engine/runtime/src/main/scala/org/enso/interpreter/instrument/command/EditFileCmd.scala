@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -23,10 +24,13 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     ctx.locking.acquireFileLock(request.path)
     ctx.locking.acquirePendingEditsLock()
     try {
-      ctx.state.pendingEdits.enqueue(request.path, request.edits)
+      val edits = request.edits.map(edit => PendingEdit(edit, request.execute))
+      ctx.state.pendingEdits.enqueue(request.path, edits)
       ctx.jobControlPlane.abortAllJobs()
       ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
-      executeJobs.foreach(ctx.jobProcessor.run)
+      if (request.execute) {
+        executeJobs.foreach(ctx.jobProcessor.run)
+      }
       Future.successful(())
     } finally {
       ctx.locking.releasePendingEditsLock()
@@ -38,10 +42,9 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     ctx: RuntimeContext
   ): Iterable[ExecuteJob] = {
     ctx.contextManager.getAll
-      .filter(kv => kv._2.nonEmpty)
-      .mapValues(_.toList)
-      .map { case (contextId, stack) =>
-        new ExecuteJob(contextId, stack)
+      .collect {
+        case (contextId, stack) if stack.nonEmpty =>
+          new ExecuteJob(contextId, stack.toList)
       }
   }
 

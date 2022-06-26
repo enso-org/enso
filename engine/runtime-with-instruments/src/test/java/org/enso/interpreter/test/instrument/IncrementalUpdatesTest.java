@@ -236,7 +236,8 @@ public class IncrementalUpdatesTest {
           new model.Range(new model.Position(3, 8), new model.Position(3, 8 + originalText.length())),
           newText
         )
-      )
+      ),
+      true
     )));
     return context.receiveN(1, 10);
   }
