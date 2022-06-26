@@ -112,3 +112,5 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
+env:
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"
