@@ -36,6 +36,138 @@ pub enum Pattern {
     Identifier,
     Block(Box<Pattern>),
     Expected(String, Box<Pattern>),
+    Named(String, Box<Pattern>),
+}
+
+
+#[derive(Clone, Debug)]
+pub enum Match<'s> {
+    Everything(VecDeque<syntax::Item<'s>>),
+    Nothing,
+    Or(Box<OrMatch<'s>>),
+    Seq(Box<Match<'s>>, Box<Match<'s>>),
+    Many(Vec<Match<'s>>),
+    Identifier(syntax::Item<'s>),
+    Expected(String, Box<Match<'s>>),
+    Named(String, Box<Match<'s>>),
+}
+
+#[derive(Clone, Debug)]
+pub enum OrMatch<'s> {
+    First(Match<'s>),
+    Second(Match<'s>),
+}
+
+impl<'s> Match<'s> {
+    pub fn or(m: OrMatch<'s>) -> Self {
+        Self::Or(Box::new(m))
+    }
+
+    pub fn seq(first: Match<'s>, second: Match<'s>) -> Self {
+        Self::Seq(Box::new(first), Box::new(second))
+    }
+
+    pub fn expected(expected: String, second: Match<'s>) -> Self {
+        Self::Expected(expected, Box::new(second))
+    }
+
+    pub fn named(label: String, second: Match<'s>) -> Self {
+        Self::Named(label, Box::new(second))
+    }
+}
+
+//
+// $(
+//     foo {
+//         $ (
+//             $t: ident
+//         ),*
+//     }
+//     $(
+//         bar {
+//             $ (
+//                 $s: ident
+//             ),*
+//         }
+//     )
+//
+// )*
+//
+// foo {a}
+// bar {1,2}
+//
+// foo {a,b,c}
+// foo {}
+// bar {3,4}
+//
+//
+// [
+//   [
+//     $t = a
+//     [
+//       $s = 1
+//     ]
+//   ]
+// ]
+//
+//
+//
+
+
+// #[derive(Clone, Debug)]
+// pub enum Match<'s> {
+//     Everything(VecDeque<syntax::Item<'s>>),
+//     Nothing,
+//     Or(Box<OrMatch<'s>>),
+//     Seq(Box<Match<'s>>, Box<Match<'s>>),
+//     Many(Vec<Match<'s>>),
+//     Identifier(syntax::Item<'s>),
+//     Expected(String, Box<Match<'s>>),
+// }
+
+
+#[derive(Clone, Debug, Default)]
+pub struct MatchTree<'s> {
+    nested: Option<Box<MatchTree<'s>>>,
+    map:    HashMap<String, Vec<syntax::Item<'s>>>,
+}
+
+impl<'s> Match<'s> {
+    pub fn into_match_tree(self) -> MatchTree<'s> {
+        let mut tree = MatchTree::default();
+        self.make_match_tree(&mut tree);
+        tree
+    }
+
+    pub fn make_match_tree(self, tree: &mut MatchTree<'s>) {
+        match self {
+            Self::Everything(_) => {}
+            Self::Nothing => {}
+            Self::Or(t) => match *t {
+                OrMatch::First(first) => first.make_match_tree(tree),
+                OrMatch::Second(second) => second.make_match_tree(tree),
+            },
+            Self::Seq(first, second) => {
+                first.make_match_tree(tree);
+                second.make_match_tree(tree);
+            }
+
+            Self::Many(matches) => {
+                if tree.nested.is_none() {
+                    tree.nested = Some(default())
+                }
+                let nested = tree.nested.as_mut().unwrap();
+                for m in matches {
+                    m.make_match_tree(nested);
+                }
+            }
+            Self::Identifier(_) => {}
+            Self::Expected(_, _) => {}
+            Self::Named(name, t) => {
+                tree.map.insert(name, t.tokens());
+            }
+        }
+    }
 }
 
 pub use Pattern::Everything;
@@ -60,6 +192,10 @@ pub fn Block(body: Pattern) -> Pattern {
 
 pub fn Expected(message: impl Into<String>, item: Pattern) -> Pattern {
     Pattern::Expected(message.into(), Box::new(item))
+}
+
+pub fn Named(message: impl Into<String>, item: Pattern) -> Pattern {
+    Pattern::Named(message.into(), Box::new(item))
 }
 
 impl Pattern {
@@ -93,6 +229,13 @@ impl<T: Into<String>> std::ops::Rem<T> for Pattern {
     }
 }
 
+impl<T: Into<String>> std::ops::Div<T> for Pattern {
+    type Output = Pattern;
+    fn div(self, message: T) -> Self::Output {
+        Named(message, self)
+    }
+}
+
 // /// Item pattern configuration.
 // #[derive(Clone, Copy, Debug)]
 // #[allow(missing_docs)]
@@ -104,71 +247,71 @@ impl<T: Into<String>> std::ops::Rem<T> for Pattern {
 
 
 #[derive(Debug)]
-pub struct Match2<'s> {
+pub struct MatchResult<'s> {
     /// All the matched tokens.
-    pub matched: MatchResult<'s>,
+    pub matched: Match<'s>,
     /// The rest of the token stream that was not consumed.
     pub rest:    VecDeque<syntax::Item<'s>>,
 }
 
-impl<'s> Match2<'s> {
+impl<'s> MatchResult<'s> {
     /// Constructor.
-    pub fn new(matched: MatchResult<'s>, rest: VecDeque<syntax::Item<'s>>) -> Self {
+    pub fn new(matched: Match<'s>, rest: VecDeque<syntax::Item<'s>>) -> Self {
         Self { matched, rest }
     }
 
-    // pub fn rev_tokens(self) -> Vec<SyntaxItemOrMacroResolver<'s>> {
-    //     self.rev_rest.extended(self.matched.rev_tokens())
-    // }
-
-    pub fn map(mut self, f: impl FnOnce(MatchResult<'s>) -> MatchResult<'s>) -> Self {
+    pub fn map(mut self, f: impl FnOnce(Match<'s>) -> Match<'s>) -> Self {
         self.matched = f(self.matched);
         self
     }
 }
 
-#[derive(Debug)]
-pub enum MatchResult<'s> {
-    Everything(VecDeque<syntax::Item<'s>>),
-    Nothing,
-    Seq(Box<MatchResult<'s>>, Box<MatchResult<'s>>),
-    Many(Vec<MatchResult<'s>>),
-    Identifier(syntax::Item<'s>),
-    Expected(String, Box<MatchResult<'s>>),
-}
 
-impl<'s> MatchResult<'s> {
+
+impl<'s> Match<'s> {
     pub fn tokens(self) -> Vec<syntax::Item<'s>> {
         match self {
             Self::Everything(tokens) => tokens.into(),
             Self::Nothing => default(),
+            Self::Or(t) => t.tokens(),
             Self::Seq(fst, snd) => fst.tokens().extended(snd.tokens()),
             Self::Many(t) => t.into_iter().map(|s| s.tokens()).flatten().collect(),
             Self::Identifier(ident) => vec![ident],
             Self::Expected(_, item) => item.tokens(),
+            Self::Named(_, item) => item.tokens(),
         }
     }
+}
 
-    pub fn seq(fst: MatchResult<'s>, snd: MatchResult<'s>) -> Self {
-        Self::Seq(Box::new(fst), Box::new(snd))
+impl<'s> OrMatch<'s> {
+    pub fn tokens(self) -> Vec<syntax::Item<'s>> {
+        match self {
+            Self::First(t) => t.tokens(),
+            Self::Second(t) => t.tokens(),
+        }
     }
 }
 
 impl Pattern {
+    #[allow(missing_docs)]
     pub fn resolve<'s>(
         &self,
         mut input: VecDeque<syntax::Item<'s>>,
-    ) -> Result<Match2<'s>, VecDeque<syntax::Item<'s>>> {
+    ) -> Result<MatchResult<'s>, VecDeque<syntax::Item<'s>>> {
         match self {
-            Self::Expected(msg, item) => item
+            Self::Expected(msg, item) =>
+                item.resolve(input).map(|t| t.map(|s| Match::expected(msg.clone(), s))),
+            Self::Named(msg, item) =>
+                item.resolve(input).map(|t| t.map(|s| Match::named(msg.clone(), s))),
+            Self::Everything => Ok(MatchResult::new(Match::Everything(input), default())),
+            Self::Nothing => Ok(MatchResult::new(Match::Nothing, input)),
+            Self::Or(fst, snd) => fst
                 .resolve(input)
-                .map(|t| t.map(|s| MatchResult::Expected(msg.clone(), Box::new(s)))),
-            Self::Everything => Ok(Match2::new(MatchResult::Everything(input), default())),
-            Self::Nothing => Ok(Match2::new(MatchResult::Nothing, input)),
-            Self::Or(fst, snd) => fst.resolve(input).or_else(|t| snd.resolve(t)),
-            Self::Seq(fst, snd) => fst.resolve(input).and_then(|t| {
-                snd.resolve(t.rest).map(|s| s.map(|x| MatchResult::seq(t.matched, x)))
-            }),
+                .map(|t| t.map(|s| Match::or(OrMatch::First(s))))
+                .or_else(|t| snd.resolve(t).map(|t| t.map(|s| Match::or(OrMatch::Second(s))))),
+            Self::Seq(fst, snd) => fst
+                .resolve(input)
+                .and_then(|t| snd.resolve(t.rest).map(|s| s.map(|x| Match::seq(t.matched, x)))),
             Self::Many(pat) => {
                 let mut out = vec![];
                 loop {
@@ -183,13 +326,13 @@ impl Pattern {
                         }
                     }
                 }
-                Ok(Match2::new(MatchResult::Many(out), input))
+                Ok(MatchResult::new(Match::Many(out), input))
             }
             Self::Identifier => match input.pop_front() {
                 None => Err(default()),
                 Some(t) =>
                     if t.is_variant(syntax::token::variant::VariantMarker::Ident) {
-                        Ok(Match2::new(MatchResult::Identifier(t), input))
+                        Ok(MatchResult::new(Match::Identifier(t), input))
                     } else {
                         input.push_front(t);
                         Err(input)
@@ -231,27 +374,23 @@ impl ResolutionError {
 
 
 
-/// ==================
-/// === Resolution ===
-/// ==================
-
-/// Successful pattern match result.
-#[derive(Debug, Clone)]
-#[allow(missing_docs)]
-pub struct Match<T> {
-    /// All the matched tokens.
-    pub matched: Vec<T>,
-    /// The rest of the token stream that was not needed for the successful pattern match.
-    pub rest:    Vec<T>,
-    pub error:   Option<ResolutionError>,
-}
-
-impl<T> Match<T> {
-    /// Constructor.
-    pub fn new(matched: Vec<T>, rest: Vec<T>, error: Option<ResolutionError>) -> Self {
-        Self { matched, rest, error }
-    }
-}
+// /// Successful pattern match result.
+// #[derive(Debug, Clone)]
+// #[allow(missing_docs)]
+// pub struct Match<T> {
+//     /// All the matched tokens.
+//     pub matched: Vec<T>,
+//     /// The rest of the token stream that was not needed for the successful pattern match.
+//     pub rest:    Vec<T>,
+//     pub error:   Option<ResolutionError>,
+// }
+//
+// impl<T> Match<T> {
+//     /// Constructor.
+//     pub fn new(matched: Vec<T>, rest: Vec<T>, error: Option<ResolutionError>) -> Self {
+//         Self { matched, rest, error }
+//     }
+// }
 
 
 //

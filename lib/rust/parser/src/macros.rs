@@ -10,7 +10,7 @@ use crate::prelude::*;
 use crate::syntax;
 use crate::syntax::token::Token;
 
-use crate::macros::pattern::MatchResult;
+use crate::macros::pattern::Match;
 use enso_data_structures::im_list;
 use pattern::Pattern;
 
@@ -45,7 +45,7 @@ pub struct Definition<'a> {
 }
 
 /// All the sections of the resolved macro.
-pub type MatchedSections<'s> = NonEmptyVec<(Token<'s>, MatchResult<'s>)>;
+pub type MatchedSections<'s> = NonEmptyVec<(Token<'s>, Match<'s>)>;
 
 /// A function that transforms matched macro tokens into [`syntax::Tree`].
 pub type Body = dyn for<'s> Fn(MatchedSections<'s>) -> syntax::Tree<'s>;

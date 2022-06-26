@@ -103,7 +103,7 @@ use std::collections::VecDeque;
 
 use crate::source::VisibleOffset;
 
-use crate::macros::pattern::Match2;
+use crate::macros::pattern::Match;
 use crate::macros::pattern::MatchResult;
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
@@ -649,7 +649,7 @@ fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
 }
 
 fn matched_segments_into_multi_segment_app<'s>(
-    matched_segments: NonEmptyVec<(Token<'s>, MatchResult<'s>)>,
+    matched_segments: NonEmptyVec<(Token<'s>, Match<'s>)>,
 ) -> syntax::Tree<'s> {
     // FIXME: remove into_vec and use NonEmptyVec::mapped
     let segments = matched_segments
@@ -709,8 +709,8 @@ fn macro_group<'s>() -> macros::Definition<'s> {
 
 fn macro_type_def<'s>() -> macros::Definition<'s> {
     use macros::pattern::*;
-    let pattern = Identifier % "type name"
-        >> Identifier.many() % "type parameters"
+    let pattern = Identifier / "name" % "type name"
+        >> (Identifier / "param").many() % "type parameters"
         >> Block(Identifier.many1() % "constructors" >> Everything) % "type definition body";
     macro_definition! {
         ("type", pattern)
@@ -718,9 +718,13 @@ fn macro_type_def<'s>() -> macros::Definition<'s> {
     }
 }
 
-fn ttt<'s>(matched_segments: NonEmptyVec<(Token<'s>, MatchResult<'s>)>) -> syntax::Tree<'s> {
+fn ttt<'s>(matched_segments: NonEmptyVec<(Token<'s>, Match<'s>)>) -> syntax::Tree<'s> {
+    let x = matched_segments.first().0.clone();
+    println!(">>>");
     println!("{:#?}", matched_segments);
-    syntax::Tree::type_def(matched_segments.first().0.clone())
+    println!(">>>");
+    println!("{:#?}", matched_segments.mapped(|t| t.1.into_match_tree()));
+    syntax::Tree::type_def(x)
 }
 
 fn builtin_macros() -> MacroMatchTree<'static> {
@@ -788,7 +792,7 @@ fn main() {
     // let str = "foo if a then b";
     // let str = "foo *(a)";
     // let ast = parse("foo if a then b else c");
-    let ast = parse("type Option a\n    None");
+    let ast = parse("type Option a b c\n    None");
     // let ast = parse("if if a then b then c else d");
     // let ast2 = ast_builder! {{if} a {then} b};
     // MultiSegmentApp<'s>(prefix: Option<Tree<'s>>, segments:
