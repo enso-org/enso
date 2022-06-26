@@ -64,6 +64,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub error: Error,
             pub ast: Tree<'s>,
         },
+        // Module {
+        //     pub statements: Vec<Tree<'s>>,
+        // },
         /// A simple identifier, like `foo` or `bar`.
         Ident {
             pub token: token::Ident<'s>,

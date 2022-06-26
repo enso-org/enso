@@ -129,7 +129,7 @@ impl<'s> Match<'s> {
 #[derive(Clone, Debug, Default)]
 pub struct MatchTree<'s> {
     nested: Option<Box<MatchTree<'s>>>,
-    map:    HashMap<String, Vec<syntax::Item<'s>>>,
+    map:    HashMap<String, Vec<Vec<syntax::Item<'s>>>>,
 }
 
 impl<'s> Match<'s> {
@@ -154,7 +154,7 @@ impl<'s> Match<'s> {
 
             Self::Many(matches) => {
                 if tree.nested.is_none() {
-                    tree.nested = Some(default())
+                    tree.nested = Some(default());
                 }
                 let nested = tree.nested.as_mut().unwrap();
                 for m in matches {
@@ -164,11 +164,53 @@ impl<'s> Match<'s> {
             Self::Identifier(_) => {}
             Self::Expected(_, _) => {}
             Self::Named(name, t) => {
-                tree.map.insert(name, t.tokens());
+                tree.map.entry(name).or_default().push(t.tokens());
             }
         }
     }
 }
+
+
+// #[derive(Clone, Debug, Default)]
+// pub struct MatchTree<'s> {
+//     nested: Vec<MatchTree<'s>>,
+//     map:    HashMap<String, Vec<syntax::Item<'s>>>,
+// }
+//
+// impl<'s> Match<'s> {
+//     pub fn into_match_tree(self) -> MatchTree<'s> {
+//         let mut tree = MatchTree::default();
+//         self.make_match_tree(&mut tree);
+//         tree
+//     }
+//
+//     pub fn make_match_tree(self, tree: &mut MatchTree<'s>) {
+//         match self {
+//             Self::Everything(_) => {}
+//             Self::Nothing => {}
+//             Self::Or(t) => match *t {
+//                 OrMatch::First(first) => first.make_match_tree(tree),
+//                 OrMatch::Second(second) => second.make_match_tree(tree),
+//             },
+//             Self::Seq(first, second) => {
+//                 first.make_match_tree(tree);
+//                 second.make_match_tree(tree);
+//             }
+//
+//             Self::Many(matches) =>
+//                 for m in matches {
+//                     let mut nested = default();
+//                     m.make_match_tree(&mut nested);
+//                     tree.nested.push(nested);
+//                 },
+//             Self::Identifier(_) => {}
+//             Self::Expected(_, _) => {}
+//             Self::Named(name, t) => {
+//                 tree.map.insert(name, t.tokens());
+//             }
+//         }
+//     }
+// }
 
 pub use Pattern::Everything;
 pub use Pattern::Identifier;

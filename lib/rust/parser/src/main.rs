@@ -301,8 +301,8 @@ impl<'s> Resolver<'s> {
     fn run(
         mut self,
         root_macro_map: &MacroMatchTree<'s>,
-        tokens: Vec<syntax::Item<'s>>,
-    ) -> syntax::Tree<'s> {
+        tokens: std::vec::IntoIter<syntax::Item<'s>>,
+    ) -> (syntax::Tree<'s>, std::vec::IntoIter<syntax::Item<'s>>) {
         let mut stream = tokens.into_iter();
         let mut opt_token: Option<syntax::Item<'s>>;
         macro_rules! next_token {
@@ -321,6 +321,9 @@ impl<'s> Resolver<'s> {
         }
         next_token!();
         while let Some(token) = opt_token {
+            if token.is_variant(syntax::token::variant::VariantMarker::Newline) {
+                break;
+            }
             let step_result = match &token {
                 // FIXME: clone?
                 syntax::Item::Token(token) => self.process_token(root_macro_map, token.clone()),
@@ -356,7 +359,7 @@ impl<'s> Resolver<'s> {
         if !rest.is_empty() {
             panic!("Internal error.");
         }
-        tree
+        (tree, stream)
     }
 
     fn replace_current_with_parent_macro(&mut self, mut parent_macro: MacroResolver<'s>) {
@@ -711,7 +714,8 @@ fn macro_type_def<'s>() -> macros::Definition<'s> {
     use macros::pattern::*;
     let pattern = Identifier / "name" % "type name"
         >> (Identifier / "param").many() % "type parameters"
-        >> Block(Identifier.many1() % "constructors" >> Everything) % "type definition body";
+        >> Block((Identifier / "constructor").many() % "type constructors" >> Everything)
+            % "type definition body";
     macro_definition! {
         ("type", pattern)
         ttt
@@ -771,10 +775,16 @@ pub fn lex<'a>(code: &'a str) -> Vec<syntax::Item<'a>> {
 
 pub fn parse<'a>(code: &'a str) -> syntax::Tree<'a> {
     let mut tokens = lex(code);
+    event!(TRACE, "Tokens:\n{:#?}", tokens);
     let root_macro_map = builtin_macros();
     event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
     let resolver = Resolver::new_root();
-    resolver.run(&root_macro_map, tokens)
+    let tokens = tokens.into_iter();
+    // let mut statements = vec![];
+    let (tree, tokens) = resolver.run(&root_macro_map, tokens);
+    // statements.push(tree);
+
+    tree
 }
 
 use enso_parser_syntax_tree_builder::ast_builder;
@@ -792,7 +802,8 @@ fn main() {
     // let str = "foo if a then b";
     // let str = "foo *(a)";
     // let ast = parse("foo if a then b else c");
-    let ast = parse("type Option a b c\n    None");
+    // let ast = parse("type Option a b c\n    None");
+    let ast = parse("type Option a b c\ntype Option a b c");
     // let ast = parse("if if a then b then c else d");
     // let ast2 = ast_builder! {{if} a {then} b};
     // MultiSegmentApp<'s>(prefix: Option<Tree<'s>>, segments:
@@ -876,5 +887,24 @@ mod tests {
         // test_parse!("if a then b" = { {if} a {then} b });
         // test_parse!("if a then b else c" = { {if} a {then} b {else} c });
         // test_parse!("if a b then c d else e f" = { {if} a b {then} c d {else} e f });
+    }
+}
+
+
+
+#[cfg(test)]
+mod benches {
+    use super::*;
+    extern crate test;
+    use test::Bencher;
+
+    #[bench]
+    fn bench_str_iter_and_compare(b: &mut Bencher) {
+        let reps = 1_000;
+        let str = "type Option a b c\n    None\n".repeat(reps);
+
+        b.iter(move || {
+            let ast = parse(&str);
+        });
     }
 }
