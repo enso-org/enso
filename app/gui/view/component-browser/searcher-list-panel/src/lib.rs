@@ -46,6 +46,7 @@ pub mod column_grid;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::component_group::icon;
 pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
@@ -56,9 +57,11 @@ use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style;
+use ensogl_core::display::style::Path;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
+use ensogl_list_view::entry::AnyModelProvider;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
@@ -222,7 +225,6 @@ impl Style {
         let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
 
         let navigator_width = style.get_number(theme_path.sub("section_navigator_width"));
-        let navigator_height = content_height.clone_ref();
 
         let section_divider_height = style.get_number(theme_path.sub("section_divider_height"));
         let section_heading_size = style.get_number(theme_path.sub("section_heading_size"));
@@ -294,11 +296,11 @@ impl Style {
                 }
             });
 
-            navigator_layout_data <- all3(&init, &navigator_width, &navigator_height);
-            navigator_layout <- navigator_layout_data.map(|(_,width,height)| {
+            navigator_layout_data <- all4(&init, &navigator_width, &content_height, &menu_height);
+            navigator_layout <- navigator_layout_data.map(|(_,width,content_height,menu_height)| {
                 NavigatorStyle {
                     width: *width,
-                    height: *height,
+                    height: *content_height + *menu_height,
                 }
             });
 
@@ -421,62 +423,119 @@ mod hline {
     }
 }
 
+#[derive(Debug, Clone, CloneRef)]
+struct Icon {
+    display_object: display::object::Instance,
+    logger:         Logger,
+    icon:           Rc<RefCell<Option<icon::Any>>>,
+}
+
+impl display::Object for Icon {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
+}
+
+impl list_view::Entry for Icon {
+    type Model = icon::Id;
+    type Params = ();
+
+    fn new(app: &Application, style_prefix: &Path, params: &Self::Params) -> Self {
+        let logger = app.logger.sub("NavigatorIcon");
+        let display_object = display::object::Instance::new(&logger);
+        let icon = default();
+        Self { display_object, logger, icon }
+    }
+
+    fn update(&self, model: &Self::Model) {
+        // todo: cache icon?
+        let size = Vector2(icon::SIZE, icon::SIZE);
+        let icon = model.create_shape(&self.logger, size);
+        icon.strong_color.set(color::Rgba::black().into());
+        self.display_object.add_child(&icon);
+        *self.icon.borrow_mut() = Some(icon);
+    }
+
+    fn set_max_width(&self, max_width_px: f32) {}
+
+    fn set_label_layer(&self, label_layer: &Layer) {}
+}
+
+#[derive(Debug, Copy, Clone)]
+enum Section {
+    DataScienceTools,
+    LocalScope,
+    Favourites,
+}
+
+impl Default for Section {
+    fn default() -> Self {
+        Section::Favourites
+    }
+}
+
 /// TODO: docs
 #[derive(Debug, Clone, CloneRef)]
 pub struct Navigator {
     display_object: display::object::Instance,
     background:     section_navigator::View,
-    libraries:      Rc<crate::component_group::icon::Any>,
-    marketplace:    Rc<crate::component_group::icon::Any>,
-    data_science:   Rc<crate::component_group::icon::Any>,
-    local_scope:    Rc<crate::component_group::icon::Any>,
-    favourites:     Rc<crate::component_group::icon::Any>,
+    network:        frp::Network,
+    bottom_buttons: list_view::ListView<Icon>,
+    top_buttons:    list_view::ListView<Icon>,
+    chosen_section: frp::Source<Option<Section>>,
 }
+
+const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
+const BOTTOM_BUTTONS: [icon::Id; 3] =
+    [icon::Id::DataScienceTools, icon::Id::LocalScope, icon::Id::Star];
 
 impl Navigator {
     pub fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new(&app.logger);
-        use crate::component_group::icon;
         let background = section_navigator::View::new(&app.logger);
         display_object.add_child(&background);
         // TODO: remove
         app.display.default_scene.layers.below_main.add_exclusive(&background);
+        let top_buttons = app.new_view::<list_view::ListView<Icon>>();
+        let bottom_buttons = app.new_view::<list_view::ListView<Icon>>();
+        top_buttons.set_background_color(HOVER_COLOR);
+        bottom_buttons.set_background_color(HOVER_COLOR);
+        top_buttons.show_background_shadow(false);
+        bottom_buttons.show_background_shadow(false);
+        top_buttons.resize(Vector2(32.0, list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32));
+        bottom_buttons
+            .resize(Vector2(32.0, list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32));
+        display_object.add_child(&top_buttons);
+        display_object.add_child(&bottom_buttons);
+        top_buttons.hide_selection();
+        top_buttons.set_style_prefix(list_panel_theme::navigator::HERE.str);
+        bottom_buttons.set_style_prefix(list_panel_theme::navigator::HERE.str);
 
-        let size = Vector2(icon::SIZE, icon::SIZE);
-        let libraries = icon::Id::Libraries.create_shape(&app.logger, size);
-        let marketplace = icon::Id::Marketplace.create_shape(&app.logger, size);
-        let data_science = icon::Id::DataScienceTools.create_shape(&app.logger, size);
-        let local_scope = icon::Id::LocalScope.create_shape(&app.logger, size);
-        let favourites = icon::Id::Star.create_shape(&app.logger, size);
-        data_science.strong_color.set(color::Rgba::black().into());
-        local_scope.strong_color.set(color::Rgba::black().into());
-        favourites.strong_color.set(color::Rgba::black().into());
+        top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
+        bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
 
-        display_object.add_child(&libraries);
-        display_object.add_child(&marketplace);
-        display_object.add_child(&data_science);
-        display_object.add_child(&local_scope);
-        display_object.add_child(&favourites);
-
-        Self {
-            display_object,
-            background,
-            libraries: Rc::new(libraries),
-            marketplace: Rc::new(marketplace),
-            data_science: Rc::new(data_science),
-            local_scope: Rc::new(local_scope),
-            favourites: Rc::new(favourites),
+        let network = frp::Network::new("ComponentBrowser.Navigator");
+        frp::extend! { network
+            chosen_section <- source();
+            eval bottom_buttons.chosen_entry([chosen_section](id) match id {
+                Some(0) => chosen_section.emit(Some(Section::DataScienceTools)),
+                Some(1) => chosen_section.emit(Some(Section::LocalScope)),
+                Some(2) => chosen_section.emit(Some(Section::Favourites)),
+                _ => {}
+            });
         }
+        bottom_buttons.select_entry(Some(2));
+
+        Self { display_object, background, top_buttons, bottom_buttons, network, chosen_section }
     }
 
     fn update_layout(&self, style: NavigatorStyle) {
-        let top_y = style.height / 2.0;
-        self.libraries.set_position_xy(Vector2(-216.0, top_y));
-        self.marketplace.set_position_xy(Vector2(-216.0, top_y - 30.0));
-        let bottom_y = -style.height / 2.0;
-        self.data_science.set_position_xy(Vector2(-216.0, bottom_y));
-        self.local_scope.set_position_xy(Vector2(-216.0, bottom_y + 30.0));
-        self.favourites.set_position_xy(Vector2(-216.0, bottom_y + 60.0));
+        let top = style.height / 2.0;
+        let bottom = -style.height / 2.0;
+        let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
+        let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
+        self.top_buttons.set_position_xy(Vector2(-216.0, top - top_buttons_height / 2.0));
+        self.bottom_buttons.set_position_xy(Vector2(-216.0, bottom + bottom_buttons_height / 2.0));
     }
 }
 
@@ -614,6 +673,20 @@ impl Model {
         let full_height = favourites_section_height + local_scope_height + sub_modules_height;
         self.scroll_area.set_content_height(full_height);
         self.scroll_area.jump_to_y(full_height);
+    }
+
+    fn show_section(&self, section: Section, style: &Style) {
+        let sub_modules_height = self.sub_modules_section.height(style);
+        let favourites_section_height = self.favourites_section.height(style);
+        let local_scope_height = self.local_scope_section.height(style);
+        use Section::*;
+        let target_y = match section {
+            DataScienceTools => sub_modules_height,
+            LocalScope => sub_modules_height + local_scope_height,
+            Favourites => sub_modules_height + local_scope_height + favourites_section_height,
+        };
+        let target_y = target_y - style.size_inner().y;
+        self.scroll_area.scroll_to_y(target_y);
     }
 }
 
@@ -804,6 +877,11 @@ impl component::Frp<Model> for Frp {
             );
             recompute_layout <- all(&content_update,&layout_update);
             eval recompute_layout(((_,layout)) model.recompute_layout(layout) );
+
+            chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
+            show_section <- all(&chosen_section, &layout_update);
+            eval show_section(((section, layout)) model.show_section(*section, layout));
+            eval model.section_navigator.chosen_section([](section) DEBUG!("Section: {section:?}"));
         }
         init_layout.emit(())
     }

@@ -200,6 +200,19 @@ define_themes! { [light:0, dark:1]
 
                     section_navigator_width = 32.0, 32.0;
 
+                    navigator {
+                        background = Rgba::transparent() , Rgba::transparent();
+                        highlight  = Rgb(0.96,0.85,0.725) , Lcha(1.0,0.0,0.0,0.15); // rgb(245,217,185)
+                        highlight {
+                            height = 24.0, 24.0;
+                            corner_radius = 7.0, 7.0;
+                        }
+                        entry {
+                            padding = 11.0, 11.0;
+                        }
+                        padding = 5.0, 5.0;
+                    }
+
                     favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
 
                     section {

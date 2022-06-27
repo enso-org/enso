@@ -506,7 +506,7 @@ where E::Model: Default
             mouse_pointed_entry <- mouse_y_in_scroll.map(f!([model](y)
                 entry::List::<E>::entry_at_y_position(*y,model.entries.entry_count()).entry()
             ));
-            mouse_selected_entry <- mouse_pointed_entry.sample(&can_select);
+            mouse_selected_entry <- mouse_pointed_entry.sample(&can_select).filter(|e| e.is_some());
 
 
             // === Selected Entry ===
