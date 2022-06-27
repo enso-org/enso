@@ -6,7 +6,6 @@ use std::collections::VecDeque;
 
 use crate::syntax;
 
-use crate::macros::resolver::SyntaxItemOrMacroResolver;
 
 
 // ===============
@@ -77,13 +76,16 @@ impl<'s> Match<'s> {
     }
 }
 
+
+pub type MatchedSegments<'s> = NonEmptyVec<MatchedSegment<'s>>;
+
 #[derive(Clone, Debug)]
-pub struct MatchedSegment2<'s> {
+pub struct MatchedSegment<'s> {
     pub header: syntax::Token<'s>,
     pub result: Match<'s>,
 }
 
-impl<'s> MatchedSegment2<'s> {
+impl<'s> MatchedSegment<'s> {
     pub fn new(header: syntax::Token<'s>, result: Match<'s>) -> Self {
         Self { header, result }
     }

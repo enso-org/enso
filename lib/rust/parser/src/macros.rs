@@ -3,16 +3,12 @@
 //! utilities allowing macros management.
 //! Read the docs of the main module of this crate to learn more about the parsing process.
 
-//
-
 use crate::prelude::*;
 
 use crate::syntax;
 use crate::syntax::token::Token;
 
-use crate::macros::pattern::MatchedSegment2;
 use enso_data_structures::im_list;
-use pattern::Pattern;
 
 
 // ==============
@@ -21,6 +17,8 @@ use pattern::Pattern;
 
 pub mod pattern;
 pub mod resolver;
+
+pub use pattern::Pattern;
 
 
 
@@ -42,14 +40,11 @@ pub mod resolver;
 pub struct Definition<'a> {
     pub segments: im_list::NonEmpty<SegmentDefinition<'a>>,
     #[derivative(Debug = "ignore")]
-    pub body:     Rc<Body>,
+    pub body:     Rc<DefinitionBody>,
 }
 
-/// All the sections of the resolved macro.
-pub type MatchedSegments<'s> = NonEmptyVec<MatchedSegment2<'s>>;
-
 /// A function that transforms matched macro tokens into [`syntax::Tree`].
-pub type Body = dyn for<'s> Fn(MatchedSegments<'s>) -> syntax::Tree<'s>;
+pub type DefinitionBody = dyn for<'s> Fn(pattern::MatchedSegments<'s>) -> syntax::Tree<'s>;
 
 
 
@@ -91,7 +86,7 @@ impl<'a> SegmentDefinition<'a> {
 #[macro_export]
 macro_rules! macro_definition {
     ( ($($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
-        macros::Definition {
+        $crate::macros::Definition {
             segments: im_list::NonEmpty::try_from(vec![
                 $(macros::SegmentDefinition::new($section, $pattern)),*]).unwrap(),
             body: Rc::new($body),

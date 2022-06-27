@@ -105,7 +105,7 @@ use crate::source::VisibleOffset;
 
 use crate::macros::pattern::Match;
 use crate::macros::pattern::MatchResult;
-use crate::macros::pattern::MatchedSegment2;
+use crate::macros::pattern::MatchedSegment;
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use lexer::Lexer;
@@ -135,7 +135,7 @@ pub mod prelude {
 
 
 fn matched_segments_into_multi_segment_app<'s>(
-    matched_segments: NonEmptyVec<MatchedSegment2<'s>>,
+    matched_segments: NonEmptyVec<MatchedSegment<'s>>,
 ) -> syntax::Tree<'s> {
     let segments = matched_segments.mapped(|segment| {
         let header = segment.header;
@@ -187,7 +187,7 @@ fn macro_type_def<'s>() -> macros::Definition<'s> {
     }
 }
 
-fn ttt<'s>(matched_segments: NonEmptyVec<MatchedSegment2<'s>>) -> syntax::Tree<'s> {
+fn ttt<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> syntax::Tree<'s> {
     let header = matched_segments.first().header.clone();
     println!(">>>");
     println!("{:#?}", matched_segments);
