@@ -4,7 +4,7 @@ pub mod bincode;
 mod from_generic;
 pub mod graphviz;
 pub mod implementation;
-mod syntax;
+pub mod syntax;
 pub mod transform;
 
 pub use from_generic::from_generic;
@@ -16,28 +16,28 @@ use std::collections::BTreeMap;
 // === Datatype Types ===
 // ======================
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeId(usize);
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FieldId(u32);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Class {
-    name:          String,
-    params:        Vec<TypeId>,
-    parent:        Option<TypeId>,
-    abstract_:     bool,
+    pub name:      String,
+    pub params:    Vec<TypeId>,
+    pub parent:    Option<TypeId>,
+    pub abstract_: bool,
+    pub sealed:    bool,
+    pub fields:    Vec<Field>,
+    pub methods:   Vec<Method>,
     builtin:       bool,
-    sealed:        bool,
-    fields:        Vec<Field>,
-    methods:       Vec<Method>,
     // Attributes
     discriminants: BTreeMap<usize, TypeId>,
 }
 
 impl Class {
-    fn builtin(graph: &TypeGraph, name: &str, fields: impl IntoIterator<Item = TypeId>) -> Self {
+    pub fn builtin(graph: &TypeGraph, name: &str, fields: impl IntoIterator<Item = TypeId>) -> Self {
         let params: Vec<_> = fields.into_iter().collect();
         let name = name.to_owned();
         let parent = None;
@@ -54,20 +54,25 @@ impl Class {
         let sealed = Default::default();
         Class { name, params, parent, abstract_, builtin, sealed, fields, methods, discriminants }
     }
+
+    pub fn find_field(&self, name: &str) -> Option<&Field> {
+        self.fields.iter().find(|field| &field.name == name)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum Method {
+pub enum Method {
     Dynamic(Dynamic),
     Raw(syntax::Method),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum Dynamic {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Dynamic {
     Constructor,
     HashCode,
     Equals,
     ToString,
+    Getter(FieldId),
 }
 
 impl From<Dynamic> for Method {
@@ -90,11 +95,11 @@ fn standard_methods() -> Vec<Method> {
 }
 
 /// Definition of a field.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Field {
-    name: String,
-    data: FieldData,
-    id:   FieldId,
+    pub name: String,
+    pub data: FieldData,
+    pub id:   FieldId,
 }
 
 impl Field {
@@ -104,7 +109,7 @@ impl Field {
 }
 
 /// Typeinfo for a field.
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, PartialOrd, Ord, Hash)]
 pub enum FieldData {
     Object { type_: TypeId, nonnull: bool },
     Primitive(Primitive),
@@ -120,7 +125,7 @@ impl FieldData {
 }
 
 /// An unboxed type; i.e. a type that is not a subtype of `java.lang.Object`.
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, PartialOrd, Ord, Hash)]
 pub enum Primitive {
     /// Java's `boolean`
     Bool,
@@ -128,6 +133,29 @@ pub enum Primitive {
     Int { unsigned: bool },
     /// Java's `long`
     Long { unsigned: bool },
+}
+
+
+
+// =========================
+// === Datatype Builders ===
+// =========================
+
+
+// === Field ===
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FieldBuilder {
+    name: String,
+    data: FieldData,
+}
+
+impl FieldBuilder {
+    pub fn object(name: impl Into<String>, type_: TypeId, nonnull: bool) -> Self {
+        let name = name.into();
+        let data = FieldData::Object { type_, nonnull };
+        Self { name, data }
+    }
 }
 
 
@@ -179,7 +207,7 @@ impl TypeGraph {
         self.types[id.0] = Some(value);
     }
 
-    fn insert(&mut self, value: Class) -> TypeId {
+    pub fn insert(&mut self, value: Class) -> TypeId {
         let id = TypeId(self.types.len());
         self.types.push(Some(value));
         id
@@ -193,11 +221,18 @@ impl TypeGraph {
         self.types[i].as_ref()
     }
 
-    pub fn field(&self, name: String, data: FieldData) -> Field {
+    fn field(&self, name: String, data: FieldData) -> Field {
         let id = self.next_field.get();
         self.next_field.set(id + 1);
         let id = FieldId(id);
         Field { name, data, id }
+    }
+
+    pub fn add_field(&mut self, id: TypeId, field: FieldBuilder) -> FieldId {
+        let field = self.field(field.name, field.data);
+        let field_id = field.id;
+        self[id].fields.push(field);
+        field_id
     }
 
     pub fn implement(&self) -> Vec<syntax::Class> {

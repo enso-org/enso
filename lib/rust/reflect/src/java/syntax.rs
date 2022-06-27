@@ -1,4 +1,4 @@
-use std::fmt::Formatter;
+use std::fmt;
 
 const TARGET_VERSION: usize = 14;
 //const TARGET_VERSION: usize = 15;
@@ -31,8 +31,8 @@ pub struct Type {
 }
 
 impl Type {
-    pub fn named(name: &str) -> Self {
-        let class = name.to_string();
+    pub fn named(name: impl Into<String>) -> Self {
+        let class = name.into();
         let params = vec![];
         Type { class, params }
     }
@@ -45,119 +45,39 @@ pub struct Method {
     pub return_:   Option<Type>,
     pub static_:   bool,
     pub final_:    bool,
-    pub body:      Body,
+    pub body:      String,
     pub override_: bool,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Body {
-    Verbatim(Vec<String>),
-    //Block(Block),
+    pub throws:    Vec<Type>,
 }
 
 impl Method {
-    pub fn new(name: String, return_: Type) -> Self {
+    pub fn new(name: impl Into<String>, return_: Type) -> Self {
+        let name = name.into();
         let return_ = Some(return_);
         let arguments = Default::default();
         let static_ = Default::default();
         let final_ = Default::default();
-        let body = Body::Verbatim(Default::default());
+        let body = Default::default();
         let override_ = Default::default();
-        Method { name, arguments, return_, static_, final_, body, override_ }
+        let throws = Default::default();
+        Method { name, arguments, return_, static_, final_, body, override_, throws }
     }
 
-    pub fn constructor(name: String) -> Self {
+    pub fn constructor(name: impl Into<String>) -> Self {
+        let name = name.into();
         let arguments = Default::default();
         let return_ = Default::default();
         let static_ = Default::default();
         let final_ = Default::default();
-        let body = Body::Verbatim(Default::default());
+        let body = Default::default();
         let override_ = Default::default();
-        Method { name, arguments, return_, static_, final_, body, override_ }
+        let throws = Default::default();
+        Method { name, arguments, return_, static_, final_, body, override_, throws }
     }
 }
 
-/*
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Block {
-    statements: Vec<Statement>,
-}
-
-impl std::fmt::Display for Block {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        for statement in &self.statements {
-            write!(f, "{}", statement)?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Statement {
-    Bind { type_: String, name: String, value: Expr },
-    Assign { location: Location, value: Expr },
-    Expr(Expr),
-    If { condition: Expr, if_: Block, else_: Option<Block> },
-    Return(Expr),
-}
-
-impl std::fmt::Display for Statement {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Statement::Bind { type_, name, value } => writeln!(f, "{} {} = {};", type_, name, value),
-            Statement::Assign { location, value } => writeln!(f, "{} = {};", location, value),
-            Statement::Expr(expr) => writeln!(f, "{};", expr),
-            Statement::If { condition, if_, else_ } => {
-                writeln!(f, "if ({}) {{", condition)?;
-                writeln!(f, "{}", if_)?;
-                write!(f, "}}")?;
-                if let Some(else_) = else_ {
-                    writeln!(f, " else {{")?;
-                    writeln!(f, "{}", else_)?;
-                    writeln!(f, "}}")?;
-                } else {
-                    writeln!(f)?;
-                }
-                Ok(())
-            }
-            Statement::Return(expr) => writeln!(f, "return {};", expr),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Expr {
-    Apply(Location, Vec<Expr>),
-    Value(Location),
-}
-
-impl std::fmt::Display for Expr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Expr::Apply(fun, args) => {
-                let args: Vec<_> = args.into_iter().map(|arg| arg.to_string()).collect();
-                let args = args.join(", ");
-                write!(f, "{}({})", fun, args)
-            },
-            Expr::Value(value) => write!(f, "{}", value),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Location {
-    components: Vec<String>,
-}
-
-impl std::fmt::Display for Location {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.components.join("."))
-    }
-}
- */
-
-impl std::fmt::Display for Class {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Class {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Class {
             package,
             name,
@@ -209,8 +129,8 @@ impl std::fmt::Display for Class {
     }
 }
 
-impl std::fmt::Display for Field {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Field {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Field { type_, name, final_ } = &self;
         let mut tokens = vec!["protected".to_string()];
         final_.then(|| tokens.push("final".to_string()));
@@ -221,8 +141,8 @@ impl std::fmt::Display for Field {
     }
 }
 
-impl std::fmt::Display for Type {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", &self.class)?;
         if !self.params.is_empty() {
             write!(f, "<{}>", self.params.join(", "))?;
@@ -231,9 +151,9 @@ impl std::fmt::Display for Type {
     }
 }
 
-impl std::fmt::Display for Method {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let Method { name, arguments, return_, static_, final_, body, override_ } = &self;
+impl fmt::Display for Method {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Method { name, arguments, return_, static_, final_, body, override_, throws } = &self;
         let mut tokens = vec![];
         override_.then(|| tokens.push("@Override".to_string()));
         tokens.push("public".to_string());
@@ -247,13 +167,14 @@ impl std::fmt::Display for Method {
         let arguments: Vec<_> =
             arguments.iter().map(|(ty, name)| format!("{} {}", ty, name)).collect();
         let arguments = arguments.join(", ");
-        writeln!(f, "{}({}) {{", tokens, arguments)?;
-        match body {
-            Body::Verbatim(body) =>
-                for statement in body {
-                    writeln!(f, "{}", statement)?;
-                }, // Body::Block(block) => { writeln!(f, "{}", block)?; }
+        writeln!(f, "{}({})", tokens, arguments)?;
+        if !throws.is_empty() {
+            let types: Vec<_> = throws.iter().map(|ty| ty.to_string()).collect();
+            let types = types.join(", ");
+            writeln!(f, "throws {types}")?;
         }
+        writeln!(f, "{{")?;
+        writeln!(f, "{body}")?;
         writeln!(f, "}}")?;
         Ok(())
     }

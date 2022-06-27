@@ -1,4 +1,4 @@
-use super::*;
+use crate::rust::*;
 use crate::generic;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -10,12 +10,11 @@ use std::mem::take;
 // === Rust to Generic ===
 // =======================
 
-pub fn to_generic(ty: TypeData) -> (generic::TypeId, generic::TypeGraph) {
+pub fn to_generic(ty: TypeData) -> (generic::TypeGraph, BTreeMap<TypeId, generic::TypeId>) {
     let mut to_generic = ToGeneric::new();
-    let root_generic_id = to_generic.run(ty);
-    let roots = vec![root_generic_id];
-    to_generic.generic_graph.gc(roots);
-    (root_generic_id, to_generic.generic_graph)
+    let root_ = to_generic.run(ty);
+    to_generic.generic_graph.gc(vec![root_]);
+    (to_generic.generic_graph, to_generic.generic_of_rust)
 }
 
 #[derive(Debug, Default)]

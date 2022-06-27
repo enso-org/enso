@@ -1,6 +1,6 @@
 use crate::generic;
 use crate::java::*;
-use std::collections::BTreeSet;
+
 
 
 // =========================
@@ -9,9 +9,9 @@ use std::collections::BTreeSet;
 
 /// Lower a data model in the generic representation to a data model in the Java typesystem.
 pub fn from_generic(graph: &generic::TypeGraph) -> (TypeGraph, BTreeMap<generic::TypeId, TypeId>) {
-    let mut primitives = BTreeMap::new();
+    let primitives = Default::default();
     let mut java = TypeGraph::default();
-    let mut generic_to_java: BTreeMap<_, _> =
+    let generic_to_java: BTreeMap<_, _> =
         graph.type_ids().map(|id| (id, java.reserve_type_id())).collect();
     let mut from_generic = FromGeneric { java, generic_to_java, primitives };
     // Translate primitives first, because in Java we need to know whether a type is primitive when
@@ -27,27 +27,14 @@ pub fn from_generic(graph: &generic::TypeGraph) -> (TypeGraph, BTreeMap<generic:
         }
     }
     // Translate structs.
-    let mut getters_wanted = vec![];
     for (&id_, &id) in &from_generic.generic_to_java {
         let ty = &graph[id_];
         let fields_ = match &ty.data {
             generic::Data::Primitive(_) => continue,
             generic::Data::Struct(fields_) => fields_,
         };
-        let (class, getters) = from_generic.class(ty, fields_);
-        getters_wanted.push((id, getters));
+        let class = from_generic.class(ty, fields_);
         from_generic.java.set(id, class);
-    }
-    // Generate getters. We do this after translating structs because we need field type info.
-    for (id, mut fields) in getters_wanted {
-        let mut methods = vec![];
-        for field in &from_generic.java[id].fields {
-            if fields.remove(&field.id()) {
-                methods.push(implementation::getter(&from_generic.java, &field));
-            }
-        }
-        assert!(fields.is_empty());
-        from_generic.java[id].methods.extend(methods.into_iter().map(Method::Raw))
     }
     let FromGeneric { java, generic_to_java, .. } = from_generic;
     (java, generic_to_java)
@@ -88,7 +75,7 @@ impl FromGeneric {
         &self,
         ty: &generic::Type,
         fields_: impl IntoIterator<Item = &'f generic::Field>,
-    ) -> (Class, BTreeSet<FieldId>) {
+    ) -> Class {
         let name = ty.name.to_pascal_case();
         let abstract_ = ty.abstract_;
         let sealed = ty.closed;
@@ -98,12 +85,19 @@ impl FromGeneric {
             true => abstract_methods(),
             false => standard_methods(),
         };
-        let mut getters = BTreeSet::new();
-        let fields = fields_.into_iter().map(|field| self.field(field, &mut getters)).collect();
+        let fields_ = fields_.into_iter();
+        let mut fields = Vec::with_capacity(fields_.size_hint().0);
+        for field in fields_ {
+            let (field, getter) = self.field(field);
+            if getter {
+                methods.push(Method::Dynamic(Dynamic::Getter(field.id)));
+            }
+            fields.push(field);
+        }
         let params = vec![];
         let discriminants =
             ty.discriminants.iter().map(|(key, id)| (*key, self.generic_to_java[id])).collect();
-        let class = Class {
+        Class {
             name,
             params,
             parent,
@@ -113,11 +107,10 @@ impl FromGeneric {
             fields,
             methods,
             discriminants,
-        };
-        (class, getters)
+        }
     }
 
-    fn field(&self, field: &generic::Field, getters: &mut BTreeSet<FieldId>) -> Field {
+    fn field(&self, field: &generic::Field) -> (Field, bool) {
         let generic::Field { name, type_, hide, .. } = field;
         let name = name.clone();
         let data = if let Some(primitive) = self.primitives.get(&type_) {
@@ -128,9 +121,6 @@ impl FromGeneric {
         };
         let name = name.to_camel_case().expect("Unimplemented: Tuples.");
         let field = self.java.field(name, data);
-        if !hide {
-            getters.insert(field.id());
-        }
-        field
+        (field, !*hide)
     }
 }

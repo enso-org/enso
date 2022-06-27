@@ -108,6 +108,7 @@ fn implement_method(graph: &TypeGraph, method: &Dynamic, class: &Class) -> synta
         Dynamic::HashCode => implement_hash_code(graph, class),
         Dynamic::Equals => implement_equals(graph, class),
         Dynamic::ToString => implement_to_string(graph, class),
+        Dynamic::Getter(field) => implement_getter(graph, class, *field),
     }
 }
 
@@ -133,7 +134,7 @@ fn implement_constructor(graph: &TypeGraph, class: &Class) -> syntax::Method {
     body.extend(own_field_initializers);
     let mut method = syntax::Method::constructor(class.name.clone());
     method.arguments = arguments;
-    method.body = syntax::Body::Verbatim(body);
+    method.body = body.join("\n");
     method
 }
 
@@ -144,9 +145,9 @@ fn implement_hash_code(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let body = format!("return java.util.Objects.hash({});", fields);
     let return_ = FieldData::Primitive(Primitive::Int { unsigned: false });
     let return_ = quote_type(graph, &return_);
-    let mut method = syntax::Method::new("hashCode".to_string(), return_);
+    let mut method = syntax::Method::new("hashCode", return_);
     method.override_ = true;
-    method.body = syntax::Body::Verbatim(vec![body]);
+    method.body = body;
     method
 }
 
@@ -167,10 +168,10 @@ fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
     ];
     let return_ = FieldData::Primitive(Primitive::Bool);
     let return_ = quote_type(graph, &return_);
-    let mut method = syntax::Method::new("equals".to_string(), return_);
+    let mut method = syntax::Method::new("equals", return_);
     method.override_ = true;
     method.arguments = vec![(syntax::Type::named("Object"), object.to_string())];
-    method.body = syntax::Body::Verbatim(body);
+    method.body = body.join("\n");
     method
 }
 
@@ -193,16 +194,21 @@ fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     body.push(format!("{}.append(\"]\");", sb));
     body.push(format!("return {}.toString();", sb));
     let return_ = syntax::Type::named("String");
-    let mut method = syntax::Method::new("toString".to_string(), return_);
+    let mut method = syntax::Method::new("toString", return_);
     method.override_ = true;
-    method.body = syntax::Body::Verbatim(body);
+    method.body = body.join("\n");
     method
 }
 
-pub fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
+fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId) -> syntax::Method {
+    let field = class.fields.iter().find(|field| field.id == id).unwrap();
+    getter(graph, field)
+}
+
+fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
     let type_ = quote_type(graph, &field.data);
     let mut method = syntax::Method::new(field.name.clone(), type_);
-    method.body = syntax::Body::Verbatim(vec![format!("return {};", &field.name)]);
+    method.body = format!("return {};", &field.name);
     method
 }
 
@@ -215,7 +221,7 @@ fn implement_class(graph: &TypeGraph, id: TypeId) -> syntax::Class {
     let parent = class.parent.map(|id| quote_class_type(graph, id));
     let fields = class.fields.iter().map(|field| quote_field(graph, field)).collect();
     let nested = vec![];
-    let mut methods = class.methods.iter().map(|m| method(graph, m, class)).collect();
+    let methods = class.methods.iter().map(|m| method(graph, m, class)).collect();
     let package = Default::default();
     let sealed = class.sealed.then(|| Default::default());
     syntax::Class {

@@ -36,8 +36,8 @@ fn flatten_(
             flatten_(graph, to_flatten, unchecked, id);
         }
     }
-    let outer_fields = match &graph[outer].data {
-        Data::Struct(fields) => fields,
+    let outer_fields = match &mut graph[outer].data {
+        Data::Struct(ref mut fields) => std::mem::take(fields),
         _ => unreachable!(),
     };
     let mut flattened = Vec::with_capacity(outer_fields.len());
@@ -58,7 +58,7 @@ fn flatten_(
                 flat
             }));
         } else {
-            flattened.push(field.clone());
+            flattened.push(field);
         }
     }
     match &mut graph[outer].data {

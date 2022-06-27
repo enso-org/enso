@@ -11,7 +11,7 @@ use std::collections::BTreeSet;
 // ======================
 
 /// A datatype.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Type {
     // data
     pub name:            TypeName,
@@ -52,7 +52,7 @@ impl Type {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Data {
     Struct(Vec<Field>),
     Primitive(Primitive),
@@ -71,7 +71,7 @@ pub enum Primitive {
     Result(TypeId, TypeId),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Field {
     pub name:  FieldName,
     pub type_: TypeId,
