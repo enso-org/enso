@@ -126,9 +126,11 @@ fn implement_constructor(graph: &TypeGraph, class: &Class) -> syntax::Method {
             .collect();
         body.push(format!("super({});", fields.join(", ")));
     }
-    // TODO?
-    //   - could do: java.util.Objects.requireNonNull, but if we only construct by deserialize,
-    //     correct-by-construction probably OK
+    for field in &class.fields {
+        if let FieldData::Object { nonnull: true, .. } = &field.data {
+            body.push(format!("java.util.Objects.requireNonNull({}{});", &field.name, &suffix));
+        }
+    }
     let own_field_initializers =
         class.fields.iter().map(|field| format!("{} = {}{};", &field.name, &field.name, &suffix));
     body.extend(own_field_initializers);

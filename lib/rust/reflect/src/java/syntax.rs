@@ -3,6 +3,12 @@ use std::fmt;
 const TARGET_VERSION: usize = 14;
 //const TARGET_VERSION: usize = 15;
 
+
+
+// ===================
+// === Syntax Data ===
+// ===================
+
 #[derive(Debug)]
 pub struct Class {
     pub package:   Option<String>,
@@ -50,6 +56,9 @@ pub struct Method {
     pub throws:    Vec<Type>,
 }
 
+
+// === Constructors ===
+
 impl Method {
     pub fn new(name: impl Into<String>, return_: Type) -> Self {
         let name = name.into();
@@ -75,6 +84,12 @@ impl Method {
         Method { name, arguments, return_, static_, final_, body, override_, throws }
     }
 }
+
+
+
+// =========================
+// === Rendering to Text ===
+// =========================
 
 impl fmt::Display for Class {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -2,6 +2,12 @@
 
 use super::*;
 
+
+
+// ========================
+// === Optional to Null ===
+// ========================
+
 /// Rewrite the typegraph to eliminate `Optional` and instead allow some fields to be `null`.
 ///
 /// `TypeId` validity:
