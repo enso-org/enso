@@ -189,7 +189,14 @@ public class ExcelReader {
     EXCEL_COLUMN_NAMES
   }
 
-  private static Workbook getWorkbook(InputStream stream, boolean xls_format) throws IOException {
+  /**
+   * Load a workbook into memory from an InputStream.
+   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a {@link Workbook} containing the specified data.
+   * @throws IOException
+   */
+  public static Workbook getWorkbook(InputStream stream, boolean xls_format) throws IOException {
     return xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
   }
 

@@ -194,5 +194,12 @@ type Excel
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
-    write_table _ _ _ _ _ =
-        Errors.unimplemented "`Table.write` for the `Excel` format is not implemented yet."
+    write_table file table on_existing_file _ on_problems =
+        format = if self.xls_format != Infer then self.xls_format else
+            extension = file.extension
+            (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
+
+        case self.section of
+            Sheet_Names -> Error.throw (Illegal_Argument_Error "Sheet_Names cannot be used for `write`.")
+            Range_Names -> Error.throw (Illegal_Argument_Error "Range_Names cannot be used for `write`.")
+            _ -> Excel_Module.write_excel file table on_existing_file self.section self.headers on_problems format

@@ -7,6 +7,7 @@ from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Out
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 polyglot java import org.enso.table.read.ExcelReader
+polyglot java import org.enso.table.write.ExcelWriter
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
@@ -188,13 +189,49 @@ read_excel file section headers on_problems xls_format=False =
     bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
     handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
 
-    bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
-    handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
-
-    File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
+    File.handle_java_exceptions file <| here.handle_bad_argument <| handle_bad_format <|
         file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
 
+write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Problem_Behavior -> Boolean
+write_excel file table on_existing_file section headers on_problems xls_format=False =
+    current_workbook = if output_file.exists.not then ExcelWriter.createWorkbook xls_format else
+        File.handle_java_exceptions file <| here.handle_bad_argument <|
+            file.with_input_stream [File.Option.Read] stream-> <|
+                ExcelReader.getWorkbook stream xls_format
+
+    replace = on_existing_file == Existing_File_Behavior.Overwrite || on_existing_file == Existing_File_Behavior.Backup
+
+    ## Update the workbook
+    case section of
+        Sheet sheet skip_rows row_limit ->
+            here.prepare_reader_table on_problems <| case sheet of
+                Integer -> ExcelReader.writeTableToSheetByIndex workbook sheet replace False skip_rows table row_limit
+                Text -> ExcelReader.writeTableToSheetByName workbook sheet replace False skip_rows table row_limit
+        _ -> Errors.unimplemented "Not implemented yet."
+
+    ## For Excel, the behaviour for existing files is custom
+    output_file = case on_existing_file of
+        Existing_File_Behavior.Append ->
+            Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet."
+        Existing_File_Behavior.Backup -> if file.exists then copy_existing_file_to_new file else file
+        _ -> file
+
+
+## Copy to new file
+copy_existing_file_to_new : File
+copy_existing_file_to_new file =
+    parent = file.parent
+    go i =
+        new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text
+        new_file = parent / new_name
+        if new_file.exists then go (i+1) else new_file
+
+    copy_file = go 0
+    file.copy_to copy_file
+    copy_file
+
 ## PRIVATE
+prepare_reader_table : Problem_Behavior -> Any -> Table
 prepare_reader_table on_problems result_with_problems =
     map_problem java_problem =
         if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames) else
@@ -210,3 +247,8 @@ make_java_headers headers = case headers of
         True -> ExcelReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> ExcelReader.HeaderBehavior.INFER
         False -> ExcelReader.HeaderBehavior.EXCEL_COLUMN_NAMES
+
+## PRIVATE
+handle_bad_format ~action =
+    bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
+    Panic.catch UnsupportedFileFormatException handler=bad_format action
