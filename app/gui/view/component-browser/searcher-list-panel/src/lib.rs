@@ -463,7 +463,7 @@ impl list_view::Entry for Icon {
 
 #[derive(Debug, Copy, Clone)]
 enum Section {
-    DataScienceTools,
+    SubModules,
     LocalScope,
     Favourites,
 }
@@ -486,8 +486,7 @@ pub struct Navigator {
 }
 
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
-const BOTTOM_BUTTONS: [icon::Id; 3] =
-    [icon::Id::DataScienceTools, icon::Id::LocalScope, icon::Id::Star];
+const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::LocalScope, icon::Id::Star];
 
 impl Navigator {
     pub fn new(app: &Application) -> Self {
@@ -518,7 +517,7 @@ impl Navigator {
         frp::extend! { network
             chosen_section <- source();
             eval bottom_buttons.chosen_entry([chosen_section](id) match id {
-                Some(0) => chosen_section.emit(Some(Section::DataScienceTools)),
+                Some(0) => chosen_section.emit(Some(Section::SubModules)),
                 Some(1) => chosen_section.emit(Some(Section::LocalScope)),
                 Some(2) => chosen_section.emit(Some(Section::Favourites)),
                 _ => {}
@@ -681,7 +680,7 @@ impl Model {
         let local_scope_height = self.local_scope_section.height(style);
         use Section::*;
         let target_y = match section {
-            DataScienceTools => sub_modules_height,
+            SubModules => sub_modules_height,
             LocalScope => sub_modules_height + local_scope_height,
             Favourites => sub_modules_height + local_scope_height + favourites_section_height,
         };
@@ -881,7 +880,6 @@ impl component::Frp<Model> for Frp {
             chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
             show_section <- all(&chosen_section, &layout_update);
             eval show_section(((section, layout)) model.show_section(*section, layout));
-            eval model.section_navigator.chosen_section([](section) DEBUG!("Section: {section:?}"));
         }
         init_layout.emit(())
     }

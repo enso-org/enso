@@ -105,28 +105,30 @@ crate::define_icons! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let dot = Circle(2.0.px()).fill(strong_color.clone());
-                let outer = (Circle(6.5.px()) - Circle(5.5.px())).fill(strong_color);
+                let dot = Circle(2.0.px());
+                let outer = (Circle(6.5.px()) - Circle(5.5.px()));
                 let shape = dot + outer;
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
         }
     }
 
-    /// Data science tools section button. Three rectangles placed behind each other with
+    /// Sub-modules section button. Three rectangles placed behind each other with
     /// perspective.
-    pub mod data_science_tools(DataScienceTools) {
+    pub mod sub_modules(SubModules) {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let top = Rect((10.0.px(), 1.4.px()));
-                let top = top.corners_radius(0.5.px()).translate_y(4.75.px());
-                let middle = Rect((12.8.px(), 1.9.px()));
-                let middle = middle.corners_radius(0.5.px()).translate_y(2.4.px());
-                let bottom = Rect((16.0.px(), 6.2.px()));
-                let bottom = bottom.corners_radius(1.0.px()).translate_y(-2.4.px());
+                let corners_radius = 1.5;
+                let top = Rect((10.0.px(), 1.5.px()));
+                let top = top.corners_radius(corners_radius.px()).translate_y(5.25.px());
+                let middle = Rect((13.0.px(), 2.0.px()));
+                let middle = middle.corners_radius(corners_radius.px()).translate_y(2.5.px());
+                let bottom = Rect((16.0.px(), 6.5.px()));
+                let bottom = bottom.corners_radius(corners_radius.px()).translate_y(-2.75.px());
                 let shape = top + middle + bottom;
                 let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
