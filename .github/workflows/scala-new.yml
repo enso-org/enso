@@ -100,7 +100,7 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
       - run: "./run --help"
