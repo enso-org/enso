@@ -954,6 +954,16 @@ impl Node {
                 &position,&new_size,&visualization_enabled_and_visible,visualization_size);
             out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
 
+            pos_count <- position.count();
+            trace pos_count;
+            bbox_count <- bbox_input.count();
+            bbox_with_count <- bbox_count.map2(&out.bounding_box, |n,b| (*n, *b));
+            // first_bbox_update <- bbox_with_count.filter_map(|n,b| (n==1).then(b));
+            // first_bbox_update <- bbox_with_count.filter_map(|(n,b)| (*n<=2).then(*b));
+            first_bbox_update <- bbox_with_count.filter_map(|(n,b)| if *n<=2 { Some((*n,*b)) } else { None });
+            trace first_bbox_update;
+
+
 
             // === VCS Handling ===
 
