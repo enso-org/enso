@@ -182,8 +182,8 @@ fn deserialize_abstract(graph: &TypeGraph, id: TypeId) -> syntax::Method {
         body.push(format!("case {}:", key));
         body.push(format!("return {}.deserialize({});", quote_class_type(graph, *id), message));
     }
-    // TODO
-    body.push(format!("default: return null; }}"));
+    let err = "Unknown discriminant.";
+    body.push(format!("default: throw new utils.IncompatibleFormatException({:?}); }}", err));
     let mut method = syntax::Method::new("deserialize", quote_class_type(graph, id));
     method.static_ = true;
     method.body = body.join("\n");

@@ -4,6 +4,12 @@ use crate::graphviz::Graph;
 use crate::graphviz::Node;
 use crate::graphviz::NodeType;
 
+
+
+// =========================
+// === Graphviz Graphing ===
+// =========================
+
 /// Produce a graphviz graph of the datatypes.
 pub fn graph(typegraph: &TypeGraph) -> Graph {
     let mut graph = Graph::default();
