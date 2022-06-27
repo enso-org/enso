@@ -176,6 +176,7 @@ impl<'s> TryAsRef<syntax::Item<'s>> for SyntaxItemOrMacroResolver<'s> {
 }
 
 
+
 // ======================
 // === MacroMatchTree ===
 // ======================
@@ -284,11 +285,11 @@ pub struct Resolver<'s> {
 }
 
 /// Result of the macro resolution step.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ResolverStep {
-    NormalToken,
+#[derive(Clone, Debug)]
+enum ResolverStep<'s> {
     NewSegmentStarted,
-    MacroStackPop,
+    NormalToken(syntax::Item<'s>),
+    MacroStackPop(syntax::Item<'s>),
 }
 
 impl<'s> Resolver<'s> {
@@ -301,14 +302,14 @@ impl<'s> Resolver<'s> {
     fn run(
         mut self,
         root_macro_map: &MacroMatchTree<'s>,
-        tokens: std::iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>,
-    ) -> (syntax::Tree<'s>, std::iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>) {
+        tokens: iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>,
+    ) -> (syntax::Tree<'s>, iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>) {
         let mut tokens = tokens.into_iter();
-        let mut opt_token: Option<syntax::Item<'s>>;
+        let mut opt_item: Option<syntax::Item<'s>>;
         macro_rules! next_token {
             () => {{
-                opt_token = tokens.next();
-                if let Some(token) = opt_token.as_ref() {
+                opt_item = tokens.next();
+                if let Some(token) = opt_item.as_ref() {
                     event!(TRACE, "New token {:#?}", token);
                 }
             }};
@@ -320,26 +321,22 @@ impl<'s> Resolver<'s> {
             };
         }
         next_token!();
-        while let Some(token) = opt_token {
-            if token.is_variant(syntax::token::variant::VariantMarker::Newline) {
-                break;
-            }
-            let step_result = match &token {
-                // FIXME: clone?
-                syntax::Item::Token(token) => self.process_token(root_macro_map, token.clone()),
-                _ => ResolverStep::NormalToken,
+        while let Some(token) = opt_item && !token.is_newline() {
+            let step_result = match token {
+                syntax::Item::Token(token) => self.process_token(root_macro_map, token),
+                _ => ResolverStep::NormalToken(token),
             };
             match step_result {
-                ResolverStep::MacroStackPop => {
+                ResolverStep::MacroStackPop(item) => {
                     trace_state!();
-                    opt_token = Some(token)
+                    opt_item = Some(item)
                 }
                 ResolverStep::NewSegmentStarted => {
                     trace_state!();
                     next_token!()
                 }
-                ResolverStep::NormalToken => {
-                    self.current_macro.current_segment.body.push(token.into());
+                ResolverStep::NormalToken(item) => {
+                    self.current_macro.current_segment.body.push(item.into());
                     trace_state!();
                     next_token!();
                 }
@@ -421,7 +418,7 @@ impl<'s> Resolver<'s> {
         &mut self,
         root_macro_map: &MacroMatchTree<'s>,
         token: Token<'s>,
-    ) -> ResolverStep {
+    ) -> ResolverStep<'s> {
         let repr = &**token.code;
         if let Some(subsegments) = self.current_macro.possible_next_segments.get(repr) {
             event!(TRACE, "Entering next segment of the current macro.");
@@ -435,7 +432,7 @@ impl<'s> Resolver<'s> {
         } else if let Some(parent_macro) = self.pop_macro_stack_if_reserved(repr) {
             event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
             self.replace_current_with_parent_macro(parent_macro);
-            ResolverStep::MacroStackPop
+            ResolverStep::MacroStackPop(token.into())
         } else if let Some(segments) = root_macro_map.get(repr) {
             event!(TRACE, "Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
@@ -450,7 +447,7 @@ impl<'s> Resolver<'s> {
             ResolverStep::NewSegmentStarted
         } else {
             event!(TRACE, "Consuming token as current segment body.");
-            ResolverStep::NormalToken
+            ResolverStep::NormalToken(token.into())
         }
     }
 
