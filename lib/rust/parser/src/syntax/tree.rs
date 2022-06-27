@@ -64,9 +64,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub error: Error,
             pub ast: Tree<'s>,
         },
-        // Module {
-        //     pub statements: Vec<Tree<'s>>,
-        // },
+        Module {
+            pub statements: Vec<Tree<'s>>,
+        },
         /// A simple identifier, like `foo` or `bar`.
         Ident {
             pub token: token::Ident<'s>,
@@ -164,10 +164,9 @@ impl<'s> Tree<'s> {
     }
 }
 
-impl<S> span::Build<S> for Error {
-    type Output = S;
-    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
-        builder.span
+impl<'s> span::Builder<'s> for Error {
+    fn add_to_span(&mut self, span: span::Span<'s>) -> Span<'s> {
+        span
     }
 }
 
@@ -184,12 +183,9 @@ pub struct MultipleOperatorError<'s> {
     pub operators: NonEmptyVec<token::Operator<'s>>,
 }
 
-impl<'s, S> span::Build<S> for MultipleOperatorError<'s>
-where NonEmptyVec<token::Operator<'s>>: span::Build<S>
-{
-    type Output = <NonEmptyVec<token::Operator<'s>> as span::Build<S>>::Output;
-    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
-        self.operators.build(builder)
+impl<'s> span::Builder<'s> for MultipleOperatorError<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        self.operators.add_to_span(span)
     }
 }
 
@@ -204,12 +200,9 @@ pub struct MultiSegmentAppSegment<'s> {
     pub body:   Option<Tree<'s>>,
 }
 
-impl<'s, S> span::Build<S> for MultiSegmentAppSegment<'s>
-where Token<'s>: span::Build<S, Output = Span<'s>>
-{
-    type Output = Span<'s>;
-    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
-        builder.add(&mut self.header).add(&mut self.body).span
+impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.header).add(&mut self.body)
     }
 }
 

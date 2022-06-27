@@ -301,13 +301,13 @@ impl<'s> Resolver<'s> {
     fn run(
         mut self,
         root_macro_map: &MacroMatchTree<'s>,
-        tokens: std::vec::IntoIter<syntax::Item<'s>>,
-    ) -> (syntax::Tree<'s>, std::vec::IntoIter<syntax::Item<'s>>) {
-        let mut stream = tokens.into_iter();
+        tokens: std::iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>,
+    ) -> (syntax::Tree<'s>, std::iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>) {
+        let mut tokens = tokens.into_iter();
         let mut opt_token: Option<syntax::Item<'s>>;
         macro_rules! next_token {
             () => {{
-                opt_token = stream.next();
+                opt_token = tokens.next();
                 if let Some(token) = opt_token.as_ref() {
                     event!(TRACE, "New token {:#?}", token);
                 }
@@ -359,7 +359,7 @@ impl<'s> Resolver<'s> {
         if !rest.is_empty() {
             panic!("Internal error.");
         }
-        (tree, stream)
+        (tree, tokens)
     }
 
     fn replace_current_with_parent_macro(&mut self, mut parent_macro: MacroResolver<'s>) {
@@ -716,6 +716,7 @@ fn macro_type_def<'s>() -> macros::Definition<'s> {
         >> (Identifier / "param").many() % "type parameters"
         >> Block((Identifier / "constructor").many() % "type constructors" >> Everything)
             % "type definition body";
+    // let pattern2 = Everything;
     macro_definition! {
         ("type", pattern)
         ttt
@@ -778,13 +779,15 @@ pub fn parse<'a>(code: &'a str) -> syntax::Tree<'a> {
     event!(TRACE, "Tokens:\n{:#?}", tokens);
     let root_macro_map = builtin_macros();
     event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
-    let resolver = Resolver::new_root();
-    let tokens = tokens.into_iter();
-    // let mut statements = vec![];
-    let (tree, tokens) = resolver.run(&root_macro_map, tokens);
-    // statements.push(tree);
-
-    tree
+    let mut tokens = tokens.into_iter().peekable();
+    let mut statements = vec![];
+    while tokens.peek().is_some() {
+        let resolver = Resolver::new_root();
+        let (tree, new_tokens) = resolver.run(&root_macro_map, tokens);
+        statements.push(tree);
+        tokens = new_tokens;
+    }
+    syntax::Tree::module(statements)
 }
 
 use enso_parser_syntax_tree_builder::ast_builder;
@@ -901,7 +904,7 @@ mod benches {
     #[bench]
     fn bench_str_iter_and_compare(b: &mut Bencher) {
         let reps = 1_000;
-        let str = "type Option a b c\n    None\n".repeat(reps);
+        let str = "type Option a b c\n".repeat(reps);
 
         b.iter(move || {
             let ast = parse(&str);
