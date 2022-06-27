@@ -10,7 +10,7 @@ use crate::prelude::*;
 use crate::syntax;
 use crate::syntax::token::Token;
 
-use crate::macros::pattern::Match;
+use crate::macros::pattern::MatchedSegment2;
 use enso_data_structures::im_list;
 use pattern::Pattern;
 
@@ -20,6 +20,7 @@ use pattern::Pattern;
 // ==============
 
 pub mod pattern;
+pub mod resolver;
 
 
 
@@ -45,10 +46,10 @@ pub struct Definition<'a> {
 }
 
 /// All the sections of the resolved macro.
-pub type MatchedSections<'s> = NonEmptyVec<(Token<'s>, Match<'s>)>;
+pub type MatchedSegments<'s> = NonEmptyVec<MatchedSegment2<'s>>;
 
 /// A function that transforms matched macro tokens into [`syntax::Tree`].
-pub type Body = dyn for<'s> Fn(MatchedSections<'s>) -> syntax::Tree<'s>;
+pub type Body = dyn for<'s> Fn(MatchedSegments<'s>) -> syntax::Tree<'s>;
 
 
 

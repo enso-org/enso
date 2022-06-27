@@ -76,6 +76,18 @@ impl<'s> Match<'s> {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct MatchedSegment2<'s> {
+    pub header: syntax::Token<'s>,
+    pub result: Match<'s>,
+}
+
+impl<'s> MatchedSegment2<'s> {
+    pub fn new(header: syntax::Token<'s>, result: Match<'s>) -> Self {
+        Self { header, result }
+    }
+}
+
 //
 // $(
 //     foo {

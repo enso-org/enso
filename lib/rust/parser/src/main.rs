@@ -105,6 +105,7 @@ use crate::source::VisibleOffset;
 
 use crate::macros::pattern::Match;
 use crate::macros::pattern::MatchResult;
+use crate::macros::pattern::MatchedSegment2;
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use lexer::Lexer;
@@ -251,7 +252,7 @@ impl<'a> MacroResolver<'a> {
                 if v.len() != 1 {
                     panic!()
                 }
-                let t = v.into_vec().pop().unwrap().1;
+                let t = v.into_vec().pop().unwrap().result;
                 resolve_operator_precedence(t.tokens())
             }),
         }));
@@ -396,7 +397,7 @@ impl<'s> Resolver<'s> {
                 Ok(t) => mem::swap(&mut rest, &mut t.rest),
             }
             // TODO: handle unmatched cases, handle .rest
-            let sx = sx.mapped(|t| (t.0, t.1.unwrap().matched));
+            let sx = sx.mapped(|t| MatchedSegment2::new(t.0, t.1.unwrap().matched));
 
             let out = (macro_def.body)(sx);
             (out, rest)
@@ -574,7 +575,7 @@ fn resolve_operator_precedence_internal(items: Vec<syntax::Item<'_>>) -> syntax:
     let mut last_token_was_ast = false;
     let mut last_token_was_opr = false;
     for item in items {
-        let i2 = item.clone(); // FIXME
+        let i2 = item.clone(); // FIXME: Why is this even needed? Rust bug?
         if let syntax::Item::Token(token) = i2 && let token::Variant::Operator(opr) = token.variant {
             // Item is an operator.
             let last_token_was_opr_copy = last_token_was_opr;
@@ -590,7 +591,7 @@ fn resolve_operator_precedence_internal(items: Vec<syntax::Item<'_>>) -> syntax:
                 match &mut prev_opr.elem {
                     Err(err) => err.operators.push(opr),
                     Ok(prev) => {
-                        let operators = NonEmptyVec::new(prev.clone(),vec![opr]); // FIXME: clone?
+                        let operators = NonEmptyVec::new(prev.clone(),vec![opr]);
                         prev_opr.elem = Err(syntax::tree::MultipleOperatorError{operators});
                     }
                 }
@@ -626,10 +627,7 @@ fn resolve_operator_precedence_internal(items: Vec<syntax::Item<'_>>) -> syntax:
         opt_rhs = Some(syntax::Tree::opr_app(opt_lhs, opr.elem, opt_rhs));
     }
     if !output.is_empty() {
-        panic!(
-            "Internal error. Not all tokens were consumed while constructing the
-expression."
-        );
+        panic!("Internal error. Not all tokens were consumed while constructing the expression.");
     }
     syntax::Tree::opr_section_boundary(opt_rhs.unwrap()) // fixme
 }
@@ -649,24 +647,15 @@ fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
 }
 
 fn matched_segments_into_multi_segment_app<'s>(
-    matched_segments: NonEmptyVec<(Token<'s>, Match<'s>)>,
+    matched_segments: NonEmptyVec<MatchedSegment2<'s>>,
 ) -> syntax::Tree<'s> {
-    // FIXME: remove into_vec and use NonEmptyVec::mapped
-    let segments = matched_segments
-        .into_vec()
-        .into_iter()
-        .map(|segment| {
-            let header = segment.0;
-            let tokens = segment.1.tokens();
-            let body = (!tokens.is_empty()).as_some_from(|| resolve_operator_precedence(tokens));
-            syntax::tree::MultiSegmentAppSegment { header, body }
-        })
-        .collect_vec();
-    if let Ok(segments) = NonEmptyVec::try_from(segments) {
-        syntax::Tree::multi_segment_app(segments)
-    } else {
-        panic!()
-    }
+    let segments = matched_segments.mapped(|segment| {
+        let header = segment.header;
+        let tokens = segment.result.tokens();
+        let body = (!tokens.is_empty()).as_some_from(|| resolve_operator_precedence(tokens));
+        syntax::tree::MultiSegmentAppSegment { header, body }
+    });
+    syntax::Tree::multi_segment_app(segments)
 }
 
 
@@ -720,13 +709,13 @@ fn macro_type_def<'s>() -> macros::Definition<'s> {
     }
 }
 
-fn ttt<'s>(matched_segments: NonEmptyVec<(Token<'s>, Match<'s>)>) -> syntax::Tree<'s> {
-    let x = matched_segments.first().0.clone();
+fn ttt<'s>(matched_segments: NonEmptyVec<MatchedSegment2<'s>>) -> syntax::Tree<'s> {
+    let header = matched_segments.first().header.clone();
     println!(">>>");
     println!("{:#?}", matched_segments);
     println!(">>>");
-    println!("{:#?}", matched_segments.mapped(|t| t.1.into_match_tree()));
-    syntax::Tree::type_def(x)
+    println!("{:#?}", matched_segments.mapped(|t| t.result.into_match_tree()));
+    syntax::Tree::type_def(header)
 }
 
 fn builtin_macros() -> MacroMatchTree<'static> {
