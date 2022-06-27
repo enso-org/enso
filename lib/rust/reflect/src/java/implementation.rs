@@ -8,10 +8,8 @@ use crate::java::*;
 // === Implementation ===
 // ======================
 
-use crate::java::TypeGraph;
-
 /// Implement a whole system of datatypes.
-pub fn implement(graph: &TypeGraph) -> Vec<syntax::Class> {
+pub fn implement(graph: &TypeGraph, package: &str) -> Vec<syntax::Class> {
     let mut implementations = BTreeMap::new();
     for (i, class) in graph.types.iter().enumerate() {
         if let Some(class) = class {
@@ -32,7 +30,7 @@ pub fn implement(graph: &TypeGraph) -> Vec<syntax::Class> {
         }
     }
     for class in implementations.values_mut() {
-        class.package = Some("out".to_owned());
+        class.package = Some(package.to_owned());
     }
     implementations.into_values().collect()
 }

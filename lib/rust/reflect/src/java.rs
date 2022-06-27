@@ -235,8 +235,8 @@ impl TypeGraph {
         field_id
     }
 
-    pub fn implement(&self) -> Vec<syntax::Class> {
-        implementation::implement(self)
+    pub fn implement(&self, package: &str) -> Vec<syntax::Class> {
+        implementation::implement(self, package)
     }
 
     pub fn type_ids(&self) -> impl Iterator<Item = TypeId> + '_ {
