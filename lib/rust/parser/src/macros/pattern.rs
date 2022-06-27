@@ -6,7 +6,8 @@ use std::collections::VecDeque;
 
 use crate::syntax;
 
-use crate::SyntaxItemOrMacroResolver;
+use crate::macros::resolver::SyntaxItemOrMacroResolver;
+
 
 // ===============
 // === Pattern ===
