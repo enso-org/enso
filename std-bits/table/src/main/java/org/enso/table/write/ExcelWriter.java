@@ -104,7 +104,7 @@ public class ExcelWriter {
   private static CellStyle getDateTimeStyle(Workbook workbook, String format) {
     for(int i = 0; i < workbook.getNumCellStyles(); i++) {
       CellStyle style = workbook.getCellStyleAt(i);
-      if (style.getDataFormatString() == format) {
+      if (style.getDataFormatString().equals(format)) {
         return style;
       }
     }
