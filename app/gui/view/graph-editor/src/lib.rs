@@ -2387,13 +2387,14 @@ impl GraphEditorModel {
         let camera = scene.camera();
         let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
         // TODO: is 0 as `z` coord. correct here?
-        let screen_to_scene_vec2 = |pos: Vector2|
-            scene.screen_to_scene_coordinates(Vector3(pos.x, pos.y, 0.0)).xy();
+        let screen_to_scene_vec2 =
+            |pos: Vector2| scene.screen_to_scene_coordinates(Vector3(pos.x, pos.y, 0.0)).xy();
         // TODO: make sure the corners respect camera's "origin" point, which may not be at center;
         // though, the `alignment` described in Camera2dData does not seem present in the struct.
         let screen_corner_max = screen_to_scene_vec2(screen_size_halved);
         let screen_corner_min = screen_to_scene_vec2(-screen_size_halved);
-        let screen_bbox = selection::BoundingBox::from_corners(screen_corner_min, screen_corner_max);
+        let screen_bbox =
+            selection::BoundingBox::from_corners(screen_corner_min, screen_corner_max);
         let pan_y = if target_bbox.top() > screen_bbox.top() {
             Some(target_bbox.top() - screen_bbox.top())
         } else if target_bbox.bottom() < screen_bbox.bottom() {
