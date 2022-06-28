@@ -356,14 +356,16 @@ mod background {
             let width = content_width + navigator_width;
             let height = content_height + menu_height;
 
+            let divider_x_pos = navigator_width / 2.0;
             let divider_y_pos = height / 2.0 - menu_height;
 
             let divider = Rect((content_width.px(),menu_divider_height.px()));
             let divider = divider.fill(menu_divider_color);
+            let divider = divider.translate_x(divider_x_pos.px());
             let divider = divider.translate_y(divider_y_pos.px());
 
-            let base_shape = Rect((width.px(), height.px())).corners_radius(content_corner_radius
-                .px()).translate_x(-navigator_width.px() / 2.0);
+            let base_shape = Rect((width.px(), height.px()))
+                .corners_radius(content_corner_radius.px());
             let background = base_shape.fill(bg_color);
             let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
 
@@ -620,6 +622,7 @@ impl Model {
 
         self.background.bg_color.set(style.content.background_color.into());
         self.background.size.set(style.size());
+        self.background.set_position_x(-style.navigator.width / 2.0);
         self.section_navigator.update_layout(style.clone());
 
         self.section_navigator_shadow
