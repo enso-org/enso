@@ -3,17 +3,19 @@
 //!
 //! See [`Navigator`] struct.
 
+use ensogl_core::display::shape::*;
+use ensogl_core::prelude::*;
+
 use crate::component_group::icon;
 use crate::Style;
+
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::style;
 use ensogl_core::display::style::Path;
-use ensogl_core::prelude::*;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::AnyModelProvider;
