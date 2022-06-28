@@ -203,6 +203,7 @@ public class ExcelWriter {
     throws IllegalStateException {
     int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - firstRow, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
     int currentRow = firstRow;
+    int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - currentRow + 1, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
     Column[] columns = table.getColumns();
 
     if (headers) {
