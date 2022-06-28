@@ -54,8 +54,8 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
-      - name: Test report
-        uses: actions/upload-artifact@v2
+      - name: Stdlib test report
+        uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
@@ -94,8 +94,8 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
-      - name: Test report
-        uses: actions/upload-artifact@v2
+      - name: Stdlib test report
+        uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
@@ -136,8 +136,8 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
-      - name: Test report
-        uses: actions/upload-artifact@v2
+      - name: Stdlib test report
+        uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
