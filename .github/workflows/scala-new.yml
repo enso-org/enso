@@ -100,7 +100,7 @@ jobs:
         if: success() || failure()
         with:
           name: Enso Standard Library Tests
-          path: "${{ env.ENSO_TEST_JUNIT_DIR/**/*.xml }}"
+          path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-windows:
     name: Engine (windows)
