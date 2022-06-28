@@ -121,21 +121,43 @@ pub mod prelude {
 
 
 
-// ===================
-// === Entry point ===
-// ===================
+// ==============
+// === Parser ===
+// ==============
 
-pub fn parse<'a>(code: &'a str) -> syntax::Tree<'a> {
-    let tokens = lexer::run(code);
-    let mut tokens = tokens.into_iter().peekable();
-    let mut statements = vec![];
-    while tokens.peek().is_some() {
-        let resolver = macros::resolver::Resolver::new_root();
-        let (tree, new_tokens) = resolver.run(&macros::built_in::all(), tokens);
-        statements.push(tree);
-        tokens = new_tokens;
+/// Enso parser. See the module documentation to learn more about how it works.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct Parser {
+    pub macros: macros::resolver::MacroMatchTree<'static>,
+}
+
+impl Parser {
+    /// Constructor.
+    pub fn new() -> Self {
+        let macros = macros::built_in::all();
+        Self { macros }
     }
-    syntax::Tree::module(statements)
+
+    /// Main entry point.
+    pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
+        let tokens = lexer::run(code);
+        let mut tokens = tokens.into_iter().peekable();
+        let mut statements = vec![];
+        while tokens.peek().is_some() {
+            let resolver = macros::resolver::Resolver::new_root();
+            let (tree, new_tokens) = resolver.run(&self.macros, tokens);
+            statements.push(tree);
+            tokens = new_tokens;
+        }
+        syntax::Tree::module(statements)
+    }
+}
+
+impl Default for Parser {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 
@@ -146,7 +168,7 @@ pub fn parse<'a>(code: &'a str) -> syntax::Tree<'a> {
 
 fn main() {
     init_tracing(TRACE);
-    let ast = parse("type Option a b c\ntype Option a b c");
+    let ast = Parser::new().run("type Option a b c\ntype Option a b c");
     println!("\n\n==================\n\n");
     println!("{:#?}", ast);
 }
@@ -157,13 +179,13 @@ mod tests {
     use enso_parser_syntax_tree_builder::ast_builder;
 
     macro_rules! test_parse {
-            ($input:tt = {$($def:tt)*}) => {
-                assert_eq!(
-                    parse($input),
-                    ast_builder! { $($def)* }
-                )
-            };
-        }
+        ($input:tt = {$($def:tt)*}) => {
+            assert_eq!(
+                Parser::new().run($input),
+                ast_builder! { $($def)* }
+            )
+        };
+    }
 
     #[test]
     fn test_expressions() {
@@ -186,12 +208,12 @@ mod benches {
     use test::Bencher;
 
     #[bench]
-    fn bench_str_iter_and_compare(b: &mut Bencher) {
+    fn bench_parsing_type_defs(bencher: &mut Bencher) {
         let reps = 1_000;
         let str = "type Option a b c\n".repeat(reps);
-
-        b.iter(move || {
-            let ast = parse(&str);
+        let parser = Parser::new();
+        bencher.iter(move || {
+            parser.run(&str);
         });
     }
 }

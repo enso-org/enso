@@ -1,7 +1,6 @@
 use crate::macros;
 use crate::macros::pattern::MatchedSegment;
 use crate::prelude::*;
-use crate::source::*;
 use crate::syntax;
 use crate::syntax::token;
 use crate::syntax::token::Token;
@@ -126,9 +125,6 @@ impl<'a> Frame<'a> {
                 pattern: Pattern::Everything,
             }),
             body:     Rc::new(|v| {
-                if v.len() != 1 {
-                    panic!()
-                }
                 let t = v.into_vec().pop().unwrap().result;
                 resolve_operator_precedence(t.tokens())
             }),
@@ -395,6 +391,7 @@ fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::It
         .collect()
 }
 
+#[inline(always)]
 pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree<'s> {
     type Tokens<'s> = Vec<syntax::Item<'s>>;
     let mut flattened: Tokens<'s> = default();
