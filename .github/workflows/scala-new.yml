@@ -60,6 +60,7 @@ jobs:
         with:
           name: Enso Standard Library Tests
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path-replace-backslashes: "false"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-macos:
     name: Engine (macos)
@@ -101,6 +102,7 @@ jobs:
         with:
           name: Enso Standard Library Tests
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path-replace-backslashes: "false"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-windows:
     name: Engine (windows)
@@ -144,6 +146,7 @@ jobs:
         with:
           name: Enso Standard Library Tests
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path-replace-backslashes: "false"
           reporter: java-junit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
