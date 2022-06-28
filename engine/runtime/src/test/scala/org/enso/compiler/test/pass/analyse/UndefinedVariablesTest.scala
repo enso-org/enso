@@ -64,7 +64,7 @@ class UndefinedVariablesTest extends CompilerTest {
       val unresolved = ir.preorder.collect {
         case IR.Error.Resolution(
               name,
-              IR.Error.Resolution.VariableNotInScope,
+              _: IR.Error.Resolution.ResolverError,
               _,
               _
             ) =>

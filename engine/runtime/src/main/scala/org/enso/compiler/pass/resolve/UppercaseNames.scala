@@ -119,7 +119,7 @@ case object UppercaseNames extends IRPass {
   ): IR.Expression =
     ir.transformExpressions {
       case lit: IR.Name.Literal =>
-        if (lit.isReferent && !isLocalVar(lit)) {
+        if ((lit.isReferent || !lit.isMethod) && !isLocalVar(lit)) {
           val resolution = bindings.resolveUppercaseName(lit.name)
           resolution match {
             case Left(error) =>
@@ -129,21 +129,30 @@ case object UppercaseNames extends IRPass {
               )
             case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
               if (isInsideApplication) {
-                lit.updateMetadata(this -->> BindingsMap.Resolution(r))
+                lit
+                  .updateMetadata(this -->> BindingsMap.Resolution(r))
+                  .copy(isMethod = true)
               } else {
                 val self = freshNameSupply
-                  .newName(isReferent = true)
+                  .newName(isReferent = false)
                   .updateMetadata(
                     this -->> BindingsMap.Resolution(
                       BindingsMap.ResolvedModule(mod)
                     )
                   )
-                val fun = lit.copy(name = method.name)
+                // The synthetic applications gets the location so that instrumentation
+                // identifies the node correctly
+                val fun = lit.copy(
+                  name       = method.name,
+                  isMethod   = true,
+                  isReferent = false,
+                  location   = None
+                )
                 val app = IR.Application.Prefix(
                   fun,
                   List(IR.CallArgument.Specified(None, self, None)),
                   hasDefaultsSuspended = false,
-                  None
+                  lit.location
                 )
                 app
               }
@@ -154,10 +163,12 @@ case object UppercaseNames extends IRPass {
         } else { lit }
       case app: IR.Application.Prefix =>
         app.function match {
-          case n: IR.Name.Literal =>
-            if (n.isReferent)
-              resolveReferantApplication(app, bindings, freshNameSupply)
-            else resolveLocalApplication(app, bindings, freshNameSupply)
+          case lit: IR.Name.Literal =>
+            if (lit.isReferent || !lit.isMethod) {
+              resolveReferantApplication(app, lit, bindings, freshNameSupply)
+            } else {
+              resolveLocalApplication(app, bindings, freshNameSupply)
+            }
           case _ =>
             app.mapExpressions(processExpression(_, bindings, freshNameSupply))
 
@@ -167,6 +178,7 @@ case object UppercaseNames extends IRPass {
 
   private def resolveReferantApplication(
     app: IR.Application.Prefix,
+    fun: IR.Name.Literal,
     bindingsMap: BindingsMap,
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
@@ -180,9 +192,9 @@ case object UppercaseNames extends IRPass {
       _.mapExpressions(processExpression(_, bindingsMap, freshNameSupply))
     )
     processedFun.getMetadata(this) match {
-      case Some(Resolution(ResolvedMethod(mod, method))) =>
+      case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
         val self = freshNameSupply
-          .newName(isReferent = true)
+          .newName(isReferent = false)
           .updateMetadata(
             this -->> BindingsMap.Resolution(
               BindingsMap.ResolvedModule(mod)
@@ -190,18 +202,11 @@ case object UppercaseNames extends IRPass {
           )
         val selfArg = IR.CallArgument.Specified(None, self, None)
         processedFun.passData.remove(this) // Necessary for IrToTruffle
-        val renamed = rename(processedFun, method.name)
-        app.copy(function = renamed, arguments = selfArg :: processedArgs)
+        app.copy(function = processedFun, arguments = selfArg :: processedArgs)
       case _ =>
         app.copy(function = processedFun, arguments = processedArgs)
     }
   }
-
-  private def rename(name: IR.Expression, newName: String): IR.Expression =
-    name match {
-      case lit: IR.Name.Literal => lit.copy(name = newName)
-      case _                    => name
-    }
 
   private def resolveLocalApplication(
     app: IR.Application.Prefix,

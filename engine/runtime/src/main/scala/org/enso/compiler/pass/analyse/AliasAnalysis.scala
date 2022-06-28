@@ -108,10 +108,17 @@ case object AliasAnalysis extends IRPass {
       .map { localScope =>
         val scope =
           if (shouldWriteState) localScope.scope
-          else localScope.scope.deepCopy(mutable.Map())
+          else
+            localScope.scope
+              .deepCopy(mutable.Map())
+              .withParent(localScope.scope)
+
         val graph =
           if (shouldWriteState) localScope.aliasingGraph
-          else localScope.aliasingGraph.copy
+          else {
+            val mapping = mutable.Map(localScope.scope -> scope)
+            localScope.aliasingGraph.deepCopy(mapping)
+          }
         val result = analyseExpression(ir, graph, scope)
 
         result
@@ -1084,6 +1091,18 @@ case object AliasAnalysis extends IRPass {
         */
       def scopesToRoot: Int = {
         parent.flatMap(scope => Some(scope.scopesToRoot + 1)).getOrElse(0)
+      }
+
+      /** Sets the parent of the scope.
+        *
+        * The parent scope must not be redefined.
+        *
+        * @return this scope with parent scope set
+        */
+      def withParent(parentScope: Scope): this.type = {
+        assert(parent.isEmpty)
+        this.parent = Some(parentScope)
+        this
       }
 
       /** Creates a structural copy of this scope, ensuring that replicated

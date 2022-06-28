@@ -75,12 +75,12 @@ object MethodCalls extends IRPass {
                 case value =>
                   value.getMetadata(UppercaseNames) match {
                     case Some(Resolution(ResolvedModule(module))) =>
-                      Some(
-                        module
-                          .unsafeAsModule()
-                          .getIr
-                          .unsafeGetMetadata(BindingAnalysis, "")
-                      )
+                      val moduleIr = module.unsafeAsModule().getIr
+                      Option
+                        .when(moduleIr != null)(
+                          moduleIr.getMetadata(BindingAnalysis)
+                        )
+                        .flatten
                     case _ => None
                   }
               }

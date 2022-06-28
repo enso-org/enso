@@ -154,15 +154,6 @@ trait CompilerRunner {
     */
   def genId: IR.Identifier = IR.randomId
 
-  /** Creates an IR name from a string.
-    *
-    * @param str the string to turn into a name
-    * @return an IR name representing the name `str`
-    */
-  def nameFromString(str: String): IR.Name.Literal = {
-    IR.Name.Literal(str, isReferent = false, isMethod = false, None)
-  }
-
   // === IR Testing Utils =====================================================
 
   /** A variety of extension methods on IR expressions to aid testing.
