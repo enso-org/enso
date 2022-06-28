@@ -130,7 +130,7 @@ struct Style {
 
 impl Style {
     fn size_inner(&self) -> Vector2 {
-        let width = self.content.size.x;
+        let width = self.content.size.x + self.navigator.width;
         let height = self.content.size.y + self.menu.height;
         Vector2::new(width, height)
     }
@@ -140,7 +140,7 @@ impl Style {
     }
 
     fn navigator_size(&self) -> Vector2 {
-        self.size() + Vector2(self.navigator.width, 0.0)
+        self.size_inner() + Vector2(self.navigator.width, 0.0)
     }
 
     fn menu_divider_y_pos(&self) -> f32 {
@@ -351,24 +351,19 @@ mod background {
             let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
             let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
             let menu_height = style.get_number(theme_path.sub("menu_height"));
+            let navigator_width = style.get_number(theme_path.sub("section_navigator_width"));
 
-            let width = content_width;
+            let width = content_width + navigator_width;
             let height = content_height + menu_height;
 
             let divider_y_pos = height / 2.0 - menu_height;
 
-            let left_width = &(width/2.0).px();
-            let left = Rect((left_width,height.px())).translate_x(-left_width/2.0);
-
-            let right_width = &(width/2.0 + 2.0 * content_corner_radius).px();
-            let right = Rect((right_width,height.px())).corners_radius(content_corner_radius.px());
-            let right = right.translate_x((width/4.0-content_corner_radius).px());
-
-            let divider = Rect((width.px(),menu_divider_height.px()));
+            let divider = Rect((content_width.px(),menu_divider_height.px()));
             let divider = divider.fill(menu_divider_color);
             let divider = divider.translate_y(divider_y_pos.px());
 
-            let base_shape = &(left + right);
+            let base_shape = Rect((width.px(), height.px())).corners_radius(content_corner_radius
+                .px()).translate_x(-navigator_width.px() / 2.0);
             let background = base_shape.fill(bg_color);
             let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
 
@@ -377,32 +372,21 @@ mod background {
     }
 }
 
-mod section_navigator {
+mod section_navigator_shadow {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        below = [background];
-        (style:Style,bg_color:Vector4) {
+        above = [background];
+        (style:Style) {
             let theme_path: style::Path = list_panel_theme::HERE.into();
-
-            let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
-            let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
-
-            let content_width = style.get_number(theme_path.sub("content_width"));
             let content_height = style.get_number(theme_path.sub("content_height"));
-            let content_corner_radius = style.get_number(theme_path.sub("content_corner_radius"));
             let menu_height = style.get_number(theme_path.sub("menu_height"));
-            let width = style.get_number(theme_path.sub("section_navigator_width"));
-
-            let width = width * 2.0;
+            let navigator_width = style.get_number(theme_path.sub("section_navigator_width"));
             let height = content_height + menu_height;
-
-            let base_shape = Rect((width.px(), height.px())).corners_radius(content_corner_radius
-                .px()).translate_x(-content_width.px()/2.0);
-            let background = base_shape.fill(bg_color);
-            let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
-
-            (shadow + background).into()
+            let width = navigator_width;
+            let base_shape = Rect((width.px(), height.px() * 2.0)).translate_x(width.px());
+            let shadow = shadow::from_shape(base_shape.into(), style);
+            shadow.into()
         }
     }
 }
@@ -478,7 +462,6 @@ impl Default for Section {
 #[derive(Debug, Clone, CloneRef)]
 pub struct Navigator {
     display_object: display::object::Instance,
-    background:     section_navigator::View,
     network:        frp::Network,
     bottom_buttons: list_view::ListView<Icon>,
     top_buttons:    list_view::ListView<Icon>,
@@ -491,10 +474,6 @@ const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::LocalScop
 impl Navigator {
     pub fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new(&app.logger);
-        let background = section_navigator::View::new(&app.logger);
-        display_object.add_child(&background);
-        // TODO: remove
-        app.display.default_scene.layers.below_main.add_exclusive(&background);
         let top_buttons = app.new_view::<list_view::ListView<Icon>>();
         let bottom_buttons = app.new_view::<list_view::ListView<Icon>>();
         top_buttons.set_background_color(HOVER_COLOR);
@@ -525,7 +504,7 @@ impl Navigator {
         }
         bottom_buttons.select_entry(Some(2));
 
-        Self { display_object, background, top_buttons, bottom_buttons, network, chosen_section }
+        Self { display_object, top_buttons, bottom_buttons, network, chosen_section }
     }
 
     fn update_layout(&self, style: NavigatorStyle) {
@@ -533,8 +512,11 @@ impl Navigator {
         let bottom = -style.height / 2.0;
         let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
         let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        self.top_buttons.set_position_xy(Vector2(-216.0, top - top_buttons_height / 2.0));
-        self.bottom_buttons.set_position_xy(Vector2(-216.0, bottom + bottom_buttons_height / 2.0));
+        let padding = 7.0;
+        self.top_buttons
+            .set_position_xy(Vector2(-218.75, top - top_buttons_height / 2.0 - padding));
+        self.bottom_buttons
+            .set_position_xy(Vector2(-218.75, bottom + bottom_buttons_height / 2.0 + padding));
     }
 }
 
@@ -553,16 +535,18 @@ impl display::Object for Navigator {
 /// The Model of Select Component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    app:                 Application,
-    logger:              Logger,
-    display_object:      display::object::Instance,
-    background:          background::View,
-    scroll_area:         ScrollArea,
-    favourites_section:  ColumnSection,
+    app: Application,
+    logger: Logger,
+    display_object: display::object::Instance,
+    background: background::View,
+    // FIXME[TODO]: this should be embedded into a background shape
+    section_navigator_shadow: section_navigator_shadow::View,
+    scroll_area: ScrollArea,
+    favourites_section: ColumnSection,
     local_scope_section: WideSection,
     sub_modules_section: ColumnSection,
-    section_navigator:   Navigator,
-    layers:              Layers,
+    section_navigator: Navigator,
+    layers: Layers,
 }
 
 impl Model {
@@ -574,6 +558,9 @@ impl Model {
         let background = background::View::new(&logger);
         display_object.add_child(&background);
         app.display.default_scene.layers.below_main.add_exclusive(&background);
+        let section_navigator_shadow = section_navigator_shadow::View::new(&logger);
+        display_object.add_child(&section_navigator_shadow);
+        app.display.default_scene.layers.below_main.add_exclusive(&section_navigator_shadow);
 
         let favourites_section = Self::init_column_section(&app);
         let local_scope_section = Self::init_wide_section(&app);
@@ -602,6 +589,7 @@ impl Model {
             app,
             display_object,
             background,
+            section_navigator_shadow,
             scroll_area,
             favourites_section,
             local_scope_section,
@@ -630,9 +618,11 @@ impl Model {
 
         self.background.bg_color.set(style.content.background_color.into());
         self.background.size.set(style.size());
-        self.section_navigator.background.bg_color.set(style.content.background_color.into());
-        self.section_navigator.background.size.set(style.navigator_size());
         self.section_navigator.update_layout(style.navigator.clone());
+
+        self.section_navigator_shadow.set_position_x(-216.0);
+        let section_navigator_shadow_size = Vector2(style.navigator.width, style.size_inner().y);
+        self.section_navigator_shadow.size.set(section_navigator_shadow_size);
 
         let local_scope_content = &self.local_scope_section.content;
         local_scope_content.set_position_x(style.content.padding + style.content.size.x / 2.0);

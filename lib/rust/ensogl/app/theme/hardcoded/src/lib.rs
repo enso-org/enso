@@ -198,7 +198,7 @@ define_themes! { [light:0, dark:1]
                     menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                     menu_divider_height = 0.5,0.5;
 
-                    section_navigator_width = 32.0, 32.0;
+                    section_navigator_width = 37, 37;
 
                     navigator {
                         background = Rgba::transparent() , Rgba::transparent();
