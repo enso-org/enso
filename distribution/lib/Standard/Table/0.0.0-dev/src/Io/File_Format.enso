@@ -200,6 +200,6 @@ type Excel
             (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
 
         case self.section of
-            Sheet_Names -> Error.throw (Illegal_Argument_Error "Sheet_Names cannot be used for `write`.")
-            Range_Names -> Error.throw (Illegal_Argument_Error "Range_Names cannot be used for `write`.")
+            Excel_Module.Sheet_Names -> Error.throw (Illegal_Argument_Error "Sheet_Names cannot be used for `write`.")
+            Excel_Module.Range_Names -> Error.throw (Illegal_Argument_Error "Range_Names cannot be used for `write`.")
             _ -> Excel_Module.write_excel file table on_existing_file self.section self.headers on_problems format

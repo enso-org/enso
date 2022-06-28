@@ -1,9 +1,11 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Table.Io.File_Format import Infer
 
 import Standard.Table.Data.Table
 from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+import Standard.Base.Error.Common as Errors
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 polyglot java import org.enso.table.read.ExcelReader
@@ -185,29 +187,29 @@ read_excel file section headers on_problems xls_format=False =
                 Excel_Range _ -> ExcelReader.readRange stream address.java_range (here.make_java_headers headers) skip_rows row_limit xls_format
                 Text -> ExcelReader.readRangeByName stream address (here.make_java_headers headers) skip_rows row_limit xls_format
 
-    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
-    handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
-
-    File.handle_java_exceptions file <| here.handle_bad_argument <| handle_bad_format <|
-        file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
+    here.read_excel_file file reader
 
 write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Problem_Behavior -> Boolean
 write_excel file table on_existing_file section headers on_problems xls_format=False =
     if on_existing_file == Existing_File_Behavior.Append then Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet." else
         ## Read Existing Workbook
-        current_workbook = if output_file.exists.not then ExcelWriter.createWorkbook xls_format else
-            File.handle_java_exceptions file <| here.handle_bad_argument <|
-                file.with_input_stream [File.Option.Read] stream-> <|
-                    ExcelReader.getWorkbook stream xls_format
+        workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
+            here.read_excel_file file stream->(ExcelReader.getWorkbook stream xls_format)
+
+        ## Resolve parameters
+        has_headers = case headers of
+            Infer ->
+                ## ToDo: Infer from existing workbook.
+                True
+            _ -> headers
 
         ## Update the workbook
-        replace = on_existing_file == Existing_File_Behavior.Overwrite || on_existing_file == Existing_File_Behavior.Backup
+        replace = (on_existing_file == Existing_File_Behavior.Overwrite) || (on_existing_file == Existing_File_Behavior.Backup)
         if ExcelWriter.getEnsoToTextCallback == Nothing then ExcelWriter.getEnsoToTextCallback (.to_text)
-        result = handle_illegal_argument <| case section of
-            Sheet sheet skip_rows row_limit ->
-                here.prepare_reader_table on_problems <| case sheet of
-                    Integer -> ExcelReader.writeTableToSheetByIndex workbook sheet replace False skip_rows table row_limit
-                    Text -> ExcelReader.writeTableToSheetByName workbook sheet replace False skip_rows table row_limit
+        result = here.handle_illegal_argument <| case section of
+            Sheet sheet skip_rows row_limit -> case sheet of
+                Integer -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit has_headers
+                Text -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit has_headers
             _ -> Errors.unimplemented "Not implemented yet."
 
         ## Write output
@@ -235,11 +237,17 @@ make_java_headers headers = case headers of
         False -> ExcelReader.HeaderBehavior.EXCEL_COLUMN_NAMES
 
 ## PRIVATE
-handle_bad_format ~action =
+read_excel_file file reader =
     bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
-    Panic.catch UnsupportedFileFormatException handler=bad_format action
+    handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
+
+    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+    handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
+
+    File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
+        file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
 
 ## PRIVATE
 handle_illegal_argument ~action =
     illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
-    Panic.catch IllegalArgumentException handler=illegal_argument action action
+    Panic.catch IllegalArgumentException handler=illegal_argument action

@@ -29,14 +29,19 @@ public class ExcelWriter {
     ensoToTextCallback = callback;
   }
 
-  public static void writeTableToSheet(Workbook workbook, int sheetIndex, boolean replace, int firstRow, Table table, int rowLimit, boolean headers) {
+  public static void writeTableToSheet(Workbook workbook, int sheetIndex, boolean replace, int firstRow, Table table, Long rowLimit, boolean headers) {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
       while (workbook.getSheet("Sheet" + i) != null) {
         i++;
       }
 
-      writeTableToSheet(workbook, workbook.createSheet("Sheet" + i), firstRow, table, rowLimit, headers);
+      Sheet sheet = workbook.createSheet("Sheet" + i);
+      if (sheetIndex == 0) {
+        workbook.setSheetOrder(sheet.getSheetName(), 0);
+      }
+
+      writeTableToSheet(workbook, sheet, firstRow, table, rowLimit, headers);
     } else if (replace) {
       String sheetName = workbook.getSheetName(sheetIndex - 1);
       workbook.removeSheetAt(sheetIndex - 1);
@@ -49,7 +54,7 @@ public class ExcelWriter {
     }
   }
 
-  public static void writeTableToSheet(Workbook workbook, String sheetName, boolean replace, int firstRow, Table table, int rowLimit, boolean headers) {
+  public static void writeTableToSheet(Workbook workbook, String sheetName, boolean replace, int firstRow, Table table, Long rowLimit, boolean headers) {
     int sheetIndex = workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
       writeTableToSheet(workbook, workbook.createSheet(sheetName), firstRow, table, rowLimit, headers);
@@ -72,8 +77,9 @@ public class ExcelWriter {
     return xls_format ? new HSSFWorkbook() : new XSSFWorkbook();
   }
 
-  private static void writeTableToSheet(Workbook workbook, Sheet sheet, int firstRow, Table table, int rowLimit, boolean headers) {
+  private static void writeTableToSheet(Workbook workbook, Sheet sheet, int firstRow, Table table, Long rowLimit, boolean headers) {
     int currentRow = firstRow;
+    int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - currentRow + 1, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
     Column[] columns = table.getColumns();
 
     if (headers) {
@@ -84,16 +90,16 @@ public class ExcelWriter {
       currentRow++;
     }
 
-    if (rowLimit == 0 || table.rowCount() == 0) {
+    if (rowCount == 0) {
       return;
     }
 
     Storage[] storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
-    for (int i = 0; i < rowLimit; i++) {
+    for (int i = 0; i < rowCount; i++) {
       Row row = sheet.createRow(currentRow);
       for (int j = 0; j < columns.length; j++) {
-        Storage storage = storages[i];
-        writeValueToCell(row.createCell(j), j, storage, workbook);
+        Storage storage = storages[j];
+        writeValueToCell(row.createCell(j), i, storage, workbook);
       }
       currentRow++;
     }
@@ -114,7 +120,7 @@ public class ExcelWriter {
     return newStyle;
   }
 
-  public static void writeValueToCell(Cell cell, int j, Storage storage, Workbook workbook) {
+  private static void writeValueToCell(Cell cell, int j, Storage storage, Workbook workbook) {
     if (storage.isNa(j)) {
       cell.setBlank();
     } else if (storage instanceof DoubleStorage doubleStorage) {
