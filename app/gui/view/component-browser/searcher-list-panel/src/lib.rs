@@ -48,7 +48,6 @@ mod navigator;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use crate::component_group::icon;
 use crate::navigator::navigator_shadow;
 use crate::navigator::Navigator;
 use crate::navigator::NavigatorStyle;
@@ -63,11 +62,9 @@ use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style;
-use ensogl_core::display::style::Path;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
-use ensogl_list_view::entry::AnyModelProvider;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
@@ -220,7 +217,11 @@ impl Style {
         let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
         let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
 
-        let navigator_width = style.get_number(theme_path.sub("section_navigator_width"));
+        let navigator = theme_path.sub("navigator");
+        let navigator_width = style.get_number(navigator.sub("width"));
+        let navigator_list_view_width = style.get_number(navigator.sub("list_view").sub("width"));
+        let navigator_top_padding = style.get_number(navigator.sub("top_padding"));
+        let navigator_bottom_padding = style.get_number(navigator.sub("bottom_padding"));
 
         let section_divider_height = style.get_number(theme_path.sub("section_divider_height"));
         let section_heading_size = style.get_number(theme_path.sub("section_heading_size"));
@@ -292,12 +293,25 @@ impl Style {
                 }
             });
 
-            navigator_layout_data <- all4(&init, &navigator_width, &content_height, &menu_height);
-            navigator_layout <- navigator_layout_data.map(|(_,width,content_height,menu_height)| {
-                NavigatorStyle {
-                    size: Vector2(*width, *content_height + *menu_height),
-                }
+            navigator_size_data <- all4(&init, &navigator_width, &content_height, &menu_height);
+            navigator_size <- navigator_size_data.map(|(_,width,content_h,menu_h)| {
+                Vector2(*width, *content_h + *menu_h)
             });
+            navigator_layout <- all_with5(
+                &init,
+                &navigator_size,
+                &navigator_list_view_width,
+                &navigator_top_padding,
+                &navigator_bottom_padding,
+                |_,size,width,top,bottom| {
+                    NavigatorStyle {
+                        size: *size,
+                        list_view_width: *width,
+                        top_padding: *top,
+                        bottom_padding: *bottom,
+                    }
+                }
+            );
 
             layout_data <- all5(&init,&content_layout,&section_layout,&menu_layout,
                 &navigator_layout);
@@ -346,7 +360,7 @@ mod background {
             let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
             let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
             let menu_height = style.get_number(theme_path.sub("menu_height"));
-            let navigator_width = style.get_number(theme_path.sub("section_navigator_width"));
+            let navigator_width = style.get_number(theme_path.sub("navigator").sub("width"));
 
             let width = content_width + navigator_width;
             let height = content_height + menu_height;
@@ -359,8 +373,8 @@ mod background {
             let divider = divider.translate_x(divider_x_pos.px());
             let divider = divider.translate_y(divider_y_pos.px());
 
-            let base_shape = Rect((width.px(), height.px()))
-                .corners_radius(content_corner_radius.px());
+            let base_shape = Rect((width.px(), height.px()));
+            let base_shape = base_shape.corners_radius(content_corner_radius.px());
             let background = base_shape.fill(bg_color);
             let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
 
@@ -398,7 +412,6 @@ pub struct Model {
     logger:              Logger,
     display_object:      display::object::Instance,
     background:          background::View,
-    // FIXME[TODO]: this should be embedded into a background shape
     navigator_shadow:    navigator_shadow::View,
     scroll_area:         ScrollArea,
     favourites_section:  ColumnSection,
@@ -416,9 +429,9 @@ impl Model {
 
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        app.display.default_scene.layers.below_main.add_exclusive(&background);
         let navigator_shadow = navigator_shadow::View::new(&logger);
         display_object.add_child(&navigator_shadow);
+        app.display.default_scene.layers.below_main.add_exclusive(&background);
         app.display.default_scene.layers.below_main.add_exclusive(&navigator_shadow);
 
         let favourites_section = Self::init_column_section(&app);
@@ -480,8 +493,8 @@ impl Model {
         self.background.set_position_x(-style.navigator.size.x / 2.0);
         self.section_navigator.update_layout(style.clone());
 
-        self.navigator_shadow
-            .set_position_x(-style.content.size.x / 2.0 - style.navigator.size.x / 2.0);
+        let navigator_shadow_x = -style.content.size.x / 2.0 - style.navigator.size.x / 2.0;
+        self.navigator_shadow.set_position_x(navigator_shadow_x);
         let section_navigator_shadow_size = Vector2(style.navigator.size.x, style.size_inner().y);
         self.navigator_shadow.size.set(section_navigator_shadow_size);
 
@@ -525,17 +538,18 @@ impl Model {
         self.scroll_area.jump_to_y(full_height);
     }
 
+    /// Scroll to the bottom of the [`section`].
     fn show_section(&self, section: Section, style: &Style) {
         let sub_modules_height = self.sub_modules_section.height(style);
         let favourites_section_height = self.favourites_section.height(style);
         let local_scope_height = self.local_scope_section.height(style);
         use crate::navigator::Section::*;
-        let target_y = match section {
+        let section_bottom_y = match section {
             SubModules => sub_modules_height,
             LocalScope => sub_modules_height + local_scope_height,
             Favourites => sub_modules_height + local_scope_height + favourites_section_height,
         };
-        let target_y = target_y - style.size_inner().y;
+        let target_y = section_bottom_y - style.size_inner().y;
         self.scroll_area.scroll_to_y(target_y);
     }
 }

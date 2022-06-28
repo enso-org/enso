@@ -198,21 +198,25 @@ define_themes! { [light:0, dark:1]
                     menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                     menu_divider_height = 0.5,0.5;
 
-                    section_navigator_width = 37, 37;
-
                     navigator {
-                        background = Rgba::transparent() , Rgba::transparent();
-                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
-                        highlight {
-                            height = 29.0, 29.0;
-                            corner_radius = 10.0, 10.0;
-                        }
-                        entry {
-                            padding = 14.5, 14.5;
-                        }
-                        padding = 5.0, 5.0;
+                        width = 37.0, 37.0;
                         icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
                         icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                        top_padding = -3.0, -3.0;
+                        bottom_padding = 7.0, 7.0;
+                        list_view {
+                            width = 39.0, 39.0;
+                            background = Rgba::transparent() , Rgba::transparent();
+                            highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
+                            highlight {
+                                height = 29.0, 29.0;
+                                corner_radius = 10.0, 10.0;
+                            }
+                            entry {
+                                padding = 14.5, 14.5;
+                            }
+                            padding = 5.0, 5.0;
+                        }
                     }
 
                     favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);

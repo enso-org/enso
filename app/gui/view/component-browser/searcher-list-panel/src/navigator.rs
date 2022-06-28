@@ -1,26 +1,23 @@
+//! The section navigator bar. This is a narrow bar on the left of the Searcher List Panel that
+//! contains two sets of navigation buttons.
+//!
+//! See [`Navigator`] struct.
+
 use crate::component_group::icon;
 use crate::Style;
 use enso_frp as frp;
-use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
-use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::shape::*;
 use ensogl_core::display::style;
 use ensogl_core::display::style::Path;
 use ensogl_core::prelude::*;
-use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::AnyModelProvider;
-use ensogl_scroll_area::ScrollArea;
 use ensogl_shadow as shadow;
-use ensogl_text as text;
-use ide_view_component_group as component_group;
-use ide_view_component_group::Layers as GroupLayers;
 use searcher_theme::list_panel as list_panel_theme;
 
 
@@ -29,9 +26,13 @@ use searcher_theme::list_panel as list_panel_theme;
 // === Style ===
 // =============
 
+/// A navigator-specific style parameters.
 #[derive(Clone, Debug, Default)]
 pub struct NavigatorStyle {
-    pub size: Vector2,
+    pub size:            Vector2,
+    pub top_padding:     f32,
+    pub bottom_padding:  f32,
+    pub list_view_width: f32,
 }
 
 
@@ -40,6 +41,7 @@ pub struct NavigatorStyle {
 // === Shadow ===
 // ==============
 
+/// A shadow between the navigator bar and the main part of the Searcher List Panel.
 pub mod navigator_shadow {
     use super::*;
 
@@ -49,7 +51,7 @@ pub mod navigator_shadow {
             let theme_path: style::Path = list_panel_theme::HERE.into();
             let content_height = style.get_number(theme_path.sub("content_height"));
             let menu_height = style.get_number(theme_path.sub("menu_height"));
-            let navigator_width = style.get_number(theme_path.sub("section_navigator_width"));
+            let navigator_width = style.get_number(theme_path.sub("navigator").sub("width"));
             let height = content_height + menu_height;
             let width = navigator_width;
             let base_shape = Rect((width.px(), height.px() * 2.0)).translate_x(width.px());
@@ -60,29 +62,13 @@ pub mod navigator_shadow {
 }
 
 
+
 // ============
 // === Icon ===
 // ============
 
-
-// === IconParams ===
-
-#[derive(Clone, CloneRef, Debug)]
-pub struct Params {
-    pub strong_color: frp::Sampler<color::Rgba>,
-    pub weak_color:   frp::Sampler<color::Rgba>,
-}
-
-impl Default for Params {
-    fn default() -> Self {
-        let network = frp::Network::new("searcher_list_panel::navigator::Params::default");
-        frp::extend! { network
-            default_color <- source::<color::Rgba>().sampler();
-        }
-        Self { strong_color: default_color.clone_ref(), weak_color: default_color.clone_ref() }
-    }
-}
-
+/// List view entry type which represents a single icon. We use list view with icons instead of
+/// three separate buttons to simplify the implementation.
 #[derive(Debug, Clone, CloneRef)]
 struct Icon {
     display_object: display::object::Instance,
@@ -109,9 +95,12 @@ impl list_view::Entry for Icon {
         let icon_id = default();
         let network = frp::Network::new("searcher_list_panel::navigator::Icon");
         frp::extend! { network
-            eval params.strong_color((&c) icon.borrow().as_ref().map(|icon| icon.strong_color.set(c
-                .into()
-            )));
+            eval params.strong_color((&c)
+                icon.borrow().as_ref().map(|icon| icon.strong_color.set(c.into()))
+            );
+            eval params.weak_color((&c)
+                icon.borrow().as_ref().map(|icon| icon.weak_color.set(c.into()))
+            );
         }
 
         Self { display_object, logger, icon, icon_id, params: params.clone_ref() }
@@ -135,6 +124,25 @@ impl list_view::Entry for Icon {
 }
 
 
+// === IconParams ===
+
+#[derive(Clone, CloneRef, Debug)]
+pub struct Params {
+    pub strong_color: frp::Sampler<color::Rgba>,
+    pub weak_color:   frp::Sampler<color::Rgba>,
+}
+
+impl Default for Params {
+    fn default() -> Self {
+        let network = frp::Network::new("searcher_list_panel::navigator::Params::default");
+        frp::extend! { network
+            default_color <- source::<color::Rgba>().sampler();
+        }
+        Self { strong_color: default_color.clone_ref(), weak_color: default_color.clone_ref() }
+    }
+}
+
+
 
 // =================
 // === Navigator ===
@@ -143,6 +151,8 @@ impl list_view::Entry for Icon {
 
 // === Section enum ===
 
+/// Three sections of the Searcher List Panel. See the [Component Browser Design
+// //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 #[derive(Debug, Copy, Clone)]
 pub enum Section {
     SubModules,
@@ -159,7 +169,12 @@ impl Default for Section {
 
 // === Navigator ===
 
-/// TODO: docs
+/// A section navigator bar. Contains two sets of buttons placed on the left of the Searcher List
+/// Panel.
+///
+/// The first set on top of the bar contains "Libraries" and "Marketplace" buttons. The second
+/// set on the bottom contains section navigation buttons used to quickly scroll to a specific
+/// section.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Navigator {
     display_object:     display::object::Instance,
@@ -177,18 +192,14 @@ impl Navigator {
         let display_object = display::object::Instance::new(&app.logger);
         let top_buttons = app.new_view::<list_view::ListView<Icon>>();
         let bottom_buttons = app.new_view::<list_view::ListView<Icon>>();
-        top_buttons.set_background_color(HOVER_COLOR);
-        bottom_buttons.set_background_color(HOVER_COLOR);
+        top_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
+        bottom_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
         top_buttons.show_background_shadow(false);
         bottom_buttons.show_background_shadow(false);
-        top_buttons.resize(Vector2(39.0, list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32));
-        bottom_buttons
-            .resize(Vector2(39.0, list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32));
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
+        // Top buttons are disabled at the moment.
         top_buttons.hide_selection();
-        top_buttons.set_style_prefix(list_panel_theme::navigator::HERE.str);
-        bottom_buttons.set_style_prefix(list_panel_theme::navigator::HERE.str);
 
         top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
         bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
@@ -213,17 +224,23 @@ impl Navigator {
     }
 
     pub(crate) fn update_layout(&self, style: Style) {
+        let list_view_width = style.navigator.list_view_width;
+        let top_buttons_height = list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32;
+        let bottom_buttons_height = list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32;
+        self.top_buttons.resize(Vector2(list_view_width, top_buttons_height));
+        self.bottom_buttons.resize(Vector2(list_view_width, bottom_buttons_height));
+
         let top = style.navigator.size.y / 2.0;
         let bottom = -style.navigator.size.y / 2.0;
         let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
         let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        let top_padding = -3.0;
-        let bottom_padding = 7.0;
+        let top_padding = style.navigator.top_padding;
+        let bottom_padding = style.navigator.bottom_padding;
         let x_pos = -style.content.size.x / 2.0 - style.navigator.size.x / 2.0;
-        self.top_buttons
-            .set_position_xy(Vector2(x_pos, top - top_buttons_height / 2.0 - top_padding));
-        self.bottom_buttons
-            .set_position_xy(Vector2(x_pos, bottom + bottom_buttons_height / 2.0 + bottom_padding));
+        let top_buttons_y = top - top_buttons_height / 2.0 - top_padding;
+        let bottom_buttons_y = bottom + bottom_buttons_height / 2.0 + bottom_padding;
+        self.top_buttons.set_position_xy(Vector2(x_pos, top_buttons_y));
+        self.bottom_buttons.set_position_xy(Vector2(x_pos, bottom_buttons_y));
     }
 }
 
