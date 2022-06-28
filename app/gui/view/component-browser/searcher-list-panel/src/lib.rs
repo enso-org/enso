@@ -24,6 +24,7 @@
 #![feature(trace_macros)]
 #![feature(const_trait_impl)]
 #![feature(slice_as_chunks)]
+#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -42,11 +43,16 @@
 
 
 pub mod column_grid;
+mod navigator;
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use crate::component_group::icon;
+use crate::navigator::navigator_shadow;
+use crate::navigator::Navigator;
+use crate::navigator::NavigatorStyle;
+use crate::navigator::Section;
 pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
@@ -130,17 +136,13 @@ struct Style {
 
 impl Style {
     fn size_inner(&self) -> Vector2 {
-        let width = self.content.size.x + self.navigator.width;
+        let width = self.content.size.x + self.navigator.size.x;
         let height = self.content.size.y + self.menu.height;
         Vector2::new(width, height)
     }
 
     fn size(&self) -> Vector2 {
         self.size_inner().map(|value| value + 2.0 * SHADOW_PADDING)
-    }
-
-    fn navigator_size(&self) -> Vector2 {
-        self.size_inner() + Vector2(self.navigator.width, 0.0)
     }
 
     fn menu_divider_y_pos(&self) -> f32 {
@@ -199,12 +201,6 @@ struct MenuStyle {
     divider_height: f32,
     /// Color used for the Divider.
     divider_color:  color::Rgba,
-}
-
-#[derive(Clone, Debug, Default)]
-struct NavigatorStyle {
-    width:  f32,
-    height: f32,
 }
 
 impl Style {
@@ -299,8 +295,7 @@ impl Style {
             navigator_layout_data <- all4(&init, &navigator_width, &content_height, &menu_height);
             navigator_layout <- navigator_layout_data.map(|(_,width,content_height,menu_height)| {
                 NavigatorStyle {
-                    width: *width,
-                    height: *content_height + *menu_height,
+                    size: Vector2(*width, *content_height + *menu_height),
                 }
             });
 
@@ -374,25 +369,6 @@ mod background {
     }
 }
 
-mod section_navigator_shadow {
-    use super::*;
-
-    ensogl_core::define_shape_system! {
-        above = [background];
-        (style:Style) {
-            let theme_path: style::Path = list_panel_theme::HERE.into();
-            let content_height = style.get_number(theme_path.sub("content_height"));
-            let menu_height = style.get_number(theme_path.sub("menu_height"));
-            let navigator_width = style.get_number(theme_path.sub("section_navigator_width"));
-            let height = content_height + menu_height;
-            let width = navigator_width;
-            let base_shape = Rect((width.px(), height.px() * 2.0)).translate_x(width.px());
-            let shadow = shadow::from_shape(base_shape.into(), style);
-            shadow.into()
-        }
-    }
-}
-
 mod hline {
     use super::*;
 
@@ -409,127 +385,6 @@ mod hline {
     }
 }
 
-#[derive(Debug, Clone, CloneRef)]
-struct Icon {
-    display_object: display::object::Instance,
-    logger:         Logger,
-    icon:           Rc<RefCell<Option<icon::Any>>>,
-}
-
-impl display::Object for Icon {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-impl list_view::Entry for Icon {
-    type Model = icon::Id;
-    type Params = ();
-
-    fn new(app: &Application, style_prefix: &Path, params: &Self::Params) -> Self {
-        let logger = app.logger.sub("NavigatorIcon");
-        let display_object = display::object::Instance::new(&logger);
-        let icon = default();
-        Self { display_object, logger, icon }
-    }
-
-    fn update(&self, model: &Self::Model) {
-        // todo: cache icon?
-        let size = Vector2(icon::SIZE, icon::SIZE);
-        let icon = model.create_shape(&self.logger, size);
-        icon.strong_color.set(color::Rgba::black().into());
-        self.display_object.add_child(&icon);
-        *self.icon.borrow_mut() = Some(icon);
-    }
-
-    fn set_max_width(&self, max_width_px: f32) {}
-
-    fn set_label_layer(&self, label_layer: &Layer) {}
-}
-
-#[derive(Debug, Copy, Clone)]
-enum Section {
-    SubModules,
-    LocalScope,
-    Favourites,
-}
-
-impl Default for Section {
-    fn default() -> Self {
-        Section::Favourites
-    }
-}
-
-/// TODO: docs
-#[derive(Debug, Clone, CloneRef)]
-pub struct Navigator {
-    display_object: display::object::Instance,
-    network:        frp::Network,
-    bottom_buttons: list_view::ListView<Icon>,
-    top_buttons:    list_view::ListView<Icon>,
-    chosen_section: frp::Source<Option<Section>>,
-}
-
-const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
-const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::LocalScope, icon::Id::Star];
-
-impl Navigator {
-    pub fn new(app: &Application) -> Self {
-        let display_object = display::object::Instance::new(&app.logger);
-        let top_buttons = app.new_view::<list_view::ListView<Icon>>();
-        let bottom_buttons = app.new_view::<list_view::ListView<Icon>>();
-        top_buttons.set_background_color(HOVER_COLOR);
-        bottom_buttons.set_background_color(HOVER_COLOR);
-        top_buttons.show_background_shadow(false);
-        bottom_buttons.show_background_shadow(false);
-        top_buttons.resize(Vector2(39.0, list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32));
-        bottom_buttons
-            .resize(Vector2(39.0, list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32));
-        display_object.add_child(&top_buttons);
-        display_object.add_child(&bottom_buttons);
-        top_buttons.hide_selection();
-        top_buttons.set_style_prefix(list_panel_theme::navigator::HERE.str);
-        bottom_buttons.set_style_prefix(list_panel_theme::navigator::HERE.str);
-
-        top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
-        bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
-
-        let network = frp::Network::new("ComponentBrowser.Navigator");
-        frp::extend! { network
-            chosen_section <- source();
-            eval bottom_buttons.chosen_entry([chosen_section](id) match id {
-                Some(0) => chosen_section.emit(Some(Section::SubModules)),
-                Some(1) => chosen_section.emit(Some(Section::LocalScope)),
-                Some(2) => chosen_section.emit(Some(Section::Favourites)),
-                _ => {}
-            });
-        }
-        bottom_buttons.select_entry(Some(2));
-
-        Self { display_object, top_buttons, bottom_buttons, network, chosen_section }
-    }
-
-    fn update_layout(&self, style: Style) {
-        let top = style.navigator.height / 2.0;
-        let bottom = -style.navigator.height / 2.0;
-        let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        let top_padding = -3.0;
-        let bottom_padding = 7.0;
-        let x_pos = -style.content.size.x / 2.0 - style.navigator.width / 2.0;
-        self.top_buttons
-            .set_position_xy(Vector2(x_pos, top - top_buttons_height / 2.0 - top_padding));
-        self.bottom_buttons
-            .set_position_xy(Vector2(x_pos, bottom + bottom_buttons_height / 2.0 + bottom_padding));
-    }
-}
-
-impl display::Object for Navigator {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
 
 
 // =============
@@ -539,18 +394,18 @@ impl display::Object for Navigator {
 /// The Model of Select Component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    app: Application,
-    logger: Logger,
-    display_object: display::object::Instance,
-    background: background::View,
+    app:                 Application,
+    logger:              Logger,
+    display_object:      display::object::Instance,
+    background:          background::View,
     // FIXME[TODO]: this should be embedded into a background shape
-    section_navigator_shadow: section_navigator_shadow::View,
-    scroll_area: ScrollArea,
-    favourites_section: ColumnSection,
+    navigator_shadow:    navigator_shadow::View,
+    scroll_area:         ScrollArea,
+    favourites_section:  ColumnSection,
     local_scope_section: WideSection,
     sub_modules_section: ColumnSection,
-    section_navigator: Navigator,
-    layers: Layers,
+    section_navigator:   Navigator,
+    layers:              Layers,
 }
 
 impl Model {
@@ -562,9 +417,9 @@ impl Model {
         let background = background::View::new(&logger);
         display_object.add_child(&background);
         app.display.default_scene.layers.below_main.add_exclusive(&background);
-        let section_navigator_shadow = section_navigator_shadow::View::new(&logger);
-        display_object.add_child(&section_navigator_shadow);
-        app.display.default_scene.layers.below_main.add_exclusive(&section_navigator_shadow);
+        let navigator_shadow = navigator_shadow::View::new(&logger);
+        display_object.add_child(&navigator_shadow);
+        app.display.default_scene.layers.below_main.add_exclusive(&navigator_shadow);
 
         let favourites_section = Self::init_column_section(&app);
         let local_scope_section = Self::init_wide_section(&app);
@@ -593,7 +448,7 @@ impl Model {
             app,
             display_object,
             background,
-            section_navigator_shadow,
+            navigator_shadow,
             scroll_area,
             favourites_section,
             local_scope_section,
@@ -622,13 +477,13 @@ impl Model {
 
         self.background.bg_color.set(style.content.background_color.into());
         self.background.size.set(style.size());
-        self.background.set_position_x(-style.navigator.width / 2.0);
+        self.background.set_position_x(-style.navigator.size.x / 2.0);
         self.section_navigator.update_layout(style.clone());
 
-        self.section_navigator_shadow
-            .set_position_x(-style.content.size.x / 2.0 - style.navigator.width / 2.0);
-        let section_navigator_shadow_size = Vector2(style.navigator.width, style.size_inner().y);
-        self.section_navigator_shadow.size.set(section_navigator_shadow_size);
+        self.navigator_shadow
+            .set_position_x(-style.content.size.x / 2.0 - style.navigator.size.x / 2.0);
+        let section_navigator_shadow_size = Vector2(style.navigator.size.x, style.size_inner().y);
+        self.navigator_shadow.size.set(section_navigator_shadow_size);
 
         let local_scope_content = &self.local_scope_section.content;
         local_scope_content.set_position_x(style.content.padding + style.content.size.x / 2.0);
@@ -674,7 +529,7 @@ impl Model {
         let sub_modules_height = self.sub_modules_section.height(style);
         let favourites_section_height = self.favourites_section.height(style);
         let local_scope_height = self.local_scope_section.height(style);
-        use Section::*;
+        use crate::navigator::Section::*;
         let target_y = match section {
             SubModules => sub_modules_height,
             LocalScope => sub_modules_height + local_scope_height,
@@ -876,6 +731,14 @@ impl component::Frp<Model> for Frp {
             chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
             show_section <- all(&chosen_section, &layout_update);
             eval show_section(((section, layout)) model.show_section(*section, layout));
+
+
+            // === Navigator icons colors ===
+
+            let strong_color = style.get_color(list_panel_theme::navigator::icon_strong_color);
+            let weak_color = style.get_color(list_panel_theme::navigator::icon_weak_color);
+            let params = navigator::Params { strong_color, weak_color };
+            model.section_navigator.set_bottom_buttons_entry_params(params);
         }
         init_layout.emit(())
     }

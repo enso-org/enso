@@ -211,6 +211,8 @@ define_themes! { [light:0, dark:1]
                             padding = 14.5, 14.5;
                         }
                         padding = 5.0, 5.0;
+                        icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                        icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
                     }
 
                     favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);

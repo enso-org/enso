@@ -106,7 +106,7 @@ crate::define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let dot = Circle(2.0.px());
-                let outer = (Circle(6.5.px()) - Circle(5.5.px()));
+                let outer = Circle(6.5.px()) - Circle(5.5.px());
                 let shape = dot + outer;
                 let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -115,8 +115,7 @@ crate::define_icons! {
         }
     }
 
-    /// Sub-modules section button. Three rectangles placed behind each other with
-    /// perspective.
+    /// Sub-modules section button. Three rectangles placed behind each other with perspective.
     pub mod sub_modules(SubModules) {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
