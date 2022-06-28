@@ -67,7 +67,7 @@ type PostgreSQL
     dialect = Dialect.postgres
 
     ## PRIVATE - static
-       Read the .pgpass file from the User's home directoy and obtain username
+       Read the .pgpass file from the User's home directory and obtain username
        and password. https://www.postgresql.org/docs/current/libpq-pgpass.html
 
        Arguments:
