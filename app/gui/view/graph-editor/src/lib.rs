@@ -1624,16 +1624,18 @@ impl GraphEditorModelWithNetwork {
 
             first_update_of_node_pos <- node.output.position.count().filter(|i| *i==1);
             let node_bbox = &node.output.bounding_box;
-            node_bbox_on_first_pos_update <- first_update_of_node_pos.map2(node_bbox, |_, b| *b);
+            node_bbox_after_first_update <- first_update_of_node_pos.map2(node_bbox, |_, b| *b);
+            // bbox_of_edited_node <- node_bbox_after_first_update.gate(&self.model.node_editing);
+            bbox_of_edited_node <- node_bbox_after_first_update.gate(&self.frp.node_editing);
             use theme::graph_editor::camera_pan_margin_around_node as pan_margin;
-            eval node_bbox_on_first_pos_update([model](bbox)
+            eval bbox_of_edited_node([model](bbox)
                 let mut bbox_with_margins = *bbox;
                 let styles = &model.styles_frp;
                 bbox_with_margins.grow_x(2.0 * styles.get_number(pan_margin::horizontal).value());
                 bbox_with_margins.grow_y(2.0 * styles.get_number(pan_margin::vertical).value());
                 model.pan_camera_to_rectangle(bbox_with_margins)
             );
-            trace node_bbox_on_first_pos_update;
+            trace bbox_of_edited_node;
 
             // first_update_of_node_pos <- node_pos_update_count.filter(|i| *i==1);
             // node_pos_update_count <- node.output.position.count();
