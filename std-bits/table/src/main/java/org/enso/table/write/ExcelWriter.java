@@ -10,10 +10,25 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.function.Function;
 
 public class ExcelWriter {
+  private static final double SECONDS_IN_A_DAY = 86400.0;
+
+  private static Function<Object, Boolean> ensoToTextCallback;
+
+  public static Function<Object, Boolean> getEnsoToTextCallback() {
+    return ensoToTextCallback;
+  }
+
+  public static void getEnsoToTextCallback(Function<Object, Boolean> callback) {
+    ensoToTextCallback = callback;
+  }
+
   public static void writeTableToSheet(Workbook workbook, int sheetIndex, boolean replace, int firstRow, Table table, int rowLimit, boolean headers) {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
@@ -78,13 +93,28 @@ public class ExcelWriter {
       Row row = sheet.createRow(currentRow);
       for (int j = 0; j < columns.length; j++) {
         Storage storage = storages[i];
-        writeValueToCell(row.createCell(j), j, storage);
+        writeValueToCell(row.createCell(j), j, storage, workbook);
       }
       currentRow++;
     }
+
+    workbook.setForceFormulaRecalculation(true);
   }
 
-  private static void writeValueToCell(Cell cell, int j, Storage storage) {
+  private static CellStyle getDateTimeStyle(Workbook workbook, String format) {
+    for(int i = 0; i < workbook.getNumCellStyles(); i++) {
+      CellStyle style = workbook.getCellStyleAt(i);
+      if (style.getDataFormatString() == format) {
+        return style;
+      }
+    }
+
+    CellStyle newStyle = workbook.createCellStyle();
+    newStyle.setDataFormat(workbook.createDataFormat().getFormat(format));
+    return newStyle;
+  }
+
+  public static void writeValueToCell(Cell cell, int j, Storage storage, Workbook workbook) {
     if (storage.isNa(j)) {
       cell.setBlank();
     } else if (storage instanceof DoubleStorage doubleStorage) {
@@ -99,9 +129,22 @@ public class ExcelWriter {
         case String s -> cell.setCellValue(s);
         case LocalDateTime ldt -> {
           cell.setCellValue(ldt);
+          cell.setCellStyle(getDateTimeStyle(workbook, "yyyy-MM-dd HH:mm:ss"));
+        }
+        case LocalDate ld -> {
+          cell.setCellValue(ld);
+          cell.setCellStyle(getDateTimeStyle(workbook, "yyyy-MM-dd"));
+        }
+        case LocalTime lt -> {
+          cell.setCellValue(lt.toSecondOfDay() / SECONDS_IN_A_DAY);
+          cell.setCellStyle(getDateTimeStyle(workbook, "HH:mm:ss"));
         }
         default -> {
-          // Callback to Enso.
+          if (ensoToTextCallback != null) {
+            cell.setCellValue(ensoToTextCallback.apply(value));
+          } else {
+            throw new IllegalArgumentException("Enso to text callback is not set. Unable to process value.");
+          }
         }
       }
     }

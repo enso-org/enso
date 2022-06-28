@@ -104,8 +104,7 @@ type Excel_Range
     ## Creates a Range from an address.
     from_address : Text -> Excel_Range
     from_address address =
-        Panic.catch IllegalArgumentException (Excel_Range (Java_Range.new address)) caught_panic->
-            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage caught_panic.payload.cause)
+        here.handle_illegal_argument <| (Excel_Range (Java_Range.new address))
 
     ## Create a Range for a single cell.
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
@@ -194,41 +193,28 @@ read_excel file section headers on_problems xls_format=False =
 
 write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Problem_Behavior -> Boolean
 write_excel file table on_existing_file section headers on_problems xls_format=False =
-    current_workbook = if output_file.exists.not then ExcelWriter.createWorkbook xls_format else
-        File.handle_java_exceptions file <| here.handle_bad_argument <|
-            file.with_input_stream [File.Option.Read] stream-> <|
-                ExcelReader.getWorkbook stream xls_format
+    if on_existing_file == Existing_File_Behavior.Append then Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet." else
+        ## Read Existing Workbook
+        current_workbook = if output_file.exists.not then ExcelWriter.createWorkbook xls_format else
+            File.handle_java_exceptions file <| here.handle_bad_argument <|
+                file.with_input_stream [File.Option.Read] stream-> <|
+                    ExcelReader.getWorkbook stream xls_format
 
-    replace = on_existing_file == Existing_File_Behavior.Overwrite || on_existing_file == Existing_File_Behavior.Backup
+        ## Update the workbook
+        replace = on_existing_file == Existing_File_Behavior.Overwrite || on_existing_file == Existing_File_Behavior.Backup
+        if ExcelWriter.getEnsoToTextCallback == Nothing then ExcelWriter.getEnsoToTextCallback (.to_text)
+        result = handle_illegal_argument <| case section of
+            Sheet sheet skip_rows row_limit ->
+                here.prepare_reader_table on_problems <| case sheet of
+                    Integer -> ExcelReader.writeTableToSheetByIndex workbook sheet replace False skip_rows table row_limit
+                    Text -> ExcelReader.writeTableToSheetByName workbook sheet replace False skip_rows table row_limit
+            _ -> Errors.unimplemented "Not implemented yet."
 
-    ## Update the workbook
-    case section of
-        Sheet sheet skip_rows row_limit ->
-            here.prepare_reader_table on_problems <| case sheet of
-                Integer -> ExcelReader.writeTableToSheetByIndex workbook sheet replace False skip_rows table row_limit
-                Text -> ExcelReader.writeTableToSheetByName workbook sheet replace False skip_rows table row_limit
-        _ -> Errors.unimplemented "Not implemented yet."
-
-    ## For Excel, the behaviour for existing files is custom
-    output_file = case on_existing_file of
-        Existing_File_Behavior.Append ->
-            Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet."
-        Existing_File_Behavior.Backup -> if file.exists then copy_existing_file_to_new file else file
-        _ -> file
-
-
-## Copy to new file
-copy_existing_file_to_new : File
-copy_existing_file_to_new file =
-    parent = file.parent
-    go i =
-        new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text
-        new_file = parent / new_name
-        if new_file.exists then go (i+1) else new_file
-
-    copy_file = go 0
-    file.copy_to copy_file
-    copy_file
+        ## Write output
+        if result.is_error.not then
+            on_existing_file.write file stream->
+                stream.with_java_stream java_stream->
+                    workbook.write java_stream
 
 ## PRIVATE
 prepare_reader_table : Problem_Behavior -> Any -> Table
@@ -252,3 +238,8 @@ make_java_headers headers = case headers of
 handle_bad_format ~action =
     bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
     Panic.catch UnsupportedFileFormatException handler=bad_format action
+
+## PRIVATE
+handle_illegal_argument ~action =
+    illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
+    Panic.catch IllegalArgumentException handler=illegal_argument action action

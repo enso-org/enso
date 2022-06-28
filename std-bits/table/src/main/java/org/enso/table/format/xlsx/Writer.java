@@ -8,6 +8,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.table.Table;
 import org.enso.table.format.util.FileSplitter;
+import org.enso.table.write.ExcelWriter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -178,11 +179,7 @@ public class Writer {
       for (int j = 0; j < columns.size(); j++) {
         var cell = row.createCell(startCol + j);
         var storage = columns.get(j).getStorage();
-        if (storage.isNa(startRecord + i)) {
-          cell.setBlank();
-        } else {
-          storage.writeSpreadsheetCell(startRecord + i, cell, writeCell);
-        }
+        ExcelWriter.writeValueToCell(cell, j, storage, sheet.getWorkbook());
       }
     }
   }
