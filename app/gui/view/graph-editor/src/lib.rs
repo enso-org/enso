@@ -1657,57 +1657,6 @@ impl GraphEditorModelWithNetwork {
         self.nodes.insert(node_id, node.clone_ref());
         node
     }
-
-    fn pan_to_node(&self, node_id: impl Into<NodeId>) {
-        use ensogl::display::navigation::navigator::PanEvent;
-        let node_id = node_id.into();
-        let scene = &self.app.display.default_scene;
-        let screen_size_halved = Vector2::from(scene.camera().screen()) / 2.0;
-        DEBUG!("MCDBG screen_size_halved=" screen_size_halved;?);
-        // TODO: is 0 as `z` coord. correct here?
-        let screen_to_scene_vec2 = |pos: Vector2|
-            scene.screen_to_scene_coordinates(Vector3(pos.x, pos.y, 0.0)).xy();
-        // TODO: make sure the corners respect camera's "origin" point, which may not be at center;
-        // though, the `alignment` described in Camera2dData does not seem present in the struct.
-        let screen_corner_max = screen_to_scene_vec2(screen_size_halved);
-        let screen_corner_min = screen_to_scene_vec2(-screen_size_halved);
-        let screen_bbox = selection::BoundingBox::from_corners(screen_corner_min, screen_corner_max);
-        DEBUG!("MCDBG  screen bbox = " screen_bbox;?);
-        // let screen_size_halved: Vector2 = &scene.camera().screen().into() / 2.0;
-        // let screen_corner_1
-        // let screen_corner_2
-                // let (w, h) = (camera.screen().width, camera.screen().height);
-                // // let corner = camera.position().xy() + Vector2(w, h)/2.0;
-                // let corner = Vector2(w, h)/2.0;
-                // let corner = Vector3(corner.x, corner.y, 0.0);
-                // let corner = scn.screen_to_scene_coordinates(corner.into());
-        let node = self.nodes.get_cloned_ref(&node_id);
-        let node_pos = node.map(|n| n.position().xy()).unwrap_or_default();
-        let node_bbox = selection::BoundingBox::from_corners(node_pos, node_pos);
-        // let node_size = node.map(|n| node.size().
-        // let node_pos_tmp = self.node_position(node_id);
-        // let node_bbox = selection::BoundingBox::from_corners(node_pos_tmp, node_pos_tmp);
-        // let node_bbox = self.node_bounding_box(node_id);
-        // FIXME: add a predefined margin around node_bbox - see Design Doc
-        let pan_y = if node_bbox.top() > screen_bbox.top() {
-            Some(node_bbox.top() - screen_bbox.top())
-        } else if node_bbox.bottom() < screen_bbox.bottom() {
-            Some(node_bbox.bottom() - screen_bbox.bottom())
-        } else {
-            None
-        };
-        let pan_x = if node_bbox.left() < screen_bbox.left() {
-            Some(node_bbox.left() - screen_bbox.left())
-        } else if node_bbox.right() > screen_bbox.right() {
-            Some(node_bbox.right() - screen_bbox.right())
-        } else {
-            None
-        };
-        let pan = PanEvent::new(Vector2(-pan_x.unwrap_or_default(), -pan_y.unwrap_or_default()));
-        DEBUG!("MCDBG  node bbox = " node_bbox;?);
-        DEBUG!("MCDBG  pan = " pan;?);
-        self.navigator.emit_pan_event(pan);
-    }
 }
 
 
@@ -2972,7 +2921,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             };
             model.create_node(&ctx, way, *mouse_pos)
         }));
-        // _eval <- new_node.map(f!([model] ((id, _, _)) model.pan_to_node(id)));
         out.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
     }
