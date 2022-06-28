@@ -23,11 +23,11 @@ public abstract class IfThenNode extends Node {
     return IfThenNodeGen.create();
   }
 
-  abstract Stateful execute(@MonadicState Object state, boolean _this, @Suspend Object if_true);
+  abstract Stateful execute(@MonadicState Object state, boolean self, @Suspend Object if_true);
 
   @Specialization
-  Stateful doExecute(Object state, boolean _this, Object if_true) {
-    if (condProfile.profile(_this)) {
+  Stateful doExecute(Object state, boolean self, Object if_true) {
+    if (condProfile.profile(self)) {
       return leftThunkExecutorNode.executeThunk(if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
     } else {
       return new Stateful(state, Context.get(this).getNothing().newInstance());

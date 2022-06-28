@@ -8,8 +8,6 @@ import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.NodeUtil;
-import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -20,7 +18,6 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.UUID;
-import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 

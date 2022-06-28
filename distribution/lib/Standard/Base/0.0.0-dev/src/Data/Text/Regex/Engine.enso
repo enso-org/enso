@@ -66,10 +66,10 @@ type Pattern
 
     ## PRIVATE
 
-       Tries to match the provided `input` against the pattern `this`.
+       Tries to match the provided `input` against the pattern `self`.
 
        Arguments:
-       - input: The text to match the pattern described by `this` against.
+       - input: The text to match the pattern described by `self` against.
        - mode: The matching mode to use. This must default to `Mode.All`.
 
        This method will _always_ return `Nothing` if it fails to match.
@@ -85,7 +85,7 @@ type Pattern
     ## PRIVATE
 
        Returns `True` if the input matches against the pattern described by
-       `this`, otherwise `False`.
+       `self`, otherwise `False`.
 
        Arguments:
        - input: The text to check for matching.
@@ -95,7 +95,7 @@ type Pattern
     ## PRIVATE
 
        Tries to find the text in the `input` that matches against the pattern
-       `this`.
+       `self`.
 
        Arguments:
        - input: The text to find matches in.
@@ -114,10 +114,10 @@ type Pattern
 
     ## PRIVATE
 
-       Splits the `input` text based on the pattern described by `this`.
+       Splits the `input` text based on the pattern described by `self`.
 
        Arguments:
-       - input: The text to splut based on the pattern described by `this`.
+       - input: The text to splut based on the pattern described by `self`.
        - mode: The splitting mode to use. This must default to `Mode.All`.
 
        This method will _always_ return a vector. If no splits take place, the
@@ -127,7 +127,7 @@ type Pattern
 
     ## PRIVATE
 
-       Replace all occurrences of the pattern described by `this` in the `input`
+       Replace all occurrences of the pattern described by `self` in the `input`
        with the specified `replacement`.
 
        Arguments:

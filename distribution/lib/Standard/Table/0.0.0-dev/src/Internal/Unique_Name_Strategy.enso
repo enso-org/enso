@@ -29,12 +29,12 @@ type Unique_Name_Strategy
 
     ## Vector of any duplicates renamed
     renames : Vector
-    renames = Vector.Vector this.deduplicator.getDuplicatedNames
+    renames = Vector.Vector self.deduplicator.getDuplicatedNames
 
 
     ## Vector of any invalid names
     invalid_names : Vector
-    invalid_names = Vector.Vector this.deduplicator.getInvalidNames
+    invalid_names = Vector.Vector self.deduplicator.getInvalidNames
 
 
     ## Takes a value and converts to a valid (but not necessarily unique) name
@@ -50,9 +50,9 @@ type Unique_Name_Strategy
     make_valid_name : Any -> Text
     make_valid_name input =
         case input of
-            Text -> this.deduplicator.makeValid input
-            Nothing -> this.make_valid_name ""
-            _ -> this.make_valid_name input.to_text
+            Text -> self.deduplicator.makeValid input
+            Nothing -> self.make_valid_name ""
+            _ -> self.make_valid_name input.to_text
 
 
     ## Takes a name and gets a unique version
@@ -65,4 +65,4 @@ type Unique_Name_Strategy
              strategy.make_unique "A" # returns "A"
              strategy.make_unique "A" # returns "A_1"
     make_unique : Text -> Text
-    make_unique name = this.deduplicator.makeUnique name
+    make_unique name = self.deduplicator.makeUnique name

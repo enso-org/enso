@@ -6,7 +6,7 @@ import org.enso.interpreter.runtime.data.Ref;
 
 @BuiltinMethod(type = "Special", name = "<read_ref>")
 public class ReadRefNode extends Node {
-  public Object execute(Ref _this) {
-    return _this.getValue();
+  public Object execute(Ref self) {
+    return self.getValue();
   }
 }

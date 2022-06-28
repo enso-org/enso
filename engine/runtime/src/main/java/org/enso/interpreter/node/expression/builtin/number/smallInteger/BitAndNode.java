@@ -16,31 +16,31 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class BitAndNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  abstract Object execute(Object _this, Object that);
+  abstract Object execute(Object self, Object that);
 
   static BitAndNode build() {
     return BitAndNodeGen.create();
   }
 
   @Specialization
-  long doLong(long _this, long that) {
-    return _this & that;
+  long doLong(long self, long that) {
+    return self & that;
   }
 
   @Specialization
-  Object doBigInteger(long _this, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.bitAnd(_this, that.getValue()));
+  Object doBigInteger(long self, EnsoBigInteger that) {
+    return toEnsoNumberNode.execute(BigIntegerOps.bitAnd(self, that.getValue()));
   }
 
   @Specialization
-  Object doAtomThis(Atom _this, Object that) {
+  Object doAtomThis(Atom self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(integer, _this, "this"), this);
+    throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
   }
 
   @Fallback
-  Object doOther(Object _this, Object that) {
+  Object doOther(Object self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);

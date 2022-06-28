@@ -168,7 +168,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -203,7 +203,8 @@ class RuntimeSuggestionUpdatesTest
               model.Range(model.Position(2, 6), model.Position(2, 32)),
               "\n    x = 42\n    IO.println x"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -232,7 +233,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -288,7 +289,8 @@ class RuntimeSuggestionUpdatesTest
               model.Range(model.Position(5, 15), model.Position(5, 16)),
               "x+y"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -318,7 +320,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -393,7 +395,8 @@ class RuntimeSuggestionUpdatesTest
               model.Range(model.Position(3, 10), model.Position(3, 10)),
               "\n    y : Number"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -424,7 +427,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -507,7 +510,8 @@ class RuntimeSuggestionUpdatesTest
               model.Range(model.Position(1, 0), model.Position(1, 0)),
               "\nfoo x = x * 10\n"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -540,7 +544,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -613,7 +617,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -650,7 +654,8 @@ class RuntimeSuggestionUpdatesTest
               model.Range(model.Position(2, 4), model.Position(2, 14)),
               "a b = a * b"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -683,7 +688,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -809,7 +814,7 @@ class RuntimeSuggestionUpdatesTest
                     Seq(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -851,7 +856,7 @@ class RuntimeSuggestionUpdatesTest
                     "overloaded",
                     Seq(
                       Suggestion.Argument(
-                        "this",
+                        "self",
                         ConstantsGen.TEXT,
                         false,
                         false,
@@ -878,7 +883,7 @@ class RuntimeSuggestionUpdatesTest
                     "overloaded",
                     Seq(
                       Suggestion.Argument(
-                        "this",
+                        "self",
                         ConstantsGen.NUMBER,
                         false,
                         false,
@@ -1010,7 +1015,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.A.MkA",
                           false,
                           false,
@@ -1035,7 +1040,7 @@ class RuntimeSuggestionUpdatesTest
                     "fortytwo",
                     List(
                       Suggestion.Argument(
-                        "this",
+                        "self",
                         ConstantsGen.INTEGER,
                         false,
                         false,
@@ -1060,7 +1065,7 @@ class RuntimeSuggestionUpdatesTest
                     "hello",
                     List(
                       Suggestion.Argument(
-                        "this",
+                        "self",
                         "Enso_Test.Test.A",
                         false,
                         false,
@@ -1121,7 +1126,7 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument(
-                          "this",
+                          "self",
                           "Enso_Test.Test.Main",
                           false,
                           false,
@@ -1156,7 +1161,8 @@ class RuntimeSuggestionUpdatesTest
               model.Range(model.Position(3, 32), model.Position(3, 32)),
               " hiding hello"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1200,7 +1206,8 @@ class RuntimeSuggestionUpdatesTest
               model.Range(model.Position(2, 0), model.Position(5, 0)),
               ""
             )
-          )
+          ),
+          execute = true
         )
       )
     )

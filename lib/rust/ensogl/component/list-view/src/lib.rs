@@ -163,7 +163,7 @@ pub mod overlay {
 
 /// Information about displayed fragment of entries list.
 #[derive(Copy, Clone, Debug, Default)]
-struct View {
+pub struct View {
     position_y: f32,
     size:       Vector2<f32>,
 }

@@ -1,0 +1,10 @@
+from Standard.Base import all
+
+fac : Number -> Number
+fac n =
+    facacc : Number -> Number -> Number
+    facacc n v = if n <= 1 then v else @Tail_Call facacc n-1 n*v
+
+    facacc n 1
+
+main = IO.println (here.fac 6)

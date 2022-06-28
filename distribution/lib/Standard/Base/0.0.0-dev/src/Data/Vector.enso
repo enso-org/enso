@@ -123,7 +123,7 @@ type Vector
 
              [1, 2, 3, 4].length
     length : Number
-    length = Polyglot.get_array_size this.to_array
+    length = Polyglot.get_array_size self.to_array
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -143,9 +143,9 @@ type Vector
              [1, 2, 3].at -1 == 3
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
-        actual_index = if index < 0 then this.length + index else index
-        Panic.catch Invalid_Array_Index_Error (this.unsafe_at actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error index this.length)
+        actual_index = if index < 0 then self.length + index else index
+        Panic.catch Invalid_Array_Index_Error (self.unsafe_at actual_index) _->
+            Error.throw (Index_Out_Of_Bounds_Error index self.length)
 
     ## ADVANCED
        UNSTABLE
@@ -156,7 +156,7 @@ type Vector
        bounds or with additional error handling.
     unsafe_at : Integer -> Any
     unsafe_at index =
-        this.to_array.at index
+        self.to_array.at index
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -176,9 +176,9 @@ type Vector
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold init function =
-        arr = this.to_array
+        arr = self.to_array
         f = acc -> ix -> function acc (arr.at ix)
-        0.up_to this.length . fold init f
+        0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -194,9 +194,9 @@ type Vector
              [0, 1, 2] . fold 0 (s->i->e->s+i+e)
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
     fold_with_index init function =
-        arr = this.to_array
+        arr = self.to_array
         f = acc -> ix -> function acc ix (arr.at ix)
-        0.up_to this.length . fold init f
+        0.up_to self.length . fold init f
 
     ## Combines all the elements of a non-empty vector using a binary operation.
 
@@ -211,11 +211,11 @@ type Vector
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any ! Empty_Error
     reduce function =
-        case this.not_empty of
-            True -> if this.length == 1 then this.unsafe_at 0 else
-                arr = this.to_array
+        case self.not_empty of
+            True -> if self.length == 1 then self.unsafe_at 0 else
+                arr = self.to_array
                 f = acc -> ix -> function acc (arr.at ix)
-                1.up_to this.length . fold (this.unsafe_at 0) f
+                1.up_to self.length . fold (self.unsafe_at 0) f
             False -> Error.throw Empty_Error
 
     ## Computes the sum of the values in the vector.
@@ -229,7 +229,7 @@ type Vector
              [0, 1, 2].sum
     sum : Any ! (Empty_Error | No_Such_Method_Error)
     sum =
-        result = Panic.recover Any <| this.reduce (+)
+        result = Panic.recover Any <| self.reduce (+)
         result.map_error x->case x of
             No_Such_Method_Error _ _ -> x
             Empty_Error -> x
@@ -248,7 +248,7 @@ type Vector
              [1, 2, 3, 4, 5].exists (> 3)
     exists : (Any -> Boolean) -> Boolean
     exists predicate =
-        0.up_to this.length . exists (idx -> (predicate (this.unsafe_at idx)))
+        0.up_to self.length . exists (idx -> (predicate (self.unsafe_at idx)))
 
     ## Returns the first element of the vector that satisfies the predicate or
        if no elements of the vector satisfy the predicate, it throws nothing.
@@ -264,15 +264,15 @@ type Vector
              [1, 2, 3, 4, 5].find (> 3)
     find : (Any -> Boolean) -> Any ! Nothing
     find predicate =
-        len = this.length
+        len = self.length
         go idx =
             if (idx >= len) then Error.throw Nothing else
-                elem = this.unsafe_at idx
+                elem = self.unsafe_at idx
                 if predicate elem then elem else
                     @Tail_Call go idx+1
         go 0
 
-    ## Checks whether a predicate holds for at least one element of this vector.
+    ## Checks whether a predicate holds for at least one element of self vector.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean
@@ -284,7 +284,7 @@ type Vector
 
              [1, 2, 3, 4, 5].any (> 3)
     any : (Any -> Boolean) -> Boolean
-    any predicate = this.exists predicate
+    any predicate = self.exists predicate
 
     ## Checks whether a predicate holds for all elements in this vector.
 
@@ -298,7 +298,7 @@ type Vector
 
              [-1, 1, 5, 8].all (< 0)
     all : (Any -> Boolean) -> Boolean
-    all predicate = this . exists (predicate >> .not) . not
+    all predicate = self . exists (predicate >> .not) . not
 
     ## Checks whether this vector contains a given value as an element.
 
@@ -310,7 +310,7 @@ type Vector
 
              [1, 383, 72, 301].contains 72
     contains : Any -> Boolean
-    contains elem = this.exists ix-> ix == elem
+    contains elem = self.exists ix-> ix == elem
 
     ## Checks if this vector is empty.
 
@@ -319,7 +319,7 @@ type Vector
 
              [].is_empty
     is_empty : Boolean
-    is_empty = this.length == 0
+    is_empty = self.length == 0
 
     ## Checks if this vector is not empty.
 
@@ -328,7 +328,7 @@ type Vector
 
              [1].not_empty
     not_empty : Boolean
-    not_empty = this.is_empty.not
+    not_empty = self.is_empty.not
 
     ## Selects all elements of this vector which satisfy a predicate.
 
@@ -343,7 +343,7 @@ type Vector
              [1, 2, 3, 4, 5].filter (> 3)
     filter : (Any -> Boolean) -> Vector Any
     filter predicate =
-        builder = this.fold here.new_builder builder-> elem->
+        builder = self.fold here.new_builder builder-> elem->
             if predicate elem then builder.append elem else builder
         builder.to_vector
 
@@ -360,7 +360,7 @@ type Vector
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index predicate =
-        builder = this.fold_with_index here.new_builder builder-> ix-> elem->
+        builder = self.fold_with_index here.new_builder builder-> ix-> elem->
             if predicate ix elem then builder.append elem else builder
         builder.to_vector
 
@@ -384,7 +384,7 @@ type Vector
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition predicate =
-        pair = this.fold (Pair here.new_builder here.new_builder) acc-> elem->
+        pair = self.fold (Pair here.new_builder here.new_builder) acc-> elem->
             case predicate elem of
                 True ->
                     Pair (acc.first.append elem) acc.second
@@ -412,7 +412,7 @@ type Vector
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index predicate =
-        pair = this.fold_with_index (Pair here.new_builder here.new_builder) acc-> ix-> elem->
+        pair = self.fold_with_index (Pair here.new_builder here.new_builder) acc-> ix-> elem->
             case predicate ix elem of
                 True -> Pair (acc.first.append elem) acc.second
                 False -> Pair acc.first (acc.second.append elem)
@@ -431,7 +431,7 @@ type Vector
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Vector Any
     map function =
-        here.new this.length i-> function (this.unsafe_at i)
+        here.new self.length i-> function (self.unsafe_at i)
 
     ## Applies a function to each element of the vector, returning the vector
        that contains all results concatenated.
@@ -446,7 +446,7 @@ type Vector
             [0, 1, 2] . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector Any) -> Vector Any
     flat_map function =
-        this.map function . flatten
+        self.map function . flatten
 
     ## Transforms a vector of vectors into a vector of inner elements - removes
        one layer of nesting from a stack of nested vectors.
@@ -457,9 +457,9 @@ type Vector
             [[1, 2, 3], [4, 10], [], [0], [0]] . flatten == [1, 2, 3, 4, 10, 0, 0]
     flatten : Vector Any
     flatten =
-        length = this.fold 0 acc-> elem-> acc + elem.length
+        length = self.fold 0 acc-> elem-> acc + elem.length
         arr = Array.new length
-        this.fold 0 i-> vec->
+        self.fold 0 i-> vec->
             Array.copy vec.to_array 0 arr i vec.length
             i + vec.length
         Vector arr
@@ -479,7 +479,7 @@ type Vector
 
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Vector Any
-    map_with_index function = here.new this.length i-> function i (this.unsafe_at i)
+    map_with_index function = here.new self.length i-> function i (self.unsafe_at i)
 
     ## Applies a function to each element of the vector.
 
@@ -495,8 +495,8 @@ type Vector
              [1, 2, 3, 4, 5] . each IO.println
     each : (Any -> Any) -> Nothing
     each f =
-        0.up_to this.length . each ix->
-            f (this.unsafe_at ix)
+        0.up_to self.length . each ix->
+            f (self.unsafe_at ix)
 
     ## Applies a function to each element of the vector.
 
@@ -515,8 +515,8 @@ type Vector
              [1, 2, 3, 4, 5] . each_with_index (ix->elem-> IO.println Pair ix elem)
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index f =
-        0.up_to this.length . each ix->
-            f ix (this.unsafe_at ix)
+        0.up_to self.length . each ix->
+            f ix (self.unsafe_at ix)
 
     ## Reverses the vector, returning a vector with the same elements, but in
        the opposite order.
@@ -526,7 +526,7 @@ type Vector
 
              [1, 2].reverse
     reverse : Vector Any
-    reverse = here.new this.length (i -> this.unsafe_at (this.length - (1 + i)))
+    reverse = here.new self.length (i -> self.unsafe_at (self.length - (1 + i)))
 
     ## Generates a human-readable text representation of the vector.
 
@@ -535,7 +535,7 @@ type Vector
 
              [1, 2, 3].to_text == "[1, 2, 3]"
     to_text : Text
-    to_text = this.map .to_text . join ", " "[" "]"
+    to_text = self.map .to_text . join ", " "[" "]"
 
     ## UNSTABLE
        Generates a human-readable text representation of the vector, keeping its
@@ -553,9 +553,9 @@ type Vector
     short_display_text : Integer -> Text
     short_display_text max_entries=10 =
         if max_entries < 1 then Error.throw <| Illegal_Argument_Error "The `max_entries` parameter must be positive." else
-            prefix = this.take_start max_entries
-            if prefix.length == this.length then this.to_text else
-                remaining_count = this.length - prefix.length
+            prefix = self.take_start max_entries
+            if prefix.length == self.length then self.to_text else
+                remaining_count = self.length - prefix.length
                 remaining_text = if remaining_count == 1 then "and 1 more element" else
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
@@ -574,14 +574,14 @@ type Vector
              [1, 2, 3] == [2, 3, 4]
     == : Vector -> Boolean
     == that =
-        eq_at i = this.unsafe_at i == that.unsafe_at i
-        if this.length == that.length then 0.up_to this.length . all eq_at else False
+        eq_at i = self.unsafe_at i == that.unsafe_at i
+        if self.length == that.length then 0.up_to self.length . all eq_at else False
 
     ## Concatenates two vectors, resulting in a new vector, containing all the
-       elements of `this`, followed by all the elements of `that`.
+       elements of `self`, followed by all the elements of `that`.
 
        Arguments:
-       - that: The vector to concatenate to the end of `this`.
+       - that: The vector to concatenate to the end of `self`.
 
        > Example
          Concatenate two single-element vectors.
@@ -589,13 +589,13 @@ type Vector
              [1] + [2]
     + : Vector Any -> Vector Any
     + that =
-        this_len = this.length
-        arr = Array.new (this_len + that.length)
-        Array.copy this.to_array 0 arr 0 this_len
-        Array.copy that.to_array 0 arr this_len that.length
+        self_len = self.length
+        arr = Array.new (self_len + that.length)
+        Array.copy self.to_array 0 arr 0 self_len
+        Array.copy that.to_array 0 arr self_len that.length
         Vector arr
 
-    ## Add `element` to the beginning of `this` vector.
+    ## Add `element` to the beginning of `self` vector.
 
        Arguments:
        - `element`: An element to add to this vector.
@@ -605,9 +605,9 @@ type Vector
 
              [2, 3].prepend 1
     prepend : Any -> Vector Any
-    prepend element = [element] + this
+    prepend element = [element] + self
 
-    ## Add `element` to the end of `this` vector.
+    ## Add `element` to the end of `self` vector.
 
        Arguments:
        - `element`: An element to add to this vector.
@@ -617,9 +617,9 @@ type Vector
 
              [1, 2].append 3
     append : Any -> Vector Any
-    append element = this + [element]
+    append element = self + [element]
 
-    ## When `this` is a vector of text values, concatenates all the values by
+    ## When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
 
        Arguments:
@@ -633,9 +633,9 @@ type Vector
              ["foo", "bar", "baz"].join ", "
     join : Text -> Text
     join separator="" prefix="" suffix="" =
-        if this.is_empty then prefix+suffix else
-            if this.length == 1 then prefix + this.unsafe_at 0 + suffix else
-                prefix + this.unsafe_at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.unsafe_at i) + suffix
+        if self.is_empty then prefix+suffix else
+            if self.length == 1 then prefix + self.unsafe_at 0 + suffix else
+                prefix + self.unsafe_at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.unsafe_at i) + suffix
 
     ## Creates a new vector with the skipping elements until `start` and then
        continuing until `end` index.
@@ -651,25 +651,25 @@ type Vector
     take : Integer -> Integer -> Vector Any
     take start end =
         slice_start = Math.max 0 start
-        slice_end = Math.min this.length end
+        slice_end = Math.min self.length end
         if slice_start >= slice_end then Vector (Array.new 0) else
-            if (slice_start == 0) && (slice_end == this.length) then this else
+            if (slice_start == 0) && (slice_end == self.length) then self else
                 len = slice_end - slice_start
                 arr = Array.new len
-                Array.copy this.to_array slice_start arr 0 len
+                Array.copy self.to_array slice_start arr 0 len
                 Vector arr
 
-    ## Creates a new vector with the first `count` elements in `this` removed.
+    ## Creates a new vector with the first `count` elements in `self` removed.
 
        Arguments:
-       - count: The number of elements to drop from the start of `this`.
+       - count: The number of elements to drop from the start of `self`.
 
        > Example
          Remove the first element from the start of the vector.
 
              [1, 2, 3, 4, 5].drop_start 1
     drop_start : Integer -> Vector Any
-    drop_start count = this.take count this.length
+    drop_start count = self.take count self.length
 
     ## Creates a new vector with elements at the beginning of the vector which
        satisfy the provided predicate removed.
@@ -686,62 +686,62 @@ type Vector
     drop_while : (Any -> Boolean) -> Vector Any
     drop_while predicate =
         find_first_false current =
-            if current >= this.length then Nothing else
-                case predicate (this.unsafe_at current) of
+            if current >= self.length then Nothing else
+                case predicate (self.unsafe_at current) of
                     False -> current
                     True -> @Tail_Call find_first_false current+1
         case find_first_false 0 of
             Nothing -> []
-            first_false -> this.take first_false this.length
+            first_false -> self.take first_false self.length
 
-    ## Creates a new vector with the last `count` elements in `this` removed.
+    ## Creates a new vector with the last `count` elements in `self` removed.
 
        Arguments:
-       - count: The number of elements to drop from the end of `this`.
+       - count: The number of elements to drop from the end of `self`.
 
        > Example
          Remove the last two elements from the end of the vector.
 
              [1, 2, 3, 4, 5].drop_end 2
     drop_end : Integer -> Vector Any
-    drop_end count = this.take 0 (this.length - count)
+    drop_end count = self.take 0 (self.length - count)
 
     ## Creates a new vector, consisting of the first `count` elements on the
-       left of `this`.
+       left of `self`.
 
        Arguments:
-       - count: The number of elements to take from the start of `this`.
+       - count: The number of elements to take from the start of `self`.
 
        > Example
          Create a new vector from the first two elements of the vector.
 
              [1, 2, 3, 4, 5].take_start 2
     take_start : Integer -> Vector Any
-    take_start count = this.take 0 count
+    take_start count = self.take 0 count
 
     ## Creates a new vector, consisting of the last `count` elements on the
-       right of `this`.
+       right of `self`.
 
        Arguments:
-       - count: The number of elements to take from the end of `this`.
+       - count: The number of elements to take from the end of `self`.
 
        > Example
          Create a new vector from the last two elements of the vector.
 
              [1, 2, 3, 4, 5].take_end 3
     take_end : Integer -> Vector Any
-    take_end count = this.take (this.length - count) this.length
+    take_end count = self.take (self.length - count) self.length
 
     ## Performs a pair-wise operation passed in `function` on consecutive
-       elements of `this` and `that`.
+       elements of `self` and `that`.
 
        Arguments:
-       - that: The vector to zip with `this`.
-       - function: The function used to combine pairwise elements of `this` and
+       - that: The vector to zip with `self`.
+       - function: The function used to combine pairwise elements of `self` and
          `that`.
 
        The result of this function is a vector of length being the shorter of
-       `this` and `that`, containing results of calling `function`.
+       `self` and `that`, containing results of calling `function`.
 
        > Example
          Calculate the pairwise sum of two vectors.
@@ -755,17 +755,17 @@ type Vector
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip that function=[_,_] =
-        len = Math.min this.length that.length
-        here.new len i-> function (this.unsafe_at i) (that.unsafe_at i)
+        len = Math.min self.length that.length
+        here.new len i-> function (self.unsafe_at i) (that.unsafe_at i)
 
-    ## Extend `this` vector to the length of `n` appending elements `elem` to
+    ## Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
 
        Arguments:
-       - n: The length to pad `this` out to.
+       - n: The length to pad `self` out to.
        - elem: The element to fill the new padded slots with.
 
-       If the new length `n` is less than existing length, `this` vector is
+       If the new length `n` is less than existing length, `self` vector is
        returned.
 
        > Example
@@ -779,8 +779,8 @@ type Vector
              [1, 2, 3, 4, 5].pad 5 0
     pad : Integer -> Any -> Vector Any
     pad n elem =
-        if this.length >= n then this else
-            this + (here.fill n-this.length elem)
+        if self.length >= n then self else
+            self + (here.fill n-self.length elem)
 
     ## Vector to JSON conversion.
 
@@ -789,7 +789,7 @@ type Vector
 
              [1, 2, 3].to_json
     to_json : Json.Array
-    to_json = Json.Array (this.map .to_json)
+    to_json = Json.Array (self.map .to_json)
 
     ## Get the first element from the vector, or an `Empty_Error` if the vector
        is empty.
@@ -799,7 +799,7 @@ type Vector
 
              [1, 2, 3, 4].head
     head : Any ! Empty_Error
-    head = if this.length >= 1 then this.unsafe_at 0 else Error.throw Empty_Error
+    head = if self.length >= 1 then self.unsafe_at 0 else Error.throw Empty_Error
 
     ## Get all elements in the vector except the first.
 
@@ -808,7 +808,7 @@ type Vector
 
              [1, 2, 3, 4].tail
     tail : Vector ! Empty_Error
-    tail = if this.length >= 1 then this.drop_start 1 else
+    tail = if self.length >= 1 then self.drop_start 1 else
         Error.throw Empty_Error
 
     ## Get the all elements in the vector except the last.
@@ -818,7 +818,7 @@ type Vector
 
              [1, 2, 3, 4].init
     init : Vector ! Empty_Error
-    init = if this.length >= 1 then this.drop_end 1 else Error.throw Empty_Error
+    init = if self.length >= 1 then self.drop_end 1 else Error.throw Empty_Error
 
     ## Get the last element of the vector, or an `Empty_Error` if the vector is
        empty.
@@ -828,7 +828,7 @@ type Vector
 
              [1, 2, 3, 4].last
     last : Vector ! Empty_Error
-    last = if this.length >= 1 then this.unsafe_at (this.length-1) else
+    last = if self.length >= 1 then self.unsafe_at (self.length-1) else
         Error.throw Empty_Error
 
     ## Get the first element from the vector, or an `Empty_Error` if the vector
@@ -839,7 +839,7 @@ type Vector
 
              [1, 2, 3, 4].first
     first : Vector ! Empty_Error
-    first = this.head
+    first = self.head
 
     ## Get the second element from the vector, or a `Singleton_Error` if the
        vector doesn't have a second element.
@@ -851,8 +851,8 @@ type Vector
 
              [1, 2, 3, 4].second
     second : Vector ! Singleton_Error
-    second = if this.length >= 2 then this.unsafe_at 1 else
-        Error.throw (Singleton_Error this)
+    second = if self.length >= 2 then self.unsafe_at 1 else
+        Error.throw (Singleton_Error self)
 
     ## Get all elements in the vector except the first.
 
@@ -860,7 +860,7 @@ type Vector
          The following code returns [2, 3, 4].
              [1, 2, 3, 4].rest
     rest : Vector ! Empty_Error
-    rest = this.tail
+    rest = self.tail
 
     ## Sort the Vector.
 
@@ -908,8 +908,8 @@ type Vector
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
            intended to be mutable.
-        new_vec_arr = Array.new this.length
-        Array.copy this.to_array 0 new_vec_arr 0 this.length
+        new_vec_arr = Array.new self.length
+        Array.copy self.to_array 0 new_vec_arr 0 self.length
 
         ## As we want to account for both custom projections and custom
            comparisons we need to construct a comparator for internal use that
@@ -959,7 +959,7 @@ type Vector
 
         here.handle_incomparable_value <|
             builder = here.new_builder
-            this.fold Map.empty existing->
+            self.fold Map.empty existing->
                 item->
                     key = on item
                     if (existing.get_or_else key False) then existing else
@@ -974,7 +974,7 @@ type Vector
        visualization.
     to_default_visualization_data : Text
     to_default_visualization_data =
-        json = this.take_start 100 . to_json
+        json = self.take_start 100 . to_json
         json.to_text
 
 ## PRIVATE
@@ -1030,15 +1030,15 @@ type Builder
 
              Vector.new_builder.capacity
     capacity : Integer
-    capacity = this.to_array.length
+    capacity = self.to_array.length
 
     ## Checks if this builder is empty.
     is_empty : Boolean
-    is_empty = this.length == 0
+    is_empty = self.length == 0
 
     ## Checks if this builder is not empty.
     not_empty : Boolean
-    not_empty = this.is_empty.not
+    not_empty = self.is_empty.not
 
     ## Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
@@ -1054,8 +1054,8 @@ type Builder
     append : Any ! Error -> Builder ! Error
     append item = case item of
         _ ->
-            this.unsafe_append item
-            this
+            self.unsafe_append item
+            self
 
     ## PRIVATE
        Appends a new element into this builder.
@@ -1076,16 +1076,16 @@ type Builder
 
              Vector.new_builder.unsafe_append 10
     unsafe_append : Any -> Nothing
-    unsafe_append item = case this.capacity > this.length of
+    unsafe_append item = case self.capacity > self.length of
         True ->
-            this.to_array.set_at this.length item
-            Unsafe.set_atom_field this 1 (this.length + 1)
+            self.to_array.set_at self.length item
+            Unsafe.set_atom_field self 1 (self.length + 1)
         False ->
-            old_array = this.to_array
+            old_array = self.to_array
             new_array = Array.new old_array.length*2
             Array.copy old_array 0 new_array 0 old_array.length
-            Unsafe.set_atom_field this 0 new_array
-            this.append item
+            Unsafe.set_atom_field self 0 new_array
+            self.append item
             Nothing
 
     ## Gets an element from the vector at a specified index (0-based).
@@ -1096,9 +1096,9 @@ type Builder
          of the vector, i.e. -1 will correspond to the last element.
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
-        actual_index = if index < 0 then this.length + index else index
-        Panic.catch Invalid_Array_Index_Error (this.to_array.at actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error index this.length)
+        actual_index = if index < 0 then self.length + index else index
+        Panic.catch Invalid_Array_Index_Error (self.to_array.at actual_index) _->
+            Error.throw (Index_Out_Of_Bounds_Error index self.length)
 
     ## Checks whether a predicate holds for at least one element of this builder.
 
@@ -1108,7 +1108,7 @@ type Builder
 
     exists : (Any -> Boolean) -> Boolean
     exists predicate =
-        0.up_to this.length . exists (idx -> (predicate (this.to_array.at idx)))
+        0.up_to self.length . exists (idx -> (predicate (self.to_array.at idx)))
 
     ## Converts this builder to a vector containing all the appended elements.
 
@@ -1123,9 +1123,9 @@ type Builder
                 bldr.to_vector
     to_vector : Vector Any
     to_vector =
-        old_array = this.to_array
-        new_array = Array.new this.length
-        Array.copy old_array 0 new_array 0 this.length
+        old_array = self.to_array
+        new_array = Array.new self.length
+        Array.copy old_array 0 new_array 0 self.length
         Vector new_array
 
 ## UNSTABLE
@@ -1142,7 +1142,7 @@ type Index_Out_Of_Bounds_Error index length
    Pretty prints an index out of bounds error.
 Index_Out_Of_Bounds_Error.to_display_text : Text
 Index_Out_Of_Bounds_Error.to_display_text =
-    "The index " + this.index.to_text + " is out of bounds in a vector with length " + this.length.to_text + "."
+    "The index " + self.index.to_text + " is out of bounds in a vector with length " + self.length.to_text + "."
 
 ## UNSTABLE
 
@@ -1168,7 +1168,7 @@ type Singleton_Error vec
    Pretty prints the singleton error.
 Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
-    "The vector " + this.vec.to_text  + " has only one element."
+    "The vector " + self.vec.to_text  + " has only one element."
 
 ## PRIVATE
 type Partition_Accumulator true_builder false_builder ix

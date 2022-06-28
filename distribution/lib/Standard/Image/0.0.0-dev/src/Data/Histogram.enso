@@ -32,7 +32,7 @@ type Histogram
                  histo.to_json
     to_json : Json
     to_json =
-        bins = Json.from_pairs [["bins", this.data]]
+        bins = Json.from_pairs [["bins", self.data]]
         Json.from_pairs [["data", bins]]
 
 ## UNSTABLE
@@ -51,5 +51,5 @@ type Histogram
          example_histogram = Examples.image.histogram 0
 Image.Image.histogram : Integer -> Histogram
 Image.Image.histogram channel =
-    hist = Java_Histogram.calculate this.opencv_mat channel
+    hist = Java_Histogram.calculate self.opencv_mat channel
     Histogram channel (Vector.Vector hist.get_data)

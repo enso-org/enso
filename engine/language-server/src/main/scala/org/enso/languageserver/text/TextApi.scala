@@ -38,7 +38,7 @@ object TextApi {
   }
 
   case object ApplyEdit extends Method("text/applyEdit") {
-    case class Params(edit: FileEdit)
+    case class Params(edit: FileEdit, execute: Option[Boolean])
     implicit val hasParams = new HasParams[this.type] {
       type Params = ApplyEdit.Params
     }

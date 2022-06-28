@@ -13,7 +13,7 @@ type Array
        - index: The index to get the element from.
 
        ? Safety
-         If index < 0 or index >= this.length, then this operation will result
+         If index < 0 or index >= self.length, then this operation will result
          in an Invalid_Array_Index_Error exception.
 
        > Example
@@ -34,7 +34,7 @@ type Array
        programming style in Enso.
 
        ? Safety
-         If index < 0 or index >= this.length, then this operation will result
+         If index < 0 or index >= self.length, then this operation will result
          in an Invalid_Array_Index_Error exception.
     set_at : Integer -> Any -> Array
     set_at index value = @Builtin_Method "Array.set_at"
@@ -84,7 +84,7 @@ type Array
              [1, 2, 3, 4].to_array.to_default_visualization_data
     to_default_visualization_data : Text
     to_default_visualization_data =
-        Vector.Vector this . to_default_visualization_data
+        Vector.Vector self . to_default_visualization_data
 
 ## Creates an array with length 0.
 

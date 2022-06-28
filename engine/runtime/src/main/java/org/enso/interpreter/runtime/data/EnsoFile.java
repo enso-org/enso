@@ -207,7 +207,7 @@ public class EnsoFile implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        EnsoFile _this,
+        EnsoFile self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -215,7 +215,7 @@ public class EnsoFile implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(EnsoFile _this, UnresolvedSymbol symbol)
+    static Function resolve(EnsoFile self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {

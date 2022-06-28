@@ -15,10 +15,10 @@ public abstract class IsPolyglotNode extends Node {
     return IsPolyglotNodeGen.create();
   }
 
-  abstract boolean execute(Object _this, @AcceptsError Object value);
+  abstract boolean execute(Object self, @AcceptsError Object value);
 
   @Specialization
-  boolean doExecute(Object _this, Object value) {
+  boolean doExecute(Object self, Object value) {
     return Context.get(this).getEnvironment().isHostObject(value);
   }
 }

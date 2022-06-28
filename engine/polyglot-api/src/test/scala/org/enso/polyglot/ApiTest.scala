@@ -41,13 +41,13 @@ class ApiTest extends AnyFlatSpec with Matchers {
       """
         |type Vector x y z
         |
-        |Vector.squares = case this of
+        |Vector.squares = case self of
         |    Vector x y z -> Vector x*x y*y z*z
         |
-        |Vector.sum = case this of
+        |Vector.sum = case self of
         |    Vector x y z -> x + y + z
         |
-        |Vector.squareNorm = this.squares.sum
+        |Vector.squareNorm = self.squares.sum
         |""".stripMargin
     val module     = executionContext.evalModule(code, "Test")
     val vectorCons = module.getConstructor("Vector")

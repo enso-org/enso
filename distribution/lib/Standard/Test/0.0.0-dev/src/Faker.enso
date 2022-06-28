@@ -37,7 +37,7 @@ type Faker
     string_value : Vector -> Text
     string_value template =
         characters = template.map possible_chars->
-            selected_char_ix = this.generator.nextInt possible_chars.length
+            selected_char_ix = self.generator.nextInt possible_chars.length
             possible_chars.at selected_char_ix
         Text.from_char_vector characters
 
@@ -49,7 +49,7 @@ type Faker
     alpha : Integer->Boolean->Text
     alpha length=1 upper_case=False =
         alphabet = if upper_case then here.upper_case_letters else here.lower_case_letters
-        this.string_value <| 0.up_to length . map _->alphabet
+        self.string_value <| 0.up_to length . map _->alphabet
 
     ## Generates a Text consisting of lower/upper case characters and digits.
 
@@ -59,7 +59,7 @@ type Faker
     alpha_numeric : Integer->Boolean->Text
     alpha_numeric length=1 upper_case=False =
         alphabet = (if upper_case then here.upper_case_letters else here.lower_case_letters) + here.numbers
-        this.string_value <| 0.up_to length . map _->alphabet
+        self.string_value <| 0.up_to length . map _->alphabet
 
     ## Generates a Text for a hexadecimal number
 
@@ -68,22 +68,22 @@ type Faker
     hexadecimal : Integer->Text
     hexadecimal length=1 =
         alphabet = "0123456789ABCDEF".char_vector
-        this.string_value <| 0.up_to length . map _->alphabet
+        self.string_value <| 0.up_to length . map _->alphabet
 
     ## Create a random Boolean value
     boolean : Boolean
     boolean =
-        if this.generator.nextDouble < 0.5 then True else False
+        if self.generator.nextDouble < 0.5 then True else False
 
     ## Create a random Integer value
     integer : Integer->Integer->Integer
     integer minimum=0 maximum=100 =
-        minimum + (this.generator.nextInt (maximum - minimum))
+        minimum + (self.generator.nextInt (maximum - minimum))
 
     ## Create a random Decimal value
     decimal : Decimal->Decimal->Decimal
     decimal minimum=0.0 maximum=1.0 =
-        minimum + this.generator.nextDouble * (maximum - minimum)
+        minimum + self.generator.nextDouble * (maximum - minimum)
 
     ## Picks an item at Random from a list
 
@@ -92,9 +92,9 @@ type Faker
        - generator: Random number generator
     vector_item : Vector->Any
     vector_item items =
-        items.at (this.generator.nextInt items.length)
+        items.at (self.generator.nextInt items.length)
 
     ## Randomly converts some values to Nothing
     make_some_nothing : Any->Decimal->Any
     make_some_nothing value (chance=0.1) =
-        if this.generator.nextDouble <= chance then Nothing else value
+        if self.generator.nextDouble <= chance then Nothing else value

@@ -1,3 +1,12 @@
 COMP_PATH=$(dirname "$0")/../component
-exec java -jar -Dtruffle.class.path.append="$COMP_PATH/runtime.jar" $JAVA_OPTS $COMP_PATH/runner.jar "$@"
+
+EXTRA_OPTS="-Dgraal.PrintGraph=Network"
+for opt in "$@"; do
+  if [ "$opt" = "--dump-graphs" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS -Dgraal.Dump=:1"
+  fi
+done
+
+
+exec java -jar -Dtruffle.class.path.append="$COMP_PATH/runtime.jar" $EXTRA_OPTS $JAVA_OPTS $COMP_PATH/runner.jar "$@"
 exit

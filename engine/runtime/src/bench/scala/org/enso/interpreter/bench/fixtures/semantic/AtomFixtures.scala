@@ -7,10 +7,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
 
   val millionElementList = eval(
     s"""|from Standard.Base.Data.List import Cons,Nil
-        |from Standard.Base.Data.Range import all
         |
         |main =
-        |    res = (1.up_to $million).fold Nil (acc -> x -> Cons x acc)
+        |    generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
+        |    res = generator (acc -> x -> Cons x acc) Nil 1 $million
         |    res
         """.stripMargin)
 
@@ -52,7 +52,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseListMethodsCode =
     """from Standard.Base.Data.List import all
       |
-      |Cons.rev = acc -> case this of
+      |Cons.rev = acc -> case self of
       |    Cons h t -> @Tail_Call t.rev (Cons h acc)
       |
       |Nil.rev = acc -> acc
@@ -106,7 +106,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Standard.Base.Data.List import all
       |
       |Nil.sum = acc -> acc
-      |Cons.sum = acc -> case this of
+      |Cons.sum = acc -> case self of
       |    Cons h t -> @Tail_Call t.sum h+acc
       |
       |main = list ->
@@ -119,7 +119,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Standard.Base.Data.List import all
       |
       |Nil.mapReverse = f -> acc -> acc
-      |Cons.mapReverse = f -> acc -> case this of
+      |Cons.mapReverse = f -> acc -> case self of
       |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
       |
       |main = list ->
@@ -132,7 +132,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Standard.Base.Data.List import all
       |
       |Nil.mapReverse = f -> acc -> acc
-      |Cons.mapReverse = f -> acc -> case this of
+      |Cons.mapReverse = f -> acc -> case self of
       |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
       |
       |main = list ->

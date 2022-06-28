@@ -47,7 +47,7 @@ main =
     z
 
 Number.foo = x ->
-    y = this + 3
+    y = self + 3
     z = y * x
     z
 

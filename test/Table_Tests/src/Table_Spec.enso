@@ -17,12 +17,12 @@ import project.Common_Table_Spec
 type My x y
 
 My.== that = case that of
-    My x1 y1 -> (this.x + this.y) == (x1 + y1)
+    My x1 y1 -> (self.x + self.y) == (x1 + y1)
     _ -> False
 
-My.compare_to that = this.x+this.y . compare_to that.x+that.y
+My.compare_to that = self.x+self.y . compare_to that.x+that.y
 
-My.frobnicate = case this of
+My.frobnicate = case self of
     My x1 y1 -> My y1 x1
 
 spec =

@@ -77,8 +77,10 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
     @Override
     public ExecutionEventNode create(EventContext context) {
       final Node node = context.getInstrumentedNode();
-      if (all.put(node, node) == null) {
-        counter.computeIfAbsent(node.getClass(), (__) -> new CopyOnWriteArrayList<>()).add(node);
+      if (!"PatchableLiteralNode".equals(node.getClass().getSimpleName())) {
+        if (all.put(node, node) == null) {
+          counter.computeIfAbsent(node.getClass(), (__) -> new CopyOnWriteArrayList<>()).add(node);
+        }
       }
       return null;
     }

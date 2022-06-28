@@ -77,7 +77,7 @@ class ReplTest
           |
           |type Foo a b
           |
-          |Foo.to_text = "{" + this.a.to_text + ": " + this.b + "}"
+          |Foo.to_text = "{" + self.a.to_text + ": " + self.b + "}"
           |
           |type Bar x
           |
@@ -189,7 +189,7 @@ class ReplTest
       }
       eval(code)
       scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
-        "this" -> "Test",
+        "self" -> "Test",
         "x"    -> "10",
         "y"    -> "20",
         "z"    -> "30"
@@ -216,7 +216,7 @@ class ReplTest
       }
       eval(code)
       scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
-        "this" -> "Test",
+        "self" -> "Test",
         "x"    -> "50",
         "y"    -> "20",
         "z"    -> "30"

@@ -11,7 +11,7 @@ import Standard.Test
 type Ord number
 
 Ord.compare_to : Ord -> Ordering
-Ord.compare_to that = that.number.compare_to this.number
+Ord.compare_to that = that.number.compare_to self.number
 
 type No_Ord number
 

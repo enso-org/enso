@@ -20,4 +20,4 @@ from Standard.Base.Data.Noise.Generator import all
          1.noise
 Number.noise : Interval -> Generator -> Any
 Number.noise (interval = Interval.exclusive 0 1) gen=Deterministic_Random =
-    gen.step this interval
+    gen.step self interval
