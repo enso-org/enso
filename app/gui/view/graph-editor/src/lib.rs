@@ -2450,7 +2450,8 @@ impl GraphEditorModel {
     fn pan_camera_to_rectangle(&self, target_bbox: selection::BoundingBox) {
         use ensogl::display::navigation::navigator::PanEvent;
         let scene = &self.app.display.default_scene;
-        let screen_size_halved = Vector2::from(scene.camera().screen()) / 2.0;
+        let camera = scene.camera();
+        let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
         // TODO: is 0 as `z` coord. correct here?
         let screen_to_scene_vec2 = |pos: Vector2|
             scene.screen_to_scene_coordinates(Vector3(pos.x, pos.y, 0.0)).xy();
@@ -2474,10 +2475,10 @@ impl GraphEditorModel {
         } else {
             None
         };
-        let pan = PanEvent::new(Vector2(-pan_x.unwrap_or_default(), -pan_y.unwrap_or_default()));
+        let pan = Vector2(-pan_x.unwrap_or_default(), -pan_y.unwrap_or_default()) * camera.zoom();
         DEBUG!("MCDBG  target bbox = " target_bbox;?);
         DEBUG!("MCDBG  pan = " pan;?);
-        self.navigator.emit_pan_event(pan);
+        self.navigator.emit_pan_event(PanEvent::new(pan));
     }
 }
 
