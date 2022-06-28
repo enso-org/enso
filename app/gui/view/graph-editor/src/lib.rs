@@ -553,7 +553,6 @@ ensogl::define_endpoints_2! {
         /// Can be used, e.g., if there is a fullscreen visualisation active, or navigation should
         ///only work for a selected visualisation.
         set_navigator_disabled(bool),
-        // pan_camera_to_rectangle(selection::BoundingBox),
 
 
         // === Modes ===
@@ -1467,9 +1466,7 @@ impl GraphEditorModelWithNetwork {
     ) -> (NodeId, Option<NodeSource>, bool) {
         let position = new_node_position::new_node_position(self, way, mouse_position);
         let node = self.new_node(ctx);
-        DEBUG!("set_position_xy(" position;? ") BEFORE");
         node.set_position_xy(position);
-        DEBUG!("set_position_xy(" position;? ") AFTER");
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
@@ -1625,7 +1622,6 @@ impl GraphEditorModelWithNetwork {
             first_update_of_node_pos <- node.output.position.count().filter(|i| *i==1);
             let node_bbox = &node.output.bounding_box;
             node_bbox_after_first_update <- first_update_of_node_pos.map2(node_bbox, |_, b| *b);
-            // bbox_of_edited_node <- node_bbox_after_first_update.gate(&self.model.node_editing);
             bbox_of_edited_node <- node_bbox_after_first_update.gate(&self.frp.node_editing);
             use theme::graph_editor::camera_pan_margin_around_node as pan_margin;
             eval bbox_of_edited_node([model](bbox)
@@ -1635,24 +1631,6 @@ impl GraphEditorModelWithNetwork {
                 bbox_with_margins.grow_y(2.0 * styles.get_number(pan_margin::vertical).value());
                 model.pan_camera_to_rectangle(bbox_with_margins)
             );
-            trace bbox_of_edited_node;
-
-            // first_update_of_node_pos <- node_pos_update_count.filter(|i| *i==1);
-            // node_pos_update_count <- node.output.position.count();
-            // // first_update_of_node_pos <- node.output.position.count().filter(|i| *i==1);
-            // first_update_of_node_pos <- node_pos_update_count.filter(|i| *i==1);
-            // node_bbox <- node.output.bounding_box;
-            // node_bbox_on_first_pos_update <- first_update_of_node_pos.map2(&node_bbox, |_, b| *b);
-            // eval node_bbox_on_first_pos_update([model](bbox)
-            //     model.pan_camera_to_rectangle(*bbox)
-            // );
-
-            // model.frp.private
-            // pos_update_count <- position.count();
-            // // first_pos_update <- pos_update_count.filter_map(|i| *i==1).constant(());
-            // first_pos_update <- pos_update_count.filter(|i| *i==1).constant(());
-            // bbox_on_first_pos_update <- first_pos_update.map2(&out.bounding_box, |_, b| *b);
-            // trace bbox_on_first_pos_update;
         }
 
         node.set_view_mode(self.model.frp.view_mode.value());
