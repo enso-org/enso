@@ -52,17 +52,29 @@ fn class_fields_<'v, 's: 'v, 'c: 'v>(
     graph: &'s TypeGraph,
     class: &'c Class,
     out: &mut Vec<&'v Field>,
+    start: Option<usize>,
+    end: Option<usize>,
 ) {
-    out.extend(&class.fields);
-    if let Some(parent) = class.parent {
-        class_fields_(graph, &graph[parent], out);
+    let mut fields = &class.fields[..];
+    if let Some(end) = end {
+        fields = &fields[..end];
     }
+    if let Some(start) = start {
+        fields = &fields[start..];
+    } else if let Some(parent) = class.parent {
+        let index = Some(graph[parent].child_field.unwrap());
+        class_fields_(graph, &graph[parent], out, None, index);
+        out.extend(fields);
+        class_fields_(graph, &graph[parent], out, index, None);
+        return;
+    }
+    out.extend(fields);
 }
 
 /// Get the fields owned by a class, including its own fields and the fields of its supertypes.
 pub fn class_fields<'v, 's: 'v, 'c: 'v>(graph: &'s TypeGraph, class: &'c Class) -> Vec<&'v Field> {
     let mut out = vec![];
-    class_fields_(graph, class, &mut out);
+    class_fields_(graph, class, &mut out, None, None);
     out
 }
 

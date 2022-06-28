@@ -1,4 +1,5 @@
 pub mod graphviz;
+pub mod serialization;
 pub mod transform;
 
 use std::collections::BTreeMap;

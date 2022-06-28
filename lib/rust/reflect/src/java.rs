@@ -22,7 +22,7 @@ pub struct TypeId(usize);
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FieldId(u32);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Class {
     pub name:      String,
     pub params:    Vec<TypeId>,
@@ -34,14 +34,13 @@ pub struct Class {
     builtin:       bool,
     // Attributes
     discriminants: BTreeMap<usize, TypeId>,
+    child_field:   Option<usize>,
 }
 
 impl Class {
     pub fn builtin(graph: &TypeGraph, name: &str, fields: impl IntoIterator<Item = TypeId>) -> Self {
         let params: Vec<_> = fields.into_iter().collect();
         let name = name.to_owned();
-        let parent = None;
-        let abstract_ = false;
         let builtin = true;
         let fields = params
             .iter()
@@ -49,10 +48,7 @@ impl Class {
                 graph.field("data".to_owned(), FieldData::Object { type_, nonnull: true })
             })
             .collect();
-        let methods = Default::default();
-        let discriminants = Default::default();
-        let sealed = Default::default();
-        Class { name, params, parent, abstract_, builtin, sealed, fields, methods, discriminants }
+        Class { name, params, builtin, fields, ..Default::default() }
     }
 
     pub fn find_field(&self, name: &str) -> Option<&Field> {

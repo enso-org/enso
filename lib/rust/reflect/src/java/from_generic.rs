@@ -80,7 +80,6 @@ impl FromGeneric {
         let abstract_ = ty.abstract_;
         let sealed = ty.closed;
         let parent = ty.parent.as_ref().map(|id| self.generic_to_java[id]);
-        let builtin = false;
         let mut methods = match abstract_ {
             true => abstract_methods(),
             false => standard_methods(),
@@ -94,19 +93,19 @@ impl FromGeneric {
             }
             fields.push(field);
         }
-        let params = vec![];
         let discriminants =
             ty.discriminants.iter().map(|(key, id)| (*key, self.generic_to_java[id])).collect();
+        let child_field = ty.child_field;
         Class {
             name,
-            params,
             parent,
             abstract_,
-            builtin,
             sealed,
             fields,
             methods,
             discriminants,
+            child_field,
+            ..Default::default()
         }
     }
 

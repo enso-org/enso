@@ -40,8 +40,9 @@ fn flatten_(
         Data::Struct(ref mut fields) => std::mem::take(fields),
         _ => unreachable!(),
     };
+    let mut child_field = graph[outer].child_field;
     let mut flattened = Vec::with_capacity(outer_fields.len());
-    for field in outer_fields {
+    for (i, field) in outer_fields.into_iter().enumerate() {
         let inner = field.type_;
         if to_flatten.remove(&field.id) {
             let inner_ty = &graph[inner];
@@ -60,7 +61,11 @@ fn flatten_(
         } else {
             flattened.push(field);
         }
+        if child_field == Some(i + 1) {
+            child_field = Some(flattened.len());
+        }
     }
+    graph[outer].child_field = child_field;
     match &mut graph[outer].data {
         Data::Struct(fields) => *fields = flattened,
         _ => unreachable!(),
