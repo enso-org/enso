@@ -480,9 +480,9 @@ impl Navigator {
         bottom_buttons.set_background_color(HOVER_COLOR);
         top_buttons.show_background_shadow(false);
         bottom_buttons.show_background_shadow(false);
-        top_buttons.resize(Vector2(32.0, list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32));
+        top_buttons.resize(Vector2(39.0, list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32));
         bottom_buttons
-            .resize(Vector2(32.0, list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32));
+            .resize(Vector2(39.0, list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32));
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
         top_buttons.hide_selection();
@@ -507,16 +507,18 @@ impl Navigator {
         Self { display_object, top_buttons, bottom_buttons, network, chosen_section }
     }
 
-    fn update_layout(&self, style: NavigatorStyle) {
-        let top = style.height / 2.0;
-        let bottom = -style.height / 2.0;
+    fn update_layout(&self, style: Style) {
+        let top = style.navigator.height / 2.0;
+        let bottom = -style.navigator.height / 2.0;
         let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
         let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        let padding = 7.0;
+        let top_padding = -3.0;
+        let bottom_padding = 7.0;
+        let x_pos = -style.content.size.x / 2.0 - style.navigator.width / 2.0;
         self.top_buttons
-            .set_position_xy(Vector2(-218.75, top - top_buttons_height / 2.0 - padding));
+            .set_position_xy(Vector2(x_pos, top - top_buttons_height / 2.0 - top_padding));
         self.bottom_buttons
-            .set_position_xy(Vector2(-218.75, bottom + bottom_buttons_height / 2.0 + padding));
+            .set_position_xy(Vector2(x_pos, bottom + bottom_buttons_height / 2.0 + bottom_padding));
     }
 }
 
@@ -618,9 +620,10 @@ impl Model {
 
         self.background.bg_color.set(style.content.background_color.into());
         self.background.size.set(style.size());
-        self.section_navigator.update_layout(style.navigator.clone());
+        self.section_navigator.update_layout(style.clone());
 
-        self.section_navigator_shadow.set_position_x(-216.0);
+        self.section_navigator_shadow
+            .set_position_x(-style.content.size.x / 2.0 - style.navigator.width / 2.0);
         let section_navigator_shadow_size = Vector2(style.navigator.width, style.size_inner().y);
         self.section_navigator_shadow.size.set(section_navigator_shadow_size);
 

@@ -202,13 +202,13 @@ define_themes! { [light:0, dark:1]
 
                     navigator {
                         background = Rgba::transparent() , Rgba::transparent();
-                        highlight  = Rgb(0.96,0.85,0.725) , Lcha(1.0,0.0,0.0,0.15); // rgb(245,217,185)
+                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
                         highlight {
-                            height = 24.0, 24.0;
-                            corner_radius = 7.0, 7.0;
+                            height = 29.0, 29.0;
+                            corner_radius = 10.0, 10.0;
                         }
                         entry {
-                            padding = 11.0, 11.0;
+                            padding = 14.5, 14.5;
                         }
                         padding = 5.0, 5.0;
                     }
