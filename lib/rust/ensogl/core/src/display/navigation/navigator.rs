@@ -142,7 +142,7 @@ impl NavigatorModel {
         let simulator = physics::inertia::DynSimulator::new(on_step, (), on_end);
         // let simulator = physics::inertia::DynSimulator::new(on_step, on_startx, on_end);
         // simulator.update_mass(|v| v*10.0);
-        simulator.update_spring(|v| v/10.0);
+        // simulator.update_spring(|v| v/10.0);
         // FIXME[WD]: This one is emitting camera position in next frame, which is not intended.
         //            Should be fixed when reworking navigator to use FRP events.
         simulator.set_value(camera.position());
