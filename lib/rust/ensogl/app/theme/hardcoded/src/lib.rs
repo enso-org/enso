@@ -431,6 +431,11 @@ define_themes! { [light:0, dark:1]
             to_the_left_of_node  = 25.0  , 25.0;
             to_the_right_of_node = 25.0  , 25.0;
         }
+        // margin_around_target_area_when_panning_camera {
+        camera_pan_margin_around_node {
+            vertical = 15.0, 15.0;
+            horizontal = 15.0, 15.0;
+        }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
             // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)

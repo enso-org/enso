@@ -1625,8 +1625,13 @@ impl GraphEditorModelWithNetwork {
             first_update_of_node_pos <- node.output.position.count().filter(|i| *i==1);
             let node_bbox = &node.output.bounding_box;
             node_bbox_on_first_pos_update <- first_update_of_node_pos.map2(node_bbox, |_, b| *b);
+            use theme::graph_editor::camera_pan_margin_around_node as pan_margin;
             eval node_bbox_on_first_pos_update([model](bbox)
-                model.pan_camera_to_rectangle(*bbox)
+                let mut bbox_with_margins = *bbox;
+                let styles = &model.styles_frp;
+                bbox_with_margins.grow_x(2.0 * styles.get_number(pan_margin::horizontal).value());
+                bbox_with_margins.grow_y(2.0 * styles.get_number(pan_margin::vertical).value());
+                model.pan_camera_to_rectangle(bbox_with_margins)
             );
             trace node_bbox_on_first_pos_update;
 
