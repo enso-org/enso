@@ -7,10 +7,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
 
   val millionElementList = eval(
     s"""|from Standard.Base.Data.List import Cons,Nil
-        |from Standard.Base.Data.Range import all
         |
         |main =
-        |    res = (1.up_to $million).fold Nil (acc -> x -> Cons x acc)
+        |    generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
+        |    res = generator (acc -> x -> Cons x acc) Nil 1 $million
         |    res
         """.stripMargin)
 
