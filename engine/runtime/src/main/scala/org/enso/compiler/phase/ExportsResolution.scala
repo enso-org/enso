@@ -7,7 +7,6 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedConstructor,
   ResolvedMethod,
   ResolvedModule,
-  ResolvedName,
   ResolvedPolyglotSymbol,
   ResolvedType,
   SymbolRestriction
@@ -195,7 +194,7 @@ class ExportsResolution {
           (name.toLowerCase, List(ResolvedModule(mod)))
       }
       val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
-        getBindings(export.module.unsafeAsModule()).allExportedSymbols.toList
+        getBindings(export.module.unsafeAsModule()).exportedSymbols.toList
           .flatMap { case (sym, resolutions) =>
             val allowedResolutions =
               resolutions.filter(res => export.symbols.canAccess(sym, res))
@@ -203,7 +202,7 @@ class ExportsResolution {
             else Some((sym, allowedResolutions))
           }
       }
-      bindings.allExportedSymbols = List(
+      bindings.exportedSymbols = List(
         ownTypes,
         ownMethods,
         ownConstructors,
@@ -212,14 +211,6 @@ class ExportsResolution {
         reExportedSymbols
       ).flatten.groupBy(_._1).map { case (m, names) =>
         (m, names.flatMap(_._2).distinct)
-      }
-
-      bindings.exportedSymbols = bindings.allExportedSymbols.flatMap {
-        case (k, v) =>
-          v.collect { case v: ResolvedName => v } match {
-            case List() => None
-            case other  => Some((k, other))
-          }
       }
     }
   }

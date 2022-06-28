@@ -303,7 +303,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     }
 
   private def buildResolvedUnionTypeName(
-    resolvedName: BindingsMap.ResolvedTypeName
+    resolvedName: BindingsMap.ResolvedName
   ): TypeArg = resolvedName match {
     case tp: BindingsMap.ResolvedType =>
       TypeArg.Sum(

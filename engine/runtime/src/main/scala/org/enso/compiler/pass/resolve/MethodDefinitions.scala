@@ -133,6 +133,8 @@ case object MethodDefinitions extends IRPass {
                 "a method definition target"
               )
             )
+          case Right(_: BindingsMap.ResolvedType) =>
+            throw new CompilerError("todo")
         }
       case tp: IR.Error.Resolution => tp
       case _ =>

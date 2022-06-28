@@ -259,6 +259,8 @@ class IrToTruffle(
           .getMetadata(MethodDefinitions)
           .map { res =>
             res.target match {
+              case _: BindingsMap.ResolvedType =>
+                throw new CompilerError("todo")
               case BindingsMap.ResolvedModule(module) =>
                 module.unsafeAsModule().getScope.getAssociatedType
               case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
@@ -455,6 +457,7 @@ class IrToTruffle(
   private def getConstructorResolution(expr: IR): Option[AtomConstructor] =
     expr.getMetadata(MethodDefinitions).map { res =>
       res.target match {
+        case _: BindingsMap.ResolvedType => throw new CompilerError("todo")
         case BindingsMap.ResolvedModule(module) =>
           module.unsafeAsModule().getScope.getAssociatedType
         case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
@@ -556,6 +559,7 @@ class IrToTruffle(
       case (name, resolution :: _) =>
         if (resolution.module.unsafeAsModule() != moduleScope.getModule) {
           resolution match {
+            case _: BindingsMap.ResolvedType => throw new CompilerError("todo")
             case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
               val runtimeCons = definitionModule
                 .unsafeAsModule()
@@ -858,6 +862,10 @@ class IrToTruffle(
                     mod.unsafeAsModule().getScope.getConstructors.get(cons.name)
                   )
                 case Some(
+                      BindingsMap.Resolution(BindingsMap.ResolvedType(_, _))
+                    ) =>
+                  throw new CompilerError("todo")
+                case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedPolyglotSymbol(_, _)
                       )
@@ -1060,6 +1068,8 @@ class IrToTruffle(
           } else if (global.isDefined) {
             val resolution = global.get.target
             resolution match {
+              case _: BindingsMap.ResolvedType =>
+                throw new CompilerError("todo")
               case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
                 ConstructorNode.build(
                   definitionModule

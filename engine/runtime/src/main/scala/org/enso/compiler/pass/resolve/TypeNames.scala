@@ -76,7 +76,7 @@ case object TypeNames extends IRPass {
   ): IR.Expression =
     expression.transformExpressions { case n: IR.Name.Literal =>
       bindingsMap
-        .resolveTypeName(n.name)
+        .resolveUppercaseName(n.name)
         .map(res => n.updateMetadata(this -->> TypeResolution(res)))
         .getOrElse(n)
     }

@@ -46,10 +46,6 @@ case class BindingsMap(
     */
   var exportedSymbols: Map[String, List[ResolvedName]] = Map()
 
-  /** Symbols exported by [[currentModule]].
-    */
-  var allExportedSymbols: Map[String, List[ResolvedTypeName]] = Map()
-
   /** @inheritdoc */
   override def prepareForSerialization(
     compiler: Compiler
@@ -76,10 +72,6 @@ case class BindingsMap(
     copy.exportedSymbols = this.exportedSymbols.map { case (key, value) =>
       key -> value.map(name => name.toAbstract)
     }
-    copy.allExportedSymbols = this.allExportedSymbols.map { case (key, value) =>
-      key -> value.map(_.toAbstract)
-    }
-
     copy
   }
 
@@ -115,7 +107,7 @@ case class BindingsMap(
     }
 
     val withSymbols: Option[BindingsMap] = withExports.flatMap { bindings =>
-      val newSymbols = this.allExportedSymbols.map { case (key, value) =>
+      val newSymbols = this.exportedSymbols.map { case (key, value) =>
         val newValue = value.map(_.toConcrete(moduleMap))
         if (newValue.exists(_.isEmpty)) {
           key -> None
@@ -127,15 +119,8 @@ case class BindingsMap(
       if (newSymbols.exists { case (_, v) => v.isEmpty }) {
         None
       } else {
-        bindings.allExportedSymbols = newSymbols.map { case (k, v) =>
+        bindings.exportedSymbols = newSymbols.map { case (k, v) =>
           k -> v.get
-        }
-        bindings.exportedSymbols = bindings.allExportedSymbols.flatMap {
-          case (k, v) =>
-            v.collect { case v: ResolvedName => v } match {
-              case List() => None
-              case other  => Some((k, other))
-            }
         }
         Some(bindings)
       }
@@ -170,22 +155,12 @@ case class BindingsMap(
       .map(ResolvedMethod(currentModule, _))
   }
 
-  private def findLocalCandidates(
-    name: String,
-    includeTypes: Boolean
-  ): List[ResolvedTypeName] = {
-    if (includeTypes) {
-      val types = findTypeCandidates(name)
-      if (types.nonEmpty) {
-        // If types are included – they take precedence.
-        // Remove this logic when sum types get proper runtime meaning.
-        return types
-      }
-    }
+  private def findLocalCandidates(name: String): List[ResolvedName] = {
+    val types    = findTypeCandidates(name)
     val conses   = findConstructorCandidates(name)
     val polyglot = findPolyglotCandidates(name)
     val methods  = findMethodCandidates(name)
-    val all      = conses ++ polyglot ++ methods
+    val all      = types ++ conses ++ polyglot ++ methods
     if (all.isEmpty && currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
     } else { all }
@@ -200,9 +175,8 @@ case class BindingsMap(
   }
 
   private def findExportedCandidatesInImports(
-    name: String,
-    includeTypes: Boolean
-  ): List[ResolvedTypeName] = {
+    name: String
+  ): List[ResolvedName] = {
 
     resolvedImports
       .flatMap { imp =>
@@ -214,7 +188,7 @@ case class BindingsMap(
                   BindingAnalysis,
                   "Wrong pass ordering. Running resolution on an unparsed module."
                 )
-                .findExportedSymbolsFor(name, includeTypes)
+                .findExportedSymbolsFor(name)
             case ModuleReference.Abstract(name) =>
               throw new CompilerError(
                 s"Cannot find export candidates for abstract module reference $name."
@@ -224,27 +198,15 @@ case class BindingsMap(
       }
   }
 
-  private def handleAmbiguity[A <: ResolvedTypeName](
-    candidates: List[A]
-  ): Either[ResolutionError, A] = {
+  private def handleAmbiguity(
+    candidates: List[ResolvedName]
+  ): Either[ResolutionError, ResolvedName] = {
     candidates.distinct match {
       case List()   => Left(ResolutionNotFound)
       case List(it) => Right(it)
       case items    => Left(ResolutionAmbiguous(items))
     }
   }
-
-  /** Resolves a name as a type.
-    *
-    * NB: This should be removed when sum types become proper runtime values.
-    *
-    * @param name the type name to resolve.
-    * @return the resolution
-    */
-  def resolveTypeName(
-    name: String
-  ): Either[ResolutionError, ResolvedTypeName] =
-    resolveUppercaseName(name, includeTypes = true)
 
   /** Resolves a name in the context of current module.
     *
@@ -254,14 +216,8 @@ case class BindingsMap(
     */
   def resolveUppercaseName(
     name: String
-  ): Either[ResolutionError, ResolvedName] =
-    narrowResolution(resolveUppercaseName(name, includeTypes = false))
-
-  def resolveUppercaseName(
-    name: String,
-    includeTypes: Boolean
-  ): Either[ResolutionError, ResolvedTypeName] = {
-    val local = findLocalCandidates(name, includeTypes = includeTypes)
+  ): Either[ResolutionError, ResolvedName] = {
+    val local = findLocalCandidates(name)
     if (local.nonEmpty) {
       return handleAmbiguity(local)
     }
@@ -270,7 +226,7 @@ case class BindingsMap(
       return handleAmbiguity(qualifiedImps)
     }
     handleAmbiguity(
-      findExportedCandidatesInImports(name, includeTypes = includeTypes)
+      findExportedCandidatesInImports(name)
     )
   }
 
@@ -308,30 +264,9 @@ case class BindingsMap(
     }
 
   private def findExportedSymbolsFor(
-    name: String,
-    includeTypes: Boolean
-  ): List[ResolvedTypeName] = {
-    if (includeTypes) {
-      val allSymbols = allExportedSymbols.getOrElse(name.toLowerCase, List())
-      val onlyTypes = allSymbols.collect { case t: ResolvedType =>
-        t
-      }
-      if (onlyTypes.nonEmpty) {
-        onlyTypes
-      } else {
-        allSymbols
-      }
-    } else {
-      exportedSymbols.getOrElse(name.toLowerCase, List())
-    }
-  }
-
-  private def narrowResolution(
-    resolution: Either[ResolutionError, ResolvedTypeName]
-  ): Either[ResolutionError, ResolvedName] = resolution match {
-    case Right(value: ResolvedName) => Right(value)
-    case Right(_)                   => Left(ResolutionNotFound)
-    case Left(err)                  => Left(err)
+    name: String
+  ): List[ResolvedName] = {
+    exportedSymbols.getOrElse(name.toLowerCase, List())
   }
 
   /** Resolves a name exported by this module.
@@ -342,9 +277,7 @@ case class BindingsMap(
   def resolveExportedName(
     name: String
   ): Either[ResolutionError, ResolvedName] = {
-    narrowResolution(
-      handleAmbiguity(findExportedSymbolsFor(name, includeTypes = false))
-    )
+    handleAmbiguity(findExportedSymbolsFor(name))
   }
 
   /** Dumps the export statements from this module into a structure ready for
@@ -430,7 +363,7 @@ object BindingsMap {
       * @param resolution the particular resolution of `symbol`
       * @return whether access to the symbol is permitted by this restriction.
       */
-    def canAccess(symbol: String, resolution: ResolvedTypeName): Boolean
+    def canAccess(symbol: String, resolution: ResolvedName): Boolean
 
     /** Performs static optimizations on the restriction, simplifying
       * common patterns.
@@ -474,7 +407,7 @@ object BindingsMap {
         * @param resolution `symbol`'s resolution
         * @return `true` if the symbol is visible, `false` otherwise
         */
-      def allows(symbol: String, resolution: ResolvedTypeName): Boolean = {
+      def allows(symbol: String, resolution: ResolvedName): Boolean = {
         val symbolMatch = this.symbol == symbol.toLowerCase
         val resolutionMatch =
           this.resolution.isEmpty || this.resolution.get == resolution
@@ -512,7 +445,7 @@ object BindingsMap {
       /** @inheritdoc */
       override def canAccess(
         symbol: String,
-        resolution: ResolvedTypeName
+        resolution: ResolvedName
       ): Boolean = symbols.exists(_.allows(symbol, resolution))
 
       /** @inheritdoc */
@@ -542,7 +475,7 @@ object BindingsMap {
       /** @inheritdoc */
       override def canAccess(
         symbol: String,
-        resolution: ResolvedTypeName
+        resolution: ResolvedName
       ): Boolean = !symbols.contains(symbol.toLowerCase)
 
       /** @inheritdoc */
@@ -562,7 +495,7 @@ object BindingsMap {
       /** @inheritdoc */
       override def canAccess(
         symbol: String,
-        resolution: ResolvedTypeName
+        resolution: ResolvedName
       ): Boolean = true
 
       /** @inheritdoc */
@@ -584,7 +517,7 @@ object BindingsMap {
       /** @inheritdoc */
       override def canAccess(
         symbol: String,
-        resolution: ResolvedTypeName
+        resolution: ResolvedName
       ): Boolean = false
 
       /** @inheritdoc */
@@ -610,7 +543,7 @@ object BindingsMap {
       /** @inheritdoc */
       override def canAccess(
         symbol: String,
-        resolution: ResolvedTypeName
+        resolution: ResolvedName
       ): Boolean = restrictions.forall(_.canAccess(symbol, resolution))
 
       /** @inheritdoc */
@@ -672,7 +605,7 @@ object BindingsMap {
       /** @inheritdoc */
       override def canAccess(
         symbol: String,
-        resolution: ResolvedTypeName
+        resolution: ResolvedName
       ): Boolean = restrictions.exists(_.canAccess(symbol, resolution))
 
       /** @inheritdoc */
@@ -822,37 +755,13 @@ object BindingsMap {
     */
   case class ModuleMethod(name: String)
 
-  /** Represents a resolved name on typelevel.
-    *
-    * NB: should be unified with `ResolvedName` and removed, once sum types get
-    * a proper runtime meaning.
-    */
-  sealed trait ResolvedTypeName {
-    def module: ModuleReference
-
-    /** Convert the resolved name to abstract form.
-      *
-      * @return `this`, converted to abstract form
-      */
-    def toAbstract: ResolvedTypeName
-
-    /** Convert the resolved name to concrete form.
-      *
-      * @param moduleMap the mapping from qualified names to modules
-      * @return `this`, converted to concrete form
-      */
-    def toConcrete(moduleMap: ModuleMap): Option[ResolvedTypeName]
-
-    def qualifiedName: QualifiedName
-  }
-
   /** A name resolved to a sum type.
     *
     * @param module the module defining the type
     * @param tp a representation for the type
     */
   case class ResolvedType(override val module: ModuleReference, tp: Type)
-      extends ResolvedTypeName {
+      extends ResolvedName {
     def getVariants: Seq[ResolvedConstructor] = {
       val bindingsMap = getBindingsFrom(module)
       tp.members.flatMap(m =>
@@ -880,20 +789,24 @@ object BindingsMap {
 
   /** A result of successful name resolution.
     */
-  sealed trait ResolvedName extends ResolvedTypeName {
+  sealed trait ResolvedName {
+
+    def module: ModuleReference
+
+    def qualifiedName: QualifiedName
 
     /** Convert the resolved name to abstract form.
       *
       * @return `this`, converted to abstract form
       */
-    override def toAbstract: ResolvedName
+    def toAbstract: ResolvedName
 
     /** Convert the resolved name to concrete form.
       *
       * @param moduleMap the mapping from qualified names to modules
       * @return `this`, converted to concrete form
       */
-    override def toConcrete(moduleMap: ModuleMap): Option[ResolvedName]
+    def toConcrete(moduleMap: ModuleMap): Option[ResolvedName]
   }
 
   /** A representation of a name being resolved to a constructor.
@@ -1015,7 +928,7 @@ object BindingsMap {
     *
     * @param candidates all the possible resolutions for the name.
     */
-  case class ResolutionAmbiguous(candidates: List[ResolvedTypeName])
+  case class ResolutionAmbiguous(candidates: List[ResolvedName])
       extends ResolutionError
 
   /** A resolution error due to the symbol not being found.
@@ -1023,7 +936,7 @@ object BindingsMap {
   case object ResolutionNotFound extends ResolutionError
 
   /** A metadata-friendly storage for resolutions */
-  case class TypeResolution(target: ResolvedTypeName) extends IRPass.Metadata {
+  case class TypeResolution(target: ResolvedName) extends IRPass.Metadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "Resolution"

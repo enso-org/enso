@@ -114,6 +114,13 @@ object Patterns extends IRPass {
                       "a pattern match"
                     )
                   )
+                case Right(_: BindingsMap.ResolvedType) =>
+                  IR.Error.Resolution(
+                    consName,
+                    IR.Error.Resolution.UnexpectedType(
+                      "a pattern match"
+                    )
+                  )
               }
               .getOrElse(consName)
 
@@ -130,6 +137,11 @@ object Patterns extends IRPass {
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
                   )
+                case BindingsMap.ResolvedType(_, _) =>
+                  throw new CompilerError(
+                    "Impossible, should be transformed into an error before."
+                  )
+
               }
             }
             expectedArity match {
