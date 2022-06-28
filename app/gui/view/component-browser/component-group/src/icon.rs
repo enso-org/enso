@@ -127,7 +127,7 @@ crate::define_icons! {
                 let middle = Rect((13.0.px(), 2.0.px()));
                 let middle = middle.corners_radius(corners_radius.px()).translate_y(2.5.px());
                 let bottom = Rect((16.0.px(), 6.5.px()));
-                let bottom = bottom.corners_radius(corners_radius.px()).translate_y(-2.75.px());
+                let bottom = bottom.corners_radius(corners_radius.px()).translate_y((-2.75).px());
                 let shape = top + middle + bottom;
                 let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());

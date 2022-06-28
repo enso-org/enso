@@ -57,8 +57,7 @@ pub mod navigator_shadow {
             let height = content_height + menu_height;
             let width = navigator_width;
             let base_shape = Rect((width.px(), height.px() * 2.0)).translate_x(width.px());
-            let shadow = shadow::from_shape(base_shape.into(), style);
-            shadow.into()
+            shadow::from_shape(base_shape.into(), style)
         }
     }
 }
@@ -222,7 +221,7 @@ impl Navigator {
     }
 
     pub(crate) fn set_bottom_buttons_entry_params(&self, params: Params) {
-        self.bottom_buttons.set_entry_params_and_recreate_entries(params.clone());
+        self.bottom_buttons.set_entry_params_and_recreate_entries(params);
     }
 
     pub(crate) fn update_layout(&self, style: Style) {
