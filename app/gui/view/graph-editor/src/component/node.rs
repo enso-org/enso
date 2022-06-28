@@ -693,12 +693,7 @@ impl Node {
         frp::extend! { network
             position <- source::<Vector2>();
         }
-        // model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
-        model.display_object.set_on_updated(f!([position](p) {
-            let pos = p.position().xy();
-            DEBUG!("set_on_updated " pos;?);
-            position.emit(pos)
-        }));
+        model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
 
         frp::extend! { network
 
@@ -958,20 +953,6 @@ impl Node {
             // Note: done after out.bounding_box to make sure the latter is up-to-date
             out.position <+ position;
 
-            // pos_update_count <- position.count();
-            // // first_pos_update <- pos_update_count.filter_map(|i| *i==1).constant(());
-            // first_pos_update <- pos_update_count.filter(|i| *i==1).constant(());
-            // bbox_on_first_pos_update <- first_pos_update.map2(&out.bounding_box, |_, b| *b);
-            // trace bbox_on_first_pos_update;
-            // // trace pos_count;
-            // // bbox_count <- bbox_input.count();
-            // // bbox_with_count <- bbox_count.map2(&out.bounding_box, |n,b| (*n, *b));
-            // // // first_bbox_update <- bbox_with_count.filter_map(|n,b| (n==1).then(b));
-            // // // first_bbox_update <- bbox_with_count.filter_map(|(n,b)| (*n<=2).then(*b));
-            // // first_bbox_update <- bbox_with_count.filter_map(|(n,b)| if *n<=2 { Some((*n,*b)) } else { None });
-            // // trace first_bbox_update;
-
-
 
             // === VCS Handling ===
 
@@ -1043,7 +1024,6 @@ fn bounding_box(
             BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
         node_bbox.concat_ref(visualization_bbox)
     } else {
-        // DEBUG!("MCDBG--bounding_box=" node_bbox;?);
         node_bbox
     }
 }

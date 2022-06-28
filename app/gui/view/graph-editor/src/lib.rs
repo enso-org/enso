@@ -2416,7 +2416,6 @@ impl GraphEditorModel {
         let screen_corner_max = screen_to_scene_vec2(screen_size_halved);
         let screen_corner_min = screen_to_scene_vec2(-screen_size_halved);
         let screen_bbox = selection::BoundingBox::from_corners(screen_corner_min, screen_corner_max);
-        DEBUG!("MCDBG  screen bbox = " screen_bbox;?);
         let pan_y = if target_bbox.top() > screen_bbox.top() {
             Some(target_bbox.top() - screen_bbox.top())
         } else if target_bbox.bottom() < screen_bbox.bottom() {
@@ -2432,8 +2431,6 @@ impl GraphEditorModel {
             None
         };
         let pan = Vector2(-pan_x.unwrap_or_default(), -pan_y.unwrap_or_default()) * camera.zoom();
-        DEBUG!("MCDBG  target bbox = " target_bbox;?);
-        DEBUG!("MCDBG  pan = " pan;?);
         self.navigator.emit_pan_event(PanEvent::new(pan));
     }
 }
