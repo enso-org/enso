@@ -32,8 +32,10 @@ public class BenchmarksRunner {
    * @return a {@link BenchmarkItem} containing current run result and historical results.
    */
   public BenchmarkItem run(String label) throws RunnerException, JAXBException {
-    Options benchmarkOptions =
-        new OptionsBuilder().jvmArgsAppend("-Xss16M").include("^" + label + "$").build();
+    Options benchmarkOptions = new OptionsBuilder()
+      .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
+      .include("^" + label + "$")
+      .build();
     RunResult benchmarksResult = new Runner(benchmarkOptions).runSingle();
 
     Report report;
