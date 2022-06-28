@@ -58,6 +58,7 @@ jobs:
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
+          name: Enso Standard Library Tests
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-macos:
@@ -98,6 +99,7 @@ jobs:
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
+          name: Enso Standard Library Tests
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
           reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-windows:
@@ -140,6 +142,7 @@ jobs:
         uses: dorny/test-reporter@v1
         if: success() || failure()
         with:
+          name: Enso Standard Library Tests
           path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
           reporter: java-junit
 env:
