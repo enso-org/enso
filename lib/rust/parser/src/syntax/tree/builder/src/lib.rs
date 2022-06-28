@@ -38,7 +38,7 @@ use std::mem;
 #[proc_macro]
 pub fn ast_builder(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output = expr(tokens, None);
-    let output = quote!(syntax::Tree::opr_section_boundary(#output));
+    let output = quote!(crate::syntax::Tree::opr_section_boundary(#output));
     output.into()
 }
 
@@ -83,7 +83,7 @@ fn expr(tokens: proc_macro::TokenStream, parent_spacing: Option<usize>) -> Token
                 let spacing = " ".repeat(spacing);
                 app_to_output(
                     &mut output,
-                    quote! {syntax::Tree::ident(Token(#spacing, #ident, syntax::token::Variant::new_ident_unchecked(#ident)))},
+                    quote! {crate::syntax::Tree::ident(crate::syntax::Token(#spacing, #ident, syntax::token::Variant::new_ident_unchecked(#ident)))},
                 );
             }
             // {if} a {then} b {else} c

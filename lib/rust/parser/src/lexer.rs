@@ -731,8 +731,15 @@ const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
 ];
 
 impl<'s> Lexer<'s> {
-    /// Run the lexer. Returns [`true`] if the process succeeded.
-    pub fn run(&mut self) -> bool {
+    /// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
+    /// hierarchy).
+    pub fn run(mut self) -> Vec<Item<'s>> {
+        build_block_hierarchy(self.run_flat())
+    }
+
+    /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
+    /// as start and end tokens).
+    pub fn run_flat(mut self) -> Vec<Token<'s>> {
         self.spaces_after_lexeme();
         let mut any_parser_matched = true;
         while any_parser_matched {
@@ -751,8 +758,46 @@ impl<'s> Lexer<'s> {
                 self.submit_token(block_end);
             }
         }
-        is_eof
+        if !is_eof {
+            panic!("Internal error. Lexer did not consume all input.");
+        }
+        let tokens = self.output;
+        event!(TRACE, "Tokens:\n{:#?}", tokens);
+        tokens
     }
+}
+
+/// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
+/// as start and end tokens).
+pub fn run_flat<'s>(input: &'s str) -> Vec<Token<'s>> {
+    Lexer::new(input).run_flat()
+}
+
+/// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
+/// hierarchy).
+pub fn run<'s>(input: &'s str) -> Vec<Item<'s>> {
+    Lexer::new(input).run()
+}
+
+
+pub fn build_block_hierarchy<'s>(tokens: Vec<Token<'s>>) -> Vec<Item<'s>> {
+    let mut stack = vec![];
+    let mut out: Vec<Item<'s>> = vec![];
+    for token in tokens {
+        match token.variant {
+            token::Variant::BlockStart(_) => stack.push(mem::take(&mut out)),
+            token::Variant::BlockEnd(_) => {
+                let new_out = stack.pop().unwrap();
+                let block = mem::replace(&mut out, new_out);
+                out.push(Item::Block(block));
+            }
+            _ => out.push(token.into()),
+        }
+    }
+    if !stack.is_empty() {
+        panic!("Internal error. Block start token not paired with block end token.");
+    }
+    out
 }
 
 
@@ -763,9 +808,7 @@ impl<'s> Lexer<'s> {
 
 /// Lexer main function used for ad-hoc testing during development.
 pub fn main() {
-    let mut lexer = Lexer::new("\n  foo\n  bar");
-    println!("{:?}", lexer.run());
-    println!("{:#?}", lexer.output.iter().collect_vec());
+    println!("{:#?}", run_flat("\n  foo\n  bar"));
 }
 
 /// Test utils for fast mock tokens creation.
@@ -804,9 +847,7 @@ mod tests {
     }
 
     fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
-        let mut lexer = Lexer::new(input);
-        assert!(lexer.run());
-        assert_eq!(lexer.output.iter().collect_vec(), expected);
+        assert_eq!(run_flat(input), expected);
     }
 
     fn lexer_case_idents<'s>(idents: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
@@ -835,7 +876,7 @@ mod tests {
                 ident_("  ", "foo"),
                 newline_("", "\n"),
                 ident_("  ", "bar"),
-                // FIXME: here should be block end
+                block_end_("", ""),
             ]),
         ]);
     }
@@ -1089,9 +1130,7 @@ mod benches {
 
         b.iter(move || {
             let mut lexer = Lexer::new(&str);
-            let ok = lexer.run();
-            assert!(ok);
-            assert_eq!(lexer.output.len(), reps);
+            assert_eq!(lexer.run().len(), reps);
         });
     }
 }

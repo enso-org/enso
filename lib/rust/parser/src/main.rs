@@ -99,19 +99,8 @@
 #![warn(unused_qualifications)]
 
 use crate::prelude::*;
-use std::collections::VecDeque;
-
-use crate::source::VisibleOffset;
-
-use crate::macros::pattern::Match;
-use crate::macros::pattern::MatchResult;
-use crate::macros::pattern::MatchedSegment;
-use enso_data_structures::im_list;
-use enso_data_structures::im_list::List;
-use lexer::Lexer;
 use macros::pattern::Pattern;
-use syntax::token;
-use syntax::token::Token;
+
 
 
 // ==============
@@ -123,8 +112,6 @@ pub mod macros;
 pub mod source;
 pub mod syntax;
 
-
-
 /// Popular utilities, imported by most modules of this crate.
 pub mod prelude {
     pub use enso_prelude::*;
@@ -134,159 +121,21 @@ pub mod prelude {
 
 
 
-fn matched_segments_into_multi_segment_app<'s>(
-    matched_segments: NonEmptyVec<MatchedSegment<'s>>,
-) -> syntax::Tree<'s> {
-    let segments = matched_segments.mapped(|segment| {
-        let header = segment.header;
-        let tokens = segment.result.tokens();
-        let body = (!tokens.is_empty())
-            .as_some_from(|| macros::resolver::resolve_operator_precedence(tokens));
-        syntax::tree::MultiSegmentAppSegment { header, body }
-    });
-    syntax::Tree::multi_segment_app(segments)
-}
-
-
-
-// =========================
-// === Macro Definitions ===
-// =========================
-
-fn macro_if_then_else<'s>() -> macros::Definition<'s> {
-    macro_definition! {
-        ("if", Pattern::Everything, "then", Pattern::Everything, "else", Pattern::Everything)
-        matched_segments_into_multi_segment_app
-    }
-}
-
-fn macro_if_then<'s>() -> macros::Definition<'s> {
-    macro_definition! {
-        ("if", Pattern::Everything, "then", Pattern::Everything)
-        matched_segments_into_multi_segment_app
-    }
-}
-
-fn macro_group<'s>() -> macros::Definition<'s> {
-    macro_definition! {
-        ("(", Pattern::Everything, ")", Pattern::Nothing)
-        matched_segments_into_multi_segment_app
-    }
-}
-
-fn macro_type_def<'s>() -> macros::Definition<'s> {
-    use macros::pattern::*;
-    let pattern = Identifier / "name" % "type name"
-        >> (Identifier / "param").many() % "type parameters"
-        >> Block((Identifier / "constructor").many() % "type constructors" >> Everything)
-            % "type definition body";
-    // let pattern2 = Everything;
-    macro_definition! {
-        ("type", pattern)
-        ttt
-    }
-}
-
-fn ttt<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> syntax::Tree<'s> {
-    let header = matched_segments.first().header.clone();
-    println!(">>>");
-    println!("{:#?}", matched_segments);
-    println!(">>>");
-    println!("{:#?}", matched_segments.mapped(|t| t.result.into_match_tree()));
-    syntax::Tree::type_def(header)
-}
-
-fn builtin_macros() -> macros::resolver::MacroMatchTree<'static> {
-    let mut macro_map = macros::resolver::MacroMatchTree::default();
-    // macro_map.register(macro_if_then());
-    // macro_map.register(macro_if_then_else());
-    // macro_map.register(macro_group());
-    // macro_map.register(macro_lambda());
-    macro_map.register(macro_type_def());
-    macro_map
-}
-
-
-
-// ============
-// === Main ===
-// ============
-
-pub fn build_block_hierarchy<'s>(tokens: Vec<Token<'s>>) -> Vec<syntax::Item<'s>> {
-    let mut stack = vec![];
-    let mut out: Vec<syntax::Item<'s>> = vec![];
-    for token in tokens {
-        match token.variant {
-            token::Variant::BlockStart(_) => stack.push(mem::take(&mut out)),
-            token::Variant::BlockEnd(_) => {
-                let new_out = stack.pop().unwrap();
-                let block = mem::replace(&mut out, new_out);
-                out.push(syntax::Item::Block(block));
-            }
-            _ => out.push(token.into()),
-        }
-    }
-    if !stack.is_empty() {
-        panic!("Internal error. Block start token not paired with block end token.");
-    }
-    out
-}
-
-pub fn lex<'a>(code: &'a str) -> Vec<syntax::Item<'a>> {
-    let mut lexer = Lexer::new(code);
-    lexer.run();
-    build_block_hierarchy(lexer.output)
-}
+// ===================
+// === Entry point ===
+// ===================
 
 pub fn parse<'a>(code: &'a str) -> syntax::Tree<'a> {
-    let mut tokens = lex(code);
-    event!(TRACE, "Tokens:\n{:#?}", tokens);
-    let root_macro_map = builtin_macros();
-    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
+    let tokens = lexer::run(code);
     let mut tokens = tokens.into_iter().peekable();
     let mut statements = vec![];
     while tokens.peek().is_some() {
         let resolver = macros::resolver::Resolver::new_root();
-        let (tree, new_tokens) = resolver.run(&root_macro_map, tokens);
+        let (tree, new_tokens) = resolver.run(&macros::built_in::all(), tokens);
         statements.push(tree);
         tokens = new_tokens;
     }
     syntax::Tree::module(statements)
-}
-
-use enso_parser_syntax_tree_builder::ast_builder;
-
-fn main() {
-    init_tracing(TRACE);
-    // let str = "if a then b else c";
-    // let str = "if if * a + b * then y then b";
-    // let str = "* a + b *";
-    // let str = "* a + * b";
-    // let str = "(a) (b) c";
-    // let str = "if (a) then b";
-    // let str = "foo a-> b";
-    // let str = "a+b * c";
-    // let str = "foo if a then b";
-    // let str = "foo *(a)";
-    // let ast = parse("foo if a then b else c");
-    // let ast = parse("type Option a b c\n    None");
-    let ast = parse("type Option a b c\ntype Option a b c");
-    // let ast = parse("if if a then b then c else d");
-    // let ast2 = ast_builder! {{if} a {then} b};
-    // MultiSegmentApp<'s>(prefix: Option<Tree<'s>>, segments:
-    // NonEmptyVec<MultiSegmentAppSegment<'s>>)
-
-    println!("\n\n==================\n\n");
-
-    // let ast2 = Token("", "foo", syntax::token::Variant::new_ident_unchecked("foo"));
-    println!("{:#?}", ast);
-    // println!("\n\n{}", ast.code());
-    // println!("\n\n{:?}", ast2);
-
-    // let tokens = lex("type Bool\n    True\n    False");
-    // println!("{:#?}", tokens);
-
-    // lexer::main();
 }
 
 
@@ -295,48 +144,18 @@ fn main() {
 // === Tests ===
 // =============
 
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//
-//     pub fn ident(repr: &str) -> syntax::Tree {
-//         match token::Variant::to_ident_unchecked(repr) {
-//             token::Variant::Ident(ident) => span::With::new_no_left_offset_no_start(
-//                 Bytes::from(repr.len()),
-//                 syntax::tree::Type::from(syntax::tree::Ident(ident)),
-//             ),
-//             _ => panic!(),
-//         }
-//     }
-//
-//     pub fn app_segment(
-//         header: Token,
-//         body: Option<syntax::Tree>,
-//     ) -> syntax::tree::MultiSegmentAppSegment {
-//         syntax::tree::MultiSegmentAppSegment { header, body }
-//     }
-// }
-//
-//
-//
+fn main() {
+    init_tracing(TRACE);
+    let ast = parse("type Option a b c\ntype Option a b c");
+    println!("\n\n==================\n\n");
+    println!("{:#?}", ast);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use enso_parser_syntax_tree_builder::ast_builder;
 
-    //     fn one_shot(input: &str) -> syntax::Tree {
-    //         let mut lexer = Lexer::new(input);
-    //         lexer.run();
-    //         let root_macro_map = builtin_macros();
-    //         let resolver = Resolver::new_root();
-    //         let ast = resolver.run(
-    //             &lexer,
-    //             &root_macro_map,
-    //             lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
-    //         );
-    //         ast
-    //     }
-    //
     macro_rules! test_parse {
             ($input:tt = {$($def:tt)*}) => {
                 assert_eq!(
@@ -351,13 +170,14 @@ mod tests {
         test_parse! {"a" = {a}};
         test_parse! {"a b" = {a b}};
         test_parse! {"a b c" = {[a b] c}};
-        // test_parse!("if a then b" = { {if} a {then} b });
-        // test_parse!("if a then b else c" = { {if} a {then} b {else} c });
-        // test_parse!("if a b then c d else e f" = { {if} a b {then} c d {else} e f });
     }
 }
 
 
+
+// ==================
+// === Benchmarks ===
+// ==================
 
 #[cfg(test)]
 mod benches {

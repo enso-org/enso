@@ -15,6 +15,7 @@ use enso_data_structures::im_list;
 // === Export ===
 // ==============
 
+pub mod built_in;
 pub mod pattern;
 pub mod resolver;
 
@@ -85,11 +86,29 @@ impl<'a> SegmentDefinition<'a> {
 /// ```
 #[macro_export]
 macro_rules! macro_definition {
-    ( ($($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
+    ($def:tt) => {
+        $crate::macro_definition!{$def $crate::macros::matched_segments_into_multi_segment_app}
+    };
+    (($($section:literal, $pattern:expr),* $(,)?) $body:expr) => {
         $crate::macros::Definition {
             segments: im_list::NonEmpty::try_from(vec![
-                $(macros::SegmentDefinition::new($section, $pattern)),*]).unwrap(),
+                $($crate::macros::SegmentDefinition::new($section, $pattern)),*]).unwrap(),
             body: Rc::new($body),
         }
     };
+}
+
+
+
+fn matched_segments_into_multi_segment_app<'s>(
+    matched_segments: NonEmptyVec<pattern::MatchedSegment<'s>>,
+) -> syntax::Tree<'s> {
+    let segments = matched_segments.mapped(|segment| {
+        let header = segment.header;
+        let tokens = segment.result.tokens();
+        let body =
+            (!tokens.is_empty()).as_some_from(|| resolver::resolve_operator_precedence(tokens));
+        syntax::tree::MultiSegmentAppSegment { header, body }
+    });
+    syntax::Tree::multi_segment_app(segments)
 }

@@ -1,10 +1,10 @@
 use crate::macros;
+use crate::macros::pattern::MatchedSegment;
 use crate::prelude::*;
 use crate::source::*;
 use crate::syntax;
 use crate::syntax::token;
 use crate::syntax::token::Token;
-use crate::MatchedSegment;
 use crate::Pattern;
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
@@ -117,8 +117,7 @@ impl<'a> Frame<'a> {
     /// exist in the source code, it is simply the whole expression being parsed. It is treated
     /// as a macro in order to unify the algorithms.
     pub fn new_root() -> Self {
-        let current_segment =
-            Segment { header: Token("", "", token::Variant::newline()), body: default() };
+        let current_segment = Segment::new(Token("", "", token::Variant::newline()));
         let resolved_segments = default();
         let possible_next_segments = default();
         let matched_macro_def = Some(Rc::new(macros::Definition {
@@ -172,6 +171,8 @@ impl<'s> Resolver<'s> {
         root_macro_map: &MacroMatchTree<'s>,
         tokens: iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>,
     ) -> (syntax::Tree<'s>, iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>) {
+        event!(TRACE, "Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
+
         let mut tokens = tokens.into_iter();
         let mut opt_item: Option<syntax::Item<'s>>;
         macro_rules! next_token {
