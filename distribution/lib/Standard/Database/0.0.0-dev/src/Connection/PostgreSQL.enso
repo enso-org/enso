@@ -75,6 +75,7 @@ type PostgreSQL
        - port: The port of the database server.
        - database: The database to connect to.
     read_pgpass : Text -> Integer -> Text -> [Pair Text Text]
-    read_pgpass host='' port=5433 database='' =
+    read_pgpass _ _ _ =
         ## ToDo: Code not part of the design document.
+        ## host port database
         []

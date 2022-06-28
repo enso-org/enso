@@ -52,7 +52,7 @@ type Dialect
 
    A vector of SQL dialects supported by the Database library.
 supported_dialects : Vector Dialect
-supported_dialects = [Postgres_Module.postgresql, Sqlite_Module.sqlite, Redshift.redshift]
+supported_dialects = [Postgres_Module.postgresql, Sqlite_Module.sqlite, Redshift_Module.redshift]
 
 ## PRIVATE
 
@@ -70,6 +70,6 @@ postgres = Postgres_Module.postgresql
 
    The dialect of Redshift databases.
 redshift : Dialect
-redshit = Redshift_Module.redshift
+redshift = Redshift_Module.redshift
 
 
