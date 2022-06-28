@@ -1,5 +1,5 @@
 ---
-name: Engine CI (new)
+name: Engine CI
 "on":
   push:
     branches:
@@ -9,6 +9,15 @@ name: Engine CI (new)
   pull_request: {}
   workflow_dispatch: {}
 jobs:
+  enso-build-cli-ci-gen-job-cancel-workflow-linux:
+    name: Cancel Previous Runs
+    runs-on:
+      - X64
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: "${{ github.token }}"
   enso-build-cli-ci-gen-job-ci-check-backend-linux:
     name: Engine (linux)
     runs-on:
@@ -32,10 +41,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run backend ci-check"
@@ -44,6 +54,12 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
+      - name: Test report
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
+          reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-macos:
     name: Engine (macos)
     runs-on:
@@ -65,10 +81,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run backend ci-check"
@@ -77,6 +94,12 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
+      - name: Test report
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
+          reporter: java-junit
   enso-build-cli-ci-gen-job-ci-check-backend-windows:
     name: Engine (windows)
     runs-on:
@@ -103,7 +126,8 @@ jobs:
         uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run backend ci-check"
@@ -112,5 +136,11 @@ jobs:
       - name: List files if failed
         run: ls -R
         if: failure()
+      - name: Test report
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          path: "${{ env.ENSO_TEST_JUNIT_DIR }}"
+          reporter: java-junit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

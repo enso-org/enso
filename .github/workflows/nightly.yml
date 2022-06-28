@@ -28,10 +28,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - id: prepare
@@ -64,10 +65,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build"
@@ -101,10 +103,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run backend upload"
@@ -139,10 +142,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run backend upload"
@@ -179,10 +183,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run backend upload"
@@ -222,10 +227,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run release publish"
@@ -267,10 +273,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
@@ -307,10 +314,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
@@ -349,10 +357,11 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
