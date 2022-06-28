@@ -553,6 +553,7 @@ ensogl::define_endpoints_2! {
         /// Can be used, e.g., if there is a fullscreen visualisation active, or navigation should
         ///only work for a selected visualisation.
         set_navigator_disabled(bool),
+        // pan_camera_to_rectangle(selection::BoundingBox),
 
 
         // === Modes ===
@@ -1617,6 +1618,34 @@ impl GraphEditorModelWithNetwork {
             let profiling_max_duration              = &self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration <+ self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration(profiling_max_duration.value());
+
+
+            // === Camera panning ===
+
+            first_update_of_node_pos <- node.output.position.count().filter(|i| *i==1);
+            let node_bbox = &node.output.bounding_box;
+            node_bbox_on_first_pos_update <- first_update_of_node_pos.map2(node_bbox, |_, b| *b);
+            eval node_bbox_on_first_pos_update([model](bbox)
+                model.pan_camera_to_rectangle(*bbox)
+            );
+            trace node_bbox_on_first_pos_update;
+
+            // first_update_of_node_pos <- node_pos_update_count.filter(|i| *i==1);
+            // node_pos_update_count <- node.output.position.count();
+            // // first_update_of_node_pos <- node.output.position.count().filter(|i| *i==1);
+            // first_update_of_node_pos <- node_pos_update_count.filter(|i| *i==1);
+            // node_bbox <- node.output.bounding_box;
+            // node_bbox_on_first_pos_update <- first_update_of_node_pos.map2(&node_bbox, |_, b| *b);
+            // eval node_bbox_on_first_pos_update([model](bbox)
+            //     model.pan_camera_to_rectangle(*bbox)
+            // );
+
+            // model.frp.private
+            // pos_update_count <- position.count();
+            // // first_pos_update <- pos_update_count.filter_map(|i| *i==1).constant(());
+            // first_pos_update <- pos_update_count.filter(|i| *i==1).constant(());
+            // bbox_on_first_pos_update <- first_pos_update.map2(&out.bounding_box, |_, b| *b);
+            // trace bbox_on_first_pos_update;
         }
 
         node.set_view_mode(self.model.frp.view_mode.value());
@@ -2417,6 +2446,39 @@ impl GraphEditorModel {
         });
         found
     }
+
+    fn pan_camera_to_rectangle(&self, target_bbox: selection::BoundingBox) {
+        use ensogl::display::navigation::navigator::PanEvent;
+        let scene = &self.app.display.default_scene;
+        let screen_size_halved = Vector2::from(scene.camera().screen()) / 2.0;
+        // TODO: is 0 as `z` coord. correct here?
+        let screen_to_scene_vec2 = |pos: Vector2|
+            scene.screen_to_scene_coordinates(Vector3(pos.x, pos.y, 0.0)).xy();
+        // TODO: make sure the corners respect camera's "origin" point, which may not be at center;
+        // though, the `alignment` described in Camera2dData does not seem present in the struct.
+        let screen_corner_max = screen_to_scene_vec2(screen_size_halved);
+        let screen_corner_min = screen_to_scene_vec2(-screen_size_halved);
+        let screen_bbox = selection::BoundingBox::from_corners(screen_corner_min, screen_corner_max);
+        DEBUG!("MCDBG  screen bbox = " screen_bbox;?);
+        let pan_y = if target_bbox.top() > screen_bbox.top() {
+            Some(target_bbox.top() - screen_bbox.top())
+        } else if target_bbox.bottom() < screen_bbox.bottom() {
+            Some(target_bbox.bottom() - screen_bbox.bottom())
+        } else {
+            None
+        };
+        let pan_x = if target_bbox.left() < screen_bbox.left() {
+            Some(target_bbox.left() - screen_bbox.left())
+        } else if target_bbox.right() > screen_bbox.right() {
+            Some(target_bbox.right() - screen_bbox.right())
+        } else {
+            None
+        };
+        let pan = PanEvent::new(Vector2(-pan_x.unwrap_or_default(), -pan_y.unwrap_or_default()));
+        DEBUG!("MCDBG  target bbox = " target_bbox;?);
+        DEBUG!("MCDBG  pan = " pan;?);
+        self.navigator.emit_pan_event(pan);
+    }
 }
 
 impl display::Object for GraphEditorModel {
@@ -2909,7 +2971,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             };
             model.create_node(&ctx, way, *mouse_pos)
         }));
-        _eval <- new_node.map(f!([model] ((id, _, _)) model.pan_to_node(id)));
+        // _eval <- new_node.map(f!([model] ((id, _, _)) model.pan_to_node(id)));
         out.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
     }

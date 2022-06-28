@@ -332,7 +332,8 @@ ensogl::define_endpoints_2! {
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
-        bounding_box             (BoundingBox)
+        bounding_box             (BoundingBox),
+        position                 (Vector2),
     }
 }
 
@@ -945,7 +946,7 @@ impl Node {
                 <+ visualization_visible.not().and(&no_error_set);
 
 
-            // === Bounding Box ===
+            // === Bounding Box and Position ===
 
             let visualization_size = &model.visualization.frp.size;
             // Visualization can be enabled and not visible when the node has an error.
@@ -954,18 +955,21 @@ impl Node {
                 &position,&new_size,&visualization_enabled_and_visible,visualization_size);
             out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
 
-            pos_update_count <- position.count();
-            // first_pos_update <- pos_update_count.filter_map(|i| *i==1).constant(());
-            first_pos_update <- pos_update_count.filter(|i| *i==1).constant(());
-            bbox_on_first_pos_update <- first_pos_update.map2(&out.bounding_box, |_, b| *b);
-            trace bbox_on_first_pos_update;
-            // trace pos_count;
-            // bbox_count <- bbox_input.count();
-            // bbox_with_count <- bbox_count.map2(&out.bounding_box, |n,b| (*n, *b));
-            // // first_bbox_update <- bbox_with_count.filter_map(|n,b| (n==1).then(b));
-            // // first_bbox_update <- bbox_with_count.filter_map(|(n,b)| (*n<=2).then(*b));
-            // first_bbox_update <- bbox_with_count.filter_map(|(n,b)| if *n<=2 { Some((*n,*b)) } else { None });
-            // trace first_bbox_update;
+            // Note: done after out.bounding_box to make sure the latter is up-to-date
+            out.position <+ position;
+
+            // pos_update_count <- position.count();
+            // // first_pos_update <- pos_update_count.filter_map(|i| *i==1).constant(());
+            // first_pos_update <- pos_update_count.filter(|i| *i==1).constant(());
+            // bbox_on_first_pos_update <- first_pos_update.map2(&out.bounding_box, |_, b| *b);
+            // trace bbox_on_first_pos_update;
+            // // trace pos_count;
+            // // bbox_count <- bbox_input.count();
+            // // bbox_with_count <- bbox_count.map2(&out.bounding_box, |n,b| (*n, *b));
+            // // // first_bbox_update <- bbox_with_count.filter_map(|n,b| (n==1).then(b));
+            // // // first_bbox_update <- bbox_with_count.filter_map(|(n,b)| (*n<=2).then(*b));
+            // // first_bbox_update <- bbox_with_count.filter_map(|(n,b)| if *n<=2 { Some((*n,*b)) } else { None });
+            // // trace first_bbox_update;
 
 
 
