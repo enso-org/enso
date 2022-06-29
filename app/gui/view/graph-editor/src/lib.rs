@@ -2401,7 +2401,6 @@ impl GraphEditorModel {
     }
 
     fn pan_camera_to_node(&self, node_id: NodeId) {
-        use selection::BoundingBox;
         use theme::graph_editor::margin_when_panning_camera_to_node as pan_margin;
         self.with_node(node_id, |node| {
             let bbox = node.bounding_box.value();
@@ -2416,7 +2415,7 @@ impl GraphEditorModel {
             let pan_area_max_x = bbox.right() + right_margin;
             let pan_area_min_xy = Vector2(pan_area_min_x, pan_area_min_y);
             let pan_area_max_xy = Vector2(pan_area_max_x, pan_area_max_y);
-            let pan_area = BoundingBox::from_corners(pan_area_min_xy, pan_area_max_xy);
+            let pan_area = selection::BoundingBox::from_corners(pan_area_min_xy, pan_area_max_xy);
             self.pan_camera_to_rectangle(pan_area)
         });
     }
