@@ -1619,29 +1619,10 @@ impl GraphEditorModelWithNetwork {
 
             // === Panning camera to created node ===
 
-            first_update_of_pos <- node.output.position.count().filter(|i| *i==1);
-            let bbox = &node.output.bounding_box;
-            bbox_after_first_update_of_pos <- first_update_of_pos.map2(bbox, |_, b| *b);
-            let editing = &self.frp.node_editing;
-            bbox_after_first_update_if_editing <- bbox_after_first_update_of_pos.gate(editing);
-            eval bbox_after_first_update_if_editing([model](bbox)
-                model.pan_camera_to_node(node_id)
-                // use theme::graph_editor::margin_when_panning_camera_to_node as pan_margin;
-                // use selection::BoundingBox;
-                // let styles = &model.styles_frp;
-                // let top_margin = styles.get_number(pan_margin::above_node).value();
-                // let bottom_margin = styles.get_number(pan_margin::below_node).value();
-                // let left_margin = styles.get_number(pan_margin::to_the_left_of_node).value();
-                // let right_margin = styles.get_number(pan_margin::to_the_right_of_node).value();
-                // let pan_area_max_y = bbox.top() + top_margin;
-                // let pan_area_min_y = bbox.bottom() - bottom_margin;
-                // let pan_area_min_x = bbox.left() - left_margin;
-                // let pan_area_max_x = bbox.right() + right_margin;
-                // let pan_area_min_xy = Vector2(pan_area_min_x, pan_area_min_y);
-                // let pan_area_max_xy = Vector2(pan_area_max_x, pan_area_max_y);
-                // let pan_area = BoundingBox::from_corners(pan_area_min_xy, pan_area_max_xy);
-                // model.pan_camera_to_rectangle(pan_area)
-            );
+            pos_update_count <- node.output.position.count();
+            first_update_of_pos <- pos_update_count.filter(|i| *i==1).constant(());
+            first_update_of_pos_if_editing <- first_update_of_pos.gate(&self.frp.node_editing);
+            eval first_update_of_pos_if_editing([model](_) model.pan_camera_to_node(node_id));
         }
 
         node.set_view_mode(self.model.frp.view_mode.value());
@@ -2425,8 +2406,8 @@ impl GraphEditorModel {
     }
 
     fn pan_camera_to_node(&self, node_id: NodeId) {
-        use theme::graph_editor::margin_when_panning_camera_to_node as pan_margin;
         use selection::BoundingBox;
+        use theme::graph_editor::margin_when_panning_camera_to_node as pan_margin;
         self.with_node(node_id, |node| {
             let bbox = node.bounding_box.value();
             let styles = &self.styles_frp;
