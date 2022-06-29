@@ -1617,7 +1617,7 @@ impl GraphEditorModelWithNetwork {
             node.set_profiling_max_global_duration(profiling_max_duration.value());
 
 
-            // === Camera panning ===
+            // === Panning camera to created node ===
 
             first_update_of_pos <- node.output.position.count().filter(|i| *i==1);
             let bbox = &node.output.bounding_box;
