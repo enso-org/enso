@@ -34,6 +34,7 @@ class UpdatingEditionProviderTest
     )
 
   "UpdatingEditionProvider" should {
+    pending
     "list installed editions and download new ones if asked" in {
       repo.withServer(port, repoPath) {
         val provider = makeEditionProvider()
