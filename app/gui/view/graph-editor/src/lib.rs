@@ -1625,21 +1625,22 @@ impl GraphEditorModelWithNetwork {
             let editing = &self.frp.node_editing;
             bbox_after_first_update_if_editing <- bbox_after_first_update_of_pos.gate(editing);
             eval bbox_after_first_update_if_editing([model](bbox)
-                use theme::graph_editor::margin_when_panning_camera_to_node as pan_margin;
-                use selection::BoundingBox;
-                let styles = &model.styles_frp;
-                let top_margin = styles.get_number(pan_margin::above_node).value();
-                let bottom_margin = styles.get_number(pan_margin::below_node).value();
-                let left_margin = styles.get_number(pan_margin::to_the_left_of_node).value();
-                let right_margin = styles.get_number(pan_margin::to_the_right_of_node).value();
-                let pan_area_max_y = bbox.top() + top_margin;
-                let pan_area_min_y = bbox.bottom() - bottom_margin;
-                let pan_area_min_x = bbox.left() - left_margin;
-                let pan_area_max_x = bbox.right() + right_margin;
-                let pan_area_min_xy = Vector2(pan_area_min_x, pan_area_min_y);
-                let pan_area_max_xy = Vector2(pan_area_max_x, pan_area_max_y);
-                let pan_area = BoundingBox::from_corners(pan_area_min_xy, pan_area_max_xy);
-                model.pan_camera_to_rectangle(pan_area)
+                model.pan_camera_to_node(node_id)
+                // use theme::graph_editor::margin_when_panning_camera_to_node as pan_margin;
+                // use selection::BoundingBox;
+                // let styles = &model.styles_frp;
+                // let top_margin = styles.get_number(pan_margin::above_node).value();
+                // let bottom_margin = styles.get_number(pan_margin::below_node).value();
+                // let left_margin = styles.get_number(pan_margin::to_the_left_of_node).value();
+                // let right_margin = styles.get_number(pan_margin::to_the_right_of_node).value();
+                // let pan_area_max_y = bbox.top() + top_margin;
+                // let pan_area_min_y = bbox.bottom() - bottom_margin;
+                // let pan_area_min_x = bbox.left() - left_margin;
+                // let pan_area_max_x = bbox.right() + right_margin;
+                // let pan_area_min_xy = Vector2(pan_area_min_x, pan_area_min_y);
+                // let pan_area_max_xy = Vector2(pan_area_max_x, pan_area_max_y);
+                // let pan_area = BoundingBox::from_corners(pan_area_min_xy, pan_area_max_xy);
+                // model.pan_camera_to_rectangle(pan_area)
             );
         }
 
@@ -2421,6 +2422,27 @@ impl GraphEditorModel {
         };
         let pan = Vector2(-pan_x.unwrap_or_default(), -pan_y.unwrap_or_default()) * camera.zoom();
         self.navigator.emit_pan_event(PanEvent::new(pan));
+    }
+
+    fn pan_camera_to_node(&self, node_id: NodeId) {
+        use theme::graph_editor::margin_when_panning_camera_to_node as pan_margin;
+        use selection::BoundingBox;
+        self.with_node(node_id, |node| {
+            let bbox = node.bounding_box.value();
+            let styles = &self.styles_frp;
+            let top_margin = styles.get_number(pan_margin::above_node).value();
+            let bottom_margin = styles.get_number(pan_margin::below_node).value();
+            let left_margin = styles.get_number(pan_margin::to_the_left_of_node).value();
+            let right_margin = styles.get_number(pan_margin::to_the_right_of_node).value();
+            let pan_area_max_y = bbox.top() + top_margin;
+            let pan_area_min_y = bbox.bottom() - bottom_margin;
+            let pan_area_min_x = bbox.left() - left_margin;
+            let pan_area_max_x = bbox.right() + right_margin;
+            let pan_area_min_xy = Vector2(pan_area_min_x, pan_area_min_y);
+            let pan_area_max_xy = Vector2(pan_area_max_x, pan_area_max_y);
+            let pan_area = BoundingBox::from_corners(pan_area_min_xy, pan_area_max_xy);
+            self.pan_camera_to_rectangle(pan_area)
+        });
     }
 }
 
