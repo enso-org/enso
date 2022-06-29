@@ -167,7 +167,7 @@ impl Default for Parser {
 
 fn main() {
     init_tracing(TRACE);
-    let ast = Parser::new().run("type Option (a) b c");
+    let ast = Parser::new().run("type Option (a) b c\ntype Option (a) b c");
     // let ast = Parser::new().run("type Option a b c\ntype Option a b c");
     println!("\n\n==================\n\n");
     println!("{:#?}", ast);

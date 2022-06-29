@@ -19,17 +19,17 @@ pub fn all() -> resolver::MacroMatchTree<'static> {
 
 /// If-then-else macro definition.
 pub fn if_then_else<'s>() -> Definition<'s> {
-    crate::macro_definition! {("if", Everything, "then", Everything, "else", Everything)}
+    crate::macro_definition! {("if", Everything(), "then", Everything(), "else", Everything())}
 }
 
 /// If-then macro definition.
 pub fn if_then<'s>() -> Definition<'s> {
-    crate::macro_definition! {("if", Everything, "then", Everything)}
+    crate::macro_definition! {("if", Everything(), "then", Everything())}
 }
 
 /// Group macro definition.
 pub fn group<'s>() -> Definition<'s> {
-    crate::macro_definition! {("(", Everything, ")", Nothing)}
+    crate::macro_definition! {("(", Everything(), ")", Nothing())}
 }
 
 /// New type definition macro definition.
@@ -37,21 +37,12 @@ pub fn type_def<'s>() -> Definition<'s> {
     use pattern::*;
     #[rustfmt::skip]
     let pattern = 
-        Identifier / "name" % "type name" >>
-        Many((Identifier & "type parameter")/ "param" ) % "type parameters" >>
+        Identifier() / "name" % "type name" >>
+        Many(Identifier() % "type parameter" / "param") % "type parameters" >>
         Block(
-            Many(Identifier / "constructor") % "type constructors" >> 
-            Everything
+            Many(Identifier() / "constructor") % "type constructors" >> 
+            Everything()
         ) % "type definition body";
-    // 
-    // let pattern = pat! {
-    //     Identifier @ name ? "type name" >>
-    //         Many((Identifier ?? "type parameter") @ param ) ? "type parameters" >>
-    //         Block(
-    //             Many(Identifier ?? "constructor") ? "type constructors" >>
-    //             Everything
-    //         ) ? "type definition body";
-    //     };
     // let pattern2 = Everything;
     crate::macro_definition! {
         ("type", pattern)
@@ -66,17 +57,26 @@ fn type_def_body<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> synta
     println!(">>>");
     let match_tree = segment.result.into_match_tree();
     println!("{:#?}", match_tree);
-    println!("\n\n-------------");
+    println!("\n\n------------- 1");
 
     let mut v = match_tree.view();
-    println!("{:#?}", v.query("name"));
+
+    let name = &v.query("name").unwrap()[0];
+    let name = resolver::resolve_operator_precedence(name.clone());
+    println!("{:#?}", name);
+
+    println!("\n\n------------- 2");
 
     let params = v.nested().query("param").unwrap();
+    println!("{:#?}", params);
+
+    println!("\n\n------------- 3");
+
     let params = params
         .into_iter()
         .map(|tokens| resolver::resolve_operator_precedence(tokens.clone()))
         .collect_vec();
     println!("{:#?}", params);
 
-    syntax::Tree::type_def(segment.header, params)
+    syntax::Tree::type_def(segment.header, name, params)
 }

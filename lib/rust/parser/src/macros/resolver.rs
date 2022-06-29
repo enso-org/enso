@@ -122,7 +122,7 @@ impl<'a> Frame<'a> {
         let matched_macro_def = Some(Rc::new(macros::Definition {
             segments: im_list::NonEmpty::singleton(macros::SegmentDefinition {
                 header:  "__ROOT__",
-                pattern: Pattern::Everything,
+                pattern: macros::pattern::Everything(),
             }),
             body:     Rc::new(|v| {
                 let t = v.into_vec().pop().unwrap().result;
@@ -423,6 +423,7 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
 
 fn resolve_operator_precedence_internal(items: Vec<syntax::Item<'_>>) -> syntax::Tree<'_> {
     // Reverse-polish notation encoding.
+    let mut was_section_used = false;
     let mut output: Vec<syntax::Item> = default();
     let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
     let mut last_token_was_ast = false;
@@ -456,6 +457,7 @@ fn resolve_operator_precedence_internal(items: Vec<syntax::Item<'_>>) -> syntax:
                 {
                     // Prev operator in the [`operator_stack`] has a higher precedence.
                     let lhs = output.pop().map(token_to_ast);
+                    if lhs.is_none() { was_section_used = true; }
                     let ast = syntax::Tree::opr_app(lhs, prev_opr.elem, Some(token_to_ast(rhs)));
                     output.push(ast.into());
                 }
@@ -477,12 +479,22 @@ fn resolve_operator_precedence_internal(items: Vec<syntax::Item<'_>>) -> syntax:
     let mut opt_rhs = last_token_was_ast.and_option_from(|| output.pop().map(token_to_ast));
     while let Some(opr) = operator_stack.pop() {
         let opt_lhs = output.pop().map(token_to_ast);
+        if opt_lhs.is_none() || opt_rhs.is_none() {
+            was_section_used = true;
+        }
         opt_rhs = Some(syntax::Tree::opr_app(opt_lhs, opr.elem, opt_rhs));
     }
     if !output.is_empty() {
         panic!("Internal error. Not all tokens were consumed while constructing the expression.");
     }
-    syntax::Tree::opr_section_boundary(opt_rhs.unwrap()) // fixme
+
+    // FIXME
+    let out = opt_rhs.unwrap();
+    if was_section_used {
+        syntax::Tree::opr_section_boundary(out)
+    } else {
+        out
+    }
 }
 
 fn token_to_ast(elem: syntax::Item) -> syntax::Tree {

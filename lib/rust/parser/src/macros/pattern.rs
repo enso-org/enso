@@ -19,25 +19,117 @@ use crate::syntax;
 /// 1. This pattern implementation exposes different matchers and operations.
 /// 2. This macro implementation never attaches types to tokens, which means that every defined
 ///    pattern behaves like a TT-muncher in Rust.
+#[derive(Clone, Debug, Deref)]
+pub struct Pattern {
+    #[deref]
+    pub data:                Rc<PatternData>,
+    pub matches_empty_input: bool,
+}
+
+impl Pattern {
+    pub fn new(data: PatternData, matches_empty_input: bool) -> Self {
+        Self { data: Rc::new(data), matches_empty_input }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
-pub enum Pattern {
+pub enum PatternData {
     /// Consume all items, till the end of the token stream.
     Everything,
     /// Consume nothing.
     Nothing,
     /// Consume items matching the first pattern. If the match was unsuccessful, the second match
     /// will be tried.
-    Or(Box<Pattern>, Box<Pattern>),
-    Seq(Box<Pattern>, Box<Pattern>),
-    Many(Box<Pattern>),
+    Or(Pattern, Pattern),
+    Seq(Pattern, Pattern),
+    Many(Pattern),
     /// Consume a single item if it matches the configuration.
     // Item(Item),
     Identifier,
-    Block(Box<Pattern>),
-    Expected(String, Box<Pattern>),
-    Named(String, Box<Pattern>),
+    Block(Pattern),
+    Expected(String, Pattern),
+    Named(String, Pattern),
     NotBlock,
+}
+
+
+pub fn Everything() -> Pattern {
+    Pattern::new(PatternData::Everything, true)
+}
+
+pub fn Identifier() -> Pattern {
+    Pattern::new(PatternData::Identifier, false)
+}
+
+pub fn NotBlock() -> Pattern {
+    Pattern::new(PatternData::NotBlock, false)
+}
+
+pub fn Nothing() -> Pattern {
+    Pattern::new(PatternData::Nothing, true)
+}
+
+pub fn Or(fst: Pattern, snd: Pattern) -> Pattern {
+    let matches_empty_input = fst.matches_empty_input || snd.matches_empty_input;
+    Pattern::new(PatternData::Or(fst, snd), matches_empty_input)
+}
+
+pub fn Seq(fst: Pattern, snd: Pattern) -> Pattern {
+    let matches_empty_input = fst.matches_empty_input && snd.matches_empty_input;
+    Pattern::new(PatternData::Seq(fst, snd), matches_empty_input)
+}
+
+pub fn Many(item: Pattern) -> Pattern {
+    Pattern::new(PatternData::Many(item), true)
+}
+
+pub fn Block(body: Pattern) -> Pattern {
+    Pattern::new(PatternData::Block(body), false)
+}
+
+pub fn Expected(message: impl Into<String>, item: Pattern) -> Pattern {
+    let matches_empty_input = item.matches_empty_input;
+    Pattern::new(PatternData::Expected(message.into(), item), matches_empty_input)
+}
+
+pub fn Named(message: impl Into<String>, item: Pattern) -> Pattern {
+    let matches_empty_input = item.matches_empty_input;
+    Pattern::new(PatternData::Named(message.into(), item), matches_empty_input)
+}
+
+impl Pattern {
+    pub fn many(self) -> Self {
+        Many(self)
+    }
+}
+
+impl std::ops::Shr for Pattern {
+    type Output = Pattern;
+    fn shr(self, rhs: Pattern) -> Self::Output {
+        Seq(self, rhs)
+    }
+}
+
+impl std::ops::BitOr for Pattern {
+    type Output = Pattern;
+    fn bitor(self, rhs: Pattern) -> Self::Output {
+        Or(self, rhs)
+    }
+}
+
+impl<T: Into<String>> std::ops::Rem<T> for Pattern {
+    type Output = Pattern;
+    fn rem(self, message: T) -> Self::Output {
+        self | Expected(message, NotBlock() | Nothing())
+    }
+}
+
+impl<T: Into<String>> std::ops::Div<T> for Pattern {
+    type Output = Pattern;
+    fn div(self, message: T) -> Self::Output {
+        Named(message, self)
+    }
 }
 
 
@@ -230,7 +322,23 @@ impl<'t, 's> MatchTreeView<'t, 's> {
                 match &self.resolved_scope {
                     None => {
                         if let Some(parent_scope) = &self.parent_scope_to_check {
-                            // todo - check if entry.scope has parent_scope in its parent list
+                            let mut ok = false;
+                            let mut scope = entry.scope.clone_ref();
+                            loop {
+                                if !Rc::ptr_eq(&parent_scope, &scope) {
+                                    ok = true;
+                                    break;
+                                } else {
+                                    let parent = scope.borrow().parent.as_ref().cloned();
+                                    match parent {
+                                        Some(p) => scope = p,
+                                        None => break,
+                                    }
+                                }
+                            }
+                            if !ok {
+                                panic!("scope mismatch");
+                            }
                         }
                         self.resolved_scope = Some(entry.scope.clone_ref())
                     }
@@ -262,6 +370,10 @@ struct VarScope {
     locals: HashSet<String>,
     parent: Option<Rc<RefCell<VarScope>>>,
 }
+
+// pub struct MatchTreeValidatorData {
+//     scope:  Rc<RefCell<VarScope>>,
+// }
 
 #[derive(Clone, Debug, Default)]
 pub struct MatchTree<'s> {
@@ -323,79 +435,6 @@ impl<'s> Match<'s> {
 }
 
 
-pub use Pattern::Everything;
-pub use Pattern::Identifier;
-pub use Pattern::NotBlock;
-pub use Pattern::Nothing;
-
-pub fn Or(fst: Pattern, snd: Pattern) -> Pattern {
-    Pattern::Or(Box::new(fst), Box::new(snd))
-}
-
-pub fn Seq(fst: Pattern, snd: Pattern) -> Pattern {
-    Pattern::Seq(Box::new(fst), Box::new(snd))
-}
-
-pub fn Many(item: Pattern) -> Pattern {
-    Pattern::Many(Box::new(item))
-}
-
-pub fn Block(body: Pattern) -> Pattern {
-    Pattern::Block(Box::new(body))
-}
-
-pub fn Expected(message: impl Into<String>, item: Pattern) -> Pattern {
-    Pattern::Expected(message.into(), Box::new(item))
-}
-
-pub fn Named(message: impl Into<String>, item: Pattern) -> Pattern {
-    Pattern::Named(message.into(), Box::new(item))
-}
-
-impl Pattern {
-    pub fn many(self) -> Self {
-        Many(self)
-    }
-
-    pub fn many1(self) -> Self {
-        Seq(self.clone(), Many(self))
-    }
-}
-
-impl std::ops::Shr for Pattern {
-    type Output = Pattern;
-    fn shr(self, rhs: Pattern) -> Self::Output {
-        Seq(self, rhs)
-    }
-}
-
-impl std::ops::BitOr for Pattern {
-    type Output = Pattern;
-    fn bitor(self, rhs: Pattern) -> Self::Output {
-        Or(self, rhs)
-    }
-}
-
-impl<T: Into<String>> std::ops::Rem<T> for Pattern {
-    type Output = Pattern;
-    fn rem(self, message: T) -> Self::Output {
-        self | Expected(message, NotBlock | Nothing)
-    }
-}
-
-impl<T: Into<String>> std::ops::BitAnd<T> for Pattern {
-    type Output = Pattern;
-    fn bitand(self, message: T) -> Self::Output {
-        self | Expected(message, NotBlock)
-    }
-}
-
-impl<T: Into<String>> std::ops::Div<T> for Pattern {
-    type Output = Pattern;
-    fn div(self, message: T) -> Self::Output {
-        Named(message, self)
-    }
-}
 
 // /// Item pattern configuration.
 // #[derive(Clone, Copy, Debug)]
@@ -460,22 +499,23 @@ impl Pattern {
         &self,
         mut input: VecDeque<syntax::Item<'s>>,
     ) -> Result<MatchResult<'s>, VecDeque<syntax::Item<'s>>> {
-        match self {
-            Self::Expected(msg, item) =>
+        match &*self.data {
+            PatternData::Expected(msg, item) =>
                 item.resolve(input).map(|t| t.map(|s| Match::expected(msg.clone(), s))),
-            Self::Named(msg, item) =>
+            PatternData::Named(msg, item) =>
                 item.resolve(input).map(|t| t.map(|s| Match::named(msg.clone(), s))),
-            Self::Everything => Ok(MatchResult::new(Match::Everything(input), default())),
-            Self::Nothing => Ok(MatchResult::new(Match::Nothing, input)),
-            Self::Or(fst, snd) => fst
+            PatternData::Everything => Ok(MatchResult::new(Match::Everything(input), default())),
+            PatternData::Nothing => Ok(MatchResult::new(Match::Nothing, input)),
+            PatternData::Or(fst, snd) => fst
                 .resolve(input)
                 .map(|t| t.map(|s| Match::or(OrMatch::First(s))))
                 .or_else(|t| snd.resolve(t).map(|t| t.map(|s| Match::or(OrMatch::Second(s))))),
-            Self::Seq(fst, snd) => fst
+            PatternData::Seq(fst, snd) => fst
                 .resolve(input)
                 .and_then(|t| snd.resolve(t.rest).map(|s| s.map(|x| Match::seq(t.matched, x)))),
-            Self::Many(pat) => {
+            PatternData::Many(pat) => {
                 let mut out = vec![];
+                let mut input_len = input.len();
                 loop {
                     match pat.resolve(input) {
                         Err(rest) => {
@@ -484,13 +524,19 @@ impl Pattern {
                         }
                         Ok(t) => {
                             input = t.rest;
+                            if pat.matches_empty_input {
+                                if input.len() == input_len {
+                                    break;
+                                }
+                                input_len = input.len();
+                            }
                             out.push(t.matched);
                         }
                     }
                 }
                 Ok(MatchResult::new(Match::Many(out), input))
             }
-            Self::Identifier => match input.pop_front() {
+            PatternData::Identifier => match input.pop_front() {
                 None => Err(default()),
                 Some(t) =>
                     if t.is_variant(syntax::token::variant::VariantMarker::Ident) {
@@ -500,7 +546,7 @@ impl Pattern {
                         Err(input)
                     },
             },
-            Self::Block(body) => match input.pop_front() {
+            PatternData::Block(body) => match input.pop_front() {
                 Some(syntax::Item::Block(tokens)) =>
                     body.resolve(tokens.into_iter().rev().map_into().collect()),
                 Some(t) => {
@@ -509,7 +555,7 @@ impl Pattern {
                 }
                 None => Err(default()),
             },
-            Self::NotBlock => match input.pop_front() {
+            PatternData::NotBlock => match input.pop_front() {
                 Some(t @ syntax::Item::Block(_)) => {
                     input.push_front(t);
                     Err(input)
