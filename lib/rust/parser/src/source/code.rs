@@ -9,10 +9,12 @@ use crate::prelude::*;
 // ============
 
 /// A code representation. It can either be a borrowed source code or a modified owned one.
-#[derive(Clone, Default, Eq, PartialEq, From, Into, Shrinkwrap)]
+#[derive(Clone, Default, Eq, PartialEq, From, Into, Shrinkwrap, Serialize, Reflect, Deserialize)]
 #[shrinkwrap(mutable)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
+    #[serde(serialize_with = "serialization::cow")]
+    #[reflect(as = "serialization::Code", flatten)]
     pub repr: Cow<'s, str>,
 }
 
@@ -76,5 +78,32 @@ impl<'s> std::ops::AddAssign<&Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: &Code<'s>) {
         self.repr.add_assign(other.repr.clone());
+    }
+}
+
+
+// === Serialized Representation ===
+
+mod serialization {
+    use crate::prelude::*;
+
+    /// Serialized representation of a source code `Cow`.
+    #[derive(Serialize, Reflect)]
+    pub(super) struct Code {
+        begin: u32,
+        len:   u32,
+    }
+
+    /// Serde wrapper to serialize a `Cow` as the `Code` representation.
+    pub(super) fn cow<S>(cow: &Cow<'_, str>, ser: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer {
+        let s = match cow {
+            Cow::Borrowed(s) => *s,
+            Cow::Owned(_) => panic!(),
+        };
+        let begin = s.as_ptr() as u32;
+        let len = s.len() as u32;
+        let serializable = Code { begin, len };
+        serializable.serialize(ser)
     }
 }

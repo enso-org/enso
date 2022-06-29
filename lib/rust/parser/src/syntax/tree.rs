@@ -16,12 +16,14 @@ use enso_shapely_macros::tagged_enum;
 // ============
 
 /// The Abstract Syntax Tree of the language.
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq)]
+#[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[deref]
     #[deref_mut]
+    #[reflect(subtype)]
     pub variant: Box<Variant<'s>>,
+    #[reflect(flatten, hide)]
     pub span:    Span<'s>,
 }
 
@@ -57,7 +59,9 @@ impl<'s> AsRef<Span<'s>> for Tree<'s> {
 macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
     /// [`Tree`] variants definition. See its docs to learn more.
     #[tagged_enum]
-    #[derive(Clone, Eq, PartialEq, Visitor)]
+    #[derive(Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+    #[tagged_enum(apply_attributes_to = "variants")]
+    #[reflect(inline)]
     pub enum Variant<'s> {
         /// Invalid [`Tree`] fragment with an attached [`Error`].
         Invalid {
@@ -146,10 +150,34 @@ with_ast_definition!(generate_ast_definition());
 // === Invalid ===
 
 /// Error of parsing attached to an [`Tree`] node.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor, Serialize, Reflect)]
 #[allow(missing_docs)]
+#[reflect(transparent)]
 pub struct Error {
     pub message: &'static str,
+}
+
+struct DeserializeU64;
+
+impl<'de> serde::de::Visitor<'de> for DeserializeU64 {
+    type Value = u64;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "An unsigned 64-bit integer.")
+    }
+
+    fn visit_u64<E>(self, i: u64) -> Result<Self::Value, E>
+    where E: serde::de::Error {
+        Ok(i)
+    }
+}
+
+impl<'de> Deserialize<'de> for Error {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: serde::Deserializer<'de> {
+        let _ = deserializer.deserialize_u64(DeserializeU64);
+        Ok(Error { message: "" })
+    }
 }
 
 impl Error {
@@ -179,7 +207,7 @@ impl<'s> span::Builder<'s> for Error {
 pub type OperatorOrError<'s> = Result<token::Operator<'s>, MultipleOperatorError<'s>>;
 
 /// Error indicating multiple operators found next to each other, like `a + * b`.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultipleOperatorError<'s> {
     pub operators: NonEmptyVec<token::Operator<'s>>,
@@ -195,7 +223,7 @@ impl<'s> span::Builder<'s> for MultipleOperatorError<'s> {
 // === MultiSegmentApp ===
 
 /// A segment of [`MultiSegmentApp`], like `if cond` in the `if cond then ok else fail` expression.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultiSegmentAppSegment<'s> {
     pub header: Token<'s>,
@@ -374,7 +402,10 @@ macro_rules! define_visitor_for_tokens {
     (
         $(#$kind_meta:tt)*
         pub enum $kind:ident {
-            $( $variant:ident $({$($args:tt)*})? ),* $(,)?
+            $(
+              $(#$variant_meta:tt)*
+              $variant:ident $({$($args:tt)*})?
+            ),* $(,)?
         }
     ) => {
         impl<'s, 'a> TreeVisitable<'s, 'a> for token::$kind {}
@@ -571,5 +602,24 @@ impl<'s> Tree<'s> {
     pub fn map_mut<T>(&mut self, f: impl Fn(&mut Tree<'s>) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit_mut(&mut visitor);
+    }
+}
+
+
+
+// ===============
+// === Testing ===
+// ===============
+
+/// Support for integration testing.
+// This is not `#[cfg(test)]` because it is for use in tests in dependent crates.
+pub mod test_support {
+    use super::*;
+
+    /// Deserialize a `Tree` from its binary representation.
+    pub fn deserialize(data: &[u8]) -> Result<Tree, bincode::Error> {
+        use bincode::Options;
+        let options = bincode::DefaultOptions::new().with_fixint_encoding();
+        options.deserialize(data)
     }
 }
