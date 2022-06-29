@@ -2385,24 +2385,17 @@ impl GraphEditorModel {
         let screen_max_xy = screen_to_scene_xy(screen_size_halved);
         let screen_min_xy = screen_to_scene_xy(-screen_size_halved);
         let screen_bbox = selection::BoundingBox::from_corners(screen_min_xy, screen_max_xy);
-        // If target_bbox cannot be fully horizontally contained in screen_bbox, panning to the
-        // left edge of the target_bbox is preferrred over panning to the right edge.
-        let pan_x = if target_bbox.left() < screen_bbox.left() {
-            target_bbox.left() - screen_bbox.left()
-        } else if target_bbox.right() > screen_bbox.right() {
-            target_bbox.right() - screen_bbox.right()
-        } else {
-            0.0
-        };
-        // If target_bbox cannot be fully vertically contained in screen_bbox, panning to the
-        // top edge of the target_bbox is preferrred over panning to the bottom edge.
-        let pan_y = if target_bbox.top() > screen_bbox.top() {
-            target_bbox.top() - screen_bbox.top()
-        } else if target_bbox.bottom() < screen_bbox.bottom() {
-            target_bbox.bottom() - screen_bbox.bottom()
-        } else {
-            0.0
-        };
+        let pan_left = some_if_negative(target_bbox.left() - screen_bbox.left());
+        let pan_right = some_if_positive(target_bbox.right() - screen_bbox.right());
+        let pan_up = some_if_positive(target_bbox.top() - screen_bbox.top());
+        let pan_down = some_if_negative(target_bbox.bottom() - screen_bbox.bottom());
+        // If target_bbox cannot be fully contained in screen_bbox...
+        //  - ...horizontally, then panning to the left edge of the target_bbox is preferred over
+        //    panning to the right edge;
+        //  - ...vertically, then panning to the top edge of the target_bbox is preferred over
+        //    panning to the bottom edge.
+        let pan_x = pan_left.or(pan_right).unwrap_or_default();
+        let pan_y = pan_up.or(pan_down).unwrap_or_default();
         let pan_xy = Vector2(pan_x, pan_y);
         self.navigator.emit_pan_event(PanEvent::new(-pan_xy * camera.zoom()));
     }
@@ -2428,6 +2421,20 @@ impl GraphEditorModel {
         });
     }
 }
+
+
+// === Utilities ===
+
+fn some_if_positive(x: f32) -> Option<f32> {
+    (x > 0.0).as_some(x)
+}
+
+fn some_if_negative(x: f32) -> Option<f32> {
+    (x < 0.0).as_some(x)
+}
+
+
+// === Display object ===
 
 impl display::Object for GraphEditorModel {
     fn display_object(&self) -> &display::object::Instance {
