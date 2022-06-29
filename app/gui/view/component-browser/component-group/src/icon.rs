@@ -920,7 +920,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let circle = Circle(7.0.px()) - Circle(6.0.px());
+                let circle = Circle(7.0.px()) - Circle(5.0.px());
                 let shape = circle.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
