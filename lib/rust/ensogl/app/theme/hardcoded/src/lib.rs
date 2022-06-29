@@ -465,10 +465,12 @@ define_themes! { [light:0, dark:1]
             to_the_left_of_node  = 25.0  , 25.0;
             to_the_right_of_node = 25.0  , 25.0;
         }
-        // margin_around_target_area_when_panning_camera {
-        camera_pan_margin_around_node {
-            vertical = 15.0, 15.0;
-            horizontal = 15.0, 15.0;
+        margin_when_panning_camera_to_node {
+            above_node = 15.0, 15.0;
+            below_node = 15.0, 15.0;
+            to_the_left_of_node = 15.0, 15.0;
+            to_the_right_of_node = graph_editor::minimal_x_spacing_for_new_nodes,
+                graph_editor::minimal_x_spacing_for_new_nodes;
         }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
