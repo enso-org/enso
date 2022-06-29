@@ -749,19 +749,13 @@ crate::define_icons! {
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let left_circle   = Circle(5.0.px()).translate_x((-3.0).px());
                 let right_circle  = Circle(5.0.px()).translate_x(3.0.px());
-                let left_outline  = &left_circle - left_circle.shrink(0.5.px());
-                let right_outline = &right_circle - right_circle.shrink(0.5.px());
                 let intersection  = &left_circle * &right_circle;
 
                 let left_circle   = left_circle.fill(weak_color.clone());
                 let right_circle  = right_circle.fill(weak_color);
-                // let intersection  = intersection.fill(style.get_color(theme::join::medium));
                 let intersection  = intersection.fill(strong_color.clone());
-                let left_outline  = left_outline.fill(strong_color.clone());
-                let right_outline = right_outline.fill(strong_color);
 
-                let shape =
-                    left_circle + right_circle + intersection + left_outline + right_outline;
+                let shape = left_circle + right_circle + intersection;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
