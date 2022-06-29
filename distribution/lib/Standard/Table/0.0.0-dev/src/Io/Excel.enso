@@ -294,17 +294,6 @@ handle_writer ~writer =
     handle_illegal_state <| handle_bad_location <| handle_range_exceeded <| handle_existing_data <| writer
 
 ## PRIVATE
-read_excel_file file reader =
-    bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
-    handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
-
-    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
-    handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
-
-    File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
-        file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
-
-## PRIVATE
 handle_illegal_argument ~action =
     illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
     Panic.catch IllegalArgumentException handler=illegal_argument action action

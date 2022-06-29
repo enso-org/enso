@@ -30,6 +30,18 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class ExcelWriter {
+  public static class ExistingDataException extends Exception {
+    public ExistingDataException(String errorMessage) {
+      super(errorMessage);
+    }
+  }
+
+  public static class RangeExceededException extends Exception {
+    public RangeExceededException(String errorMessage) {
+      super(errorMessage);
+    }
+  }
+
   private static final double SECONDS_IN_A_DAY = 86400.0;
 
   private static Function<Object, Boolean> ensoToTextCallback;
@@ -190,6 +202,72 @@ public class ExcelWriter {
     }
   }
 
+  public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, boolean headers)
+      throws IllegalArgumentException, RangeExceededException, ExistingDataException {
+    Name name = workbook.getName(rangeNameOrAddress);
+    ExcelRange excelRange =
+        new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+    writeTableToRange(workbook, excelRange, replace, skipRows, table, rowLimit, headers);
+  }
+
+  public static void writeTableToRange(Workbook workbook, ExcelRange range, boolean replace, int skipRows, Table table, Long rowLimit, boolean headers)
+      throws IllegalArgumentException, RangeExceededException, ExistingDataException {
+    int sheetIndex = workbook.getSheetIndex(range.getSheetName());
+    if (sheetIndex == -1) {
+      throw new IllegalArgumentException("Unknown sheet '" + range.getSheetName() + "'.");
+    }
+    ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
+
+    if (skipRows != 0) {
+      if (range.isWholeColumn()) {
+        range = new ExcelRange(range.getSheetName(), skipRows + 1, range.getLeftColumn(), workbook.getSpreadsheetVersion().getMaxRows(), range.getRightColumn());
+      } else if (range.isSingleCell()) {
+        range = new ExcelRange(range.getSheetName(), range.getTopRow() + skipRows, range.getLeftColumn());
+      } else {
+        range = new ExcelRange(range.getSheetName(), range.getTopRow() + skipRows, range.getLeftColumn(), range.getBottomRow(), range.getRightColumn());
+      }
+    }
+
+    if (range.isSingleCell()) {
+      ExcelRange expanded = ExcelRange.expandSingleCell(range, sheet);
+      checkExistingRange(workbook, expanded, replace, sheet);
+
+    } else {
+      // Check Size of Range
+      int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - range.getTopRow() + 1, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
+      if (range.getColumnCount() < table.getColumns().length || range.getRowCount() < rowCount) {
+        throw new RangeExceededException("Range is too small to fit all columns.");
+      }
+
+      checkExistingRange(workbook, range, replace, sheet);
+    }
+
+    writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, headers);
+  }
+
+  private static void checkExistingRange(Workbook workbook, ExcelRange range, boolean replace, ExcelSheet sheet) throws ExistingDataException {
+    int topRow = range.isWholeColumn() ? 1 : range.getTopRow();
+    int bottomRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
+    int leftColumn = range.isWholeRow() ? 1 : range.getLeftColumn();
+    int rightColumn = range.isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : range.getLeftColumn();
+
+    for (int row = topRow; row <= bottomRow; row++) {
+      ExcelRow excelRow = sheet.get(row);
+      if (excelRow != null) {
+        for (int column = leftColumn; column <= rightColumn; column++) {
+          Cell cell = excelRow.get(column);
+          if (cell != null) {
+            if (replace) {
+              cell.setBlank();
+            } else {
+              throw new ExistingDataException("Range is not empty, and cannot be replaced in current mode.");
+            }
+          }
+        }
+      }
+    }
+  }
+
   /**
    * Creates an empty workbook.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
@@ -203,7 +281,6 @@ public class ExcelWriter {
     throws IllegalStateException {
     int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - firstRow, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
     int currentRow = firstRow;
-    int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - currentRow + 1, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
     Column[] columns = table.getColumns();
 
     if (headers) {
