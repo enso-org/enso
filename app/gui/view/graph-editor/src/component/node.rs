@@ -333,6 +333,8 @@ ensogl::define_endpoints_2! {
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
         bounding_box             (BoundingBox),
+        /// The [`display::object::Model::position`] of the Node. The position change events are
+        /// emitted after corresponding [`bounding_box`] change events.
         position                 (Vector2),
     }
 }
@@ -949,8 +951,6 @@ impl Node {
             bbox_input <- all4(
                 &position,&new_size,&visualization_enabled_and_visible,visualization_size);
             out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
-
-            // Note: done after out.bounding_box to make sure the latter is up-to-date
             out.position <+ position;
 
 
