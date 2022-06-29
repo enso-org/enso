@@ -165,11 +165,9 @@ impl<'s> Resolver<'s> {
     pub fn run(
         mut self,
         root_macro_map: &MacroMatchTree<'s>,
-        tokens: iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>,
-    ) -> (syntax::Tree<'s>, iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>) {
+        tokens: &mut iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>,
+    ) -> syntax::Tree<'s> {
         event!(TRACE, "Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
-
-        let mut tokens = tokens.into_iter();
         let mut opt_item: Option<syntax::Item<'s>>;
         macro_rules! next_token {
             () => {{
@@ -221,7 +219,7 @@ impl<'s> Resolver<'s> {
         if !rest.is_empty() {
             panic!("Internal error.");
         }
-        (tree, tokens)
+        tree
     }
 
     fn replace_current_with_parent_macro(&mut self, mut parent_macro: Frame<'s>) {

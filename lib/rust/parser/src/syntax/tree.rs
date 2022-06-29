@@ -104,7 +104,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
 
         TypeDef {
-            pub token: token::Token<'s>,
+            pub keyword: token::Token<'s>,
+            pub params: Vec<Tree<'s>>,
         }
     }
 }};}

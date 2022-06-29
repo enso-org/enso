@@ -142,13 +142,12 @@ impl Parser {
     /// Main entry point.
     pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
         let tokens = lexer::run(code);
-        let mut tokens = tokens.into_iter().peekable();
         let mut statements = vec![];
+        let mut tokens = tokens.into_iter().peekable();
         while tokens.peek().is_some() {
             let resolver = macros::resolver::Resolver::new_root();
-            let (tree, new_tokens) = resolver.run(&self.macros, tokens);
+            let tree = resolver.run(&self.macros, &mut tokens);
             statements.push(tree);
-            tokens = new_tokens;
         }
         syntax::Tree::module(statements)
     }
@@ -168,7 +167,8 @@ impl Default for Parser {
 
 fn main() {
     init_tracing(TRACE);
-    let ast = Parser::new().run("type Option a b c\ntype Option a b c");
+    let ast = Parser::new().run("type Option (a) b c");
+    // let ast = Parser::new().run("type Option a b c\ntype Option a b c");
     println!("\n\n==================\n\n");
     println!("{:#?}", ast);
 }

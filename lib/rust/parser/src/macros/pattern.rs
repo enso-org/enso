@@ -37,6 +37,7 @@ pub enum Pattern {
     Block(Box<Pattern>),
     Expected(String, Box<Pattern>),
     Named(String, Box<Pattern>),
+    NotBlock,
 }
 
 
@@ -50,6 +51,7 @@ pub enum Match<'s> {
     Identifier(syntax::Item<'s>),
     Expected(String, Box<Match<'s>>),
     Named(String, Box<Match<'s>>),
+    NotBlock(syntax::Item<'s>),
 }
 
 #[derive(Clone, Debug)]
@@ -141,10 +143,137 @@ impl<'s> MatchedSegment<'s> {
 // }
 
 
+// #[derive(Clone, Debug, Default)]
+// pub struct MatchTree<'s> {
+//     nested: Option<Box<MatchTree<'s>>>,
+//     map:    HashMap<String, Vec<Vec<syntax::Item<'s>>>>,
+// }
+//
+// impl<'s> Match<'s> {
+//     pub fn into_match_tree(self) -> MatchTree<'s> {
+//         let mut tree = MatchTree::default();
+//         self.make_match_tree(&mut tree);
+//         tree
+//     }
+//
+//     pub fn make_match_tree(self, tree: &mut MatchTree<'s>) {
+//         match self {
+//             Self::Everything(_) => {}
+//             Self::Nothing => {}
+//             Self::Or(t) => match *t {
+//                 OrMatch::First(first) => first.make_match_tree(tree),
+//                 OrMatch::Second(second) => second.make_match_tree(tree),
+//             },
+//             Self::Seq(first, second) => {
+//                 first.make_match_tree(tree);
+//                 second.make_match_tree(tree);
+//             }
+//
+//             Self::Many(matches) => {
+//                 if tree.nested.is_none() {
+//                     tree.nested = Some(default());
+//                 }
+//                 let nested = tree.nested.as_mut().unwrap();
+//                 for m in matches {
+//                     m.make_match_tree(nested);
+//                 }
+//             }
+//             Self::Identifier(_) => {}
+//             Self::Expected(_, _) => {}
+//             Self::Named(name, t) => {
+//                 tree.map.entry(name).or_default().push(t.tokens());
+//             }
+//         }
+//     }
+// }
+
+
+// $(
+//     a
+//     $(
+//         b
+//         $( c )*
+//         $( d )*
+//     )*
+//
+//     e
+//     $(
+//         f
+//         $( g )*
+//         $( h )*
+//     )*
+// )*
+
+#[derive(Clone, Debug, Default)]
+pub struct MatchTreeView<'t, 's> {
+    tree:                  Option<&'t MatchTree<'s>>,
+    resolved_scope:        Option<Rc<RefCell<VarScope>>>,
+    parent_scope_to_check: Option<Rc<RefCell<VarScope>>>,
+}
+
+impl<'t, 's> MatchTreeView<'t, 's> {
+    pub fn new(tree: &'t MatchTree<'s>) -> Self {
+        let resolved_scope = default();
+        let parent_scope_to_check = default();
+        Self { tree: Some(tree), resolved_scope, parent_scope_to_check }
+    }
+
+    pub fn nested(mut self) -> Self {
+        self.tree = self.tree.and_then(|t| t.nested.as_ref().map(|n| n.as_ref()));
+        mem::swap(&mut self.resolved_scope, &mut self.parent_scope_to_check);
+        self
+    }
+
+    pub fn query(&mut self, name: &str) -> Option<&'t Vec<Vec<syntax::Item<'s>>>> {
+        self.tree.and_then(|t| {
+            t.map.get(name).map(|entry| {
+                match &self.resolved_scope {
+                    None => {
+                        if let Some(parent_scope) = &self.parent_scope_to_check {
+                            // todo - check if entry.scope has parent_scope in its parent list
+                        }
+                        self.resolved_scope = Some(entry.scope.clone_ref())
+                    }
+                    Some(scope) =>
+                        if !Rc::ptr_eq(&scope, &entry.scope) {
+                            panic!("scope mismatch");
+                        },
+                }
+                &entry.tokens
+            })
+        })
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct Entry<'s> {
+    pub tokens: Vec<Vec<syntax::Item<'s>>>,
+    pub scope:  Rc<RefCell<VarScope>>,
+}
+
+impl<'s> Entry<'s> {
+    pub fn new(scope: Rc<RefCell<VarScope>>, tokens: Vec<Vec<syntax::Item<'s>>>) -> Self {
+        Self { scope, tokens }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct VarScope {
+    locals: HashSet<String>,
+    parent: Option<Rc<RefCell<VarScope>>>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct MatchTree<'s> {
+    scope:  Rc<RefCell<VarScope>>,
     nested: Option<Box<MatchTree<'s>>>,
-    map:    HashMap<String, Vec<Vec<syntax::Item<'s>>>>,
+    map:    HashMap<String, Entry<'s>>,
+}
+
+impl<'s> MatchTree<'s> {
+    pub fn view<'t>(&'t self) -> MatchTreeView<'t, 's> {
+        MatchTreeView::new(self)
+    }
 }
 
 impl<'s> Match<'s> {
@@ -169,7 +298,9 @@ impl<'s> Match<'s> {
 
             Self::Many(matches) => {
                 if tree.nested.is_none() {
-                    tree.nested = Some(default());
+                    let mut nested = MatchTree::default();
+                    nested.scope.borrow_mut().parent = Some(tree.scope.clone_ref());
+                    tree.nested = Some(Box::new(nested));
                 }
                 let nested = tree.nested.as_mut().unwrap();
                 for m in matches {
@@ -179,56 +310,22 @@ impl<'s> Match<'s> {
             Self::Identifier(_) => {}
             Self::Expected(_, _) => {}
             Self::Named(name, t) => {
-                tree.map.entry(name).or_default().push(t.tokens());
+                tree.scope.borrow_mut().locals.insert(name.clone());
+                tree.map
+                    .entry(name)
+                    .or_insert_with(|| Entry::new(tree.scope.clone_ref(), default()))
+                    .tokens
+                    .push(t.tokens());
             }
+            Self::NotBlock(item) => {}
         }
     }
 }
 
 
-// #[derive(Clone, Debug, Default)]
-// pub struct MatchTree<'s> {
-//     nested: Vec<MatchTree<'s>>,
-//     map:    HashMap<String, Vec<syntax::Item<'s>>>,
-// }
-//
-// impl<'s> Match<'s> {
-//     pub fn into_match_tree(self) -> MatchTree<'s> {
-//         let mut tree = MatchTree::default();
-//         self.make_match_tree(&mut tree);
-//         tree
-//     }
-//
-//     pub fn make_match_tree(self, tree: &mut MatchTree<'s>) {
-//         match self {
-//             Self::Everything(_) => {}
-//             Self::Nothing => {}
-//             Self::Or(t) => match *t {
-//                 OrMatch::First(first) => first.make_match_tree(tree),
-//                 OrMatch::Second(second) => second.make_match_tree(tree),
-//             },
-//             Self::Seq(first, second) => {
-//                 first.make_match_tree(tree);
-//                 second.make_match_tree(tree);
-//             }
-//
-//             Self::Many(matches) =>
-//                 for m in matches {
-//                     let mut nested = default();
-//                     m.make_match_tree(&mut nested);
-//                     tree.nested.push(nested);
-//                 },
-//             Self::Identifier(_) => {}
-//             Self::Expected(_, _) => {}
-//             Self::Named(name, t) => {
-//                 tree.map.insert(name, t.tokens());
-//             }
-//         }
-//     }
-// }
-
 pub use Pattern::Everything;
 pub use Pattern::Identifier;
+pub use Pattern::NotBlock;
 pub use Pattern::Nothing;
 
 pub fn Or(fst: Pattern, snd: Pattern) -> Pattern {
@@ -282,7 +379,14 @@ impl std::ops::BitOr for Pattern {
 impl<T: Into<String>> std::ops::Rem<T> for Pattern {
     type Output = Pattern;
     fn rem(self, message: T) -> Self::Output {
-        self | Expected(message, Nothing)
+        self | Expected(message, NotBlock | Nothing)
+    }
+}
+
+impl<T: Into<String>> std::ops::BitAnd<T> for Pattern {
+    type Output = Pattern;
+    fn bitand(self, message: T) -> Self::Output {
+        self | Expected(message, NotBlock)
     }
 }
 
@@ -336,6 +440,7 @@ impl<'s> Match<'s> {
             Self::Identifier(ident) => vec![ident],
             Self::Expected(_, item) => item.tokens(),
             Self::Named(_, item) => item.tokens(),
+            Self::NotBlock(item) => vec![item],
         }
     }
 }
@@ -403,6 +508,14 @@ impl Pattern {
                     Err(input)
                 }
                 None => Err(default()),
+            },
+            Self::NotBlock => match input.pop_front() {
+                Some(t @ syntax::Item::Block(_)) => {
+                    input.push_front(t);
+                    Err(input)
+                }
+                None => Err(default()),
+                Some(t) => Ok(MatchResult::new(Match::NotBlock(t), input)),
             },
         }
     }
