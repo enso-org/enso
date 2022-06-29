@@ -747,15 +747,18 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let left_circle   = Circle(5.0.px()).translate_x((-3.0).px());
-                let right_circle  = Circle(5.0.px()).translate_x(3.0.px());
-                let intersection  = &left_circle * &right_circle;
+                let left_circle = Circle(5.0.px()).translate_x((-3.0).px());
+                let right_circle = Circle(5.0.px()).translate_x(3.0.px());
+                let intersection = &left_circle * &right_circle;
+                let left_outline = left_circle.grow(1.0.px()) - &left_circle;
+                let right_outline = right_circle.grow(1.0.px()) - &right_circle;
 
-                let left_circle   = left_circle.fill(weak_color.clone());
-                let right_circle  = right_circle.fill(weak_color);
-                let intersection  = intersection.fill(strong_color.clone());
+                let left_circle = left_circle.fill(weak_color.clone());
+                let right_circle = right_circle.fill(weak_color);
+                let intersection = intersection.fill(strong_color.clone());
 
-                let shape = left_circle + right_circle + intersection;
+                let shape =
+                    left_circle + right_circle + intersection - left_outline - right_outline;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
