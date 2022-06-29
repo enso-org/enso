@@ -155,8 +155,8 @@ impl Default for Params {
 
 // === Section enum ===
 
-/// Three sections of the Searcher List Panel. See the [Component Browser Design
-// //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+/// Three sections of the Searcher List Panel. See the
+/// [Component Browser Design Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 #[derive(Debug, Copy, Clone)]
 pub enum Section {
     SubModules,
