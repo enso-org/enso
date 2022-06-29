@@ -61,7 +61,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -91,7 +91,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -122,7 +122,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = "Number",
@@ -151,7 +151,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = "Foo.Bar",
@@ -180,7 +180,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion.Argument("a", "Text", false, false, None)
               ),
               selfType      = "Unnamed.Test",
@@ -210,7 +210,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion.Argument(
                   "a",
                   "Either (Vector Number) Text",
@@ -247,7 +247,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = "Foo.Bar Baz",
@@ -278,7 +278,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None),
                 Suggestion
@@ -331,7 +331,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, true, Some("0"))
               ),
@@ -375,7 +375,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "bar",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None),
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None),
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None),
                 Suggestion
@@ -432,7 +432,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "bar",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyAtom", false, false, None),
+                  .Argument("self", "Unnamed.Test.MyAtom", false, false, None),
                 Suggestion.Argument("a", "Number", false, false, None),
                 Suggestion.Argument("b", "Number", false, false, None)
               ),
@@ -477,7 +477,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "apply",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyAtom", false, false, None),
+                  .Argument("self", "Unnamed.Test.MyAtom", false, false, None),
                 Suggestion.Argument("f", "Number -> Number", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyAtom",
@@ -548,7 +548,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               arguments = Seq(
                 Suggestion
                   .Argument(
-                    "this",
+                    "self",
                     "Unnamed.Test.Other_Atom",
                     false,
                     false,
@@ -595,7 +595,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, true, false, None)
               ),
@@ -638,7 +638,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion.Argument("a", "Unnamed.Test.A", false, false, None)
               ),
               selfType      = "Unnamed.Test",
@@ -687,7 +687,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
@@ -753,7 +753,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyMaybe", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyMaybe", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyMaybe",
               returnType    = SuggestionBuilder.Any,
@@ -793,7 +793,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "x",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Newtype", false, false, None)
+                  .Argument("self", "Unnamed.Test.Newtype", false, false, None)
               ),
               selfType      = "Unnamed.Test.NewType",
               returnType    = SuggestionBuilder.Any,
@@ -836,7 +836,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -885,7 +885,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -947,7 +947,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1007,7 +1007,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1054,7 +1054,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1099,7 +1099,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1157,7 +1157,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1214,7 +1214,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1271,7 +1271,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
@@ -1286,7 +1286,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "b",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
@@ -1333,7 +1333,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
@@ -1348,7 +1348,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "b",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
@@ -1403,7 +1403,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+                  .Argument("self", "Unnamed.Test.Just", false, false, None)
               ),
               selfType      = "Unnamed.Test.Just",
               returnType    = SuggestionBuilder.Any,
@@ -1463,7 +1463,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+                  .Argument("self", "Unnamed.Test.Just", false, false, None)
               ),
               selfType      = "Unnamed.Test.Just",
               returnType    = SuggestionBuilder.Any,
@@ -1521,7 +1521,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "empty",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Cons", false, false, None)
+                  .Argument("self", "Unnamed.Test.Cons", false, false, None)
               ),
               selfType      = "Unnamed.Test.Cons",
               returnType    = "Unnamed.Test.List",
@@ -1536,7 +1536,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "empty",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Nil", false, false, None)
+                  .Argument("self", "Unnamed.Test.Nil", false, false, None)
               ),
               selfType      = "Unnamed.Test.Nil",
               returnType    = "Unnamed.Test.List",
@@ -1594,7 +1594,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+                  .Argument("self", "Unnamed.Test.Just", false, false, None)
               ),
               selfType      = "Unnamed.Test.Just",
               returnType    = SuggestionBuilder.Any,
@@ -1609,7 +1609,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "map",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Nothing", false, false, None),
+                  .Argument("self", "Unnamed.Test.Nothing", false, false, None),
                 Suggestion
                   .Argument("f", SuggestionBuilder.Any, false, false, None)
               ),
@@ -1626,7 +1626,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "map",
               arguments = Seq(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Just", false, false, None),
+                  .Argument("self", "Unnamed.Test.Just", false, false, None),
                 Suggestion
                   .Argument("f", SuggestionBuilder.Any, false, false, None)
               ),
@@ -1673,7 +1673,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
@@ -1688,7 +1688,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "b",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+                  .Argument("self", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
               returnType    = SuggestionBuilder.Any,
@@ -1702,7 +1702,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1745,7 +1745,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "a",
               arguments = List(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.Test", false, false, None)
+                  .Argument("self", "Unnamed.Test.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1759,7 +1759,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1808,7 +1808,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               name       = "quux",
               arguments = Vector(
                 Suggestion
-                  .Argument("this", "Unnamed.Test.A", false, false, None),
+                  .Argument("self", "Unnamed.Test.A", false, false, None),
                 Suggestion.Argument(
                   "x",
                   "Unnamed.Test.A",
@@ -1830,7 +1830,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "quux",
               arguments = Vector(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None),
                 Suggestion.Argument(
                   "x",
                   "Unnamed.Test.A",
@@ -1852,7 +1852,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = List(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1885,7 +1885,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module = "Unnamed.Test",
               name   = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1919,7 +1919,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -1973,7 +1973,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "main",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
@@ -2025,7 +2025,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
               module     = "Unnamed.Test",
               name       = "foo",
               arguments = Seq(
-                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
               ),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,

@@ -559,7 +559,7 @@ class IrToTruffle(
       case (name, resolution :: _) =>
         if (resolution.module.unsafeAsModule() != moduleScope.getModule) {
           resolution match {
-            case _: BindingsMap.ResolvedType => throw new CompilerError("todo")
+            case _: BindingsMap.ResolvedType => //throw new CompilerError("todo")
             case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
               val runtimeCons = definitionModule
                 .unsafeAsModule()
