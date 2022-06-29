@@ -55,14 +55,14 @@ impl FromGeneric {
             generic::Primitive::Usize => Ok(Primitive::Long { unsigned: true }),
             generic::Primitive::U32 => Ok(Primitive::Int { unsigned: true }),
             generic::Primitive::String => Err(Class::builtin(&self.java, "String", vec![])),
-            generic::Primitive::Option(t0) =>
-                Err(Class::builtin(&self.java, "java.util.Optional", vec![
-                    self.generic_to_java[t0],
-                ])),
-            generic::Primitive::Sequence(t0) =>
-                Err(Class::builtin(&self.java, "java.util.ArrayList", vec![
-                    self.generic_to_java[t0],
-                ])),
+            generic::Primitive::Option(t0) => {
+                let t0_ = self.generic_to_java[t0];
+                Err(Class::builtin(&self.java, "java.util.Optional", vec![t0_]))
+            }
+            generic::Primitive::Sequence(t0) => {
+                let t0_ = self.generic_to_java[t0];
+                Err(Class::builtin(&self.java, "java.util.List", vec![t0_]))
+            }
             generic::Primitive::Result(t0, t1) => {
                 let t0_ = self.generic_to_java[t0];
                 let t1_ = self.generic_to_java[t1];

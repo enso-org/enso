@@ -42,6 +42,11 @@ impl Type {
         let params = vec![];
         Type { class, params }
     }
+
+    pub fn generic(name: impl Into<String>, params: Vec<String>) -> Self {
+        let class = name.into();
+        Type { class, params }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

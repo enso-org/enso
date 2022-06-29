@@ -135,16 +135,21 @@ fn deserialize_object<F>(
             body.push(format!("{} = java.util.Optional.of({});", &output, &value));
             body.push(format!("}} else {} = java.util.Optional.empty();", &output));
         }
-        "java.util.ArrayList" => {
+        "java.util.List" => {
             let base = ty.params[0];
             let count = get_temp();
-            body.push(format!("int {} = (int){}.get64();", count, message));
-            body.push(format!("{} {} = new {}({});", ty_name, &output, ty_name, count));
-            body.push(format!("for (int i=0; i<{}; i++) {{", count));
+            body.push(format!("int {count} = (int){message}.get64();"));
+            let list_impl = get_temp();
+            let params_ = quote_params(&graph, &ty.params);
+            let impl_ty = syntax::Type::generic("java.util.ArrayList", params_);
+            body.push(format!("{impl_ty} {list_impl} = new {impl_ty}({count});"));
+            let unmodifiable_list = "java.util.Collections.unmodifiableList";
+            body.push(format!("for (int i=0; i<{count}; i++) {{"));
             let value = get_temp();
             deserialize_object(graph, base, message, &value, get_temp, body, true);
-            body.push(format!("{}.add({});", &output, value));
+            body.push(format!("{}.add({});", &list_impl, value));
             body.push(format!("}}"));
+            body.push(format!("{ty_name} {output} = {unmodifiable_list}({list_impl});"));
         }
         "utils.Either" => {
             let t0 = ty.params[0];

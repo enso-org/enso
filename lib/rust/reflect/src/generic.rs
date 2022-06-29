@@ -162,6 +162,10 @@ impl Identifier {
         Self::new(segments)
     }
 
+    pub fn from_camel_case(s: &str) -> Self {
+        Self::from_pascal_case(s)
+    }
+
     pub fn from_pascal_case(s: &str) -> Self {
         let mut segments = vec![];
         let mut current = String::new();

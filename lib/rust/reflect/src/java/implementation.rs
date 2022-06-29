@@ -80,21 +80,28 @@ pub fn class_fields<'v, 's: 'v, 'c: 'v>(graph: &'s TypeGraph, class: &'c Class) 
 
 /// Produce syntax referring to the given type.
 pub fn quote_type(graph: &TypeGraph, data: &FieldData) -> syntax::Type {
-    let params = vec![];
     let class = match data {
         FieldData::Object { type_, .. } => return quote_class_type(graph, *type_),
-        FieldData::Primitive(Primitive::Int { .. }) => "int".to_owned(),
-        FieldData::Primitive(Primitive::Bool) => "boolean".to_owned(),
-        FieldData::Primitive(Primitive::Long { .. }) => "long".to_owned(),
+        FieldData::Primitive(Primitive::Int { .. }) => "int",
+        FieldData::Primitive(Primitive::Bool) => "boolean",
+        FieldData::Primitive(Primitive::Long { .. }) => "long",
     };
-    syntax::Type { class, params }
+    syntax::Type::named(class)
 }
 
 /// Produce syntax referring to the given class.
 pub fn quote_class_type(graph: &TypeGraph, id: TypeId) -> syntax::Type {
     let class = path(graph, id);
-    let params = graph[id].params.iter().map(|ty| path(graph, *ty)).collect();
+    let params = quote_params(graph, &graph[id].params);
     syntax::Type { class, params }
+}
+
+/// Render a parameter list.
+pub fn quote_params<'a>(
+    graph: &TypeGraph,
+    params: impl IntoIterator<Item = &'a TypeId>,
+) -> Vec<String> {
+    params.into_iter().map(|ty| path(graph, *ty)).collect()
 }
 
 fn quote_field(graph: &TypeGraph, field: &Field) -> syntax::Field {
@@ -218,8 +225,14 @@ fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId) -> syntax::Me
 }
 
 fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
+    let getter_name = |field| {
+        let field = crate::generic::Identifier::from_camel_case(field);
+        let mut name = crate::generic::Identifier::from_camel_case("get");
+        name.append(field);
+        name.to_camel_case()
+    };
     let type_ = quote_type(graph, &field.data);
-    let mut method = syntax::Method::new(field.name.clone(), type_);
+    let mut method = syntax::Method::new(getter_name(&field.name), type_);
     method.body = format!("return {};", &field.name);
     method
 }
