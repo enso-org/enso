@@ -419,6 +419,9 @@ pub struct Model {
     logger:              Logger,
     display_object:      display::object::Instance,
     background:          background::View,
+    // FIXME[#182593513]: This is a hack to mitigate shadow rendering issues. Remove when the
+    //   issue is fixed and replace with a shadow embedded into the [`background`] shape.
+    //   See https://www.pivotaltracker.com/story/show/182593513.
     navigator_shadow:    navigator_shadow::View,
     scroll_area:         ScrollArea,
     favourites_section:  ColumnSection,

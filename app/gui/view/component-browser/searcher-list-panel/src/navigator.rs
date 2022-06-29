@@ -44,6 +44,9 @@ pub struct NavigatorStyle {
 // ==============
 
 /// A shadow between the navigator bar and the main part of the Searcher List Panel.
+///
+/// We should have this shape embedded into the background shape, but we use a separate object
+/// because of https://www.pivotaltracker.com/story/show/182593513.
 pub mod navigator_shadow {
     use super::*;
 
