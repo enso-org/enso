@@ -19,10 +19,9 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
+  GlobalNames,
   MethodDefinitions,
-  MethodReferences,
-  Patterns,
-  UppercaseNames
+  Patterns
 }
 import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -1054,9 +1053,8 @@ class IrToTruffle(
             )
             .unsafeAs[AliasAnalysis.Info.Occurrence]
 
-          val slot      = scope.getFramePointer(useInfo.id)
-          val global    = name.getMetadata(UppercaseNames)
-          val globalRef = name.getMetadata(MethodReferences)
+          val slot   = scope.getFramePointer(useInfo.id)
+          val global = name.getMetadata(GlobalNames)
           if (slot.isDefined) {
             ReadLocalVariableNode.build(slot.get)
           } else if (global.isDefined) {
@@ -1084,19 +1082,7 @@ class IrToTruffle(
                 )
               case BindingsMap.ResolvedMethod(_, _) =>
                 throw new CompilerError(
-                  "Impossible here, should be desugared by UppercaseNames resolver"
-                )
-            }
-          } else if (globalRef.isDefined) {
-            val resolution = globalRef.get.target
-            resolution match {
-              case BindingsMap.ResolvedModule(module) =>
-                ConstructorNode.build(
-                  module.unsafeAsModule().getScope.getAssociatedType
-                )
-              case _ =>
-                throw new CompilerError(
-                  "Impossible here, should be desugared by MethodReferences resolver"
+                  "Impossible here, should be desugared by GlobalNames resolver"
                 )
             }
           } else if (nameStr == Constants.Names.FROM_MEMBER) {

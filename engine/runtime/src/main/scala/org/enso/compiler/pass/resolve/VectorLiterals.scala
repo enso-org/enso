@@ -20,7 +20,7 @@ case object VectorLiterals extends IRPass {
   override type Config = IRPass.Configuration.Default
 
   /** The passes that this pass depends _directly_ on to run. */
-  override val precursorPasses: Seq[IRPass] = Seq(UppercaseNames)
+  override val precursorPasses: Seq[IRPass] = Seq(GlobalNames)
 
   /** The passes that are invalidated by running this pass. */
   override val invalidatedPasses: Seq[IRPass] = Seq()
@@ -96,7 +96,7 @@ case object VectorLiterals extends IRPass {
     module
       .map { module =>
         val withRes = name.updateMetadata(
-          UppercaseNames -->> BindingsMap.Resolution(
+          GlobalNames -->> BindingsMap.Resolution(
             BindingsMap
               .ResolvedConstructor(
                 ModuleReference.Concrete(module),

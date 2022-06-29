@@ -219,7 +219,7 @@ case class BindingsMap(
   ): Either[ResolutionError, ResolvedTypeName] = {
     types.find(_.name == name) match {
       case Some(value) => Right(ResolvedType(currentModule, value))
-      case None        => resolveUppercaseName(name)
+      case None        => resolveName(name)
     }
   }
 
@@ -229,7 +229,7 @@ case class BindingsMap(
     * @return a resolution for `name` or an error, if the name could not be
     *         resolved.
     */
-  def resolveUppercaseName(
+  def resolveName(
     name: String
   ): Either[ResolutionError, ResolvedName] = {
     val local = findLocalCandidates(name)
@@ -245,14 +245,6 @@ case class BindingsMap(
     )
   }
 
-  def resolveMethodName(name: String): Either[ResolutionError, ResolvedName] = {
-    val localMethods = findMethodCandidates(name, caseSensitive = true)
-    if (localMethods.nonEmpty) {
-      return handleAmbiguity(localMethods)
-    }
-    handleAmbiguity(findExportedCandidatesInImports(name, caseSensitive = true))
-  }
-
   /** Resolves a qualified name to a symbol in the context of this module.
     *
     * @param name the name to resolve
@@ -265,11 +257,11 @@ case class BindingsMap(
   ): Either[ResolutionError, ResolvedName] =
     name match {
       case List()     => Left(ResolutionNotFound)
-      case List(item) => resolveUppercaseName(item)
+      case List(item) => resolveName(item)
       case firstModuleName :: rest =>
         val consName = rest.last
         val modNames = rest.init
-        resolveUppercaseName(firstModuleName).flatMap {
+        resolveName(firstModuleName).flatMap {
           case ResolvedModule(mod) =>
             val firstModBindings: BindingsMap = getBindingsFrom(mod)
             var currentModule                 = firstModBindings

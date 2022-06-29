@@ -617,7 +617,7 @@ case object AliasAnalysis extends IRPass {
   ): IR.Name = {
     val occurrenceId = graph.nextId()
 
-    val resolution = bindings.resolveUppercaseName(name.name)
+    val resolution = bindings.resolveName(name.name)
     val isVariable = !name.isMethod && !isTpeConstructor(resolution)
     if (isInPatternContext && isVariable) {
       val occurrence =

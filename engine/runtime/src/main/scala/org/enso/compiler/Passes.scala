@@ -56,7 +56,7 @@ class Passes(
     List(
       ExpressionAnnotations,
       AliasAnalysis,
-      UppercaseNames,
+      GlobalNames,
       MethodCalls,
       VectorLiterals,
       FullyAppliedFunctionUses,

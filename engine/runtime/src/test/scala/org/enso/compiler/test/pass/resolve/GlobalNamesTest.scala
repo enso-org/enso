@@ -10,12 +10,12 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedConstructor,
   ResolvedModule
 }
-import org.enso.compiler.pass.resolve.UppercaseNames
+import org.enso.compiler.pass.resolve.GlobalNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.phase.ExportsResolution
 import org.enso.compiler.test.CompilerTest
 
-class UppercaseNamesTest extends CompilerTest {
+class GlobalNamesTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
@@ -29,7 +29,7 @@ class UppercaseNamesTest extends CompilerTest {
   val group1 = passes.moduleDiscoveryPasses
   val group2 = new PassGroup(
     passes.globalTypingPasses.passes ++
-    passes.functionBodyPasses.passes.takeWhile(_ != UppercaseNames)
+    passes.functionBodyPasses.passes.takeWhile(_ != GlobalNames)
   )
 
   val passConfiguration: PassConfiguration = PassConfiguration()
@@ -49,7 +49,7 @@ class UppercaseNamesTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext) = {
-      UppercaseNames.runModule(ir, context)
+      GlobalNames.runModule(ir, context)
     }
   }
 
@@ -100,7 +100,7 @@ class UppercaseNamesTest extends CompilerTest {
       bodyExprs(0)
         .asInstanceOf[IR.Application.Prefix]
         .function
-        .getMetadata(UppercaseNames) shouldEqual Some(
+        .getMetadata(GlobalNames) shouldEqual Some(
         Resolution(
           ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
@@ -121,7 +121,7 @@ class UppercaseNamesTest extends CompilerTest {
       val app = expr.asInstanceOf[IR.Application.Prefix]
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "constant"
       app.arguments.length shouldEqual 1
-      app.arguments(0).value.getMetadata(UppercaseNames) shouldEqual Some(
+      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
       )
     }
@@ -139,7 +139,7 @@ class UppercaseNamesTest extends CompilerTest {
       val app = expr.asInstanceOf[IR.Application.Prefix]
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 2
-      app.arguments(0).value.getMetadata(UppercaseNames) shouldEqual Some(
+      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
       )
     }
@@ -150,7 +150,7 @@ class UppercaseNamesTest extends CompilerTest {
       val app = expr.asInstanceOf[IR.Application.Prefix]
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
       app.arguments.length shouldEqual 1
-      app.arguments(0).value.getMetadata(UppercaseNames) shouldEqual Some(
+      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
       )
     }
@@ -158,7 +158,7 @@ class UppercaseNamesTest extends CompilerTest {
     "resolve qualified uses of constructors into a simplified form when possible" in {
       val app = bodyExprs(7).asInstanceOf[IR.Application.Prefix]
       app.arguments.length shouldBe 3
-      app.function.getMetadata(UppercaseNames) shouldEqual Some(
+      app.function.getMetadata(GlobalNames) shouldEqual Some(
         Resolution(
           ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),

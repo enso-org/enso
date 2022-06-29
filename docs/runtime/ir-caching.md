@@ -80,7 +80,7 @@ problem. Instead, we solve it using a preprocessing step:
 - Hence, we can traverse all the nodes in the `ir.preorder` that have metadata
   consisting of either the `BindingsMap` or `ResolvedName` types (provided by
   the following passes: `BindingAnalysis`, `MethodDefinitions`,
-  `UppercaseNames`, `VectorLiterals`, `Patterns`), and perform a replacement.
+  `GlobalNames`, `VectorLiterals`, `Patterns`), and perform a replacement.
 
 Having done this, we have broken any links that the IR may hold between modules,
 and can serialise each module individually.

@@ -16,7 +16,7 @@ import org.enso.interpreter.Constants
 
 import scala.annotation.unused
 
-/** Resolves and desugars referent name occurences in non-pattern contexts.
+/** Resolves name occurences in non-pattern contexts.
   *
   * 1. Attaches resolution metadata to encountered constructors, modules,
   *    and polygot symbols.
@@ -26,7 +26,7 @@ import scala.annotation.unused
   *    if `consName` refers to a constructor and `KnownModule` was successfully
   *    resolved to a module.
   */
-case object UppercaseNames extends IRPass {
+case object GlobalNames extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
   override type Metadata = BindingsMap.Resolution
@@ -120,7 +120,7 @@ case object UppercaseNames extends IRPass {
     ir.transformExpressions {
       case lit: IR.Name.Literal =>
         if (!lit.isMethod && !isLocalVar(lit)) {
-          val resolution = bindings.resolveUppercaseName(lit.name)
+          val resolution = bindings.resolveName(lit.name)
           resolution match {
             case Left(error) =>
               IR.Error.Resolution(
