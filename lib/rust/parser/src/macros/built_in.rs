@@ -43,6 +43,15 @@ pub fn type_def<'s>() -> Definition<'s> {
             Many(Identifier / "constructor") % "type constructors" >> 
             Everything
         ) % "type definition body";
+    // 
+    // let pattern = pat! {
+    //     Identifier @ name ? "type name" >>
+    //         Many((Identifier ?? "type parameter") @ param ) ? "type parameters" >>
+    //         Block(
+    //             Many(Identifier ?? "constructor") ? "type constructors" >>
+    //             Everything
+    //         ) ? "type definition body";
+    //     };
     // let pattern2 = Everything;
     crate::macro_definition! {
         ("type", pattern)
