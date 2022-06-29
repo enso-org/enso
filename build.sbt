@@ -1604,8 +1604,7 @@ lazy val `library-manager-test` = project
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
-    ),
-    Test / parallelExecution := false
+    )
   )
   .dependsOn(`library-manager`)
   .dependsOn(testkit)

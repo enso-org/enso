@@ -173,7 +173,7 @@ abstract class DummyRepository {
     port: Int,
     root: Path,
     uploads: Boolean = false
-  ): Server = {
+  ): Server = DummyRepository.synchronized {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
 
@@ -221,3 +221,4 @@ abstract class DummyRepository {
     Server(process)
   }
 }
+object DummyRepository
