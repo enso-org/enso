@@ -920,7 +920,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let circle = Circle(7.0.px()) - Circle(5.5.px());
+                let circle = Circle(5.5.px()) - Circle(4.0.px());
                 let shape = circle.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
@@ -933,13 +933,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let triangle = path(1.5, &[
-                    // TODO: fix dimensions to make this possibly equilateral
-                    (7.0, 0.0),
-                    (-3.5, -7.0),
-                    (-3.5, 7.0),
-                    (7.0, 0.0),
-                ]);
+                let triangle = Triangle(12.0, 12.0).rotate((PI/2.0).radians());
                 let shape = triangle.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
@@ -966,11 +960,11 @@ crate::define_icons! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let rhomb = path(1.5, &[
-                    (7.0, 0.0),
-                    (0.0, -7.0),
-                    (-7.0, 0.0),
-                    (0.0, 7.0),
-                    (7.0, 0.0),
+                    (6.0, 0.0),
+                    (0.0, -6.0),
+                    (-6.0, 0.0),
+                    (0.0, 6.0),
+                    (6.0, 0.0),
                 ]);
                 let shape = rhomb.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -984,7 +978,7 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let rect = Rect((14.0.px(), 14.0.px())).corners_radius(2.0.px());
+                let rect = Rect((14.0.px(), 14.0.px())).corners_radius(3.0.px());
                 let rect = &rect - rect.shrink(1.5.px());
                 let shape = rect.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
