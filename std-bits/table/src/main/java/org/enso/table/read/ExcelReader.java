@@ -191,10 +191,11 @@ public class ExcelReader {
 
   /**
    * Load a workbook into memory from an InputStream.
+   *
    * @param stream an {@link InputStream} allowing to read the XLSX file contents.
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Workbook} containing the specified data.
-   * @throws IOException
+   * @throws IOException when the input stream cannot be read or an incorrect format occurs.
    */
   public static Workbook getWorkbook(InputStream stream, boolean xls_format) throws IOException {
     return xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
@@ -243,7 +244,7 @@ public class ExcelReader {
             Collections.emptyList());
       }
 
-      excelRange = expandSingleCell(excelRange, sheet, currentRow);
+      excelRange = ExcelRange.expandSingleCell(excelRange, sheet);
     }
 
     // Row Range
@@ -311,26 +312,6 @@ public class ExcelReader {
             .toArray(Column[]::new);
 
     return new WithProblems<>(new Table(columns), excelHeaders.getProblems());
-  }
-
-  private static ExcelRange expandSingleCell(
-      ExcelRange excelRange, ExcelSheet sheet, ExcelRow currentRow) {
-    int bottomRow = excelRange.getTopRow();
-    int rightColumn = excelRange.getLeftColumn();
-    while (currentRow != null && !currentRow.isEmpty(excelRange.getLeftColumn(), rightColumn)) {
-      rightColumn = currentRow.findEndRight(rightColumn);
-      bottomRow++;
-      currentRow = sheet.get(bottomRow);
-    }
-
-    excelRange =
-        new ExcelRange(
-            excelRange.getSheetName(),
-            excelRange.getLeftColumn(),
-            excelRange.getTopRow(),
-            rightColumn,
-            bottomRow - 1);
-    return excelRange;
   }
 
   private static void expandBuilders(List<Builder> builders, int size, int columnCount, int rows) {
