@@ -84,7 +84,8 @@ impl DeserializerBuilder {
             };
             body.push(format!("{} {} = {};", ty_name, &field.name, expr));
         }
-        let constructor_args: Vec<_> = fields.into_iter().map(|field| field.name.as_str()).collect();
+        let constructor_args: Vec<_> =
+            fields.into_iter().map(|field| field.name.as_str()).collect();
         let constructor_args = constructor_args.join(", ");
         body.push(format!("return new {}({});", &class.name, constructor_args));
         let mut method = syntax::Method::new("deserialize", quote_class_type(graph, self.id));
@@ -161,8 +162,12 @@ fn deserialize_object<F>(
             body.push(format!("{ty_name} {output};"));
             body.push(format!("int {discriminant} = {message}.get32();"));
             body.push(format!("switch ({discriminant}) {{"));
-            body.push(format!("case 0: {output} = {name}.right({t1}.deserialize({message})); break;"));
-            body.push(format!("case 1: {output} = {name}.left({t0}.deserialize({message})); break;"));
+            body.push(format!(
+                "case 0: {output} = {name}.right({t1}.deserialize({message})); break;"
+            ));
+            body.push(format!(
+                "case 1: {output} = {name}.left({t0}.deserialize({message})); break;"
+            ));
             let err = format!("Unknown discriminant in {ty_name}.");
             body.push(format!("default: throw new utils.IncompatibleFormatException({err:?}); }}"));
         }

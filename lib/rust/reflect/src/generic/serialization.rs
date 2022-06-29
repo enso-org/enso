@@ -9,10 +9,10 @@ use std::mem::take;
 
 #[derive(Debug, Clone)]
 pub struct TestCases {
-    pub accept:  Vec<Vec<u8>>,
-    pub reject:  Vec<Vec<u8>>,
-    program:   Vec<Op>,
-    debuginfo: BTreeMap<usize, String>,
+    pub accept: Vec<Vec<u8>>,
+    pub reject: Vec<Vec<u8>>,
+    program:    Vec<Op>,
+    debuginfo:  BTreeMap<usize, String>,
 }
 
 /// Generate test cases.
@@ -23,7 +23,6 @@ pub fn testcases(graph: &TypeGraph, root: TypeId) -> TestCases {
     let mut builder = ProgramBuilder::new(graph, root);
     builder.type_(root, Default::default());
     let ProgramBuilder { program, debuginfo, .. } = builder;
-    eprintln!("{}", fmt_program(&program, &debuginfo));
     let (accept, reject) = Vm::run(&program);
     TestCases { accept, reject, program, debuginfo }
 }
@@ -331,11 +330,10 @@ impl<'g> ProgramBuilder<'g> {
                     Data::Struct(_) => continue 'children,
                     Data::Primitive(Primitive::Option(t0))
                     | Data::Primitive(Primitive::Sequence(t0))
-                    if !self.will_visit.contains(t0) =>
+                        if !self.will_visit.contains(t0) =>
                         continue 'children,
                     Data::Primitive(Primitive::Result(t0, t1))
-                    if !self.will_visit.contains(t0)
-                        && !self.will_visit.contains(t1) =>
+                        if !self.will_visit.contains(t0) && !self.will_visit.contains(t1) =>
                         continue 'children,
                     _ => (),
                 }
@@ -458,6 +456,5 @@ fn collect_continuations(program: &[Op]) -> BTreeMap<usize, usize> {
     }
     assert_eq!(&switch_continuations_awaited, &[]);
     assert_eq!(&switch_phis_awaited, &[]);
-    eprintln!("{:?}", &continuations);
     continuations
 }

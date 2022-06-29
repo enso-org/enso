@@ -77,6 +77,16 @@ struct NamedField {
     hide:    bool,
 }
 
+impl NamedField {
+    pub fn new(name: syn::Ident, type_: syn::Type) -> Self {
+        let subtype = Default::default();
+        let refer = Default::default();
+        let flatten = Default::default();
+        let hide = Default::default();
+        Self { name, type_, subtype, refer, flatten, hide }
+    }
+}
+
 #[derive(Debug)]
 struct UnnamedField {
     type_: syn::Type,

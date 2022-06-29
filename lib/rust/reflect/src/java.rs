@@ -38,7 +38,11 @@ pub struct Class {
 }
 
 impl Class {
-    pub fn builtin(graph: &TypeGraph, name: &str, fields: impl IntoIterator<Item = TypeId>) -> Self {
+    pub fn builtin(
+        graph: &TypeGraph,
+        name: &str,
+        fields: impl IntoIterator<Item = TypeId>,
+    ) -> Self {
         let params: Vec<_> = fields.into_iter().collect();
         let name = name.to_owned();
         let builtin = true;

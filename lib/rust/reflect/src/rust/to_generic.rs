@@ -1,5 +1,5 @@
-use crate::rust::*;
 use crate::generic;
+use crate::rust::*;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::mem::take;
