@@ -344,11 +344,13 @@ spec =
             table.write out (File_Format.Excel (Sheet 0))
             clothes.write out (File_Format.Excel (Sheet 0))
             read_1 = out.read (File_Format.Excel (Sheet "Sheet1"))
+            read_1.print
+            table.print
             read_1 . should_equal table
             read_2 = out.read (File_Format.Excel (Sheet "Sheet2"))
             read_2 . should_equal clothes
             read_3 = out.read (File_Format.Excel (Sheet_Names))
-            read_2 . should_equal ["Sheet2", "Sheet1"]
+            read_3 . should_equal ["Sheet2", "Sheet1"]
             out.delete_if_exists
 
 main = Test.Suite.run_main here.spec

@@ -133,6 +133,9 @@ public class ExcelWriter {
       Object value = storage.getItemBoxed(j);
       switch (value) {
         case String s -> cell.setCellValue(s);
+        case Boolean b -> cell.setCellValue(b);
+        case Double d -> cell.setCellValue(d);
+        case Long l -> cell.setCellValue(l);
         case LocalDateTime ldt -> {
           cell.setCellValue(ldt);
           cell.setCellStyle(getDateTimeStyle(workbook, "yyyy-MM-dd HH:mm:ss"));
