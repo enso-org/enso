@@ -158,7 +158,7 @@ spec =
             Problems.test_problem_handling action_1 problems_1 tester_1
 
             action_2 on_problems =
-                (Enso_Project.data / "utf16_invalid.csv").read (Delimited "," headers=True encoding=Encoding.utf_16_be) on_problems
+                (enso_project.data / "utf16_invalid.csv").read (Delimited "," headers=True encoding=Encoding.utf_16_be) on_problems
             tester_2 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 # This column does not raise a problem - the '\uFFFD' is simply present in the input file.
