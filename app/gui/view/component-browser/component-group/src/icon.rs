@@ -927,6 +927,70 @@ crate::define_icons! {
             }
         }
     }
+
+    pub mod function(Function) {
+        // TODO: right-pointing triangle
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let triangle = path(2.0, &[
+                    // TODO: fix dimensions to make this possibly equilateral
+                    (7.0, 0.0),
+                    (-3.5, -7.0),
+                    (-3.5, 7.0),
+                    (7.0, 0.0),
+                ]);
+                let shape = triangle.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    pub mod local(Local) {
+        // TODO: small filled dot
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let dot = Circle(4.0.px());
+                let shape = dot.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    pub mod method(Method) {
+        // TODO: "rhomb" / "diamond"
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let rhomb = path(2.0, &[
+                    (7.0, 0.0),
+                    (0.0, -7.0),
+                    (-7.0, 0.0),
+                    (0.0, 7.0),
+                    (7.0, 0.0),
+                ]);
+                let shape = rhomb.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    pub mod module(Module) {
+        // TODO: square
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let square = Rect((14.0.px(), 14.0.px())).corners_radius(2.0.px());
+                let shape = square.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
 }
 
 impl Default for Id {
