@@ -494,7 +494,7 @@ crate::define_icons! {
                     ( 4.0 , -5.5),
                     ( 5.0 , -3.5),
                 ]);
-                let shape = shape.fill(style.get_color(theme::transform));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -555,16 +555,16 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let blue = style.get_color(theme::data_science::blue);
-                let rect1 = Rect((4.0.px(),4.0.px())).translate(((-5.5).px(),3.0.px())).fill(blue);
+                let blue = strong_color.clone();
+                let rect1 = Rect((4.0.px(),4.0.px())).translate(((-5.5).px(),3.0.px())).fill(blue.clone());
                 let rect2 = Rect((4.0.px(),4.0.px())).translate_y((-5.5).px()).fill(blue);
 
-                let gray = style.get_color(theme::data_science::gray);
-                let circle1 = Circle(2.0.px()).translate_y(5.5.px()).fill(gray);
-                let circle2 = Circle(2.0.px()).translate(((-5.5).px(),(-3.0).px())).fill(gray);
+                let gray = weak_color;
+                let circle1 = Circle(2.0.px()).translate_y(5.5.px()).fill(gray.clone());
+                let circle2 = Circle(2.0.px()).translate(((-5.5).px(),(-3.0).px())).fill(gray.clone());
                 let circle3 = Circle(2.0.px()).translate((5.5.px(),(-3.0).px())).fill(gray);
 
-                let red = style.get_color(theme::data_science::red);
+                let red = strong_color;
                 let circle4 = Circle(2.0.px()).fill(red);
 
                 let shape = rect1 + rect2 + circle1 + circle2 + circle3 + circle4;
@@ -580,13 +580,13 @@ crate::define_icons! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let circle = Circle(1.0.px())
-                    .fill(style.get_color(theme::network::_0));
+                    .fill(strong_color.clone());
                 let arc1 = RoundedArc((10.5/3.0*1.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(style.get_color(theme::network::_1));
+                    .fill(strong_color.clone());
                 let arc2 = RoundedArc((10.5/3.0*2.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(style.get_color(theme::network::_2));
+                    .fill(strong_color);
                 let arc3 = RoundedArc((10.5/3.0*3.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(style.get_color(theme::network::_3));
+                    .fill(weak_color);
 
                 let shape = circle + arc1 + arc2 + arc3;
                 let shape = shape.translate_y((-5.5).px());
@@ -603,7 +603,7 @@ crate::define_icons! {
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
                 let background = background.translate_y((-0.5).px());
-                let background = background.fill(style.get_color(theme::system::background));
+                let background = background.fill(strong_color);
                 let greater    = path(1.5,&[
                     (-3.75 ,  2.25),
                     (-1.25 , -0.25),
@@ -611,9 +611,10 @@ crate::define_icons! {
                 ]);
                 let bar = Rect((4.0.px(),1.5.px())).translate((2.5.px(),(-2.75).px()));
                 let content = greater + bar;
-                let content = content.fill(style.get_color(theme::system::content));
+                // let content = content.fill(style.get_color(theme::system::content));
 
-                let shape = background + content;
+                // let shape = background + content;
+                let shape = background - content;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -754,7 +755,8 @@ crate::define_icons! {
 
                 let left_circle   = left_circle.fill(weak_color.clone());
                 let right_circle  = right_circle.fill(weak_color);
-                let intersection  = intersection.fill(style.get_color(theme::join::medium));
+                // let intersection  = intersection.fill(style.get_color(theme::join::medium));
+                let intersection  = intersection.fill(strong_color.clone());
                 let left_outline  = left_outline.fill(strong_color.clone());
                 let right_outline = right_outline.fill(strong_color);
 
@@ -804,7 +806,7 @@ crate::define_icons! {
 
                 let shape = circle + big_hand + small_hand;
                 let shape = shape.translate((0.25.px(),0.25.px()));
-                let shape = shape.fill(style.get_color(theme::date_and_time));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -830,7 +832,7 @@ crate::define_icons! {
                 let ellipse     = ellipse - ellipse_gap;
 
                 let shape = marker + ellipse;
-                let shape = shape.fill(style.get_color(theme::spatial));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -855,7 +857,7 @@ crate::define_icons! {
                 let base = base - circle.translate_y(1.5.px()).grow(2.0.px());
 
                 let shape = sphere + base;
-                let shape = shape.fill(style.get_color(theme::predictive));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -881,7 +883,7 @@ crate::define_icons! {
                 let right_arm = Rect((1.0.px(),4.5.px())).translate((6.5.px(),(-2.75).px()));
 
                 let shape = body + collar + left_eye + right_eye + antenna + left_arm + right_arm;
-                let shape = shape.fill(style.get_color(theme::machine_learning));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -895,15 +897,15 @@ crate::define_icons! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let lens =
-                    Circle(2.0.px()).fill(style.get_color(theme::computer_vision::highlight));
+                    Circle(2.0.px()).fill(strong_color.clone());
                 let outline = Circle(4.5.px()) - Circle(3.5.px());
-                let outline = outline.fill(strong_color);
+                let outline = outline.fill(weak_color);
 
                 let base =
                     Circle(7.0.px()).translate_y(6.0.px()) * HalfPlane().translate_y(7.0.px());
                 let base = base + Rect((14.0.px(),2.0.px())).translate_y(7.0.px());
                 let base = base - Circle(5.5.px());
-                let base = base.fill(weak_color);
+                let base = base.fill(strong_color);
 
                 let shape = lens + outline + base;
                 let shape = shape.translate_y((-2.0).px());
