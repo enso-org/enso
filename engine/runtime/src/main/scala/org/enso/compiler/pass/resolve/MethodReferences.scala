@@ -114,7 +114,7 @@ case object MethodReferences extends IRPass {
                 .copy(isMethod = true)
             } else {
               val self = freshNameSupply
-                .newName(isReferent = false)
+                .newName()
                 .updateMetadata(
                   this -->> BindingsMap.Resolution(
                     BindingsMap.ResolvedModule(mod)
@@ -165,7 +165,7 @@ case object MethodReferences extends IRPass {
     processedFun.getMetadata(this) match {
       case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
         val self = freshNameSupply
-          .newName(isReferent = false)
+          .newName()
           .updateMetadata(
             this -->> BindingsMap.Resolution(
               BindingsMap.ResolvedModule(mod)

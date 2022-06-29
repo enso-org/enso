@@ -100,8 +100,8 @@ case object MethodDefinitions extends IRPass {
         )
       case _: IR.Name.Qualified | _: IR.Name.Literal =>
         val items = typePointer match {
-          case IR.Name.Qualified(names, _, _, _)    => names.map(_.name)
-          case IR.Name.Literal(name, _, _, _, _, _) => List(name)
+          case IR.Name.Qualified(names, _, _, _) => names.map(_.name)
+          case IR.Name.Literal(name, _, _, _, _) => List(name)
           case _ =>
             throw new CompilerError("Impossible to reach.")
         }

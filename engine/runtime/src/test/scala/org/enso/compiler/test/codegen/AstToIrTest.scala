@@ -341,8 +341,7 @@ class AstToIrTest extends CompilerTest with Inside {
       val fn = ir.asInstanceOf[IR.Application.Prefix]
       fn.function shouldEqual IR.Name.Literal(
         "negate",
-        isReferent = false,
-        isMethod   = true,
+        isMethod = true,
         None
       )
 

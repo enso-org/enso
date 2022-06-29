@@ -172,12 +172,12 @@ trait CompilerRunner {
           IR.Name.Qualified(
             List(
               IR.Name
-                .Literal("TestType", isReferent = true, isMethod = false, None)
+                .Literal("TestType", isMethod = false, None)
             ),
             None
           ),
           IR.Name
-            .Literal("testMethod", isReferent = false, isMethod = false, None),
+            .Literal("testMethod", isMethod = false, None),
           None
         ),
         ir,
@@ -191,12 +191,12 @@ trait CompilerRunner {
       */
     def asAtomDefaultArg: IR.Module.Scope.Definition.Atom = {
       IR.Module.Scope.Definition.Atom(
-        IR.Name.Literal("TestAtom", isReferent = true, isMethod = false, None),
+        IR.Name.Literal("TestAtom", isMethod = false, None),
         List(
           IR.DefinitionArgument
             .Specified(
               IR.Name
-                .Literal("arg", isReferent = false, isMethod = false, None),
+                .Literal("arg", isMethod = false, None),
               None,
               Some(ir),
               suspended = false,

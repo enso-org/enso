@@ -2212,27 +2212,12 @@ object IR {
       keepIdentifiers: Boolean = false
     ): Name
 
-    /** Checks whether a name is in referent form.
-      *
-      * Please see the syntax specification for more details on this form.
-      *
-      * @return `true` if `this` is in referent form, otherwise `false`
-      */
-    def isReferent: Boolean
-
     /** Checks whether a name is a call-site method name.
       *
       * @return `true` if the name was created through a method call
       */
     def isMethod: Boolean = false
 
-    /** Checks whether a name is in variable form.
-      *
-      * Please see the syntax specification for more details on this form.
-      *
-      * @return `true` if `this` is in referent form, otherwise `false`
-      */
-    def isVariable: Boolean = !isReferent && !isMethod
   }
   object Name {
 
@@ -2252,6 +2237,7 @@ object IR {
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name
         with IRKind.Sugar {
+
       override val name: String             = showCode()
       override protected var id: Identifier = randomId
 
@@ -2284,9 +2270,6 @@ object IR {
         res.id = id
         res
       }
-
-      /** @inheritdoc */
-      override def isReferent: Boolean = false
 
       /** @inheritdoc */
       override def duplicate(
@@ -2414,8 +2397,6 @@ object IR {
       override def setLocation(location: Option[IdentifiedLocation]): Name =
         copy(location = location)
 
-      override def isReferent: Boolean = false
-
       /** Creates a copy of `this`.
         *
         * @param parts the segments of the name
@@ -2512,9 +2493,6 @@ object IR {
       }
 
       /** @inheritdoc */
-      override def isReferent: Boolean = false
-
-      /** @inheritdoc */
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
@@ -2586,8 +2564,6 @@ object IR {
         res
       }
 
-      override def isReferent: Boolean = false
-
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
@@ -2637,7 +2613,6 @@ object IR {
     /** The representation of a literal name.
       *
       * @param name the literal text of the name
-      * @param isReferent is this a referent name
       * @param isMethod is this a method call name
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
@@ -2645,7 +2620,6 @@ object IR {
       */
     sealed case class Literal(
       override val name: String,
-      override val isReferent: Boolean,
       override val isMethod: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -2656,7 +2630,6 @@ object IR {
       /** Creates a copy of `this`.
         *
         * @param name the literal text of the name
-        * @param isReferent is this a referent name
         * @param isMethod is this a method call name
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
@@ -2666,7 +2639,6 @@ object IR {
         */
       def copy(
         name: String                         = name,
-        isReferent: Boolean                  = isReferent,
         isMethod: Boolean                    = isMethod,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -2674,7 +2646,7 @@ object IR {
         id: Identifier                       = id
       ): Literal = {
         val res =
-          Literal(name, isReferent, isMethod, location, passData, diagnostics)
+          Literal(name, isMethod, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2707,7 +2679,6 @@ object IR {
         s"""
         |IR.Name.Literal(
         |name = $name,
-        |isReferent = $isReferent,
         |isMethod = $isMethod,
         |location = $location,
         |passData = ${this.showPassData},
@@ -2803,9 +2774,6 @@ object IR {
       override def children: List[IR] = List()
 
       /** @inheritdoc */
-      override def isReferent: Boolean = false
-
-      /** @inheritdoc */
       override def showCode(indent: Int): String = name
     }
 
@@ -2822,9 +2790,6 @@ object IR {
     ) extends Name {
       override protected var id: Identifier = randomId
       override val name: String             = Constants.Names.SELF_ARGUMENT
-
-      /** @inheritdoc */
-      override def isReferent: Boolean = false
 
       /** Creates a copy of `self`.
         *
@@ -2900,9 +2865,6 @@ object IR {
     ) extends Name {
       override protected var id: Identifier = randomId
       override val name: String             = "here"
-
-      /** @inheritdoc */
-      override def isReferent: Boolean = true
 
       /** Creates a copy of `this`.
         *
@@ -6627,8 +6589,6 @@ object IR {
         with IR.Name {
       override val name: String = "conversion_error"
 
-      override def isReferent: Boolean = false
-
       override def mapExpressions(fn: Expression => Expression): Conversion =
         this
 
@@ -6757,8 +6717,6 @@ object IR {
         with IRKind.Primitive
         with IR.Name {
       override val name: String = originalName.name
-
-      override def isReferent: Boolean = originalName.isReferent
 
       override def mapExpressions(fn: Expression => Expression): Resolution =
         this

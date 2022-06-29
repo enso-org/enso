@@ -90,8 +90,7 @@ case object VectorLiterals extends IRPass {
     val module = modules.find(_.getName.toString == vectorModuleName)
     val name = IR.Name.Literal(
       "<Sequence Macro>",
-      isReferent = true,
-      isMethod   = false,
+      isMethod = false,
       None
     )
     module

@@ -81,7 +81,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           case IR.Module.Scope.Definition.Method
                 .Conversion(
                   IR.Name.MethodReference(_, _, _, _, _),
-                  IR.Name.Literal(sourceTypeName, _, _, _, _, _),
+                  IR.Name.Literal(sourceTypeName, _, _, _, _),
                   IR.Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,

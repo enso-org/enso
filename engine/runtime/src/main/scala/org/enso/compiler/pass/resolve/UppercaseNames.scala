@@ -119,7 +119,7 @@ case object UppercaseNames extends IRPass {
   ): IR.Expression =
     ir.transformExpressions {
       case lit: IR.Name.Literal =>
-        if ((lit.isReferent || !lit.isMethod) && !isLocalVar(lit)) {
+        if (!lit.isMethod && !isLocalVar(lit)) {
           val resolution = bindings.resolveUppercaseName(lit.name)
           resolution match {
             case Left(error) =>
@@ -134,7 +134,7 @@ case object UppercaseNames extends IRPass {
                   .copy(isMethod = true)
               } else {
                 val self = freshNameSupply
-                  .newName(isReferent = false)
+                  .newName()
                   .updateMetadata(
                     this -->> BindingsMap.Resolution(
                       BindingsMap.ResolvedModule(mod)
@@ -143,10 +143,9 @@ case object UppercaseNames extends IRPass {
                 // The synthetic applications gets the location so that instrumentation
                 // identifies the node correctly
                 val fun = lit.copy(
-                  name       = method.name,
-                  isMethod   = true,
-                  isReferent = false,
-                  location   = None
+                  name     = method.name,
+                  isMethod = true,
+                  location = None
                 )
                 val app = IR.Application.Prefix(
                   fun,
@@ -164,7 +163,7 @@ case object UppercaseNames extends IRPass {
       case app: IR.Application.Prefix =>
         app.function match {
           case lit: IR.Name.Literal =>
-            if (lit.isReferent || !lit.isMethod) {
+            if (!lit.isMethod) {
               resolveReferantApplication(app, lit, bindings, freshNameSupply)
             } else {
               resolveLocalApplication(app, bindings, freshNameSupply)
@@ -194,7 +193,7 @@ case object UppercaseNames extends IRPass {
     processedFun.getMetadata(this) match {
       case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
         val self = freshNameSupply
-          .newName(isReferent = false)
+          .newName()
           .updateMetadata(
             this -->> BindingsMap.Resolution(
               BindingsMap.ResolvedModule(mod)
@@ -254,7 +253,7 @@ case object UppercaseNames extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
     freshNameSupply
-      .newName(isReferent = true)
+      .newName()
       .updateMetadata(this -->> BindingsMap.Resolution(cons))
   }
 
@@ -291,7 +290,7 @@ case object UppercaseNames extends IRPass {
   private def asGlobalVar(ir: IR): Option[IR.Name.Literal] =
     ir match {
       case name: IR.Name.Literal =>
-        if (isLocalVar(name) || name.isReferent) None else Some(name)
+        if (isLocalVar(name)) None else Some(name)
       case _ => None
     }
 

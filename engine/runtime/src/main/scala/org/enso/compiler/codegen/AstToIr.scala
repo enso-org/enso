@@ -451,7 +451,7 @@ object AstToIr {
           case _ =>
             IR.Application.Prefix(
               IR.Name
-                .Literal("negate", isReferent = false, isMethod = true, None),
+                .Literal("negate", isMethod = true, None),
               List(
                 IR.CallArgument.Specified(
                   None,
@@ -1227,20 +1227,14 @@ object AstToIr {
     }
   }
 
-  private def isReferant(ident: AST.Ident): Boolean =
-    ident match {
-      case AST.Ident.Cons.any(_) => true
-      case _                     => false
-    }
-
   private def buildName(
     ident: AST.Ident,
     isMethod: Boolean = false
-  ): IR.Name.Literal =
+  ): IR.Name.Literal = {
     IR.Name.Literal(
       ident.name,
-      isReferant(ident),
       isMethod || AST.Opr.any.unapply(ident).isDefined,
       getIdentifiedLocation(ident)
     )
+  }
 }

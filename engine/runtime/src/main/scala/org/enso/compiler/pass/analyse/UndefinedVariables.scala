@@ -62,7 +62,7 @@ case object UndefinedVariables extends IRPass {
 
   private def analyseExpression(ir: IR.Expression): IR.Expression =
     ir.transformExpressions { case name: IR.Name.Literal =>
-      if (name.isVariable) {
+      if (!name.isMethod) {
         val occ = name
           .unsafeGetMetadata(
             AliasAnalysis,
