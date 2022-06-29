@@ -71,14 +71,14 @@ public class ExcelReader {
   public static WithProblems<Table> readSheetByName(
       InputStream stream,
       String sheetName,
-      HeaderBehavior headers,
+      ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
       throws IOException, IllegalArgumentException {
     Workbook workbook = getWorkbook(stream, xls_format);
 
-    int sheetIndex = getSheetIndex(workbook, sheetName);
+    int sheetIndex = workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
       throw new IllegalArgumentException("Unknown sheet '" + sheetName + "'.");
     }
@@ -106,7 +106,7 @@ public class ExcelReader {
   public static WithProblems<Table> readSheetByIndex(
       InputStream stream,
       int index,
-      HeaderBehavior headers,
+      ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
@@ -142,7 +142,7 @@ public class ExcelReader {
   public static WithProblems<Table> readRangeByName(
       InputStream stream,
       String rangeNameOrAddress,
-      HeaderBehavior headers,
+      ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
@@ -169,24 +169,12 @@ public class ExcelReader {
   public static WithProblems<Table> readRange(
       InputStream stream,
       ExcelRange excelRange,
-      HeaderBehavior headers,
+      ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
       throws IOException {
     return readRange(getWorkbook(stream, xls_format), excelRange, headers, skip_rows, row_limit);
-  }
-
-  /** Specifies how to set the headers for the returned table. */
-  public enum HeaderBehavior {
-    /** Tries to infer if the headers are present in the file. */
-    INFER,
-
-    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
-    USE_FIRST_ROW_AS_HEADERS,
-
-    /** Uses the default Excel Column Names (e.g. A, B, C). */
-    EXCEL_COLUMN_NAMES
   }
 
   /**
@@ -204,10 +192,10 @@ public class ExcelReader {
   private static WithProblems<Table> readRange(
       Workbook workbook,
       ExcelRange excelRange,
-      HeaderBehavior headers,
+      ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
       Integer row_limit) {
-    int sheetIndex = getSheetIndex(workbook, excelRange.getSheetName());
+    int sheetIndex = workbook.getSheetIndex(excelRange.getSheetName());
     if (sheetIndex == -1) {
       throw new IllegalArgumentException("Unknown sheet '" + excelRange.getSheetName() + "'.");
     }
@@ -225,7 +213,7 @@ public class ExcelReader {
       Workbook workbook,
       int sheetIndex,
       ExcelRange excelRange,
-      HeaderBehavior headers,
+      ExcelHeaders.HeaderBehavior headers,
       int skipRows,
       int rowCount) {
     ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
@@ -320,15 +308,5 @@ public class ExcelReader {
       builder.appendNulls(rows);
       builders.add(builder);
     }
-  }
-
-  private static int getSheetIndex(Workbook workbook, String sheetName) {
-    int sheetCount = workbook.getNumberOfSheets();
-    for (int i = 0; i < sheetCount; i++) {
-      if (workbook.getSheetName(i).equalsIgnoreCase(sheetName)) {
-        return i;
-      }
-    }
-    return -1;
   }
 }

@@ -8,6 +8,7 @@ from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Out
 import Standard.Base.Error.Common as Errors
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
+polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
 
@@ -230,11 +231,11 @@ prepare_reader_table on_problems result_with_problems =
 
 ## PRIVATE
    Convert True|False|Infer to the correct HeaderBehavior
-make_java_headers : (True|False|Infer) -> ExcelReader.HeaderBehavior
+make_java_headers : (True|False|Infer) -> ExcelHeaders.HeaderBehavior
 make_java_headers headers = case headers of
-        True -> ExcelReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-        Infer -> ExcelReader.HeaderBehavior.INFER
-        False -> ExcelReader.HeaderBehavior.EXCEL_COLUMN_NAMES
+        True -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+        Infer -> ExcelHeaders.HeaderBehavior.INFER
+        False -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
 
 ## PRIVATE
 read_excel_file file reader =

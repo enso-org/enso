@@ -295,6 +295,10 @@ public class ExcelRange {
     return rightColumn;
   }
 
+  public int getColumnCount() {
+    return isWholeRow() ? Integer.MAX_VALUE : rightColumn - leftColumn + 1;
+  }
+
   public boolean isWholeColumn() {
     return topRow == WHOLE_ROW_OR_COLUMN;
   }
@@ -305,6 +309,10 @@ public class ExcelRange {
 
   public int getBottomRow() {
     return bottomRow;
+  }
+
+  public int getRowCount() {
+    return isWholeColumn() ? Integer.MAX_VALUE : bottomRow - topRow + 1;
   }
 
   public boolean isSingleCell() {
