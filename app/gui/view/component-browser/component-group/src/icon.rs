@@ -984,8 +984,9 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let square = Rect((14.0.px(), 14.0.px())).corners_radius(2.0.px());
-                let shape = square.fill(strong_color);
+                let rect = Rect((14.0.px(), 14.0.px())).corners_radius(2.0.px());
+                let rect = &rect - rect.shrink(1.5.px());
+                let shape = rect.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
