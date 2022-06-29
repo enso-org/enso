@@ -540,7 +540,9 @@ impl Searcher {
             _ => None,
         });
         let favorites = graph.component_groups();
-        let list_builder_with_favs = component_list_builder_with_favorites(&database, &*favorites);
+        let module_name = graph.module_qualified_name(&*project);
+        let list_builder_with_favs =
+            component_list_builder_with_favorites(&database, &module_name, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -1113,7 +1115,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        self.graph.graph().module.path().qualified_module_name(self.project.qualified_name())
+        self.graph.module_qualified_name(&*self.project)
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1169,9 +1171,13 @@ impl Searcher {
 
 fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
+    local_scope_module: &QualifiedName,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
 ) -> component::builder::List {
     let mut builder = component::builder::List::new();
+    if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
+        builder = builder.with_local_scope_module_id(id);
+    }
     builder.set_favorites(suggestion_db, groups);
     builder
 }
@@ -1360,7 +1366,9 @@ pub mod test {
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             let favorites = graph.component_groups();
-            let list_bldr_with_favs = component_list_builder_with_favorites(&database, &*favorites);
+            let module_qn = graph.module_qualified_name(&*project);
+            let list_builder_with_favs =
+                component_list_builder_with_favorites(&database, &module_qn, &*favorites);
             let searcher = Searcher {
                 graph,
                 logger,
@@ -1373,7 +1381,7 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
-                list_builder_with_favorites: Rc::new(list_bldr_with_favs),
+                list_builder_with_favorites: Rc::new(list_builder_with_favs),
             };
             let entry1 = searcher.database.lookup(1).unwrap();
             let entry2 = searcher.database.lookup(2).unwrap();

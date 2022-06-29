@@ -18,7 +18,7 @@ use ensogl::data::color;
 
 /// The [`Group`] fields, which are shared and available by [`AsRef`] and [`Deref`].
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Data {
     pub name:         ImString,
     pub color:        Option<color::Rgb>,
@@ -32,13 +32,13 @@ pub struct Data {
 }
 
 impl Data {
-    fn new_empty_visible(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+    fn from_name_and_id(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
         Data {
             name: name.into(),
             color: None,
             component_id,
             entries: default(),
-            visible: Cell::new(true),
+            visible: default(),
         }
     }
 }
@@ -50,7 +50,7 @@ impl Data {
 // =============
 
 /// A group of [`Component`]s.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct Group {
     data: Rc<Data>,
 }
@@ -63,6 +63,14 @@ impl Deref for Group {
 }
 
 impl Group {
+    /// Create a named empty group referring to module with specified component ID.
+    pub fn from_name_and_id(
+        name: impl Into<ImString>,
+        component_id: Option<component::Id>,
+    ) -> Self {
+        Self { data: Rc::new(Data::from_name_and_id(name, component_id)) }
+    }
+
     /// Create empty group referring to some module component.
     pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
         let name: String = if entry.module.is_top_module() {
@@ -70,7 +78,7 @@ impl Group {
         } else {
             entry.module.name().into()
         };
-        Self { data: Rc::new(Data::new_empty_visible(name, Some(component_id))) }
+        Self::from_name_and_id(name, Some(component_id))
     }
 
     /// Construct from [`execution_context::ComponentGroup`] components looked up in the suggestion
@@ -100,25 +108,11 @@ impl Group {
         })
     }
 
-    /// Update the group sorting according to the current filtering pattern and call
-    /// [`update_visibility`].
-    pub fn update_sorting_and_visibility(&self, pattern: impl AsRef<str>) {
-        {
-            let mut entries = self.entries.borrow_mut();
-            // The `sort_by_key` method is not suitable here, because the closure it takes
-            // cannot return reference nor [`Ref`], and we don't want to copy anything here.
-            if pattern.as_ref().is_empty() {
-                entries.sort_by(|a, b| {
-                    let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
-                    cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
-                });
-            } else {
-                let cmp_match_info = |a: &Component, b: &Component| {
-                    a.match_info.borrow().cmp(&*b.match_info.borrow())
-                };
-                entries.sort_by(|a, b| cmp_match_info(a, b).reverse());
-            }
-        }
+    /// Update the group sorting according to the `order` and call [`update_visibility`].
+    pub fn update_sorting_and_visibility(&self, order: component::Order) {
+        // The `sort_by_key` method is not suitable here, because the closure it takes
+        // cannot return reference nor [`Ref`], and we don't want to copy anything here.
+        self.entries.borrow_mut().sort_by(|a, b| order.compare(a, b));
         self.update_visibility();
     }
 
