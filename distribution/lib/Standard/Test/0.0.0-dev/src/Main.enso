@@ -259,7 +259,8 @@ expect_panic_with ~action matcher =
     case res of
         _ ->
             loc = Meta.get_source_location 2
-            here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded (at "+loc+").")
+            return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
+            here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
     err = res.catch x->x
     if err.is_a matcher then Nothing else
         here.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")

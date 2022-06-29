@@ -299,31 +299,6 @@ public abstract class Storage {
   }
 
   /**
-   * Gets an element at the specified index and converts it to a CSV representation.
-   *
-   * @param index the index to look up.
-   * @param toCsvString a utility for converting unknown values to CSV.
-   * @return a CSV representation of the value at {@code index}.
-   */
-  public String getCsvString(int index, Function<Object, String> toCsvString) {
-    if (isNa(index)) {
-      return "";
-    } else {
-      return getPresentCsvString(index, toCsvString);
-    }
-  }
-
-  /**
-   * Gets an element at the specified index and converts it to a CSV representation. This method is
-   * guaranteed to only be run with indexes corresponding to non-missing values.
-   *
-   * @param index the index to look up.
-   * @param toCsvString a utility for converting unknown values to CSV.
-   * @return a CSV representation of the value at {@code index}.
-   */
-  protected abstract String getPresentCsvString(int index, Function<Object, String> toCsvString);
-
-  /**
    * Write the value at the specified index into an XLSX cell.
    *
    * @param index the index to read value at. {@link #isNa(long)} must return false for this index.
