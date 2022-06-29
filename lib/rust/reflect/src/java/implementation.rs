@@ -42,7 +42,7 @@ pub fn path(graph: &TypeGraph, id: TypeId) -> String {
     while let Some(id) = next_id {
         let ty = &graph[id];
         components.push(ty.name.as_str());
-        next_id = ty.parent.clone();
+        next_id = ty.parent;
     }
     components.reverse();
     components.join(".")
@@ -220,14 +220,14 @@ fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
 }
 
 fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId) -> syntax::Method {
-    let field = class.fields.iter().find(|field| field.id == id).unwrap();
+    let field = class.fields.iter().find(|field| field.id() == id).unwrap();
     getter(graph, field)
 }
 
 fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
     let getter_name = |field| {
-        let field = crate::generic::Identifier::from_camel_case(field);
-        let mut name = crate::generic::Identifier::from_camel_case("get");
+        let field = crate::abstracted::Identifier::from_camel_case(field);
+        let mut name = crate::abstracted::Identifier::from_camel_case("get");
         name.append(field);
         name.to_camel_case()
     };
@@ -248,7 +248,7 @@ fn implement_class(graph: &TypeGraph, id: TypeId) -> syntax::Class {
     let nested = vec![];
     let methods = class.methods.iter().map(|m| method(graph, m, class)).collect();
     let package = Default::default();
-    let sealed = class.sealed.then(|| Default::default());
+    let sealed = class.sealed.then(Default::default);
     syntax::Class {
         package,
         name,

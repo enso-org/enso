@@ -1,9 +1,9 @@
 use derivative::Derivative;
-pub use to_generic::to_generic;
+pub use to_abstracted::to_abstracted;
 
 pub mod graphviz;
 mod reflect;
-mod to_generic;
+mod to_abstracted;
 
 pub use reflect::Reflect;
 
@@ -245,8 +245,7 @@ impl NamedField {
 
 impl ReferencedTypes for NamedField {
     fn referenced_types(&self) -> Vec<LazyType> {
-        let type_ = self.type_.clone();
-        vec![type_]
+        vec![self.type_]
     }
 }
 
@@ -262,8 +261,7 @@ impl UnnamedField {
 
 impl ReferencedTypes for UnnamedField {
     fn referenced_types(&self) -> Vec<LazyType> {
-        let type_ = self.type_.clone();
-        vec![type_]
+        vec![self.type_]
     }
 }
 

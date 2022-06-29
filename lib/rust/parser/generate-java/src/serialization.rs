@@ -28,24 +28,28 @@ pub fn derive(graph: &mut TypeGraph, tree: TypeId, token: TypeId) {
 
 fn impl_deserialize(graph: &mut TypeGraph, tree: TypeId, token: TypeId, source: &str) {
     // Add source field to parent types.
-    let buffer = Class::builtin(&graph, "java.nio.ByteBuffer", vec![]);
+    let buffer = Class::builtin("java.nio.ByteBuffer", vec![]);
     let buffer = graph.insert(buffer);
-    let buffer = FieldBuilder::object(source, buffer, true);
-    let tree_source = graph.add_field(tree, buffer.clone());
-    let token_source = graph.add_field(token, buffer);
+    let tree_source_ = Field::object(source, buffer, true);
+    let tree_source = tree_source_.id();
+    graph[tree].fields.push(tree_source_);
+    let token_source_ = Field::object(source, buffer, true);
+    let token_source = token_source_.id();
+    graph[token].fields.push(token_source_);
     let ids: Vec<_> = graph.type_ids().collect();
     for id in ids {
         let class = &graph[id];
-        let mut deserialization = bincode::DeserializerBuilder::new(id);
+        let mut deserialization =
+            bincode::DeserializerBuilder::new(id, crate::SERIALIZATION_SUPPORT, crate::EITHER_TYPE);
         match () {
             // Base classes: Map the code repr fields.
             _ if id == tree => {
-                let code_begin = class.find_field("spanLeftOffsetCodeReprBegin").unwrap().id;
+                let code_begin = class.find_field("spanLeftOffsetCodeReprBegin").unwrap().id();
                 deserialization.map(code_begin, |message, raw| format!("{message}.offset({raw})"));
             }
             _ if id == token => {
-                let code_begin = class.find_field("codeReprBegin").unwrap().id;
-                let offset_begin = class.find_field("leftOffsetCodeReprBegin").unwrap().id;
+                let code_begin = class.find_field("codeReprBegin").unwrap().id();
+                let offset_begin = class.find_field("leftOffsetCodeReprBegin").unwrap().id();
                 deserialization.map(code_begin, |message, raw| format!("{message}.offset({raw})"));
                 deserialization
                     .map(offset_begin, |message, raw| format!("{message}.offset({raw})"));
@@ -69,7 +73,8 @@ fn impl_deserialize(graph: &mut TypeGraph, tree: TypeId, token: TypeId, source: 
 fn impl_getter(name: &str, buffer: &str, begin: &str, len: &str) -> Method {
     use std::fmt::Write;
     let mut body = String::new();
-    let exception = "utils.IncompatibleFormatException";
+    let serialization = crate::SERIALIZATION_SUPPORT;
+    let exception = format!("{serialization}.FormatException");
     writeln!(body, "byte[] dst = new byte[{len}];").unwrap();
     writeln!(body, "{buffer}.position({begin});").unwrap();
     writeln!(body, "{buffer}.get(dst);").unwrap();

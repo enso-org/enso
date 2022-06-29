@@ -1,11 +1,11 @@
-package utils;
+package org.enso.syntax2.serialization;
 
-public final class BincodeMessage {
+public final class Message {
     private final java.nio.ByteBuffer buffer;
     private final java.nio.ByteBuffer context;
     private final long base;
 
-    public BincodeMessage(java.nio.ByteBuffer bufferIn, java.nio.ByteBuffer contextIn, long baseIn) {
+    public Message(java.nio.ByteBuffer bufferIn, java.nio.ByteBuffer contextIn, long baseIn) {
         buffer = bufferIn;
         context = contextIn;
         base = baseIn;
@@ -30,7 +30,7 @@ public final class BincodeMessage {
         try {
             return new String(dst, "UTF-8");
         } catch (java.io.UnsupportedEncodingException e) {
-            throw new utils.IncompatibleFormatException("Expected UTF-8", e);
+            throw new FormatException("Expected UTF-8", e);
         }
     }
 

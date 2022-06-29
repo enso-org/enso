@@ -1,4 +1,4 @@
-package utils;
+package org.enso.syntax2.serialization;
 
 public class Either<Left, Right> {
     protected Left left;
@@ -8,9 +8,9 @@ public class Either<Left, Right> {
         right = rightIn;
     }
     public static final <L, R> Either<L, R> left(L left) {
-        return new Either(left, null);
+        return new Either<L, R>(left, null);
     }
     public static final <L, R> Either<L, R> right(R right) {
-        return new Either(null, right);
+        return new Either<L, R>(null, right);
     }
 }

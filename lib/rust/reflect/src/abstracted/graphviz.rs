@@ -1,3 +1,5 @@
+//! Graphical representation of a `TypeGraph` with GraphViz.
+
 use super::*;
 use crate::graphviz::EdgeType;
 use crate::graphviz::Graph;
@@ -10,6 +12,7 @@ use crate::graphviz::NodeType;
 // === Graph ===
 // =============
 
+/// Produce a GraphViz graph representation of the relationships between the types.
 pub fn graph(typegraph: &TypeGraph) -> Graph {
     let mut graph = Graph::default();
     let types = &typegraph.types;
@@ -28,7 +31,7 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
         let primitive = matches!(&ty.data, Data::Primitive(_));
         let label = ty.name.to_string();
         graph.nodes.insert(sname.clone(), Node { primitive, node_type, label });
-        let parentlike = ty.parent.iter().chain(&ty.mixins).chain(&ty.weak_interfaces);
+        let parentlike = ty.parent.iter().chain(&ty.mixins);
         for parent in parentlike {
             let id = parent.0;
             let sparent = format!("{}{}", types[id].as_ref().unwrap().name, id);
@@ -43,7 +46,7 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
                 },
             Data::Primitive(Primitive::U32)
             | Data::Primitive(Primitive::Bool)
-            | Data::Primitive(Primitive::Usize)
+            | Data::Primitive(Primitive::U64)
             | Data::Primitive(Primitive::String) => {}
             Data::Primitive(Primitive::Sequence(TypeId(t0))) => graph.edges.push((
                 sname.clone(),

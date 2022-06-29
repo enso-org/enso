@@ -23,7 +23,7 @@ pub mod prelude {
     pub use enso_reflect_macros::Reflect;
 }
 
-pub mod generic;
+pub mod abstracted;
 mod graphviz;
 pub mod java;
 pub mod rust;

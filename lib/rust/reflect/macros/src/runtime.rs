@@ -11,7 +11,7 @@ use syn::Token;
 // === Quote ===
 // =============
 
-/// Values that can be converted to syntax that evaluates to an analogous type at runtime.
+/// Convert a value to syntax that evaluates to an analogous value at runtime.
 pub(crate) trait Quote {
     fn quote(&self) -> TokenStream;
 }
@@ -51,7 +51,7 @@ impl Data {
             Data::Enum(variants) => {
                 assert!(!transparent, "`#[reflect(transparent)]` is not applicable to `enum`s.");
                 let variants: Punctuated<_, Token![,]> =
-                    variants.into_iter().map(Quote::quote).collect();
+                    variants.iter().map(Quote::quote).collect();
                 quote! {
                     reflect::rust::Data::Enum(reflect::rust::Enum {
                         variants: vec![#variants],
@@ -66,13 +66,11 @@ impl Quote for Fields {
     fn quote(&self) -> TokenStream {
         match self {
             Fields::Named { fields } => {
-                let fields: Punctuated<_, Token![,]> =
-                    fields.into_iter().map(Quote::quote).collect();
+                let fields: Punctuated<_, Token![,]> = fields.iter().map(Quote::quote).collect();
                 quote! { reflect::rust::Fields::Named(vec![#fields]) }
             }
             Fields::Unnamed(fields) => {
-                let fields: Punctuated<_, Token![,]> =
-                    fields.into_iter().map(Quote::quote).collect();
+                let fields: Punctuated<_, Token![,]> = fields.iter().map(Quote::quote).collect();
                 quote! { reflect::rust::Fields::Unnamed(vec![#fields]) }
             }
             Fields::Unit => quote! { reflect::rust::Fields::Unit },
@@ -125,7 +123,7 @@ impl Quote for Variant {
                 transparent: #transparent,
             }
         };
-        quoted.into()
+        quoted
     }
 }
 
@@ -176,7 +174,7 @@ mod tests {
             },
         ];
         for input in inputs {
-            analyze(input.into()).quote();
+            analyze(input).quote();
         }
     }
 
@@ -187,6 +185,6 @@ mod tests {
                 pub repr: std::borrow::Cow<'s, str>,
             }
         };
-        panic!("{}", analyze(input.into()).quote());
+        panic!("{}", analyze(input).quote());
     }
 }

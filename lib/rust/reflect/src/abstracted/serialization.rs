@@ -1,4 +1,6 @@
-use crate::generic::*;
+//! Serialization analysis on abstracted representations.
+
+use crate::abstracted::*;
 use std::mem::take;
 
 
@@ -7,9 +9,12 @@ use std::mem::take;
 // === Test Case Generation ===
 // ============================
 
+/// A set of *accept* and *reject* tests for a serialization format.
 #[derive(Debug, Clone)]
 pub struct TestCases {
+    /// Inputs that a deserializer should accept.
     pub accept: Vec<Vec<u8>>,
+    /// Inputs that a deserializer should reject.
     pub reject: Vec<Vec<u8>>,
     program:    Vec<Op>,
     debuginfo:  BTreeMap<usize, String>,
@@ -28,6 +33,7 @@ pub fn testcases(graph: &TypeGraph, root: TypeId) -> TestCases {
 }
 
 impl TestCases {
+    /// Produce a JSON representation of test case data.
     pub fn to_json(&self) -> String {
         let accept: Vec<_> = self.accept.iter().map(|case| format!("{:?}", case)).collect();
         let accept = accept.join(", \n\t");
@@ -45,67 +51,7 @@ impl TestCases {
         )
     }
 
-    pub fn to_java(&self) -> String {
-        let fmt_cases = |cases: &[Vec<u8>]| {
-            let cases: Vec<_> = cases
-                .iter()
-                .map(|case| {
-                    let case: Vec<_> = case.iter().map(|byte| (*byte as i8).to_string()).collect();
-                    format!("{{{}}}", case.join(", "))
-                })
-                .collect();
-            let cases = cases.join(", ");
-            cases
-        };
-        let accept = fmt_cases(&self.accept);
-        let reject = fmt_cases(&self.reject);
-        format!(
-            "import out.Tree;
-import utils.BincodeMessage;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
-class GeneratedFormatTests {{
-    public static void main(String[] args) {{
-        byte[][] accept = {{{accept}}};
-        byte[][] reject = {{{reject}}};
-        int result = 0;
-        for (int i = 0; i < accept.length; i++) {{
-            ByteBuffer buffer = ByteBuffer.wrap(accept[i]);
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            ByteBuffer context = ByteBuffer.allocate(0);
-            BincodeMessage message = new BincodeMessage(buffer, context, 0);
-            try {{
-                Tree tree = Tree.deserialize(message);
-                System.out.print(\"- pass: \");
-                System.out.println(tree.toString());
-            }} catch (utils.IncompatibleFormatException e) {{
-                System.out.println(\"- fail:\");
-                e.printStackTrace();
-                result = 1;
-            }}
-        }}
-        for (int i = 0; i < reject.length; i++) {{
-            ByteBuffer buffer = ByteBuffer.wrap(reject[i]);
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            ByteBuffer context = ByteBuffer.allocate(0);
-            BincodeMessage message = new BincodeMessage(buffer, context, 0);
-            try {{
-                Tree tree = Tree.deserialize(message);
-                System.out.print(\"- fail: accepted: \");
-                System.out.println(tree.toString());
-                result = 1;
-            }} catch (utils.IncompatibleFormatException e) {{
-                System.out.println(\"- pass: (rejected)\");
-            }}
-        }}
-        System.exit(result);
-    }}
-}}
-"
-        )
-    }
-
+    /// Render a debug representation of the test program used to generate the cases.
     pub fn program(&self) -> String {
         fmt_program(&self.program, &self.debuginfo)
     }
@@ -227,7 +173,7 @@ impl<'g> ProgramBuilder<'g> {
         match primitive {
             Primitive::U32 => self.emit(Op::U32(0)),
             Primitive::Bool => self.emit(Op::U8(1)),
-            Primitive::Usize => self.emit(Op::U64(12345678901234567890)),
+            Primitive::U64 => self.emit(Op::U64(12345678901234567890)),
             Primitive::String => self.emit(Op::U64(0)),
             Primitive::Sequence(t0) if basecase || self.basecase(t0) => self.emit(Op::U64(0)),
             Primitive::Sequence(t0) => {

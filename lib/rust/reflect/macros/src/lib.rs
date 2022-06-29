@@ -3,18 +3,65 @@
 //! This crate implements a macro, `#[derive(Reflect)]`, which adds runtime reflection support to
 //! datatype definitions. Its main motivation is type-driven code generation.
 //!
-//! ## Using `#[derive(Reflect)]` versus writing a proc macro
+//! ## General Attributes
+//!
+//! ### `#[reflect(skip)]` (field attribute)
+//! The field will be excluded from reflection data.
+//! When this attribute is present, the field's type does not need to implement `Reflect`.
+//!
+//! ### `#[reflect(as = "OtherType")]` (field attribute)
+//! The field's type in the reflection data will be `OtherType` rather than the field's real type.
+//! When this attribute is present, the field's real type does not need to implement `Reflect`. The
+//! alternative type specified must implement `Reflect`.
+//!
+//! ## Attributes for Abstraction Customization
+//!
+//! Application of `#[derive(Reflect)]` to data types is enough to enable reflection over Rust
+//! types. However, if the types will be abstracted with `enso_reflect::abstracted` (i.e. for
+//! transpilation to another language), some customization is likely: Direct translation into
+//! another language would reproduce Rust patterns where they are likely not necessary (on top of
+//! the target-language patterns introduced by the translation), resulting in an overly-complex
+//! data model. In order to avert this (without using heuristics, which would result in
+//! unpredictable output), this crate supports helper attributes to inform the abstractor about the
+//! use of Rust patterns that can be erased in translation.
+//!
+//! ### `#[reflect(transparent)]` (struct attribute)
+//! Only applicable to single-field `struct`s. The type will be not appear in abstracted reflection
+//! data; all references will appear as references to the contained type.
+//!
+//! ### `#[reflect(flatten)]` (field attribute)
+//! In abstracted reflection data, the field will be replaced in this `struct` with the contents of
+//! its type, which must be a `struct` type.
+//!
+//! ### `#[reflect(hide)]` (field attribute)
+//! In target languages that support it, the field will be hidden from direct access. In the Java
+//! target, this prevents the generation of accessors.
+//!
+//! ### `#[reflect(subtype)]` (field attribute)
+//! In the abstracted representation, the containing type will be made the parent of the field's
+//! type. There must be no references to the field's type except through the containing type. The
+//! field's type must be an `enum`, or a generic parameter.
+//! If the field's type is a generic parameter, the parameter must be instantiated with one `enum`,
+//! and may be instantiated with any types that are members of the `enum` (this can only occur with
+//! `#[reflect(inline)]`; see below). References to the type instantiated with the `enum` will
+//! become references to the resulting parent type; references to `struct` instantiatons will become
+//! references to the resulting child types.
+//!
+//! ### `#[reflect(inline)]` (`enum` variant attribute)
+//! In the abstracted representation, no type will be generated for the variant (which must be a
+//! single-field variant); the contained type will instead by treated as a member of the `enum`.
+//!
+//! # Using `#[derive(Reflect)]` versus writing a proc macro
 //!
 //! Proc macros have some limitations. A proc macro should be:
 //! - A pure function
 //! - from syntax to syntax
 //! - operating on each item in isolation.
 //!
-//! This crate doesn't have these limitations; it supports supports reasoning about the whole
-//! typegraph, and has no unusual restrictions about side effects. However, a user of this crate
-//! must depend on its subject code to obtain the reflection data at runtime; so automatic
-//! generation of Rust code during compilation requires use of a build script to perform the
-//! reflection/code-generation step.
+//! This crate doesn't have these limitations; it supports reasoning about the whole typegraph, and
+//! has no restrictions about side effects. However, a user of this crate must depend on its subject
+//! code to obtain the reflection data at runtime; so automatic generation of Rust code during
+//! compilation requires use of a build script to perform the reflection/code-generation step.
 
 // === Features ===
 // === Standard Linter Configuration ===
@@ -50,7 +97,7 @@ use runtime::Quote;
 // === Type Definitions ===
 // ========================
 
-/// A complete *shallow* description of a type definition.
+/// Represents a type definition.
 #[derive(Debug)]
 pub(crate) struct Type {
     ident:          syn::Ident,
@@ -72,7 +119,7 @@ struct NamedField {
     name:    syn::Ident,
     type_:   syn::Type,
     subtype: bool,
-    refer:   Option<syn::Type>,
+    refer:   Option<Box<syn::Type>>,
     flatten: bool,
     hide:    bool,
 }
@@ -127,33 +174,18 @@ pub fn derive_reflect(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let ident = &type_.ident;
     let generics = &type_.generics;
     let mut generic_bounds = type_.lifetimes.clone();
-    let type_bounds = type_
-        .generic_params
-        .iter()
-        .map(|param| (quote! { #param: reflect::Reflect }).into_token_stream());
+    let with_bound = |param| (quote! { #param: reflect::Reflect }).into_token_stream();
+    let type_bounds = type_.generic_params.iter().map(with_bound);
     generic_bounds.extend(type_bounds);
     let type_expr = type_.quote();
     let static_lifetimes: Vec<_> = type_.lifetimes.iter().map(|_| quote! { 'static }).collect();
-    let static_types = type_
-        .generic_params
-        .iter()
-        .map(|param| (quote! { <#param as reflect::Reflect>::Static }).into_token_stream());
+    let to_static = |param| (quote! { <#param as reflect::Reflect>::Static }).into_token_stream();
+    let static_types = type_.generic_params.iter().map(to_static);
     let mut static_params = vec![];
     static_params.extend(static_lifetimes.iter().cloned());
     static_params.extend(static_types);
     let mut subtype_erased = quote! { Self::Static };
     if let Some(ty) = subtype_field_type(&type_.data) {
-        // If we find the field's type in the parameters:
-        // - Create a dummy type as a `dyn` of all traits bounds we have for that parameter.
-        //   - (This won't support for unsized types.)
-        // - Use our lifetime-erased type, with the matching parameter instantiated with the dummy
-        //   type.
-        // (This will only support a field whose type is exactly a type parameter. A more general
-        //  implementation that erases one type parameter found recursively in the field type would
-        //  support things like Box<Param> subtypes.)
-        // TODO: Use a dyn object of satisfying all necessary trait bounds.
-        //  Not needed for `enso-parser` because we aren't using any structs with traits bounds.
-        // TODO: We should validate that the parameter doesn't occur in the type of any other field.
         let erased_types = type_.generic_params.iter().cloned().map(|param| {
             let param_ty: syn::Type = syn::parse2(param.clone()).unwrap();
             if param_ty == ty {

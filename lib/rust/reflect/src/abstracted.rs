@@ -1,3 +1,9 @@
+//! An abstracted representation of a data model.
+//!
+//! This is used in translation from Rust to Java to:
+//! - Decouple the complexities of the source language from those of the target language.
+//! - Provide a simple representation to support analysis and translation.
+
 pub mod graphviz;
 pub mod serialization;
 pub mod transform;
@@ -14,19 +20,25 @@ use std::collections::BTreeSet;
 /// A datatype.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Type {
-    // data
-    pub name:            TypeName,
-    pub data:            Data,
-    pub parent:          Option<TypeId>,
-    pub mixins:          Vec<TypeId>,
-    pub weak_interfaces: Vec<TypeId>,
-    pub abstract_:       bool,
-    pub closed:          bool,
+    /// The type's name.
+    pub name:          TypeName,
+    /// The type's data content.
+    pub data:          Data,
+    /// The parent type, if any.
+    pub parent:        Option<TypeId>,
+    /// Types that this type inherits from that are not the parent.
+    pub mixins:        Vec<TypeId>,
+    /// If true, this type cannot be instantiated.
+    pub abstract_:     bool,
+    /// If true, this type is not open to extension by children outside those defined with it.
+    pub closed:        bool,
     // attributes
     /// When serializing/deserializing, indicates the index of the field in a `Type` before which a
     /// child object's data will be placed/expected.
-    pub child_field:     Option<usize>,
-    pub discriminants:   BTreeMap<usize, TypeId>,
+    pub child_field:   Option<usize>,
+    /// When serializing/deserializing, indicates the available concrete types and the values used
+    /// to identify them.
+    pub discriminants: BTreeMap<usize, TypeId>,
 }
 
 impl Type {
@@ -34,58 +46,83 @@ impl Type {
     pub fn new(name: TypeName, data: Data) -> Self {
         let parent = Default::default();
         let mixins = Default::default();
-        let weak_interfaces = Default::default();
         let abstract_ = Default::default();
         let closed = Default::default();
         let child_field = Default::default();
         let discriminants = Default::default();
-        Type {
-            name,
-            data,
-            parent,
-            mixins,
-            weak_interfaces,
-            abstract_,
-            closed,
-            child_field,
-            discriminants,
-        }
+        Type { name, data, parent, mixins, abstract_, closed, child_field, discriminants }
     }
 }
 
+/// A datatype's data.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Data {
+    /// A type with fields.
     Struct(Vec<Field>),
+    /// A builtin type.
     Primitive(Primitive),
 }
 
 /// Standard types.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum Primitive {
+    /// A boolean value.
     Bool,
-    Usize,
+    /// An unsigned 32-bit integer.
     U32,
+    /// An unsigned 64-bit integer.
+    U64,
+    /// An UTF-8-encoded string.
     String,
+    /// Zero or more values of a type.
     Sequence(TypeId),
-    // Rust's option-types are more general than Java's optional (by default) fields.
+    /// Zero or one value of a type.
     Option(TypeId),
+    /// A value that may be one type in a success case, or another type in a failure case.
     Result(TypeId, TypeId),
 }
 
+/// A data field of a `Type`.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Field {
-    pub name:  FieldName,
+    /// The field's `Type`.
     pub type_: TypeId,
+    /// The field's name.
+    pub name:  FieldName,
+    /// Whether the field should be private in generated code.
     pub hide:  bool,
     id:        FieldId,
 }
 
 impl Field {
+    /// Create a new named field.
+    pub fn named(name: FieldName, type_: TypeId) -> Self {
+        let hide = Default::default();
+        let id = Self::new_id();
+        Self { type_, name, hide, id }
+    }
+
+    /// Create a new unnamed field.
+    pub fn unnamed(type_: TypeId) -> Self {
+        let name = Default::default();
+        let hide = Default::default();
+        let id = Self::new_id();
+        Self { name, type_, hide, id }
+    }
+
+    /// Get the field's `FieldId`.
     pub fn id(&self) -> FieldId {
         self.id
     }
+
+    fn new_id() -> FieldId {
+        use std::sync::atomic;
+        static NEXT_ID: atomic::AtomicU32 = atomic::AtomicU32::new(0);
+        FieldId(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed))
+    }
 }
 
+/// Identifies a `Type` within a `TypeGraph`.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeId(pub usize);
 
@@ -95,6 +132,7 @@ impl std::fmt::Display for TypeId {
     }
 }
 
+/// Globally unique, stable identifier for a `Field`.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FieldId(u32);
 
@@ -110,6 +148,7 @@ impl std::fmt::Display for FieldId {
 // === Identifiers ===
 // ===================
 
+/// An identifier, in a naming convention-agnostic representation.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Identifier {
     segments: Vec<String>,
@@ -131,6 +170,7 @@ impl Identifier {
         n
     }
 
+    /// Render in PascalCase.
     pub fn to_pascal_case(&self) -> String {
         let mut pascal = String::with_capacity(self.segments_len() + self.segments.len());
         for segment in &self.segments {
@@ -141,6 +181,7 @@ impl Identifier {
         pascal
     }
 
+    /// Render in camelCase.
     pub fn to_camel_case(&self) -> String {
         let mut camel = String::with_capacity(self.segments_len());
         let (head, tail) = self.segments.split_first().unwrap();
@@ -153,19 +194,23 @@ impl Identifier {
         camel
     }
 
+    /// Render in snake_case.
     pub fn to_snake_case(&self) -> String {
         self.segments.join("_")
     }
 
+    /// Parse an identifier expected to be in snake_case.
     pub fn from_snake_case(s: &str) -> Self {
-        let segments = s.split("_").map(|s| s.to_string()).collect();
+        let segments = s.split('_').map(|s| s.to_string()).collect();
         Self::new(segments)
     }
 
+    /// Parse an identifier expected to be in camelCase.
     pub fn from_camel_case(s: &str) -> Self {
         Self::from_pascal_case(s)
     }
 
+    /// Parse an identifier expected to be in PascalCase.
     pub fn from_pascal_case(s: &str) -> Self {
         let mut segments = vec![];
         let mut current = String::new();
@@ -179,6 +224,9 @@ impl Identifier {
         Self::new(segments)
     }
 
+    /// Append another `Identifier` to the end of `self`; when rendered, the boundary between the
+    /// old and new components will be indicated in a manner determined by the naming convention
+    /// chosen at rendering time.
     pub fn append(&mut self, other: Self) {
         self.segments.extend(other.segments)
     }
@@ -187,6 +235,7 @@ impl Identifier {
 
 // === Type Names ===
 
+/// The name of a type, e.g. a `struct` in Rust or a `class` in Java.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeName(Identifier);
 
@@ -197,12 +246,15 @@ impl std::fmt::Display for TypeName {
 }
 
 impl TypeName {
+    /// Parse from PascalCase.
     pub fn from_pascal_case(s: &str) -> Self {
         Self(Identifier::from_pascal_case(s))
     }
+    /// Render in PascalCase.
     pub fn to_pascal_case(&self) -> String {
         self.0.to_pascal_case()
     }
+    /// Append another `TypeName` to the end of `self`. See `Identifier::append`.
     pub fn append(&mut self, other: Self) {
         self.0.append(other.0)
     }
@@ -211,6 +263,7 @@ impl TypeName {
 
 // === Field Names ===
 
+/// The name of a field, e.g. the data members of a Rust struct or Java class.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct FieldName(Identifier);
 
@@ -221,15 +274,18 @@ impl std::fmt::Display for FieldName {
 }
 
 impl FieldName {
+    /// Parse from snake_case.
     pub fn from_snake_case(s: &str) -> Self {
         Self(Identifier::from_snake_case(s))
     }
+    /// Render in camelCase.
     pub fn to_camel_case(&self) -> Option<String> {
         match self.0.to_camel_case() {
             ident if ident.is_empty() => None,
             ident => Some(ident),
         }
     }
+    /// Append another `FieldName` to the end of `self`. See `Identifier::append`.
     pub fn append(&mut self, other: Self) {
         self.0.append(other.0)
     }
@@ -241,53 +297,53 @@ impl FieldName {
 // === System of Datatypes ===
 // ===========================
 
+/// A system of `Type`s.
 #[derive(Debug, Default, Clone)]
 pub struct TypeGraph {
-    pub types:  Vec<Option<Type>>,
-    next_field: std::cell::Cell<u32>,
+    types: Vec<Option<Type>>,
 }
 
 impl TypeGraph {
+    /// Allocate a `TypeId`, without setting the type's definition yet. This supports the
+    /// construction of type graphs that may contain cycles.
     pub fn reserve_type_id(&mut self) -> TypeId {
         let id = TypeId(self.types.len());
         self.types.push(None);
         id
     }
 
+    /// Bind a `TypeId` previously returned by `reserve_type_id` to a `Type`. The `TypeId` must not
+    /// already have a value assigned.
     pub fn set(&mut self, id: TypeId, value: Type) {
         assert_eq!(&self.types[id.0], &None);
         self.types[id.0] = Some(value);
     }
 
+    /// Look up a `Type` by `TypeId` and return it if present.
     pub fn get(&self, TypeId(i): TypeId) -> Option<&Type> {
         self.types[i].as_ref()
     }
 
+    /// Change the value associated with a `TypeId`; return the old value.
     pub fn replace(&mut self, id: TypeId, value: Type) -> Type {
         std::mem::replace(&mut self.types[id.0], Some(value)).unwrap()
     }
 
+    /// Remove a type from the graph; the `TypeId` becomes unbound.
     pub fn take(&mut self, id: TypeId) -> Type {
         std::mem::take(&mut self.types[id.0]).unwrap()
     }
 
+    /// Add a type to the graph. Return the `TypeId` assigned to it.
     pub fn insert(&mut self, value: Type) -> TypeId {
         let id = TypeId(self.types.len());
         self.types.push(Some(value));
         id
     }
 
+    /// Iterate the defined types by ID.
     pub fn type_ids(&self) -> impl Iterator<Item = TypeId> + '_ {
         self.types.iter().enumerate().filter_map(|(i, ty)| ty.as_ref().map(|_| TypeId(i)))
-    }
-
-    pub fn field(&self, type_: TypeId) -> Field {
-        let hide = false;
-        let id = self.next_field.get();
-        self.next_field.set(id + 1);
-        let id = FieldId(id);
-        let name = FieldName::default();
-        Field { name, type_, hide, id }
     }
 
     /// Replace all occurrences of certain IDs with other IDs.
@@ -312,9 +368,6 @@ impl TypeGraph {
             for parent in &mut ty.mixins {
                 rewrite(parent);
             }
-            for parent in &mut ty.weak_interfaces {
-                rewrite(parent);
-            }
             match &mut ty.data {
                 Data::Struct(fields) =>
                     for field in fields {
@@ -328,7 +381,7 @@ impl TypeGraph {
                 }
                 Data::Primitive(Primitive::U32)
                 | Data::Primitive(Primitive::Bool)
-                | Data::Primitive(Primitive::Usize)
+                | Data::Primitive(Primitive::U64)
                 | Data::Primitive(Primitive::String) => {}
             }
         }
@@ -350,7 +403,6 @@ impl TypeGraph {
                 data,
                 parent,
                 mixins,
-                weak_interfaces: _,
                 abstract_: _,
                 closed: _,
                 child_field: _,
@@ -377,16 +429,14 @@ impl TypeGraph {
                 }
                 Data::Primitive(Primitive::U32)
                 | Data::Primitive(Primitive::Bool)
-                | Data::Primitive(Primitive::Usize)
+                | Data::Primitive(Primitive::U64)
                 | Data::Primitive(Primitive::String) => {}
             }
         }
         let live = |id: &TypeId| visited.contains(id);
         for (i, ty) in self.types.iter_mut().enumerate() {
             let id = TypeId(i);
-            if live(&id) {
-                ty.as_mut().unwrap().weak_interfaces.retain(live);
-            } else {
+            if !live(&id) {
                 *ty = None;
             }
         }

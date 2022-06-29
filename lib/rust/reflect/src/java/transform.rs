@@ -28,15 +28,12 @@ pub fn optional_to_null(mut graph: TypeGraph) -> TypeGraph {
     }
     for class in graph.classes_mut() {
         for field in &mut class.fields {
-            match &mut field.data {
-                FieldData::Object { type_, nonnull } => {
-                    if let Some(mapped) = optional_to_class.get(&type_) {
-                        assert!(*nonnull, "{}", no_multilevel);
-                        *nonnull = false;
-                        *type_ = *mapped;
-                    }
+            if let FieldData::Object { type_, nonnull } = &mut field.data {
+                if let Some(mapped) = optional_to_class.get(type_) {
+                    assert!(*nonnull, "{}", no_multilevel);
+                    *nonnull = false;
+                    *type_ = *mapped;
                 }
-                _ => (),
             }
         }
     }

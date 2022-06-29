@@ -24,11 +24,10 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use enso_parser_generate_java::serialization;
 use enso_reflect::java;
 use enso_reflect::rust;
 use enso_reflect::rust::Reflect;
-
-mod serialization;
 
 
 
@@ -36,19 +35,18 @@ mod serialization;
 // === Java Generation ===
 // =======================
 
-const PACKAGE: &str = "org.enso.syntax2";
-
 fn main() {
     let ast = enso_parser::syntax::Tree::reflect();
     let tree = enso_parser::syntax::Tree::reflect().id;
     let token = enso_parser::syntax::Token::<enso_parser::syntax::token::Variant>::reflect().id;
-    let (graph, rust_to_generic) = rust::to_generic(ast);
-    let (graph, generic_to_java) = java::from_generic(&graph);
+    let (graph, rust_to_abstracted) = rust::to_abstracted(ast);
+    let (graph, abstracted_to_java) =
+        java::from_abstracted(&graph, enso_parser_generate_java::EITHER_TYPE);
     let mut graph = java::transform::optional_to_null(graph);
-    let rust_to_java = |id| generic_to_java[&rust_to_generic[&id]];
+    let rust_to_java = |id| abstracted_to_java[&rust_to_abstracted[&id]];
     let (tree, token) = (rust_to_java(tree), rust_to_java(token));
     serialization::derive(&mut graph, tree, token);
-    let graph = graph.implement(PACKAGE);
+    let graph = graph.implement(enso_parser_generate_java::PACKAGE);
     let mut args = std::env::args();
     args.next().unwrap();
     let dir = args.next().expect("Usage: generate-java <output-dir>");

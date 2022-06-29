@@ -1,6 +1,9 @@
+//! Rendering graphical representations of data models with GraphViz.
+
 use std::collections::BTreeSet;
 
-const PRUNE_PRIMITIVE_LEAFS: bool = false;
+/// Hide data fields that don't reference any types outside the builtin set.
+const PRUNE_PRIMITIVE_LEAFS: bool = true;
 
 
 
@@ -8,6 +11,7 @@ const PRUNE_PRIMITIVE_LEAFS: bool = false;
 // === Graph ===
 // =============
 
+/// A GraphViz graph of relationships between types.
 #[derive(Default, Debug)]
 pub struct Graph {
     pub(crate) nodes: std::collections::HashMap<String, Node>,

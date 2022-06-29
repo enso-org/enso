@@ -147,8 +147,8 @@ impl ReferencedTypes for Primitive {
     fn referenced_types(&self) -> Vec<LazyType> {
         match self {
             Primitive::Bool | Primitive::Usize | Primitive::String | Primitive::U32 => vec![],
-            Primitive::Vec(ty) | Primitive::Option(ty) => vec![ty.clone()],
-            Primitive::Result(ty0, ty1) => vec![ty0.clone(), ty1.clone()],
+            Primitive::Vec(ty) | Primitive::Option(ty) => vec![*ty],
+            Primitive::Result(ty0, ty1) => vec![*ty0, *ty1],
         }
     }
 }

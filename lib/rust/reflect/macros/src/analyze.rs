@@ -46,7 +46,7 @@ pub(crate) fn analyze(input: TokenStream) -> Type {
 // ===============
 
 fn parse_fields(fields: syn::Fields) -> Fields {
-    let fields = match fields {
+    match fields {
         syn::Fields::Named(syn_fields) => {
             let mut fields = vec![];
             'fields: for field in syn_fields.named {
@@ -75,8 +75,7 @@ fn parse_fields(fields: syn::Fields) -> Fields {
         syn::Fields::Unnamed(fields) =>
             Fields::Unnamed(fields.unnamed.into_iter().map(UnnamedField::from).collect()),
         syn::Fields::Unit => Fields::Unit,
-    };
-    fields
+    }
 }
 
 impl From<syn::Field> for UnnamedField {
@@ -128,7 +127,7 @@ enum FieldAttr {
     Hide,
     Skip,
     Subtype,
-    As(syn::Type),
+    As(Box<syn::Type>),
 }
 
 fn parse_field_attrs(attr: &syn::Attribute, out: &mut Vec<FieldAttr>) {
@@ -142,7 +141,7 @@ fn parse_field_attrs(attr: &syn::Attribute, out: &mut Vec<FieldAttr>) {
     let meta = attr.parse_meta().expect(INVALID_HELPER_SYNTAX);
     match meta {
         syn::Meta::List(metalist) =>
-            out.extend(metalist.nested.iter().map(|meta| parse_field_annotation(meta, &attr))),
+            out.extend(metalist.nested.iter().map(|meta| parse_field_annotation(meta, attr))),
         syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
             panic!("{}: {}.", INVALID_HELPER_SYNTAX, meta.to_token_stream()),
     }
@@ -167,7 +166,7 @@ fn parse_field_annotation(meta: &syn::NestedMeta, attr: &syn::Attribute) -> Fiel
         syn::Meta::NameValue(syn::MetaNameValue { path, lit: syn::Lit::Str(lit), .. }) => {
             let ident = path.get_ident().expect(INVALID_HELPER_SYNTAX);
             match ident.to_string().as_str() {
-                "as" => FieldAttr::As(lit.parse().expect(INVALID_HELPER_SYNTAX)),
+                "as" => FieldAttr::As(Box::new(lit.parse().expect(INVALID_HELPER_SYNTAX))),
                 _ => panic!("{}: {}.", UNKNOWN_HELPER, ident.into_token_stream()),
             }
         }
@@ -240,7 +239,7 @@ impl<'a> FromIterator<&'a syn::Attribute> for ContainerAttrs {
         let mut transparent = false;
         let mut annotations = Default::default();
         for attr in iter {
-            parse_container_attrs(&attr, &mut annotations);
+            parse_container_attrs(attr, &mut annotations);
         }
         for annotation in annotations {
             match annotation {
@@ -308,7 +307,7 @@ mod tests {
             },
         ];
         for input in inputs {
-            analyze(input.into());
+            analyze(input);
         }
     }
 }
