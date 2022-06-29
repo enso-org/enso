@@ -13,6 +13,8 @@ import Standard.Test.Problems
 
 import Standard.Examples
 
+import project.Util
+
 spec_fmt header file read_method =
     Test.group header <|
         Test.specify "should read the specified sheet by index and use correct headers" <|
@@ -339,13 +341,11 @@ spec =
             written.should_equal table
             out.delete_if_exists
 
-        Test.specify 'should create a new sheet if it already exists and write mode is Create' <|
+        Test.specify 'should create new sheets at the start if index is 0' <|
             out.delete_if_exists
             table.write out (File_Format.Excel (Sheet 0))
             clothes.write out (File_Format.Excel (Sheet 0))
             read_1 = out.read (File_Format.Excel (Sheet "Sheet1"))
-            read_1.print
-            table.print
             read_1 . should_equal table
             read_2 = out.read (File_Format.Excel (Sheet "Sheet2"))
             read_2 . should_equal clothes

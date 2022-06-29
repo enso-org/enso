@@ -37,7 +37,12 @@ public class ExcelRow {
         if (DateUtil.isCellDateFormatted(cell)) {
           return cell.getLocalDateTimeCellValue().toLocalDate();
         } else {
-          return cell.getNumericCellValue();
+          double dblValue = cell.getNumericCellValue();
+          if (dblValue == (long) dblValue) {
+            return (long) dblValue;
+          } else {
+            return dblValue;
+          }
         }
       case STRING:
         return cell.getStringCellValue();
