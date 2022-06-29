@@ -1619,12 +1619,13 @@ impl GraphEditorModelWithNetwork {
 
             // === Camera panning ===
 
-            first_update_of_node_pos <- node.output.position.count().filter(|i| *i==1);
-            let node_bbox = &node.output.bounding_box;
-            node_bbox_after_first_update <- first_update_of_node_pos.map2(node_bbox, |_, b| *b);
-            bbox_of_edited_node <- node_bbox_after_first_update.gate(&self.frp.node_editing);
+            first_update_of_pos <- node.output.position.count().filter(|i| *i==1);
+            let bbox = &node.output.bounding_box;
+            bbox_after_first_update_of_pos <- first_update_of_pos.map2(bbox, |_, b| *b);
+            let editing = &self.frp.node_editing;
+            bbox_after_first_update_if_editing <- bbox_after_first_update_of_pos.gate(editing);
             use theme::graph_editor::camera_pan_margin_around_node as pan_margin;
-            eval bbox_of_edited_node([model](bbox)
+            eval bbox_after_first_update_if_editing([model](bbox)
                 let mut bbox_with_margins = *bbox;
                 let styles = &model.styles_frp;
                 bbox_with_margins.grow_x(2.0 * styles.get_number(pan_margin::horizontal).value());
