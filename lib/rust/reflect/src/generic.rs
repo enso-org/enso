@@ -12,7 +12,7 @@ use std::collections::BTreeSet;
 // ======================
 
 /// A datatype.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Type {
     // data
     pub name:            TypeName,
@@ -53,7 +53,7 @@ impl Type {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Data {
     Struct(Vec<Field>),
     Primitive(Primitive),
@@ -72,7 +72,7 @@ pub enum Primitive {
     Result(TypeId, TypeId),
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Field {
     pub name:  FieldName,
     pub type_: TypeId,
@@ -237,7 +237,7 @@ impl FieldName {
 // === System of Datatypes ===
 // ===========================
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct TypeGraph {
     pub types:  Vec<Option<Type>>,
     next_field: std::cell::Cell<u32>,
@@ -253,6 +253,10 @@ impl TypeGraph {
     pub fn set(&mut self, id: TypeId, value: Type) {
         assert_eq!(&self.types[id.0], &None);
         self.types[id.0] = Some(value);
+    }
+
+    pub fn get(&self, TypeId(i): TypeId) -> Option<&Type> {
+        self.types[i].as_ref()
     }
 
     pub fn replace(&mut self, id: TypeId, value: Type) -> Type {

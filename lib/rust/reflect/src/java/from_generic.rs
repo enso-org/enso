@@ -66,7 +66,7 @@ impl FromGeneric {
             generic::Primitive::Result(t0, t1) => {
                 let t0_ = self.generic_to_java[t0];
                 let t1_ = self.generic_to_java[t1];
-                Err(Class::builtin(&self.java, "utils.Either", vec![t0_, t1_]))
+                Err(Class::builtin(&self.java, "utils.Either", vec![t1_, t0_]))
             }
         }
     }

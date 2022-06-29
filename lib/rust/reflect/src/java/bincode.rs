@@ -143,19 +143,23 @@ fn deserialize_object<F>(
             body.push(format!("for (int i=0; i<{}; i++) {{", count));
             let value = get_temp();
             deserialize_object(graph, base, message, &value, get_temp, body, true);
-            body.push(format!("{}.set(i, {});", &output, value));
+            body.push(format!("{}.add({});", &output, value));
             body.push(format!("}}"));
         }
         "utils.Either" => {
-            body.push(format!("{} {} = null;", ty_name, &output));
-            /*
-            let which = get_temp();
-            body.push(format!("int {} = {}.get32();", which, message));
-            body.push(format!("if ({} == 0) {{", which));
-            body.push(format!("}} else if ({} == 1) {{", which));
-            // TODO: throw
-            body.push(format!("}} else {{ }}"));
-             */
+            let t0 = ty.params[0];
+            let t1 = ty.params[1];
+            let t0 = quote_class_type(graph, t0);
+            let t1 = quote_class_type(graph, t1);
+            let name = &ty.name;
+            let discriminant = get_temp();
+            body.push(format!("{ty_name} {output};"));
+            body.push(format!("int {discriminant} = {message}.get32();"));
+            body.push(format!("switch ({discriminant}) {{"));
+            body.push(format!("case 0: {output} = {name}.right({t1}.deserialize({message})); break;"));
+            body.push(format!("case 1: {output} = {name}.left({t0}.deserialize({message})); break;"));
+            let err = format!("Unknown discriminant in {ty_name}.");
+            body.push(format!("default: throw new utils.IncompatibleFormatException({err:?}); }}"));
         }
         _ => unimplemented!("Deserialize builtin: {}", &ty.name),
     }
@@ -182,9 +186,10 @@ fn deserialize_abstract(graph: &TypeGraph, id: TypeId) -> syntax::Method {
         body.push(format!("case {}:", key));
         body.push(format!("return {}.deserialize({});", quote_class_type(graph, *id), message));
     }
-    let err = "Unknown discriminant.";
+    let ty_name = quote_class_type(graph, id);
+    let err = format!("Unknown discriminant in {ty_name}.");
     body.push(format!("default: throw new utils.IncompatibleFormatException({:?}); }}", err));
-    let mut method = syntax::Method::new("deserialize", quote_class_type(graph, id));
+    let mut method = syntax::Method::new("deserialize", ty_name);
     method.static_ = true;
     method.body = body.join("\n");
     method.arguments = vec![(syntax::Type::named("utils.BincodeMessage"), message.to_owned())];

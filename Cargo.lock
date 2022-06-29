@@ -2036,6 +2036,7 @@ dependencies = [
 name = "enso-parser"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "enso-data-structures",
  "enso-parser-syntax-tree-builder",
  "enso-parser-syntax-tree-visitor",
@@ -2248,6 +2249,7 @@ dependencies = [
  "nalgebra 0.26.2",
  "num-traits",
  "paste 1.0.7",
+ "serde",
 ]
 
 [[package]]
