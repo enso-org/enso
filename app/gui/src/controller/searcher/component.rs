@@ -43,13 +43,6 @@ pub struct NoSuchGroup {
     index:        usize,
 }
 
-impl NoSuchGroup {
-    fn in_submodules_section(index: usize) -> Self {
-        let section_name = "Sub-modules".into();
-        Self { section_name, index }
-    }
-}
-
 
 // === NoSuchComponent ===
 
@@ -59,13 +52,6 @@ impl NoSuchGroup {
 pub struct NoSuchComponent {
     group_name: CowString,
     index:      usize,
-}
-
-impl NoSuchComponent {
-    fn in_submodules_section(group: &Group, index: usize) -> Self {
-        let group_name = iformat!("Submodule {group.name}").into();
-        Self { group_name, index }
-    }
 }
 
 
@@ -249,6 +235,28 @@ impl List {
     /// module.
     pub fn get_module_content(&self, component: Id) -> Option<&Group> {
         self.module_groups.get(&component).map(|mg| &mg.content)
+    }
+
+    pub fn top_module_entry_by_index(
+        &self,
+        group_index: usize,
+        entry_index: usize,
+    ) -> FallibleResult<Component> {
+        self.top_modules().entry_by_index("Sub-modules".into(), group_index, entry_index)
+    }
+
+    pub fn favorites_entry_by_index(
+        &self,
+        group_index: usize,
+        entry_index: usize,
+    ) -> FallibleResult<Component> {
+        self.favorites.entry_by_index("Favorites".into(), group_index, entry_index)
+    }
+
+    pub fn local_scope_entry_by_index(&self, index: usize) -> FallibleResult<Component> {
+        let error =
+            || NoSuchComponent { group_name: self.local_scope.name.to_string().into(), index };
+        self.local_scope.get_entry(index).ok_or_else(error).map_err(|e| e.into())
     }
 
     /// Update matching info in all components according to the new filtering pattern.

@@ -131,10 +131,10 @@ impl Model {
         let components = self.controller.components();
         match id.group.section {
             SectionId::Favorites =>
-                components.favorites.entry_by_index(id.group.index, id.entry_id),
-            SectionId::LocalScope => todo!("integrate local scope"),
+                components.favorites_entry_by_index(id.group.index, id.entry_id),
+            SectionId::LocalScope => components.local_scope_entry_by_index(id.entry_id),
             SectionId::SubModules =>
-                components.top_modules().entry_by_index(id.group.index, id.entry_id),
+                components.top_module_entry_by_index(id.group.index, id.entry_id),
         }
     }
 
@@ -144,6 +144,10 @@ impl Model {
 
     fn create_favorites_providers(&self) -> Vec<LabeledAnyModelProvider> {
         provider::from_component_group_list(&self.controller.components().favorites)
+    }
+
+    fn create_local_scope_provider(&self) -> LabeledAnyModelProvider {
+        provider::from_component_group(&self.controller.components().local_scope)
     }
 
     fn documentation_of_component(
@@ -216,6 +220,7 @@ impl Searcher {
                 frp::extend! { network
                     list_view.set_sub_modules_section <+ action_list_changed.map(f_!(model.create_submodules_providers()));
                     list_view.set_favourites_section <+ action_list_changed.map(f_!(model.create_favorites_providers()));
+                    list_view.set_local_scope_section <+ action_list_changed.map(f_!(model.create_local_scope_provider().content));
                     new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     trace new_input;
                     graph.set_node_expression <+ new_input;
