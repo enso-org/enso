@@ -297,55 +297,57 @@ impl<'s> MatchedSegment<'s> {
 // )*
 
 #[derive(Clone, Debug, Default)]
-pub struct MatchTreeView<'t, 's> {
-    tree:                  Option<&'t MatchTree<'s>>,
-    resolved_scope:        Option<Rc<RefCell<VarScope>>>,
-    parent_scope_to_check: Option<Rc<RefCell<VarScope>>>,
+pub struct MatchTreeView<'t, 's, V> {
+    tree:                  Option<&'t MatchTree<'s, V>>,
+    resolved_validator:    Option<V>,
+    parent_scope_to_check: Option<V>,
 }
 
-impl<'t, 's> MatchTreeView<'t, 's> {
-    pub fn new(tree: &'t MatchTree<'s>) -> Self {
-        let resolved_scope = default();
+impl<'t, 's, V: MatchTreeValidator> MatchTreeView<'t, 's, V> {
+    pub fn new(tree: &'t MatchTree<'s, V>) -> Self {
+        let resolved_validator = default();
         let parent_scope_to_check = default();
-        Self { tree: Some(tree), resolved_scope, parent_scope_to_check }
+        Self { tree: Some(tree), resolved_validator, parent_scope_to_check }
     }
 
     pub fn nested(mut self) -> Self {
         self.tree = self.tree.and_then(|t| t.nested.as_ref().map(|n| n.as_ref()));
-        mem::swap(&mut self.resolved_scope, &mut self.parent_scope_to_check);
+        mem::swap(&mut self.resolved_validator, &mut self.parent_scope_to_check);
         self
     }
 
     pub fn query(&mut self, name: &str) -> Option<&'t Vec<Vec<syntax::Item<'s>>>> {
         self.tree.and_then(|t| {
             t.map.get(name).map(|entry| {
-                match &self.resolved_scope {
+                match &self.resolved_validator {
                     None => {
                         if let Some(parent_scope) = &self.parent_scope_to_check {
                             let mut ok = false;
-                            let mut scope = entry.scope.clone_ref();
-                            loop {
-                                if !Rc::ptr_eq(&parent_scope, &scope) {
-                                    ok = true;
-                                    break;
-                                } else {
-                                    let parent = scope.borrow().parent.as_ref().cloned();
-                                    match parent {
-                                        Some(p) => scope = p,
-                                        None => break,
-                                    }
-                                }
-                            }
-                            if !ok {
-                                panic!("scope mismatch");
-                            }
+                            // entry.validator.check_sub_parent ...
+                            // let mut scope = entry.scope.clone_ref();
+                            // loop {
+                            //     if !Rc::ptr_eq(&parent_scope, &scope) {
+                            //         ok = true;
+                            //         break;
+                            //     } else {
+                            //         let parent = scope.borrow().parent.as_ref().cloned();
+                            //         match parent {
+                            //             Some(p) => scope = p,
+                            //             None => break,
+                            //         }
+                            //     }
+                            // }
+                            // if !ok {
+                            //     panic!("scope mismatch");
+                            // }
                         }
-                        self.resolved_scope = Some(entry.scope.clone_ref())
+                        self.resolved_validator = Some(entry.validator.clone_ref())
                     }
-                    Some(scope) =>
-                        if !Rc::ptr_eq(&scope, &entry.scope) {
-                            panic!("scope mismatch");
-                        },
+                    Some(scope) => {
+                        // if !Rc::ptr_eq(&scope, &entry.scope) {
+                        //     panic!("scope mismatch");
+                        // },
+                    }
                 }
                 &entry.tokens
             })
@@ -354,14 +356,14 @@ impl<'t, 's> MatchTreeView<'t, 's> {
 }
 
 #[derive(Clone, Debug, Default)]
-struct Entry<'s> {
-    pub tokens: Vec<Vec<syntax::Item<'s>>>,
-    pub scope:  Rc<RefCell<VarScope>>,
+struct Entry<'s, V> {
+    pub tokens:    Vec<Vec<syntax::Item<'s>>>,
+    pub validator: V,
 }
 
-impl<'s> Entry<'s> {
-    pub fn new(scope: Rc<RefCell<VarScope>>, tokens: Vec<Vec<syntax::Item<'s>>>) -> Self {
-        Self { scope, tokens }
+impl<'s, V> Entry<'s, V> {
+    pub fn new(validator: V, tokens: Vec<Vec<syntax::Item<'s>>>) -> Self {
+        Self { validator, tokens }
     }
 }
 
@@ -371,31 +373,62 @@ struct VarScope {
     parent: Option<Rc<RefCell<VarScope>>>,
 }
 
-// pub struct MatchTreeValidatorData {
-//     scope:  Rc<RefCell<VarScope>>,
-// }
 
-#[derive(Clone, Debug, Default)]
-pub struct MatchTree<'s> {
-    scope:  Rc<RefCell<VarScope>>,
-    nested: Option<Box<MatchTree<'s>>>,
-    map:    HashMap<String, Entry<'s>>,
+#[derive(Clone, CloneRef, Debug, Default)]
+pub struct MatchTreeValidatorData {
+    scope: Rc<RefCell<VarScope>>,
 }
 
-impl<'s> MatchTree<'s> {
-    pub fn view<'t>(&'t self) -> MatchTreeView<'t, 's> {
+pub trait MatchTreeValidator: Default + CloneRef {
+    fn set_parent(&self, parent: &Self);
+    fn insert_local_var(&self, var: &str);
+}
+
+impl MatchTreeValidator for MatchTreeValidatorData {
+    fn set_parent(&self, parent: &Self) {
+        self.scope.borrow_mut().parent = Some(parent.scope.clone_ref());
+    }
+
+    fn insert_local_var(&self, var: &str) {
+        self.scope.borrow_mut().locals.insert(var.to_string());
+    }
+}
+
+impl MatchTreeValidator for () {
+    #[inline(always)]
+    fn set_parent(&self, parent: &Self) {}
+
+    #[inline(always)]
+    fn insert_local_var(&self, var: &str) {}
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct MatchTree<'s, V> {
+    nested:    Option<Box<MatchTree<'s, V>>>,
+    map:       HashMap<String, Entry<'s, V>>,
+    validator: V,
+}
+
+impl<'s, V: MatchTreeValidator> MatchTree<'s, V> {
+    pub fn view<'t>(&'t self) -> MatchTreeView<'t, 's, V> {
         MatchTreeView::new(self)
     }
 }
 
 impl<'s> Match<'s> {
-    pub fn into_match_tree(self) -> MatchTree<'s> {
+    pub fn into_match_tree(self) -> MatchTree<'s, MatchTreeValidatorData> {
         let mut tree = MatchTree::default();
         self.make_match_tree(&mut tree);
         tree
     }
 
-    pub fn make_match_tree(self, tree: &mut MatchTree<'s>) {
+    pub fn into_unchecked_match_tree(self) -> MatchTree<'s, ()> {
+        let mut tree = MatchTree::default();
+        self.make_match_tree(&mut tree);
+        tree
+    }
+
+    pub fn make_match_tree<V: Default + MatchTreeValidator>(self, tree: &mut MatchTree<'s, V>) {
         match self {
             Self::Everything(_) => {}
             Self::Nothing => {}
@@ -410,8 +443,8 @@ impl<'s> Match<'s> {
 
             Self::Many(matches) => {
                 if tree.nested.is_none() {
-                    let mut nested = MatchTree::default();
-                    nested.scope.borrow_mut().parent = Some(tree.scope.clone_ref());
+                    let mut nested = MatchTree::<'s, V>::default();
+                    nested.validator.set_parent(&tree.validator);
                     tree.nested = Some(Box::new(nested));
                 }
                 let nested = tree.nested.as_mut().unwrap();
@@ -422,10 +455,10 @@ impl<'s> Match<'s> {
             Self::Identifier(_) => {}
             Self::Expected(_, _) => {}
             Self::Named(name, t) => {
-                tree.scope.borrow_mut().locals.insert(name.clone());
+                tree.validator.insert_local_var(&name);
                 tree.map
                     .entry(name)
-                    .or_insert_with(|| Entry::new(tree.scope.clone_ref(), default()))
+                    .or_insert_with(|| Entry::new(tree.validator.clone_ref(), default()))
                     .tokens
                     .push(t.tokens());
             }
