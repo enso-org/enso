@@ -77,7 +77,7 @@ pub fn entry_point_searcher_icons() {
 
     // === Icons ===
 
-    let mut x = 0.0;
+    let mut x = -100.0;
     icon::Id::for_each(|id| {
         let shape = id.create_shape(&logger, Vector2(icon::SIZE, icon::SIZE));
         shape.weak_color.set(color::Rgba(0.475, 0.494, 0.145, 1.0).into());
