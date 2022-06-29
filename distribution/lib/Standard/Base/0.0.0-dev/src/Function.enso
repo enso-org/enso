@@ -19,8 +19,8 @@ type Function
    > Example
      five = Function.identity 5 # returns number 5
 
-Function.identity : a -> a
-Function.identity x = x
+identity : a -> a
+identity x = x
 
 ## Flips the first two arguments of a function. Returns function that
    takes two arguments, but in opposite order.
@@ -31,8 +31,8 @@ Function.identity x = x
    > Example
     Console.log <| Function.flip (+) "world" "hello" # Prints 'helloworld'
 
-Function.flip : (a -> b -> c) -> (b -> a -> c)
-Function.flip f = (x -> y -> f y x)
+flip : (a -> b -> c) -> (b -> a -> c)
+flip f = (x -> y -> f y x)
 
 
 ## Creates a function which drops its input and returns the provided value instead.
@@ -44,21 +44,21 @@ Function.flip f = (x -> y -> f y x)
    > Example
     Console.log <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
 
-Function.const : a -> b -> a
-Function.const x _ = x
+const : a -> b -> a
+const x _ = x
 
 ## Converts a single-argument function accepting a pair of elements into a multi-argument one.
 
    Arguments:
    - f function accepting pair of values
 
-Function.curry : ([a, b] -> c) -> (a -> b -> c)
-Function.curry f = x -> y -> f [x, y]
+curry : ([a, b] -> c) -> (a -> b -> c)
+curry f = x -> y -> f [x, y]
 
 ## Converts a multi-argument function into a single-argument one accepting a pair of elements.
 
    Arguments:
    - f function accepting multiple arguments
 
-Function.uncurry : (a -> b -> c) -> ([a, b] -> c)
-Function.uncurry f = (pair -> f pair.head pair.tail.head)
+uncurry : (a -> b -> c) -> ([a, b] -> c)
+uncurry f = (pair -> f pair.head pair.tail.head)

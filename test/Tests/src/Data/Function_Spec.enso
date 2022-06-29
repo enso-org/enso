@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Numbers
+import Standard.Base.Function
 
 import Standard.Test
 from Standard.Base.Data.Ordering import Equal, Less, Greater
