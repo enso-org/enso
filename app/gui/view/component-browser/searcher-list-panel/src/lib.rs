@@ -59,6 +59,7 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style;
+use ensogl_derive_theme::FromTheme;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
@@ -121,17 +122,35 @@ const INFINITE: f32 = 999999.0;
 
 // === Style ===
 
-#[derive(Clone, Debug, Default)]
+
+#[derive(Clone, Debug, Default, FromTheme)]
+#[base_path = "list_panel_theme"]
 struct Style {
-    content: ContentStyle,
-    section: SectionStyle,
-    menu:    MenuStyle,
+    content_width:            f32,
+    content_height:           f32,
+    content_padding:          f32,
+    content_corner_radius:    f32,
+    content_background_color: color::Rgba,
+
+    section_divider_height:      f32,
+    section_heading_size:        f32,
+    section_heading_offset:      f32,
+    section_heading_text_offset: f32,
+    section_heading_font:        String,
+    section_heading_color:       color::Rgba,
+    section_divider_color:       color::Rgba,
+
+    menu_height:         f32,
+    menu_divider_color:  color::Rgba,
+    menu_divider_height: f32,
+
+    favourites_section_base_color: color::Rgba,
 }
 
 impl Style {
     fn size_inner(&self) -> Vector2 {
-        let width = self.content.size.x;
-        let height = self.content.size.y + self.menu.height;
+        let width = self.content_width;
+        let height = self.content_height + self.menu_height;
         Vector2::new(width, height)
     }
 
@@ -140,169 +159,11 @@ impl Style {
     }
 
     fn menu_divider_y_pos(&self) -> f32 {
-        self.size_inner().y / 2.0 - self.menu.height
+        self.size_inner().y / 2.0 - self.menu_height
     }
-}
 
-#[derive(Clone, Debug, Default)]
-struct ContentStyle {
-    /// Size of the Component List Panel content area.
-    size:             Vector2,
-    /// Radius of the rounded corners.
-    corner_radius:    f32,
-    /// Extra space between scroll area and backgound shape edge.
-    padding:          f32,
-    /// Color used for the panel background.
-    background_color: color::Rgba,
-}
-
-#[derive(Clone, Debug, Default)]
-struct SectionHeadingStyle {
-    /// Font size used for section headers.
-    size:        text::style::Size,
-    /// Font used for section headers.
-    font:        String,
-    /// Color used for section headers.
-    color:       color::Rgba,
-    /// Distance between the section start and the section header_text.
-    text_offset: f32,
-    /// Distance between the section header and the section content.
-    offset:      f32,
-}
-
-impl SectionHeadingStyle {
-    /// Returns the size of the header, which consists of the header text and the padding between
-    /// text and content.
-    fn height(&self) -> f32 {
-        self.size.raw + self.offset
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-struct SectionStyle {
-    heading: SectionHeadingStyle,
-    /// Thickness of the line that divides the sections within the Component List Panel.
-    divider_height: f32,
-    /// Color used for the Divider.
-    divider_color: color::Rgba,
-    favourites_section_base_color: color::Rgba,
-}
-
-#[derive(Clone, Debug, Default)]
-struct MenuStyle {
-    /// Height of the area reserved for Component Browser Panel Menu.
-    height:         f32,
-    /// Thickness of the line that divides the Component List Panel from the Component Browser
-    /// Panel Menu.
-    divider_height: f32,
-    /// Color used for the Divider.
-    divider_color:  color::Rgba,
-}
-
-impl Style {
-    fn from_theme(
-        network: &enso_frp::Network,
-        style: &StyleWatchFrp,
-    ) -> (enso_frp::Stream<Style>, enso_frp::stream::WeakNode<enso_frp::SourceData>) {
-        let theme_path: style::Path = list_panel_theme::HERE.into();
-
-        let content_width = style.get_number(theme_path.sub("content_width"));
-        let content_height = style.get_number(theme_path.sub("content_height"));
-        let content_corner_radius = style.get_number(theme_path.sub("content_corner_radius"));
-        let content_padding = style.get_number(theme_path.sub("content_padding"));
-        let content_background_color = style.get_color(theme_path.sub("content_background_color"));
-
-        let menu_height = style.get_number(theme_path.sub("menu_height"));
-        let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
-        let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
-
-        let section_divider_height = style.get_number(theme_path.sub("section_divider_height"));
-        let section_heading_size = style.get_number(theme_path.sub("section_heading_size"));
-        let section_heading_font = style.get_text(theme_path.sub("section_heading_font"));
-        let section_heading_offset = style.get_number(theme_path.sub("section_heading_offset"));
-        let section_heading_text_offset =
-            style.get_number(theme_path.sub("section_heading_text_offset"));
-        let section_heading_color = style.get_color(theme_path.sub("section_heading_color"));
-        let section_divider_color = style.get_color(theme_path.sub("section_divider_color"));
-
-        let favourites_section_base_color =
-            style.get_color(theme_path.sub("favourites_section_base_color"));
-
-        frp::extend! { network
-            init <- source_();
-
-            content_size <- all3(&init,&content_width, &content_height).map(|(_,x,y)|Vector2::new(*x,*y));
-
-            section_heading_layout_data <- all6(
-                &init,
-                &section_heading_size,
-                &section_heading_font,
-                &section_heading_color,
-                &section_heading_offset,
-                &section_heading_text_offset,
-            );
-            section_heading_layout <- section_heading_layout_data.map(|(_,size,font,color,offset,text_offset)| {
-                SectionHeadingStyle{
-                    size:text::style::Size(*size),
-                    font:font.clone(),
-                    color:*color,
-                    offset:*offset,
-                    text_offset:*text_offset,
-                }
-            });
-            section_layout_data <- all5(
-                &init,
-                &section_heading_layout,
-                &section_divider_height,
-                &section_divider_color,
-                &favourites_section_base_color
-            );
-            section_layout <- section_layout_data.map(
-                |(_,heading,divider_height,divider_color,favourites_section_base_color)|{
-                SectionStyle{
-                    heading:heading.clone(),
-                    divider_height:*divider_height,
-                    divider_color:*divider_color,
-                    favourites_section_base_color:*favourites_section_base_color
-                }
-            });
-            content_layout_data <- all5(
-                &init,
-                &content_size,
-                &content_corner_radius,
-                &content_padding,
-                &content_background_color
-            );
-            content_layout <- content_layout_data.map(
-                |(_,size,corner_radius,padding,background_color)|{
-                ContentStyle {
-                    size:*size,
-                    corner_radius:*corner_radius,
-                    padding:*padding,
-                    background_color:*background_color,
-                }
-            });
-
-            menu_layout_data <- all4(&init,&menu_height,&menu_divider_color,&menu_divider_height);
-            menu_layout <- menu_layout_data.map(|(_,height,divider_color,divider_height)|{
-                MenuStyle {
-                    height:*height,
-                    divider_height:*divider_height,
-                    divider_color:*divider_color,
-                }
-            });
-
-            layout_data <- all4(&init,&content_layout,&section_layout,&menu_layout);
-            layout <- layout_data.map(|(_,content,section,menu)| {
-                Style {
-                    content:content.clone(),
-                    section:section.clone(),
-                    menu:menu.clone(),
-                }
-            });
-
-        }
-        (layout, init)
+    fn section_heading_height(&self) -> f32 {
+        self.section_heading_size + self.section_heading_offset
     }
 }
 
@@ -460,7 +321,7 @@ impl Model {
     fn update_style(&self, style: &Style) {
         // Background
 
-        self.background.bg_color.set(style.content.background_color.into());
+        self.background.bg_color.set(style.content_background_color.into());
         self.background.size.set(style.size());
 
         // Sections
@@ -469,9 +330,9 @@ impl Model {
         self.local_scope_section.set_style(style);
         self.favourites_section.set_style(style);
 
-        self.local_scope_section.content.set_position_x(style.content.size.x / 2.0);
+        self.local_scope_section.content.set_position_x(style.content_width / 2.0);
         self.local_scope_section.content.set_width(style.size_inner().x);
-        self.local_scope_section.content.set_color(style.section.favourites_section_base_color);
+        self.local_scope_section.content.set_color(style.favourites_section_base_color);
         self.local_scope_section.label.set_content(LOCAL_SCOPE_SECTION_HEADING_LABEL);
 
         self.favourites_section.content.set_position_x(0.0);
@@ -483,14 +344,14 @@ impl Model {
         // Scroll Area
 
         self.scroll_area.resize(Vector2::new(
-            style.content.size.x - 2.0 * style.content.padding,
-            style.content.size.y - style.content.padding,
+            style.content_width - 2.0 * style.content_padding,
+            style.content_height - style.content_padding,
         ));
         self.scroll_area.set_position_xy(Vector2::new(
-            -style.content.size.x / 2.0 + style.content.padding,
-            style.content.size.y / 2.0 - style.menu.height / 2.0,
+            -style.content_width / 2.0 + style.content_padding,
+            style.content_height / 2.0 - style.menu_height / 2.0,
         ));
-        self.scroll_area.set_corner_radius_bottom_right(style.content.corner_radius);
+        self.scroll_area.set_corner_radius_bottom_right(style.content_corner_radius);
     }
 
     fn recompute_layout(&self, style: &Style) {
@@ -602,11 +463,11 @@ impl<T: CloneRef> LabeledSection<T> {
     }
 
     fn set_style(&self, style: &Style) {
-        self.divider.size.set(Vector2(INFINITE, style.section.divider_height));
-        self.label.set_default_color(style.section.heading.color);
-        self.label.set_default_text_size(style.section.heading.size);
-        self.label.set_font(style.section.heading.font.clone());
-        self.label.set_position_x(style.content.padding);
+        self.divider.size.set(Vector2(INFINITE, style.section_divider_height));
+        self.label.set_default_color(style.section_heading_color);
+        self.label.set_default_text_size(text::Size(style.section_heading_size));
+        self.label.set_font(style.section_heading_font.clone());
+        self.label.set_position_x(style.content_padding);
     }
 }
 
@@ -703,7 +564,7 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
 
     /// Full height of the section including header.
     fn height(&self, style: &Style) -> f32 {
-        let label_height = style.section.heading.height();
+        let label_height = style.section_heading_height();
         let body_height = self.content.height();
         body_height + label_height
     }
@@ -712,19 +573,19 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
     fn set_base_position_y(&self, position_y: f32, style: &Style) {
         match SECTION_HEADER_PLACEMENT {
             SectionHeaderPlacement::Top => {
-                let label_pos = position_y - style.section.heading.text_offset;
+                let label_pos = position_y - style.section_heading_text_offset;
                 self.label.set_position_y(label_pos);
                 self.divider.set_position_y(position_y);
-                let offset_from_top = style.section.heading.offset + style.section.heading.height();
+                let offset_from_top = style.section_heading_offset + style.section_heading_height();
                 let content_position_y = position_y - offset_from_top;
                 self.content.set_position_top_y(content_position_y);
             }
             SectionHeaderPlacement::Bottom => {
-                let label_offset = self.content.height() + style.section.heading.text_offset;
+                let label_offset = self.content.height() + style.section_heading_text_offset;
                 let label_pos = position_y - label_offset;
                 self.label.set_position_y(label_pos);
                 let divider_offset = self.content.height();
-                let divider_pos = position_y - divider_offset - style.section.divider_height / 2.0;
+                let divider_pos = position_y - divider_offset - style.section_divider_height / 2.0;
                 self.divider.set_position_y(divider_pos);
                 self.content.set_position_top_y(position_y);
             }
@@ -755,7 +616,7 @@ impl component::Frp<Model> for Frp {
         style: &StyleWatchFrp,
     ) {
         let network = &frp_api.network;
-        let (layout_update, init_layout) = Style::from_theme(network, style);
+        let layout_frp = Style::from_theme(network, style);
         frp::extend! { network
             model.favourites_section.content.set_content <+ frp_api.input.set_favourites_section;
             model.local_scope_section.content.set_entries <+ frp_api.input.set_local_scope_section;
@@ -765,7 +626,7 @@ impl component::Frp<Model> for Frp {
                 &frp_api.input.set_local_scope_section,
                 &frp_api.input.set_sub_modules_section,
             );
-            recompute_layout <- all(&content_update,&layout_update);
+            recompute_layout <- all(&content_update,&layout_frp.update);
             eval recompute_layout(((_,layout)) model.recompute_layout(layout) );
 
             eval_ model.scroll_area.viewport( model.update_scroll_viewport() );
@@ -777,7 +638,7 @@ impl component::Frp<Model> for Frp {
             eval_ on_hover ( model.on_hover() );
             eval_ on_hover_end ( model.on_hover_end() );
         }
-        init_layout.emit(())
+        layout_frp.init.emit(())
     }
 }
 
