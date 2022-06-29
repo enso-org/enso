@@ -2385,6 +2385,8 @@ impl GraphEditorModel {
         let screen_max_xy = screen_to_scene_xy(screen_size_halved);
         let screen_min_xy = screen_to_scene_xy(-screen_size_halved);
         let screen_bbox = selection::BoundingBox::from_corners(screen_min_xy, screen_max_xy);
+        // If target_bbox cannot be fully horizontally contained in screen_bbox, panning to the
+        // left edge of the target_bbox is preferrred over panning to the right edge.
         let pan_x = if target_bbox.left() < screen_bbox.left() {
             target_bbox.left() - screen_bbox.left()
         } else if target_bbox.right() > screen_bbox.right() {
@@ -2392,6 +2394,8 @@ impl GraphEditorModel {
         } else {
             0.0
         };
+        // If target_bbox cannot be fully vertically contained in screen_bbox, panning to the
+        // top edge of the target_bbox is preferrred over panning to the bottom edge.
         let pan_y = if target_bbox.top() > screen_bbox.top() {
             target_bbox.top() - screen_bbox.top()
         } else if target_bbox.bottom() < screen_bbox.bottom() {
@@ -2399,8 +2403,8 @@ impl GraphEditorModel {
         } else {
             0.0
         };
-        let pan = Vector2(pan_x, pan_y) * camera.zoom();
-        self.navigator.emit_pan_event(PanEvent::new(-pan));
+        let pan_xy = Vector2(pan_x, pan_y);
+        self.navigator.emit_pan_event(PanEvent::new(-pan_xy * camera.zoom()));
     }
 
     fn pan_camera_to_node(&self, node_id: NodeId) {
