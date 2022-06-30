@@ -555,17 +555,17 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let blue = strong_color.clone();
-                let rect1 = Rect((4.0.px(),4.0.px())).translate(((-5.5).px(),3.0.px())).fill(blue.clone());
-                let rect2 = Rect((4.0.px(),4.0.px())).translate_y((-5.5).px()).fill(blue);
+                let color = weak_color;
+                let circle = Circle(2.0.px());
+                let circle1 = circle.translate_y(5.5.px()).fill(color.clone());
+                let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(color.clone());
+                let circle3 = circle.translate((5.5.px(),(-3.0).px())).fill(color);
 
-                let gray = weak_color;
-                let circle1 = Circle(2.0.px()).translate_y(5.5.px()).fill(gray.clone());
-                let circle2 = Circle(2.0.px()).translate(((-5.5).px(),(-3.0).px())).fill(gray.clone());
-                let circle3 = Circle(2.0.px()).translate((5.5.px(),(-3.0).px())).fill(gray);
-
-                let red = strong_color;
-                let circle4 = Circle(2.0.px()).fill(red);
+                let color = strong_color;
+                let circle4 = circle.fill(color.clone());
+                let rect = Rect((4.0.px(),4.0.px()));
+                let rect1 = rect.translate(((-5.5).px(),3.0.px())).fill(color.clone());
+                let rect2 = rect.translate_y((-5.5).px()).fill(color);
 
                 let shape = rect1 + rect2 + circle1 + circle2 + circle3 + circle4;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
