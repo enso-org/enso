@@ -241,7 +241,7 @@ impl<'s> Match<'s> {
 // === MatchResult ===
 // ===================
 
-/// Result of a succesfull pattern resolution. It contains a match and the remaining token stream.
+/// Result of a successful pattern resolution. It contains a match and the remaining token stream.
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct MatchResult<'s> {

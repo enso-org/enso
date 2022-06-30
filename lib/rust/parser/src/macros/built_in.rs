@@ -8,8 +8,8 @@ use crate::macros::*;
 // =======================
 
 /// All built-in macro definitions.
-pub fn all() -> resolver::MacroMatchTree<'static> {
-    let mut macro_map = resolver::MacroMatchTree::default();
+pub fn all() -> resolver::SegmentMap<'static> {
+    let mut macro_map = resolver::SegmentMap::default();
     // macro_map.register(if_then());
     // macro_map.register(if_then_else());
     macro_map.register(group());

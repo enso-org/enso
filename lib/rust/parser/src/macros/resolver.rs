@@ -1,5 +1,5 @@
 use crate::macros;
-use crate::macros::pattern::MatchedSegment;
+use crate::macros::pattern;
 use crate::prelude::*;
 use crate::syntax;
 use crate::syntax::token;
@@ -11,57 +11,40 @@ use std::collections::VecDeque;
 
 
 
-// =========================
-// === FrameOrSyntaxItem ===
-// =========================
+// ==================
+// === SegmentMap ===
+// ==================
 
-/// One of [`syntax::Item`] or [`Frame`].
-#[derive(Debug, From)]
-#[allow(missing_docs)]
-enum FrameOrSyntaxItem<'s> {
-    SyntaxItem(syntax::Item<'s>),
-    Frame(Frame<'s>),
-}
-
-impl<'s> TryAsRef<syntax::Item<'s>> for FrameOrSyntaxItem<'s> {
-    fn try_as_ref(&self) -> Option<&syntax::Item<'s>> {
-        match self {
-            Self::SyntaxItem(t) => Some(t),
-            _ => None,
-        }
-    }
-}
-
-
-
-// ======================
-// === MacroMatchTree ===
-// ======================
-
-/// A tree-like structure encoding potential macro matches. The keys are representations of tokens
-/// that can be matched. For example, the key could be "if" or "->". Each key is associated with one
-/// or more [`PartiallyMatchedMacro`], which stories a list of required segments and a macro
-/// definition in case all the segments were matched. For example, for the "if" key, there can be
-/// two required segment lists, one for "then" and "else" segments, and one for the "then" segment
-/// only.
+/// A tree-like structure encoding potential macro matches. The keys are code representations of
+/// [`macros::SegmentDefinition`] headers (first tokens of sections). Each key is associated with
+/// one or more [`SegmentEntry`], which stories a list of required subsequent segments
+/// and a macro definition that should be used when all the segments will be matched. For example,
+/// after matching the "if" keyword, this struct will contain one entry "then" with two values, one
+/// for the required "else" section, and one without a required section (for the "if ... then ..."
+/// case).
 #[derive(Default, Debug, Deref, DerefMut)]
-pub struct MacroMatchTree<'s> {
-    map: HashMap<&'s str, NonEmptyVec<PartiallyMatchedMacro<'s>>>,
+pub struct SegmentMap<'s> {
+    map: HashMap<&'s str, NonEmptyVec<SegmentEntry<'s>>>,
 }
 
-/// Partially matched macro info. See docs of [`MacroMatchTree`] to learn more.
+/// Partially matched macro info. See docs of [`SegmentMap`] to learn more.
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
-pub struct PartiallyMatchedMacro<'s> {
+pub struct SegmentEntry<'s> {
+    /// All the segment headers that are required for the macro definition to be used.
     pub required_segments: List<macros::SegmentDefinition<'s>>,
+    /// Definition of the macro that should be used when all the required segments will be matched.
+    /// It contains [`Pattern`] definition for every segment that will be used after all the
+    /// segment tokens are discovered.
     pub definition:        Rc<macros::Definition<'s>>,
 }
 
-impl<'a> MacroMatchTree<'a> {
+
+impl<'a> SegmentMap<'a> {
     /// Register a new macro definition in this macro tree.
     pub fn register(&mut self, definition: macros::Definition<'a>) {
         let header = definition.segments.head.header;
-        let entry = PartiallyMatchedMacro {
+        let entry = SegmentEntry {
             required_segments: definition.segments.tail.clone(),
             definition:        Rc::new(definition),
         };
@@ -75,18 +58,67 @@ impl<'a> MacroMatchTree<'a> {
 
 
 
-// ===============
-// === Segment ===
-// ===============
+// =============================
+// === PartiallyMatchedMacro ===
+// =============================
 
-/// A matched macro segment. Partial macro resolution product.
+/// Partially matched macro. It contains the current section being matched, all the sections matched
+/// so far, and the macro definition in case the macro was fully matched. Please note that the
+/// definition can change during macro resolution. For example, after finding both "if" and "then"
+/// sections, the definition of the "if ... then ..." macro will be used. However, after finding the
+/// "else" token, the definition will be replaced with the "if ... then ... else ..." macro one.
 #[derive(Debug)]
-pub struct Segment<'s> {
-    header: Token<'s>,
-    body:   Vec<FrameOrSyntaxItem<'s>>,
+#[allow(missing_docs)]
+pub struct PartiallyMatchedMacro<'s> {
+    pub current_segment:        MatchedSegment<'s>,
+    pub resolved_segments:      Vec<MatchedSegment<'s>>,
+    pub possible_next_segments: SegmentMap<'s>,
+    pub matched_macro_def:      Option<Rc<macros::Definition<'s>>>,
 }
 
-impl<'s> Segment<'s> {
+impl<'a> PartiallyMatchedMacro<'a> {
+    /// A new macro resolver with a special "root" segment definition. The "root" segment does not
+    /// exist in the source code, it is simply the whole expression being parsed. It is treated
+    /// as a macro in order to unify the algorithms.
+    pub fn new_root() -> Self {
+        let current_segment = MatchedSegment::new(Token("", "", token::Variant::newline()));
+        let resolved_segments = default();
+        let possible_next_segments = default();
+        let matched_macro_def = Some(Rc::new(macros::Definition {
+            segments: im_list::NonEmpty::singleton(macros::SegmentDefinition {
+                header:  "__ROOT__",
+                pattern: pattern::everything(),
+            }),
+            body:     Rc::new(|v| {
+                // Taking the first segment, hardcoded above.
+                let body = v.pop().0.result;
+                resolve_operator_precedence(body.tokens())
+            }),
+        }));
+        Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
+    }
+}
+
+
+
+// ======================
+// === MatchedSegment ===
+// ======================
+
+/// A macro segment which header was matched. It's body contains a list of tokens and nested macros
+/// that were found. Please note that the body tokens are not matched against the pattern yet.
+/// Because of that, the macro nesting is incorrect for patterns that do not consume all tokens till
+/// the end of the stream. For example, the expression `(a) (b)` will be matched in such a way, that
+/// the macro `(b)` will be part of the body of the `)` segment of the `(a)` macro. This will be
+/// restructured in the patter matching phase. See the parser module docs to learn more about this
+/// process.
+#[derive(Debug)]
+pub struct MatchedSegment<'s> {
+    header: Token<'s>,
+    body:   Vec<ItemOrPartiallyMatchedMacro<'s>>,
+}
+
+impl<'s> MatchedSegment<'s> {
     /// Constructor.
     pub fn new(header: Token<'s>) -> Self {
         let body = default();
@@ -96,40 +128,36 @@ impl<'s> Segment<'s> {
 
 
 
-// =============
-// === Frame ===
-// =============
+// ===================================
+// === ItemOrPartiallyMatchedMacro ===
+// ===================================
 
-/// Enso macro resolver. See the docs of the main module to learn more about the macro resolution
-/// steps.
-#[derive(Debug)]
+/// One of [`syntax::Item`] or [`PartiallyMatchedMacro`]. Used during macro resolution when some
+/// items are already resolved as macros, and some are not yet. For example, after matching the
+/// expression `(a) x (b)`, the `x` token and the `(b)` macro will be items of the body of the last
+/// segment of the `(a)` macro.
+#[derive(Debug, From)]
 #[allow(missing_docs)]
-pub struct Frame<'s> {
-    pub current_segment:        Segment<'s>,
-    pub resolved_segments:      Vec<Segment<'s>>,
-    pub possible_next_segments: MacroMatchTree<'s>,
-    pub matched_macro_def:      Option<Rc<macros::Definition<'s>>>,
+enum ItemOrPartiallyMatchedMacro<'s> {
+    SyntaxItem(syntax::Item<'s>),
+    PartiallyMatchedMacro(PartiallyMatchedMacro<'s>),
 }
 
-impl<'a> Frame<'a> {
-    /// A new macro resolver with a special "root" segment definition. The "root" segment does not
-    /// exist in the source code, it is simply the whole expression being parsed. It is treated
-    /// as a macro in order to unify the algorithms.
-    pub fn new_root() -> Self {
-        let current_segment = Segment::new(Token("", "", token::Variant::newline()));
-        let resolved_segments = default();
-        let possible_next_segments = default();
-        let matched_macro_def = Some(Rc::new(macros::Definition {
-            segments: im_list::NonEmpty::singleton(macros::SegmentDefinition {
-                header:  "__ROOT__",
-                pattern: macros::pattern::everything(),
-            }),
-            body:     Rc::new(|v| {
-                let t = v.into_vec().pop().unwrap().result;
-                resolve_operator_precedence(t.tokens())
-            }),
-        }));
-        Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
+impl<'s> TryAsRef<syntax::Item<'s>> for ItemOrPartiallyMatchedMacro<'s> {
+    fn try_as_ref(&self) -> Option<&syntax::Item<'s>> {
+        match self {
+            Self::SyntaxItem(t) => Some(t),
+            _ => None,
+        }
+    }
+}
+
+impl<'s> TryAsRef<PartiallyMatchedMacro<'s>> for ItemOrPartiallyMatchedMacro<'s> {
+    fn try_as_ref(&self) -> Option<&PartiallyMatchedMacro<'s>> {
+        match self {
+            Self::PartiallyMatchedMacro(t) => Some(t),
+            _ => None,
+        }
     }
 }
 
@@ -139,12 +167,12 @@ impl<'a> Frame<'a> {
 // === Resolver ===
 // ================
 
-/// Main macro resolver capable of resolving nested macro usages. See the docs of the main module to
-/// learn more about the macro resolution steps.
+/// Macro resolver capable of resolving nested macro usages. See the docs of the main parser module
+/// to learn more about the macro resolution steps.
 #[derive(Debug)]
 pub struct Resolver<'s> {
-    current_frame: Frame<'s>,
-    frame_stack:   Vec<Frame<'s>>,
+    current_frame: PartiallyMatchedMacro<'s>,
+    frame_stack:   Vec<PartiallyMatchedMacro<'s>>,
 }
 
 /// Result of the macro resolution step.
@@ -156,15 +184,18 @@ enum Step<'s> {
 }
 
 impl<'s> Resolver<'s> {
+    /// New resolver with a special "root" segment definition allowing parsing arbitrary
+    /// expressions.
     pub fn new_root() -> Self {
-        let current_frame = Frame::new_root();
+        let current_frame = PartiallyMatchedMacro::new_root();
         let frame_stack = default();
         Self { current_frame, frame_stack }
     }
 
+    /// Run the resolver. Returns the resolved AST.
     pub fn run(
         mut self,
-        root_macro_map: &MacroMatchTree<'s>,
+        root_macro_map: &SegmentMap<'s>,
         tokens: &mut iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>,
     ) -> syntax::Tree<'s> {
         event!(TRACE, "Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
@@ -206,36 +237,36 @@ impl<'s> Resolver<'s> {
             }
         }
 
-
         event!(TRACE, "Finishing resolution. Popping the macro stack.");
-
         while let Some(parent_macro) = self.frame_stack.pop() {
             self.replace_current_with_parent_macro(parent_macro);
         }
 
         trace_state!();
-
         let (tree, rest) = Self::resolve(self.current_frame);
         if !rest.is_empty() {
-            panic!("Internal error.");
+            panic!(
+                "Internal error. Not all tokens were consumed by the macro resolver:\n{:#?}",
+                rest
+            );
         }
         tree
     }
 
-    fn replace_current_with_parent_macro(&mut self, mut parent_macro: Frame<'s>) {
+    fn replace_current_with_parent_macro(&mut self, mut parent_macro: PartiallyMatchedMacro<'s>) {
         mem::swap(&mut parent_macro, &mut self.current_frame);
         let mut child_macro = parent_macro;
         self.current_frame.current_segment.body.push(child_macro.into());
     }
 
-    fn resolve(m: Frame<'s>) -> (syntax::Tree<'s>, VecDeque<syntax::Item<'s>>) {
+    fn resolve(m: PartiallyMatchedMacro<'s>) -> (syntax::Tree<'s>, VecDeque<syntax::Item<'s>>) {
         let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
         let resolved_segments = segments.mapped(|segment| {
             let mut ss: VecDeque<syntax::Item<'s>> = default();
             for item in segment.body {
                 match item {
-                    FrameOrSyntaxItem::SyntaxItem(t) => ss.push_back(t),
-                    FrameOrSyntaxItem::Frame(m2) => {
+                    ItemOrPartiallyMatchedMacro::SyntaxItem(t) => ss.push_back(t),
+                    ItemOrPartiallyMatchedMacro::PartiallyMatchedMacro(m2) => {
                         let (tree, rest) = Self::resolve(m2);
                         ss.push_back(tree.into());
                         ss.extend(rest);
@@ -259,7 +290,7 @@ impl<'s> Resolver<'s> {
                 Ok(t) => mem::swap(&mut rest, &mut t.rest),
             }
             // TODO: handle unmatched cases, handle .rest
-            let sx = sx.mapped(|t| MatchedSegment::new(t.0, t.1.unwrap().matched));
+            let sx = sx.mapped(|t| pattern::MatchedSegment::new(t.0, t.1.unwrap().matched));
 
             let out = (macro_def.body)(sx);
             (out, rest)
@@ -268,7 +299,7 @@ impl<'s> Resolver<'s> {
         }
     }
 
-    fn pop_frame_stack_if_reserved(&mut self, repr: &str) -> Option<Frame<'s>> {
+    fn pop_frame_stack_if_reserved(&mut self, repr: &str) -> Option<PartiallyMatchedMacro<'s>> {
         let reserved = self.frame_stack.iter().any(|p| p.possible_next_segments.contains_key(repr));
         if reserved {
             self.frame_stack.pop()
@@ -277,13 +308,13 @@ impl<'s> Resolver<'s> {
         }
     }
 
-    fn process_token(&mut self, root_macro_map: &MacroMatchTree<'s>, token: Token<'s>) -> Step<'s> {
+    fn process_token(&mut self, root_macro_map: &SegmentMap<'s>, token: Token<'s>) -> Step<'s> {
         let repr = &**token.code;
         if let Some(subsegments) = self.current_frame.possible_next_segments.get(repr) {
             event!(TRACE, "Entering next segment of the current macro.");
             let mut new_match_tree =
                 Self::enter(&mut self.current_frame.matched_macro_def, subsegments);
-            let mut current_segment = Segment::new(token);
+            let mut current_segment = MatchedSegment::new(token);
             mem::swap(&mut new_match_tree, &mut self.current_frame.possible_next_segments);
             mem::swap(&mut self.current_frame.current_segment, &mut current_segment);
             self.current_frame.resolved_segments.push(current_segment);
@@ -295,8 +326,8 @@ impl<'s> Resolver<'s> {
         } else if let Some(segments) = root_macro_map.get(repr) {
             event!(TRACE, "Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
-            let mut current_frame = Frame {
-                current_segment: Segment { header: token, body: default() },
+            let mut current_frame = PartiallyMatchedMacro {
+                current_segment: MatchedSegment { header: token, body: default() },
                 resolved_segments: default(),
                 possible_next_segments: Self::enter(&mut matched_macro_def, segments),
                 matched_macro_def,
@@ -312,15 +343,15 @@ impl<'s> Resolver<'s> {
 
     fn enter(
         matched_macro_def: &mut Option<Rc<macros::Definition<'s>>>,
-        path: &[PartiallyMatchedMacro<'s>],
-    ) -> MacroMatchTree<'s> {
+        path: &[SegmentEntry<'s>],
+    ) -> SegmentMap<'s> {
         *matched_macro_def = None;
-        let mut new_section_tree = MacroMatchTree::default();
+        let mut new_section_tree = SegmentMap::default();
         for v in path {
             if let Some(first) = v.required_segments.head() {
                 let tail = v.required_segments.tail().cloned().unwrap_or_default();
                 let definition = v.definition.clone_ref();
-                let x = PartiallyMatchedMacro { required_segments: tail, definition };
+                let x = SegmentEntry { required_segments: tail, definition };
                 if let Some(node) = new_section_tree.get_mut(&first.header) {
                     node.push(x);
                 } else {

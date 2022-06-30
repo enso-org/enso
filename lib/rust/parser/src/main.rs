@@ -129,7 +129,7 @@ pub mod prelude {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Parser {
-    pub macros: macros::resolver::MacroMatchTree<'static>,
+    pub macros: macros::resolver::SegmentMap<'static>,
 }
 
 impl Parser {
