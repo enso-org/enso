@@ -1,14 +1,18 @@
 //! A module containing the list view entry type which represents an arbitrary icon.
 
+use ensogl_core::prelude::*;
+
 use crate::icon;
+
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::style::Path;
-use ensogl_core::prelude::*;
 use ensogl_list_view as list_view;
+
+
 
 // =================
 // === IconEntry ===
