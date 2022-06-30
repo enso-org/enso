@@ -70,7 +70,7 @@ public class ExcelWriter {
 
   public static void writeTableToSheet(Workbook workbook, String sheetName, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
       throws ExistingDataException {
-    int sheetIndex = workbook.getSheetIndex(sheetName);
+    int sheetIndex = workbook.getNumberOfSheets() == 0 ? -1 : workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
       writeTableToSheet(workbook, workbook.createSheet(sheetName), firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
     } else if (replace) {
@@ -79,7 +79,7 @@ public class ExcelWriter {
         headers = hasHeaders(excelSheet, firstRow + 1, 1, -1)
             ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
-    }
+      }
 
       workbook.removeSheetAt(sheetIndex);
       Sheet sheet = workbook.createSheet(sheetName);
