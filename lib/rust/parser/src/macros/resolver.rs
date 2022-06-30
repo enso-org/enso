@@ -106,7 +106,7 @@ impl<'a> PartiallyMatchedMacro<'a> {
 // === MatchedSegment ===
 // ======================
 
-/// A macro segment which header was matched. It's body contains a list of tokens and nested macros
+/// A macro segment which header was matched. Its body contains a list of tokens and nested macros
 /// that were found. Please note that the body tokens are not matched against the pattern yet.
 /// Because of that, the macro nesting is incorrect for patterns that do not consume all tokens till
 /// the end of the stream. For example, the expression `(a) (b)` will be matched in such a way, that

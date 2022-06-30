@@ -368,7 +368,8 @@ impl Pattern {
     }
 }
 
-
+// TODO
+// opisac w matchach czemu mamy tka strukture i ze bedziey jej uzywali w gui do wstawiania rzeczy!
 
 // ====================================
 
@@ -466,8 +467,6 @@ impl Pattern {
 //         }
 //     }
 // }
-
-
 
 
 
@@ -585,67 +584,86 @@ impl SplicingValidator for DisabledSplicingValidator {
 
 /// A nested map of pattern variables (elements using the [`Pattern::Named`] variant). The validator
 /// should be instantiated either with the [`EnabledSplicingValidator`] in case of user-defined
-/// macros or with the [`DisabledSplicingValidator`] in case of built-in macros. The latter is 
+/// macros or with the [`DisabledSplicingValidator`] in case of built-in macros. The latter is
 /// faster but does not provide nice error messages and allows for illegal splicing operations, like
 /// splicing two variables that have the same repetition count, but have different parents.
-/// 
+///
 /// To better understand how it works, let's consider the following pattern definition (using the
 /// Rust macro rules syntax for simplicity):
-/// 
+///
 /// ```text
 /// $(
 ///     a
 ///     $(
 ///         b
-///         $( c )*
+///         c
 ///         $( d )*
 ///     )*
 ///
 ///     e
 ///     $(
 ///         f
-///         $( g )*
+///         g
 ///         $( h )*
 ///     )*
 /// )*
 /// ```
-/// 
+///
 /// The following [`VarMap`] will be generated (some fields skipped for clarity):
-/// 
+///
 /// ```text
 /// VarMap {
 ///     map: [],
-///     validator: EnabledSplicingValidator { scope: VarScope { 
-///         locals: [], 
-///         parent: None 
+///     validator: EnabledSplicingValidator { scope: VarScope {
+///         locals: [],
+///         parent: None
 ///     }},
 ///     nested: Some(VarMap {
 ///         map: [
-///             ("a", Entry { 
-///                 tokens: ["a"], 
+///             ("a", Entry {
+///                 tokens: ["a"],
 ///                 validator: EnabledSplicingValidator { scope: VarScope {
 ///                     locals: ["a","e"], parent: ...
 ///                 }}
 ///             }),
 ///             ("e", Entry {
-///                 tokens: ["e"], 
+///                 tokens: ["e"],
 ///                 validator: EnabledSplicingValidator { scope: VarScope {
 ///                     locals: ["a","e"], parent: ...
 ///                 }}
-///             }), 
+///             }),
 ///         ],
-///         validator: EnabledSplicingValidator { scope: VarScope { 
-///             locals: ["a","e"], parent: ... 
+///         validator: EnabledSplicingValidator { scope: VarScope {
+///             locals: ["a","e"], parent: ...
 ///         }},
 ///         nested: Some(VarMap {
 ///             map: [
-///                 ("b", Entry { 
-///                     tokens: ["b"], 
+///                 ("b", Entry {
+///                     tokens: ["b"],
 ///                     validator: EnabledSplicingValidator { scope: VarScope {
-///                         locals: ["a","e","b"], parent: ...
+///                         locals: ["b", "c"], parent: ...
 ///                     }}
 ///                 }),
-///             ]
+///                 ("c", Entry {
+///                     tokens: ["c"],
+///                     validator: EnabledSplicingValidator { scope: VarScope {
+///                         locals: ["b", "c"], parent: ...
+///                     }}
+///                 }),
+///                 ("f", Entry {
+///                     tokens: ["f"],
+///                     validator: EnabledSplicingValidator { scope: VarScope {
+///                         locals: ["f", "g"], parent: ...
+///                     }}
+///                 }),
+///                 ("g", Entry {
+///                     tokens: ["g"],
+///                     validator: EnabledSplicingValidator { scope: VarScope {
+///                         locals: ["f", "g"], parent: ...
+///                     }}
+///                 }),
+///             ],
+///             validator: TODO: does not work
 ///         })
 ///     })
 /// }

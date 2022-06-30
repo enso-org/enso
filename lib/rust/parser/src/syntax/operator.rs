@@ -103,8 +103,8 @@ fn resolve_operator_precedence_internal(items: Vec<syntax::Item<'_>>) -> syntax:
     let mut last_token_was_ast = false;
     let mut last_token_was_opr = false;
     for item in items {
-        let i2 = item.clone(); // FIXME: Why is this even needed? Rust bug?
-        if let syntax::Item::Token(token) = i2 && let token::Variant::Operator(opr) = token.variant {
+        if let syntax::Item::Token(token) = item.clone()
+        && let token::Variant::Operator(opr) = token.variant {
             // Item is an operator.
             let last_token_was_opr_copy = last_token_was_opr;
             last_token_was_ast = false;
