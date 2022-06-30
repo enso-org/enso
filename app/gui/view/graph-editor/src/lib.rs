@@ -1334,6 +1334,7 @@ pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> boo
 pub struct GraphEditorModelWithNetwork {
     pub model:   GraphEditorModel,
     pub network: frp::Network,
+    pub new_node_camera_pan_network: Rc<RefCell<frp::Network>>,
 }
 
 impl Deref for GraphEditorModelWithNetwork {
@@ -1348,8 +1349,9 @@ impl GraphEditorModelWithNetwork {
     /// Constructor.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network().clone_ref(); // FIXME make weak
+        let new_node_camera_pan_network = default();
         let model = GraphEditorModel::new(app, cursor, frp);
-        Self { model, network }
+        Self { model, network, new_node_camera_pan_network }
     }
 
     fn is_node_connected_at_input(&self, node_id: NodeId, crumbs: &span_tree::Crumbs) -> bool {
