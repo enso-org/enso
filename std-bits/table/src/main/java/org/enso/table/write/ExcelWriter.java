@@ -22,6 +22,7 @@ import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
+import org.enso.table.util.NameDeduplicator;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -202,7 +203,7 @@ public class ExcelWriter {
     }
   }
 
-  public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, boolean headers)
+  public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
       throws IllegalArgumentException, RangeExceededException, ExistingDataException {
     Name name = workbook.getName(rangeNameOrAddress);
     ExcelRange excelRange =
@@ -210,7 +211,7 @@ public class ExcelWriter {
     writeTableToRange(workbook, excelRange, replace, skipRows, table, rowLimit, headers);
   }
 
-  public static void writeTableToRange(Workbook workbook, ExcelRange range, boolean replace, int skipRows, Table table, Long rowLimit, boolean headers)
+  public static void writeTableToRange(Workbook workbook, ExcelRange range, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
       throws IllegalArgumentException, RangeExceededException, ExistingDataException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
@@ -230,8 +231,14 @@ public class ExcelWriter {
 
     if (range.isSingleCell()) {
       ExcelRange expanded = ExcelRange.expandSingleCell(range, sheet);
-      checkExistingRange(workbook, expanded, replace, sheet);
 
+      if (headers == ExcelHeaders.HeaderBehavior.INFER) {
+        headers = hasHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
+            ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
+            : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+      }
+
+      checkExistingRange(workbook, expanded, replace, sheet);
     } else {
       // Check Size of Range
       int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - range.getTopRow() + 1, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
@@ -239,10 +246,16 @@ public class ExcelWriter {
         throw new RangeExceededException("Range is too small to fit all columns.");
       }
 
+      if (headers == ExcelHeaders.HeaderBehavior.INFER) {
+        headers = hasHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
+            ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
+            : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+      }
+
       checkExistingRange(workbook, range, replace, sheet);
     }
 
-    writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, headers);
+    writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
   }
 
   private static void checkExistingRange(Workbook workbook, ExcelRange range, boolean replace, ExcelSheet sheet) throws ExistingDataException {

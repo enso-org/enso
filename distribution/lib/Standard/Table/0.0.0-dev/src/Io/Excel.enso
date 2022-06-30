@@ -219,27 +219,23 @@ write_excel file table on_existing_file section headers _ xls_format=False =
             on_existing_file.write file write_stream
 
 write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Problem_Behavior -> Boolean
-write_excel file table on_existing_file section headers on_problems xls_format=False =
+write_excel file table on_existing_file section headers _ xls_format=False =
     if on_existing_file == Existing_File_Behavior.Append then Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet." else
         ## Read Existing Workbook
         workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
             here.read_excel_file file stream->(ExcelReader.getWorkbook stream xls_format)
 
-        ## Resolve parameters
-        has_headers = case headers of
-            Infer ->
-                ## ToDo: Infer from existing workbook.
-                True
-            _ -> headers
-
         ## Update the workbook
         replace = (on_existing_file == Existing_File_Behavior.Overwrite) || (on_existing_file == Existing_File_Behavior.Backup)
+        java_headers = make_java_headers headers
         if ExcelWriter.getEnsoToTextCallback == Nothing then ExcelWriter.getEnsoToTextCallback (.to_text)
         result = here.handle_illegal_argument <| case section of
             Sheet sheet skip_rows row_limit -> case sheet of
-                Integer -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit has_headers
-                Text -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit has_headers
-            _ -> Errors.unimplemented "Not implemented yet."
+                Integer -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
+                Text -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
+            Cell_Range address skip_rows row_limit -> case address of
+                Excel_Range _ -> ExcelWriter.writeTableToRange stream address.java_range replace skip_rows table.java_table row_limit java_headers
+                Text -> ExcelWriter.writeTableToRange stream address replace skip_rows table.java_table row_limit java_headers
 
         ## Write output
         if result.is_error.not then
