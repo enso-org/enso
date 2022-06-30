@@ -40,6 +40,18 @@ impl<'s> Item<'s> {
             Self::Block(t) => t.first().map(|t| t.left_visible_offset()).unwrap_or_default(),
         }
     }
+
+    /// Convert this item to a [`Tree`].
+    pub fn to_ast(self) -> Tree<'s> {
+        match self {
+            Item::Token(token) => match token.variant {
+                token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
+                _ => todo!(),
+            },
+            Item::Tree(ast) => ast,
+            Item::Block(_) => todo!(),
+        }
+    }
 }
 
 impl<'s> From<Token<'s>> for Item<'s> {

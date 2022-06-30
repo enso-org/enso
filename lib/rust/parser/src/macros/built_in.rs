@@ -1,5 +1,6 @@
 use crate::macros::pattern::*;
 use crate::macros::*;
+use crate::syntax::operator;
 
 
 
@@ -62,7 +63,7 @@ fn type_def_body<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> synta
     let mut v = match_tree.view();
 
     let name = &v.query("name").unwrap()[0];
-    let name = resolver::resolve_operator_precedence(name.clone());
+    let name = operator::resolve_operator_precedence(name.clone());
     println!("{:#?}", name);
 
     println!("\n\n------------- 2");
@@ -74,7 +75,7 @@ fn type_def_body<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> synta
 
     let params = params
         .into_iter()
-        .map(|tokens| resolver::resolve_operator_precedence(tokens.clone()))
+        .map(|tokens| operator::resolve_operator_precedence(tokens.clone()))
         .collect_vec();
     println!("{:#?}", params);
 
