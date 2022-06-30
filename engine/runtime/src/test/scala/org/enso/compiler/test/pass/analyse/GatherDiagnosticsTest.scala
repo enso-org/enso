@@ -71,13 +71,13 @@ class GatherDiagnosticsTest extends CompilerTest {
 
       val method1Ref =
         IR.Name.MethodReference(
-          IR.Name.Qualified(List(typeName), None),
+          Some(IR.Name.Qualified(List(typeName), None)),
           method1Name,
           None
         )
       val method2Ref =
         IR.Name.MethodReference(
-          IR.Name.Qualified(List(typeName), None),
+          Some(IR.Name.Qualified(List(typeName), None)),
           method2Name,
           None
         )

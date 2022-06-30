@@ -1430,7 +1430,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Main",
-            "here.does_not_exist"
+            "Main.does_not_exist"
           )
         )
       )
@@ -1609,7 +1609,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "here.inc_and_encode"
+            "inc_and_encode"
           )
         )
       )

@@ -1030,8 +1030,8 @@ class RuntimeServerTest
     metadata.addItem(25, 22)
     // foo name
     metadata.addItem(25, 3)
-    val mainFoo = metadata.addItem(63, 8)
-    val mainRes = metadata.addItem(76, 12)
+    val mainFoo = metadata.addItem(63, 3)
+    val mainRes = metadata.addItem(71, 12)
 
     val code =
       """import Standard.Base.IO
@@ -1041,7 +1041,7 @@ class RuntimeServerTest
         |    x
         |
         |main =
-        |    y = here.foo
+        |    y = foo
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -1391,7 +1391,7 @@ class RuntimeServerTest
           Seq(
             TextEdit(
               model.Range(model.Position(4, 8), model.Position(4, 16)),
-              "here.pie"
+              "Main.pie"
             )
           ),
           execute = true
@@ -1417,7 +1417,7 @@ class RuntimeServerTest
           Seq(
             TextEdit(
               model.Range(model.Position(4, 8), model.Position(4, 16)),
-              "here.uwu"
+              "Main.uwu"
             )
           ),
           execute = true
@@ -1443,7 +1443,7 @@ class RuntimeServerTest
           Seq(
             TextEdit(
               model.Range(model.Position(4, 8), model.Position(4, 16)),
-              "here.hie"
+              "Main.hie"
             )
           ),
           execute = true
@@ -3134,7 +3134,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Method overloads are not supported: here.foo is defined multiple times in this module.",
+              "Method overloads are not supported: foo is defined multiple times in this module.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 0), model.Position(3, 7)))
             )

@@ -197,5 +197,27 @@ class GlobalNamesTest extends CompilerTest {
       }
       unresolved.map(_.name) shouldEqual List("foobar", "y", "z")
     }
+
+    "should include here" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |my_func a = 10 + a
+          |
+          |main =
+          |    here.my_func 1
+          |""".stripMargin.preprocessModule.analyse
+      val unresolved = ir.preorder.collect {
+        case IR.Error.Resolution(
+              name,
+              _: IR.Error.Resolution.ResolverError,
+              _,
+              _
+            ) =>
+          name
+      }
+      unresolved.map(_.name) shouldEqual List("here")
+    }
   }
 }

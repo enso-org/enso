@@ -246,7 +246,7 @@ class IrToTruffle(
         .unsafeGetMetadata(
           AliasAnalysis,
           s"Missing scope information for method " +
-          s"`${methodDef.typeName.name}.${methodDef.methodName.name}`."
+          s"`${methodDef.typeName.map(_.name + ".")}${methodDef.methodName.name}`."
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
@@ -255,28 +255,34 @@ class IrToTruffle(
       )
 
       val consOpt =
-        methodDef.methodReference.typePointer
-          .getMetadata(MethodDefinitions)
-          .map { res =>
-            res.target match {
-              case BindingsMap.ResolvedModule(module) =>
-                module.unsafeAsModule().getScope.getAssociatedType
-              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                definitionModule
-                  .unsafeAsModule()
-                  .getScope
-                  .getConstructors
-                  .get(cons.name)
-              case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-                throw new CompilerError(
-                  "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-                )
-              case _: BindingsMap.ResolvedMethod =>
-                throw new CompilerError(
-                  "Impossible here, should be caught by MethodDefinitions pass."
-                )
-            }
-          }
+        methodDef.methodReference.typePointer match {
+          case None =>
+            Some(moduleScope.getAssociatedType)
+          case Some(tpePointer) =>
+            tpePointer
+              .getMetadata(MethodDefinitions)
+              .map { res =>
+                res.target match {
+                  case BindingsMap.ResolvedModule(module) =>
+                    module.unsafeAsModule().getScope.getAssociatedType
+                  case BindingsMap
+                        .ResolvedConstructor(definitionModule, cons) =>
+                    definitionModule
+                      .unsafeAsModule()
+                      .getScope
+                      .getConstructors
+                      .get(cons.name)
+                  case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                    throw new CompilerError(
+                      "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                    )
+                  case _: BindingsMap.ResolvedMethod =>
+                    throw new CompilerError(
+                      "Impossible here, should be caught by MethodDefinitions pass."
+                    )
+                }
+              }
+        }
 
       consOpt.foreach { cons =>
         val expressionProcessor = new ExpressionProcessor(
@@ -364,7 +370,7 @@ class IrToTruffle(
         .unsafeGetMetadata(
           AliasAnalysis,
           s"Missing scope information for conversion " +
-          s"`${methodDef.typeName.name}.${methodDef.methodName.name}`."
+          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
@@ -373,7 +379,12 @@ class IrToTruffle(
       )
 
       val toOpt =
-        getConstructorResolution(methodDef.methodReference.typePointer)
+        methodDef.methodReference.typePointer match {
+          case Some(tpePointer) =>
+            getConstructorResolution(tpePointer)
+          case None =>
+            Some(moduleScope.getAssociatedType)
+        }
       val fromOpt = getConstructorResolution(methodDef.sourceTypeName)
       toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
         val expressionProcessor = new ExpressionProcessor(
@@ -1092,8 +1103,6 @@ class IrToTruffle(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
-        case IR.Name.Here(_, _, _) =>
-          ConstructorNode.build(moduleScope.getAssociatedType)
         case IR.Name.Self(location, passData, _) =>
           processName(
             IR.Name.Literal(

@@ -176,4 +176,4 @@ spec =
             text_2 = File.read_text file_2
             text_2.should_equal ""
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

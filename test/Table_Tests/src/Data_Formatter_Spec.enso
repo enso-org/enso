@@ -256,4 +256,4 @@ spec =
             formatter_3.true_values . should_equal []
             formatter_3.false_values . should_equal []
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

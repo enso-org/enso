@@ -13,6 +13,7 @@ import org.enso.compiler.data.BindingsMap.{
 }
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -66,7 +67,8 @@ case object AliasAnalysis extends IRPass {
     GenerateMethodBodies,
     SectionsToBinOp,
     OperatorToFunction,
-    LambdaShorthandToLambda
+    LambdaShorthandToLambda,
+    BindingAnalysis
   )
 
   override val invalidatedPasses: Seq[IRPass] =

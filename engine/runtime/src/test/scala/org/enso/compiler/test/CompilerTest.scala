@@ -169,12 +169,14 @@ trait CompilerRunner {
     def asMethod: IR.Module.Scope.Definition.Method = {
       IR.Module.Scope.Definition.Method.Explicit(
         IR.Name.MethodReference(
-          IR.Name.Qualified(
-            List(
-              IR.Name
-                .Literal("TestType", isMethod = false, None)
-            ),
-            None
+          Some(
+            IR.Name.Qualified(
+              List(
+                IR.Name
+                  .Literal("TestType", isMethod = false, None)
+              ),
+              None
+            )
           ),
           IR.Name
             .Literal("testMethod", isMethod = false, None),

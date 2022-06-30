@@ -916,8 +916,11 @@ object BindingsMap {
       moduleIr.flatMap(_.bindings.find {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
-            .getMetadata(MethodDefinitions)
-            .contains(Resolution(ResolvedModule(module)))
+            .map(
+              _.getMetadata(MethodDefinitions)
+                .contains(Resolution(ResolvedModule(module)))
+            )
+            .getOrElse(true)
         case _ => false
       })
     }

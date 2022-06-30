@@ -1297,7 +1297,7 @@ object IR {
           ): Method
 
           /** Get the type name for the method. */
-          def typeName: IR.Name = methodReference.typePointer
+          def typeName: Option[IR.Name] = methodReference.typePointer
 
           /** Get the name of the method. */
           def methodName: IR.Name = methodReference.methodName
@@ -2230,7 +2230,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class MethodReference(
-      typePointer: IR.Name, // will need to get rid of /Here
+      typePointer: Option[IR.Name], // will need to get rid of /Here
       methodName: IR.Name,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -2252,7 +2252,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        typePointer: IR.Name                 = typePointer,
+        typePointer: Option[IR.Name]         = typePointer,
         methodName: IR.Name                  = methodName,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -2279,11 +2279,13 @@ object IR {
         keepIdentifiers: Boolean = false
       ): MethodReference =
         copy(
-          typePointer = typePointer.duplicate(
-            keepLocations,
-            keepMetadata,
-            keepDiagnostics,
-            keepIdentifiers
+          typePointer = typePointer.map(
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
           ),
           methodName = methodName.duplicate(
             keepLocations,
@@ -2304,7 +2306,7 @@ object IR {
         fn: Expression => Expression
       ): MethodReference =
         copy(
-          typePointer = typePointer.mapExpressions(fn),
+          typePointer = typePointer.map(_.mapExpressions(fn)),
           methodName  = methodName.mapExpressions(fn)
         )
 
@@ -2329,12 +2331,13 @@ object IR {
         |""".toSingleLine
 
       /** @inheritdoc */
-      override def children: List[IR] = List(typePointer, methodName)
+      override def children: List[IR] =
+        typePointer.map(_ :: methodName :: Nil).getOrElse(methodName :: Nil)
 
       /** @inheritdoc */
       override def showCode(indent: Int): String = {
-        val tPointer = typePointer.showCode(indent)
-        s"$tPointer.${methodName.showCode(indent)}"
+        val tPointer = typePointer.map(_.showCode(indent) + ".").getOrElse("")
+        s"$tPointer${methodName.showCode(indent)}"
       }
 
       /** Checks whether `this` and `that` reference the same method.
@@ -2343,9 +2346,15 @@ object IR {
         * @return `true`, if `this` and `that` represent the same method,
         *         otherwise `false`
         */
-      def isSameReferenceAs(that: MethodReference): Boolean = {
-        typePointer.name == that.typePointer.name && this.methodName.name == that.methodName.name
-      }
+      def isSameReferenceAs(that: MethodReference): Boolean =
+        (typePointer, that.typePointer) match {
+          case (Some(thisTp), Some(thatTp)) =>
+            thisTp.name == thatTp.name && this.methodName.name == that.methodName.name
+          case (None, None) =>
+            this.methodName.name == that.methodName.name
+          case _ =>
+            false
+        }
     }
     object MethodReference {
 
@@ -2849,80 +2858,6 @@ object IR {
 
       /** @inheritdoc */
       override def showCode(indent: Int): String = name
-    }
-
-    /** A representation of the name `here`, used to refer to the current
-      * module.
-      *
-      * @param location the source location that the node corresponds to
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      */
-    sealed case class Here(
-      override val location: Option[IdentifiedLocation],
-      override val passData: MetadataStorage      = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Name {
-      override protected var id: Identifier = randomId
-      override val name: String             = "here"
-
-      /** Creates a copy of `this`.
-        *
-        * @param location the source location that the node corresponds to
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        * @param id the identifier for the new node
-        * @return a copy of `this`, updated with the specified values
-        */
-      def copy(
-        location: Option[IdentifiedLocation] = location,
-        passData: MetadataStorage            = passData,
-        diagnostics: DiagnosticStorage       = diagnostics,
-        id: Identifier                       = id
-      ): Here = {
-        val res = Here(location, passData, diagnostics)
-        res.id = id
-        res
-      }
-
-      /** @inheritdoc */
-      override def duplicate(
-        keepLocations: Boolean   = true,
-        keepMetadata: Boolean    = true,
-        keepDiagnostics: Boolean = true,
-        keepIdentifiers: Boolean = false
-      ): Here =
-        copy(
-          location = if (keepLocations) location else None,
-          passData =
-            if (keepMetadata) passData.duplicate else MetadataStorage(),
-          diagnostics =
-            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-          id = if (keepIdentifiers) id else randomId
-        )
-
-      /** @inheritdoc */
-      override def setLocation(location: Option[IdentifiedLocation]): Here =
-        copy(location = location)
-
-      /** @inheritdoc */
-      override def mapExpressions(fn: Expression => Expression): Here = this
-
-      /** @inheritdoc */
-      override def toString: String =
-        s"""IR.Name.Here(
-        |location = $location,
-        |passData = ${this.showPassData},
-        |diagnostics = $diagnostics,
-        |id = $id
-        |)
-        |""".toSingleLine
-
-      /** @inheritdoc */
-      override def children: List[IR] = List()
-
-      /** @inheritdoc */
-      override def showCode(indent: Int): String = "here"
     }
   }
 
@@ -7403,7 +7338,7 @@ object IR {
         * @param diagnostics any diagnostics associated with this error.
         */
       sealed case class Conversion(
-        targetType: IR.Name,
+        targetType: Option[IR.Name],
         sourceType: IR.Name,
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
@@ -7427,7 +7362,7 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          targetType: IR.Name                  = targetType,
+          targetType: Option[IR.Name]          = targetType,
           sourceType: IR.Name                  = sourceType,
           location: Option[IdentifiedLocation] = location,
           passData: MetadataStorage            = passData,
@@ -7448,13 +7383,14 @@ object IR {
           keepIdentifiers: Boolean = false
         ): Conversion =
           copy(
-            targetType = targetType
-              .duplicate(
+            targetType = targetType.map(
+              _.duplicate(
                 keepLocations,
                 keepMetadata,
                 keepDiagnostics,
                 keepIdentifiers
-              ),
+              )
+            ),
             sourceType = sourceType
               .duplicate(
                 keepLocations,
@@ -7478,11 +7414,13 @@ object IR {
 
         /** @inheritdoc */
         override def message: String =
-          s"Method overloads are not supported: ${targetType.name}.from " +
+          s"Method overloads are not supported: ${targetType.map(_.name + ".").getOrElse("")}from " +
           s"${sourceType.showCode()} is defined multiple times in this module."
 
-        override def diagnosticKeys(): Array[Any] =
-          Array(targetType.name, sourceType.showCode())
+        override def diagnosticKeys(): Array[Any] = targetType
+          .map(_.name :: sourceType.showCode() :: Nil)
+          .getOrElse(sourceType.showCode() :: Nil)
+          .toArray
 
         /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Conversion =
@@ -7502,11 +7440,14 @@ object IR {
              |""".stripMargin
 
         /** @inheritdoc */
-        override def children: List[IR] = List(targetType, sourceType)
+        override def children: List[IR] =
+          targetType
+            .map(tt => tt :: sourceType :: Nil)
+            .getOrElse(sourceType :: Nil)
 
         /** @inheritdoc */
         override def showCode(indent: Int): String =
-          s"(Redefined (Conversion $targetType.from $sourceType))"
+          s"(Redefined (Conversion ${targetType.map(_.showCode() + ".").getOrElse("")}from $sourceType))"
       }
 
       /** An error representing the redefinition of a method in a given module.
@@ -7520,7 +7461,7 @@ object IR {
         * @param diagnostics any diagnostics associated with this error.
         */
       sealed case class Method(
-        atomName: IR.Name,
+        atomName: Option[IR.Name],
         methodName: IR.Name,
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
@@ -7543,7 +7484,7 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          atomName: IR.Name                    = atomName,
+          atomName: Option[IR.Name]            = atomName,
           methodName: IR.Name                  = methodName,
           location: Option[IdentifiedLocation] = location,
           passData: MetadataStorage            = passData,
@@ -7564,11 +7505,13 @@ object IR {
           keepIdentifiers: Boolean = false
         ): Method =
           copy(
-            atomName = atomName.duplicate(
-              keepLocations,
-              keepMetadata,
-              keepDiagnostics,
-              keepIdentifiers
+            atomName = atomName.map(
+              _.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              )
             ),
             methodName = methodName
               .duplicate(
@@ -7591,11 +7534,15 @@ object IR {
 
         /** @inheritdoc */
         override def message: String =
-          s"Method overloads are not supported: ${atomName.name}." +
+          s"Method overloads are not supported: ${atomName.map(_.name + ".").getOrElse("")}" +
           s"${methodName.name} is defined multiple times in this module."
 
-        override def diagnosticKeys(): Array[Any] =
-          Array(atomName.name, methodName.name)
+        override def diagnosticKeys(): Array[Any] = {
+          atomName
+            .map(aName => aName.name :: methodName.name :: Nil)
+            .getOrElse(methodName.name :: Nil)
+            .toArray
+        }
 
         /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Method = this
@@ -7614,11 +7561,14 @@ object IR {
              |""".stripMargin
 
         /** @inheritdoc */
-        override def children: List[IR] = List(atomName, methodName)
+        override def children: List[IR] =
+          atomName
+            .map(aName => aName :: methodName :: Nil)
+            .getOrElse(methodName :: Nil)
 
         /** @inheritdoc */
         override def showCode(indent: Int): String =
-          s"(Redefined (Method $atomName.$methodName))"
+          s"(Redefined (Method ${atomName.map(_.showCode() + ".").getOrElse("")}$methodName))"
       }
 
       /** An error representing the redefinition of a method in a given module,
