@@ -39,7 +39,6 @@ class Passes(
   val globalTypingPasses = new PassGroup(
     List(
       MethodDefinitions,
-      ModuleThisToHere, // should remove
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,
