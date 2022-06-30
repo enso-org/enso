@@ -195,7 +195,7 @@ fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
 fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let sb = "sb";
     let stringify = |field: &Field| format!("{sb}.append(String.valueOf({}));", field.name);
-    let mut fields: Vec<_> = class_fields(graph, class).into_iter().map(stringify).collect();
+    let fields: Vec<_> = class_fields(graph, class).into_iter().map(stringify).collect();
     let mut body = String::new();
     let ty_name = &class.name;
     writeln!(body, "StringBuilder {sb} = new StringBuilder();").unwrap();

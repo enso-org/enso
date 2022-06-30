@@ -13,6 +13,6 @@
 // ============================
 
 fn main() {
-    let rendered = enso_metamodel::rust::graphviz::graph::<enso_parser::syntax::tree::Tree>();
+    let rendered = enso_reflect::graph::<enso_parser::syntax::tree::Tree>();
     println!("{}", rendered);
 }

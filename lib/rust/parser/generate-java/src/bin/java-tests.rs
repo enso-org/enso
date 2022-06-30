@@ -14,6 +14,7 @@
 
 fn main() {
     let cases = enso_parser_generate_java::generate_testcases();
+    eprintln!("{}", cases.to_json());
     let fmt_cases = |cases: &[Vec<u8>]| {
         let cases: Vec<_> = cases
             .iter()
@@ -48,7 +49,7 @@ fn main() {
     println!("                Tree tree = Tree.deserialize(message);");
     println!("                System.out.print(\"- pass: \");");
     println!("                System.out.println(tree.toString());");
-    println!("            }} catch ({serialization}.FormatException e) {{");
+    println!("            }} catch (RuntimeException e) {{");
     println!("                System.out.println(\"- fail:\");");
     println!("                e.printStackTrace();");
     println!("                result = 1;");
@@ -66,6 +67,10 @@ fn main() {
     println!("                result = 1;");
     println!("            }} catch ({serialization}.FormatException e) {{");
     println!("                System.out.println(\"- pass: (rejected)\");");
+    println!("            }} catch (RuntimeException e) {{");
+    println!("                System.out.println(\"- fail: wrong exception: \");");
+    println!("                e.printStackTrace();");
+    println!("                result = 1;");
     println!("            }}");
     println!("        }}");
     println!("        System.exit(result);");

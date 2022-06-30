@@ -11,11 +11,10 @@ license-file = "../../LICENSE"
 
 [dependencies]
 enso-metamodel = { path = "../../metamodel", features = [
-  "graphviz",
   "rust",
   "java"
 ] }
 enso-prelude = { path = "../../prelude" }
 enso-parser = { path = ".." }
-enso-reflect = { path = "../../reflect" }
+enso-reflect = { path = "../../reflect", features = [ "graphviz" ] }
 derivative = "2.2"

@@ -20,7 +20,11 @@ public final class Message {
     }
 
     public boolean getBoolean() {
-        return buffer.get() != 0;
+        switch (buffer.get()) {
+            case 0: return false;
+            case 1: return true;
+            default: throw new FormatException("Boolean out of range");
+        }
     }
 
     public String getString() {

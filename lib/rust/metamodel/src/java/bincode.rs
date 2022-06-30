@@ -15,6 +15,8 @@ type Materializer = Box<dyn FnOnce(&'_ str) -> String>;
 type Mapper = Box<dyn FnOnce(&'_ str, &'_ str) -> String>;
 
 /// Supports configuring deserialization for a type.
+// The main content is in closures, which can't be printed.
+#[allow(missing_debug_implementations)]
 pub struct DeserializerBuilder {
     root:          TypeId,
     materializers: BTreeMap<FieldId, Materializer>,

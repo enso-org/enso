@@ -21,11 +21,10 @@
 #![warn(unused_qualifications)]
 
 use enso_metamodel::rust::*;
+pub use enso_metamodel as metamodel;
 
 /// Imports for crates that `#[derive(Reflect)]`.
 pub mod prelude {
-    pub use crate as reflect;
-    pub use enso_metamodel as metamodel;
     pub use enso_reflect_macros::Reflect;
 }
 
@@ -198,6 +197,7 @@ pub fn type_id<T: ?Sized + Reflect>() -> TypeId {
 // ================
 
 /// Generate a graph of the given type's relationships with other types.
+#[cfg(feature = "graphviz")]
 pub fn graph<T: Reflect>() -> enso_metamodel::graphviz::Graph {
     graphviz::graph(reflect_lazy::<T>())
 }

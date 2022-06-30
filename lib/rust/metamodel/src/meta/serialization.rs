@@ -28,6 +28,7 @@ pub fn testcases(graph: &TypeGraph, root: TypeId) -> TestCases {
     let mut builder = ProgramBuilder::new(graph, root);
     builder.type_(root, Default::default());
     let ProgramBuilder { program, debuginfo, .. } = builder;
+    eprintln!("{}", fmt_program(&program, &debuginfo));
     let (accept, reject) = Vm::run(&program);
     TestCases { accept, reject, program, debuginfo }
 }
@@ -61,6 +62,9 @@ fn fmt_program(program: &[Op], debuginfo: &BTreeMap<usize, String>) -> String {
     use std::fmt::Write;
     let mut out = String::new();
     let mut indent = 0;
+    let continuations = collect_continuations(&program);
+    let mut accept = 0;
+    let mut reject = 0;
     for (i, op) in program.iter().enumerate() {
         if *op == Op::SwitchPop {
             indent -= 1
@@ -72,6 +76,17 @@ fn fmt_program(program: &[Op], debuginfo: &BTreeMap<usize, String>) -> String {
         write!(out, "{:?}", op).unwrap();
         if let Some(debuginfo) = debuginfo.get(&i) {
             write!(out, " -- {}", debuginfo).unwrap();
+        }
+        if let Some(continuation) = continuations.get(&i) {
+            write!(out, " [{}]", continuation).unwrap();
+        }
+        if *op == Op::Case(Case::Accept) {
+            write!(out, " # accept{accept}").unwrap();
+            accept += 1;
+        }
+        if *op == Op::Case(Case::Reject) {
+            write!(out, " # reject{reject}").unwrap();
+            reject += 1;
         }
         if *op == Op::SwitchPush {
             indent += 1
@@ -95,8 +110,13 @@ enum Op {
     U64(u64),
     SwitchPush,
     SwitchPop,
-    Ok,
-    Fail,
+    Case(Case),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Case {
+    Accept,
+    Reject,
 }
 
 
@@ -123,16 +143,18 @@ impl<'g> ProgramBuilder<'g> {
         let program = Default::default();
         let visited = Default::default();
         let mut will_visit = BTreeSet::new();
+        let mut basecase_discriminant = BTreeMap::new();
+        let mut sb_visited = BTreeSet::new();
         for id in graph_.type_ids() {
             let ty = &graph[id];
-            match &ty.data {
-                Data::Struct(fields) => will_visit.extend(fields.iter().map(|field| field.type_)),
-                _ => continue,
+            if let Data::Struct(fields) = &ty.data {
+                will_visit.extend(fields.iter().map(|field| field.type_));
+                will_visit.extend(ty.discriminants.values());
             }
-            will_visit.extend(ty.discriminants.values());
+            select_basecase(&graph, id, &mut basecase_discriminant, &mut sb_visited);
+            sb_visited.clear();
         }
         let debuginfo = Default::default();
-        let basecase_discriminant = Default::default();
         Self { graph, program, visited, will_visit, debuginfo, basecase_discriminant }
     }
 
@@ -140,12 +162,12 @@ impl<'g> ProgramBuilder<'g> {
         self.program.push(op);
     }
 
-    fn debug(&mut self, debug: impl Into<String>) {
+    fn debug_next(&mut self, debug: impl Into<String>) {
         let n = self.program.len();
         self.debuginfo.insert(n, debug.into());
     }
 
-    fn debug_(&mut self, debug: impl Into<String>) {
+    fn debug_prev(&mut self, debug: impl Into<String>) {
         let n = self.program.len() - 1;
         self.debuginfo.insert(n, debug.into());
     }
@@ -186,7 +208,7 @@ impl<'g> ProgramBuilder<'g> {
                 self.emit(Op::U64(1));
                 self.type_(t0, basecase);
             }
-            Primitive::Option(t0) if basecase => self.emit(Op::U8(0)),
+            Primitive::Option(_) if basecase => self.emit(Op::U8(0)),
             Primitive::Option(t0) => {
                 self.emit(Op::SwitchPush);
                 if self.basecase(t0) {
@@ -195,23 +217,13 @@ impl<'g> ProgramBuilder<'g> {
                     self.emit(Op::U8(1));
                     self.type_(t0, basecase);
                 }
-                self.emit(Op::Ok);
+                self.emit(Op::Case(Case::Accept));
                 self.emit(Op::U8(2));
-                self.emit(Op::Fail);
+                self.emit(Op::Case(Case::Reject));
                 self.emit(Op::SwitchPop);
             }
             Primitive::Result(t0, t1) => {
-                let basecase_index = match self.basecase_discriminant.get(&id) {
-                    Some(index) => *index,
-                    None => {
-                        let mut discriminants = BTreeMap::new();
-                        discriminants.insert(0, t0);
-                        discriminants.insert(1, t1);
-                        let index = self.select_basecase(&discriminants);
-                        self.basecase_discriminant.insert(id, index);
-                        index
-                    }
-                };
+                let basecase_index = self.basecase_discriminant[&id];
                 let types = [t0, t1];
                 let t0 = types[basecase_index];
                 let t1 = types[1 - basecase_index];
@@ -225,15 +237,15 @@ impl<'g> ProgramBuilder<'g> {
                     if !self.basecase(t0) || self.basecase(t1) {
                         self.emit(Op::U32(i0));
                         self.type_(t0, basecase);
-                        self.emit(Op::Ok);
+                        self.emit(Op::Case(Case::Accept));
                     }
                     if !self.basecase(t1) {
                         self.emit(Op::U32(i1));
                         self.type_(t1, basecase);
-                        self.emit(Op::Ok);
+                        self.emit(Op::Case(Case::Accept));
                     }
                     self.emit(Op::U32(2));
-                    self.emit(Op::Fail);
+                    self.emit(Op::Case(Case::Reject));
                     self.emit(Op::SwitchPop);
                 }
             }
@@ -250,19 +262,22 @@ impl<'g> ProgramBuilder<'g> {
         for (i, field) in fields.iter().enumerate() {
             if ty.child_field == Some(i) {
                 if hierarchy.is_empty() {
+                    let basecase_discriminant = self.basecase_discriminant[&id];
                     let discriminants = &ty.discriminants;
-                    let basecase_discriminant = self.select_basecase(discriminants);
                     let basecase_ty = discriminants[&basecase_discriminant];
                     if basecase {
                         self.emit(Op::U32(basecase_discriminant as u32));
                         self.object(vec![basecase_ty], basecase);
                     } else {
+                        // We could eliminate some redundant output here by:
+                        // - Skip any will_visit children
+                        // - If there are no Accept cases, insert basecase
                         let (&max, _) = discriminants.last_key_value().unwrap();
                         self.emit(Op::SwitchPush);
                         self.emit(Op::U32(basecase_discriminant as u32));
-                        self.debug_(self.graph[basecase_ty].name.to_string());
+                        self.debug_prev(self.graph[basecase_ty].name.to_string());
                         self.object(vec![basecase_ty], basecase);
-                        self.emit(Op::Ok);
+                        self.emit(Op::Case(Case::Accept));
                         for i in 0..=(max + 1) {
                             if i == basecase_discriminant {
                                 continue;
@@ -270,11 +285,11 @@ impl<'g> ProgramBuilder<'g> {
                             self.emit(Op::U32(i as u32));
                             match discriminants.get(&i) {
                                 Some(id) => {
-                                    self.debug_(self.graph[*id].name.to_string());
+                                    self.debug_prev(self.graph[*id].name.to_string());
                                     self.object(vec![*id], basecase);
-                                    self.emit(Op::Ok);
+                                    self.emit(Op::Case(Case::Accept));
                                 }
-                                None => self.emit(Op::Fail),
+                                None => self.emit(Op::Case(Case::Reject)),
                             }
                         }
                         self.emit(Op::SwitchPop);
@@ -283,44 +298,90 @@ impl<'g> ProgramBuilder<'g> {
                     self.object(take(&mut hierarchy), basecase);
                 }
             }
-            self.debug(format!(".{}", &field.name));
             self.type_(field.type_, basecase);
+            self.debug_prev(format!(".{}", &field.name));
         }
         assert!(hierarchy.is_empty());
     }
+}
 
-    fn select_basecase(&self, discriminants: &BTreeMap<usize, TypeId>) -> usize {
-        // The selected case:
-        //  - *Must* not cause recursion.
-        //  - *Should* be "small".
-        // Simple heuristic: If there's a child with no fields that are Objects, choose it.
-        'children: for (&i, &id) in discriminants {
-            let ty = &self.graph[id];
-            if ty.child_field.is_some() {
-                continue;
-            }
-            let fields = match &ty.data {
-                Data::Struct(fields) => fields,
-                Data::Primitive(_) => panic!("Encountered a primitive that extends a class."),
-            };
-            for field in fields {
-                match &self.graph[field.type_].data {
-                    Data::Struct(_) => continue 'children,
-                    Data::Primitive(Primitive::Option(t0))
-                    | Data::Primitive(Primitive::Sequence(t0))
-                        if !self.will_visit.contains(t0) =>
-                        continue 'children,
-                    Data::Primitive(Primitive::Result(t0, t1))
-                        if !self.will_visit.contains(t0) && !self.will_visit.contains(t1) =>
-                        continue 'children,
-                    _ => (),
-                }
-            }
-            return i;
-        }
-        // TODO: If we didn't find a "small" case, pick any non-recursive choice.
-        *discriminants.keys().next().unwrap()
+/// Choose a discriminant for the specified type, and possibly for some other types reachable from
+/// it in the composition graph, so that the composition graph for the type is non-recursive.
+fn select_basecase(
+    graph: &TypeGraph,
+    id: TypeId,
+    out: &mut BTreeMap<TypeId, usize>,
+    visited: &mut BTreeSet<TypeId>,
+) {
+    select_basecase_(graph, id, out, visited).unwrap()
+}
+
+fn select_basecase_(
+    graph: &TypeGraph,
+    id: TypeId,
+    out: &mut BTreeMap<TypeId, usize>,
+    visited: &mut BTreeSet<TypeId>,
+) -> Result<(), ()> {
+    if out.contains_key(&id) {
+        return Ok(());
     }
+    if !visited.insert(id) {
+        return Err(());
+    }
+    let mut result_discriminants = BTreeMap::new();
+    let discriminants = match &graph[id].data {
+        Data::Primitive(Primitive::Result(t0, t1)) => {
+            result_discriminants.insert(0, *t0);
+            result_discriminants.insert(1, *t1);
+            &result_discriminants
+        }
+        _ => &graph[id].discriminants,
+    };
+    if discriminants.is_empty() {
+        return Ok(());
+    }
+    // - If we have a child that doesn't own any sum-type fields, choose it and return Ok.
+    // - Otherwise, recurse into each child; if one returns Ok, choose it and return Ok.
+    // - If no child returns Ok, we got here by recursing into a bad choice; return Err.
+    //
+    // The top-level call will always return Ok because: There must be a sum type in our descendants
+    // that has a child that doesn't own any sum-type fields, or there would be a type that is only
+    // possible to instantiate with cyclic or infinite data.
+    let mut descendants = BTreeMap::<_, Vec<_>>::new();
+    let mut child_fields = BTreeSet::new();
+    let mut child_sums = BTreeSet::new();
+    for (&i, &child) in discriminants {
+        child_fields.clear();
+        child_sums.clear();
+        child_fields.insert(child);
+        while let Some(child_) = child_fields.pop_last() {
+            let ty = &graph[child_];
+            if ty.child_field.is_some() {
+                child_sums.insert(child_);
+            }
+            match &ty.data {
+                Data::Struct(fields) =>
+                    child_fields.extend(fields.iter().map(|field| field.type_)),
+                Data::Primitive(Primitive::Result(_, _)) => {
+                    child_sums.insert(child_);
+                },
+                Data::Primitive(_) => (),
+            }
+        }
+        if child_sums.is_empty() {
+            out.insert(id, i);
+            return Ok(());
+        }
+        descendants.insert(i, child_sums.iter().copied().collect());
+    }
+    'descendants: for (i, descendants) in descendants {
+        let is_ok = |id: &TypeId| select_basecase_(graph, *id, out, visited).is_ok();
+        if descendants.iter().all(is_ok) {
+            out.insert(id, i);
+            return Ok(());
+        }
+    }
+    return Err(());
 }
 
 
@@ -336,6 +397,12 @@ struct Vm<'p> {
     continuations: BTreeMap<usize, usize>,
 }
 
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Frame {
+    return_:    usize,
+    prefix_len: usize,
+}
+
 impl<'p> Vm<'p> {
     fn run(program: &'p [Op]) -> (Vec<Vec<u8>>, Vec<Vec<u8>>) {
         let continuations = collect_continuations(program);
@@ -347,91 +414,92 @@ impl<'p> Vm<'p> {
         let mut accept: Vec<Vec<u8>> = Default::default();
         let mut reject: Vec<Vec<u8>> = Default::default();
         let mut prefix: Vec<u8> = Default::default();
-        let mut stack: Vec<usize> = Default::default();
-        let mut prefix_stack: Vec<usize> = Default::default();
-        let mut pc = 0;
-        while pc != self.program.len() {
-            match self.program[pc] {
-                Op::SwitchPush => {
-                    stack.push(self.continuations[&pc]);
-                    prefix_stack.push(prefix.len());
-                }
+        let mut stack: Vec<Frame> = Default::default();
+        for (pc, op) in self.program.iter().enumerate() {
+            match op {
+                Op::SwitchPush => stack
+                    .push(Frame { return_: self.continuations[&pc], prefix_len: prefix.len() }),
                 Op::SwitchPop => {
-                    let pc_ = stack.pop();
-                    debug_assert_eq!(pc, pc_.unwrap() - 1);
-                    pc = self.continuations[&pc];
-                    prefix_stack.pop();
-                    if let Some(n) = prefix_stack.last() {
-                        prefix.truncate(*n);
-                    } else {
-                        assert_eq!(pc, self.program.len());
-                    }
-                    continue;
+                    let Frame { prefix_len, .. } = stack.pop().unwrap();
+                    prefix.truncate(prefix_len);
+                    let cont_stack = vec![self.continuations[&pc]];
+                    eprintln!("- delimited continuation: {pc} -> {cont_stack:?}");
+                    self.run_continuation(cont_stack, &mut prefix);
                 }
-                Op::U8(data) => prefix.push(data),
+                Op::U8(data) => prefix.push(*data),
                 Op::U32(data) => prefix.extend(&data.to_le_bytes()),
                 Op::U64(data) => prefix.extend(&data.to_le_bytes()),
-                Op::Ok => {
-                    accept.push(self.run_continuation(stack.clone(), prefix.clone()));
-                    prefix.truncate(*prefix_stack.last().unwrap());
-                }
-                Op::Fail => {
-                    reject.push(self.run_continuation(stack.clone(), prefix.clone()));
-                    prefix.truncate(*prefix_stack.last().unwrap());
+                Op::Case(case) => {
+                    match case {
+                        Case::Accept => eprint!("accept{}: ", accept.len()),
+                        Case::Reject => eprint!("reject{}: ", reject.len()),
+                    };
+                    let results = match case {
+                        Case::Accept => &mut accept,
+                        Case::Reject => &mut reject,
+                    };
+                    let Frame { prefix_len, .. } = stack.last().unwrap();
+                    let stack = stack.iter().map(|frame| frame.return_).collect();
+                    let mut data = prefix.clone();
+                    eprintln!("{pc} -> {stack:?}");
+                    let final_pc = self.run_continuation(stack, &mut data);
+                    let returned = "Returned from escape continuation";
+                    assert_eq!(final_pc, self.program.len(), "{returned} at {final_pc}.");
+                    results.push(data);
+                    prefix.truncate(*prefix_len);
                 }
             }
-            pc += 1;
         }
-        assert_eq!(&prefix_stack, &[]);
-        assert_eq!(&prefix, &[]);
         assert_eq!(&stack, &[]);
         (accept, reject)
     }
 
-    fn run_continuation(&self, mut stack: Vec<usize>, mut out: Vec<u8>) -> Vec<u8> {
+    fn run_continuation(&self, mut stack: Vec<usize>, out: &mut Vec<u8>) -> usize {
         let mut pc = stack.pop().unwrap();
-        while pc != self.program.len() {
-            match self.program[pc] {
+        while let Some(op) = self.program.get(pc) {
+            match op {
                 Op::SwitchPush => stack.push(self.continuations[&pc]),
-                Op::SwitchPop => panic!("Fell through a switch at {}.", pc),
-                Op::U8(data) => out.push(data),
+                Op::SwitchPop => panic!("Fell through a switch at {pc}."),
+                Op::U8(data) => out.push(*data),
                 Op::U32(data) => out.extend(&data.to_le_bytes()),
                 Op::U64(data) => out.extend(&data.to_le_bytes()),
-                Op::Ok => {
-                    pc = stack.pop().unwrap();
-                    continue;
+                Op::Case(Case::Accept) => {
+                    if let Some(pc_) = stack.pop() {
+                        eprintln!("- ret: {pc} -> {pc_}");
+                        pc = pc_;
+                        continue;
+                    }
+                    return pc;
                 }
-                Op::Fail => panic!("Rejected base case at {}.", pc),
+                Op::Case(Case::Reject) => panic!("Rejected base case at {}.", pc),
             }
             pc += 1;
         }
         assert_eq!(&stack, &[]);
-        out
+        pc
     }
 }
 
 fn collect_continuations(program: &[Op]) -> BTreeMap<usize, usize> {
     let mut continuations = BTreeMap::new();
-    let mut switch_continuations_awaited = vec![];
-    let mut switch_phis_awaited = vec![];
-    for (i, op) in program.iter().enumerate() {
+    let mut switch_stack = vec![];
+    for (pc, op) in program.iter().enumerate() {
         match op {
-            Op::SwitchPush => switch_continuations_awaited.push(i),
+            Op::SwitchPush => switch_stack.push(pc),
             Op::SwitchPop => {
-                continuations.insert(switch_continuations_awaited.pop().unwrap(), i + 1);
-                switch_phis_awaited.push(i);
+                let push_pc = switch_stack.pop().unwrap();
+                let pop_pc = pc;
+                // A `SwitchPush` pushes its continuation onto the return stack; the return address
+                // for an `Ok`/`Fail` is after the switch.
+                continuations.insert(push_pc, pop_pc + 1);
+                // When we "fall through" a switch after executing all the `Ok`/`Fail` cases, we
+                // re-run the switch's first (delimited) continuation in basecase mode before
+                // proceeding.
+                continuations.insert(pop_pc, push_pc + 1);
             }
-            Op::Ok | Op::Fail =>
-                if let Some(phi) = switch_phis_awaited.pop() {
-                    continuations.insert(phi, i + 1);
-                },
             _ => (),
         }
     }
-    if let Some(phi) = switch_phis_awaited.pop() {
-        continuations.insert(phi, program.len());
-    }
-    assert_eq!(&switch_continuations_awaited, &[]);
-    assert_eq!(&switch_phis_awaited, &[]);
+    assert_eq!(&switch_stack, &[]);
     continuations
 }

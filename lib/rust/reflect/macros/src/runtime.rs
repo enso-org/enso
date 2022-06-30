@@ -26,11 +26,11 @@ impl Quote for Type {
         let data = self.data.quote(self.attrs.transparent);
         let name = self.ident.to_string();
         quote! {
-            metamodel::rust::TypeData {
-                id: reflect::type_id::<#ident<#generics>>(),
+            enso_reflect::metamodel::rust::TypeData {
+                id: enso_reflect::type_id::<#ident<#generics>>(),
                 name: #name.to_owned(),
                 data: #data,
-                subtype_erased: reflect::generic_id::<Self>(),
+                subtype_erased: enso_reflect::generic_id::<Self>(),
             }
         }
     }
@@ -42,7 +42,7 @@ impl Data {
             Data::Struct(fields) => {
                 let fields = fields.quote();
                 quote! {
-                    metamodel::rust::Data::Struct(metamodel::rust::Struct {
+                    enso_reflect::metamodel::rust::Data::Struct(enso_reflect::metamodel::rust::Struct {
                         fields: #fields,
                         transparent: #transparent,
                     })
@@ -53,7 +53,7 @@ impl Data {
                 let variants: Punctuated<_, Token![,]> =
                     variants.iter().map(Quote::quote).collect();
                 quote! {
-                    metamodel::rust::Data::Enum(metamodel::rust::Enum {
+                    enso_reflect::metamodel::rust::Data::Enum(enso_reflect::metamodel::rust::Enum {
                         variants: vec![#variants],
                     })
                 }
@@ -67,13 +67,13 @@ impl Quote for Fields {
         match self {
             Fields::Named { fields } => {
                 let fields: Punctuated<_, Token![,]> = fields.iter().map(Quote::quote).collect();
-                quote! { metamodel::rust::Fields::Named(vec![#fields]) }
+                quote! { enso_reflect::metamodel::rust::Fields::Named(vec![#fields]) }
             }
             Fields::Unnamed(fields) => {
                 let fields: Punctuated<_, Token![,]> = fields.iter().map(Quote::quote).collect();
-                quote! { metamodel::rust::Fields::Unnamed(vec![#fields]) }
+                quote! { enso_reflect::metamodel::rust::Fields::Unnamed(vec![#fields]) }
             }
-            Fields::Unit => quote! { metamodel::rust::Fields::Unit },
+            Fields::Unit => quote! { enso_reflect::metamodel::rust::Fields::Unit },
         }
     }
 }
@@ -89,9 +89,9 @@ impl Quote for NamedField {
         let flatten = self.flatten;
         let hide = self.hide;
         quote! {
-            metamodel::rust::NamedField {
+            enso_reflect::metamodel::rust::NamedField {
                 name: #name.to_owned(),
-                type_: reflect::reflect_lazy::<#typename>(),
+                type_: enso_reflect::reflect_lazy::<#typename>(),
                 subtype: #subtype,
                 flatten: #flatten,
                 hide: #hide,
@@ -104,8 +104,8 @@ impl Quote for UnnamedField {
     fn quote(&self) -> TokenStream {
         let typename = &self.type_;
         quote! {
-            metamodel::rust::UnnamedField {
-                type_: reflect::reflect_lazy::<#typename>(),
+            enso_reflect::metamodel::rust::UnnamedField {
+                type_: enso_reflect::reflect_lazy::<#typename>(),
             }
         }
     }
@@ -117,7 +117,7 @@ impl Quote for Variant {
         let fields = self.fields.quote();
         let transparent = self.transparent;
         let quoted = quote! {
-            metamodel::rust::Variant {
+            enso_reflect::metamodel::rust::Variant {
                 ident: #ident.to_owned(),
                 fields: #fields,
                 transparent: #transparent,

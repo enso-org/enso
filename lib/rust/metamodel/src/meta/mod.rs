@@ -4,6 +4,7 @@
 //! - Decouple the complexities of the source language from those of the target language.
 //! - Provide a simple representation to support analysis and translation.
 
+#[cfg(feature = "graphviz")]
 pub mod graphviz;
 pub mod serialization;
 pub mod transform;

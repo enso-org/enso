@@ -174,12 +174,13 @@ pub fn derive_reflect(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let ident = &type_.ident;
     let generics = &type_.generics;
     let mut generic_bounds = type_.lifetimes.clone();
-    let with_bound = |param| (quote! { #param: reflect::Reflect }).into_token_stream();
+    let with_bound = |param| (quote! { #param: enso_reflect::Reflect }).into_token_stream();
     let type_bounds = type_.generic_params.iter().map(with_bound);
     generic_bounds.extend(type_bounds);
     let type_expr = type_.quote();
     let static_lifetimes: Vec<_> = type_.lifetimes.iter().map(|_| quote! { 'static }).collect();
-    let to_static = |param| (quote! { <#param as reflect::Reflect>::Static }).into_token_stream();
+    let to_static =
+        |param| (quote! { <#param as enso_reflect::Reflect>::Static }).into_token_stream();
     let static_types = type_.generic_params.iter().map(to_static);
     let mut static_params = vec![];
     static_params.extend(static_lifetimes.iter().cloned());
@@ -200,10 +201,10 @@ pub fn derive_reflect(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         subtype_erased = quote! { #ident<#(#erased_params),*> };
     }
     let impl_reflect = quote! {
-        impl<#generic_bounds> reflect::Reflect for #ident<#generics> {
+        impl<#generic_bounds> enso_reflect::Reflect for #ident<#generics> {
             type Static = #ident<#(#static_params),*>;
             type SubtypeErased = #subtype_erased;
-            fn reflect() -> metamodel::rust::TypeData {
+            fn reflect() -> enso_reflect::metamodel::rust::TypeData {
                 #type_expr
             }
         }

@@ -8,3 +8,7 @@ authors = ["Enso Team <contact@enso.org>"]
 enso-reflect-macros = { path = "macros" }
 enso-metamodel = { path = "../metamodel", features = ["rust"] }
 derivative = "2.2"
+
+[features]
+graphviz = ["enso-metamodel/graphviz"]
+
