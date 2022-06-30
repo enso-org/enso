@@ -9,9 +9,11 @@ import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
+import org.enso.table.util.NameDeduplicator;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -44,7 +46,7 @@ public class ExcelWriter {
     ensoToTextCallback = callback;
   }
 
-  public static void writeTableToSheet(Workbook workbook, int sheetIndex, boolean replace, int firstRow, Table table, Long rowLimit, boolean headers) {
+  public static void writeTableToSheet(Workbook workbook, int sheetIndex, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers) {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
       while (workbook.getSheet("Sheet" + i) != null) {
@@ -56,34 +58,44 @@ public class ExcelWriter {
         workbook.setSheetOrder(sheet.getSheetName(), 0);
       }
 
-      writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers);
+      writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
     } else if (replace) {
+      if (headers == ExcelHeaders.HeaderBehavior.INFER) {
+        ExcelSheet excelSheet = new ExcelSheet(workbook, sheetIndex);
+        headers = hasHeaders(excelSheet, firstRow + 1, 1, -1) ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+      }
+
       String sheetName = workbook.getSheetName(sheetIndex - 1);
       workbook.removeSheetAt(sheetIndex - 1);
 
       Sheet sheet = workbook.createSheet(sheetName);
       workbook.setSheetOrder(sheetName, sheetIndex - 1);
-      writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers);
+      writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
     } else {
       throw new IllegalArgumentException("Sheet already exists, and cannot be replaced in current mode.");
     }
   }
 
-  public static void writeTableToSheet(Workbook workbook, String sheetName, boolean replace, int firstRow, Table table, Long rowLimit, boolean headers) {
+  public static void writeTableToSheet(Workbook workbook, String sheetName, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers) {
     int sheetIndex = workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
-      writeTableToSheet(workbook, workbook.createSheet(sheetName), firstRow, 1, table, rowLimit, headers);
+      writeTableToSheet(workbook, workbook.createSheet(sheetName), firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
     } else if (replace) {
+      if (headers == ExcelHeaders.HeaderBehavior.INFER) {
+        ExcelSheet excelSheet = new ExcelSheet(workbook, sheetIndex);
+        headers = hasHeaders(excelSheet, firstRow + 1, 1, -1) ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+      }
+
       workbook.removeSheetAt(sheetIndex);
       Sheet sheet = workbook.createSheet(sheetName);
       workbook.setSheetOrder(sheetName, sheetIndex);
-      writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers);
+      writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
     } else {
       throw new IllegalArgumentException("Sheet '" + sheetName + "' already exists, and cannot be replaced in current mode.");
     }
   }
 
-  public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, boolean headers)
+  public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
       throws IllegalArgumentException, RangeExceededException, ExistingDataException {
     Name name = workbook.getName(rangeNameOrAddress);
     ExcelRange excelRange =
@@ -91,7 +103,7 @@ public class ExcelWriter {
     writeTableToRange(workbook, excelRange, replace, skipRows, table, rowLimit, headers);
   }
 
-  public static void writeTableToRange(Workbook workbook, ExcelRange range, boolean replace, int skipRows, Table table, Long rowLimit, boolean headers)
+  public static void writeTableToRange(Workbook workbook, ExcelRange range, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
       throws IllegalArgumentException, RangeExceededException, ExistingDataException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
@@ -111,8 +123,14 @@ public class ExcelWriter {
 
     if (range.isSingleCell()) {
       ExcelRange expanded = ExcelRange.expandSingleCell(range, sheet);
-      checkExistingRange(workbook, expanded, replace, sheet);
 
+      if (headers == ExcelHeaders.HeaderBehavior.INFER) {
+        headers = hasHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
+            ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
+            : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+      }
+
+      checkExistingRange(workbook, expanded, replace, sheet);
     } else {
       // Check Size of Range
       int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - range.getTopRow() + 1, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
@@ -120,10 +138,16 @@ public class ExcelWriter {
         throw new RangeExceededException("Range is too small to fit all columns.");
       }
 
+      if (headers == ExcelHeaders.HeaderBehavior.INFER) {
+        headers = hasHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
+            ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
+            : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+      }
+
       checkExistingRange(workbook, range, replace, sheet);
     }
 
-    writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, headers);
+    writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
   }
 
   private static void checkExistingRange(Workbook workbook, ExcelRange range, boolean replace, ExcelSheet sheet) throws ExistingDataException {
@@ -238,5 +262,23 @@ public class ExcelWriter {
         }
       }
     }
+  }
+
+  private static boolean hasHeaders(ExcelSheet excelSheet, int topRow, int startCol, int endCol) {
+    ExcelRow row = excelSheet.get(topRow);
+
+    // If the first row is missing or empty, return true as defaults to writing headers.
+    if (row == null || row.isEmpty(startCol, endCol)) {
+      return true;
+    }
+
+    // If the first row is not empty, check if all text.
+    if (row.getCellsAsText(startCol, endCol) == null) {
+      return false;
+    }
+
+    // If the second row is missing or empty or contains text, return false.
+    ExcelRow nextRow = excelSheet.get(topRow + 1);
+    return (nextRow != null && nextRow.getCellsAsText(startCol, endCol) == null);
   }
 }

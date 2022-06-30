@@ -74,33 +74,16 @@ public class ExcelHeaders {
       return null;
     }
 
-    String[] rowNames = getCellsAsText(row, startCol, endCol);
+    String[] rowNames = row.getCellsAsText(startCol, endCol);
     if (rowNames == null) {
       return null;
     }
 
-    String[] nextNames = getCellsAsText(nextRow, startCol, endCol);
-    if (nextNames != null) {
+    if (nextRow.getCellsAsText(startCol, endCol) != null) {
       return null;
     }
 
     return deduplicator.makeUnique(rowNames);
-  }
-
-  private static String[] getCellsAsText(ExcelRow row, int startCol, int endCol) {
-    int currentEndCol = endCol == -1 ? row.getLastColumn() : endCol;
-
-    String[] output = new String[currentEndCol - startCol + 1];
-    for (int col = startCol; col <= currentEndCol; col++) {
-      Cell cell = row.get(col);
-      CellType type = ExcelRow.getCellType(cell);
-      if (type != CellType._NONE && type != CellType.STRING) {
-        return null;
-      }
-      output[col - startCol] = type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
-    }
-
-    return output;
   }
 
   /** Specifies how to set the headers for the returned table. */

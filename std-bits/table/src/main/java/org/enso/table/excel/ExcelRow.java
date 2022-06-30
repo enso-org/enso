@@ -71,7 +71,8 @@ public class ExcelRow {
   }
 
   public boolean isEmpty(int start, int end) {
-    for (int column = start; column <= end; column++) {
+    int currentEnd = end == -1 ? getLastColumn() : end;
+    for (int column = start; column <= currentEnd; column++) {
       if (getCellType(get(column)) != CellType._NONE) {
         return false;
       }
@@ -85,5 +86,21 @@ public class ExcelRow {
       column++;
     }
     return column;
+  }
+
+  public String[] getCellsAsText(int startCol, int endCol) {
+    int currentEndCol = endCol == -1 ? getLastColumn() : endCol;
+
+    String[] output = new String[currentEndCol - startCol + 1];
+    for (int col = startCol; col <= currentEndCol; col++) {
+      Cell cell = get(col);
+      CellType type = ExcelRow.getCellType(cell);
+      if (type != CellType._NONE && type != CellType.STRING) {
+        return null;
+      }
+      output[col - startCol] = type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
+    }
+
+    return output;
   }
 }
