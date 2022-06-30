@@ -274,8 +274,6 @@ define_themes! { [light:0, dark:1]
             icons {
                 favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
                 computer_vision {
-                    strong    = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
-                    weak      = Rgba(0.514,0.518,0.518,1.0) , Rgba(0.514,0.518,0.518,1.0);
                     highlight = Rgba(0.872,0.267,0.255,1.0) , Rgba(0.872,0.267,0.255,1.0);
                 }
                 system {

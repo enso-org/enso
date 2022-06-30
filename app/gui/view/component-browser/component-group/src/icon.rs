@@ -893,15 +893,15 @@ crate::define_icons! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let lens =
-                    Circle(2.0.px()).fill(strong_color.clone());
+                    Circle(2.0.px()).fill(style.get_color(theme::computer_vision::highlight));
                 let outline = Circle(4.5.px()) - Circle(3.5.px());
-                let outline = outline.fill(weak_color);
+                let outline = outline.fill(strong_color);
 
                 let base =
                     Circle(7.0.px()).translate_y(6.0.px()) * HalfPlane().translate_y(7.0.px());
                 let base = base + Rect((14.0.px(),2.0.px())).translate_y(7.0.px());
                 let base = base - Circle(5.5.px());
-                let base = base.fill(strong_color);
+                let base = base.fill(weak_color);
 
                 let shape = lens + outline + base;
                 let shape = shape.translate_y((-2.0).px());
