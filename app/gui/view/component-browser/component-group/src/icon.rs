@@ -603,7 +603,7 @@ crate::define_icons! {
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
                 let background = background.translate_y((-0.5).px());
-                let background = background.fill(strong_color);
+                let background = background.fill(style.get_color(theme::system::background));
                 let greater    = path(1.5,&[
                     (-3.75 ,  2.25),
                     (-1.25 , -0.25),
@@ -611,10 +611,9 @@ crate::define_icons! {
                 ]);
                 let bar = Rect((4.0.px(),1.5.px())).translate((2.5.px(),(-2.75).px()));
                 let content = greater + bar;
-                // let content = content.fill(style.get_color(theme::system::content));
+                let content = content.fill(style.get_color(theme::system::content));
 
-                // let shape = background + content;
-                let shape = background - content;
+                let shape = background + content;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
