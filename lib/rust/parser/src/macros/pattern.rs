@@ -424,19 +424,19 @@ impl Pattern {
 
 
 // #[derive(Clone, Debug, Default)]
-// pub struct MatchTree<'s> {
-//     nested: Option<Box<MatchTree<'s>>>,
+// pub struct VarMap<'s> {
+//     nested: Option<Box<VarMap<'s>>>,
 //     map:    HashMap<String, Vec<Vec<syntax::Item<'s>>>>,
 // }
 //
 // impl<'s> Match<'s> {
-//     pub fn into_match_tree(self) -> MatchTree<'s> {
-//         let mut tree = MatchTree::default();
+//     pub fn into_match_tree(self) -> VarMap<'s> {
+//         let mut tree = VarMap::default();
 //         self.make_match_tree(&mut tree);
 //         tree
 //     }
 //
-//     pub fn make_match_tree(self, tree: &mut MatchTree<'s>) {
+//     pub fn make_match_tree(self, tree: &mut VarMap<'s>) {
 //         match self {
 //             Self::Everything(_) => {}
 //             Self::Nothing => {}
@@ -468,46 +468,31 @@ impl Pattern {
 // }
 
 
-// $(
-//     a
-//     $(
-//         b
-//         $( c )*
-//         $( d )*
-//     )*
-//
-//     e
-//     $(
-//         f
-//         $( g )*
-//         $( h )*
-//     )*
-// )*
 
-#[allow(missing_docs)]
+
+
 #[derive(Clone, Debug, Default)]
-pub struct MatchTreeView<'t, 's, V> {
-    tree:                  Option<&'t MatchTree<'s, V>>,
+pub struct VarMapView<'t, 's, V> {
+    tree:                  Option<&'t VarMap<'s, V>>,
     resolved_validator:    Option<V>,
     parent_scope_to_check: Option<V>,
 }
 
-impl<'t, 's, V: MatchTreeValidator> MatchTreeView<'t, 's, V> {
-    #[allow(missing_docs)]
-    pub fn new(tree: &'t MatchTree<'s, V>) -> Self {
+impl<'t, 's, V: SplicingValidator> VarMapView<'t, 's, V> {
+    pub fn new(tree: &'t VarMap<'s, V>) -> Self {
         let resolved_validator = default();
         let parent_scope_to_check = default();
         Self { tree: Some(tree), resolved_validator, parent_scope_to_check }
     }
 
-    #[allow(missing_docs)]
+
     pub fn nested(mut self) -> Self {
         self.tree = self.tree.and_then(|t| t.nested.as_ref().map(|n| n.as_ref()));
         mem::swap(&mut self.resolved_validator, &mut self.parent_scope_to_check);
         self
     }
 
-    #[allow(missing_docs)]
+
     pub fn query(&mut self, name: &str) -> Option<&'t Vec<Vec<syntax::Item<'s>>>> {
         self.tree.and_then(|t| {
             t.map.get(name).map(|entry| {
@@ -565,20 +550,22 @@ struct VarScope {
     parent: Option<Rc<RefCell<VarScope>>>,
 }
 
-
-#[derive(Clone, CloneRef, Debug, Default)]
-#[allow(missing_docs)]
-pub struct MatchTreeValidatorData {
-    scope: Rc<RefCell<VarScope>>,
-}
-
-#[allow(missing_docs)]
-pub trait MatchTreeValidator: Default + CloneRef {
+pub trait SplicingValidator: Default + CloneRef {
     fn set_parent(&self, parent: &Self);
     fn insert_local_var(&self, var: &str);
 }
 
-impl MatchTreeValidator for MatchTreeValidatorData {
+#[derive(Clone, CloneRef, Debug, Default)]
+pub struct EnabledSplicingValidator {
+    scope: Rc<RefCell<VarScope>>,
+}
+
+#[derive(Copy, Clone, CloneRef, Debug, Default)]
+pub struct DisabledSplicingValidator;
+
+
+
+impl SplicingValidator for EnabledSplicingValidator {
     fn set_parent(&self, parent: &Self) {
         self.scope.borrow_mut().parent = Some(parent.scope.clone_ref());
     }
@@ -588,7 +575,7 @@ impl MatchTreeValidator for MatchTreeValidatorData {
     }
 }
 
-impl MatchTreeValidator for () {
+impl SplicingValidator for DisabledSplicingValidator {
     #[inline(always)]
     fn set_parent(&self, _parent: &Self) {}
 
@@ -596,40 +583,105 @@ impl MatchTreeValidator for () {
     fn insert_local_var(&self, _var: &str) {}
 }
 
+/// A nested map of pattern variables (elements using the [`Pattern::Named`] variant). The validator
+/// should be instantiated either with the [`EnabledSplicingValidator`] in case of user-defined
+/// macros or with the [`DisabledSplicingValidator`] in case of built-in macros. The latter is 
+/// faster but does not provide nice error messages and allows for illegal splicing operations, like
+/// splicing two variables that have the same repetition count, but have different parents.
+/// 
+/// To better understand how it works, let's consider the following pattern definition (using the
+/// Rust macro rules syntax for simplicity):
+/// 
+/// ```text
+/// $(
+///     a
+///     $(
+///         b
+///         $( c )*
+///         $( d )*
+///     )*
+///
+///     e
+///     $(
+///         f
+///         $( g )*
+///         $( h )*
+///     )*
+/// )*
+/// ```
+/// 
+/// The following [`VarMap`] will be generated (some fields skipped for clarity):
+/// 
+/// ```text
+/// VarMap {
+///     map: [],
+///     validator: EnabledSplicingValidator { scope: VarScope { 
+///         locals: [], 
+///         parent: None 
+///     }},
+///     nested: Some(VarMap {
+///         map: [
+///             ("a", Entry { 
+///                 tokens: ["a"], 
+///                 validator: EnabledSplicingValidator { scope: VarScope {
+///                     locals: ["a","e"], parent: ...
+///                 }}
+///             }),
+///             ("e", Entry {
+///                 tokens: ["e"], 
+///                 validator: EnabledSplicingValidator { scope: VarScope {
+///                     locals: ["a","e"], parent: ...
+///                 }}
+///             }), 
+///         ],
+///         validator: EnabledSplicingValidator { scope: VarScope { 
+///             locals: ["a","e"], parent: ... 
+///         }},
+///         nested: Some(VarMap {
+///             map: [
+///                 ("b", Entry { 
+///                     tokens: ["b"], 
+///                     validator: EnabledSplicingValidator { scope: VarScope {
+///                         locals: ["a","e","b"], parent: ...
+///                     }}
+///                 }),
+///             ]
+///         })
+///     })
+/// }
+/// ```
 #[derive(Clone, Debug, Default)]
-#[allow(missing_docs)]
-pub struct MatchTree<'s, V> {
-    nested:    Option<Box<MatchTree<'s, V>>>,
+
+pub struct VarMap<'s, V> {
+    nested:    Option<Box<VarMap<'s, V>>>,
     map:       HashMap<String, Entry<'s, V>>,
     validator: V,
 }
 
-impl<'s, V: MatchTreeValidator> MatchTree<'s, V> {
-    #[allow(missing_docs)]
-    pub fn view<'t>(&'t self) -> MatchTreeView<'t, 's, V> {
-        MatchTreeView::new(self)
+impl<'s, V: SplicingValidator> VarMap<'s, V> {
+    pub fn view<'t>(&'t self) -> VarMapView<'t, 's, V> {
+        VarMapView::new(self)
     }
 }
 
 
 
 impl<'s> Match<'s> {
-    #[allow(missing_docs)]
-    pub fn into_match_tree(self) -> MatchTree<'s, MatchTreeValidatorData> {
-        let mut tree = MatchTree::default();
+    pub fn into_match_tree(self) -> VarMap<'s, EnabledSplicingValidator> {
+        let mut tree = VarMap::default();
         self.make_match_tree(&mut tree);
         tree
     }
 
-    #[allow(missing_docs)]
-    pub fn into_unchecked_match_tree(self) -> MatchTree<'s, ()> {
-        let mut tree = MatchTree::default();
+
+    pub fn into_unchecked_match_tree(self) -> VarMap<'s, DisabledSplicingValidator> {
+        let mut tree = VarMap::default();
         self.make_match_tree(&mut tree);
         tree
     }
 
-    #[allow(missing_docs)]
-    pub fn make_match_tree<V: Default + MatchTreeValidator>(self, tree: &mut MatchTree<'s, V>) {
+
+    pub fn make_match_tree<V: Default + SplicingValidator>(self, tree: &mut VarMap<'s, V>) {
         match self {
             Self::Everything(_) => {}
             Self::Nothing => {}
@@ -644,7 +696,7 @@ impl<'s> Match<'s> {
 
             Self::Many(matches) => {
                 if tree.nested.is_none() {
-                    let nested = MatchTree::<'s, V>::default();
+                    let nested = VarMap::<'s, V>::default();
                     nested.validator.set_parent(&tree.validator);
                     tree.nested = Some(Box::new(nested));
                 }
