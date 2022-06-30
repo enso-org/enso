@@ -22,7 +22,6 @@ import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
-import org.enso.table.util.NameDeduplicator;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,18 +30,6 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class ExcelWriter {
-  public static class ExistingDataException extends Exception {
-    public ExistingDataException(String errorMessage) {
-      super(errorMessage);
-    }
-  }
-
-  public static class RangeExceededException extends Exception {
-    public RangeExceededException(String errorMessage) {
-      super(errorMessage);
-    }
-  }
-
   private static final double SECONDS_IN_A_DAY = 86400.0;
 
   private static Function<Object, Boolean> ensoToTextCallback;
@@ -236,6 +223,17 @@ public class ExcelWriter {
         headers = hasHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
             ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
+      }
+
+      // Expand to cover required size
+      int rowCount = (headers == ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS ? 1 : 0) + table.rowCount();
+      if (expanded.getColumnCount() < table.getColumns().length || expanded.getRowCount() < rowCount) {
+        expanded = new ExcelRange(
+            expanded.getSheetName(),
+            expanded.getLeftColumn(),
+            expanded.getTopRow(),
+            Math.max(expanded.getRightColumn(), expanded.getLeftColumn() + table.getColumns().length - 1),
+            Math.max(expanded.getBottomRow(), expanded.getTopRow() + rowCount - 1));
       }
 
       checkExistingRange(workbook, expanded, replace, sheet);
