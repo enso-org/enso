@@ -99,7 +99,8 @@ public class ExcelRow {
       if (type != CellType._NONE && type != CellType.BLANK && type != CellType.STRING) {
         return null;
       }
-      output[col - startCol] = type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
+      output[col - startCol] =
+          type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
     }
 
     return output;

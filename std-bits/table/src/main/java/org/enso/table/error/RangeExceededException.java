@@ -5,4 +5,3 @@ public class RangeExceededException extends Exception {
     super(errorMessage);
   }
 }
-

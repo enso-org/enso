@@ -201,11 +201,11 @@ public class ExcelRange {
     }
 
     return new ExcelRange(
-            excelRange.getSheetName(),
-            excelRange.getLeftColumn(),
-            excelRange.getTopRow(),
-            rightColumn,
-            bottomRow - 1);
+        excelRange.getSheetName(),
+        excelRange.getLeftColumn(),
+        excelRange.getTopRow(),
+        rightColumn,
+        bottomRow - 1);
   }
 
   /**
