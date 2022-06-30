@@ -182,7 +182,7 @@ public class ExcelRange {
    */
   public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet) {
     ExcelRow currentRow = sheet.get(excelRange.getTopRow());
-    if (currentRow.isEmpty(excelRange.getLeftColumn())) {
+    if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
       return new ExcelRange(
           excelRange.getSheetName(),
           excelRange.getLeftColumn(),
