@@ -469,8 +469,7 @@ define_themes! { [light:0, dark:1]
             above_node = 15.0, 15.0;
             below_node = 15.0, 15.0;
             to_the_left_of_node = 15.0, 15.0;
-            to_the_right_of_node = graph_editor::minimal_x_spacing_for_new_nodes,
-                graph_editor::minimal_x_spacing_for_new_nodes;
+            to_the_right_of_node = 300.0, 300.0;
         }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
