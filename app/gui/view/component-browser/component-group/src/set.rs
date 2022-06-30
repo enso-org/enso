@@ -251,6 +251,11 @@ impl Wrapper {
         self.groups.borrow_mut().remove(&group_id);
     }
 
+    /// Stop managing all groups of a section.
+    pub fn remove_section(&self, section: SectionId) {
+        self.groups.borrow_mut().retain(|&id, _| id.section != section);
+    }
+
     fn setup_frp_propagation(&self, group: &Group, id: GroupId, events: PropagatedEvents) {
         let network = &self.events.network;
         frp::extend! { network

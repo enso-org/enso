@@ -77,6 +77,9 @@ impl Model {
         style: &Style,
         (section, group_wrapper): &(SectionId, component_group::set::Wrapper),
     ) -> Vector2 {
+        // Ensure we do not keept the old entries in the group_wrapper.
+        group_wrapper.remove_section(*section);
+
         const NUMBER_OF_COLUMNS: usize = 3;
         let overall_width = style.content_width - 2.0 * style.content_padding;
         let column_width = (overall_width - 2.0 * style.column_gap) / NUMBER_OF_COLUMNS as f32;
