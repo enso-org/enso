@@ -912,8 +912,10 @@ crate::define_icons! {
         }
     }
 
+    /// Outline of a circle. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Atom`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
     pub mod atom(Atom) {
-        // TODO: circle
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
@@ -925,8 +927,10 @@ crate::define_icons! {
         }
     }
 
+    /// A filled triangle pointing to the right. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Function`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
     pub mod function(Function) {
-        // TODO: right-pointing triangle
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
@@ -938,8 +942,10 @@ crate::define_icons! {
         }
     }
 
+    /// A small filled circle. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Local`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
     pub mod local(Local) {
-        // TODO: small filled dot
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
@@ -951,8 +957,10 @@ crate::define_icons! {
         }
     }
 
+    /// A rectangle rotated by 45 degrees. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Method`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
     pub mod method(Method) {
-        // TODO: "rhomb" / "diamond"
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
@@ -970,8 +978,10 @@ crate::define_icons! {
         }
     }
 
+    /// An outline of a square with rounded corners. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Module`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
     pub mod module(Module) {
-        // TODO: square
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
