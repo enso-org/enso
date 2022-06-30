@@ -122,7 +122,7 @@ impl<'a> Frame<'a> {
         let matched_macro_def = Some(Rc::new(macros::Definition {
             segments: im_list::NonEmpty::singleton(macros::SegmentDefinition {
                 header:  "__ROOT__",
-                pattern: macros::pattern::Everything(),
+                pattern: macros::pattern::everything(),
             }),
             body:     Rc::new(|v| {
                 let t = v.into_vec().pop().unwrap().result;

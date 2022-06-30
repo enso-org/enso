@@ -12,14 +12,14 @@ use crate::syntax;
 // === Pattern ===
 // ===============
 
-/// Pattern used to validate incoming token stream against expected macro input.
+/// Patterns are used to validate incoming token stream against expected macro input.
 ///
-/// The idea is similar to patterns used in `macro_rules` definitions in Rust. There are a few
-/// differences though:
-/// 1. This pattern implementation exposes different matchers and operations.
-/// 2. This macro implementation never attaches types to tokens, which means that every defined
+/// The idea is similar to patterns used in macro rules in Rust with a few differences:
+/// 1. These patterns allow for other constructs than macro rules.
+/// 2. The macro resolution never reifies tokens as given types, which means that every defined
 ///    pattern behaves like a TT-muncher in Rust.
 #[derive(Clone, Debug, Deref)]
+#[allow(missing_docs)]
 pub struct Pattern {
     #[deref]
     pub data:                Rc<PatternData>,
@@ -27,11 +27,13 @@ pub struct Pattern {
 }
 
 impl Pattern {
+    /// Constructor.
     pub fn new(data: PatternData, matches_empty_input: bool) -> Self {
         Self { data: Rc::new(data), matches_empty_input }
     }
 }
 
+/// Variants of [`Pattern`].
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub enum PatternData {
@@ -43,97 +45,136 @@ pub enum PatternData {
     /// will be tried.
     Or(Pattern, Pattern),
     Seq(Pattern, Pattern),
+    /// Consume many times (zero or more) the given pattern. If the given pattern succeeds on empty
+    /// input, it will be repeated as long as it consumes any input.
     Many(Pattern),
-    /// Consume a single item if it matches the configuration.
-    // Item(Item),
+    /// Consume an identifier.
     Identifier,
+    /// Consume a block and run the provided pattern in its body.
     Block(Pattern),
+    /// Indicator of an error. The provided pattern is used to consume input when an error occurs.
+    /// For example, if you want to consume an identifier, but the identifier is not found, you can
+    /// use this pattern to consume any token instead and mark it as invalid.
     Expected(String, Pattern),
+    /// Named pattern. Mainly used for splicing the code in the macro definition body.
     Named(String, Pattern),
+    /// Anything that is not a block.
     NotBlock,
 }
 
-
-pub fn Everything() -> Pattern {
+/// Constructor.
+pub fn everything() -> Pattern {
     Pattern::new(PatternData::Everything, true)
 }
 
-pub fn Identifier() -> Pattern {
+/// Constructor.
+pub fn identifier() -> Pattern {
     Pattern::new(PatternData::Identifier, false)
 }
 
-pub fn NotBlock() -> Pattern {
+/// Constructor.
+pub fn not_block() -> Pattern {
     Pattern::new(PatternData::NotBlock, false)
 }
 
-pub fn Nothing() -> Pattern {
+/// Constructor.
+pub fn nothing() -> Pattern {
     Pattern::new(PatternData::Nothing, true)
 }
 
-pub fn Or(fst: Pattern, snd: Pattern) -> Pattern {
+/// Constructor.
+pub fn or(fst: Pattern, snd: Pattern) -> Pattern {
     let matches_empty_input = fst.matches_empty_input || snd.matches_empty_input;
     Pattern::new(PatternData::Or(fst, snd), matches_empty_input)
 }
 
-pub fn Seq(fst: Pattern, snd: Pattern) -> Pattern {
+/// Constructor.
+pub fn seq(fst: Pattern, snd: Pattern) -> Pattern {
     let matches_empty_input = fst.matches_empty_input && snd.matches_empty_input;
     Pattern::new(PatternData::Seq(fst, snd), matches_empty_input)
 }
 
-pub fn Many(item: Pattern) -> Pattern {
+/// Constructor.
+pub fn many(item: Pattern) -> Pattern {
     Pattern::new(PatternData::Many(item), true)
 }
 
-pub fn Block(body: Pattern) -> Pattern {
+/// Constructor.
+pub fn block(body: Pattern) -> Pattern {
     Pattern::new(PatternData::Block(body), false)
 }
 
-pub fn Expected(message: impl Into<String>, item: Pattern) -> Pattern {
+/// Constructor.
+pub fn expected(message: impl Into<String>, item: Pattern) -> Pattern {
     let matches_empty_input = item.matches_empty_input;
     Pattern::new(PatternData::Expected(message.into(), item), matches_empty_input)
 }
 
-pub fn Named(message: impl Into<String>, item: Pattern) -> Pattern {
+/// Constructor.
+pub fn named(message: impl Into<String>, item: Pattern) -> Pattern {
     let matches_empty_input = item.matches_empty_input;
     Pattern::new(PatternData::Named(message.into(), item), matches_empty_input)
 }
 
 impl Pattern {
+    /// Repeat the current pattern multiple times.
     pub fn many(self) -> Self {
-        Many(self)
+        many(self)
+    }
+
+    /// Match self or consume any token that is not a block and mark it as invalid.
+    pub fn expect(self, message: impl Into<String>) -> Self {
+        self | expected(message, not_block() | nothing())
+    }
+
+    /// Match self or consume any token that is not a block and mark it as invalid.
+    pub fn named(self, label: impl Into<String>) -> Self {
+        named(label, self)
     }
 }
 
+/// The syntax `pattern1 >> pattern2` is a shortcut for `seq(pattern1, pattern2)`.
 impl std::ops::Shr for Pattern {
     type Output = Pattern;
     fn shr(self, rhs: Pattern) -> Self::Output {
-        Seq(self, rhs)
+        seq(self, rhs)
     }
 }
 
+/// The syntax `pattern1 | pattern2` is a shortcut for `or(pattern1, pattern2)`.
 impl std::ops::BitOr for Pattern {
     type Output = Pattern;
     fn bitor(self, rhs: Pattern) -> Self::Output {
-        Or(self, rhs)
+        or(self, rhs)
     }
 }
 
+/// The syntax `pattern % "message"` is a shortcut for `pattern.expect("message")`.
 impl<T: Into<String>> std::ops::Rem<T> for Pattern {
     type Output = Pattern;
     fn rem(self, message: T) -> Self::Output {
-        self | Expected(message, NotBlock() | Nothing())
+        self.expect(message)
     }
 }
 
+/// The syntax `pattern / "label"` is a shortcut for `pattern.named("label")`.
 impl<T: Into<String>> std::ops::Div<T> for Pattern {
     type Output = Pattern;
     fn div(self, message: T) -> Self::Output {
-        Named(message, self)
+        named(message, self)
     }
 }
 
 
+
+// =============
+// === Match ===
+// =============
+
+/// The result of applying [`Pattern`] to a token stream. After a successful match, a variant of the
+/// [`Pattern`] is transformed to variant of [`Match`] of the same name.
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub enum Match<'s> {
     Everything(VecDeque<syntax::Item<'s>>),
     Nothing,
@@ -146,44 +187,191 @@ pub enum Match<'s> {
     NotBlock(syntax::Item<'s>),
 }
 
+/// The result of the [`Pattern::Or`] resolution.
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub enum OrMatch<'s> {
     First(Match<'s>),
     Second(Match<'s>),
 }
 
 impl<'s> Match<'s> {
+    /// Constructor.
     pub fn or(m: OrMatch<'s>) -> Self {
         Self::Or(Box::new(m))
     }
 
+    /// Constructor.
     pub fn seq(first: Match<'s>, second: Match<'s>) -> Self {
         Self::Seq(Box::new(first), Box::new(second))
     }
 
-    pub fn expected(expected: String, second: Match<'s>) -> Self {
-        Self::Expected(expected, Box::new(second))
+    /// Constructor.
+    pub fn expected(expected: impl Into<String>, second: Match<'s>) -> Self {
+        Self::Expected(expected.into(), Box::new(second))
     }
 
-    pub fn named(label: String, second: Match<'s>) -> Self {
-        Self::Named(label, Box::new(second))
+    /// Constructor.
+    pub fn named(label: impl Into<String>, second: Match<'s>) -> Self {
+        Self::Named(label.into(), Box::new(second))
+    }
+
+    /// Get all tokens of the match.
+    pub fn tokens(self) -> Vec<syntax::Item<'s>> {
+        match self {
+            Self::Everything(tokens) => tokens.into(),
+            Self::Nothing => default(),
+            Self::Seq(fst, snd) => fst.tokens().extended(snd.tokens()),
+            Self::Many(t) => t.into_iter().map(|s| s.tokens()).flatten().collect(),
+            Self::Identifier(ident) => vec![ident],
+            Self::Expected(_, item) => item.tokens(),
+            Self::Named(_, item) => item.tokens(),
+            Self::NotBlock(item) => vec![item],
+            Self::Or(t) => match *t {
+                OrMatch::First(fst) => fst.tokens(),
+                OrMatch::Second(snd) => snd.tokens(),
+            },
+        }
     }
 }
 
 
+
+// ===================
+// === MatchResult ===
+// ===================
+
+/// Result of a succesfull pattern resolution. It contains a match and the remaining token stream.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct MatchResult<'s> {
+    pub matched: Match<'s>,
+    pub rest:    VecDeque<syntax::Item<'s>>,
+}
+
+impl<'s> MatchResult<'s> {
+    /// Constructor.
+    pub fn new(matched: Match<'s>, rest: VecDeque<syntax::Item<'s>>) -> Self {
+        Self { matched, rest }
+    }
+
+    /// Map the match with the provided function.
+    pub fn map(mut self, f: impl FnOnce(Match<'s>) -> Match<'s>) -> Self {
+        self.matched = f(self.matched);
+        self
+    }
+}
+
+
+
+// ======================
+// === MatchedSegment ===
+// ======================
+
+/// List of matched segments.
 pub type MatchedSegments<'s> = NonEmptyVec<MatchedSegment<'s>>;
 
+/// A matched segment. See the [`macros::resolver::Segment`] to learn more.
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub struct MatchedSegment<'s> {
     pub header: syntax::Token<'s>,
     pub result: Match<'s>,
 }
 
 impl<'s> MatchedSegment<'s> {
+    /// Constructor.
     pub fn new(header: syntax::Token<'s>, result: Match<'s>) -> Self {
         Self { header, result }
     }
 }
+
+
+
+// ==========================
+// === Pattern Resolution ===
+// ==========================
+
+impl Pattern {
+    /// Resolve the pattern. Return [`MatchResult`] if the pattern is matched, otherwise all the
+    /// input tokens.
+    pub fn resolve<'s>(
+        &self,
+        mut input: VecDeque<syntax::Item<'s>>,
+    ) -> Result<MatchResult<'s>, VecDeque<syntax::Item<'s>>> {
+        match &*self.data {
+            PatternData::Expected(msg, item) =>
+                item.resolve(input).map(|t| t.map(|s| Match::expected(msg, s))),
+            PatternData::Named(msg, item) =>
+                item.resolve(input).map(|t| t.map(|s| Match::named(msg, s))),
+            PatternData::Everything => Ok(MatchResult::new(Match::Everything(input), default())),
+            PatternData::Nothing => Ok(MatchResult::new(Match::Nothing, input)),
+            PatternData::Or(fst, snd) => fst
+                .resolve(input)
+                .map(|t| t.map(|s| Match::or(OrMatch::First(s))))
+                .or_else(|t| snd.resolve(t).map(|t| t.map(|s| Match::or(OrMatch::Second(s))))),
+            PatternData::Seq(fst, snd) => fst
+                .resolve(input)
+                .and_then(|t| snd.resolve(t.rest).map(|s| s.map(|x| Match::seq(t.matched, x)))),
+            PatternData::Many(pat) => {
+                let mut out = vec![];
+                let mut input_len = input.len();
+                loop {
+                    match pat.resolve(input) {
+                        Err(rest) => {
+                            input = rest;
+                            break;
+                        }
+                        Ok(t) => {
+                            input = t.rest;
+                            if pat.matches_empty_input {
+                                let no_input_consumed = input_len == input.len();
+                                if no_input_consumed {
+                                    break;
+                                }
+                                input_len = input.len();
+                            }
+                            out.push(t.matched);
+                        }
+                    }
+                }
+                Ok(MatchResult::new(Match::Many(out), input))
+            }
+            PatternData::Identifier => match input.pop_front() {
+                None => Err(default()),
+                Some(t) =>
+                    if t.is_variant(syntax::token::variant::VariantMarker::Ident) {
+                        Ok(MatchResult::new(Match::Identifier(t), input))
+                    } else {
+                        input.push_front(t);
+                        Err(input)
+                    },
+            },
+            PatternData::Block(body) => match input.pop_front() {
+                Some(syntax::Item::Block(tokens)) =>
+                    body.resolve(tokens.into_iter().rev().map_into().collect()),
+                Some(t) => {
+                    input.push_front(t);
+                    Err(input)
+                }
+                None => Err(default()),
+            },
+            PatternData::NotBlock => match input.pop_front() {
+                Some(t @ syntax::Item::Block(_)) => {
+                    input.push_front(t);
+                    Err(input)
+                }
+                None => Err(default()),
+                Some(t) => Ok(MatchResult::new(Match::NotBlock(t), input)),
+            },
+        }
+    }
+}
+
+
+
+// ====================================
+
 
 //
 // $(
@@ -415,6 +603,8 @@ impl<'s, V: MatchTreeValidator> MatchTree<'s, V> {
     }
 }
 
+
+
 impl<'s> Match<'s> {
     pub fn into_match_tree(self) -> MatchTree<'s, MatchTreeValidatorData> {
         let mut tree = MatchTree::default();
@@ -466,305 +656,3 @@ impl<'s> Match<'s> {
         }
     }
 }
-
-
-
-// /// Item pattern configuration.
-// #[derive(Clone, Copy, Debug)]
-// #[allow(missing_docs)]
-// pub struct Item {
-//     /// Check whether the token has spaces on right-hand-side. The [`None`] value means that the
-//     /// condition would not be checked.
-//     pub has_rhs_spacing: Option<bool>,
-// }
-
-
-#[derive(Debug)]
-pub struct MatchResult<'s> {
-    /// All the matched tokens.
-    pub matched: Match<'s>,
-    /// The rest of the token stream that was not consumed.
-    pub rest:    VecDeque<syntax::Item<'s>>,
-}
-
-impl<'s> MatchResult<'s> {
-    /// Constructor.
-    pub fn new(matched: Match<'s>, rest: VecDeque<syntax::Item<'s>>) -> Self {
-        Self { matched, rest }
-    }
-
-    pub fn map(mut self, f: impl FnOnce(Match<'s>) -> Match<'s>) -> Self {
-        self.matched = f(self.matched);
-        self
-    }
-}
-
-
-
-impl<'s> Match<'s> {
-    pub fn tokens(self) -> Vec<syntax::Item<'s>> {
-        match self {
-            Self::Everything(tokens) => tokens.into(),
-            Self::Nothing => default(),
-            Self::Or(t) => t.tokens(),
-            Self::Seq(fst, snd) => fst.tokens().extended(snd.tokens()),
-            Self::Many(t) => t.into_iter().map(|s| s.tokens()).flatten().collect(),
-            Self::Identifier(ident) => vec![ident],
-            Self::Expected(_, item) => item.tokens(),
-            Self::Named(_, item) => item.tokens(),
-            Self::NotBlock(item) => vec![item],
-        }
-    }
-}
-
-impl<'s> OrMatch<'s> {
-    pub fn tokens(self) -> Vec<syntax::Item<'s>> {
-        match self {
-            Self::First(t) => t.tokens(),
-            Self::Second(t) => t.tokens(),
-        }
-    }
-}
-
-impl Pattern {
-    #[allow(missing_docs)]
-    pub fn resolve<'s>(
-        &self,
-        mut input: VecDeque<syntax::Item<'s>>,
-    ) -> Result<MatchResult<'s>, VecDeque<syntax::Item<'s>>> {
-        match &*self.data {
-            PatternData::Expected(msg, item) =>
-                item.resolve(input).map(|t| t.map(|s| Match::expected(msg.clone(), s))),
-            PatternData::Named(msg, item) =>
-                item.resolve(input).map(|t| t.map(|s| Match::named(msg.clone(), s))),
-            PatternData::Everything => Ok(MatchResult::new(Match::Everything(input), default())),
-            PatternData::Nothing => Ok(MatchResult::new(Match::Nothing, input)),
-            PatternData::Or(fst, snd) => fst
-                .resolve(input)
-                .map(|t| t.map(|s| Match::or(OrMatch::First(s))))
-                .or_else(|t| snd.resolve(t).map(|t| t.map(|s| Match::or(OrMatch::Second(s))))),
-            PatternData::Seq(fst, snd) => fst
-                .resolve(input)
-                .and_then(|t| snd.resolve(t.rest).map(|s| s.map(|x| Match::seq(t.matched, x)))),
-            PatternData::Many(pat) => {
-                let mut out = vec![];
-                let mut input_len = input.len();
-                loop {
-                    match pat.resolve(input) {
-                        Err(rest) => {
-                            input = rest;
-                            break;
-                        }
-                        Ok(t) => {
-                            input = t.rest;
-                            if pat.matches_empty_input {
-                                if input.len() == input_len {
-                                    break;
-                                }
-                                input_len = input.len();
-                            }
-                            out.push(t.matched);
-                        }
-                    }
-                }
-                Ok(MatchResult::new(Match::Many(out), input))
-            }
-            PatternData::Identifier => match input.pop_front() {
-                None => Err(default()),
-                Some(t) =>
-                    if t.is_variant(syntax::token::variant::VariantMarker::Ident) {
-                        Ok(MatchResult::new(Match::Identifier(t), input))
-                    } else {
-                        input.push_front(t);
-                        Err(input)
-                    },
-            },
-            PatternData::Block(body) => match input.pop_front() {
-                Some(syntax::Item::Block(tokens)) =>
-                    body.resolve(tokens.into_iter().rev().map_into().collect()),
-                Some(t) => {
-                    input.push_front(t);
-                    Err(input)
-                }
-                None => Err(default()),
-            },
-            PatternData::NotBlock => match input.pop_front() {
-                Some(t @ syntax::Item::Block(_)) => {
-                    input.push_front(t);
-                    Err(input)
-                }
-                None => Err(default()),
-                Some(t) => Ok(MatchResult::new(Match::NotBlock(t), input)),
-            },
-        }
-    }
-}
-
-
-
-// =======================
-// === ResolutionError ===
-// =======================
-
-/// Pattern resolution error.
-#[derive(Clone, Debug)]
-#[allow(missing_docs)]
-pub struct ResolutionError {
-    pub message: String,
-}
-
-impl ResolutionError {
-    /// Constructor.
-    pub fn new(message: impl Into<String>) -> Self {
-        let message = message.into();
-        Self { message }
-    }
-}
-
-
-
-// /// Successful pattern match result.
-// #[derive(Debug, Clone)]
-// #[allow(missing_docs)]
-// pub struct Match<T> {
-//     /// All the matched tokens.
-//     pub matched: Vec<T>,
-//     /// The rest of the token stream that was not needed for the successful pattern match.
-//     pub rest:    Vec<T>,
-//     pub error:   Option<ResolutionError>,
-// }
-//
-// impl<T> Match<T> {
-//     /// Constructor.
-//     pub fn new(matched: Vec<T>, rest: Vec<T>, error: Option<ResolutionError>) -> Self {
-//         Self { matched, rest, error }
-//     }
-// }
-
-
-//
-// impl Pattern {
-//     /// Match the token stream with this pattern.
-//     pub fn resolve_old<'s, T: TryAsRef<syntax::Item<'s>>>(
-//         &self,
-//         mut input: Vec<T>,
-//         has_spacing_at_end: bool,
-//         right_to_left_mode: bool,
-//     ) -> Match<T> {
-//         let reject = |input: Vec<T>, message: &str| {
-//             Match::new(default(), input, Some(ResolutionError::new(message)))
-//         };
-//
-//         match self {
-//             Self::Everything => Match::new(input, default(), None),
-//             Self::Nothing => Match::new(default(), input, None),
-//             Self::Or(fst, snd) => {
-//                 let fst_result = fst.resolve_old(input, has_spacing_at_end, right_to_left_mode);
-//                 if fst_result.error.is_none() {
-//                     fst_result
-//                 } else {
-//                     let input =
-//
-// fst_result.matched.into_iter().chain(fst_result.rest.into_iter()).collect();
-// snd.resolve_old(input, has_spacing_at_end, right_to_left_mode)                 }
-//             }
-//             Self::Seq(fst, snd) => {
-//                 let fst_result = fst.resolve_old(input, has_spacing_at_end, right_to_left_mode);
-//                 if fst_result.error.is_none() {
-//                     let snd_result =
-//                         snd.resolve_old(fst_result.rest, has_spacing_at_end, right_to_left_mode);
-//                     Match::new(
-//                         fst_result
-//                             .matched
-//                             .into_iter()
-//                             .chain(snd_result.matched.into_iter())
-//                             .collect(),
-//                         snd_result.rest,
-//                         snd_result.error,
-//                     )
-//                 } else {
-//                     fst_result
-//                 }
-//             }
-//             Self::Many(pat) => {
-//                 let mut matched = vec![];
-//                 loop {
-//                     let result =
-//                         pat.resolve_old(mem::take(&mut input), has_spacing_at_end,
-// right_to_left_mode);                     if result.error.is_none() {
-//                         matched.extend(result.matched);
-//                         input = result.rest;
-//                     } else {
-//                         input =
-// result.matched.into_iter().chain(result.rest.into_iter()).collect();
-// break;                     }
-//                 }
-//                 Match::new(matched, input, None)
-//             }
-//             Self::Item(item) => match input.first() {
-//                 None => reject(input, "Expected item"),
-//                 Some(first) => match first.try_as_ref() {
-//                     None => reject(input, "Expected item"),
-//                     Some(_) => match item.has_rhs_spacing {
-//                         Some(spacing) =>
-//                             if right_to_left_mode {
-//                                 if spacing == has_spacing_at_end {
-//                                     Match::new(vec![input.pop_front().unwrap()], input, None)
-//                                 } else {
-//                                     reject(input, "Expected item")
-//                                 }
-//                             } else {
-//                                 todo!()
-//                             },
-//                         None => Match::new(vec![input.pop_front().unwrap()], input, None),
-//                     },
-//                 },
-//             },
-//             Self::Identifier => match input.first() {
-//                 None => reject(input, "Expected identifier, got nothing."),
-//                 Some(first) => match first.try_as_ref() {
-//                     None => reject(input, "Expected identifier, got ..."),
-//                     Some(item) =>
-//                         if item.is_variant(syntax::token::variant::VariantMarker::Ident) {
-//                             Match::new(vec![input.pop_front().unwrap()], input, None)
-//                         } else {
-//                             reject(input, "Expected identifier, got ...")
-//                         },
-//                 },
-//             },
-//             Self::Block(body) => todo!()
-//             // match input.first() {
-//             //     None => reject(input, "Expected block, got nothing."),
-//             //     Some(first) => match first.try_as_ref() {
-//             //         None => reject(input, "Expected block, got ..."),
-//             //         Some(item) => match item {
-//             //             syntax::Item::Block(tokens) => {
-//             //                 let tokens = tokens.clone(); // FIXME: perf
-//             //                 let front = input.pop_front().unwrap();
-//             //                 let m = body.resolve_old(tokens, has_spacing_at_end,
-// right_to_left_mode);             //                 if m.error.is_none() {
-//             //                     Match::new(vec![front], input, None)
-//             //                 } else {
-//             //                     Match::new(vec![front], input, None)
-//             //                 }
-//             //                 // pub fn resolve_old<'s, T: TryAsRef<syntax::Item<'s>>>(
-//             //                 //     &self,
-//             //                 //     mut input: Vec<T>,
-//             //                 //     has_spacing_at_end: bool,
-//             //                 //     right_to_left_mode: bool,
-//             //             }
-//             //             _ => reject(input, "Expected identifier, got ...")
-//             //         }
-//             //     },
-//             // },
-//         }
-//     }
-// }
-
-
-// pub struct Match<T> {
-//     /// All the matched tokens.
-//     pub matched: Vec<T>,
-//     /// The rest of the token stream that was not needed for the successful pattern match.
-//     pub rest:    Vec<T>,
-//     pub er

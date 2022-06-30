@@ -19,17 +19,17 @@ pub fn all() -> resolver::MacroMatchTree<'static> {
 
 /// If-then-else macro definition.
 pub fn if_then_else<'s>() -> Definition<'s> {
-    crate::macro_definition! {("if", Everything(), "then", Everything(), "else", Everything())}
+    crate::macro_definition! {("if", everything(), "then", everything(), "else", everything())}
 }
 
 /// If-then macro definition.
 pub fn if_then<'s>() -> Definition<'s> {
-    crate::macro_definition! {("if", Everything(), "then", Everything())}
+    crate::macro_definition! {("if", everything(), "then", everything())}
 }
 
 /// Group macro definition.
 pub fn group<'s>() -> Definition<'s> {
-    crate::macro_definition! {("(", Everything(), ")", Nothing())}
+    crate::macro_definition! {("(", everything(), ")", nothing())}
 }
 
 /// New type definition macro definition.
@@ -37,11 +37,11 @@ pub fn type_def<'s>() -> Definition<'s> {
     use pattern::*;
     #[rustfmt::skip]
     let pattern = 
-        Identifier() / "name" % "type name" >>
-        Many(Identifier() % "type parameter" / "param") % "type parameters" >>
-        Block(
-            Many(Identifier() / "constructor") % "type constructors" >> 
-            Everything()
+        identifier() / "name" % "type name" >>
+        many(identifier() % "type parameter" / "param") % "type parameters" >>
+        block(
+            many(identifier() / "constructor") % "type constructors" >> 
+            everything()
         ) % "type definition body";
     // let pattern2 = Everything;
     crate::macro_definition! {
