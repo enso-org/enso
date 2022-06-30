@@ -555,17 +555,15 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let color = weak_color;
                 let circle = Circle(2.0.px());
-                let circle1 = circle.translate_y(5.5.px()).fill(color.clone());
-                let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(color.clone());
-                let circle3 = circle.translate((5.5.px(),(-3.0).px())).fill(color);
+                let circle1 = circle.translate_y(5.5.px()).fill(weak_color.clone());
+                let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(weak_color.clone());
+                let circle3 = circle.translate((5.5.px(),(-3.0).px())).fill(weak_color);
 
-                let color = strong_color;
-                let circle4 = circle.fill(color.clone());
+                let circle4 = circle.fill(strong_color.clone());
                 let rect = Rect((4.0.px(),4.0.px()));
-                let rect1 = rect.translate(((-5.5).px(),3.0.px())).fill(color.clone());
-                let rect2 = rect.translate_y((-5.5).px()).fill(color);
+                let rect1 = rect.translate(((-5.5).px(),3.0.px())).fill(strong_color.clone());
+                let rect2 = rect.translate_y((-5.5).px()).fill(strong_color);
 
                 let shape = rect1 + rect2 + circle1 + circle2 + circle3 + circle4;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
