@@ -1,5 +1,6 @@
 package org.enso.table.excel;
 
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.util.CellReference;
 
 import java.util.Optional;
@@ -181,6 +182,15 @@ public class ExcelRange {
    */
   public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet) {
     ExcelRow currentRow = sheet.get(excelRange.getTopRow());
+    if (currentRow.isEmpty(excelRange.getLeftColumn())) {
+      return new ExcelRange(
+          excelRange.getSheetName(),
+          excelRange.getLeftColumn(),
+          excelRange.getTopRow(),
+          excelRange.getLeftColumn(),
+          excelRange.getTopRow());
+    }
+
     int bottomRow = excelRange.getTopRow();
     int rightColumn = excelRange.getLeftColumn();
 
@@ -190,14 +200,12 @@ public class ExcelRange {
       currentRow = sheet.get(bottomRow);
     }
 
-    excelRange =
-        new ExcelRange(
+    return new ExcelRange(
             excelRange.getSheetName(),
             excelRange.getLeftColumn(),
             excelRange.getTopRow(),
             rightColumn,
             bottomRow - 1);
-    return excelRange;
   }
 
   /**

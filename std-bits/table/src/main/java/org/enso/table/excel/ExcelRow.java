@@ -73,7 +73,8 @@ public class ExcelRow {
   public boolean isEmpty(int start, int end) {
     int currentEnd = end == -1 ? getLastColumn() : end;
     for (int column = start; column <= currentEnd; column++) {
-      if (getCellType(get(column)) != CellType._NONE) {
+      CellType cellType = getCellType(get(column));
+      if (cellType != CellType._NONE && cellType != CellType.BLANK) {
         return false;
       }
     }
@@ -82,7 +83,7 @@ public class ExcelRow {
 
   public int findEndRight(int start) {
     int column = start;
-    while (getCellType(get(column + 1)) != CellType._NONE) {
+    while (!isEmpty(column + 1)) {
       column++;
     }
     return column;
@@ -95,7 +96,7 @@ public class ExcelRow {
     for (int col = startCol; col <= currentEndCol; col++) {
       Cell cell = get(col);
       CellType type = ExcelRow.getCellType(cell);
-      if (type != CellType._NONE && type != CellType.STRING) {
+      if (type != CellType._NONE && type != CellType.BLANK && type != CellType.STRING) {
         return null;
       }
       output[col - startCol] = type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";

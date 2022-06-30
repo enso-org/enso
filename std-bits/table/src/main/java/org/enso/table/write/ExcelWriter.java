@@ -63,8 +63,10 @@ public class ExcelWriter {
     } else if (replace) {
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
         ExcelSheet excelSheet = new ExcelSheet(workbook, sheetIndex);
-        headers = hasHeaders(excelSheet, firstRow + 1, 1, -1) ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
-      }
+        headers = hasHeaders(excelSheet, firstRow + 1, 1, -1)
+            ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+            : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
+    }
 
       String sheetName = workbook.getSheetName(sheetIndex - 1);
       workbook.removeSheetAt(sheetIndex - 1);
@@ -85,8 +87,10 @@ public class ExcelWriter {
     } else if (replace) {
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
         ExcelSheet excelSheet = new ExcelSheet(workbook, sheetIndex);
-        headers = hasHeaders(excelSheet, firstRow + 1, 1, -1) ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
-      }
+        headers = hasHeaders(excelSheet, firstRow + 1, 1, -1)
+            ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+            : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
+    }
 
       workbook.removeSheetAt(sheetIndex);
       Sheet sheet = workbook.createSheet(sheetName);
@@ -128,8 +132,8 @@ public class ExcelWriter {
 
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
         headers = hasHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
-            ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
-            : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+            ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+            : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
 
       checkExistingRange(workbook, expanded, replace, sheet);
@@ -142,8 +146,8 @@ public class ExcelWriter {
 
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
         headers = hasHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
-            ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
-            : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+            ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+            : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
 
       checkExistingRange(workbook, range, replace, sheet);
@@ -156,7 +160,7 @@ public class ExcelWriter {
     int topRow = range.isWholeColumn() ? 1 : range.getTopRow();
     int bottomRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
     int leftColumn = range.isWholeRow() ? 1 : range.getLeftColumn();
-    int rightColumn = range.isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : range.getLeftColumn();
+    int rightColumn = range.isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : range.getRightColumn();
 
     for (int row = topRow; row <= bottomRow; row++) {
       ExcelRow excelRow = sheet.get(row);
@@ -203,10 +207,20 @@ public class ExcelWriter {
 
     Storage[] storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     for (int i = 0; i < rowCount; i++) {
-      Row row = sheet.createRow(currentRow);
+      Row row = sheet.getRow(currentRow);
+      if (row == null) {
+        row = sheet.createRow(currentRow);
+      }
+
       for (int j = 0; j < columns.length; j++) {
         Storage storage = storages[j];
-        writeValueToCell(row.createCell(j + firstColumn - 1), i, storage, workbook);
+
+        Cell cell = row.getCell(j + firstColumn - 1);
+        if (cell == null) {
+          cell = row.createCell(j + firstColumn - 1);
+        }
+
+        writeValueToCell(cell, i, storage, workbook);
       }
       currentRow++;
     }

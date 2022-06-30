@@ -4,6 +4,7 @@ import Standard.Base.Data.Time.Date
 
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
 from Standard.Table.Io.Excel import Excel_Range, Sheet_Names, Range_Names, Sheet, Cell_Range
 from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
@@ -351,6 +352,23 @@ spec =
             read_2 . should_equal clothes
             read_3 = out.read (File_Format.Excel (Sheet_Names))
             read_3 . should_equal ["Sheet2", "Sheet1"]
+            out.delete_if_exists
+
+        Test.specify 'should write a table to specific single cell location of an existing sheet' <|
+            out.delete_if_exists
+            (Enso_Project.data / 'TestSheet.xlsx') . copy_to out
+            table.write out (File_Format.Excel (Cell_Range "Another!G1"))
+            written = out.read (File_Format.Excel (Cell_Range "Another!G1"))
+            written.should_equal table
+            out.delete_if_exists
+
+        Test.specify 'should clear out an existing range and replace' <|
+            sub_clothes = clothes.select_columns (By_Index [0, 1])
+            out.delete_if_exists
+            (Enso_Project.data / 'TestSheet.xlsx') . copy_to out
+            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1"))
+            written = out.read (File_Format.Excel (Cell_Range "Another!A1"))
+            written.should_equal sub_clothes
             out.delete_if_exists
 
 main = Test.Suite.run_main here.spec
