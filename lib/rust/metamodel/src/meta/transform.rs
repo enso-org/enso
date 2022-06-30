@@ -1,6 +1,6 @@
-//! Transformations on the abstracted representation.
+//! Transformations on the meta representation.
 
-use crate::abstracted::*;
+use crate::meta::*;
 use derivative::Derivative;
 
 

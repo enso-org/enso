@@ -11,8 +11,8 @@ use crate::graphviz::NodeType;
 // =============
 
 /// Generate a graph of the given type's relationships with other types.
-pub fn graph<T: Reflect>() -> Graph {
-    let mut to_visit = vec![T::reflect_lazy()];
+pub fn graph(root: LazyType) -> Graph {
+    let mut to_visit = vec![root];
     let mut types = std::collections::HashMap::new();
     while let Some(type_) = to_visit.pop() {
         let id = type_.id;

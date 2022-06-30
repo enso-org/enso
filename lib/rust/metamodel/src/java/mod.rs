@@ -1,13 +1,15 @@
 //! Representation of datatype definitions in the Java typesystem.
 
 pub mod bincode;
-mod from_abstracted;
+mod from_meta;
+#[cfg(feature = "graphviz")]
 pub mod graphviz;
-pub mod implementation;
+mod implementation;
 pub mod syntax;
 pub mod transform;
 
-pub use from_abstracted::from_abstracted;
+pub use from_meta::from_meta;
+pub use implementation::implement as to_syntax;
 use std::collections::BTreeMap;
 
 
@@ -48,10 +50,7 @@ pub struct Class {
 
 impl Class {
     /// Create a new "builtin" class.
-    pub fn builtin(
-        name: &str,
-        fields: impl IntoIterator<Item = TypeId>,
-    ) -> Self {
+    pub fn builtin(name: &str, fields: impl IntoIterator<Item = TypeId>) -> Self {
         let params: Vec<_> = fields.into_iter().collect();
         let name = name.to_owned();
         let builtin = true;
@@ -239,11 +238,6 @@ impl TypeGraph {
     /// Get a `Class` if the ID is bound.
     pub fn get(&self, TypeId(i): TypeId) -> Option<&Class> {
         self.types[i].as_ref()
-    }
-
-    /// Render the class to syntax.
-    pub fn implement(&self, package: &str) -> Vec<syntax::Class> {
-        implementation::implement(self, package)
     }
 
     /// Iterate all defined `Class`es by `TypeId`.

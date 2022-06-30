@@ -2026,6 +2026,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-metamodel"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+]
+
+[[package]]
 name = "enso-optics"
 version = "0.2.0"
 dependencies = [
@@ -2052,6 +2059,7 @@ name = "enso-parser-generate-java"
 version = "0.1.0"
 dependencies = [
  "derivative",
+ "enso-metamodel",
  "enso-parser",
  "enso-prelude",
  "enso-reflect",
@@ -2175,6 +2183,7 @@ name = "enso-reflect"
 version = "0.1.0"
 dependencies = [
  "derivative",
+ "enso-metamodel",
  "enso-reflect-macros",
 ]
 

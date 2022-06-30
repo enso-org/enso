@@ -217,8 +217,8 @@ fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId) -> syntax::Me
 
 fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
     let getter_name = |field| {
-        let field = crate::abstracted::Identifier::from_camel_case(field);
-        let mut name = crate::abstracted::Identifier::from_camel_case("get");
+        let field = crate::meta::Identifier::from_camel_case(field);
+        let mut name = crate::meta::Identifier::from_camel_case("get");
         name.append(field);
         name.to_camel_case()
     };

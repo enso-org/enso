@@ -1,4 +1,4 @@
-use enso_reflect::abstracted;
+use enso_metamodel::meta;
 use enso_reflect::Reflect;
 
 pub mod serialization;
@@ -22,12 +22,12 @@ pub const EITHER_TYPE: &str = "org.enso.syntax2.serialization.Either";
 use enso_parser::syntax;
 
 /// Generate accept/reject test case set for the parser types rooted at `syntax::Tree`.
-pub fn generate_testcases() -> abstracted::serialization::TestCases {
+pub fn generate_testcases() -> meta::serialization::TestCases {
     let root = syntax::Tree::reflect();
     let root_id = root.id;
-    let (graph, rust_to_abstracted) = enso_reflect::rust::to_abstracted(root);
-    let root = rust_to_abstracted[&root_id];
-    abstracted::serialization::testcases(&graph, root)
+    let (graph, rust_to_meta) = enso_metamodel::rust::to_meta(root);
+    let root = rust_to_meta[&root_id];
+    meta::serialization::testcases(&graph, root)
 }
 
 

@@ -1,11 +1,9 @@
 use derivative::Derivative;
-pub use to_abstracted::to_abstracted;
+pub use to_meta::to_meta;
 
+#[cfg(feature = "graphviz")]
 pub mod graphviz;
-mod reflect;
-mod to_abstracted;
-
-pub use reflect::Reflect;
+mod to_meta;
 
 
 
@@ -112,6 +110,30 @@ pub enum Primitive {
     Result(LazyType, LazyType),
 }
 
+impl Primitive {
+    /// Get information about the composition operator relating the types this type is composed of.
+    pub fn type_type(&self) -> TypeType {
+        match &self {
+            Primitive::Bool
+            | Primitive::Usize
+            | Primitive::U32
+            | Primitive::String
+            | Primitive::Vec(_) => TypeType::Product,
+            Primitive::Option(_) | Primitive::Result(_, _) => TypeType::Sum,
+        }
+    }
+}
+
+impl ReferencedTypes for Primitive {
+    fn referenced_types(&self) -> Vec<LazyType> {
+        match self {
+            Primitive::Bool | Primitive::Usize | Primitive::String | Primitive::U32 => vec![],
+            Primitive::Vec(ty) | Primitive::Option(ty) => vec![*ty],
+            Primitive::Result(ty0, ty1) => vec![*ty0, *ty1],
+        }
+    }
+}
+
 
 
 // =======================
@@ -123,9 +145,8 @@ pub enum Primitive {
 pub struct TypeId(std::any::TypeId);
 
 impl TypeId {
-    /// Obtain a unique identifier for a type.
-    pub fn of<T: ?Sized + Reflect>() -> Self {
-        Self(std::any::TypeId::of::<T::Static>())
+    pub fn new(id: std::any::TypeId) -> Self {
+        Self(id)
     }
 }
 
@@ -133,6 +154,12 @@ impl TypeId {
 /// `#[reflect(subtype)]`, if any. Used in the implementation of the `subtype` transform.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct GenericTypeId(std::any::TypeId);
+
+impl GenericTypeId {
+    pub fn new(id: std::any::TypeId) -> Self {
+        Self(id)
+    }
+}
 
 /// Identifies a type, and can be evaluated to obtain the type's definition.
 ///
@@ -144,9 +171,8 @@ pub struct LazyType {
 }
 
 impl LazyType {
-    pub fn of<T: ?Sized + Reflect>() -> Self {
-        let id = TypeId::of::<T>();
-        let evaluate = <T as Reflect>::reflect;
+    #[allow(missing_docs)]
+    pub fn new(id: TypeId, evaluate: Thunk<TypeData>) -> Self {
         Self { id, evaluate }
     }
 

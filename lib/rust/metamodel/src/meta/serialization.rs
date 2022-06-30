@@ -1,6 +1,6 @@
-//! Serialization analysis on abstracted representations.
+//! Serialization analysis on meta representations.
 
-use crate::abstracted::*;
+use crate::meta::*;
 use std::mem::take;
 
 

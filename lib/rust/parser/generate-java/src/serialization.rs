@@ -1,4 +1,4 @@
-use enso_reflect::java::*;
+use enso_metamodel::java::*;
 
 
 

@@ -1,4 +1,4 @@
-use crate::abstracted;
+use crate::meta;
 use crate::rust::*;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -6,41 +6,39 @@ use std::mem::take;
 
 
 
-// ==========================
-// === Rust to Abstracted ===
-// ==========================
+// ====================
+// === Rust to Meta ===
+// ====================
 
-pub fn to_abstracted(
-    ty: TypeData,
-) -> (abstracted::TypeGraph, BTreeMap<TypeId, abstracted::TypeId>) {
-    let mut to_abstracted = ToAbstracted::new();
-    let root_ = to_abstracted.run(ty);
-    to_abstracted.graph.gc(vec![root_]);
-    (to_abstracted.graph, to_abstracted.rust_to_abstracted)
+pub fn to_meta(ty: TypeData) -> (meta::TypeGraph, BTreeMap<TypeId, meta::TypeId>) {
+    let mut to_meta = ToMeta::new();
+    let root_ = to_meta.run(ty);
+    to_meta.graph.gc(vec![root_]);
+    (to_meta.graph, to_meta.rust_to_meta)
 }
 
 #[derive(Debug, Default)]
-pub struct ToAbstracted {
+pub struct ToMeta {
     // Outputs
-    rust_to_abstracted: BTreeMap<TypeId, abstracted::TypeId>,
-    graph:              abstracted::TypeGraph,
+    rust_to_meta: BTreeMap<TypeId, meta::TypeId>,
+    graph:        meta::TypeGraph,
     // Intermediate state
-    interfaces:         Vec<(abstracted::TypeId, abstracted::TypeId)>,
-    parent_types:       BTreeMap<GenericTypeId, (abstracted::TypeName, abstracted::Data, usize)>,
-    subtypings:         Vec<(GenericTypeId, TypeId, abstracted::TypeId)>,
-    flatten:            BTreeSet<abstracted::FieldId>,
+    interfaces:   Vec<(meta::TypeId, meta::TypeId)>,
+    parent_types: BTreeMap<GenericTypeId, (meta::TypeName, meta::Data, usize)>,
+    subtypings:   Vec<(GenericTypeId, TypeId, meta::TypeId)>,
+    flatten:      BTreeSet<meta::FieldId>,
 }
 
-impl ToAbstracted {
+impl ToMeta {
     fn new() -> Self {
         Default::default()
     }
 }
 
-impl ToAbstracted {
+impl ToMeta {
     fn named_struct<'f>(
         &mut self,
-        id_: abstracted::TypeId,
+        id_: meta::TypeId,
         name: &str,
         fields: impl IntoIterator<Item = &'f NamedField>,
         erased: Option<GenericTypeId>,
@@ -54,16 +52,16 @@ impl ToAbstracted {
                 child_field = Some((i, field.type_.id));
                 continue;
             }
-            let type_ = self.rust_to_abstracted[&field.type_.id];
+            let type_ = self.rust_to_meta[&field.type_.id];
             let name = field_name(&field.name);
-            let mut field_ = abstracted::Field::named(name, type_);
+            let mut field_ = meta::Field::named(name, type_);
             if field.flatten {
                 self.flatten.insert(field_.id());
             }
             field_.hide = field.hide;
             body.push(field_);
         }
-        let data = abstracted::Data::Struct(body);
+        let data = meta::Data::Struct(body);
         let name = type_name(name);
         if let Some((index, field)) = child_field {
             let erased = erased.unwrap();
@@ -71,24 +69,23 @@ impl ToAbstracted {
             self.subtypings.push((erased, field, id_));
             return;
         }
-        let ty = abstracted::Type::new(name, data);
+        let ty = meta::Type::new(name, data);
         self.graph.set(id_, ty);
     }
 
-    fn unnamed_struct(&mut self, id_: abstracted::TypeId, name: &str, fields: &[UnnamedField]) {
-        let abstract_field = |field: &UnnamedField| {
-            abstracted::Field::unnamed(self.rust_to_abstracted[&field.type_.id])
-        };
+    fn unnamed_struct(&mut self, id_: meta::TypeId, name: &str, fields: &[UnnamedField]) {
+        let abstract_field =
+            |field: &UnnamedField| meta::Field::unnamed(self.rust_to_meta[&field.type_.id]);
         let data = fields.iter().map(abstract_field).collect();
-        let data = abstracted::Data::Struct(data);
+        let data = meta::Data::Struct(data);
         let name = type_name(name);
-        let ty = abstracted::Type::new(name, data);
+        let ty = meta::Type::new(name, data);
         self.graph.set(id_, ty);
     }
 
     fn struct_(
         &mut self,
-        id_: abstracted::TypeId,
+        id_: meta::TypeId,
         name: &str,
         fields: &Fields,
         erased: Option<GenericTypeId>,
@@ -100,19 +97,19 @@ impl ToAbstracted {
         }
     }
 
-    fn unit_struct(&mut self, id_: abstracted::TypeId, name: &str) {
-        let data = abstracted::Data::Struct(vec![]);
+    fn unit_struct(&mut self, id_: meta::TypeId, name: &str) {
+        let data = meta::Data::Struct(vec![]);
         let name = type_name(name);
-        let ty = abstracted::Type::new(name, data);
+        let ty = meta::Type::new(name, data);
         self.graph.set(id_, ty);
     }
 
-    fn enum_(&mut self, id_: abstracted::TypeId, name: &str, variants: &[Variant]) {
+    fn enum_(&mut self, id_: meta::TypeId, name: &str, variants: &[Variant]) {
         let name = type_name(name);
         let children = variants.iter().map(|Variant { ident, fields, transparent }| {
             if *transparent {
                 let field = &fields.as_wrapped_type().unwrap().id;
-                let field_ = self.rust_to_abstracted[field];
+                let field_ = self.rust_to_meta[field];
                 self.interfaces.push((id_, field_));
                 field_
             } else {
@@ -122,36 +119,34 @@ impl ToAbstracted {
                 new_
             }
         });
-        let data = abstracted::Data::Struct(vec![]);
-        let mut ty = abstracted::Type::new(name, data);
+        let data = meta::Data::Struct(vec![]);
+        let mut ty = meta::Type::new(name, data);
         ty.abstract_ = true;
         ty.closed = true;
         ty.discriminants = children.enumerate().collect();
         self.graph.set(id_, ty);
     }
 
-    fn primitive(&mut self, id_: abstracted::TypeId, name: &str, primitive: &Primitive) {
+    fn primitive(&mut self, id_: meta::TypeId, name: &str, primitive: &Primitive) {
         let primitive = match primitive {
-            Primitive::Bool => abstracted::Primitive::Bool,
-            Primitive::U32 => abstracted::Primitive::U32,
+            Primitive::Bool => meta::Primitive::Bool,
+            Primitive::U32 => meta::Primitive::U32,
             // In platform-independent formats, a `usize` is serialized as 64 bits.
-            Primitive::Usize => abstracted::Primitive::U64,
-            Primitive::String => abstracted::Primitive::String,
-            Primitive::Vec(t0) => abstracted::Primitive::Sequence(self.rust_to_abstracted[&t0.id]),
-            Primitive::Option(t0) => abstracted::Primitive::Option(self.rust_to_abstracted[&t0.id]),
-            Primitive::Result(t0, t1) => abstracted::Primitive::Result(
-                self.rust_to_abstracted[&t0.id],
-                self.rust_to_abstracted[&t1.id],
-            ),
+            Primitive::Usize => meta::Primitive::U64,
+            Primitive::String => meta::Primitive::String,
+            Primitive::Vec(t0) => meta::Primitive::Sequence(self.rust_to_meta[&t0.id]),
+            Primitive::Option(t0) => meta::Primitive::Option(self.rust_to_meta[&t0.id]),
+            Primitive::Result(t0, t1) =>
+                meta::Primitive::Result(self.rust_to_meta[&t0.id], self.rust_to_meta[&t1.id]),
         };
-        let data = abstracted::Data::Primitive(primitive);
+        let data = meta::Data::Primitive(primitive);
         let name = type_name(name);
-        let ty = abstracted::Type::new(name, data);
+        let ty = meta::Type::new(name, data);
         self.graph.set(id_, ty);
     }
 }
 
-impl ToAbstracted {
+impl ToMeta {
     fn remove_transparent(
         &mut self,
         types: &mut BTreeMap<TypeId, TypeData>,
@@ -186,21 +181,21 @@ impl ToAbstracted {
         alias
     }
 
-    pub fn run(&mut self, ty: TypeData) -> abstracted::TypeId {
+    pub fn run(&mut self, ty: TypeData) -> meta::TypeId {
         let root_rust_id = ty.id;
         let mut rust_types = collect_types(ty);
         let aliases = self.remove_transparent(&mut rust_types);
         for id in rust_types.keys() {
             let id_ = self.graph.reserve_type_id();
-            self.rust_to_abstracted.insert(*id, id_);
+            self.rust_to_meta.insert(*id, id_);
         }
         for (id, target) in aliases {
-            let target_ = self.rust_to_abstracted[&target];
-            self.rust_to_abstracted.insert(id, target_);
+            let target_ = self.rust_to_meta[&target];
+            self.rust_to_meta.insert(id, target_);
         }
         for (&id, rust) in &rust_types {
             let name = &rust.name;
-            let id_ = self.rust_to_abstracted[&id];
+            let id_ = self.rust_to_meta[&id];
             let erased = Some(rust.subtype_erased);
             match &rust.data {
                 Data::Struct(Struct { fields, transparent: _ }) =>
@@ -214,8 +209,8 @@ impl ToAbstracted {
             assert_eq!(None, old_parent);
         }
         self.generate_subtypes(&rust_types);
-        abstracted::transform::flatten(&mut self.graph, &mut self.flatten);
-        self.rust_to_abstracted[&root_rust_id]
+        meta::transform::flatten(&mut self.graph, &mut self.flatten);
+        self.rust_to_meta[&root_rust_id]
     }
 
     fn generate_subtypes(&mut self, rust_types: &BTreeMap<TypeId, TypeData>) {
@@ -226,7 +221,7 @@ impl ToAbstracted {
             let field_ty = &rust_types[field];
             match &field_ty.data {
                 Data::Enum(_) => {
-                    let field_ = self.rust_to_abstracted[field];
+                    let field_ = self.rust_to_meta[field];
                     let (name, wrapper_data, index) = self.parent_types.remove(erased).unwrap();
                     // Move the Enum: We're merging the wrapper data into it, so any reference
                     // to it that wasn't through the wrapper must be an error.
@@ -255,7 +250,7 @@ impl ToAbstracted {
                 //    "Unhandled: #[reflect(subtype)] that is never instantiated with an enum.";
                 //let parent_ = parent_ids.get(erased).expect(instantiated_with_enum);
                 //let id = *self.transparented_types.get(field).expect("Unimplemented.");
-                let id = *self.rust_to_abstracted.get(field).expect("Unimplemented.");
+                let id = *self.rust_to_meta.get(field).expect("Unimplemented.");
                 aliases.push((*id_, id));
             }
         }
@@ -285,10 +280,10 @@ fn collect_types(root: TypeData) -> BTreeMap<TypeId, TypeData> {
     new_types
 }
 
-fn field_name(s: &str) -> abstracted::FieldName {
-    abstracted::FieldName::from_snake_case(s)
+fn field_name(s: &str) -> meta::FieldName {
+    meta::FieldName::from_snake_case(s)
 }
 
-fn type_name(s: &str) -> abstracted::TypeName {
-    abstracted::TypeName::from_pascal_case(s)
+fn type_name(s: &str) -> meta::TypeName {
+    meta::TypeName::from_pascal_case(s)
 }

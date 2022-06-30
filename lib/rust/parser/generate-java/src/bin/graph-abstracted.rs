@@ -1,21 +1,21 @@
-//! Generate a GraphViz graph of parser datatype relationships in the `abstracted` metamodel.
+//! Generate a GraphViz graph of parser datatype relationships in the `meta` metamodel.
 //!
 //! Usage:
 //! ```console
-//! graph-abstracted > abstracted.dot
-//! dot -Tx11 abstracted.dot
+//! graph-meta > meta.dot
+//! dot -Tx11 meta.dot
 //! ```
 
 
 
-// =============================================
-// === Graph for `abstracted` representation ===
-// =============================================
+// =======================================
+// === Graph for `meta` representation ===
+// =======================================
 
 use enso_reflect::Reflect;
 
 fn main() {
-    let (graph, _) = enso_reflect::rust::to_abstracted(enso_parser::syntax::Tree::reflect());
-    let rendered = enso_reflect::abstracted::graphviz::graph(&graph);
+    let (graph, _) = enso_metamodel::rust::to_meta(enso_parser::syntax::Tree::reflect());
+    let rendered = enso_metamodel::meta::graphviz::graph(&graph);
     println!("{}", rendered);
 }

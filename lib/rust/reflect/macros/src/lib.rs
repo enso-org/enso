@@ -17,7 +17,7 @@
 //! ## Attributes for Abstraction Customization
 //!
 //! Application of `#[derive(Reflect)]` to data types is enough to enable reflection over Rust
-//! types. However, if the types will be abstracted with `enso_reflect::abstracted` (i.e. for
+//! types. However, if the types will be abstracted with `enso_metamodel::meta` (i.e. for
 //! transpilation to another language), some customization is likely: Direct translation into
 //! another language would reproduce Rust patterns where they are likely not necessary (on top of
 //! the target-language patterns introduced by the translation), resulting in an overly-complex
@@ -203,7 +203,7 @@ pub fn derive_reflect(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         impl<#generic_bounds> reflect::Reflect for #ident<#generics> {
             type Static = #ident<#(#static_params),*>;
             type SubtypeErased = #subtype_erased;
-            fn reflect() -> reflect::rust::TypeData {
+            fn reflect() -> metamodel::rust::TypeData {
                 #type_expr
             }
         }

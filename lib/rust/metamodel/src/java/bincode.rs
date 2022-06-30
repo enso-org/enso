@@ -178,17 +178,20 @@ impl DeserializerBuilder {
                 writeln!(body, "{ty_name} {output};").unwrap();
                 writeln!(body, "int {discriminant} = {message}.get32();").unwrap();
                 writeln!(body, "switch ({discriminant}) {{").unwrap();
-                writeln!(body,
+                writeln!(
+                    body,
                     "case 0: {output} = {name}.right({t1}.deserialize({message})); break;"
-                ).unwrap();
-                writeln!(body,
+                )
+                .unwrap();
+                writeln!(
+                    body,
                     "case 1: {output} = {name}.left({t0}.deserialize({message})); break;"
-                ).unwrap();
+                )
+                .unwrap();
                 let err = format!("Unknown discriminant in {ty_name}.");
                 let serialization = &self.support;
-                writeln!(body,
-                    "default: throw new {serialization}.FormatException({err:?}); }}"
-                ).unwrap();
+                writeln!(body, "default: throw new {serialization}.FormatException({err:?}); }}")
+                    .unwrap();
             }
             _ => unimplemented!("Deserialize builtin: {}", &ty.name),
         }
