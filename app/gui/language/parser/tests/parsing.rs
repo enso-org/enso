@@ -151,7 +151,7 @@ impl Fixture {
 
     fn deserialize_blank(&mut self) {
         let expect_blank = |_: &Blank| {};
-        let _ast = self.test_shape("_", expect_blank);
+        self.test_shape("_", expect_blank);
     }
 
     fn deserialize_var(&mut self) {

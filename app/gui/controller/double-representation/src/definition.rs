@@ -91,7 +91,7 @@ pub struct CannotFindChild(Crumb);
 // =================
 
 /// Describes the kind of code block (scope) to which definition can belong.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScopeKind {
     /// Module scope is a file's top-level block.
     Root,

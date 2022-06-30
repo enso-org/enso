@@ -1,5 +1,5 @@
 [toolchain]
-channel = "nightly-2022-04-23"
+channel = "nightly-2022-06-30"
 components = ["clippy"]
 profile = "default"
 targets = ["wasm32-unknown-unknown"]

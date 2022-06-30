@@ -687,7 +687,7 @@ impl From<known::Module> for Info {
 // =================
 
 /// Structure describing where to place something being added to the module.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Placement {
     /// Place at the beginning of the module.
     Begin,
