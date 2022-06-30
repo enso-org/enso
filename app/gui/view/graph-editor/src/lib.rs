@@ -1617,45 +1617,24 @@ impl GraphEditorModelWithNetwork {
             let profiling_max_duration              = &self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration <+ self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration(profiling_max_duration.value());
-
-
-            // === Panning camera to created node ===
-
-            // pos_update_count <- node.output.position.count();
-            // first_update_of_pos <- pos_update_count.filter(|i| *i==1).constant(());
-            // first_update_of_pos_if_editing <- first_update_of_pos.gate(&self.frp.node_editing);
-            // eval first_update_of_pos_if_editing([model](_) model.pan_camera_to_node(node_id));
         }
 
 
         // === Panning camera to created node ===
 
-        // TODO: we don't need to count if we use this new network/bridge - it'll only trigger
-        // on first call, for the most recent node, and then be dropped IIUC.
-
+        // TODO: explain that we don't need to count if we use this new network/bridge - it'll only
+        // trigger on first call, for the most recent node, and then be dropped IIUC.
         let camera_pan_network = frp::Network::new("new_node_camera_pan_network");
         // FIXME: better name
         let camera_pan_network_ref = self.new_node_camera_pan_network.clone();
-        // frp::extend! { camera_pan_network
-        //     pos_update_count <- node.output.position.count();
-        //     first_update_of_pos <- pos_update_count.filter(|i| *i==1).constant(());
-        // }
-
         frp::new_bridge_network! {
             [self.network, node_network, camera_pan_network] graph_node_camera_pan_bridge
-
             pos_if_editing <- node.output.position.gate(&self.frp.node_editing);
-            trace pos_if_editing;
-
             eval pos_if_editing([model](_) {
-                // camera_pan_network_ref.replace(None);
-                // camera_pan_network_ref.take();
-                // camera_pan_network_ref.borrow_mut().take();
                 *camera_pan_network_ref.borrow_mut() = None;
                 model.pan_camera_to_node(node_id)
             });
         }
-        // self.new_node_camera_pan_network.borrow_mut().replace(camera_pan_network);
         *self.new_node_camera_pan_network.borrow_mut() = Some(camera_pan_network);
 
         node.set_view_mode(self.model.frp.view_mode.value());
