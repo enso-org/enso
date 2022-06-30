@@ -153,6 +153,14 @@ case object GlobalNames extends IRPass {
                   hasDefaultsSuspended = false,
                   lit.location
                 )
+                fun
+                  .getMetadata(ExpressionAnnotations)
+                  .foreach(annotationsMeta =>
+                    app.updateMetadata(
+                      ExpressionAnnotations -->> annotationsMeta
+                    )
+                  )
+                fun.passData.remove(ExpressionAnnotations)
                 app
               }
             case Right(value) =>
