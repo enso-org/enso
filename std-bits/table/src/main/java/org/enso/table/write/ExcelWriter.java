@@ -234,8 +234,8 @@ public class ExcelWriter {
 
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
         headers = hasHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
-            ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
-            : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+            ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+            : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
 
       checkExistingRange(workbook, expanded, replace, sheet);
@@ -248,8 +248,8 @@ public class ExcelWriter {
 
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
         headers = hasHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
-            ? ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
-            : ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+            ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+            : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
 
       checkExistingRange(workbook, range, replace, sheet);
@@ -262,7 +262,7 @@ public class ExcelWriter {
     int topRow = range.isWholeColumn() ? 1 : range.getTopRow();
     int bottomRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
     int leftColumn = range.isWholeRow() ? 1 : range.getLeftColumn();
-    int rightColumn = range.isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : range.getLeftColumn();
+    int rightColumn = range.isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : range.getRightColumn();
 
     for (int row = topRow; row <= bottomRow; row++) {
       ExcelRow excelRow = sheet.get(row);
