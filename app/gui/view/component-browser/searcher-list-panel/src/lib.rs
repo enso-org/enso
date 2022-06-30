@@ -23,6 +23,7 @@
 #![feature(unboxed_closures)]
 #![feature(trace_macros)]
 #![feature(const_trait_impl)]
+#![feature(derive_default_enum)]
 #![feature(slice_as_chunks)]
 #![feature(option_result_contains)]
 // === Standard Linter Configuration ===
@@ -60,6 +61,7 @@ use crate::navigator::Navigator;
 use crate::navigator::NavigatorStyle;
 use crate::navigator::Section;
 pub use column_grid::LabeledAnyModelProvider;
+use component_group::icon;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -419,9 +421,12 @@ pub struct Model {
     logger:              Logger,
     display_object:      display::object::Instance,
     background:          background::View,
-    // FIXME[#182593513]: This is a hack to mitigate shadow rendering issues. Remove when the
-    //   issue is fixed and replace with a shadow embedded into the [`background`] shape.
-    //   See https://www.pivotaltracker.com/story/show/182593513.
+    // FIXME[#182593513]: This separate shape for navigator shadow can be removed and replaced
+    //   with a shadow embedded into the [`background`] shape when the
+    //   [issue](https://www.pivotaltracker.com/story/show/182593513) is fixed.
+    //   To display the shadow correctly it needs to be clipped to the [`background`] shape, but
+    //   we can't do that because of a bug in the renderer. So instead we add the shadow as a
+    //   separate shape and clip it using `size.set(...)`.
     navigator_shadow:    navigator_shadow::View,
     scroll_area:         ScrollArea,
     favourites_section:  ColumnSection,
@@ -549,7 +554,7 @@ impl Model {
     }
 
     /// Scroll to the bottom of the [`section`].
-    fn show_section(&self, section: Section, style: &Style) {
+    fn scroll_to(&self, section: Section, style: &Style) {
         let sub_modules_height = self.sub_modules_section.height(style);
         let favourites_section_height = self.favourites_section.height(style);
         let local_scope_height = self.local_scope_section.height(style);
@@ -557,7 +562,7 @@ impl Model {
         let section_bottom_y = match section {
             SubModules => sub_modules_height,
             LocalScope => sub_modules_height + local_scope_height,
-            Favourites => sub_modules_height + local_scope_height + favourites_section_height,
+            Favorites => sub_modules_height + local_scope_height + favourites_section_height,
         };
         let target_y = section_bottom_y - style.size_inner().y;
         self.scroll_area.scroll_to_y(target_y);
@@ -754,14 +759,14 @@ impl component::Frp<Model> for Frp {
 
             chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
             show_section <- all(&chosen_section, &layout_update);
-            eval show_section(((section, layout)) model.show_section(*section, layout));
+            eval show_section(((section, layout)) model.scroll_to(*section, layout));
 
 
             // === Navigator icons colors ===
 
             let strong_color = style.get_color(list_panel_theme::navigator::icon_strong_color);
             let weak_color = style.get_color(list_panel_theme::navigator::icon_weak_color);
-            let params = navigator::Params { strong_color, weak_color };
+            let params = icon::Params { strong_color, weak_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
         }
         init_layout.emit(())

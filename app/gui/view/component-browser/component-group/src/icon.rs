@@ -1,9 +1,12 @@
 //! All icons that are used in the Component Browser.
 
 
+pub use entry::Entry;
+pub use entry::Params;
 
 mod common_part;
 mod define_macro;
+mod entry;
 
 use crate::icon::common_part::*;
 use crate::prelude::*;
@@ -106,7 +109,7 @@ crate::define_icons! {
             pointer_events = false;
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let dot = Circle(2.0.px());
-                let outer = Circle(6.5.px()) - Circle(5.5.px());
+                let outer = Circle(7.0.px()) - Circle(6.0.px());
                 let shape = dot + outer;
                 let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
