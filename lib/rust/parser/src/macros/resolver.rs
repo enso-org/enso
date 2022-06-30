@@ -171,8 +171,8 @@ impl<'s> TryAsRef<PartiallyMatchedMacro<'s>> for ItemOrPartiallyMatchedMacro<'s>
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 pub struct Resolver<'s> {
-    current_frame: PartiallyMatchedMacro<'s>,
-    frame_stack:   Vec<PartiallyMatchedMacro<'s>>,
+    current_macro: PartiallyMatchedMacro<'s>,
+    macro_stack:   Vec<PartiallyMatchedMacro<'s>>,
 }
 
 /// Result of the macro resolution step.
@@ -187,9 +187,23 @@ impl<'s> Resolver<'s> {
     /// New resolver with a special "root" segment definition allowing parsing arbitrary
     /// expressions.
     pub fn new_root() -> Self {
-        let current_frame = PartiallyMatchedMacro::new_root();
-        let frame_stack = default();
-        Self { current_frame, frame_stack }
+        let current_macro = PartiallyMatchedMacro::new_root();
+        let macro_stack = default();
+        Self { current_macro, macro_stack }
+    }
+
+    fn replace_current_with_parent_macro(&mut self, mut parent_macro: PartiallyMatchedMacro<'s>) {
+        mem::swap(&mut parent_macro, &mut self.current_macro);
+        let mut child_macro = parent_macro;
+        self.current_macro.current_segment.body.push(child_macro.into());
+    }
+
+    /// Pop the macro stack if the current token is reserved. For example, when matching the
+    /// `if a if b then c then d` expression, the token `then` after the token `c` will be
+    /// considered reserved and the macro resolution of `if b then c` will be popped from the stack.
+    fn pop_macro_stack_if_reserved(&mut self, repr: &str) -> Option<PartiallyMatchedMacro<'s>> {
+        let reserved = self.macro_stack.iter().any(|p| p.possible_next_segments.contains_key(repr));
+        reserved.and_option_from(|| self.macro_stack.pop())
     }
 
     /// Run the resolver. Returns the resolved AST.
@@ -210,8 +224,8 @@ impl<'s> Resolver<'s> {
         }
         macro_rules! trace_state {
             () => {
-                event!(TRACE, "Current macro:\n{:#?}", self.current_frame);
-                event!(TRACE, "Parent macros:\n{:#?}", self.frame_stack);
+                event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
+                event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
             };
         }
         next_token!();
@@ -230,7 +244,7 @@ impl<'s> Resolver<'s> {
                     next_token!()
                 }
                 Step::NormalToken(item) => {
-                    self.current_frame.current_segment.body.push(item.into());
+                    self.current_macro.current_segment.body.push(item.into());
                     trace_state!();
                     next_token!();
                 }
@@ -238,12 +252,12 @@ impl<'s> Resolver<'s> {
         }
 
         event!(TRACE, "Finishing resolution. Popping the macro stack.");
-        while let Some(parent_macro) = self.frame_stack.pop() {
+        while let Some(parent_macro) = self.macro_stack.pop() {
             self.replace_current_with_parent_macro(parent_macro);
         }
 
         trace_state!();
-        let (tree, rest) = Self::resolve(self.current_frame);
+        let (tree, rest) = Self::resolve(self.current_macro);
         if !rest.is_empty() {
             panic!(
                 "Internal error. Not all tokens were consumed by the macro resolver:\n{:#?}",
@@ -253,87 +267,35 @@ impl<'s> Resolver<'s> {
         tree
     }
 
-    fn replace_current_with_parent_macro(&mut self, mut parent_macro: PartiallyMatchedMacro<'s>) {
-        mem::swap(&mut parent_macro, &mut self.current_frame);
-        let mut child_macro = parent_macro;
-        self.current_frame.current_segment.body.push(child_macro.into());
-    }
-
-    fn resolve(m: PartiallyMatchedMacro<'s>) -> (syntax::Tree<'s>, VecDeque<syntax::Item<'s>>) {
-        let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
-        let resolved_segments = segments.mapped(|segment| {
-            let mut ss: VecDeque<syntax::Item<'s>> = default();
-            for item in segment.body {
-                match item {
-                    ItemOrPartiallyMatchedMacro::SyntaxItem(t) => ss.push_back(t),
-                    ItemOrPartiallyMatchedMacro::PartiallyMatchedMacro(m2) => {
-                        let (tree, rest) = Self::resolve(m2);
-                        ss.push_back(tree.into());
-                        ss.extend(rest);
-                    }
-                }
-            }
-            (segment.header, ss)
-        });
-
-        if let Some(macro_def) = m.matched_macro_def {
-            let mut def_segments = macro_def.segments.to_vec().into_iter();
-            let mut sx = resolved_segments.mapped(|(header, items)| {
-                let def = def_segments.next().unwrap_or_else(|| panic!("Internal error."));
-                (header, def.pattern.resolve(items))
-            });
-
-            // Moving not pattern-matched tokens of the last segment to parent.
-            let mut rest = VecDeque::new();
-            match &mut sx.last_mut().1 {
-                Err(rest2) => mem::swap(&mut rest, rest2),
-                Ok(t) => mem::swap(&mut rest, &mut t.rest),
-            }
-            // TODO: handle unmatched cases, handle .rest
-            let sx = sx.mapped(|t| pattern::MatchedSegment::new(t.0, t.1.unwrap().matched));
-
-            let out = (macro_def.body)(sx);
-            (out, rest)
-        } else {
-            todo!("Handling non-fully-resolved macros")
-        }
-    }
-
-    fn pop_frame_stack_if_reserved(&mut self, repr: &str) -> Option<PartiallyMatchedMacro<'s>> {
-        let reserved = self.frame_stack.iter().any(|p| p.possible_next_segments.contains_key(repr));
-        if reserved {
-            self.frame_stack.pop()
-        } else {
-            None
-        }
-    }
-
     fn process_token(&mut self, root_macro_map: &SegmentMap<'s>, token: Token<'s>) -> Step<'s> {
         let repr = &**token.code;
-        if let Some(subsegments) = self.current_frame.possible_next_segments.get(repr) {
+        if let Some(subsegments) = self.current_macro.possible_next_segments.get(repr) {
             event!(TRACE, "Entering next segment of the current macro.");
             let mut new_match_tree =
-                Self::enter(&mut self.current_frame.matched_macro_def, subsegments);
+                Self::move_to_next_segment(&mut self.current_macro.matched_macro_def, subsegments);
             let mut current_segment = MatchedSegment::new(token);
-            mem::swap(&mut new_match_tree, &mut self.current_frame.possible_next_segments);
-            mem::swap(&mut self.current_frame.current_segment, &mut current_segment);
-            self.current_frame.resolved_segments.push(current_segment);
+            mem::swap(&mut new_match_tree, &mut self.current_macro.possible_next_segments);
+            mem::swap(&mut self.current_macro.current_segment, &mut current_segment);
+            self.current_macro.resolved_segments.push(current_segment);
             Step::NewSegmentStarted
-        } else if let Some(parent_macro) = self.pop_frame_stack_if_reserved(repr) {
+        } else if let Some(parent_macro) = self.pop_macro_stack_if_reserved(repr) {
             event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
             self.replace_current_with_parent_macro(parent_macro);
             Step::MacroStackPop(token.into())
         } else if let Some(segments) = root_macro_map.get(repr) {
             event!(TRACE, "Starting a new nested macro resolution.");
             let mut matched_macro_def = default();
-            let mut current_frame = PartiallyMatchedMacro {
+            let mut current_macro = PartiallyMatchedMacro {
                 current_segment: MatchedSegment { header: token, body: default() },
                 resolved_segments: default(),
-                possible_next_segments: Self::enter(&mut matched_macro_def, segments),
+                possible_next_segments: Self::move_to_next_segment(
+                    &mut matched_macro_def,
+                    segments,
+                ),
                 matched_macro_def,
             };
-            mem::swap(&mut self.current_frame, &mut current_frame);
-            self.frame_stack.push(current_frame);
+            mem::swap(&mut self.current_macro, &mut current_macro);
+            self.macro_stack.push(current_macro);
             Step::NewSegmentStarted
         } else {
             event!(TRACE, "Consuming token as current segment body.");
@@ -341,27 +303,80 @@ impl<'s> Resolver<'s> {
         }
     }
 
-    fn enter(
+    /// Resolve the [`PartiallyMatchedMacro`]. Returns the AST and the non-used tokens. For example,
+    /// the resolution of the `(a)` macro in the `(a) x (b)` expression will return the `(a)` AST
+    /// and the `x` and `(b)` items (already resolved).
+    fn resolve(m: PartiallyMatchedMacro<'s>) -> (syntax::Tree<'s>, VecDeque<syntax::Item<'s>>) {
+        let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
+        let resolved_segments = segments.mapped(|segment| {
+            let mut items: VecDeque<syntax::Item<'s>> = default();
+            for item in segment.body {
+                match item {
+                    ItemOrPartiallyMatchedMacro::SyntaxItem(t) => items.push_back(t),
+                    ItemOrPartiallyMatchedMacro::PartiallyMatchedMacro(unresolved_macro) => {
+                        let (resolved_macro, unused_items) = Self::resolve(unresolved_macro);
+                        items.push_back(resolved_macro.into());
+                        items.extend(unused_items);
+                    }
+                }
+            }
+            (segment.header, items)
+        });
+
+        if let Some(macro_def) = m.matched_macro_def {
+            let mut def_segments = macro_def.segments.to_vec().into_iter();
+            let mut pattern_matched_segments = resolved_segments.mapped(|(header, items)| {
+                let err = "Internal error. Macro definition and match segments count mismatch.";
+                let def = def_segments.next().unwrap_or_else(|| panic!("{}", err));
+                (header, def.pattern.resolve(items))
+            });
+
+            // Moving not pattern-matched tokens of the last segment to parent.
+            let mut not_used_items_of_last_segment = VecDeque::new();
+            match &mut pattern_matched_segments.last_mut().1 {
+                Err(rest) => mem::swap(&mut not_used_items_of_last_segment, rest),
+                Ok(segment) => mem::swap(&mut not_used_items_of_last_segment, &mut segment.rest),
+            }
+
+            let pattern_matched_segments =
+                pattern_matched_segments.mapped(|(header, match_result)| match match_result {
+                    Ok(result) => {
+                        if !result.rest.is_empty() {
+                            todo!("Mark unmatched tokens as unexpected.");
+                        }
+                        pattern::MatchedSegment::new(header, result.matched)
+                    }
+                    Err(_unmatched_items) => todo!("Mark unmatched tokens as unexpected."),
+                });
+
+            let out = (macro_def.body)(pattern_matched_segments);
+            (out, not_used_items_of_last_segment)
+        } else {
+            todo!("Macro was not matched with any known macro definition. This should return an AST node indicating invalid match.")
+        }
+    }
+
+    /// Move the resolution to the next segment. Takes possible next segments and merges them in a
+    /// new [`SegmentMap`]. If after moving to the next segment there is a macro definition that is
+    /// fully matched, its definition will be recorded.
+    fn move_to_next_segment(
         matched_macro_def: &mut Option<Rc<macros::Definition<'s>>>,
-        path: &[SegmentEntry<'s>],
+        possible_segments: &[SegmentEntry<'s>],
     ) -> SegmentMap<'s> {
         *matched_macro_def = None;
         let mut new_section_tree = SegmentMap::default();
-        for v in path {
-            if let Some(first) = v.required_segments.head() {
-                let tail = v.required_segments.tail().cloned().unwrap_or_default();
-                let definition = v.definition.clone_ref();
-                let x = SegmentEntry { required_segments: tail, definition };
+        for segment_entry in possible_segments {
+            if let Some(first) = segment_entry.required_segments.head() {
+                let tail = segment_entry.required_segments.tail().cloned().unwrap_or_default();
+                let definition = segment_entry.definition.clone_ref();
+                let entry = SegmentEntry { required_segments: tail, definition };
                 if let Some(node) = new_section_tree.get_mut(&first.header) {
-                    node.push(x);
+                    node.push(entry);
                 } else {
-                    new_section_tree.insert(first.header, NonEmptyVec::singleton(x));
+                    new_section_tree.insert(first.header, NonEmptyVec::singleton(entry));
                 }
             } else {
-                if matched_macro_def.is_some() {
-                    event!(ERROR, "Internal error. Duplicate macro definition.");
-                }
-                *matched_macro_def = Some(v.definition.clone_ref());
+                *matched_macro_def = Some(segment_entry.definition.clone_ref());
             }
         }
         new_section_tree
