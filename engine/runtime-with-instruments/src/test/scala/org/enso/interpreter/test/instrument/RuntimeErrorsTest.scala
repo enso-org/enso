@@ -174,7 +174,7 @@ class RuntimeErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "The name undefined could not be found.",
+              "The name `undefined` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 8), model.Position(2, 17))),
               Some(xId)
@@ -186,7 +186,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name undefined could not be found.",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
       ),
@@ -194,7 +194,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name undefined could not be found.",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
       ),
@@ -202,7 +202,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name undefined could not be found.",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
       ),
@@ -258,7 +258,7 @@ class RuntimeErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "The name x could not be found.",
+              "The name `x` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(0, 18), model.Position(0, 19))),
               None
@@ -271,7 +271,7 @@ class RuntimeErrorsTest
         mainBodyId,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name x could not be found.",
+          "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
         )
       ),
@@ -409,7 +409,7 @@ class RuntimeErrorsTest
               Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
             ),
             Api.ExecutionResult.Diagnostic.error(
-              "The name undefined could not be found.",
+              "The name `undefined` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 8), model.Position(3, 17))),
               Some(xId)
@@ -421,7 +421,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name undefined could not be found.",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
       ),
@@ -983,7 +983,7 @@ class RuntimeErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "The name foo could not be found.",
+              "The name `foo` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 12), model.Position(3, 15))),
               None
@@ -995,7 +995,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name foo could not be found.",
+          "Compile error: The name `foo` could not be found.",
           Seq(xId)
         )
       ),
@@ -1003,7 +1003,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name foo could not be found.",
+          "Compile error: The name `foo` could not be found.",
           Seq(xId)
         )
       ),
@@ -1011,7 +1011,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name foo could not be found.",
+          "Compile error: The name `foo` could not be found.",
           Seq(xId)
         )
       ),
@@ -1430,7 +1430,7 @@ class RuntimeErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "The name IO could not be found.",
+              "The name `IO` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 8), model.Position(1, 10))),
               None
@@ -1442,7 +1442,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name IO could not be found.",
+          "Compile error: The name `IO` could not be found.",
           Seq(xId)
         )
       ),
@@ -1450,7 +1450,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name IO could not be found.",
+          "Compile error: The name `IO` could not be found.",
           Seq(xId)
         )
       ),

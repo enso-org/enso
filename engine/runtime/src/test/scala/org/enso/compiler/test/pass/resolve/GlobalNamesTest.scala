@@ -173,4 +173,29 @@ class GlobalNamesTest extends CompilerTest {
       app.function shouldBe an[IR.Error.Resolution]
     }
   }
+
+  "Undefined names" should {
+    "be detected and reported" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |my_func (fn = foobar) (w = fn) =
+          |    x = [1, 2, y]
+          |    x.map (+ 5)
+          |    x.fold .to_json
+          |    x + z
+          |""".stripMargin.preprocessModule.analyse
+      val unresolved = ir.preorder.collect {
+        case IR.Error.Resolution(
+              name,
+              _: IR.Error.Resolution.ResolverError,
+              _,
+              _
+            ) =>
+          name
+      }
+      unresolved.map(_.name) shouldEqual List("foobar", "y", "z")
+    }
+  }
 }

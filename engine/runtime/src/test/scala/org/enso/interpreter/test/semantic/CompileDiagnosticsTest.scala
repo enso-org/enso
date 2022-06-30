@@ -59,7 +59,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |""".stripMargin
       eval(
         code
-      ) shouldEqual "(Compile_Error 'The name my_vra could not be found.')"
+      ) shouldEqual "(Compile_Error 'The name `my_vra` could not be found.')"
     }
   }
 }

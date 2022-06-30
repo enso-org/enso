@@ -77,7 +77,6 @@ class Passes(
       TailCall,
       Patterns,
       AliasAnalysis,
-      UndefinedVariables,
       DataflowAnalysis,
       CachePreferenceAnalysis,
       UnusedBindings

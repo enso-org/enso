@@ -6877,7 +6877,7 @@ object IR {
               }
               (firstLine :: lines).mkString("\n")
             case BindingsMap.ResolutionNotFound =>
-              s"The name ${originalName.name} could not be found."
+              s"The name `${originalName.name}` could not be found."
           }
 
       }
