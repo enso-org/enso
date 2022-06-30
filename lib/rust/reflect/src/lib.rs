@@ -1,3 +1,5 @@
+//! Rust reflection for datatype definitions, and tools for operating on the data produced.
+
 // === Features ===
 #![feature(map_first_last)]
 #![feature(associated_type_defaults)]
@@ -18,6 +20,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+/// Imports for crates that `#[derive(Reflect)]`.
 pub mod prelude {
     pub use crate as reflect;
     pub use enso_reflect_macros::Reflect;

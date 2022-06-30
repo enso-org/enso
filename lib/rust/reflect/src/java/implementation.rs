@@ -1,32 +1,29 @@
 //! Generation of Java syntax implementing datatypes.
 
 use crate::java::*;
+use std::fmt::Write;
 
 
 
-// ======================
-// === Implementation ===
-// ======================
+// ===================================
+// === Implementing Java Datatypes ===
+// ===================================
 
-/// Implement a whole system of datatypes.
+/// Implement a system of datatypes.
 pub fn implement(graph: &TypeGraph, package: &str) -> Vec<syntax::Class> {
     let mut implementations = BTreeMap::new();
-    for (i, class) in graph.types.iter().enumerate() {
-        if let Some(class) = class {
-            if !class.builtin {
-                let id = TypeId(i);
-                implementations.insert(id, implement_class(graph, id));
-            }
+    for id in graph.type_ids() {
+        let class = &graph[id];
+        if !class.builtin {
+            implementations.insert(id, implement_class(graph, id));
         }
     }
-    for (i, class) in graph.types.iter().enumerate() {
-        if let Some(class) = class {
-            let id = TypeId(i);
-            if let Some(parent) = class.parent {
-                let mut inner = implementations.remove(&id).unwrap();
-                inner.static_ = true;
-                implementations.get_mut(&parent).unwrap().nested.push(inner);
-            }
+    for id in graph.type_ids() {
+        let class = &graph[id];
+        if let Some(parent) = class.parent {
+            let mut inner = implementations.remove(&id).unwrap();
+            inner.static_ = true;
+            implementations.get_mut(&parent).unwrap().nested.push(inner);
         }
     }
     for class in implementations.values_mut() {
@@ -104,6 +101,9 @@ pub fn quote_params<'a>(
     params.into_iter().map(|ty| path(graph, *ty)).collect()
 }
 
+
+// === Helpers ===
+
 fn quote_field(graph: &TypeGraph, field: &Field) -> syntax::Field {
     let Field { name, data, id: _ } = field;
     let type_ = quote_type(graph, data);
@@ -137,10 +137,8 @@ fn implement_constructor(graph: &TypeGraph, class: &Class) -> syntax::Method {
         .collect();
     let mut body = vec![];
     if let Some(parent) = class.parent {
-        let fields: Vec<_> = class_fields(graph, &graph[parent])
-            .into_iter()
-            .map(|field| format!("{}{}", &field.name, &suffix))
-            .collect();
+        let suffix = |field: &Field| format!("{}{}", &field.name, &suffix);
+        let fields: Vec<_> = class_fields(graph, &graph[parent]).into_iter().map(suffix).collect();
         body.push(format!("super({});", fields.join(", ")));
     }
     for field in &class.fields {
@@ -173,9 +171,9 @@ fn implement_hash_code(graph: &TypeGraph, class: &Class) -> syntax::Method {
 fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let object = "object";
     let that = "that";
-    let field_comparisons = class_fields(graph, class)
-        .into_iter()
-        .map(|field| field.data.fmt_equals(&field.name, &format!("{}.{}", that, &field.name)));
+    let compare =
+        |field: &Field| field.data.fmt_equals(&field.name, &format!("{that}.{}", &field.name));
+    let field_comparisons = class_fields(graph, class).into_iter().map(compare);
     let mut values = vec!["true".to_string()];
     values.extend(field_comparisons);
     let expr = values.join(" && ");
@@ -196,26 +194,19 @@ fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
 
 fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let sb = "sb";
-    let mut body = vec![
-        format!("StringBuilder {} = new StringBuilder();", sb),
-        format!("{}.append(\"{}[\");", sb, &class.name),
-    ];
-    let mut fields = class_fields(graph, class)
-        .into_iter()
-        .map(|field| format!("{}.append(String.valueOf({}));", sb, field.name.as_str()));
-    if let Some(field) = fields.next() {
-        body.push(field);
-    }
-    for field in fields {
-        body.push(format!("{}.append(\", \");", sb));
-        body.push(field);
-    }
-    body.push(format!("{}.append(\"]\");", sb));
-    body.push(format!("return {}.toString();", sb));
+    let stringify = |field: &Field| format!("{sb}.append(String.valueOf({}));", field.name);
+    let mut fields: Vec<_> = class_fields(graph, class).into_iter().map(stringify).collect();
+    let mut body = String::new();
+    let ty_name = &class.name;
+    writeln!(body, "StringBuilder {sb} = new StringBuilder();").unwrap();
+    writeln!(body, "{sb}.append(\"{ty_name}[\");").unwrap();
+    writeln!(body, "{}", fields.join(&format!("\n{sb}.append(\", \");\n"))).unwrap();
+    writeln!(body, "{sb}.append(\"]\");").unwrap();
+    writeln!(body, "return {sb}.toString();").unwrap();
     let return_ = syntax::Type::named("String");
     let mut method = syntax::Method::new("toString", return_);
     method.override_ = true;
-    method.body = body.join("\n");
+    method.body = body;
     method
 }
 

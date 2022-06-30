@@ -1,7 +1,8 @@
+//! Java syntax.
+
 use std::fmt;
 
 const TARGET_VERSION: usize = 14;
-//const TARGET_VERSION: usize = 15;
 
 
 
@@ -9,7 +10,9 @@ const TARGET_VERSION: usize = 14;
 // === Syntax Data ===
 // ===================
 
+/// A class definition.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub struct Class {
     pub package:   Option<String>,
     pub name:      String,
@@ -19,43 +22,55 @@ pub struct Class {
     pub parent:    Option<Type>,
     pub fields:    Vec<Field>,
     pub methods:   Vec<Method>,
-    pub nested:    Vec<Class>,
     pub sealed:    Option<Vec<Type>>,
+    /// Classes defined in the scope of this class.
+    pub nested:    Vec<Class>,
 }
 
+/// A class field definition.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub struct Field {
     pub type_:  Type,
     pub name:   String,
     pub final_: bool,
 }
 
+/// Identifies a type.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Type {
+    /// Class name.
     pub class:  String,
+    /// Parameter list.
     pub params: Vec<String>,
 }
 
 impl Type {
+    /// A simple type.
     pub fn named(name: impl Into<String>) -> Self {
         let class = name.into();
         let params = vec![];
         Type { class, params }
     }
 
+    /// A generic type.
     pub fn generic(name: impl Into<String>, params: Vec<String>) -> Self {
         let class = name.into();
         Type { class, params }
     }
 }
 
+/// A method.
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[allow(missing_docs)]
 pub struct Method {
     pub name:      String,
     pub arguments: Vec<(Type, String)>,
+    /// Return value, unless this is a constructor.
     pub return_:   Option<Type>,
     pub static_:   bool,
     pub final_:    bool,
+    /// Literal body, not including brackets.
     pub body:      String,
     pub override_: bool,
     pub throws:    Vec<Type>,
@@ -65,6 +80,7 @@ pub struct Method {
 // === Constructors ===
 
 impl Method {
+    /// Create a method.
     pub fn new(name: impl Into<String>, return_: Type) -> Self {
         let name = name.into();
         let return_ = Some(return_);
@@ -77,6 +93,7 @@ impl Method {
         Method { name, arguments, return_, static_, final_, body, override_, throws }
     }
 
+    /// Create a constructor.
     pub fn constructor(name: impl Into<String>) -> Self {
         let name = name.into();
         let arguments = Default::default();

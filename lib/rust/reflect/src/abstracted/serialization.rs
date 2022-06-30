@@ -108,18 +108,19 @@ enum Op {
 /// Generates test-case-generating program for a type graph.
 #[derive(Debug)]
 struct ProgramBuilder<'g> {
-    graph:      &'g TypeGraph,
-    will_visit: BTreeSet<TypeId>,
-    visited:    BTreeSet<TypeId>,
-    debuginfo:  BTreeMap<usize, String>,
-    program:    Vec<Op>,
+    graph:                 &'g TypeGraph,
+    will_visit:            BTreeSet<TypeId>,
+    visited:               BTreeSet<TypeId>,
+    debuginfo:             BTreeMap<usize, String>,
+    program:               Vec<Op>,
+    basecase_discriminant: BTreeMap<TypeId, usize>,
 }
 
 impl<'g> ProgramBuilder<'g> {
     fn new(graph: &'g TypeGraph, root: TypeId) -> Self {
         let mut graph_ = graph.clone();
         graph_.gc(vec![root]);
-        let out = Default::default();
+        let program = Default::default();
         let visited = Default::default();
         let mut will_visit = BTreeSet::new();
         for id in graph_.type_ids() {
@@ -131,7 +132,8 @@ impl<'g> ProgramBuilder<'g> {
             will_visit.extend(ty.discriminants.values());
         }
         let debuginfo = Default::default();
-        Self { graph, program: out, visited, will_visit, debuginfo }
+        let basecase_discriminant = Default::default();
+        Self { graph, program, visited, will_visit, debuginfo, basecase_discriminant }
     }
 
     fn emit(&mut self, op: Op) {
@@ -165,39 +167,69 @@ impl<'g> ProgramBuilder<'g> {
                 }
                 self.object(hierarchy, basecase);
             }
-            Data::Primitive(primitive) => self.primitive(*primitive, basecase),
+            Data::Primitive(primitive) => self.primitive(*primitive, basecase, id),
         }
     }
 
-    fn primitive(&mut self, primitive: Primitive, basecase: bool) {
+    fn primitive(&mut self, primitive: Primitive, basecase: bool, id: TypeId) {
         match primitive {
+            // Must be 0 so Rust parser doesn't expect following String data in some cases.
             Primitive::U32 => self.emit(Op::U32(0)),
+            // Value 1 chosen to detect errors better: 0 encodes the same way as Option::None.
             Primitive::Bool => self.emit(Op::U8(1)),
-            Primitive::U64 => self.emit(Op::U64(12345678901234567890)),
-            Primitive::String => self.emit(Op::U64(0)),
+            // Value doesn't matter, but this will be recognizable in the output, and will tend not
+            // to encode compatibly with other types.
+            Primitive::U64 => self.emit(Op::U64(1234567890123456789)),
+            Primitive::String => self.emit(Op::U64("".len() as u64)),
             Primitive::Sequence(t0) if basecase || self.basecase(t0) => self.emit(Op::U64(0)),
             Primitive::Sequence(t0) => {
                 self.emit(Op::U64(1));
                 self.type_(t0, basecase);
             }
-            Primitive::Option(t0) if basecase || self.basecase(t0) => self.emit(Op::U8(0)),
+            Primitive::Option(t0) if basecase => self.emit(Op::U8(0)),
             Primitive::Option(t0) => {
-                self.emit(Op::U8(1));
-                self.type_(t0, basecase);
+                self.emit(Op::SwitchPush);
+                if self.basecase(t0) {
+                    self.emit(Op::U8(0));
+                } else {
+                    self.emit(Op::U8(1));
+                    self.type_(t0, basecase);
+                }
+                self.emit(Op::Ok);
+                self.emit(Op::U8(2));
+                self.emit(Op::Fail);
+                self.emit(Op::SwitchPop);
             }
             Primitive::Result(t0, t1) => {
-                // Trivial heuristic: Assume Err is a better basecase.
+                let basecase_index = match self.basecase_discriminant.get(&id) {
+                    Some(index) => *index,
+                    None => {
+                        let mut discriminants = BTreeMap::new();
+                        discriminants.insert(0, t0);
+                        discriminants.insert(1, t1);
+                        let index = self.select_basecase(&discriminants);
+                        self.basecase_discriminant.insert(id, index);
+                        index
+                    }
+                };
+                let types = [t0, t1];
+                let t0 = types[basecase_index];
+                let t1 = types[1 - basecase_index];
+                let i0 = basecase_index as u32;
+                let i1 = 1 - basecase_index as u32;
                 if basecase {
-                    self.emit(Op::U32(1));
-                    self.type_(t1, basecase);
+                    self.emit(Op::U32(i0));
+                    self.type_(t0, basecase);
                 } else {
                     self.emit(Op::SwitchPush);
-                    self.emit(Op::U32(1));
-                    self.type_(t1, basecase);
-                    self.emit(Op::Ok);
-                    if !self.basecase(t0) {
-                        self.emit(Op::U32(0));
+                    if !self.basecase(t0) || self.basecase(t1) {
+                        self.emit(Op::U32(i0));
                         self.type_(t0, basecase);
+                        self.emit(Op::Ok);
+                    }
+                    if !self.basecase(t1) {
+                        self.emit(Op::U32(i1));
+                        self.type_(t1, basecase);
                         self.emit(Op::Ok);
                     }
                     self.emit(Op::U32(2));
@@ -218,13 +250,14 @@ impl<'g> ProgramBuilder<'g> {
         for (i, field) in fields.iter().enumerate() {
             if ty.child_field == Some(i) {
                 if hierarchy.is_empty() {
-                    let basecase_discriminant = self.select_basecase(id).unwrap();
-                    let basecase_ty = ty.discriminants[&basecase_discriminant];
+                    let discriminants = &ty.discriminants;
+                    let basecase_discriminant = self.select_basecase(discriminants);
+                    let basecase_ty = discriminants[&basecase_discriminant];
                     if basecase {
                         self.emit(Op::U32(basecase_discriminant as u32));
                         self.object(vec![basecase_ty], basecase);
                     } else {
-                        let (&max, _) = ty.discriminants.last_key_value().unwrap();
+                        let (&max, _) = discriminants.last_key_value().unwrap();
                         self.emit(Op::SwitchPush);
                         self.emit(Op::U32(basecase_discriminant as u32));
                         self.debug_(self.graph[basecase_ty].name.to_string());
@@ -235,7 +268,7 @@ impl<'g> ProgramBuilder<'g> {
                                 continue;
                             }
                             self.emit(Op::U32(i as u32));
-                            match ty.discriminants.get(&i) {
+                            match discriminants.get(&i) {
                                 Some(id) => {
                                     self.debug_(self.graph[*id].name.to_string());
                                     self.object(vec![*id], basecase);
@@ -256,13 +289,12 @@ impl<'g> ProgramBuilder<'g> {
         assert!(hierarchy.is_empty());
     }
 
-    fn select_basecase(&self, id: TypeId) -> Option<usize> {
+    fn select_basecase(&self, discriminants: &BTreeMap<usize, TypeId>) -> usize {
         // The selected case:
         //  - *Must* not cause recursion.
         //  - *Should* be "small".
-
         // Simple heuristic: If there's a child with no fields that are Objects, choose it.
-        'children: for (&i, &id) in &self.graph[id].discriminants {
+        'children: for (&i, &id) in discriminants {
             let ty = &self.graph[id];
             if ty.child_field.is_some() {
                 continue;
@@ -284,11 +316,10 @@ impl<'g> ProgramBuilder<'g> {
                     _ => (),
                 }
             }
-            return Some(i);
+            return i;
         }
-        // FIXME: This fallback is not guaranteed to be recursion-free; some inputs could fail with
-        // a stack overflow.
-        self.graph[id].discriminants.keys().next().cloned()
+        // TODO: If we didn't find a "small" case, pick any non-recursive choice.
+        *discriminants.keys().next().unwrap()
     }
 }
 

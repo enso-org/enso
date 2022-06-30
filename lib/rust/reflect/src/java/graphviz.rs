@@ -1,3 +1,5 @@
+//! Generating graphical representations of Java type systems.
+
 use super::*;
 use crate::graphviz::EdgeType;
 use crate::graphviz::Graph;
@@ -43,7 +45,6 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
                     };
                     graph.edges.push((sname.clone(), sname2, edgetype));
                 }
-                // TODO
                 FieldData::Primitive(_) => {}
             }
         }

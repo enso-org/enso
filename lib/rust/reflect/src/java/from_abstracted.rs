@@ -1,3 +1,5 @@
+//! Lowering a `abstracted` data model to a `crate::java` data model.
+
 use crate::abstracted;
 use crate::java::*;
 
@@ -91,8 +93,13 @@ impl FromAbstracted {
         let fields_ = fields_.into_iter();
         let mut fields = Vec::with_capacity(fields_.size_hint().0);
         for field in fields_ {
-            let (field, getter) = self.field(field);
-            if getter {
+            let abstracted::Field { name, type_, hide, .. } = field;
+            let name = name.to_camel_case().expect("Unimplemented: Tuples.");
+            let field = match self.primitives.get(type_) {
+                Some(primitive) => Field::primitive(name, *primitive),
+                None => Field::object(name, self.abstracted_to_java[type_], true),
+            };
+            if !hide {
                 methods.push(Method::Dynamic(Dynamic::Getter(field.id())));
             }
             fields.push(field);
@@ -111,15 +118,5 @@ impl FromAbstracted {
             child_field,
             ..Default::default()
         }
-    }
-
-    fn field(&self, field: &abstracted::Field) -> (Field, bool) {
-        let abstracted::Field { name, type_, hide, .. } = field;
-        let name = name.to_camel_case().expect("Unimplemented: Tuples.");
-        let field = match self.primitives.get(type_) {
-            Some(primitive) => Field::primitive(name, *primitive),
-            None => Field::object(name, self.abstracted_to_java[type_], true),
-        };
-        (field, !*hide)
     }
 }
