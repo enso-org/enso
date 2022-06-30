@@ -20,10 +20,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -61,8 +58,11 @@ public final class Atom implements TruffleObject {
     return fields;
   }
 
-  private String toString(boolean shouldParen) {
-    StringBuilder builder = new StringBuilder();
+  private void toString(StringBuilder builder, boolean shouldParen, int depth) {
+    if (depth <= 0) {
+      builder.append("...");
+      return;
+    }
     boolean parensNeeded = shouldParen && fields.length > 0;
     if (parensNeeded) {
       builder.append("(");
@@ -71,22 +71,17 @@ public final class Atom implements TruffleObject {
     if (fields.length > 0) {
       builder.append(" ");
     }
-    List<String> fieldStrings =
-        Arrays.stream(fields)
-            .map(
-                obj -> {
-                  if (obj instanceof Atom) {
-                    return ((Atom) obj).toString(true);
-                  } else {
-                    return obj.toString();
-                  }
-                })
-            .collect(Collectors.toList());
-    builder.append(String.join(" ", fieldStrings));
+    for (var obj : fields) {
+        builder.append(" ");
+        if (obj instanceof Atom atom) {
+          atom.toString(builder, true, depth - 1);
+        } else {
+          builder.append(obj);
+        }
+    }
     if (parensNeeded) {
       builder.append(")");
     }
-    return builder.toString();
   }
 
   /**
@@ -97,7 +92,9 @@ public final class Atom implements TruffleObject {
   @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
-    return toString(false);
+    StringBuilder sb = new StringBuilder();
+    toString(sb, false, 10);
+    return sb.toString();
   }
 
   @ExportMessage
