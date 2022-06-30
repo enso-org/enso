@@ -4,7 +4,7 @@ import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Table.Io.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data
 import Standard.Base.Error.Common as Errors
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
@@ -201,7 +201,7 @@ write_excel file table on_existing_file section headers _ xls_format=False =
         replace = (on_existing_file == Existing_File_Behavior.Overwrite) || (on_existing_file == Existing_File_Behavior.Backup)
         java_headers = make_java_headers headers
         if ExcelWriter.getEnsoToTextCallback == Nothing then ExcelWriter.getEnsoToTextCallback (.to_text)
-        result = here.handle_illegal_argument <| case section of
+        result = here.handle_writer <| case section of
             Sheet sheet skip_rows row_limit -> case sheet of
                 Integer -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
                 Text -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
@@ -243,6 +243,19 @@ read_excel_file file reader =
 
     File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
         file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
+
+## PRIVATE
+handle_writer writer =
+    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+    handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
+
+    throw_range_exceeded caught_panic = Error.throw (Range_Exceeded caught_panic.payload.cause.getMessage)
+    handle_range_exceeded = Panic.catch ExcelWriter.RangeExceededException handler=throw_range_exceeded
+
+    throw_existing_data caught_panic = Error.throw (Existing_Data caught_panic.payload.cause.getMessage)
+    handle_existing_data = Panic.catch ExcelWriter.ExistingDataException handler=throw_existing_data
+
+    handle_bad_argument <| handle_range_exceeded <| handle_existing_data <| writer
 
 ## PRIVATE
 handle_illegal_argument ~action =

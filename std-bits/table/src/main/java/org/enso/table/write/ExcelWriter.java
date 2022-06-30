@@ -46,7 +46,8 @@ public class ExcelWriter {
     ensoToTextCallback = callback;
   }
 
-  public static void writeTableToSheet(Workbook workbook, int sheetIndex, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers) {
+  public static void writeTableToSheet(Workbook workbook, int sheetIndex, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
+      throws ExistingDataException {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
       while (workbook.getSheet("Sheet" + i) != null) {
@@ -72,11 +73,12 @@ public class ExcelWriter {
       workbook.setSheetOrder(sheetName, sheetIndex - 1);
       writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
     } else {
-      throw new IllegalArgumentException("Sheet already exists, and cannot be replaced in current mode.");
+      throw new ExistingDataException("Sheet already exists, and cannot be replaced in current mode.");
     }
   }
 
-  public static void writeTableToSheet(Workbook workbook, String sheetName, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers) {
+  public static void writeTableToSheet(Workbook workbook, String sheetName, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
+      throws ExistingDataException {
     int sheetIndex = workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
       writeTableToSheet(workbook, workbook.createSheet(sheetName), firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
@@ -91,7 +93,7 @@ public class ExcelWriter {
       workbook.setSheetOrder(sheetName, sheetIndex);
       writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
     } else {
-      throw new IllegalArgumentException("Sheet '" + sheetName + "' already exists, and cannot be replaced in current mode.");
+      throw new ExistingDataException("Sheet '" + sheetName + "' already exists, and cannot be replaced in current mode.");
     }
   }
 
