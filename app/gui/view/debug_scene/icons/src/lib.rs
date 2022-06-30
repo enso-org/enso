@@ -82,8 +82,6 @@ pub fn entry_point_searcher_icons() {
         let shape = id.create_shape(&logger, Vector2(icon::SIZE, icon::SIZE));
         shape.strong_color.set(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
         shape.weak_color.set(color::Rgba(0.655, 0.788, 0.624, 1.0).into());
-        // shape.strong_color.set(color::Rgba(0.475, 0.494, 0.145, 1.0).into());
-        // shape.weak_color.set(color::Rgba(0.612, 0.627, 0.388, 1.0).into());
         shape.set_position_x(x);
         x += 20.0;
         world.add_child(&shape);
