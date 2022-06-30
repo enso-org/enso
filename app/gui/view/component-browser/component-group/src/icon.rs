@@ -523,7 +523,7 @@ crate::define_icons! {
                 let line3 = Rect((2.0.px(),1.0.px())).translate_x(5.0.px());
                 let line4 = Rect((3.0.px(),1.0.px())).translate((4.5.px(),(-3.0).px()));
                 let page  = page + line1 + line2 + line3 + line4;
-                let page  = page.fill(weak_color);
+                let page  = page.fill(strong_color);
 
 
                 // === Crack ===
@@ -535,7 +535,7 @@ crate::define_icons! {
                     (-1.25 , -3.25),
                     ( 0.0  , -6.5),
                 ]);
-                let crack = crack.fill(strong_color);
+                let crack = crack.fill(weak_color);
 
                 let crack_left  = crack.translate_x((-1.0).px());
                 let crack_right = crack.translate_x(2.0.px());
