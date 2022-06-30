@@ -6,7 +6,6 @@
 use crate::prelude::*;
 
 use crate::syntax;
-use crate::syntax::token::Token;
 
 use enso_data_structures::im_list;
 

@@ -99,7 +99,6 @@
 #![warn(unused_qualifications)]
 
 use crate::prelude::*;
-use macros::pattern::Pattern;
 
 
 

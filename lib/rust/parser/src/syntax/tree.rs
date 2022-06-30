@@ -104,7 +104,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
 
         TypeDef {
-            pub keyword: token::Token<'s>,
+            pub keyword: Token<'s>,
             pub name: Tree<'s>,
             pub params: Vec<Tree<'s>>,
         }
@@ -167,7 +167,7 @@ impl<'s> Tree<'s> {
 }
 
 impl<'s> span::Builder<'s> for Error {
-    fn add_to_span(&mut self, span: span::Span<'s>) -> Span<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
     }
 }

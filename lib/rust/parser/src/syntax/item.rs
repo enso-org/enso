@@ -107,6 +107,7 @@ macro_rules! generate_variant_checks {
         impl<'s> Item<'s> {
             $(
                 $(#[$($variant_meta)*])*
+                #[allow(missing_docs)]
                 pub fn [<is_ $variant:snake:lower>](&self) -> bool {
                     self.is_variant(token::variant::VariantMarker::$variant)
                 }

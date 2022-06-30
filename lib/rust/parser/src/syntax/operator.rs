@@ -1,3 +1,5 @@
+//! Operator related functionalities.
+
 use crate::prelude::*;
 use crate::syntax;
 use crate::syntax::token;

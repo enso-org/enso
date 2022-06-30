@@ -158,7 +158,7 @@ impl<T: Into<String>> std::ops::Rem<T> for Pattern {
 }
 
 /// The syntax `pattern / "label"` is a shortcut for `pattern.named("label")`.
-impl<T: Into<String>> std::ops::Div<T> for Pattern {
+impl<T: Into<String>> Div<T> for Pattern {
     type Output = Pattern;
     fn div(self, message: T) -> Self::Output {
         named(message, self)
@@ -484,6 +484,7 @@ impl Pattern {
 //     )*
 // )*
 
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct MatchTreeView<'t, 's, V> {
     tree:                  Option<&'t MatchTree<'s, V>>,
@@ -492,25 +493,28 @@ pub struct MatchTreeView<'t, 's, V> {
 }
 
 impl<'t, 's, V: MatchTreeValidator> MatchTreeView<'t, 's, V> {
+    #[allow(missing_docs)]
     pub fn new(tree: &'t MatchTree<'s, V>) -> Self {
         let resolved_validator = default();
         let parent_scope_to_check = default();
         Self { tree: Some(tree), resolved_validator, parent_scope_to_check }
     }
 
+    #[allow(missing_docs)]
     pub fn nested(mut self) -> Self {
         self.tree = self.tree.and_then(|t| t.nested.as_ref().map(|n| n.as_ref()));
         mem::swap(&mut self.resolved_validator, &mut self.parent_scope_to_check);
         self
     }
 
+    #[allow(missing_docs)]
     pub fn query(&mut self, name: &str) -> Option<&'t Vec<Vec<syntax::Item<'s>>>> {
         self.tree.and_then(|t| {
             t.map.get(name).map(|entry| {
                 match &self.resolved_validator {
                     None => {
-                        if let Some(parent_scope) = &self.parent_scope_to_check {
-                            let mut ok = false;
+                        if let Some(_parent_scope) = &self.parent_scope_to_check {
+                            let mut _ok = false;
                             // entry.validator.check_sub_parent ...
                             // let mut scope = entry.scope.clone_ref();
                             // loop {
@@ -531,7 +535,7 @@ impl<'t, 's, V: MatchTreeValidator> MatchTreeView<'t, 's, V> {
                         }
                         self.resolved_validator = Some(entry.validator.clone_ref())
                     }
-                    Some(scope) => {
+                    Some(_scope) => {
                         // if !Rc::ptr_eq(&scope, &entry.scope) {
                         //     panic!("scope mismatch");
                         // },
@@ -563,10 +567,12 @@ struct VarScope {
 
 
 #[derive(Clone, CloneRef, Debug, Default)]
+#[allow(missing_docs)]
 pub struct MatchTreeValidatorData {
     scope: Rc<RefCell<VarScope>>,
 }
 
+#[allow(missing_docs)]
 pub trait MatchTreeValidator: Default + CloneRef {
     fn set_parent(&self, parent: &Self);
     fn insert_local_var(&self, var: &str);
@@ -584,13 +590,14 @@ impl MatchTreeValidator for MatchTreeValidatorData {
 
 impl MatchTreeValidator for () {
     #[inline(always)]
-    fn set_parent(&self, parent: &Self) {}
+    fn set_parent(&self, _parent: &Self) {}
 
     #[inline(always)]
-    fn insert_local_var(&self, var: &str) {}
+    fn insert_local_var(&self, _var: &str) {}
 }
 
 #[derive(Clone, Debug, Default)]
+#[allow(missing_docs)]
 pub struct MatchTree<'s, V> {
     nested:    Option<Box<MatchTree<'s, V>>>,
     map:       HashMap<String, Entry<'s, V>>,
@@ -598,6 +605,7 @@ pub struct MatchTree<'s, V> {
 }
 
 impl<'s, V: MatchTreeValidator> MatchTree<'s, V> {
+    #[allow(missing_docs)]
     pub fn view<'t>(&'t self) -> MatchTreeView<'t, 's, V> {
         MatchTreeView::new(self)
     }
@@ -606,18 +614,21 @@ impl<'s, V: MatchTreeValidator> MatchTree<'s, V> {
 
 
 impl<'s> Match<'s> {
+    #[allow(missing_docs)]
     pub fn into_match_tree(self) -> MatchTree<'s, MatchTreeValidatorData> {
         let mut tree = MatchTree::default();
         self.make_match_tree(&mut tree);
         tree
     }
 
+    #[allow(missing_docs)]
     pub fn into_unchecked_match_tree(self) -> MatchTree<'s, ()> {
         let mut tree = MatchTree::default();
         self.make_match_tree(&mut tree);
         tree
     }
 
+    #[allow(missing_docs)]
     pub fn make_match_tree<V: Default + MatchTreeValidator>(self, tree: &mut MatchTree<'s, V>) {
         match self {
             Self::Everything(_) => {}
@@ -633,7 +644,7 @@ impl<'s> Match<'s> {
 
             Self::Many(matches) => {
                 if tree.nested.is_none() {
-                    let mut nested = MatchTree::<'s, V>::default();
+                    let nested = MatchTree::<'s, V>::default();
                     nested.validator.set_parent(&tree.validator);
                     tree.nested = Some(Box::new(nested));
                 }
@@ -652,7 +663,7 @@ impl<'s> Match<'s> {
                     .tokens
                     .push(t.tokens());
             }
-            Self::NotBlock(item) => {}
+            Self::NotBlock(_) => {}
         }
     }
 }

@@ -138,6 +138,7 @@ pub struct Span<'s> {
 }
 
 impl<'s> Span<'s> {
+    /// Constructor.
     pub fn new() -> Self {
         default()
     }
@@ -146,6 +147,7 @@ impl<'s> Span<'s> {
         self.left_offset.is_empty() && self.code_length.is_zero()
     }
 
+    /// Check whether the span is only an offset, without the code part.
     pub fn is_only_offset(&self) -> bool {
         self.code_length.is_zero()
     }
@@ -155,7 +157,7 @@ impl<'s> Span<'s> {
         Ref { left_offset: &self.left_offset, code_length: self.code_length }
     }
 
-
+    /// Add the item to this span. The item can be anything that implements the span [`Builder`].
     pub fn add<T: Builder<'s>>(self, elem: &mut T) -> Self {
         Builder::add_to_span(elem, self)
     }
@@ -275,7 +277,10 @@ macro_rules! span_builder {
 }
 
 
-/// A trait defining the behavior of [`Builder`] for different types containing spans.
+/// Elements implementing this trait can contain a span or multiple spans. If an element is added to
+/// an empty span, it means that it is the first element in the span group. In such a case, the left
+/// offset of the element will be removed and moved to the resulting span. See the docs of
+/// [`FirstChildTrim`] to learn more.
 #[allow(missing_docs)]
 pub trait Builder<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s>;

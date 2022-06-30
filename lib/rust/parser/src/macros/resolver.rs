@@ -1,10 +1,11 @@
+//! Macro resolver implementation. Refer to the docs of the main parser module to learn more.
+
 use crate::macros;
 use crate::macros::pattern;
 use crate::prelude::*;
 use crate::syntax;
 use crate::syntax::token;
 use crate::syntax::token::Token;
-use crate::Pattern;
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use std::collections::VecDeque;
@@ -194,7 +195,7 @@ impl<'s> Resolver<'s> {
 
     fn replace_current_with_parent_macro(&mut self, mut parent_macro: PartiallyMatchedMacro<'s>) {
         mem::swap(&mut parent_macro, &mut self.current_macro);
-        let mut child_macro = parent_macro;
+        let child_macro = parent_macro;
         self.current_macro.current_segment.body.push(child_macro.into());
     }
 

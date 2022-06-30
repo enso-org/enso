@@ -733,7 +733,7 @@ const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
 impl<'s> Lexer<'s> {
     /// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
     /// hierarchy).
-    pub fn run(mut self) -> Vec<Item<'s>> {
+    pub fn run(self) -> Vec<Item<'s>> {
         build_block_hierarchy(self.run_flat())
     }
 
@@ -779,7 +779,8 @@ pub fn run<'s>(input: &'s str) -> Vec<Item<'s>> {
     Lexer::new(input).run()
 }
 
-
+/// Convert the flat token stream into hierarchical one. The token variants [`BlockStart`] and
+/// [`BlockEnd`] will be replaced with [`Item::Group`].
 pub fn build_block_hierarchy<'s>(tokens: Vec<Token<'s>>) -> Vec<Item<'s>> {
     let mut stack = vec![];
     let mut out: Vec<Item<'s>> = vec![];
