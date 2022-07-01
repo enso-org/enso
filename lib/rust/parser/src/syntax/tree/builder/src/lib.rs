@@ -1,5 +1,7 @@
 //! Definition of a macro allowing building mock AST structures, mostly useful for testing.
 
+// === Features ===
+#![feature(proc_macro_span)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -15,7 +17,6 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![feature(proc_macro_span)]
 
 use proc_macro2::TokenStream;
 use quote::quote;

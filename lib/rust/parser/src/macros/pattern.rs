@@ -2,9 +2,10 @@
 //! macro input.
 
 use crate::prelude::*;
-use std::collections::VecDeque;
 
 use crate::syntax;
+
+use std::collections::VecDeque;
 
 
 

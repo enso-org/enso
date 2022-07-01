@@ -1,11 +1,13 @@
 //! Macro resolver implementation. Refer to the docs of the main parser module to learn more.
 
+use crate::prelude::*;
+
 use crate::macros;
 use crate::macros::pattern;
-use crate::prelude::*;
 use crate::syntax;
 use crate::syntax::token;
 use crate::syntax::token::Token;
+
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use std::collections::VecDeque;
