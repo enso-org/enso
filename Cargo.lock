@@ -1311,6 +1311,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cron"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d76219e9243e100d5a37676005f08379297f8addfebc247613299600625c734d"
+dependencies = [
+ "chrono",
+ "nom",
+ "once_cell",
+]
+
+[[package]]
 name = "crossbeam-channel"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1722,7 +1733,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#1551c5ae0ba8090f76a19eff6b3d0f5fcb971bea"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1796,10 +1807,11 @@ dependencies = [
 [[package]]
 name = "enso-build-cli"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#1551c5ae0ba8090f76a19eff6b3d0f5fcb971bea"
 dependencies = [
  "anyhow",
  "byte-unit",
+ "chrono",
  "clap 3.1.18",
  "derivative",
  "enso-build",
@@ -1808,6 +1820,9 @@ dependencies = [
  "humantime 2.1.0",
  "ide-ci",
  "octocrab",
+ "serde",
+ "serde_json",
+ "serde_yaml",
  "strum",
  "tempfile",
  "tokio 1.19.2",
@@ -3577,10 +3592,10 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.13.0",
+ "base64 0.10.1",
  "bytes 1.1.0",
  "http",
- "httpdate 1.0.2",
+ "httpdate 0.3.2",
  "language-tags 0.3.2",
  "mime 0.3.16",
  "percent-encoding 2.1.0",
@@ -3590,7 +3605,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#1551c5ae0ba8090f76a19eff6b3d0f5fcb971bea"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -3603,6 +3618,7 @@ dependencies = [
  "chrono",
  "clap 3.1.18",
  "convert_case 0.5.0",
+ "cron",
  "data-encoding",
  "derivative",
  "derive_more",
