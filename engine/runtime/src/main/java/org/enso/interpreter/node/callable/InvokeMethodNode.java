@@ -13,6 +13,8 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -27,6 +29,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.graalvm.polyglot.Value;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
@@ -246,15 +249,26 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
+    final Context ctx = Context.get(this);
     try {
-      var dateConstructor = Context.get(this).getDateConstructor();
-      Object date = dateConstructor.isPresent() ? dateConstructor.get().newInstance(self) : self;
+      var dateConstructor = ctx.getDateConstructor();
+      Object date;
+      if (dateConstructor.isPresent()) {
+        try {
+          var hostLocalDate = interop.asDate(self);
+          var guestLocalDate = ctx.getEnvironment().asGuestValue(hostLocalDate);
+          date = dateConstructor.get().newInstance(guestLocalDate);
+        } catch (UnsupportedMessageException ex) {
+          date = dateConstructor.get().newInstance(self);
+        }
+      } else {
+        date = self;
+      }
       Function function = dateDispatch.getFunctionalDispatch(date, symbol);
       arguments[0] = date;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }
 
