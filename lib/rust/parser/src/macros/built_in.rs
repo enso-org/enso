@@ -56,7 +56,7 @@ pub fn type_def<'s>() -> Definition<'s> {
 
 // TODO: The comments in the code were left in order to allow easy debugging of this struct. They
 //       should be removed in the future.
-fn type_def_body<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> syntax::Tree<'s> {
+fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     let segment = matched_segments.to_vec().pop().unwrap();
     // println!(">>>");
     // println!("{:#?}", segment);
@@ -76,7 +76,7 @@ fn type_def_body<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> synta
     // println!("\n\n------------- 3");
 
     let params = params
-        .into_iter()
+        .iter()
         .map(|tokens| operator::resolve_operator_precedence(tokens.clone()))
         .collect_vec();
     // println!("{:#?}", params);

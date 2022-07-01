@@ -766,21 +766,21 @@ impl<'s> Lexer<'s> {
 
 /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
 /// as start and end tokens).
-pub fn run_flat<'s>(input: &'s str) -> Vec<Token<'s>> {
+pub fn run_flat(input: &'_ str) -> Vec<Token<'_>> {
     Lexer::new(input).run_flat()
 }
 
 /// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
 /// hierarchy).
-pub fn run<'s>(input: &'s str) -> Vec<Item<'s>> {
+pub fn run(input: &'_ str) -> Vec<Item<'_>> {
     Lexer::new(input).run()
 }
 
 /// Convert the flat token stream into hierarchical one. The token variants [`BlockStart`] and
 /// [`BlockEnd`] will be replaced with [`Item::Group`].
-pub fn build_block_hierarchy<'s>(tokens: Vec<Token<'s>>) -> Vec<Item<'s>> {
+pub fn build_block_hierarchy(tokens: Vec<Token<'_>>) -> Vec<Item<'_>> {
     let mut stack = vec![];
-    let mut out: Vec<Item<'s>> = vec![];
+    let mut out: Vec<Item<'_>> = vec![];
     for token in tokens {
         match token.variant {
             token::Variant::BlockStart(_) => stack.push(mem::take(&mut out)),
@@ -1127,7 +1127,7 @@ mod benches {
         let str = "test ".repeat(reps);
 
         b.iter(move || {
-            let mut lexer = Lexer::new(&str);
+            let lexer = Lexer::new(&str);
             assert_eq!(lexer.run().len(), reps);
         });
     }

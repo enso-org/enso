@@ -158,6 +158,7 @@ impl<'s> Span<'s> {
     }
 
     /// Add the item to this span. The item can be anything that implements the span [`Builder`].
+    #[allow(clippy::should_implement_trait)]
     pub fn add<T: Builder<'s>>(self, elem: &mut T) -> Self {
         Builder::add_to_span(elem, self)
     }
@@ -355,7 +356,7 @@ where T: Builder<'s>
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        self.into_iter().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
+        self.iter_mut().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
     }
 }
 
@@ -364,6 +365,6 @@ where T: Builder<'s>
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        self.into_iter().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
+        self.iter_mut().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
     }
 }

@@ -49,6 +49,8 @@ impl<T> NonEmptyVec<T> {
         NonEmptyVec { elems }
     }
 
+    /// Length of the vector.
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.elems.len()
     }

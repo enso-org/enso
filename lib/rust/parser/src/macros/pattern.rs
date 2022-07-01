@@ -223,7 +223,7 @@ impl<'s> Match<'s> {
             Self::Everything(tokens) => tokens.into(),
             Self::Nothing => default(),
             Self::Seq(fst, snd) => fst.tokens().extended(snd.tokens()),
-            Self::Many(t) => t.into_iter().map(|s| s.tokens()).flatten().collect(),
+            Self::Many(t) => t.into_iter().flat_map(|s| s.tokens()).collect(),
             Self::Identifier(ident) => vec![ident],
             Self::Expected(_, item) => item.tokens(),
             Self::Named(_, item) => item.tokens(),

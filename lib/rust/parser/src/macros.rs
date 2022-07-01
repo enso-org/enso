@@ -100,9 +100,9 @@ macro_rules! macro_definition {
 
 
 
-fn matched_segments_into_multi_segment_app<'s>(
-    matched_segments: NonEmptyVec<pattern::MatchedSegment<'s>>,
-) -> syntax::Tree<'s> {
+fn matched_segments_into_multi_segment_app(
+    matched_segments: NonEmptyVec<pattern::MatchedSegment<'_>>,
+) -> syntax::Tree<'_> {
     let segments = matched_segments.mapped(|segment| {
         let header = segment.header;
         let tokens = segment.result.tokens();

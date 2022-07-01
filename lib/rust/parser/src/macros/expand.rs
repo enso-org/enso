@@ -177,7 +177,7 @@ impl<'s> Match<'s> {
                     tree.nested = Some(Box::new(nested));
                 }
                 let nested_validator = V::default();
-                nested_validator.set_parent(&validator);
+                nested_validator.set_parent(validator);
                 let nested = tree.nested.as_mut().unwrap();
                 for m in matches {
                     m.build_var_map(nested, &nested_validator);
