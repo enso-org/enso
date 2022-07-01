@@ -127,41 +127,58 @@ public class ExcelWriter {
       }
     }
 
-    if (range.isSingleCell()) {
-      ExcelRange expanded = ExcelRange.expandSingleCell(range, sheet);
+    ExcelRange expanded = range.isSingleCell() ? ExcelRange.expandSingleCell(range, sheet) : range;
+    headers = headers != ExcelHeaders.HeaderBehavior.INFER ? headers :
+        shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn());
 
-      headers = headers != ExcelHeaders.HeaderBehavior.INFER ? headers :
-          shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn());
-
-      // Expand to cover required size
-      int rowCount = (headers == ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS ? 1 : 0) + table.rowCount();
-      if (expanded.getColumnCount() < table.getColumns().length || expanded.getRowCount() < rowCount) {
-        expanded = new ExcelRange(
-            expanded.getSheetName(),
-            expanded.getLeftColumn(),
-            expanded.getTopRow(),
-            Math.max(expanded.getRightColumn(), expanded.getLeftColumn() + table.getColumns().length - 1),
-            Math.max(expanded.getBottomRow(), expanded.getTopRow() + rowCount - 1));
-      }
-
-      checkExistingRange(workbook, expanded, existingDataMode == ExistingDataMode.REPLACE, sheet);
+    if ((existingDataMode == ExistingDataMode.APPEND_BY_NAME || existingDataMode == ExistingDataMode.APPEND_BY_INDEX) &&
+        !checkExistingRange(workbook, expanded, false, sheet)) {
+      throw new ExistingDataException("Range already exists, and appended not currently implemented.");
     } else {
-      // Check Size of Range
-      int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - range.getTopRow() + 1, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
-      if (range.getColumnCount() < table.getColumns().length || range.getRowCount() < rowCount) {
-        throw new RangeExceededException("Range is too small to fit all columns.");
-      }
-
-      headers = headers != ExcelHeaders.HeaderBehavior.INFER ? headers :
-          shouldWriteHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn());
-
-      checkExistingRange(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet);
+      updateRangeWithTable(workbook, expanded, range.isSingleCell(), existingDataMode, table, rowLimit, headers, sheet);
     }
-
-    writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
   }
 
-  private static void checkExistingRange(Workbook workbook, ExcelRange range, boolean replace, ExcelSheet sheet) throws ExistingDataException {
+  /**
+   * Creates an empty workbook.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a {@link Workbook} containing the specified data.
+   */
+  public static Workbook createWorkbook(boolean xls_format) {
+    return xls_format ? new HSSFWorkbook() : new XSSFWorkbook();
+  }
+
+  private static void updateRangeWithTable(Workbook workbook, ExcelRange range, boolean singleCell, ExistingDataMode existingDataMode, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers, ExcelSheet sheet)
+      throws RangeExceededException, ExistingDataException {
+    boolean writeHeaders = headers == ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
+    int requiredRows = Math.min(table.rowCount(), rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()) + (writeHeaders ? 1 : 0);
+
+    // Expand Single Cell if needed.
+    if (singleCell) {
+      range = new ExcelRange(
+          range.getSheetName(),
+          range.getLeftColumn(),
+          range.getTopRow(),
+          Math.max(range.getRightColumn(), range.getLeftColumn() + table.getColumns().length - 1),
+          Math.max(range.getBottomRow(), range.getTopRow() + requiredRows - 1));
+    }
+
+    // Check Size of Range
+    int finalRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
+    int availableRows = finalRow - range.getTopRow() + 1;
+    if (range.getColumnCount() < table.getColumns().length || availableRows < requiredRows) {
+      throw new RangeExceededException("Range is too small to fit all data.");
+    }
+
+    // Check or Clear Current Range
+    if (!checkExistingRange(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet)) {
+      throw new ExistingDataException("Range is not empty, and cannot be replaced in current mode.");
+    }
+
+    writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, writeHeaders);
+  }
+
+  private static boolean checkExistingRange(Workbook workbook, ExcelRange range, boolean clear, ExcelSheet sheet) {
     int topRow = range.isWholeColumn() ? 1 : range.getTopRow();
     int bottomRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
     int leftColumn = range.isWholeRow() ? 1 : range.getLeftColumn();
@@ -173,16 +190,15 @@ public class ExcelWriter {
         for (int column = leftColumn; column <= rightColumn; column++) {
           Cell cell = excelRow.get(column);
           if (cell != null) {
-            if (replace) {
+            if (clear) {
               cell.setBlank();
             } else {
-              throw new ExistingDataException("Range is not empty, and cannot be replaced in current mode.");
+              return false;
             }
           }
         }
       }
     }
-  }
 
   public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
       throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {

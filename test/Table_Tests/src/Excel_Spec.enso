@@ -75,6 +75,7 @@ spec_write suffix test_sheet_name =
            https://www.pivotaltracker.com/story/show/181755990
         no_dates = File_Format.Delimited "," value_formatter=(Data_Formatter date_formats=[] time_formats=[] datetime_formats=[])
         out = Enso_Project.data / ('out.' + suffix)
+        out_bak = Enso_Project.data / ('out.' + suffix + '.bak')
         table = Enso_Project.data/'varied_column.csv' . read (format = no_dates)
         clothes = Enso_Project.data/'clothes.csv' . read (format = no_dates)
         sub_clothes = clothes.select_columns (By_Index [0, 1])
@@ -84,6 +85,29 @@ spec_write suffix test_sheet_name =
             table.write out
             written = out.read
             written.should_equal table
+            out.delete_if_exists
+
+        Test.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
+            out.delete_if_exists
+            table.write out on_existing_file=Existing_File_Behavior.Append
+            written = out.read
+            written.should_equal table
+            out.delete_if_exists
+
+        Test.specify 'should write a table to existing file in overwrite mode as a new sheet with headers' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            table.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Overwrite
+            written = out.read (File_Format.Excel (Sheet "Another"))
+            written.should_equal table
+            out.delete_if_exists
+
+        Test.specify 'should write a table to existing file in overwrite mode as a new sheet without headers' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            table.write out (File_Format.Excel (Sheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Overwrite
+            written = out.read (File_Format.Excel (Sheet "NoHeaders"))
+            written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
             out.delete_if_exists
 
         Test.specify 'should create new sheets at the start if index is 0' <|
@@ -156,6 +180,9 @@ spec_write suffix test_sheet_name =
             written = out.read
             written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
             out.delete_if_exists
+
+        out.delete_if_exists
+        out_bak.delete_if_exists
 
 spec =
     Test.group 'Excel Range' <|
@@ -289,7 +316,7 @@ spec =
             check_table <| File.read xls_path File_Format.Excel
 
         Test.specify "should let you read the sheet names" <|
-            sheet_names = ["Sheet1", "Another"]
+            sheet_names = ["Sheet1", "Another", "NoHeaders"]
             xlsx_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
             xls_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
 

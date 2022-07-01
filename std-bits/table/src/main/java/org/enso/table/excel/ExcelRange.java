@@ -1,6 +1,7 @@
 package org.enso.table.excel;
 
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellReference;
 
 import java.util.Optional;
@@ -322,6 +323,16 @@ public class ExcelRange {
 
   public int getRowCount() {
     return isWholeColumn() ? Integer.MAX_VALUE : bottomRow - topRow + 1;
+  }
+
+  public int getLastRow(ExcelSheet sheet) {
+    int lastRow = Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
+
+    while (lastRow > topRow && !sheet.get(lastRow - 1).isEmpty(leftColumn, isWholeRow() ? -1 : rightColumn)) {
+      lastRow--;
+    }
+
+    return lastRow;
   }
 
   public boolean isSingleCell() {
