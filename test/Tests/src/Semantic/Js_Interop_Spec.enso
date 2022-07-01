@@ -5,13 +5,16 @@ import Standard.Test
 foreign js my_method a b = """
     return a + b;
 
+foreign js debug = """
+    debugger;
+
 type My_Type
     type My_Type a b
 
     foreign js my_method = """
         return this.a + this.b;
 
-    my_method_2 x = this.my_method * x
+    my_method_2 x = self.my_method * x
 
     foreign js my_method_3 y = """
         var r = this.my_method_2(y)
@@ -21,7 +24,7 @@ type My_Type
         var err = new Error("JS Exc");
         throw err;
 
-    do_throw = Panic.throw this
+    do_throw = Panic.throw self
 
     foreign js do_catch = """
         try {
@@ -179,3 +182,7 @@ spec = Test.group "Polyglot JS" <|
         error = Error.throw 42
         here.my_method error 0 . should_fail_with Integer
 
+    Test.specify "allow use of JavaScript debugger statement" <|
+        here.debug
+
+main = Test.Suite.run_main here.spec

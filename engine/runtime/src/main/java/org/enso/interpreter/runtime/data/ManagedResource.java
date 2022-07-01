@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -15,6 +16,7 @@ import java.lang.ref.PhantomReference;
 
 /** A runtime representation of a managed resource. */
 @ExportLibrary(MethodDispatchLibrary.class)
+@Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Resource.Managed_Resource")
 public class ManagedResource implements TruffleObject {
   private final Object resource;
   private PhantomReference<ManagedResource> phantomReference;
@@ -48,6 +50,32 @@ public class ManagedResource implements TruffleObject {
     this.phantomReference = phantomReference;
   }
 
+  @Builtin.Method(
+      description =
+          "Makes an object into a managed resource, automatically finalized when the returned object is garbage collected.")
+  @Builtin.Specialize
+  public static ManagedResource register(Context context, Object resource, Function function) {
+    return context.getResourceManager().register(resource, function);
+  }
+
+  @Builtin.Method(
+      description =
+          "Takes the value held by the managed resource and removes the finalization callbacks,"
+              + " effectively making the underlying resource unmanaged again.")
+  @Builtin.Specialize
+  public Object take(Context context) {
+    context.getResourceManager().take(this);
+    return this.getResource();
+  }
+
+  @Builtin.Method(
+      name = "finalize",
+      description = "Finalizes a managed resource, even if it is still reachable.")
+  @Builtin.Specialize
+  public void close(Context context) {
+    context.getResourceManager().close(this);
+  }
+
   @ExportMessage
   boolean hasFunctionalDispatch() {
     return true;
@@ -77,7 +105,7 @@ public class ManagedResource implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        ManagedResource _this,
+        ManagedResource self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -85,7 +113,7 @@ public class ManagedResource implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(ManagedResource _this, UnresolvedSymbol symbol)
+    static Function resolve(ManagedResource self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {

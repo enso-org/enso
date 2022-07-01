@@ -1,0 +1,259 @@
+from Standard.Base import all
+import Standard.Base.Error.Problem_Behavior
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+
+import Standard.Table
+import Standard.Table.Data.Column
+from Standard.Table.Error import all
+
+import Standard.Base.Data.Time.Date
+import Standard.Base.Data.Time
+import Standard.Base.Data.Time.Time_Of_Day
+
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+import Standard.Table.Io.Quote_Style
+
+import Standard.Test
+import Standard.Test.Problems
+
+type Custom_Type
+    type Custom_Type field
+
+type Custom_Type_With_To_Text
+    type Custom_Type_With_To_Text field
+
+    to_text : Text
+    to_text = "[CUSTOM = " + self.field.to_text + "]"
+
+type Custom_Type_With_Error
+    type Custom_Type_With_Error
+
+    to_text : Text
+    to_text = Error.throw (Illegal_State_Error "foo_error")
+
+type Custom_Type_With_Panic
+    type Custom_Type_With_Panic
+
+    to_text : Text
+    to_text = Panic.throw (Illegal_State_Error "foo_panic")
+
+spec =
+    Test.group "DataFormatter.parse" <|
+        Test.specify "should parse numbers" <|
+            formatter = Data_Formatter
+            formatter.parse "123" . should_equal 123
+            formatter.parse "1000000" . should_equal 1000000
+            formatter.parse "1000000.0" . should_equal 1000000.0
+            formatter.parse "0" . should_equal 0
+            formatter.parse "-1.0" . should_equal -1.0
+            formatter.parse "-1." . should_equal -1.0
+            formatter.parse "-1.000000" . should_equal -1.0
+            formatter.parse "-2" . should_equal -2
+            formatter.parse "1.0001" . should_equal 1.0001
+            formatter.parse "Infinity" . should_equal (Number.positive_infinity)
+            formatter.parse "-Infinity" . should_equal (Number.negative_infinity)
+            formatter.parse "NaN" . is_nan . should_be_true
+
+        Test.specify "should allow customizing the decimal point and thousand separator" <|
+            formatter = Data_Formatter thousand_separator="_" decimal_point=","
+            formatter.parse "123" . should_equal 123
+            formatter.parse "1_000_000" . should_equal 1000000
+            formatter.parse "1_000_000_000" . should_equal (1000 * 1000 * 1000)
+            formatter.parse "100_0_0_0" . should_equal 100000
+            formatter.parse "1__00_000,0" . should_equal 100000.0
+            formatter.parse "-100_000,0000" . should_equal -100000.0
+            formatter.parse "0" . should_equal 0
+            formatter.parse "-1,0" . should_equal -1.0
+            formatter.parse "1,0001" . should_equal 1.0001
+
+        Test.specify "should support exponential notation, but only if explicitly enabled" <|
+            plain_formatter = Data_Formatter
+            exponential_formatter = Data_Formatter allow_exponential_notation=True
+            plain_formatter.parse "1E3" . should_equal "1E3"
+
+            r1 = plain_formatter.parse "1E3" Decimal
+            r1.should_equal Nothing
+            Warning.get_all r1 . map .value . should_equal [(Invalid_Format Nothing Decimal ["1E3"])]
+
+            exponential_formatter.parse "1E3" . should_equal 1000.0
+            exponential_formatter.parse "1E3" Decimal . should_equal 1000.0
+            exponential_formatter.parse "1E3" Integer . should_equal Nothing
+
+            plain_formatter.parse "1.2E-3" . should_equal "1.2E-3"
+            plain_formatter.parse "1.2E-3" Decimal . should_equal Nothing
+            exponential_formatter.parse "1.2E-3" . should_equal 0.0012
+            exponential_formatter.parse "1.2E-3" Decimal . should_equal 0.0012
+
+        Test.specify "handle leading zeros, only if enabled" <|
+            Data_Formatter.parse "0100" . should_equal "0100"
+            Data_Formatter.parse "000" . should_equal "000"
+            Data_Formatter.parse "000.0" . should_equal "000.0"
+            formatter = Data_Formatter allow_leading_zeros=True
+            formatter.parse "0100" . should_equal 100
+            formatter.parse "000" . should_equal 0
+            formatter.parse "000.0" . should_equal 0.0
+
+        Test.specify "should fallback to Text" <|
+            formatter = Data_Formatter
+            formatter.parse "Text" . should_equal "Text"
+            complex_text = """
+                Text with such 'quotes' and also "that" and `that`
+                And newlines toO!
+            formatter.parse complex_text . should_equal complex_text
+
+    Test.group "DataFormatter.format" <|
+        Test.specify "should handle Nothing" <|
+            Data_Formatter.format Nothing . should_equal Nothing
+
+        Test.specify "should format numbers" <|
+            formatter = Data_Formatter
+            formatter.format 123 . should_equal "123"
+            formatter.format 1000000 . should_equal "1000000"
+            formatter.format 1000000.0 . should_equal "1000000.0"
+            formatter.format 0 . should_equal "0"
+            formatter.format -1.0 . should_equal "-1.0"
+            formatter.format -2 . should_equal "-2"
+            formatter.format 1.0001 . should_equal "1.0001"
+            formatter.format (Number.positive_infinity) . should_equal "Infinity"
+            formatter.format (Number.negative_infinity) . should_equal "-Infinity"
+            formatter.format (Number.nan) . should_equal "NaN"
+
+        Test.specify "should allow customizing the decimal point and thousand separator" <|
+            formatter = Data_Formatter thousand_separator="_" decimal_point=","
+            formatter.format 123 . should_equal "123"
+            formatter.format 1000000 . should_equal "1_000_000"
+            formatter.format (1000 * 1000 * 1000) . should_equal "1_000_000_000"
+            formatter.format 100000 . should_equal "100_000"
+            formatter.format 100000.0 . should_equal "100_000,0"
+            formatter.format -100000.0 . should_equal "-100_000,0"
+            formatter.format 0 . should_equal "0"
+            formatter.format -1.0 . should_equal "-1,0"
+            formatter.format 1.0001 . should_equal "1,0001"
+
+        Test.specify "should format booleans" <|
+            formatter = Data_Formatter
+            formatter.format True . should_equal "True"
+            formatter.format False . should_equal "False"
+
+        Test.specify "should allow custom boolean formats" <|
+            formatter = Data_Formatter true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
+            formatter.format True . should_equal "YES"
+            formatter.format False . should_equal "NO"
+            (Data_Formatter true_values=[] false_values=[]).format True . should_fail_with Illegal_Argument_Error
+
+        Test.specify "should format dates" <|
+            formatter = Data_Formatter
+            formatter.format (Date.new 2022 . internal_local_date) . should_equal "2022-01-01"
+            formatter.format (Time.new 1999 . internal_zoned_date_time) . should_equal "1999-01-01 00:00:00"
+            formatter.format (Time_Of_Day.new . internal_local_time) . should_equal "00:00:00"
+
+        Test.specify "should allow custom date formats" <|
+            formatter = Data_Formatter date_formats=["E, d MMM y", "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm"] time_formats=["h:mma"] datetime_locale=Locale.uk
+            formatter.format (Date.new 2022 06 21 . internal_local_date) . should_equal "Tue, 21 Jun 2022"
+            formatter.format (Time.new 1999 02 03 04 56 11 . internal_zoned_date_time) . should_equal "03/02/1999 04:56"
+            formatter.format (Time_Of_Day.new 13 55 . internal_local_time) . should_equal "1:55pm"
+
+        Test.specify "should act as identity on Text" <|
+            formatter = Data_Formatter
+            formatter.format "Text" . should_equal "Text"
+            complex_text = """
+                Text with such 'quotes' and also "that" and `that`
+                And newlines toO!
+            formatter.format complex_text . should_equal complex_text
+
+        Test.specify "should work with custom types, falling back to the `.to_text` method" <|
+            formatter = Data_Formatter thousand_separator="_"
+            formatter.format (Custom_Type 42) . should_equal "(Custom_Type 42)"
+            # We fallback to `to_text`, so obviously the nested numbers will not know about our formatting settings.
+            formatter.format (Custom_Type_With_To_Text 1000) . should_equal "[CUSTOM = 1000]"
+
+        Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="TODO: figure out the desired behavior, see: https://www.pivotaltracker.com/story/show/182522644" <|
+            formatter = Data_Formatter
+            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State_Error
+            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State_Error
+
+    Test.group "DataFormatter builders" <|
+        # We create a formatter with all non-default values to ensure that the builders keep the existing values of other properties instead of switching to the constructor's defaults.
+        formatter_1 = Data_Formatter trim_values=False allow_leading_zeros=True decimal_point=',' thousand_separator='_' allow_exponential_notation=True datetime_formats=["yyyy/MM/dd HH:mm:ss"] date_formats=["dd/MM/yyyy"] time_formats=["HH/mm/ss"] datetime_locale=Locale.uk true_values=["YES"] false_values=["NO"]
+        Test.specify "should allow changing number formatting settings" <|
+            formatter_2 = formatter_1.with_number_formatting decimal_point="*"
+            formatter_2.decimal_point . should_equal "*"
+            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_2.true_values . should_equal formatter_1.true_values
+            formatter_2.false_values . should_equal formatter_1.false_values
+            formatter_2.date_formats . should_equal formatter_1.date_formats
+            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
+            formatter_2.time_formats . should_equal formatter_1.time_formats
+            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
+            formatter_2.trim_values . should_equal formatter_1.trim_values
+
+            formatter_3 = formatter_1.with_number_formatting thousand_separator="" allow_exponential_notation=False allow_leading_zeros=False
+            formatter_3.decimal_point . should_equal formatter_1.decimal_point
+            formatter_3.thousand_separator . should_equal ""
+            formatter_3.allow_leading_zeros . should_equal False
+            formatter_3.allow_exponential_notation . should_equal False
+
+        Test.specify "should allow changing datetime formats" <|
+            formatter_1.with_datetime_formats . should_equal formatter_1
+
+            formatter_2 = formatter_1.with_datetime_formats date_formats="dd.MM.yyyy"
+            formatter_2.date_formats . should_equal ["dd.MM.yyyy"]
+            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
+            formatter_2.time_formats . should_equal formatter_1.time_formats
+            formatter_2.decimal_point . should_equal formatter_1.decimal_point
+            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_2.true_values . should_equal formatter_1.true_values
+            formatter_2.false_values . should_equal formatter_1.false_values
+            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
+            formatter_2.trim_values . should_equal formatter_1.trim_values
+
+            formatter_3 = formatter_1.with_datetime_formats date_formats=[] datetime_formats=["foobar"] time_formats="baz"
+            formatter_3.date_formats . should_equal []
+            formatter_3.datetime_formats . should_equal ["foobar"]
+            formatter_3.time_formats . should_equal ["baz"]
+            formatter_3.decimal_point . should_equal formatter_1.decimal_point
+            formatter_3.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_3.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_3.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_3.true_values . should_equal formatter_1.true_values
+            formatter_3.false_values . should_equal formatter_1.false_values
+            formatter_3.datetime_locale . should_equal formatter_1.datetime_locale
+            formatter_3.trim_values . should_equal formatter_1.trim_values
+
+        Test.specify "should allow changing the datetime locale" <|
+            formatter_2 = formatter_1.with_locale Locale.france
+            formatter_2.datetime_locale . should_equal Locale.france
+            formatter_2.date_formats . should_equal formatter_1.date_formats
+            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
+            formatter_2.time_formats . should_equal formatter_1.time_formats
+            formatter_2.decimal_point . should_equal formatter_1.decimal_point
+            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_2.true_values . should_equal formatter_1.true_values
+            formatter_2.false_values . should_equal formatter_1.false_values
+            formatter_2.trim_values . should_equal formatter_1.trim_values
+
+        Test.specify "should allow changing booleans' representations" <|
+            formatter_2 = formatter_1.with_boolean_values "1" "0"
+            formatter_2.date_formats . should_equal formatter_1.date_formats
+            formatter_2.datetime_formats . should_equal formatter_1.datetime_formats
+            formatter_2.time_formats . should_equal formatter_1.time_formats
+            formatter_2.decimal_point . should_equal formatter_1.decimal_point
+            formatter_2.thousand_separator . should_equal formatter_1.thousand_separator
+            formatter_2.allow_leading_zeros . should_equal formatter_1.allow_leading_zeros
+            formatter_2.allow_exponential_notation . should_equal formatter_1.allow_exponential_notation
+            formatter_2.true_values . should_equal ["1"]
+            formatter_2.false_values . should_equal ["0"]
+            formatter_2.datetime_locale . should_equal formatter_1.datetime_locale
+            formatter_2.trim_values . should_equal formatter_1.trim_values
+
+            formatter_3 = formatter_1.with_boolean_values false_values=[] true_values=[]
+            formatter_3.true_values . should_equal []
+            formatter_3.false_values . should_equal []
+
+main = Test.Suite.run_main here.spec

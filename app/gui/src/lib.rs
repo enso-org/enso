@@ -29,7 +29,6 @@
 
 #![recursion_limit = "512"]
 // === Features ===
-#![feature(arbitrary_self_types)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
 #![feature(bool_to_option)]

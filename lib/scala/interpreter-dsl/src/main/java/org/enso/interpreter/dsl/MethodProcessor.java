@@ -124,6 +124,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
           "com.oracle.truffle.api.profiles.BranchProfile",
           "com.oracle.truffle.api.profiles.ConditionProfile",
+          "java.nio.file.OpenOption",
           "org.enso.interpreter.Language",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
@@ -169,7 +170,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
                   + " = ConditionProfile.createCountingProfile();");
         }
 
-        if (arg.isPositional() && !arg.isThis()) {
+        if (arg.isPositional() && !arg.isSelf()) {
           String branchName = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
           out.println("  private final BranchProfile " + branchName + " = BranchProfile.create();");
         }
@@ -325,7 +326,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               + ");\n"
               + "    }");
     }
-    if (!arg.isThis()) {
+    if (!arg.isSelf()) {
       String branchProfile = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
       out.println(
           "    if (TypesGen.isPanicSentinel("
@@ -342,8 +343,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
     if (!arg.requiresCast()) {
       generateUncastedArgumentRead(out, arg, argsArray);
-    } else if (arg.isThis()) {
+    } else if (arg.isSelf()) {
       generateUncheckedArgumentRead(out, arg, argsArray);
+    } else if (arg.isArray()) {
+      generateUncheckedArrayCast(out, arg, argsArray);
     } else {
       generateCheckedArgumentRead(out, arg, argsArray);
     }
@@ -380,6 +383,24 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
             + "["
             + arg.getPosition()
             + "]);");
+  }
+
+  private void generateUncheckedArrayCast(
+          PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
+    String castName = arg.getTypeName();
+    String varName = mkArgumentInternalVarName(arg);
+    out.println(
+            "    "
+                    + arg.getTypeName()
+                    + " "
+                    + varName
+                    + " = ("
+                    + castName
+                    + ")"
+                    + argsArray
+                    + "["
+                    + arg.getPosition()
+                    + "];");
   }
 
   private void generateCheckedArgumentRead(

@@ -11,7 +11,7 @@ type My_Type
     foreign python my_method = """
         return self.a + self.b
 
-    my_method_2 x = this.my_method * x
+    my_method_2 x = self.my_method * x
 
     foreign python my_method_3 y = """
         r = self.my_method_2(y)
@@ -21,7 +21,7 @@ type My_Type
         err = RuntimeError('Error!')
         raise err
 
-    do_throw = Panic.throw this
+    do_throw = Panic.throw self
 
     foreign python do_catch = """
         try:

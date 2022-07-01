@@ -178,5 +178,5 @@ type Header
              example_header_eq =
                  (Header.new "My_Header" "foo") == (Header.new "My_Header" "bar")
     == : Header -> Boolean
-    == that = (this.name.equals_ignore_case that.name) && this.value==that.value
+    == that = (self.name.equals_ignore_case that.name) && self.value==that.value
 

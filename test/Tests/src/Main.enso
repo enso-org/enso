@@ -59,8 +59,7 @@ import project.Runtime.Lazy_Generator_Spec
 import project.System.File_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
-
-import project.Examples_Spec
+import project.System.System_Spec
 
 main = Test.Suite.run_main <|
     Any_Spec.spec
@@ -70,7 +69,6 @@ main = Test.Suite.run_main <|
     Conversion_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec
-    Examples_Spec.spec
     File_Spec.spec
     Reporting_Stream_Decoder_Spec.spec
     Http_Header_Spec.spec
@@ -115,3 +113,4 @@ main = Test.Suite.run_main <|
     Vector_Spec.spec
     Statistics_Spec.spec
     Warnings_Spec.spec
+    System_Spec.spec

@@ -50,7 +50,8 @@ order: 7
    [IGV](https://www.graalvm.org/graalvm-as-a-platform/language-implementation-framework/Profiling/).
    It's a horrible tool. It's clunky, ugly, and painful to use. It has also
    saved us more times than we can count, definitely worth investing the time to
-   understand it. Use
+   understand it. Download
+   [Enso Language Support for IGV](../tools/enso4igv/README.md). Use
    [this tutorial](https://shopify.engineering/understanding-programs-using-graphs)
    (and
    [the follow up post](https://chrisseaton.com/truffleruby/basic-truffle-graphs/))
@@ -62,8 +63,9 @@ order: 7
    debugging options.
 3. Use [hsdis](https://github.com/liuzhengyang/hsdis/) for printing the
    generated assembly – you can often spot obvious problems with compilations.
-   That being said, IGV is usually the better tool, if you take a look at the
-   later compilation stages.
+   That being said, IGV (with
+   [Enso Language Support](../tools/enso4igv/README.md)) is usually the better
+   tool, if you take a look at the later compilation stages.
 4. Pay attention to making things `final` and `@CompilationFinal`. This is the
    most important way Graal does constant-folding. Whenever a loop bound can be
    compilation final, take advantage (and use `@ExplodeLoop`).
@@ -179,7 +181,8 @@ design choices. Here's a list with some explanations:
    if any benchmark is more than 20% slower than the fastest recorded run. Don't
    use your computer when running these. It is also worth noting that these can
    be run through the `withDebug` utility, which allows you to test truffle
-   compilations (and e.g. watch the graphs in IGV).
+   compilations (and e.g. watch the graphs in IGV with
+   [Enso Language Support](../tools/enso4igv/README.md)).
 8. **Tests**: There are scalatests that comprehensively test all of the language
    semantics and compiler passes. These are run with `sbt runtime/test`. For
    newer functionalities, we prefer adding tests to the `Tests` project in the

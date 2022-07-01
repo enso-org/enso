@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
+import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
@@ -10,11 +11,14 @@ from Standard.Base.Runtime.Resource import all
 export Standard.Base.System.File.Option
 
 polyglot java import java.io.InputStream as Java_Input_Stream
+polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.NoSuchFileException
+polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
+polyglot java import java.nio.file.StandardCopyOption
 
 ## ALIAS New File
 
@@ -32,9 +36,11 @@ polyglot java import java.nio.file.Path
 
          example_new = File.new Examples.csv_path
 new : (Text | File) -> File
-new path = case path of
-    Text -> File (here.get_file path)
-    _ -> path
+new path =
+  case path of
+    Text -> here.get_file path
+    File -> path
+    _    -> Error.throw (Illegal_Argument_Error "new file should be either a File or a Text")
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.
 
@@ -50,10 +56,7 @@ new path = case path of
          example_read_bytes = File.read_bytes Examples.csv
 read_bytes : (Text | File) -> Vector.Vector ! File_Error
 read_bytes path =
-    file = case path of
-        Text -> (here.new path)
-        File _ -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file = here.new path
     file.read_bytes
 
 ## Open and read the file at the provided `path`.
@@ -83,41 +86,8 @@ read_bytes path =
          example_read = File.read_text Examples.csv_path
 read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
-    file = case path of
-        Text -> (here.new path)
-        File _ -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file = here.new path
     file.read_text encoding on_problems
-
-## ALIAS Write Text File
-
-   Open and write to the file at the provided `path`.
-
-   Arguments:
-   - path: The path of the file to open and read the contents of. It will
-     accept a textual path or a file.
-   - contents: The text to write to the file.
-   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
-
-   ? Module or Instance?
-     If you have a variable `file` of type `File`, we recommend calling the
-     `.read_text` method on it directly, rather than using
-     `File.read_text file`. The later, however, will still work.
-
-   > Example
-     Read the `data.csv` file from the Examples project.
-
-         import Standard.Base.System.File
-         import Standard.Examples
-
-         example_read = File.read_text Examples.csv_path
-write_text : (Text | File) -> Text -> Encoding -> Text
-write_text path contents (encoding=Encoding.utf_8) =
-    file = case path of
-        Text -> (here.new path)
-        File _ -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
-    file.write_text contents encoding
 
 ## ALIAS Current Directory
 
@@ -130,7 +100,7 @@ write_text path contents (encoding=Encoding.utf_8) =
 
          example_cwd = File.current_directory
 current_directory : File
-current_directory = File (here.get_cwd)
+current_directory = here.get_cwd
 
 ## ALIAS Home Directory
 
@@ -143,7 +113,7 @@ current_directory = File (here.get_cwd)
 
          example_home = File.home
 home : File
-home = here.new (here.get_user_home)
+home = @Builtin_Method "File.home"
 
 ## Lists files contained in the provided directory.
 
@@ -204,10 +174,8 @@ type File
     ## PRIVATE
 
        A type representing a file.
-
-       Arguments:
-       - prim_file: The internal representation of the file.
-    type File prim_file
+    @Builtin_Type
+    type File
 
     ## Creates a new output stream for this file and runs the specified action
        on it.
@@ -233,7 +201,29 @@ type File
                  file.with_output_stream [Option.Create, Option.Write] action
     with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
     with_output_stream open_options action =
-        Resource.bracket (this.new_output_stream open_options) (_.close) action
+        Resource.bracket (self.new_output_stream open_options) (_.close) action
+
+    ## PRIVATE
+
+    ## Creates a new output stream for this file. Recommended to use
+       `File.with_output_stream` instead, which does resource management.
+
+       Arguments:
+       - options: A vector of `File.Option` objects determining how to open
+         the stream. These options set the access properties of the stream.
+    output_stream : Vector.Vector -> Output_Stream
+    output_stream options = @Builtin_Method "File.output_stream"
+
+    ## PRIVATE
+
+    ## Creates a new input stream for this file. Recommended to use
+       `File.with_input_stream` instead, which does resource management.
+
+       Arguments:
+       - open_options: A vector of `File.Option` objects determining how to open
+         the stream. These options set the access properties of the stream.
+    input_stream : Vector.Vector -> Input_Stream
+    input_stream options = @Builtin_Method "File.input_stream"
 
     ## Creates a new input stream for this file and runs the specified action
        on it.
@@ -259,7 +249,7 @@ type File
                  file.with_input_stream [Option.Create, Option.Read] action
     with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
     with_input_stream open_options action =
-        Resource.bracket (this.new_input_stream open_options) (_.close) action
+        Resource.bracket (self.new_input_stream open_options) (_.close) action
 
     ## Reads all bytes in this file into a byte vector.
 
@@ -272,7 +262,7 @@ type File
     read_bytes : Vector.Vector ! File_Error
     read_bytes =
         opts = [Option.Read]
-        this.with_input_stream opts (_.read_all_bytes)
+        self.with_input_stream opts (_.read_all_bytes)
 
     ## Reads the whole file into a `Text`, with specified encoding.
 
@@ -292,7 +282,7 @@ type File
              example_read = Examples.csv.read
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
     read_text (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
-        bytes = this.read_bytes
+        bytes = self.read_bytes
         Text.from_bytes bytes encoding on_problems
 
     ## Appends a number of bytes at the end of this file.
@@ -309,21 +299,7 @@ type File
     append_bytes : Vector.Vector -> Nothing ! File_Error
     append_bytes contents =
         opts = [Option.Append, Option.Create]
-        this.with_output_stream opts (_.write_bytes contents)
-
-    ## Appends a UTF-8 encoded `Text` at the end of this file.
-
-       Arguments:
-       - contents: The UTF-8 encoded text to append to the file.
-
-       > Example
-         Append the text "hello" to a file.
-
-             import Standard.Examples
-
-             example_append = Examples.scratch_file.append "hello"
-    append : Text -> Nothing ! File_Error
-    append contents = this.append_bytes contents.utf_8
+        self.with_output_stream opts (_.write_bytes contents)
 
     ## Writes a number of bytes into this file, replacing any existing contents.
 
@@ -341,34 +317,13 @@ type File
     write_bytes : Vector.Vector -> Nothing ! File_Error
     write_bytes contents =
         opts = [Option.Write, Option.Create, Option.Truncate_Existing]
-        this.with_output_stream opts (_.write_bytes contents)
+        self.with_output_stream opts (_.write_bytes contents)
         Nothing
-
-    ## ALIAS Write Text File
-
-       Writes a `Text` into this file with specified encoding, replacing any
-       existing contents.
-
-       Arguments:
-       - contents: The text to write to the file.
-       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
-
-       If the file does not exist, it will be created.
-
-       > Example
-         Write the text "hello" to a file.
-
-             import Standard.Examples
-
-             example_write = Examples.scratch_file.write "hello"
-    write_text : Text -> Encoding -> Nothing ! File_Error
-    write_text contents (encoding=Encoding.utf_8) =
-        this.write_bytes <| contents.bytes encoding
 
     ## Join two path segments together.
 
        Arguments:
-       - subpath: The path to join to the path of `this`.
+       - subpath: The path to join to the path of `self`.
 
        > Example
          Concatenate two file path segments.
@@ -377,20 +332,10 @@ type File
 
              example_append = Examples.data_dir / "scratch_file"
     / : (Text | File) -> File
-    / subpath = case subpath of
-        File prim -> File (this.prim_file.resolve prim)
-        _ -> File (this.prim_file.resolve subpath)
+    / subpath = self.resolve subpath
 
-    ## A text representation of this file.
-
-       > Example
-         Get a textual representation of a file.
-
-             import Standard.Examples
-
-             example_to_text = Examples.csv.to_text
-    to_text : Text
-    to_text = this.prim_file.to_text
+    resolve : (Text | File) -> File
+    resolve = @Builtin_Method "File.resolve"
 
     ## A File to JSON conversion.
 
@@ -401,7 +346,7 @@ type File
 
              example_to_json = Examples.csv.to_json
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "File"], ["path", this.path]]
+    to_json = Json.from_pairs [["type", "File"], ["path", self.path]]
 
     ## Checks whether the file exists.
 
@@ -412,7 +357,7 @@ type File
 
              example_exists = Examples.csv.exists
     exists : Boolean
-    exists = this.prim_file.exists
+    exists = @Builtin_Method "File.exists"
 
     ## Checks whether the file exists and is a directory.
 
@@ -423,7 +368,7 @@ type File
 
              example_is_directory = Examples.csv.is_directory
     is_directory : Boolean
-    is_directory = this.prim_file.isDirectory
+    is_directory = @Builtin_Method "File.is_directory"
 
     ## Creates the directory represented by this file if it did not exist.
 
@@ -437,7 +382,7 @@ type File
              example_is_directory =
                 (Examples.data_dir / "my_directory") . create_directory
     create_directory : Nothing
-    create_directory = this.prim_file.createDirectories
+    create_directory = @Builtin_Method "File.create_directory"
 
     ## Checks whether the file exists and is a regular file.
 
@@ -453,7 +398,7 @@ type File
 
              example_is_regular_file = Examples.csv.is_regular_file
     is_regular_file : Boolean
-    is_regular_file = this.prim_file.isRegularFile
+    is_regular_file = @Builtin_Method "File.is_regular_file"
 
     ## Resolves the parent filesystem node of this file.
 
@@ -464,7 +409,7 @@ type File
 
              example_parent = Examples.csv.parent
     parent : File
-    parent = File this.prim_file.getParent
+    parent = @Builtin_Method "File.parent"
 
     ## Returns the path of this file.
 
@@ -475,7 +420,7 @@ type File
 
              example_path = Examples.csv.path
     path : Text
-    path = this.prim_file.getPath
+    path = @Builtin_Method "File.path"
 
     ## Returns the name of this file.
 
@@ -486,7 +431,7 @@ type File
 
              example_name = Examples.csv.name
     name : Text
-    name = this.prim_file.getName
+    name = @Builtin_Method "File.name"
 
     ## Returns the extension of the file.
 
@@ -498,7 +443,7 @@ type File
              Examples.csv.extension == ".csv"
     extension : Text
     extension =
-        name = this.name
+        name = self.name
         last_dot = name.location_of "." mode=Matching_Mode.last
         if last_dot.is_nothing then "" else
             extension = name.drop (Text_Sub_Range.First last_dot.start)
@@ -514,7 +459,7 @@ type File
 
              example_absolute = Examples.csv.absolute
     absolute : File
-    absolute = File this.prim_file.getAbsoluteFile
+    absolute = @Builtin_Method "File.absolute"
 
     ## Checks is this file's path is absolute.
 
@@ -525,7 +470,7 @@ type File
 
              example_is_absolute = Examples.csv.is_absolute
     is_absolute : Boolean
-    is_absolute = this.prim_file.isAbsolute
+    is_absolute = @Builtin_Method "File.is_absolute"
 
     ## Normalizes the filepath.
 
@@ -536,7 +481,7 @@ type File
 
              example_normalize = Examples.csv.normalize
     normalize : File
-    normalize = File this.prim_file.normalize
+    normalize = @Builtin_Method "File.normalize"
 
     ## Checks if this file has the same `path` as `that`.
 
@@ -547,7 +492,7 @@ type File
 
              example_eq = Examples.csv == Examples.scratch_file
     == : File -> Boolean
-    == that = this.prim_file.isEqual that.prim_file
+    == that = @Builtin_Method "File.=="
 
     ## Deletes the file.
 
@@ -565,7 +510,35 @@ type File
                  file.delete
     delete : Nothing ! File_Error
     delete =
-        here.handle_java_exceptions this this.prim_file.delete
+        here.handle_java_exceptions self self.delete_builtin
+
+    ## PRIVATE
+
+       Builtin method that deletes the file.
+       Recommended to use `File.delete` instead which handles potential exceptions.
+    delete_builtin : Nothing
+    delete_builtin = @Builtin_Method "File.delete"
+
+    ## Moves the file to the specified destination.
+
+       Arguments:
+       - destination: the destination to move the file to.
+       - replace_existing: specifies if the operation should proceed if the
+         destination file already exists. Defaults to `True`.
+    move_to : File -> Boolean -> Nothing ! File_Error
+    move_to destination replace_existing=True =
+        here.handle_java_exceptions self <| case replace_existing of
+            True ->
+              copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
+              self.move_builtin destination copy_options
+            False -> self.move_builtin destination Array.empty
+
+    ## PRIVATE
+
+       Builtin method that moves this file to a new destination.
+       Recommended to use `File.move_to` instead which handles potential exceptions.
+    move_builtin : File -> Array Any -> Nothing
+    move_builtin destination copy_options = @Builtin_Method "File.move_builtin"
 
     ## Deletes the file if it exists on disk.
 
@@ -579,7 +552,7 @@ type File
 
              example_del_if_exists = Examples.scratch_file.delete_if_exists
     delete_if_exists : Nothing ! File_Error
-    delete_if_exists = if this.exists then this.delete else Nothing
+    delete_if_exists = if self.exists then self.delete else Nothing
 
     ## ADVANCED
 
@@ -594,9 +567,9 @@ type File
     new_input_stream : Vector.Vector -> Input_Stream ! File_Error
     new_input_stream open_options =
         opts = open_options . map (_.to_java) . to_array
-        stream = here.handle_java_exceptions this (this.prim_file.newInputStream opts)
+        stream = here.handle_java_exceptions self (self.input_stream opts)
         resource = Managed_Resource.register stream here.close_stream
-        Input_Stream this resource
+        Input_Stream self resource
 
     ## ADVANCED
 
@@ -611,10 +584,10 @@ type File
     new_output_stream : Vector.Vector -> Output_Stream ! File_Error
     new_output_stream open_options =
         opts = open_options . map (_.to_java) . to_array
-        stream = here.handle_java_exceptions this <|
-            this.prim_file.newOutputStream opts
+        stream = here.handle_java_exceptions self <|
+            self.output_stream opts
         resource = Managed_Resource.register stream here.close_stream
-        Output_Stream this resource
+        Output_Stream self resource
 
     ## Lists files contained in the directory denoted by this file.
 
@@ -671,27 +644,48 @@ type File
     list : Text -> Boolean -> Vector.Vector File
     list name_filter=Nothing recursive=False =
         all_files = case recursive of
-            True -> here.list_descendants this
-            False -> here.list_immediate_children this
+            True -> here.list_descendants self
+            False -> self.list_immediate_children
         filtered = case name_filter of
             Nothing -> all_files
             _ ->
                 fs = FileSystems.getDefault
                 matcher = fs.getPathMatcher "glob:"+name_filter
                 all_files.filter file->
-                    pathStr = this.prim_file.relativize file.prim_file . getPath
+                    pathStr = self.relativize file . path
                     matcher.matches (Path.of pathStr)
         filtered
 
     ## UNSTABLE
 
-       Checks if `this` is a child path of `other`.
-    is_child_of other = this.prim_file.startsWith other.prim_file
+       Checks if `self` is a child path of `other`.
+    is_child_of : File -> Boolean
+    is_child_of other = self.starts_with other
 
     ## UNSTABLE
 
-       Transforms `child` to a relative path with respect to `this`.
-    relativize child = File (this.prim_file.relativize child.prim_file)
+       Transforms `child` to a relative path with respect to `self`.
+    relativize : File -> Boolean
+    relativize child = @Builtin_Method "File.relativize"
+
+
+    ## PRIVATE
+
+       Utility function that lists immediate children of a directory.
+    list_immediate_children : Vector.Vector File
+    list_immediate_children = Vector.Vector (self.list_immediate_children_array)
+
+    ## PRIVATE
+
+       Utility function that lists immediate children of a directory.
+    list_immediate_children_array : Array File
+    list_immediate_children_array = @Builtin_Method "File.list_immediate_children_array"
+
+    ## PRIVATE
+
+       Return the absolute path of this File
+    to_text : Text
+    to_text = self.absolute . path
 
 ## An output stream, allowing for interactive writing of contents into an
    open file.
@@ -727,8 +721,8 @@ type Output_Stream
                  out_stream.write_bytes "hello".utf_8
                  out_stream.close
     write_bytes : Vector.Vector -> Nothing ! File_Error
-    write_bytes contents = this.stream_resource . with java_stream->
-        here.handle_java_exceptions this.file <|
+    write_bytes contents = self.stream_resource . with java_stream->
+        here.handle_java_exceptions self.file <|
             java_stream.write contents.to_array
             java_stream.flush
         Nothing
@@ -752,7 +746,20 @@ type Output_Stream
                  out_stream = file.new_output_stream [Option.Create]
                  out_stream.close
     close : Nothing
-    close = this.stream_resource . finalize
+    close = self.stream_resource . finalize
+
+    ## PRIVATE
+
+       Exposes operations on the underlying Java output stream.
+
+       Arguments:
+       - f: Applies a function over the internal java stream.
+
+       Useful when integrating with polyglot functions requiring an
+       `OutputStream` as an argument.
+    with_java_stream : (Java_Output_Stream -> Any) -> Any
+    with_java_stream f = self.stream_resource . with f
+
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.
@@ -786,8 +793,8 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_all_bytes : Vector.Vector ! File_Error
-    read_all_bytes = this.stream_resource . with java_stream->
-        here.handle_java_exceptions this.file <|
+    read_all_bytes = self.stream_resource . with java_stream->
+        here.handle_java_exceptions self.file <|
             Vector.Vector java_stream.readAllBytes
 
     ## ADVANCED
@@ -816,8 +823,8 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_n_bytes : Integer -> Vector.Vector ! File_Error
-    read_n_bytes n = this.stream_resource . with java_stream->
-        here.handle_java_exceptions this.file <|
+    read_n_bytes n = self.stream_resource . with java_stream->
+        here.handle_java_exceptions self.file <|
             bytes = java_stream.readNBytes n
             Vector.Vector bytes
 
@@ -841,8 +848,8 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_byte : Integer ! File_Error
-    read_byte = this.stream_resource . with java_stream->
-        here.handle_java_exceptions this.file <|
+    read_byte = self.stream_resource . with java_stream->
+        here.handle_java_exceptions self.file <|
             java_stream.read
 
     ## ADVANCED
@@ -864,7 +871,7 @@ type Input_Stream
                  in_stream = file.new_input_stream [Option.Read]
                  in_stream.close
     close : Nothing
-    close = this.stream_resource . finalize
+    close = self.stream_resource . finalize
 
     ## PRIVATE
 
@@ -876,7 +883,7 @@ type Input_Stream
        Useful when integrating with polyglot functions requiring an
        `InputStream` as an argument.
     with_java_stream : (Java_Input_Stream -> Any) -> Any
-    with_java_stream f = this.stream_resource . with f
+    with_java_stream f = self.stream_resource . with f
 
 
 ## PRIVATE
@@ -891,8 +898,9 @@ handle_java_exceptions file ~action =
    Converts a Java `IOException` into its Enso counterpart.
 wrap_io_exception file io_exception =
     if Java.is_instance io_exception NoSuchFileException then Error.throw (File_Not_Found file) else
-        if Java.is_instance io_exception AccessDeniedException then Error.throw (Io_Error file "You do not have permission to access the file") else
-            Error.throw (Io_Error file "An IO error has occurred: "+io_exception.getMessage)
+        if Java.is_instance io_exception FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
+            if Java.is_instance io_exception AccessDeniedException then Error.throw (Io_Error file "You do not have permission to access the file") else
+                Error.throw (Io_Error file "An IO error has occurred: "+io_exception.getMessage)
 
 ## PRIVATE
 
@@ -911,6 +919,9 @@ type File_Error
        - file: The file that doesn't exist.
     type File_Not_Found file
 
+    ## Indicates that a destination file already exists.
+    type File_Already_Exists_Error file
+
     ## A generic IO error.
 
        Arguments:
@@ -922,19 +933,12 @@ type File_Error
 
        Convert the File error to a human-readable format.
     to_display_text : Text
-    to_display_text = case this of
+    to_display_text = case self of
         File_Not_Found  file -> "The file at " + file.path + " does not exist."
         Io_Error file msg -> msg.to_text + " (" + file.path + ")."
+        File_Already_Exists_Error file -> "The file at "+file.path+" already exists."
 
 
-## PRIVATE
-
-   Utility function that lists immediate children of a directory.
-list_immediate_children : File -> Vector.Vector File
-list_immediate_children directory =
-    arr = directory.prim_file.list
-    Vector.new (Polyglot.get_array_size arr) ix->
-        File (arr.at ix)
 
 ## PRIVATE
 
@@ -948,7 +952,7 @@ list_descendants file =
         builder.append file
         case file.is_directory of
             True ->
-                children = here.list_immediate_children file
+                children = file.list_immediate_children
                 children.each go
             False -> Nothing
     go file
@@ -970,8 +974,27 @@ get_cwd = @Builtin_Method "File.get_cwd"
 get_file : Text -> File
 get_file path = @Builtin_Method "File.get_file"
 
-## PRIVATE
+## Writes (or appends) the specified bytes to the specified file.
+   The behavior specified in the `existing_file` parameter will be used if the
+   file exists.
 
-   Gets the textual path to the user's system-defined home directory.
-user_home : Text
-user_home = @Builtin_Method "File.user_home"
+   Arguments:
+   - path: The path to the target file.
+   - encoding: The encoding to use when writing the file.
+   - on_existing_file: Specifies how to proceed if the file already exists.
+   - on_problems: Specifies how to handle any encountered problems.
+
+   If a character cannot be converted to a byte, an `Encoding_Error` is raised.
+   If `on_problems` is set to `Report_Warning` or `Ignore`, it is replaced with
+   a substitute (either � (if Unicode) or ? depending on the encoding).
+   Otherwise, the process is aborted.
+   If the path to the parent location cannot be found or the filename is
+   invalid, a `File_Not_Found` is raised.
+   If another error occurs, such as access denied, an `Io_Error` is raised.
+   Otherwise, the file is created with the encoded text written to it.
+Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
+Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
+    bytes = self.bytes encoding on_problems
+    file = here.new path
+    on_existing_file.write file stream->
+        stream.write_bytes bytes

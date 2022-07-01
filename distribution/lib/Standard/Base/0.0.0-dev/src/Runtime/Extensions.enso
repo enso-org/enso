@@ -12,49 +12,49 @@ type Source_Location
        Pretty prints the location.
     to_text : Text
     to_text =
-        '(Source_Location ' + this.formatted_coordinates + ')'
+        '(Source_Location ' + self.formatted_coordinates + ')'
 
     ## UNSTABLE
 
        Returns the 1-based line index of the start of this code range.
     start_line : Integer
-    start_line = this.prim_location.getStartLine
+    start_line = self.prim_location.getStartLine
 
     ## UNSTABLE
 
        Returns the 1-based line index of the end of this code range.
     end_line : Integer
-    end_line = this.prim_location.getEndLine
+    end_line = self.prim_location.getEndLine
 
     ## UNSTABLE
 
        Returns the 1-based column index of the start of this code range.
     start_column : Integer
-    start_column = this.prim_location.getStartColumn
+    start_column = self.prim_location.getStartColumn
 
     ## UNSTABLE
 
        Returns the 1-based column index of the end of this code range.
     end_column : Integer
-    end_column = this.prim_location.getEndColumn
+    end_column = self.prim_location.getEndColumn
 
     ## UNSTABLE
 
        Returns a pretty-printed location (file and line info).
     formatted_coordinates : Text
     formatted_coordinates =
-        start_line = this.start_line
-        end_line = this.end_line
+        start_line = self.start_line
+        end_line = self.end_line
         indices = case start_line == end_line of
             True ->
                 row = start_line.to_text
-                start = this.start_column.to_text
-                end = this.end_column.to_text
+                start = self.start_column.to_text
+                end = self.end_column.to_text
                 row + ":" + start + "-" + end
             False ->
                 start_line.to_text + '-' + end_line.to_text
         cwd = File.current_directory
-        file = this.file.absolute
+        file = self.file.absolute
         formatted_file = case file.is_child_of cwd of
             True -> cwd.relativize file . path
             _ -> file.path
@@ -64,4 +64,4 @@ type Source_Location
 
        Return the source file corresponding to this location.
     file : File.File
-    file = File.new this.prim_location.getSource.getPath
+    file = File.new self.prim_location.getSource.getPath

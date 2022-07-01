@@ -62,7 +62,7 @@ type Internal_Column
        Arguments:
        - new_name: The new name for the column.
     rename : Text -> Internal_Column
-    rename new_name = Internal_Column new_name this.sql_type this.expression
+    rename new_name = Internal_Column new_name self.sql_type self.expression
 
 ## PRIVATE
 
@@ -101,7 +101,7 @@ type Context
        - new_index: The new index to set in the query.
     set_index : Vector Internal_Column -> Context
     set_index new_index =
-        Context this.from_spec this.where_filters this.orders this.groups new_index this.limit
+        Context self.from_spec self.where_filters self.orders self.groups new_index self.limit
 
     ## PRIVATE
 
@@ -111,7 +111,7 @@ type Context
        - new_filters: The new filters to set in the query.
     set_where_filters : Vector Expression -> Context
     set_where_filters new_filters =
-        Context this.from_spec new_filters this.orders this.groups this.meta_index this.limit
+        Context self.from_spec new_filters self.orders self.groups self.meta_index self.limit
 
     ## PRIVATE
 
@@ -121,7 +121,7 @@ type Context
        - new_orders: The new ordering clauses to set in the query.
     set_orders : Vector Order_Descriptor -> Context
     set_orders new_orders =
-        Context this.from_spec this.where_filters new_orders this.groups this.meta_index this.limit
+        Context self.from_spec self.where_filters new_orders self.groups self.meta_index self.limit
 
     ## PRIVATE
 
@@ -138,7 +138,7 @@ type Context
        - new_orders: The new ordering clauses to add to the query.
     add_orders : Vector Order_Descriptor -> Context
     add_orders new_orders =
-        Context this.from_spec this.where_filters new_orders+this.orders this.groups this.meta_index this.limit
+        Context self.from_spec self.where_filters new_orders+self.orders self.groups self.meta_index self.limit
 
     ## PRIVATE
 
@@ -148,7 +148,7 @@ type Context
        - new_groups: The new grouping clauses to set in the query.
     set_groups : Vector Expression -> Context
     set_groups new_groups =
-        Context this.from_spec this.where_filters this.orders new_groups this.meta_index this.limit
+        Context self.from_spec self.where_filters self.orders new_groups self.meta_index self.limit
 
     ## PRIVATE
 
@@ -158,7 +158,7 @@ type Context
        - new_limit: The new limit clauses to set in the query.
     set_limit : (Nothing | Integer) -> Context
     set_limit new_limit =
-       Context this.from_spec this.where_filters this.orders this.groups this.meta_index new_limit
+       Context self.from_spec self.where_filters self.orders self.groups self.meta_index new_limit
 
     ## PRIVATE
 
@@ -186,7 +186,7 @@ type Context
 
         encapsulated_columns = column_lists.flat_map columns->
             columns.map column-> [column.name, column.expression]
-        new_from = IR.Sub_Query encapsulated_columns this alias
+        new_from = IR.Sub_Query encapsulated_columns self alias
 
         [new_from, new_columns]
 

@@ -311,7 +311,7 @@ type Http
     options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     options uri (headers = []) =
         req = Request.options uri headers
-        this.request req
+        self.request req
 
     ## Send a Get request.
 
@@ -349,7 +349,7 @@ type Http
     get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     get uri (headers = []) =
         req = Request.get uri headers
-        this.request req
+        self.request req
 
     ## Send a Head request.
 
@@ -367,7 +367,7 @@ type Http
     head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     head uri (headers = []) =
         req = Request.head uri headers
-        this.request req
+        self.request req
 
     ## Send a Post request.
 
@@ -391,7 +391,7 @@ type Http
     post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
     post uri body (headers = []) =
         req = Request.post uri body headers
-        this.request req
+        self.request req
 
     ## Send a Post request with the form. By default it will be encoded as
        "application/x-www-form-urlencoded". To encode the form as
@@ -429,7 +429,7 @@ type Http
     post_form uri parts (headers = []) =
         new_headers = [Header.application_x_www_form_urlencoded]
         req = Request.post uri (Request_Body.Form parts.to_form) new_headers . with_headers headers
-        this.request req
+        self.request req
 
     ## Send a Post request with body with content-type "application/json".
 
@@ -452,7 +452,7 @@ type Http
     post_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
-        this.request req
+        self.request req
 
     ## Send a Put request.
 
@@ -474,7 +474,7 @@ type Http
     put : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
     put uri body (headers = []) =
         req = Request.put uri body headers
-        this.request req
+        self.request req
 
     ## Send a Put request with body with content-type "application/json".
 
@@ -496,7 +496,7 @@ type Http
     put_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
-        this.request req
+        self.request req
 
     ## Create a Delete request.
 
@@ -513,12 +513,12 @@ type Http
     delete : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     delete uri (headers = []) =
         req = Request.delete uri headers
-        this.request req
+        self.request req
 
     ## Create a request
 
        Arguments:
-       - req: The HTTP request to send using `this` HTTP client.
+       - req: The HTTP request to send using `self` HTTP client.
 
        > Example
          Send a Get request with headers. NOTE: This example will send a network
@@ -650,7 +650,7 @@ type Http
                     req.headers.map h-> builder.header h.name h.value
             http_request = builder.build
             body_handler = HttpResponse.BodyHandlers . ofByteArray
-            Response.response (this.internal_http_client.send http_request body_handler)
+            Response.response (self.internal_http_client.send http_request body_handler)
         response.catch e-> case e of
             Polyglot_Error err ->
                 Error.throw (Request_Error err.getClass.getSimpleName err.getMessage)
@@ -664,16 +664,16 @@ type Http
     internal_http_client =
         builder = HttpClient.newBuilder
         # timeout
-        if this.timeout.is_date then Panic.throw (Time.time_error "Connection timeout does not support date intervals") else
-            builder.connectTimeout this.timeout.internal_duration
+        if self.timeout.is_date then Panic.throw (Time.time_error "Connection timeout does not support date intervals") else
+            builder.connectTimeout self.timeout.internal_duration
         # redirect
         redirect = HttpClient.Redirect
-        redirect_policy = case this.follow_redirects of
+        redirect_policy = case self.follow_redirects of
             True -> redirect.ALWAYS
             False -> redirect.NEVER
         builder.followRedirects redirect_policy
         # proxy
-        case this.proxy of
+        case self.proxy of
             Proxy.Proxy_Addr proxy_host proxy_port ->
                 proxy_selector = ProxySelector.of (InetSocketAddress.new proxy_host proxy_port)
                 builder.proxy proxy_selector
@@ -683,7 +683,7 @@ type Http
             Proxy.None ->
                 Nothing
         # version
-        case this.version of
+        case self.version of
             Version.Http_1_1 ->
                 builder.version HttpClient.Version.HTTP_1_1
             Version.Http_2 ->
@@ -704,7 +704,7 @@ type Request_Error error_type message
 
    Convert a request error to a human-readable form.
 Request_Error.to_display_text =
-    description_text = case this.message of
+    description_text = case self.message of
         Nothing -> ""
-        _ -> " " + this.message
-    this.error_type + " error when sending request." + description_text
+        _ -> " " + self.message
+    self.error_type + " error when sending request." + description_text

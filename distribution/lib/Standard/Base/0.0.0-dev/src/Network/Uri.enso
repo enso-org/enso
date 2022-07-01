@@ -28,7 +28,7 @@ parse text =
 
 ## Convert Text to a Uri.
 
-   Throws a Syntax_Error when `this` cannot be parsed as a Uri.
+   Throws a Syntax_Error when `self` cannot be parsed as a Uri.
 
    > Example
      Parse Uri text.
@@ -37,7 +37,7 @@ parse text =
 
          example_parse = "http://example.com".to_uri
 Text.to_uri : Uri ! Syntax_Error
-Text.to_uri = here.parse this
+Text.to_uri = here.parse self
 
 type Uri
 
@@ -58,7 +58,7 @@ type Uri
 
              example_to_uri = Examples.uri.to_uri
     to_uri : Uri
-    to_uri = this
+    to_uri = self
 
     ## Get the scheme part of this Uri.
 
@@ -69,7 +69,7 @@ type Uri
 
              example_scheme = Examples.uri.scheme
     scheme : Text ! Nothing
-    scheme = Internal.handle_nothing this.internal_uri.getScheme
+    scheme = Internal.handle_nothing self.internal_uri.getScheme
 
     ## Get the user info part of this Uri.
 
@@ -80,7 +80,7 @@ type Uri
 
              example_user_info = Examples.uri.user_info
     user_info : Text ! Nothing
-    user_info = Internal.handle_nothing this.internal_uri.getUserInfo
+    user_info = Internal.handle_nothing self.internal_uri.getUserInfo
 
     ## Get the host part of this Uri.
 
@@ -91,7 +91,7 @@ type Uri
 
              example_host = Examples.uri.host
     host : Text ! Nothing
-    host = Internal.handle_nothing this.internal_uri.getHost
+    host = Internal.handle_nothing self.internal_uri.getHost
 
     ## Get the authority (user info and host) part of this Uri.
 
@@ -102,7 +102,7 @@ type Uri
 
              example_authority = Examples.uri.authority
     authority : Text ! Nothing
-    authority = Internal.handle_nothing this.internal_uri.getAuthority
+    authority = Internal.handle_nothing self.internal_uri.getAuthority
 
     ## Get the port part of this Uri.
 
@@ -114,7 +114,7 @@ type Uri
              example_port = Examples.uri.port
     port : Text ! Nothing
     port =
-        port_number = this.internal_uri.getPort
+        port_number = self.internal_uri.getPort
         Internal.handle_nothing <|
             if port_number == -1 then Nothing else port_number.to_text
 
@@ -127,7 +127,7 @@ type Uri
 
              example_path = Examples.uri.path
     path : Text ! Nothing
-    path = Internal.handle_nothing this.internal_uri.getPath
+    path = Internal.handle_nothing self.internal_uri.getPath
 
     ## Get the query part of this Uri.
 
@@ -138,7 +138,7 @@ type Uri
 
              example_query = Examples.uri.query
     query : Text ! Nothing
-    query = Internal.handle_nothing this.internal_uri.getQuery
+    query = Internal.handle_nothing self.internal_uri.getQuery
 
     ## Get the fragment part of this Uri.
 
@@ -149,37 +149,37 @@ type Uri
 
              example_fragment = Examples.uri.fragment
     fragment : Text ! Nothing
-    fragment = Internal.handle_nothing this.internal_uri.getFragment
+    fragment = Internal.handle_nothing self.internal_uri.getFragment
 
     ## ADVANCED
 
        Get the unescaped user info part of this Uri.
     raw_user_info : Text ! Nothing
-    raw_user_info = Internal.handle_nothing this.internal_uri.getRawUserInfo
+    raw_user_info = Internal.handle_nothing self.internal_uri.getRawUserInfo
 
     ## ADVANCED
 
        Get the unescaped authority part of this Uri.
     raw_authority : Text ! Nothing
-    raw_authority = Internal.handle_nothing this.internal_uri.getRawAuthority
+    raw_authority = Internal.handle_nothing self.internal_uri.getRawAuthority
 
     ## ADVANCED
 
        Get the unescaped path part of this Uri.
     raw_path : Text ! Nothing
-    raw_path = Internal.handle_nothing this.internal_uri.getRawPath
+    raw_path = Internal.handle_nothing self.internal_uri.getRawPath
 
     ## ADVANCED
 
        Get the unescaped query part of this Uri.
     raw_query : Text ! Nothing
-    raw_query = Internal.handle_nothing this.internal_uri.getRawQuery
+    raw_query = Internal.handle_nothing self.internal_uri.getRawQuery
 
     ## ADVANCED
 
        Get the unescaped fragment part of this Uri.
     raw_fragment : Text ! Nothing
-    raw_fragment = Internal.handle_nothing this.internal_uri.getRawFragment
+    raw_fragment = Internal.handle_nothing self.internal_uri.getRawFragment
 
     ## Convert this Uri to text.
 
@@ -190,7 +190,7 @@ type Uri
 
              example_to_text = Examples.uri.to_text
     to_text : Text
-    to_text = this.internal_uri.toString
+    to_text = self.internal_uri.toString
 
     ## Convert a Uri to JSON.
 
@@ -202,7 +202,7 @@ type Uri
 
              example_to_json = Examples.uri.to_json
     to_json : Json.String
-    to_json = Json.String this.to_text
+    to_json = Json.String self.to_text
 
     ## Check if this URI is equal to another URI.
 
@@ -213,7 +213,7 @@ type Uri
 
              example_eq = "https://example.com".to_uri == "http://example.org".to_uri
     == : Uri -> Boolean
-    == that = this.internal_uri.equals that.internal_uri
+    == that = self.internal_uri.equals that.internal_uri
 
 ## UNSTABLE
 
@@ -227,5 +227,5 @@ type Syntax_Error message
 
    Converts the URI syntax error to a human-readable form.
 Syntax_Error.to_display_text =
-    "Uri syntax error: " + this.message
+    "Uri syntax error: " + self.message
 

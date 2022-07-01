@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Table as Table_Module import No_Such_Column_Error
 from Standard.Table.Data.Column as Column_Module import Column
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column

@@ -495,10 +495,12 @@ impl<M> LogVisitor<M> {
 impl str::FromStr for crate::Label {
     type Err = Expected;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(if let Some((name, pos)) = s.rsplit_once(' ') {
-            Self { name: name.to_owned(), pos: crate::CodePos::parse(pos)? }
-        } else {
-            Self { name: s.to_owned(), pos: None }
+        Ok(match s.rsplit_once(' ') {
+            Some((name, pos)) => match crate::CodePos::parse(pos) {
+                Ok(pos) => Self { name: name.to_owned(), pos },
+                Err(_) => Self { name: s.to_owned(), pos: None },
+            },
+            None => Self { name: s.to_owned(), pos: None },
         })
     }
 }

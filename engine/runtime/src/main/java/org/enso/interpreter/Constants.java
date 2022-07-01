@@ -6,7 +6,7 @@ public class Constants {
 
   /** Names for different language elements. */
   public static class Names {
-    public static final String THIS_ARGUMENT = "this";
+    public static final String SELF_ARGUMENT = "self";
     public static final String THAT_ARGUMENT = "that";
     public static final String CURRENT_MODULE = "here";
     public static final String FROM_MEMBER = "from";

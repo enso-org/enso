@@ -4,28 +4,82 @@ import Standard.Base.Data.Time.Date
 
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
-from Standard.Table.Io.Excel import Excel_Range
-from Standard.Table.Io.Excel import Sheet_Names, Range_Names, Sheet, Range
+from Standard.Table.Io.Excel import Excel_Range, Sheet_Names, Range_Names, Sheet, Cell_Range
+from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names
 
 import Standard.Test
+import Standard.Test.Problems
+
+import Standard.Examples
+
+spec_fmt header file read_method =
+    Test.group header <|
+        Test.specify "should read the specified sheet by index and use correct headers" <|
+            t = read_method file
+            t.columns.map .name . should_equal ['Name', 'Quantity', 'Price']
+            t.at 'Name' . to_vector . should_equal ['blouse', 't-shirt', 'trousers', 'shoes', 'skirt', 'dress']
+            t.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
+            t.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
+
+        Test.specify "should read the specified sheet by index and properly format a table" <|
+            t = read_method file (File_Format.Excel (Sheet 2) headers=False)
+            t.columns.map .name . should_equal ['A', 'B', 'C', 'D', 'E']
+            t.at 'A' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t.at 'B' . to_vector . should_equal [Nothing, Nothing, 10, Nothing, Nothing, Nothing, Nothing]
+            t.at 'C' . to_vector . should_equal [Nothing, 'baz', 20, Nothing, 'bar', Nothing, 30]
+            t.at 'D' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t.at 'E' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 'foo', Nothing]
+
+        Test.specify "should read the specified sheet by name and properly handle dates" <|
+            t = read_method file (File_Format.Excel (Sheet 'Dates'))
+            t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
+            t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
+
+        Test.specify "should read an empty table" <|
+            t = read_method file (File_Format.Excel (Sheet "Empty"))
+            t.columns.length.should_equal 0
+
+        Test.specify "should gracefully handle duplicate column names and formulas" <|
+            t = read_method file (File_Format.Excel (Sheet "Duplicate Columns"))
+            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price_1']
+            t.at 'Price_1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
+
+        Test.specify "should allow reading with cell range specified" <|
+            t_1 = read_method file (File_Format.Excel (Cell_Range "Simple!B:C"))
+            t_1.columns.map .name . should_equal ['Quantity', 'Price']
+            t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
+            t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
+
+            t_2 = read_method file (File_Format.Excel (Cell_Range "Simple!3:5") headers=False)
+            t_2.columns.length.should_equal 3
+            t_2.at 'A' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
+            t_2.at 'B' . to_vector . should_equal [20, Nothing, 30]
+            t_2.at 'C' . to_vector . should_equal [32, 43.2, 54]
+
+            t_3 = read_method file (File_Format.Excel (Cell_Range "Simple!B4:C5") headers=False)
+            t_3.columns.length.should_equal 2
+            t_3.at 'B' . to_vector . should_equal [Nothing, 30]
+            t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
 spec =
     Test.group 'Excel Range' <|
-        check_range range sheet_name tlbr_vector =
-            range.sheet_name . should_equal sheet_name
-            range.top_row . should_equal (tlbr_vector.at 0)
-            range.left_column . should_equal (tlbr_vector.at 1)
-            range.bottom_row . should_equal (tlbr_vector.at 2)
-            range.right_column . should_equal (tlbr_vector.at 3)
+        check_range excel_range sheet_name tlbr_vector single_cell=False =
+            excel_range.sheet_name . should_equal sheet_name
+            excel_range.top_row . should_equal (tlbr_vector.at 0)
+            excel_range.left_column . should_equal (tlbr_vector.at 1)
+            excel_range.bottom_row . should_equal (tlbr_vector.at 2)
+            excel_range.right_column . should_equal (tlbr_vector.at 3)
+            excel_range.is_single_cell . should_equal single_cell
 
         Test.specify 'should be able to parse A1 format' <|
-            check_range (Excel_Range.from_address "Test!EE4") 'Test' [4, 135, 4, 135]
+            check_range (Excel_Range.from_address "Test!EE4") 'Test' [4, 135, 4, 135] True
+            check_range (Excel_Range.from_address "Test!EE4:EE4") 'Test' [4, 135, 4, 135]
             check_range (Excel_Range.from_address "Test!A1:D5") 'Test' [1, 1, 5, 4]
             check_range (Excel_Range.from_address "Test!1234") 'Test' [1234, Nothing, 1234, Nothing]
             check_range (Excel_Range.from_address "Test!1:4") 'Test' [1, Nothing, 4, Nothing]
             check_range (Excel_Range.from_address "Test!CB") 'Test' [Nothing, 80, Nothing, 80]
             check_range (Excel_Range.from_address "Test!DD:XAZ") 'Test' [Nothing, 108, Nothing, 16276]
-            check_range (Excel_Range.from_address "'Hello World'!$EE4") 'Hello World' [4, 135, 4, 135]
+            check_range (Excel_Range.from_address "'Hello World'!$EE4") 'Hello World' [4, 135, 4, 135] single_cell=True
             check_range (Excel_Range.from_address "Test!A1:$D$5") 'Test' [1, 1, 5, 4]
             check_range (Excel_Range.from_address "Test!1234") 'Test' [1234, Nothing, 1234, Nothing]
             check_range (Excel_Range.from_address "Test!$1:$4") 'Test' [1, Nothing, 4, Nothing]
@@ -33,7 +87,7 @@ spec =
             check_range (Excel_Range.from_address "Test!$DD:$XAZ") 'Test' [Nothing, 108, Nothing, 16276]
 
         Test.specify 'should be able to parse RC format' <|
-            check_range (Excel_Range.from_address "Test!R1C1") 'Test' [1, 1, 1, 1]
+            check_range (Excel_Range.from_address "Test!R1C1") 'Test' [1, 1, 1, 1] True
             check_range (Excel_Range.from_address "Test!R1C1:R5C3") 'Test' [1, 1, 5, 3]
 
         Test.specify 'should fail gracefully for invalid patterns' <|
@@ -41,8 +95,8 @@ spec =
             Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument_Error
 
         Test.specify 'should allow Range creation for a cell' <|
-            check_range (Excel_Range.for_cell "Hello World" 123 14) 'Hello World' [14, 123, 14, 123]
-            check_range (Excel_Range.for_cell "Hello World" "DS" 14) 'Hello World' [14, 123, 14, 123]
+            check_range (Excel_Range.for_cell "Hello World" 123 14) 'Hello World' [14, 123, 14, 123] True
+            check_range (Excel_Range.for_cell "Hello World" "DS" 14) 'Hello World' [14, 123, 14, 123] True
             Excel_Range.for_cell "Test" 123 14 . address . should_equal "Test!DS14"
             Excel_Range.for_cell "Hello World" 123 14 . address . should_equal "'Hello World'!DS14"
             Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument_Error
@@ -114,6 +168,7 @@ spec =
         start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
 
     check_table table =
+        table.columns.length . should_equal 3
         check_column (table.at "A") col_a
         check_column (table.at "B") col_b
         ## ToDo [JD]: Can't check Dates at present as not being handled correctly. Coming as a Polyglot array
@@ -121,19 +176,26 @@ spec =
         # check_column (table.at "C") col_c
 
     Test.group "Read XLSX / XLS Files" <|
-        Test.specify "should let you read the sheet names with File_Format.Auto" <|
-            sheet_names = ["Sheet1", "Another"]
-            xlsx_sheet.read . should_equal sheet_names
-            File.read xlsx_sheet . should_equal sheet_names
-            File.read xlsx_path . should_equal sheet_names
-            xls_sheet.read . should_equal sheet_names
-            File.read xls_sheet . should_equal sheet_names
-            File.read xls_path . should_equal sheet_names
+        Test.specify "should let you read the first sheet with File_Format.Auto" <|
+            check_table <| xlsx_sheet.read
+            check_table <| File.read xlsx_sheet
+            check_table <| File.read xlsx_path
+            check_table <| xls_sheet.read
+            check_table <| File.read xls_sheet
+            check_table <| File.read xls_path
 
-        Test.specify "should let you read the sheet names with File_Format.Excel" <|
+        Test.specify "should let you read the first sheet with File_Format.Excel" <|
+            check_table <| xlsx_sheet.read File_Format.Excel
+            check_table <| File.read xlsx_sheet File_Format.Excel
+            check_table <| File.read xlsx_path File_Format.Excel
+            check_table <| xls_sheet.read File_Format.Excel
+            check_table <| File.read xls_sheet File_Format.Excel
+            check_table <| File.read xls_path File_Format.Excel
+
+        Test.specify "should let you read the sheet names" <|
             sheet_names = ["Sheet1", "Another"]
-            xlsx_sheet.read File_Format.Excel . should_equal sheet_names
-            xls_sheet.read File_Format.Excel . should_equal sheet_names
+            xlsx_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
+            xls_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
 
         Test.specify "should let you read the range names" <|
             range_names = ["myData"]
@@ -169,18 +231,18 @@ spec =
             check_table table
 
         Test.specify "should let you read by range" <|
-            table = xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C"))
+            table = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C" (table.length - col_a.length)))
+            table_2 = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C" (table.length - col_a.length)))
             table_2.length . should_equal col_a.length
             check_table <| table_2
 
-            check_table <| xlsx_sheet.read (File_Format.Excel (Range "Sheet1!10:13"))
-            check_table <| xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A10:C13"))
+            check_table <| xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!10:13"))
+            check_table <| xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A10:C13"))
 
         Test.specify "should let you read by range name" <|
-            table = xlsx_sheet.read (File_Format.Excel (Range "myData"))
+            table = xlsx_sheet.read (File_Format.Excel (Cell_Range "myData"))
             table.length . should_equal col_a.length
             check_table <| table
 
@@ -201,11 +263,62 @@ spec =
     Test.group "Problems" <|
         Test.specify "should handle non-existing file gracefully" <|
             bad_file = Enso_Project.data / "DoesNotExists.xlsx"
-            bad_file.read (File_Format.Excel (Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
+            bad_file.read (File_Format.Excel (Cell_Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
-            xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C") True) . should_fail_with File.Io_Error
-            xls_sheet.read (File_Format.Excel (Range "Sheet1!A:C") False) . should_fail_with File.Io_Error
+            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File.Io_Error
+            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File.Io_Error
 
+    here.spec_fmt 'XLSX reading' Examples.xlsx .read
+
+    here.spec_fmt 'XLS reading' Examples.xls .read
+
+    Test.group "Reading single cells correctly" <|
+        file = Enso_Project.data / "RangeTests.xlsx"
+
+        check_table table col_names data =
+            table.columns.length . should_equal col_names.length
+            table.columns.map .name . should_equal col_names
+            data.each_with_index idx->values->
+                table.at (col_names.at idx) . to_vector . should_equal values
+
+        Test.specify "Simple table" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A1"))) ["AA", "BB"] [[1,2,3,4,5,6], ["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A2"))) ["A", "B"] [[1,2,3,4,5,6], ["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!A1:A1"))) ["A"] [["AA"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B1"))) ["B"] [["BB", "A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B1") headers=True)) ["BB"] [["A","B","C","D","E","F"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!B2"))) ["B"] [["A","B","C","D","E","F"]]
+
+        Test.specify "Patchy table" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!D1"))) ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!D2"))) ["D", "E", "F"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E"))) ["B"] [[4,4,Nothing,Nothing,Nothing,Nothing]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E1"))) ["B", "Column_1"] [[4,4,Nothing], [6,Nothing,6]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!E2"))) ["E", "F"] [[4,4,Nothing], [6,Nothing,6]]
+
+        Test.specify "Single cell" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!H1"))) ["H"] [["Single Cell"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!H2"))) ["H"] [[]]
+
+        Test.specify "Single line" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!J1"))) ["J", "K", "L"] [["Just"],["Some"],["Headers"]]
+
+        Test.specify "Growing table" <|
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!N1"))) ["A", "Full", "Table", "Column_1"] [["Hello","World",Nothing,"Extend"],[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!O1"))) ["Full", "Table", "Column_1"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+            check_table (file.read (File_Format.Excel (Cell_Range "Sheet1!O2"))) ["O", "P", "Q"] [[1,Nothing,"Gap",3],[2,2,"Here",5],[Nothing,Nothing,"To","Hello"]]
+
+        Test.specify "Should handle invalid headers with warnings" <|
+            action = file.read (File_Format.Excel (Cell_Range "Sheet1!D1")) on_problems=_
+            tester = check_table _ ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
+            problems = [Invalid_Output_Column_Names [""]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "Should handle duplicate headers with warnings" <|
+            action = file.read (File_Format.Excel (Cell_Range "Sheet1!S1")) on_problems=_
+            tester = check_table _ ["DD", "DD_1"] [[1,3], [2,4]]
+            problems = [Duplicate_Output_Column_Names ["DD"]]
+            Problems.test_problem_handling action problems tester
 
 main = Test.Suite.run_main here.spec

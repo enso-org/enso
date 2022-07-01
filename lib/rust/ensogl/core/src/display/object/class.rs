@@ -672,8 +672,8 @@ impl<Host> Instance<Host> {
         self.layers.borrow().clone()
     }
 
-    /// Add this object to the provided scene layer and remove it from all other layers. Do not use
-    /// this method explicitly. Use layers' methods instead.
+    /// Add this object to the provided scene layer.
+    /// Do not use this method explicitly. Use layers' methods instead.
     pub(crate) fn add_to_display_layer(&self, layer: &Layer) {
         let layer = layer.downgrade();
         self.dirty.scene_layer.set();

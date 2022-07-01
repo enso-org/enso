@@ -14,11 +14,11 @@ public class BaseResolverNode extends Node {
     return Context.get(this);
   }
 
-  protected Function throwIfNull(Function function, Object _this, UnresolvedSymbol sym) {
+  protected Function throwIfNull(Function function, Object self, UnresolvedSymbol sym) {
     if (function == null) {
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          getContext().getBuiltins().error().makeNoSuchMethodError(_this, sym), this);
+          getContext().getBuiltins().error().makeNoSuchMethodError(self, sym), this);
     }
     return function;
   }

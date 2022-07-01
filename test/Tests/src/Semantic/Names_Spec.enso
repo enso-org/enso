@@ -3,7 +3,7 @@ from Standard.Base import all
 from project.Semantic.Names.Definitions import My_Type, Another_Constant
 import Standard.Test
 
-Definitions.Foo.my_method = case this of
+Definitions.Foo.my_method = case self of
     Definitions.Foo x y z -> x * y * z
 
 get_foo module = module.Foo

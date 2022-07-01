@@ -31,7 +31,7 @@ polyglot java import org.enso.image.Codecs as Java_Codecs
 read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.Io_Error
 read location flags=[] =
     path = case location of
-        File.File _ -> location.path
+        File.File -> location.path
         _ -> location
     read_flags = case flags of
         Vector.Vector _ ->
@@ -65,13 +65,13 @@ read location flags=[] =
 Image.Image.write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
 Image.Image.write location flags=[] =
     path = case location of
-        File.File _ -> location.path
+        File.File -> location.path
         _ -> location
     write_flags = case flags of
         Vector.Vector _ -> flags
         _ -> [flags]
     int_flags = Internal.mat_of_int (write_flags.flat_map x-> [x.to_integer, x.value])
-    Panic.recover Any (Java_Codecs.write path this.opencv_mat int_flags) . catch e->
+    Panic.recover Any (Java_Codecs.write path self.opencv_mat int_flags) . catch e->
         case e of
             Polyglot_Error _ -> Error.throw (File.Io_Error (File.new path) 'Failed to write to the file')
             err -> Error.throw err

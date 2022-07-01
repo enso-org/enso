@@ -4,9 +4,9 @@ import Standard.Test
 
 type T a b
 
-T.== that = this.a == that.a
-T.compare_to that = if this == that then Ordering.Equal else
-    if this.a > that.a then Ordering.Greater else Ordering.Less
+T.== that = self.a == that.a
+T.compare_to that = if self == that then Ordering.Equal else
+    if self.a > that.a then Ordering.Greater else Ordering.Less
 
 type My_Error a
 

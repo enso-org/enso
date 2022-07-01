@@ -4,6 +4,6 @@ foo = 123
 
 bar = 345
 
-const = here.foo + this.bar
+const = here.foo + self.bar
 
-Number.bar = this + 5
+Number.bar = self + 5

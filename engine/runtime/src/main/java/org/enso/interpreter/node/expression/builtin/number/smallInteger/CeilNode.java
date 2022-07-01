@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Small_Integer", name = "ceil", description = "Small integer ceiling.")
 public class CeilNode extends Node {
-  long execute(long _this) {
-    return _this;
+  long execute(long self) {
+    return self;
   }
 }

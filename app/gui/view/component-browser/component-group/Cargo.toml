@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-frp = { version = "0.1.0", path = "../../../../../lib/rust/frp" }
 ensogl = { version = "0.1.0", path = "../../../../../lib/rust/ensogl" }
+ensogl-core = { version = "0.1.0", path = "../../../../../lib/rust/ensogl/core" }
 ensogl-gui-component = { version = "0.1.0", path = "../../../../../lib/rust/ensogl/component/gui" }
 ensogl-shadow = { version = "0.1.0", path = "../../../../../lib/rust/ensogl/component/shadow" }
 ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }

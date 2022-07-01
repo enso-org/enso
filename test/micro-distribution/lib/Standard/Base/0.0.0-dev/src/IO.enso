@@ -1,0 +1,3 @@
+print_err message = @Builtin_Method "IO.print_err"
+println message = @Builtin_Method "IO.println"
+readln = @Builtin_Method "IO.readln"

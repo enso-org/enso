@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.Context;
 @BuiltinMethod(type = "Runtime", name = "gc", description = "Forces garbage collection")
 public abstract class GCNode extends Node {
 
-  public abstract Object execute(Object _this);
+  public abstract Object execute(Object self);
 
   /** @return A new GCNode. */
   public static GCNode build() {
@@ -17,7 +17,7 @@ public abstract class GCNode extends Node {
   }
 
   @Specialization
-  Object doGc(Object _this) {
+  Object doGc(Object self) {
     runGC();
     return Context.get(this).getBuiltins().nothing().newInstance();
   }

@@ -28,7 +28,7 @@ type Problem_Behavior
        dataflow error. If the value already contained any dataflow error, that
        error takes precedence.
     attach_problem_after : Any -> Any -> Any
-    attach_problem_after decorated_value ~problem = case this of
+    attach_problem_after decorated_value ~problem = case self of
         Ignore ->
             decorated_value
         Report_Warning ->
@@ -50,7 +50,7 @@ type Problem_Behavior
        have been contained in the value - in such case the `decorated_value` is
        not computed at all.
     attach_problem_before : Any -> Any -> Any
-    attach_problem_before problem ~decorated_value = case this of
+    attach_problem_before problem ~decorated_value = case self of
         Ignore ->
             decorated_value
         Report_Warning ->
@@ -79,7 +79,7 @@ type Problem_Behavior
                  expensive_computation
 
     attach_problems_before : Vector -> Any -> Any
-    attach_problems_before problems ~decorated_value = case this of
+    attach_problems_before problems ~decorated_value = case self of
         Ignore ->
             decorated_value
         Report_Warning ->
@@ -109,7 +109,7 @@ type Problem_Behavior
              problem_behavior.attach_problems_after result <|
                  perform_post_process_checks_and_return_problems
     attach_problems_after : Any -> Vector -> Any
-    attach_problems_after decorated_value ~problems = case this of
+    attach_problems_after decorated_value ~problems = case self of
         Ignore ->
             decorated_value
         Report_Warning ->

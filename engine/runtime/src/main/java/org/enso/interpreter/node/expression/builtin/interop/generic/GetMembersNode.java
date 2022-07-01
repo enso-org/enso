@@ -17,7 +17,7 @@ public class GetMembersNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object _this, Object object) {
+  Object execute(Object self, Object object) {
     try {
       return library.getMembers(object);
     } catch (UnsupportedMessageException e) {

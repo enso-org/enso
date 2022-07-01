@@ -1311,6 +1311,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cron"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d76219e9243e100d5a37676005f08379297f8addfebc247613299600625c734d"
+dependencies = [
+ "chrono",
+ "nom",
+ "once_cell",
+]
+
+[[package]]
 name = "crossbeam-channel"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1490,6 +1501,22 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-component-list-panel-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-selector",
+ "ensogl-text-msdf-sys",
+ "ide-view-component-group",
+ "searcher-list-panel",
  "wasm-bindgen",
 ]
 
@@ -1706,7 +1733,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#2fbb1bc01cffa6b2d8775c0259d5d5a280c4ad2b"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#1551c5ae0ba8090f76a19eff6b3d0f5fcb971bea"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1721,6 +1748,7 @@ dependencies = [
  "clap 3.1.18",
  "console-subscriber",
  "derivative",
+ "derive_more",
  "dirs",
  "filetime",
  "flate2",
@@ -1779,10 +1807,11 @@ dependencies = [
 [[package]]
 name = "enso-build-cli"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#2fbb1bc01cffa6b2d8775c0259d5d5a280c4ad2b"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#1551c5ae0ba8090f76a19eff6b3d0f5fcb971bea"
 dependencies = [
  "anyhow",
  "byte-unit",
+ "chrono",
  "clap 3.1.18",
  "derivative",
  "enso-build",
@@ -1791,6 +1820,9 @@ dependencies = [
  "humantime 2.1.0",
  "ide-ci",
  "octocrab",
+ "serde",
+ "serde_json",
+ "serde_yaml",
  "strum",
  "tempfile",
  "tokio 1.19.2",
@@ -1862,6 +1894,7 @@ name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
  "debug-scene-component-group",
+ "debug-scene-component-list-panel-view",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-visualization",
@@ -3559,10 +3592,10 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.11.0",
+ "base64 0.10.1",
  "bytes 1.1.0",
  "http",
- "httpdate 1.0.2",
+ "httpdate 0.3.2",
  "language-tags 0.3.2",
  "mime 0.3.16",
  "percent-encoding 2.1.0",
@@ -3572,7 +3605,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#2fbb1bc01cffa6b2d8775c0259d5d5a280c4ad2b"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#1551c5ae0ba8090f76a19eff6b3d0f5fcb971bea"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -3585,6 +3618,7 @@ dependencies = [
  "chrono",
  "clap 3.1.18",
  "convert_case 0.5.0",
+ "cron",
  "data-encoding",
  "derivative",
  "derive_more",
@@ -3689,6 +3723,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl",
+ "ensogl-core",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-label",
@@ -4633,6 +4668,15 @@ name = "ordered-float"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7940cf2ca942593318d07fcf2596cdca60a85c9e7fab408a5e21a4f9dcd40d87"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "ordered-float"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96bcbab4bfea7a59c2c0fe47211a1ac4e3e96bea6eb446d704f310bc5c732ae2"
 dependencies = [
  "num-traits",
 ]
@@ -5650,6 +5694,24 @@ checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "searcher-list-panel"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ordered-float 3.0.0",
 ]
 
 [[package]]
