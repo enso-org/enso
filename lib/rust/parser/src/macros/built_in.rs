@@ -60,7 +60,7 @@ fn type_def_body<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> synta
     println!(">>>");
     println!("{:#?}", segment);
     println!(">>>");
-    let match_tree = segment.result.into_match_tree();
+    let match_tree = segment.result.into_var_map();
     println!("{:#?}", match_tree);
     println!("\n\n------------- 1");
 

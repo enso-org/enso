@@ -15,6 +15,7 @@ use enso_data_structures::im_list;
 // ==============
 
 pub mod built_in;
+pub mod expand;
 pub mod pattern;
 pub mod resolver;
 
