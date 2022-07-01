@@ -5,11 +5,6 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.data.BindingsMap.{
-  ResolutionError,
-  ResolvedConstructor,
-  ResolvedName
-}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
@@ -241,11 +236,8 @@ case object AliasAnalysis extends IRPass {
         )
       case a @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
         a.copy(
-          arguments = analyseArgumentDefs(
-            args,
-            topLevelGraph,
-            topLevelGraph.rootScope
-          )
+          arguments =
+            analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
         ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
@@ -382,11 +374,7 @@ case object AliasAnalysis extends IRPass {
     * @param parentScope the parent scope in which `value` occurs
     * @return `value`, annotated with aliasing information
     */
-  def analyseType(
-    value: IR.Type,
-    graph: Graph,
-    parentScope: Scope
-  ): IR.Type = {
+  def analyseType(value: IR.Type, graph: Graph, parentScope: Scope): IR.Type = {
     value match {
       case member @ IR.Type.Set.Member(label, memberType, value, _, _, _) =>
         val memberTypeScope = memberType match {
@@ -603,13 +591,6 @@ case object AliasAnalysis extends IRPass {
       }
     }
     name.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
-  }
-
-  def isTpeConstructor(
-    x: Either[ResolutionError, ResolvedName]
-  ): Boolean = x match {
-    case Right(ResolvedConstructor(_, _)) => true
-    case _                                => false
   }
 
   /** Performs alias analysis on a case expression.

@@ -2346,15 +2346,14 @@ object IR {
         * @return `true`, if `this` and `that` represent the same method,
         *         otherwise `false`
         */
-      def isSameReferenceAs(that: MethodReference): Boolean =
-        (typePointer, that.typePointer) match {
-          case (Some(thisTp), Some(thatTp)) =>
-            thisTp.name == thatTp.name && this.methodName.name == that.methodName.name
-          case (None, None) =>
-            this.methodName.name == that.methodName.name
-          case _ =>
-            false
-        }
+      def isSameReferenceAs(that: MethodReference): Boolean = {
+        val sameTypePointer = typePointer
+          .map(thisTp =>
+            that.typePointer.map(_.name == thisTp.name).getOrElse(false)
+          )
+          .getOrElse(that.typePointer.isEmpty)
+        sameTypePointer && (methodName.name == that.methodName.name)
+      }
     }
     object MethodReference {
 
@@ -7442,7 +7441,7 @@ object IR {
         /** @inheritdoc */
         override def children: List[IR] =
           targetType
-            .map(tt => tt :: sourceType :: Nil)
+            .map(_ :: sourceType :: Nil)
             .getOrElse(sourceType :: Nil)
 
         /** @inheritdoc */
@@ -7539,7 +7538,7 @@ object IR {
 
         override def diagnosticKeys(): Array[Any] = {
           atomName
-            .map(aName => aName.name :: methodName.name :: Nil)
+            .map(_.name :: methodName.name :: Nil)
             .getOrElse(methodName.name :: Nil)
             .toArray
         }
@@ -7563,7 +7562,7 @@ object IR {
         /** @inheritdoc */
         override def children: List[IR] =
           atomName
-            .map(aName => aName :: methodName :: Nil)
+            .map(_ :: methodName :: Nil)
             .getOrElse(methodName :: Nil)
 
         /** @inheritdoc */

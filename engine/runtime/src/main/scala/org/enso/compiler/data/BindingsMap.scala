@@ -239,9 +239,7 @@ case class BindingsMap(
     if (qualifiedImps.nonEmpty) {
       return handleAmbiguity(qualifiedImps)
     }
-    handleAmbiguity(
-      findExportedCandidatesInImports(name)
-    )
+    handleAmbiguity(findExportedCandidatesInImports(name))
   }
 
   /** Resolves a qualified name to a symbol in the context of this module.
@@ -264,8 +262,7 @@ case class BindingsMap(
             val firstModBindings: BindingsMap = getBindingsFrom(mod)
             var currentModule                 = firstModBindings
             for (modName <- modNames) {
-              val resolution =
-                currentModule.resolveExportedName(modName)
+              val resolution = currentModule.resolveExportedName(modName)
               resolution match {
                 case Left(err) => return Left(err)
                 case Right(ResolvedModule(mod)) =>

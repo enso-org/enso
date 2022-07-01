@@ -129,8 +129,7 @@ case object GlobalNames extends IRPass {
               )
             case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
               if (isInsideApplication) {
-                lit
-                  .updateMetadata(this -->> BindingsMap.Resolution(r))
+                lit.updateMetadata(this -->> BindingsMap.Resolution(r))
               } else {
                 val self = freshNameSupply
                   .newName()
@@ -169,11 +168,9 @@ case object GlobalNames extends IRPass {
       case app: IR.Application.Prefix =>
         app.function match {
           case lit: IR.Name.Literal =>
-            if (!lit.isMethod) {
+            if (!lit.isMethod)
               resolveReferantApplication(app, lit, bindings, freshNameSupply)
-            } else {
-              resolveLocalApplication(app, bindings, freshNameSupply)
-            }
+            else resolveLocalApplication(app, bindings, freshNameSupply)
           case _ =>
             app.mapExpressions(processExpression(_, bindings, freshNameSupply))
 
