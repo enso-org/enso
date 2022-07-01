@@ -114,24 +114,43 @@ case object GenerateMethodBodies extends IRPass {
     * @return the body function with the `self` argument
     */
   def processBodyFunction(fun: IR.Function): IR.Expression = {
-    val containsThis = collectChainedFunctionArgs(fun).exists(arg =>
-      arg.name == IR.Name.Self(arg.name.location)
-    )
+    val selfArgPos = collectChainedFunctionArgs(fun, 0).collect {
+      case (arg, idx) if arg.name.isInstanceOf[IR.Name.Self] =>
+        (arg, idx)
+    }
 
-    if (!containsThis) {
-      fun match {
-        case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
-          lam.copy(
-            arguments = genSelfArgument :: args
-          )
-        case _: IR.Function.Binding =>
-          throw new CompilerError(
-            "Function definition sugar should not be present during method " +
-            "body generation."
-          )
-      }
-    } else {
-      IR.Error.Redefined.SelfArg(fun.location)
+    selfArgPos match {
+      case _ :: (redefined, _) :: _ =>
+        IR.Error.Redefined.SelfArg(location = redefined.location)
+      case (_, parameterPosition) :: Nil =>
+        fun match {
+          case lam @ IR.Function.Lambda(_ :: _, _, _, _, _, _)
+              if parameterPosition == 0 =>
+            lam
+          case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
+            fun.addDiagnostic(
+              IR.Warning.WrongSelfParameterPos(fun, parameterPosition)
+            )
+            lam
+          case _: IR.Function.Binding =>
+            throw new CompilerError(
+              "Function definition sugar should not be present during method " +
+              "body generation."
+            )
+        }
+      case Nil =>
+        // TODO: remove this case once explicit self is implemented
+        fun match {
+          case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
+            lam.copy(
+              arguments = genSelfArgument :: args
+            )
+          case _: IR.Function.Binding =>
+            throw new CompilerError(
+              "Function definition sugar should not be present during method " +
+              "body generation."
+            )
+        }
     }
   }
 
@@ -141,6 +160,7 @@ case object GenerateMethodBodies extends IRPass {
     * @return `expr` converted to a function taking the `self` argument
     */
   def processBodyExpression(expr: IR.Expression): IR.Expression = {
+    // TODO: remove once explicit self arg is finished
     IR.Function.Lambda(
       arguments = List(genSelfArgument),
       body      = expr,
@@ -190,13 +210,18 @@ case object GenerateMethodBodies extends IRPass {
     * @return the list of arguments for `function`
     */
   def collectChainedFunctionArgs(
-    function: IR.Function
-  ): List[IR.DefinitionArgument] = {
+    function: IR.Function,
+    idx: Int
+  ): List[(IR.DefinitionArgument, Int)] = {
+    val argsWithIdx = function.arguments.foldLeft(
+      (idx, Nil: List[(IR.DefinitionArgument, Int)])
+    ) { case ((i, acc), arg) => (i + 1, (arg, i) :: acc) }
+
     val bodyArgs = function.body match {
-      case f: IR.Function => (collectChainedFunctionArgs(f))
+      case f: IR.Function => collectChainedFunctionArgs(f, argsWithIdx._1)
       case _              => List()
     }
 
-    function.arguments ::: bodyArgs
+    argsWithIdx._2 ::: bodyArgs
   }
 }

@@ -6416,6 +6416,24 @@ object IR {
       override def diagnosticKeys(): Array[Any] = Array()
     }
 
+    /** A warning raised when a method is defined with a `self` parameter defined
+      * not in the first position in the parameters' list.`
+      *
+      * @param ir the annotated application
+      * @param paramPosition the reason why the annotation cannot be obeyed
+      */
+    case class WrongSelfParameterPos(
+      ir: IR,
+      paramPosition: Int
+    ) extends Warning {
+      override val location: Option[IdentifiedLocation] = ir.location
+      override def message: String =
+        s"Self parameter should be declared as the first parameter. Instead its position is: ${paramPosition + 1}."
+
+      override def diagnosticKeys(): Array[Any] =
+        Array(ir.showCode(), paramPosition)
+    }
+
     /** Warnings about shadowing names. */
     sealed trait Shadowed extends Warning {
 
@@ -6613,6 +6631,12 @@ object IR {
       case class MissingSourceType(argName: String) extends Reason {
         override def explain: String =
           s"The argument `$argName` does not define a source type."
+      }
+
+      case class MissingSelfParam(argName: String) extends Reason {
+        override def explain: String =
+          s"""|Conversion definition must have an explicit `self` parameter in the first position.
+              |Got `$argName` instead.""".stripMargin
       }
 
       case class NonDefaultedArgument(argName: String) extends Reason {
