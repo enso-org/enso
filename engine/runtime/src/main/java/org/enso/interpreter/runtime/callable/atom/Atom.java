@@ -68,9 +68,6 @@ public final class Atom implements TruffleObject {
       builder.append("(");
     }
     builder.append(getConstructor().getName());
-    if (fields.length > 0) {
-      builder.append(" ");
-    }
     for (var obj : fields) {
         builder.append(" ");
         if (obj instanceof Atom atom) {
@@ -90,10 +87,14 @@ public final class Atom implements TruffleObject {
    * @return a textual representation of this Atom.
    */
   @Override
-  @CompilerDirectives.TruffleBoundary
   public String toString() {
+    return toString(10);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private String toString(int depth) {
     StringBuilder sb = new StringBuilder();
-    toString(sb, false, 10);
+    toString(sb, false, depth);
     return sb.toString();
   }
 
@@ -188,7 +189,7 @@ public final class Atom implements TruffleObject {
         | UnknownIdentifierException
         | UnsupportedTypeException
         | UnexpectedResultException e) {
-      return Text.create(this.toString());
+      return Text.create(this.toString(10));
     }
   }
 
