@@ -269,12 +269,12 @@ make_java_headers headers = case headers of
 ## PRIVATE
 make_java_existing_data_mode : Existing_File_Behavior -> Map_Columns -> ExcelWriter.ExistingDataMode
 make_java_existing_data_mode on_existing_file column_mapping = case on_existing_file of
-    Existing_File_Behavior.Error -> ExcelWriter.ExistingDataMode.ERROR
-    Existing_File_Behavior.Overwrite -> ExcelWriter.ExistingDataMode.REPLACE
-    Existing_File_Behavior.Backup -> ExcelWriter.ExistingDataMode.REPLACE
+    Existing_File_Behavior.Error -> ExistingDataMode.ERROR
+    Existing_File_Behavior.Overwrite -> ExistingDataMode.REPLACE
+    Existing_File_Behavior.Backup -> ExistingDataMode.REPLACE
     Existing_File_Behavior.Append -> case column_mapping of
-        Map_Columns.By_Name -> ExcelWriter.ExistingDataMode.APPEND_BY_NAME
-        Map_Columns.By_Index _ -> ExcelWriter.ExistingDataMode.APPEND_BY_INDEX
+        Map_Columns.By_Name -> ExistingDataMode.APPEND_BY_NAME
+        Map_Columns.By_Position -> ExistingDataMode.APPEND_BY_INDEX
 
 ## PRIVATE
    Handle and map the Java errors when reading an Excel file

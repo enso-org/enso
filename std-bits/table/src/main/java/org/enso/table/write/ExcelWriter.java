@@ -43,7 +43,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToSheet(Workbook workbook, int sheetIndex, ExistingDataMode existingDataMode, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws ExistingDataException, IllegalStateException {
+      throws InvalidLocationException, RangeExceededException, ExistingDataException, IllegalStateException {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
       while (workbook.getSheet("Sheet" + i) != null) {
@@ -66,13 +66,17 @@ public class ExcelWriter {
       Sheet sheet = workbook.createSheet(sheetName);
       workbook.setSheetOrder(sheetName, sheetIndex - 1);
       writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
-    } else {
+    } else if (existingDataMode == ExistingDataMode.ERROR){
       throw new ExistingDataException("Sheet already exists, and cannot be replaced in current mode.");
+    } else {
+      // In Append Mode, so lets go to a Range based approach.
+      ExcelRange range = new ExcelRange(workbook.getSheetName(sheetIndex - 1), 1, 1);
+      writeTableToRange(workbook, range, existingDataMode, firstRow, table, rowLimit, headers);
     }
   }
 
   public static void writeTableToSheet(Workbook workbook, String sheetName, ExistingDataMode existingDataMode, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws ExistingDataException, IllegalStateException {
+      throws InvalidLocationException, RangeExceededException, ExistingDataException, IllegalStateException {
     int sheetIndex = workbook.getNumberOfSheets() == 0 ? -1 : workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
       writeTableToSheet(workbook, workbook.createSheet(sheetName), firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
@@ -84,8 +88,12 @@ public class ExcelWriter {
       Sheet sheet = workbook.createSheet(sheetName);
       workbook.setSheetOrder(sheetName, sheetIndex);
       writeTableToSheet(workbook, sheet, firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
+    } else if (existingDataMode == ExistingDataMode.ERROR){
+      throw new ExistingDataException("Sheet already exists, and cannot be replaced in current mode.");
     } else {
-      throw new ExistingDataException("Sheet '" + sheetName + "' already exists, and cannot be replaced in current mode.");
+      // In Append Mode, so lets go to a Range based approach.
+      ExcelRange range = new ExcelRange(sheetName, 1, 1);
+      writeTableToRange(workbook, range, existingDataMode, firstRow, table, rowLimit, headers);
     }
   }
 
