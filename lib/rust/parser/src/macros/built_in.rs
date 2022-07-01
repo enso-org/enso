@@ -57,27 +57,27 @@ pub fn type_def<'s>() -> Definition<'s> {
 //       should be removed in the future.
 fn type_def_body<'s>(matched_segments: NonEmptyVec<MatchedSegment<'s>>) -> syntax::Tree<'s> {
     let segment = matched_segments.to_vec().pop().unwrap();
-    println!(">>>");
-    println!("{:#?}", segment);
-    println!(">>>");
+    // println!(">>>");
+    // println!("{:#?}", segment);
+    // println!(">>>");
     let match_tree = segment.result.into_var_map();
-    println!("{:#?}", match_tree);
-    println!("\n\n------------- 1");
+    // println!("{:#?}", match_tree);
+    // println!("\n\n------------- 1");
 
     let mut v = match_tree.view();
     let name = &v.query("name").unwrap()[0];
     let name = operator::resolve_operator_precedence(name.clone());
-    println!("{:#?}", name);
-    println!("\n\n------------- 2");
+    // println!("{:#?}", name);
+    // println!("\n\n------------- 2");
 
     let params = v.nested().query("param").unwrap();
-    println!("{:#?}", params);
-    println!("\n\n------------- 3");
+    // println!("{:#?}", params);
+    // println!("\n\n------------- 3");
 
     let params = params
         .into_iter()
         .map(|tokens| operator::resolve_operator_precedence(tokens.clone()))
         .collect_vec();
-    println!("{:#?}", params);
+    // println!("{:#?}", params);
     syntax::Tree::type_def(segment.header, name, params)
 }

@@ -38,7 +38,7 @@ use std::mem;
 #[proc_macro]
 pub fn ast_builder(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output = expr(tokens, None);
-    let output = quote!(crate::syntax::Tree::opr_section_boundary(#output));
+    let output = quote!(crate::syntax::Tree::module(vec![#output]));
     output.into()
 }
 
@@ -75,7 +75,6 @@ fn expr(tokens: proc_macro::TokenStream, parent_spacing: Option<usize>) -> Token
         let spacing = spacing + inherited_spacing;
         inherited_spacing = 0;
         last_column = Some(token.span().end().column);
-        println!("{:?}", token.span().start().column);
         match &token {
             // a b c ...
             Ident(ident) => {
@@ -132,34 +131,5 @@ fn expr(tokens: proc_macro::TokenStream, parent_spacing: Option<usize>) -> Token
             syntax::Tree::multi_segment_app (#pfx, #segments)
         }
     }
-    println!("{}", output);
     output
 }
-
-
-// let ast2 = syntax::tree::MultiSegmentApp(
-// None,
-// NonEmptyVec::try_from(vec![
-//     syntax::tree::MultiSegmentAppSegment {
-//         header: Token("", "if", syntax::token::Variant::new_ident_unchecked("if").into()),
-//         body:   Some(syntax::Tree::opr_section_boundary(syntax::Tree::ident(Token(
-//             " ",
-//             "a",
-//             syntax::token::Variant::new_ident_unchecked("a"),
-//         )))),
-//     },
-//     syntax::tree::MultiSegmentAppSegment {
-//         header: Token(
-//             "",
-//             "then",
-//             syntax::token::Variant::new_ident_unchecked("then").into(),
-//         ),
-//         body:   Some(syntax::Tree::opr_section_boundary(syntax::Tree::ident(Token(
-//             " ",
-//             "b",
-//             syntax::token::Variant::new_ident_unchecked("b"),
-//         )))),
-//     },
-// ])
-// .unwrap(),
-// );
