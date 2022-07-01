@@ -17,6 +17,17 @@ use std::collections::BTreeMap;
 
 
 
+// =====================
+// === Java Builtins ===
+// =====================
+
+/// Fully-qualified name of Java's `Optional` type.
+pub const OPTIONAL: &str = "java.util.Optional";
+/// Fully-qualified name of Java's `List` type.
+pub const LIST: &str = "java.util.List";
+/// Fully-qualified name of Java's `String` type.
+pub const STRING: &str = "String";
+
 // ==============================
 // === Type Parameterizations ===
 // ==============================
@@ -66,6 +77,21 @@ impl Class {
         let builtin = true;
         let fields = params.iter().map(|&type_| Field::object("data", type_, true)).collect();
         Class { name, params, builtin, fields, ..Default::default() }
+    }
+
+    /// Define a type for Java's `Optional` instantiated with a type.
+    pub fn optional(param: ClassId) -> Self {
+        Self::builtin(OPTIONAL, Some(param))
+    }
+
+    /// Define a type for Java's `List` instantiated with a type.
+    pub fn list(param: ClassId) -> Self {
+        Self::builtin(LIST, Some(param))
+    }
+
+    /// Define a type for Java's `String` instantiated with a type.
+    pub fn string() -> Self {
+        Self::builtin(STRING, [])
     }
 
     /// Get a field by name.

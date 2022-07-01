@@ -3,6 +3,8 @@
 use crate::meta::*;
 use std::mem::take;
 
+const DEBUG: bool = false;
+
 
 
 // ============================
@@ -28,7 +30,9 @@ pub fn testcases(graph: &TypeGraph, root: TypeId) -> TestCases {
     let mut builder = ProgramBuilder::new(graph, root);
     builder.type_(root, Default::default());
     let ProgramBuilder { program, debuginfo, .. } = builder;
-    eprintln!("{}", fmt_program(&program, &debuginfo));
+    if DEBUG {
+        eprintln!("{}", fmt_program(&program, &debuginfo));
+    }
     let (accept, reject) = Vm::run(&program);
     TestCases { accept, reject, program, debuginfo }
 }
@@ -161,14 +165,14 @@ impl<'g> ProgramBuilder<'g> {
         self.program.push(op);
     }
 
-    fn debug_next(&mut self, debug: impl Into<String>) {
+    fn debug_next(&mut self, debug: impl std::fmt::Display) {
         let n = self.program.len();
-        self.debuginfo.insert(n, debug.into());
+        self.debuginfo.insert(n, debug.to_string());
     }
 
-    fn debug_prev(&mut self, debug: impl Into<String>) {
+    fn debug_prev(&mut self, debug: impl std::fmt::Display) {
         let n = self.program.len() - 1;
-        self.debuginfo.insert(n, debug.into());
+        self.debuginfo.insert(n, debug.to_string());
     }
 
     fn basecase(&self, id: TypeId) -> bool {
@@ -274,7 +278,7 @@ impl<'g> ProgramBuilder<'g> {
                         let (&max, _) = discriminants.last_key_value().unwrap();
                         self.emit(Op::SwitchPush);
                         self.emit(Op::U32(basecase_discriminant as u32));
-                        self.debug_prev(self.graph[basecase_ty].name.to_string());
+                        self.debug_prev(&self.graph[basecase_ty].name);
                         self.object(vec![basecase_ty], basecase);
                         self.emit(Op::Case(Case::Accept));
                         for i in 0..=(max + 1) {
@@ -284,7 +288,7 @@ impl<'g> ProgramBuilder<'g> {
                             self.emit(Op::U32(i as u32));
                             match discriminants.get(&i) {
                                 Some(id) => {
-                                    self.debug_prev(self.graph[*id].name.to_string());
+                                    self.debug_prev(&self.graph[*id].name);
                                     self.object(vec![*id], basecase);
                                     self.emit(Op::Case(Case::Accept));
                                 }
@@ -421,17 +425,21 @@ impl<'p> Vm<'p> {
                     let Frame { prefix_len, .. } = stack.pop().unwrap();
                     prefix.truncate(prefix_len);
                     let cont_stack = vec![self.continuations[&pc]];
-                    eprintln!("- delimited continuation: {pc} -> {cont_stack:?}");
+                    if DEBUG {
+                        eprintln!("- delimited continuation: {pc} -> {cont_stack:?}");
+                    }
                     self.run_continuation(cont_stack, &mut prefix);
                 }
                 Op::U8(data) => prefix.push(*data),
                 Op::U32(data) => prefix.extend(&data.to_le_bytes()),
                 Op::U64(data) => prefix.extend(&data.to_le_bytes()),
                 Op::Case(case) => {
-                    match case {
-                        Case::Accept => eprint!("accept{}: ", accept.len()),
-                        Case::Reject => eprint!("reject{}: ", reject.len()),
-                    };
+                    if DEBUG {
+                        match case {
+                            Case::Accept => eprint!("accept{}: ", accept.len()),
+                            Case::Reject => eprint!("reject{}: ", reject.len()),
+                        };
+                    }
                     let results = match case {
                         Case::Accept => &mut accept,
                         Case::Reject => &mut reject,
@@ -439,7 +447,9 @@ impl<'p> Vm<'p> {
                     let Frame { prefix_len, .. } = stack.last().unwrap();
                     let stack = stack.iter().map(|frame| frame.return_).collect();
                     let mut data = prefix.clone();
-                    eprintln!("{pc} -> {stack:?}");
+                    if DEBUG {
+                        eprintln!("{pc} -> {stack:?}");
+                    }
                     let final_pc = self.run_continuation(stack, &mut data);
                     let returned = "Returned from escape continuation";
                     assert_eq!(final_pc, self.program.len(), "{returned} at {final_pc}.");
@@ -463,7 +473,9 @@ impl<'p> Vm<'p> {
                 Op::U64(data) => out.extend(&data.to_le_bytes()),
                 Op::Case(Case::Accept) => {
                     if let Some(pc_) = stack.pop() {
-                        eprintln!("- ret: {pc} -> {pc_}");
+                        if DEBUG {
+                            eprintln!("- ret: {pc} -> {pc_}");
+                        }
                         pc = pc_;
                         continue;
                     }

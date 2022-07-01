@@ -73,7 +73,7 @@ impl ToMeta {
             return;
         }
         let ty = meta::Type::new(name, data);
-        self.graph.types.bind_key(id_, ty);
+        self.graph.types.bind(id_, ty);
     }
 
     fn unnamed_struct(&mut self, id_: meta::UnboundTypeId, name: &str, fields: &[UnnamedField]) {
@@ -83,7 +83,7 @@ impl ToMeta {
         let data = meta::Data::Struct(data);
         let name = type_name(name);
         let ty = meta::Type::new(name, data);
-        self.graph.types.bind_key(id_, ty);
+        self.graph.types.bind(id_, ty);
     }
 
     fn struct_(
@@ -104,7 +104,7 @@ impl ToMeta {
         let data = meta::Data::Struct(vec![]);
         let name = type_name(name);
         let ty = meta::Type::new(name, data);
-        self.graph.types.bind_key(id_, ty);
+        self.graph.types.bind(id_, ty);
     }
 
     fn enum_(&mut self, id_: meta::UnboundTypeId, name: &str, variants: &[Variant]) {
@@ -116,7 +116,7 @@ impl ToMeta {
                 self.interfaces.push(((&id_).into(), field_));
                 field_
             } else {
-                let promise = self.graph.types.allocate_key();
+                let promise = self.graph.types.unbound_key();
                 let new_ = meta::TypeId::from(&promise);
                 self.struct_(promise, ident, fields, None);
                 self.graph[new_].parent = Some((&id_).into());
@@ -128,7 +128,7 @@ impl ToMeta {
         ty.abstract_ = true;
         ty.closed = true;
         ty.discriminants = children.enumerate().collect();
-        self.graph.types.bind_key(id_, ty);
+        self.graph.types.bind(id_, ty);
     }
 
     fn primitive(&mut self, id_: meta::UnboundTypeId, name: &str, primitive: &Primitive) {
@@ -146,7 +146,7 @@ impl ToMeta {
         let data = meta::Data::Primitive(primitive);
         let name = type_name(name);
         let ty = meta::Type::new(name, data);
-        self.graph.types.bind_key(id_, ty);
+        self.graph.types.bind(id_, ty);
     }
 }
 
@@ -183,7 +183,7 @@ impl ToMeta {
         let mut rust_types = collect_types(ty);
         let aliases = self.remove_transparent(&mut rust_types);
         let mut meta_promises: BTreeMap<_, _> =
-            rust_types.keys().map(|id| (*id, self.graph.types.allocate_key())).collect();
+            rust_types.keys().map(|id| (*id, self.graph.types.unbound_key())).collect();
         self.rust_to_meta =
             meta_promises.iter().map(|(k, v)| (*k, meta::TypeId::from(v))).collect();
         for (id, target) in aliases {
@@ -230,7 +230,7 @@ impl ToMeta {
                     enum_ty_.data = wrapper_data;
                     enum_ty_.child_field = Some(index);
                     let children_: Vec<_> = enum_ty_.discriminants.values().copied().collect();
-                    self.graph.types.bind_key(promise, enum_ty_);
+                    self.graph.types.bind(promise, enum_ty_);
                     for child_ in children_ {
                         let old_parent = self.graph[child_].parent.replace(id_);
                         assert_eq!(old_parent, Some(field_));

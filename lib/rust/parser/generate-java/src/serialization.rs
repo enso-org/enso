@@ -1,5 +1,6 @@
 use enso_metamodel::java::*;
-
+use enso_metamodel::java::bincode::MaterializerInput;
+use enso_metamodel::java::bincode::MapperInput;
 
 
 // ==============================
@@ -47,26 +48,32 @@ fn impl_deserialize(graph: &mut TypeGraph, tree: ClassId, token: ClassId, source
             // Base classes: Map the code repr fields.
             _ if id == tree => {
                 let code_begin = class.find_field(TREE_BEGIN).unwrap().id();
-                deserialization.map(code_begin, |message, raw| format!("{message}.offset({raw})"));
+                deserialization.map(code_begin, offset_mapper());
             }
             _ if id == token => {
                 let code_begin = class.find_field(TOKEN_BEGIN).unwrap().id();
                 let offset_begin = class.find_field(TOKEN_OFFSET_BEGIN).unwrap().id();
-                deserialization.map(code_begin, |message, raw| format!("{message}.offset({raw})"));
-                deserialization
-                    .map(offset_begin, |message, raw| format!("{message}.offset({raw})"));
+                deserialization.map(code_begin, offset_mapper());
+                deserialization.map(offset_begin, offset_mapper());
             }
             // Child classes: Pass context object from deserializer to parent.
             _ if class.parent == Some(tree) =>
-                deserialization.materialize(tree_source, |message| format!("{message}.context()")),
+                deserialization.materialize(tree_source, context_materializer()),
             _ if class.parent == Some(token) =>
-                deserialization.materialize(token_source, |message| format!("{message}.context()")),
+                deserialization.materialize(token_source, context_materializer()),
             // Everything else: Standard deserialization.
             _ => (),
         }
         let deserializer = deserialization.build(graph);
         graph[id].methods.push(deserializer);
     }
+}
+
+fn context_materializer() -> impl for<'a> FnOnce(MaterializerInput<'a>) -> String + 'static {
+    |MaterializerInput { message }| format!("{message}.context()")
+}
+fn offset_mapper() -> impl for<'a, 'b> FnOnce(MapperInput<'a, 'b>) -> String + 'static {
+    |MapperInput { message, value }| format!("{message}.offset({value})")
 }
 
 

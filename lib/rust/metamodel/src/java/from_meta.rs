@@ -17,7 +17,7 @@ pub fn from_meta(
     let primitives = Default::default();
     let mut java = TypeGraph::default();
     let mut class_promises: BTreeMap<_, _> =
-        graph.types.keys().map(|id| (id, java.classes.allocate_key())).collect();
+        graph.types.keys().map(|id| (id, java.classes.unbound_key())).collect();
     let meta_to_java = class_promises.iter().map(|(key, value)| (*key, value.into())).collect();
     let either_type = either_type.into();
     let mut from_meta = FromMeta { java, meta_to_java, primitives, either_type };
@@ -31,7 +31,7 @@ pub fn from_meta(
                     from_meta.primitives.insert(id_, prim);
                 }
                 Err(class) => {
-                    from_meta.java.classes.bind_key(class_promises.remove(&id_).unwrap(), class);
+                    from_meta.java.classes.bind(class_promises.remove(&id_).unwrap(), class);
                 }
             }
         }
@@ -46,7 +46,7 @@ pub fn from_meta(
             meta::Data::Struct(fields_) => fields_,
         };
         let class = from_meta.class(ty, fields_);
-        from_meta.java.classes.bind_key(class_promises.remove(&id_).unwrap(), class);
+        from_meta.java.classes.bind(class_promises.remove(&id_).unwrap(), class);
     }
     let FromMeta { java, meta_to_java, .. } = from_meta;
     (java, meta_to_java)
@@ -66,19 +66,13 @@ impl FromMeta {
             meta::Primitive::Bool => Ok(Primitive::Bool),
             meta::Primitive::U64 => Ok(Primitive::Long { unsigned: true }),
             meta::Primitive::U32 => Ok(Primitive::Int { unsigned: true }),
-            meta::Primitive::String => Err(Class::builtin("String", vec![])),
-            meta::Primitive::Option(t0) => {
-                let t0_ = self.meta_to_java[t0];
-                Err(Class::builtin("java.util.Optional", vec![t0_]))
-            }
-            meta::Primitive::Sequence(t0) => {
-                let t0_ = self.meta_to_java[t0];
-                Err(Class::builtin("java.util.List", vec![t0_]))
-            }
-            meta::Primitive::Result(t0, t1) => {
-                let t0_ = self.meta_to_java[t0];
-                let t1_ = self.meta_to_java[t1];
-                Err(Class::builtin(&self.either_type, vec![t1_, t0_]))
+            meta::Primitive::String => Err(Class::string()),
+            meta::Primitive::Option(t0_) => Err(Class::optional(self.meta_to_java[t0_])),
+            meta::Primitive::Sequence(t0_) => Err(Class::list(self.meta_to_java[t0_])),
+            meta::Primitive::Result(t0_, t1_) => {
+                let t0 = self.meta_to_java[t0_];
+                let t1 = self.meta_to_java[t1_];
+                Err(Class::builtin(&self.either_type, vec![t1, t0]))
             }
         }
     }

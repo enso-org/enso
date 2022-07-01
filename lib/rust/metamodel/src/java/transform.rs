@@ -1,6 +1,6 @@
 //! Transformations of Java datamodels.
 
-use super::*;
+use crate::java::*;
 
 
 
@@ -16,7 +16,7 @@ use super::*;
 pub fn optional_to_null(mut graph: TypeGraph) -> TypeGraph {
     let mut optional_to_class = BTreeMap::new();
     for (id, class) in graph.classes.iter() {
-        if class.builtin && class.name == "java.util.Optional" {
+        if class.builtin && class.name == OPTIONAL {
             let wrapped = class.params[0];
             optional_to_class.insert(id, wrapped);
         }

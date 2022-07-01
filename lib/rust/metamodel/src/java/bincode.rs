@@ -3,6 +3,7 @@
 
 use crate::java::implementation::*;
 use crate::java::*;
+use derivative::Derivative;
 use std::fmt::Write;
 
 
@@ -11,22 +12,24 @@ use std::fmt::Write;
 // === Derive Deserialize ===
 // ==========================
 
-type Materializer = Box<dyn FnOnce(&'_ str) -> String>;
-type Mapper = Box<dyn FnOnce(&'_ str, &'_ str) -> String>;
-
 /// Supports configuring deserialization for a type.
-// The main content is in closures, which can't be printed.
-#[allow(missing_debug_implementations)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct DeserializerBuilder {
     root:          ClassId,
+    #[derivative(Debug = "ignore")]
     materializers: BTreeMap<FieldId, Materializer>,
+    #[derivative(Debug = "ignore")]
     mappers:       BTreeMap<FieldId, Mapper>,
     support:       String,
     either_type:   String,
 }
 
 impl DeserializerBuilder {
-    #[allow(missing_docs)]
+    /// Create a deserializer builder.
+    /// - `root`: The type to deserialize.
+    /// - `support`: The serialization support package.
+    /// - `either_type`: The fully-qualified name of the type that implements `Either`.
     pub fn new(root: ClassId, support: impl Into<String>, either_type: impl Into<String>) -> Self {
         let materializers = Default::default();
         let mappers = Default::default();
@@ -35,17 +38,17 @@ impl DeserializerBuilder {
         Self { root, materializers, mappers, support, either_type }
     }
 
-    /// Configure the specified field to be produced according to the given expression, instead of
-    /// by standard deserialization.
+    /// Configure the specified field to be produced according to an expression, instead of by
+    /// standard deserialization. The expression will be produced by the given function.
     pub fn materialize<F>(&mut self, field: FieldId, materializer: F)
-    where F: FnOnce(&'_ str) -> String + 'static {
+        where F: for<'a> FnOnce(MaterializerInput<'a>) -> String + 'static {
         self.materializers.insert(field, Box::new(materializer));
     }
 
-    /// Configure the specified field to be modified by the given expression, after being
-    /// deserialized.
+    /// Configure the specified field to be modified by an expression, after being deserialized.
+    /// The expression will be produced by the given function.
     pub fn map<F>(&mut self, field: FieldId, mapper: F)
-    where F: FnOnce(&'_ str, &'_ str) -> String + 'static {
+        where F: for<'a, 'b> FnOnce(MapperInput<'a, 'b>) -> String + 'static {
         self.mappers.insert(field, Box::new(mapper));
     }
 
@@ -57,6 +60,25 @@ impl DeserializerBuilder {
         };
         Method::Raw(method)
     }
+}
+
+type Materializer = Box<dyn for<'a> FnOnce(MaterializerInput<'a>) -> String>;
+type Mapper = Box<dyn for<'a, 'b> FnOnce(MapperInput<'a, 'b>) -> String>;
+
+/// Input to a function that produces an expression that deserializes a field.
+#[derive(Debug)]
+pub struct MaterializerInput<'a> {
+    /// Identifier of the serialized message object.
+    pub message: &'a str,
+}
+
+/// Input to a function that produces an expression that modifies a field after deserialization.
+#[derive(Debug)]
+pub struct MapperInput<'a, 'b> {
+    /// Identifier of the serialized message object.
+    pub message: &'a str,
+    /// Identifier of the field's value, after producing with standard deserialization.
+    pub value: &'b str,
 }
 
 
@@ -78,7 +100,7 @@ impl DeserializerBuilder {
         for field in &fields {
             let ty_name = quote_type(graph, &field.data);
             let expr = if let Some(materializer) = self.materializers.remove(&field.id()) {
-                (materializer)(message)
+                (materializer)(MaterializerInput { message })
             } else {
                 match &field.data {
                     FieldData::Object { type_, nonnull } => {
@@ -108,6 +130,14 @@ impl DeserializerBuilder {
                     FieldData::Primitive(Primitive::Long { .. }) => format!("{}.get64()", message),
                     FieldData::Primitive(Primitive::Bool) => format!("{}.getBoolean()", message),
                 }
+            };
+            let expr = match self.mappers.remove(&field.id()) {
+                Some(mapper) => {
+                    let value = get_temp();
+                    writeln!(body, "{} {} = {};", ty_name, &value, expr).unwrap();
+                    (mapper)(MapperInput { message, value: &value })
+                }
+                None => expr,
             };
             writeln!(body, "{} {} = {};", ty_name, &field.name, expr).unwrap();
         }
@@ -161,8 +191,8 @@ impl DeserializerBuilder {
             return;
         }
         match ty.name.as_str() {
-            "String" => writeln!(body, "{ty_name} {output} = {message}.getString();").unwrap(),
-            "java.util.Optional" => {
+            STRING => writeln!(body, "{ty_name} {output} = {message}.getString();").unwrap(),
+            OPTIONAL => {
                 let base = ty.params[0];
                 let present = get_temp();
                 writeln!(body, "{ty_name} {output};").unwrap();
@@ -170,10 +200,10 @@ impl DeserializerBuilder {
                 writeln!(body, "if ({present}) {{").unwrap();
                 let value = get_temp();
                 self.deserialize_object(graph, base, message, &value, get_temp, body);
-                writeln!(body, "{output} = java.util.Optional.of({value});").unwrap();
-                writeln!(body, "}} else {output} = java.util.Optional.empty();").unwrap();
+                writeln!(body, "{output} = {OPTIONAL}.of({value});").unwrap();
+                writeln!(body, "}} else {output} = {OPTIONAL}.empty();").unwrap();
             }
-            "java.util.List" => {
+            LIST => {
                 let base = ty.params[0];
                 let count = get_temp();
                 writeln!(body, "int {count} = (int){message}.get64();").unwrap();
@@ -203,12 +233,12 @@ impl DeserializerBuilder {
                     body,
                     "case 0: {output} = {name}.right({t1}.deserialize({message})); break;"
                 )
-                .unwrap();
+                    .unwrap();
                 writeln!(
                     body,
                     "case 1: {output} = {name}.left({t0}.deserialize({message})); break;"
                 )
-                .unwrap();
+                    .unwrap();
                 let err = format!("Unknown discriminant in {ty_name}.");
                 let serialization = &self.support;
                 writeln!(body, "default: throw new {serialization}.FormatException({err:?}); }}")

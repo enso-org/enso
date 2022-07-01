@@ -14,7 +14,6 @@
 
 fn main() {
     let cases = enso_parser_generate_java::generate_testcases();
-    eprintln!("{}", cases.to_json());
     let fmt_cases = |cases: &[Vec<u8>]| {
         let cases: Vec<_> = cases
             .iter()
