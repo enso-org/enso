@@ -12,14 +12,12 @@ use std::fmt::Write;
 /// Implement a system of datatypes.
 pub fn implement(graph: &TypeGraph, package: &str) -> Vec<syntax::Class> {
     let mut implementations = BTreeMap::new();
-    for id in graph.type_ids() {
-        let class = &graph[id];
+    for (id, class) in graph.classes.iter() {
         if !class.builtin {
             implementations.insert(id, implement_class(graph, id));
         }
     }
-    for id in graph.type_ids() {
-        let class = &graph[id];
+    for (id, class) in graph.classes.iter() {
         if let Some(parent) = class.parent {
             let mut inner = implementations.remove(&id).unwrap();
             inner.static_ = true;
@@ -33,7 +31,7 @@ pub fn implement(graph: &TypeGraph, package: &str) -> Vec<syntax::Class> {
 }
 
 /// Get a type's qualified name, relative to the generated package.
-pub fn path(graph: &TypeGraph, id: TypeId) -> String {
+pub fn path(graph: &TypeGraph, id: ClassId) -> String {
     let mut components = vec![];
     let mut next_id = Some(id);
     while let Some(id) = next_id {
@@ -87,7 +85,7 @@ pub fn quote_type(graph: &TypeGraph, data: &FieldData) -> syntax::Type {
 }
 
 /// Produce syntax referring to the given class.
-pub fn quote_class_type(graph: &TypeGraph, id: TypeId) -> syntax::Type {
+pub fn quote_class_type(graph: &TypeGraph, id: ClassId) -> syntax::Type {
     let class = path(graph, id);
     let params = quote_params(graph, &graph[id].params);
     syntax::Type { class, params }
@@ -96,7 +94,7 @@ pub fn quote_class_type(graph: &TypeGraph, id: TypeId) -> syntax::Type {
 /// Render a parameter list.
 pub fn quote_params<'a>(
     graph: &TypeGraph,
-    params: impl IntoIterator<Item = &'a TypeId>,
+    params: impl IntoIterator<Item = &'a ClassId>,
 ) -> Vec<String> {
     params.into_iter().map(|ty| path(graph, *ty)).collect()
 }
@@ -228,7 +226,7 @@ fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
     method
 }
 
-fn implement_class(graph: &TypeGraph, id: TypeId) -> syntax::Class {
+fn implement_class(graph: &TypeGraph, id: ClassId) -> syntax::Class {
     let class = &graph[id];
     let name = class.name.clone();
     let abstract_ = class.abstract_;

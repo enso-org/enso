@@ -18,7 +18,7 @@ const TOKEN_LEN: &str = "codeReprLen";
 const TOKEN_OFFSET_BEGIN: &str = "leftOffsetCodeReprBegin";
 //const TOKEN_OFFSET_LEN: &str = "leftOffsetCodeReprLen";
 
-pub fn derive(graph: &mut TypeGraph, tree: TypeId, token: TypeId) {
+pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
     let source = "source";
     impl_deserialize(graph, tree, token, source);
     graph[token].methods.push(impl_getter(CODE_GETTER, source, TOKEN_BEGIN, TOKEN_LEN));
@@ -28,17 +28,17 @@ pub fn derive(graph: &mut TypeGraph, tree: TypeId, token: TypeId) {
 
 // === Deserialization Methods ===
 
-fn impl_deserialize(graph: &mut TypeGraph, tree: TypeId, token: TypeId, source: &str) {
+fn impl_deserialize(graph: &mut TypeGraph, tree: ClassId, token: ClassId, source: &str) {
     // Add source field to parent types.
     let buffer = Class::builtin("java.nio.ByteBuffer", vec![]);
-    let buffer = graph.insert(buffer);
+    let buffer = graph.classes.insert(buffer);
     let tree_source_ = Field::object(source, buffer, true);
     let tree_source = tree_source_.id();
     graph[tree].fields.push(tree_source_);
     let token_source_ = Field::object(source, buffer, true);
     let token_source = token_source_.id();
     graph[token].fields.push(token_source_);
-    let ids: Vec<_> = graph.type_ids().collect();
+    let ids: Vec<_> = graph.classes.keys().collect();
     for id in ids {
         let class = &graph[id];
         let mut deserialization =

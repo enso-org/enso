@@ -28,7 +28,7 @@ struct ToMeta {
     // Intermediate state
     interfaces:   Vec<(meta::TypeId, meta::TypeId)>,
     parent_types: BTreeMap<GenericTypeId, (meta::TypeName, meta::Data, usize)>,
-    subtypings:   Vec<(GenericTypeId, TypeId, meta::TypeId)>,
+    subtypings:   Vec<(GenericTypeId, TypeId, meta::UnboundTypeId)>,
     flatten:      BTreeSet<meta::FieldId>,
 }
 
@@ -41,7 +41,7 @@ impl ToMeta {
 impl ToMeta {
     fn named_struct<'f>(
         &mut self,
-        id_: meta::TypeId,
+        id_: meta::UnboundTypeId,
         name: &str,
         fields: impl IntoIterator<Item = &'f NamedField>,
         erased: Option<GenericTypeId>,
@@ -73,22 +73,22 @@ impl ToMeta {
             return;
         }
         let ty = meta::Type::new(name, data);
-        self.graph.set(id_, ty);
+        self.graph.types.bind_key(id_, ty);
     }
 
-    fn unnamed_struct(&mut self, id_: meta::TypeId, name: &str, fields: &[UnnamedField]) {
+    fn unnamed_struct(&mut self, id_: meta::UnboundTypeId, name: &str, fields: &[UnnamedField]) {
         let abstract_field =
             |field: &UnnamedField| meta::Field::unnamed(self.rust_to_meta[&field.type_.id]);
         let data = fields.iter().map(abstract_field).collect();
         let data = meta::Data::Struct(data);
         let name = type_name(name);
         let ty = meta::Type::new(name, data);
-        self.graph.set(id_, ty);
+        self.graph.types.bind_key(id_, ty);
     }
 
     fn struct_(
         &mut self,
-        id_: meta::TypeId,
+        id_: meta::UnboundTypeId,
         name: &str,
         fields: &Fields,
         erased: Option<GenericTypeId>,
@@ -100,25 +100,26 @@ impl ToMeta {
         }
     }
 
-    fn unit_struct(&mut self, id_: meta::TypeId, name: &str) {
+    fn unit_struct(&mut self, id_: meta::UnboundTypeId, name: &str) {
         let data = meta::Data::Struct(vec![]);
         let name = type_name(name);
         let ty = meta::Type::new(name, data);
-        self.graph.set(id_, ty);
+        self.graph.types.bind_key(id_, ty);
     }
 
-    fn enum_(&mut self, id_: meta::TypeId, name: &str, variants: &[Variant]) {
+    fn enum_(&mut self, id_: meta::UnboundTypeId, name: &str, variants: &[Variant]) {
         let name = type_name(name);
         let children = variants.iter().map(|Variant { ident, fields, inline: transparent }| {
             if *transparent {
                 let field = &fields.as_wrapped_type().unwrap().id;
                 let field_ = self.rust_to_meta[field];
-                self.interfaces.push((id_, field_));
+                self.interfaces.push(((&id_).into(), field_));
                 field_
             } else {
-                let new_ = self.graph.reserve_type_id();
-                self.struct_(new_, ident, fields, None);
-                self.graph[new_].parent = Some(id_);
+                let promise = self.graph.types.allocate_key();
+                let new_ = meta::TypeId::from(&promise);
+                self.struct_(promise, ident, fields, None);
+                self.graph[new_].parent = Some((&id_).into());
                 new_
             }
         });
@@ -127,10 +128,10 @@ impl ToMeta {
         ty.abstract_ = true;
         ty.closed = true;
         ty.discriminants = children.enumerate().collect();
-        self.graph.set(id_, ty);
+        self.graph.types.bind_key(id_, ty);
     }
 
-    fn primitive(&mut self, id_: meta::TypeId, name: &str, primitive: &Primitive) {
+    fn primitive(&mut self, id_: meta::UnboundTypeId, name: &str, primitive: &Primitive) {
         let primitive = match primitive {
             Primitive::Bool => meta::Primitive::Bool,
             Primitive::U32 => meta::Primitive::U32,
@@ -145,7 +146,7 @@ impl ToMeta {
         let data = meta::Data::Primitive(primitive);
         let name = type_name(name);
         let ty = meta::Type::new(name, data);
-        self.graph.set(id_, ty);
+        self.graph.types.bind_key(id_, ty);
     }
 }
 
@@ -181,17 +182,17 @@ impl ToMeta {
         let root_rust_id = ty.id;
         let mut rust_types = collect_types(ty);
         let aliases = self.remove_transparent(&mut rust_types);
-        for id in rust_types.keys() {
-            let id_ = self.graph.reserve_type_id();
-            self.rust_to_meta.insert(*id, id_);
-        }
+        let mut meta_promises: BTreeMap<_, _> =
+            rust_types.keys().map(|id| (*id, self.graph.types.allocate_key())).collect();
+        self.rust_to_meta =
+            meta_promises.iter().map(|(k, v)| (*k, meta::TypeId::from(v))).collect();
         for (id, target) in aliases {
             let target_ = self.rust_to_meta[&target];
             self.rust_to_meta.insert(id, target_);
         }
         for (&id, rust) in &rust_types {
             let name = &rust.name;
-            let id_ = self.rust_to_meta[&id];
+            let id_ = meta_promises.remove(&id).unwrap();
             let erased = Some(rust.subtype_erased);
             match &rust.data {
                 Data::Struct(Struct { fields, transparent: _ }) =>
@@ -213,38 +214,41 @@ impl ToMeta {
         let mut parent_ids = BTreeMap::new();
         let mut aliases = vec![];
         let subtypings = take(&mut self.subtypings);
-        for (erased, field, id_) in &subtypings {
-            let field_ty = &rust_types[field];
+        let mut concrete_subtypes = vec![];
+        for (erased, field, promise) in subtypings {
+            let id_ = meta::TypeId::from(&promise);
+            let field_ty = &rust_types[&field];
             match &field_ty.data {
                 Data::Enum(_) => {
-                    let field_ = self.rust_to_meta[field];
-                    let (name, wrapper_data, index) = self.parent_types.remove(erased).unwrap();
+                    let field_ = self.rust_to_meta[&field];
+                    let (name, wrapper_data, index) = self.parent_types.remove(&erased).unwrap();
                     // Move the Enum: We're merging the wrapper data into it, so any reference
                     // to it that wasn't through the wrapper must be an error.
                     // Note: This approach won't allow types that are subsetted by multiple enums.
-                    let mut enum_ty_ = self.graph.take(field_);
+                    let mut enum_ty_ = self.graph.types.remove(field_);
                     enum_ty_.name = name;
                     enum_ty_.data = wrapper_data;
                     enum_ty_.child_field = Some(index);
                     let children_: Vec<_> = enum_ty_.discriminants.values().copied().collect();
-                    self.graph.set(*id_, enum_ty_);
+                    self.graph.types.bind_key(promise, enum_ty_);
                     for child_ in children_ {
-                        let old_parent = self.graph[child_].parent.replace(*id_);
+                        let old_parent = self.graph[child_].parent.replace(id_);
                         assert_eq!(old_parent, Some(field_));
                     }
-                    parent_ids.insert(erased, *id_);
+                    parent_ids.insert(erased, id_);
                 }
-                Data::Struct(Struct { .. }) => continue,
+                Data::Struct(_) => {
+                    concrete_subtypes.push((erased, field, id_));
+                    continue;
+                }
                 Data::Primitive(_) => panic!("Cannot transform a builtin to a subtype."),
             };
         }
-        for (_erased, field, id_) in &subtypings {
-            let field_ty = &rust_types[field];
-            if let Data::Struct(_) = &field_ty.data {
-                let variants_only = "Applying `#[reflect(subtype)]` to a field that does not occur in a variant of an enum used to instantiate the field is not supported.";
-                let id = *self.rust_to_meta.get(field).expect(variants_only);
-                aliases.push((*id_, id));
-            }
+        for (_erased, field, id_) in concrete_subtypes {
+            let variants_only = "Applying `#[reflect(subtype)]` to a field that does not occur \
+                in a variant of an enum used to instantiate the field is not supported.";
+            let id = *self.rust_to_meta.get(&field).expect(variants_only);
+            aliases.push((id_, id));
         }
         self.graph.apply_aliases(&aliases);
     }

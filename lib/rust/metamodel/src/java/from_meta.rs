@@ -13,34 +13,40 @@ use crate::meta;
 pub fn from_meta(
     graph: &meta::TypeGraph,
     either_type: impl Into<String>,
-) -> (TypeGraph, BTreeMap<meta::TypeId, TypeId>) {
+) -> (TypeGraph, BTreeMap<meta::TypeId, ClassId>) {
     let primitives = Default::default();
     let mut java = TypeGraph::default();
-    let meta_to_java: BTreeMap<_, _> =
-        graph.type_ids().map(|id| (id, java.reserve_type_id())).collect();
+    let mut class_promises: BTreeMap<_, _> =
+        graph.types.keys().map(|id| (id, java.classes.allocate_key())).collect();
+    let meta_to_java = class_promises.iter().map(|(key, value)| (*key, value.into())).collect();
     let either_type = either_type.into();
     let mut from_meta = FromMeta { java, meta_to_java, primitives, either_type };
     // Translate primitives first, because in Java we need to know whether a type is primitive when
     // we reference the type.
-    for (&id_, &id) in &from_meta.meta_to_java {
+    let mut unbound_ids: Vec<_> = class_promises.keys().copied().collect();
+    for &id_ in &unbound_ids {
         if let meta::Data::Primitive(ty) = &graph[id_].data {
             match from_meta.primitive(ty) {
                 Ok(prim) => {
                     from_meta.primitives.insert(id_, prim);
                 }
-                Err(class) => from_meta.java.set(id, class),
+                Err(class) => {
+                    from_meta.java.classes.bind_key(class_promises.remove(&id_).unwrap(), class);
+                }
             }
         }
     }
+    unbound_ids.clear();
+    unbound_ids.extend(class_promises.keys().copied());
     // Translate structs.
-    for (&id_, &id) in &from_meta.meta_to_java {
+    for id_ in unbound_ids {
         let ty = &graph[id_];
         let fields_ = match &ty.data {
             meta::Data::Primitive(_) => continue,
             meta::Data::Struct(fields_) => fields_,
         };
         let class = from_meta.class(ty, fields_);
-        from_meta.java.set(id, class);
+        from_meta.java.classes.bind_key(class_promises.remove(&id_).unwrap(), class);
     }
     let FromMeta { java, meta_to_java, .. } = from_meta;
     (java, meta_to_java)
@@ -49,7 +55,7 @@ pub fn from_meta(
 #[derive(Debug)]
 struct FromMeta {
     java:         TypeGraph,
-    meta_to_java: BTreeMap<meta::TypeId, TypeId>,
+    meta_to_java: BTreeMap<meta::TypeId, ClassId>,
     primitives:   BTreeMap<meta::TypeId, Primitive>,
     either_type:  String,
 }

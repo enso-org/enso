@@ -145,8 +145,7 @@ impl<'g> ProgramBuilder<'g> {
         let mut will_visit = BTreeSet::new();
         let mut basecase_discriminant = BTreeMap::new();
         let mut sb_visited = BTreeSet::new();
-        for id in graph_.type_ids() {
-            let ty = &graph[id];
+        for (id, ty) in graph_.types.iter() {
             if let Data::Struct(fields) = &ty.data {
                 will_visit.extend(fields.iter().map(|field| field.type_));
                 will_visit.extend(ty.discriminants.values());

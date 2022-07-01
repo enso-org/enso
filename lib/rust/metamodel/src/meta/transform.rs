@@ -14,7 +14,7 @@ use derivative::Derivative;
 /// Each inserted field will have its name prepended with the name of its eliminated container.
 /// If the `hide` property is set for the container, it will be inherited by its child fields.
 pub fn flatten(graph: &mut TypeGraph, ids: &mut BTreeSet<FieldId>) {
-    let order = toposort(graph.type_ids(), TypeGraphDependencyVisitor { graph, ids });
+    let order = toposort(graph.types.keys(), TypeGraphDependencyVisitor { graph, ids });
     for id in order {
         flatten_(graph, ids, id);
     }

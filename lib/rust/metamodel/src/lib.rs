@@ -20,6 +20,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+mod data_structures;
 pub mod meta;
 
 #[cfg(feature = "graphviz")]

@@ -9,8 +9,25 @@ pub mod graphviz;
 pub mod serialization;
 pub mod transform;
 
+use crate::data_structures::VecMap;
+use derive_more::Index;
+use derive_more::IndexMut;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+
+
+
+// ==============================
+// === Type Parameterizations ===
+// ==============================
+
+/// Globally unique, stable identifier for a `Field`.
+pub type FieldId = crate::data_structures::Id<Field>;
+
+/// Identfies a type within a `TypeGraph`.
+pub type TypeId = crate::data_structures::vecmap::Key<Type>;
+/// Identfies an unbound type within a `TypeGraph`.
+pub type UnboundTypeId = crate::data_structures::vecmap::UnboundKey<Type>;
 
 
 
@@ -99,7 +116,7 @@ impl Field {
     /// Create a new named field.
     pub fn named(name: FieldName, type_: TypeId) -> Self {
         let hide = Default::default();
-        let id = Self::new_id();
+        let id = Default::default();
         Self { type_, name, hide, id }
     }
 
@@ -107,39 +124,13 @@ impl Field {
     pub fn unnamed(type_: TypeId) -> Self {
         let name = Default::default();
         let hide = Default::default();
-        let id = Self::new_id();
+        let id = Default::default();
         Self { name, type_, hide, id }
     }
 
     /// Get the field's `FieldId`.
     pub fn id(&self) -> FieldId {
         self.id
-    }
-
-    fn new_id() -> FieldId {
-        use std::sync::atomic;
-        static NEXT_ID: atomic::AtomicU32 = atomic::AtomicU32::new(0);
-        FieldId(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed))
-    }
-}
-
-/// Identifies a `Type` within a `TypeGraph`.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TypeId(pub usize);
-
-impl std::fmt::Display for TypeId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-/// Globally unique, stable identifier for a `Field`.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FieldId(u32);
-
-impl std::fmt::Display for FieldId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
     }
 }
 
@@ -299,54 +290,15 @@ impl FieldName {
 // ===========================
 
 /// A system of `Type`s.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Index, IndexMut)]
 pub struct TypeGraph {
-    types: Vec<Option<Type>>,
+    #[index]
+    #[index_mut]
+    #[allow(missing_docs)]
+    pub types: VecMap<Type>,
 }
 
 impl TypeGraph {
-    /// Allocate a `TypeId`, without setting the type's definition yet. This supports the
-    /// construction of type graphs that may contain cycles.
-    pub fn reserve_type_id(&mut self) -> TypeId {
-        let id = TypeId(self.types.len());
-        self.types.push(None);
-        id
-    }
-
-    /// Bind a `TypeId` previously returned by `reserve_type_id` to a `Type`. The `TypeId` must not
-    /// already have a value assigned.
-    pub fn set(&mut self, id: TypeId, value: Type) {
-        assert_eq!(&self.types[id.0], &None);
-        self.types[id.0] = Some(value);
-    }
-
-    /// Look up a `Type` by `TypeId` and return it if present.
-    pub fn get(&self, TypeId(i): TypeId) -> Option<&Type> {
-        self.types[i].as_ref()
-    }
-
-    /// Change the value associated with a `TypeId`; return the old value.
-    pub fn replace(&mut self, id: TypeId, value: Type) -> Type {
-        std::mem::replace(&mut self.types[id.0], Some(value)).unwrap()
-    }
-
-    /// Remove a type from the graph; the `TypeId` becomes unbound.
-    pub fn take(&mut self, id: TypeId) -> Type {
-        std::mem::take(&mut self.types[id.0]).unwrap()
-    }
-
-    /// Add a type to the graph. Return the `TypeId` assigned to it.
-    pub fn insert(&mut self, value: Type) -> TypeId {
-        let id = TypeId(self.types.len());
-        self.types.push(Some(value));
-        id
-    }
-
-    /// Iterate the defined types by ID.
-    pub fn type_ids(&self) -> impl Iterator<Item = TypeId> + '_ {
-        self.types.iter().enumerate().filter_map(|(i, ty)| ty.as_ref().map(|_| TypeId(i)))
-    }
-
     /// Replace all occurrences of certain IDs with other IDs.
     pub fn apply_aliases<'a>(&mut self, aliases: impl IntoIterator<Item = &'a (TypeId, TypeId)>) {
         let mut canonical = BTreeMap::new();
@@ -358,11 +310,7 @@ impl TypeGraph {
                 *id = *id_;
             }
         };
-        for ty in self.types.iter_mut() {
-            let ty = match ty {
-                Some(ty) => ty,
-                None => continue,
-            };
+        for ty in self.types.values_mut() {
             if let Some(parent) = &mut ty.parent {
                 rewrite(parent);
             }
@@ -395,7 +343,7 @@ impl TypeGraph {
         let mut to_visit = BTreeSet::new();
         to_visit.extend(roots);
         while let Some(id) = to_visit.pop_last() {
-            let ty = match &self.types[id.0] {
+            let ty = match self.types.get(id) {
                 Some(ty) => ty,
                 None => continue,
             };
@@ -435,24 +383,11 @@ impl TypeGraph {
             }
         }
         let live = |id: &TypeId| visited.contains(id);
-        for (i, ty) in self.types.iter_mut().enumerate() {
-            let id = TypeId(i);
+        let ids: Vec<_> = self.types.keys().collect();
+        for id in ids {
             if !live(&id) {
-                *ty = None;
+                self.types.remove(id);
             }
         }
-    }
-}
-
-impl std::ops::Index<TypeId> for TypeGraph {
-    type Output = Type;
-    fn index(&self, index: TypeId) -> &Self::Output {
-        self.types[index.0].as_ref().unwrap()
-    }
-}
-
-impl std::ops::IndexMut<TypeId> for TypeGraph {
-    fn index_mut(&mut self, index: TypeId) -> &mut Self::Output {
-        self.types[index.0].as_mut().unwrap()
     }
 }

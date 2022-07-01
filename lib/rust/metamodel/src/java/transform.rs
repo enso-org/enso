@@ -15,8 +15,7 @@ use super::*;
 /// All other `TypeId`s: Unaffected.
 pub fn optional_to_null(mut graph: TypeGraph) -> TypeGraph {
     let mut optional_to_class = BTreeMap::new();
-    for id in graph.type_ids() {
-        let class = &graph[id];
+    for (id, class) in graph.classes.iter() {
         if class.builtin && class.name == "java.util.Optional" {
             let wrapped = class.params[0];
             optional_to_class.insert(id, wrapped);
@@ -26,7 +25,7 @@ pub fn optional_to_null(mut graph: TypeGraph) -> TypeGraph {
     for class in optional_to_class.values() {
         assert!(!optional_to_class.contains_key(class), "{}", no_multilevel);
     }
-    for class in graph.classes_mut() {
+    for class in graph.classes.values_mut() {
         for field in &mut class.fields {
             if let FieldData::Object { type_, nonnull } = &mut field.data {
                 if let Some(mapped) = optional_to_class.get(type_) {
@@ -38,7 +37,7 @@ pub fn optional_to_null(mut graph: TypeGraph) -> TypeGraph {
         }
     }
     for &id in optional_to_class.keys() {
-        graph.remove(id);
+        graph.classes.remove(id);
     }
     graph
 }

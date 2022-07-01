@@ -18,7 +18,7 @@ type Mapper = Box<dyn FnOnce(&'_ str, &'_ str) -> String>;
 // The main content is in closures, which can't be printed.
 #[allow(missing_debug_implementations)]
 pub struct DeserializerBuilder {
-    root:          TypeId,
+    root:          ClassId,
     materializers: BTreeMap<FieldId, Materializer>,
     mappers:       BTreeMap<FieldId, Mapper>,
     support:       String,
@@ -27,7 +27,7 @@ pub struct DeserializerBuilder {
 
 impl DeserializerBuilder {
     #[allow(missing_docs)]
-    pub fn new(root: TypeId, support: impl Into<String>, either_type: impl Into<String>) -> Self {
+    pub fn new(root: ClassId, support: impl Into<String>, either_type: impl Into<String>) -> Self {
         let materializers = Default::default();
         let mappers = Default::default();
         let support = support.into();
@@ -126,7 +126,7 @@ impl DeserializerBuilder {
     fn deserialize_nullable<F>(
         &self,
         graph: &TypeGraph,
-        id: TypeId,
+        id: ClassId,
         message: &str,
         output: &str,
         get_temp: &mut F,
@@ -146,7 +146,7 @@ impl DeserializerBuilder {
     fn deserialize_object<F>(
         &self,
         graph: &TypeGraph,
-        id: TypeId,
+        id: ClassId,
         message: &str,
         output: &str,
         get_temp: &mut F,

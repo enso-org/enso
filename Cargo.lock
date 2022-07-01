@@ -2030,6 +2030,7 @@ name = "enso-metamodel"
 version = "0.1.0"
 dependencies = [
  "derivative",
+ "derive_more",
 ]
 
 [[package]]
