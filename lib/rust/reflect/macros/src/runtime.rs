@@ -115,12 +115,12 @@ impl Quote for Variant {
     fn quote(&self) -> TokenStream {
         let ident = self.ident.to_string();
         let fields = self.fields.quote();
-        let transparent = self.transparent;
+        let inline = self.transparent;
         let quoted = quote! {
             enso_reflect::metamodel::rust::Variant {
                 ident: #ident.to_owned(),
                 fields: #fields,
-                transparent: #transparent,
+                inline: #inline,
             }
         };
         quoted

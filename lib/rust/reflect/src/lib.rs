@@ -20,8 +20,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use enso_metamodel::rust::*;
 pub use enso_metamodel as metamodel;
+use enso_metamodel::rust::*;
 
 /// Imports for crates that `#[derive(Reflect)]`.
 pub mod prelude {
@@ -58,7 +58,6 @@ impl Reflect for std::borrow::Cow<'_, str> {
     type Static = String;
     type SubtypeErased = Self::Static;
     fn reflect() -> TypeData {
-        // FIXME: Should be a transparent wrapper.
         <String as Reflect>::reflect()
     }
 }
@@ -69,7 +68,6 @@ where T: Reflect
     type Static = T::Static;
     type SubtypeErased = Self::Static;
     fn reflect() -> TypeData {
-        // FIXME: Should be a transparent wrapper.
         T::reflect()
     }
 }
@@ -80,7 +78,6 @@ where T: Reflect
     type Static = T::Static;
     type SubtypeErased = Self::Static;
     fn reflect() -> TypeData {
-        // FIXME: Should be a transparent wrapper.
         T::reflect()
     }
 }
@@ -121,7 +118,6 @@ impl Reflect for &'_ str {
     type Static = String;
     type SubtypeErased = Self::Static;
     fn reflect() -> TypeData {
-        // FIXME: Should be a transparent wrapper.
         <String as Reflect>::reflect()
     }
 }
@@ -167,6 +163,7 @@ reflect_primitive!(String, Primitive::String);
 // === Reflectors ===
 // ==================
 
+/// Return a value that can be used to obtain type information.
 pub fn reflect_lazy<T: ?Sized + Reflect>() -> LazyType {
     let id = type_id::<T>();
     let evaluate = <T as Reflect>::reflect;

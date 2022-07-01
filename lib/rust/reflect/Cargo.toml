@@ -11,4 +11,3 @@ derivative = "2.2"
 
 [features]
 graphviz = ["enso-metamodel/graphviz"]
-

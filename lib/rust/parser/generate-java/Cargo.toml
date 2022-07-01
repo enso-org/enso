@@ -10,11 +10,8 @@ repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 [dependencies]
-enso-metamodel = { path = "../../metamodel", features = [
-  "rust",
-  "java"
-] }
+enso-metamodel = { path = "../../metamodel", features = ["rust", "java"] }
 enso-prelude = { path = "../../prelude" }
 enso-parser = { path = ".." }
-enso-reflect = { path = "../../reflect", features = [ "graphviz" ] }
+enso-reflect = { path = "../../reflect", features = ["graphviz"] }
 derivative = "2.2"

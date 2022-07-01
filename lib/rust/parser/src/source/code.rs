@@ -90,11 +90,14 @@ mod serialization {
     /// Serialized representation of a source code `Cow`.
     #[derive(Serialize, Reflect)]
     pub(super) struct Code {
+        #[reflect(hide)]
         begin: u32,
+        #[reflect(hide)]
         len:   u32,
     }
 
     /// Serde wrapper to serialize a `Cow` as the `Code` representation.
+    #[allow(clippy::ptr_arg)] // This is the signature required by serde.
     pub(super) fn cow<S>(cow: &Cow<'_, str>, ser: S) -> Result<S::Ok, S::Error>
     where S: serde::Serializer {
         let s = match cow {

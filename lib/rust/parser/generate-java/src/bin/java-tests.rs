@@ -23,8 +23,7 @@ fn main() {
                 format!("{{{}}}", case.join(", "))
             })
             .collect();
-        let cases = cases.join(", ");
-        cases
+        cases.join(", ")
     };
     let accept = fmt_cases(&cases.accept);
     let reject = fmt_cases(&cases.reject);

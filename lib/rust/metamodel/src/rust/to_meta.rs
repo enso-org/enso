@@ -1,3 +1,5 @@
+//! Abstracting Rust data models to the `meta` representation.
+
 use crate::meta;
 use crate::rust::*;
 use std::collections::BTreeMap;
@@ -10,6 +12,7 @@ use std::mem::take;
 // === Rust to Meta ===
 // ====================
 
+/// Abstract the data model to the meta represenation.
 pub fn to_meta(ty: TypeData) -> (meta::TypeGraph, BTreeMap<TypeId, meta::TypeId>) {
     let mut to_meta = ToMeta::new();
     let root_ = to_meta.run(ty);
@@ -18,7 +21,7 @@ pub fn to_meta(ty: TypeData) -> (meta::TypeGraph, BTreeMap<TypeId, meta::TypeId>
 }
 
 #[derive(Debug, Default)]
-pub struct ToMeta {
+struct ToMeta {
     // Outputs
     rust_to_meta: BTreeMap<TypeId, meta::TypeId>,
     graph:        meta::TypeGraph,
@@ -106,7 +109,7 @@ impl ToMeta {
 
     fn enum_(&mut self, id_: meta::TypeId, name: &str, variants: &[Variant]) {
         let name = type_name(name);
-        let children = variants.iter().map(|Variant { ident, fields, transparent }| {
+        let children = variants.iter().map(|Variant { ident, fields, inline: transparent }| {
             if *transparent {
                 let field = &fields.as_wrapped_type().unwrap().id;
                 let field_ = self.rust_to_meta[field];
@@ -153,19 +156,11 @@ impl ToMeta {
     ) -> BTreeMap<TypeId, TypeId> {
         let mut alias = BTreeMap::new();
         types.retain(|id, TypeData { data, .. }| {
+            let sole_field =
+                "`#[reflect(transparent)]` can only be applied to types with exactly one field.";
             let target = match data {
-                Data::Struct(Struct { fields: Fields::Named(fields), transparent })
-                    if *transparent =>
-                {
-                    assert_eq!(fields.len(), 1);
-                    fields[0].type_.id
-                }
-                Data::Struct(Struct { fields: Fields::Unnamed(fields), transparent })
-                    if *transparent =>
-                {
-                    assert_eq!(fields.len(), 1);
-                    fields[0].type_.id
-                }
+                Data::Struct(Struct { fields, transparent }) if *transparent =>
+                    fields.as_wrapped_type().expect(sole_field).id,
                 _ => return true,
             };
             alias.insert(*id, target);
@@ -181,6 +176,7 @@ impl ToMeta {
         alias
     }
 
+    /// Perform the transformation for the reference-closure of the given type.
     pub fn run(&mut self, ty: TypeData) -> meta::TypeId {
         let root_rust_id = ty.id;
         let mut rust_types = collect_types(ty);
@@ -245,12 +241,8 @@ impl ToMeta {
         for (_erased, field, id_) in &subtypings {
             let field_ty = &rust_types[field];
             if let Data::Struct(_) = &field_ty.data {
-                // FIXME: Would be simple to handle, but doesn't occur in our data. Needs testing.
-                //let instantiated_with_enum =
-                //    "Unhandled: #[reflect(subtype)] that is never instantiated with an enum.";
-                //let parent_ = parent_ids.get(erased).expect(instantiated_with_enum);
-                //let id = *self.transparented_types.get(field).expect("Unimplemented.");
-                let id = *self.rust_to_meta.get(field).expect("Unimplemented.");
+                let variants_only = "Applying `#[reflect(subtype)]` to a field that does not occur in a variant of an enum used to instantiate the field is not supported.";
+                let id = *self.rust_to_meta.get(field).expect(variants_only);
                 aliases.push((*id_, id));
             }
         }

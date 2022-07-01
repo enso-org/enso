@@ -135,6 +135,7 @@ pub struct Span<'s> {
     #[reflect(flatten)]
     pub left_offset: Offset<'s>,
     /// The length of the code, excluding [`left_offset`].
+    #[reflect(hide)]
     pub code_length: Bytes,
 }
 

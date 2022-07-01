@@ -23,7 +23,7 @@ pub struct Tree<'s> {
     #[deref_mut]
     #[reflect(subtype)]
     pub variant: Box<Variant<'s>>,
-    #[reflect(flatten, hide)]
+    #[reflect(flatten)]
     pub span:    Span<'s>,
 }
 

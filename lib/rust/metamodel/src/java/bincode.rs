@@ -83,15 +83,25 @@ impl DeserializerBuilder {
                 match &field.data {
                     FieldData::Object { type_, nonnull } => {
                         let value = get_temp();
-                        self.deserialize_object(
-                            graph,
-                            *type_,
-                            message,
-                            &value,
-                            &mut get_temp,
-                            &mut body,
-                            *nonnull,
-                        );
+                        if *nonnull {
+                            self.deserialize_object(
+                                graph,
+                                *type_,
+                                message,
+                                &value,
+                                &mut get_temp,
+                                &mut body,
+                            );
+                        } else {
+                            self.deserialize_nullable(
+                                graph,
+                                *type_,
+                                message,
+                                &value,
+                                &mut get_temp,
+                                &mut body,
+                            );
+                        }
                         value
                     }
                     FieldData::Primitive(Primitive::Int { .. }) => format!("{}.get32()", message),
@@ -113,6 +123,26 @@ impl DeserializerBuilder {
         method
     }
 
+    fn deserialize_nullable<F>(
+        &self,
+        graph: &TypeGraph,
+        id: TypeId,
+        message: &str,
+        output: &str,
+        get_temp: &mut F,
+        body: &mut String,
+    ) where
+        F: FnMut() -> String,
+    {
+        let ty_name = quote_class_type(graph, id);
+        writeln!(body, "{ty_name} {output} = null;").unwrap();
+        writeln!(body, "if ({message}.getBoolean()) {{").unwrap();
+        let value = get_temp();
+        self.deserialize_object(graph, id, message, &value, get_temp, body);
+        writeln!(body, "{output} = {value};").unwrap();
+        writeln!(body, "}}").unwrap();
+    }
+
     fn deserialize_object<F>(
         &self,
         graph: &TypeGraph,
@@ -121,20 +151,9 @@ impl DeserializerBuilder {
         output: &str,
         get_temp: &mut F,
         body: &mut String,
-        nonnull: bool,
     ) where
         F: FnMut() -> String,
     {
-        if !nonnull {
-            let ty_name = quote_class_type(graph, id);
-            writeln!(body, "{ty_name} {output} = null;").unwrap();
-            writeln!(body, "if ({message}.getBoolean()) {{").unwrap();
-            let value = get_temp();
-            self.deserialize_object(graph, id, message, &value, get_temp, body, true);
-            writeln!(body, "{output} = {value};").unwrap();
-            writeln!(body, "}}").unwrap();
-            return;
-        }
         let ty = &graph[id];
         let ty_name = quote_class_type(graph, id);
         if !ty.builtin {
@@ -150,7 +169,7 @@ impl DeserializerBuilder {
                 writeln!(body, "boolean {present} = {message}.getBoolean();").unwrap();
                 writeln!(body, "if ({present}) {{").unwrap();
                 let value = get_temp();
-                self.deserialize_object(graph, base, message, &value, get_temp, body, true);
+                self.deserialize_object(graph, base, message, &value, get_temp, body);
                 writeln!(body, "{output} = java.util.Optional.of({value});").unwrap();
                 writeln!(body, "}} else {output} = java.util.Optional.empty();").unwrap();
             }
@@ -165,7 +184,7 @@ impl DeserializerBuilder {
                 let unmodifiable_list = "java.util.Collections.unmodifiableList";
                 writeln!(body, "for (int i=0; i<{count}; i++) {{").unwrap();
                 let value = get_temp();
-                self.deserialize_object(graph, base, message, &value, get_temp, body, true);
+                self.deserialize_object(graph, base, message, &value, get_temp, body);
                 writeln!(body, "{list_impl}.add({value});").unwrap();
                 writeln!(body, "}}").unwrap();
                 writeln!(body, "{ty_name} {output} = {unmodifiable_list}({list_impl});").unwrap();

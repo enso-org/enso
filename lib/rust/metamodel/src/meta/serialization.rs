@@ -62,7 +62,7 @@ fn fmt_program(program: &[Op], debuginfo: &BTreeMap<usize, String>) -> String {
     use std::fmt::Write;
     let mut out = String::new();
     let mut indent = 0;
-    let continuations = collect_continuations(&program);
+    let continuations = collect_continuations(program);
     let mut accept = 0;
     let mut reject = 0;
     for (i, op) in program.iter().enumerate() {
@@ -151,7 +151,7 @@ impl<'g> ProgramBuilder<'g> {
                 will_visit.extend(fields.iter().map(|field| field.type_));
                 will_visit.extend(ty.discriminants.values());
             }
-            select_basecase(&graph, id, &mut basecase_discriminant, &mut sb_visited);
+            select_basecase(graph, id, &mut basecase_discriminant, &mut sb_visited);
             sb_visited.clear();
         }
         let debuginfo = Default::default();
@@ -345,8 +345,8 @@ fn select_basecase_(
     // - If no child returns Ok, we got here by recursing into a bad choice; return Err.
     //
     // The top-level call will always return Ok because: There must be a sum type in our descendants
-    // that has a child that doesn't own any sum-type fields, or there would be a type that is only
-    // possible to instantiate with cyclic or infinite data.
+    // that has a child that doesn't own any sum-type fields, or there would be a type in the input
+    // that is only possible to instantiate with cyclic or infinite data.
     let mut descendants = BTreeMap::<_, Vec<_>>::new();
     let mut child_fields = BTreeSet::new();
     let mut child_sums = BTreeSet::new();
@@ -360,11 +360,10 @@ fn select_basecase_(
                 child_sums.insert(child_);
             }
             match &ty.data {
-                Data::Struct(fields) =>
-                    child_fields.extend(fields.iter().map(|field| field.type_)),
+                Data::Struct(fields) => child_fields.extend(fields.iter().map(|field| field.type_)),
                 Data::Primitive(Primitive::Result(_, _)) => {
                     child_sums.insert(child_);
-                },
+                }
                 Data::Primitive(_) => (),
             }
         }
@@ -374,14 +373,14 @@ fn select_basecase_(
         }
         descendants.insert(i, child_sums.iter().copied().collect());
     }
-    'descendants: for (i, descendants) in descendants {
+    for (i, descendants) in descendants {
         let is_ok = |id: &TypeId| select_basecase_(graph, *id, out, visited).is_ok();
         if descendants.iter().all(is_ok) {
             out.insert(id, i);
             return Ok(());
         }
     }
-    return Err(());
+    Err(())
 }
 
 

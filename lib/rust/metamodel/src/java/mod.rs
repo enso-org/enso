@@ -26,6 +26,7 @@ pub struct TypeId(usize);
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FieldId(u32);
 
+/// A Java class.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Class {
     /// The name of the class, not including package.
@@ -107,10 +108,12 @@ fn standard_methods() -> Vec<Method> {
     ]
 }
 
+/// A data field of a class.
 #[derive(Debug, PartialEq, Eq)]
-#[allow(missing_docs)]
 pub struct Field {
+    #[allow(missing_docs)]
     pub name: String,
+    #[allow(missing_docs)]
     pub data: FieldData,
     id:       FieldId,
 }
@@ -148,7 +151,13 @@ impl Field {
 #[derive(Debug, Clone, PartialEq, Eq, Copy, PartialOrd, Ord, Hash)]
 pub enum FieldData {
     /// A reference to an object.
-    Object { type_: TypeId, nonnull: bool },
+    Object {
+        #[allow(missing_docs)]
+        type_:   TypeId,
+        /// If `true`, this field should be subject to null-checking in constructors, and can be
+        /// assumed always to be present.
+        nonnull: bool,
+    },
     /// An unboxed primitive.
     Primitive(Primitive),
 }
@@ -168,9 +177,15 @@ pub enum Primitive {
     /// Java's `boolean`
     Bool,
     /// Java's `int`
-    Int { unsigned: bool },
+    Int {
+        /// If `true`, arithmetic on this value is to be performed with unsigned operations.
+        unsigned: bool,
+    },
     /// Java's `long`
-    Long { unsigned: bool },
+    Long {
+        /// If `true`, arithmetic on this value is to be performed with unsigned operations.
+        unsigned: bool,
+    },
 }
 
 

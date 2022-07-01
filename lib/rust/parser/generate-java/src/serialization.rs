@@ -10,17 +10,19 @@ use enso_metamodel::java::*;
 //  `rust::TypeGraph`, at which time we can assign unique `FieldId`s: We should identify
 //  generated fields in Java classes by starting from a `str -> rust::FieldId` query on Rust
 //  type data, and mapping fields analogously to `rust_to_java` for types.
+const CODE_GETTER: &str = "codeRepr";
+const TREE_BEGIN: &str = "spanLeftOffsetCodeReprBegin";
+const TREE_LEN: &str = "spanLeftOffsetCodeReprLen";
+const TOKEN_BEGIN: &str = "codeReprBegin";
+const TOKEN_LEN: &str = "codeReprLen";
+const TOKEN_OFFSET_BEGIN: &str = "leftOffsetCodeReprBegin";
+//const TOKEN_OFFSET_LEN: &str = "leftOffsetCodeReprLen";
 
 pub fn derive(graph: &mut TypeGraph, tree: TypeId, token: TypeId) {
     let source = "source";
     impl_deserialize(graph, tree, token, source);
-    graph[token].methods.push(impl_getter("codeRepr", source, "codeReprBegin", "codeReprLen"));
-    graph[tree].methods.push(impl_getter(
-        "leftOffset",
-        source,
-        "spanLeftOffsetCodeReprBegin",
-        "spanLeftOffsetCodeReprLen",
-    ));
+    graph[token].methods.push(impl_getter(CODE_GETTER, source, TOKEN_BEGIN, TOKEN_LEN));
+    graph[tree].methods.push(impl_getter(CODE_GETTER, source, TREE_BEGIN, TREE_LEN));
 }
 
 
@@ -44,12 +46,12 @@ fn impl_deserialize(graph: &mut TypeGraph, tree: TypeId, token: TypeId, source: 
         match () {
             // Base classes: Map the code repr fields.
             _ if id == tree => {
-                let code_begin = class.find_field("spanLeftOffsetCodeReprBegin").unwrap().id();
+                let code_begin = class.find_field(TREE_BEGIN).unwrap().id();
                 deserialization.map(code_begin, |message, raw| format!("{message}.offset({raw})"));
             }
             _ if id == token => {
-                let code_begin = class.find_field("codeReprBegin").unwrap().id();
-                let offset_begin = class.find_field("leftOffsetCodeReprBegin").unwrap().id();
+                let code_begin = class.find_field(TOKEN_BEGIN).unwrap().id();
+                let offset_begin = class.find_field(TOKEN_OFFSET_BEGIN).unwrap().id();
                 deserialization.map(code_begin, |message, raw| format!("{message}.offset({raw})"));
                 deserialization
                     .map(offset_begin, |message, raw| format!("{message}.offset({raw})"));
@@ -62,7 +64,7 @@ fn impl_deserialize(graph: &mut TypeGraph, tree: TypeId, token: TypeId, source: 
             // Everything else: Standard deserialization.
             _ => (),
         }
-        let deserializer = deserialization.build(&graph);
+        let deserializer = deserialization.build(graph);
         graph[id].methods.push(deserializer);
     }
 }

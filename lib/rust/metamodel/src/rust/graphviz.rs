@@ -1,8 +1,11 @@
+//! Graphical representation of Rust type relationships with GraphViz.
+
 use super::*;
 use crate::graphviz::EdgeType;
 use crate::graphviz::Graph;
 use crate::graphviz::Node;
 use crate::graphviz::NodeType;
+use std::collections::BTreeMap;
 
 
 
@@ -13,7 +16,7 @@ use crate::graphviz::NodeType;
 /// Generate a graph of the given type's relationships with other types.
 pub fn graph(root: LazyType) -> Graph {
     let mut to_visit = vec![root];
-    let mut types = std::collections::HashMap::new();
+    let mut types = BTreeMap::new();
     while let Some(type_) = to_visit.pop() {
         let id = type_.id;
         if types.contains_key(&id) {
@@ -24,9 +27,17 @@ pub fn graph(root: LazyType) -> Graph {
         types.insert(id, type_);
     }
     let mut graph = Graph::default();
-    let mut number = Number::default();
+    let mut numbers = BTreeMap::new();
+    let mut next_id = 0;
+    let mut number = |key: TypeId| {
+        *numbers.entry(key).or_insert_with(|| {
+            let id = next_id;
+            next_id += 1;
+            id
+        })
+    };
     for type_ in types.values() {
-        let sname = format!("{}{}", type_.name, number.get(type_.id));
+        let sname = format!("{}{}", type_.name, number(type_.id));
         let primitive = type_.is_primitive();
         let node_type = match type_.type_type() {
             TypeType::Sum => NodeType::Enum,
@@ -44,34 +55,17 @@ pub fn graph(root: LazyType) -> Graph {
                 graph.edges.push((sname.clone(), svariant.clone(), EdgeType::Variant));
                 for ty in variant.fields.referenced_types() {
                     let ty = &types[&ty.id];
-                    let sname2 = format!("{}{}", ty.name, number.get(ty.id));
+                    let sname2 = format!("{}{}", ty.name, number(ty.id));
                     graph.edges.push((svariant.clone(), sname2, EdgeType::Field));
                 }
             }
         } else {
             for ty in type_.referenced_types() {
                 let ty = &types[&ty.id];
-                let sname2 = format!("{}{}", ty.name, number.get(ty.id));
+                let sname2 = format!("{}{}", ty.name, number(ty.id));
                 graph.edges.push((sname.clone(), sname2, EdgeType::Field));
             }
         }
     }
     graph
-}
-
-#[derive(Derivative)]
-#[derivative(Default(bound = ""))]
-struct Number<T> {
-    map:     std::collections::HashMap<T, u32>,
-    next_id: u32,
-}
-
-impl<T: Eq + std::hash::Hash> Number<T> {
-    fn get(&mut self, index: T) -> u32 {
-        *self.map.entry(index).or_insert_with(|| {
-            let id = self.next_id;
-            self.next_id += 1;
-            id
-        })
-    }
 }
