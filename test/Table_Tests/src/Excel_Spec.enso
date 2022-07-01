@@ -5,7 +5,7 @@ import Standard.Base.Data.Time.Date
 
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
-import Standard.Table.Data.Column_Mapping
+import Standard.Table.Data.Column_Name_Mapping
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
 from Standard.Table.Io.Excel import Excel_Range, Sheet_Names, Range_Names, Sheet, Cell_Range
 from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data
@@ -154,7 +154,7 @@ spec_write suffix test_sheet_name =
             out.delete_if_exists
             table.write out (File_Format.Excel (Sheet "Sheet1") headers=False)
             written = out.read
-            written.should_equal (table.rename_columns (Column_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
+            written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
             out.delete_if_exists
 
 spec =

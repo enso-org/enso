@@ -22,7 +22,7 @@ from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_O
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
-import Standard.Table.Data.Column_Mapping
+import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
@@ -297,8 +297,8 @@ type Table
            other, a Duplicate_Output_Column_Names.
 
        > Example
-    rename_columns : Column_Mapping -> Problem_Behavior -> Table
-    rename_columns (column_map=(Column_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
+    rename_columns : Column_Name_Mapping -> Problem_Behavior -> Table
+    rename_columns (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
         new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems
         if new_names.is_error then new_names else
             new_columns = self.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
