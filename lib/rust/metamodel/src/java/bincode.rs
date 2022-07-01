@@ -41,14 +41,14 @@ impl DeserializerBuilder {
     /// Configure the specified field to be produced according to an expression, instead of by
     /// standard deserialization. The expression will be produced by the given function.
     pub fn materialize<F>(&mut self, field: FieldId, materializer: F)
-        where F: for<'a> FnOnce(MaterializerInput<'a>) -> String + 'static {
+    where F: for<'a> FnOnce(MaterializerInput<'a>) -> String + 'static {
         self.materializers.insert(field, Box::new(materializer));
     }
 
     /// Configure the specified field to be modified by an expression, after being deserialized.
     /// The expression will be produced by the given function.
     pub fn map<F>(&mut self, field: FieldId, mapper: F)
-        where F: for<'a, 'b> FnOnce(MapperInput<'a, 'b>) -> String + 'static {
+    where F: for<'a, 'b> FnOnce(MapperInput<'a, 'b>) -> String + 'static {
         self.mappers.insert(field, Box::new(mapper));
     }
 
@@ -78,7 +78,7 @@ pub struct MapperInput<'a, 'b> {
     /// Identifier of the serialized message object.
     pub message: &'a str,
     /// Identifier of the field's value, after producing with standard deserialization.
-    pub value: &'b str,
+    pub value:   &'b str,
 }
 
 
@@ -233,12 +233,12 @@ impl DeserializerBuilder {
                     body,
                     "case 0: {output} = {name}.right({t1}.deserialize({message})); break;"
                 )
-                    .unwrap();
+                .unwrap();
                 writeln!(
                     body,
                     "case 1: {output} = {name}.left({t0}.deserialize({message})); break;"
                 )
-                    .unwrap();
+                .unwrap();
                 let err = format!("Unknown discriminant in {ty_name}.");
                 let serialization = &self.support;
                 writeln!(body, "default: throw new {serialization}.FormatException({err:?}); }}")
