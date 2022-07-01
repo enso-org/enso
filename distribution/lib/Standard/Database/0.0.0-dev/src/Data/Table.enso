@@ -914,8 +914,8 @@ type Table
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
                  table = connection.access_table "Table"
                  table.write (Enso_Project.data / "example_csv_output.csv")
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
-    write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Column_Mapping.By_Name on_problems=Report_Warning =
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Map_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
+    write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Map_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.to_dataframe.write path format on_existing_file column_mapping on_problems
 

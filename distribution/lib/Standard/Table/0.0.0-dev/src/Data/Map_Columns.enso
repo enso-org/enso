@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+## Specifies how to join columns in the table to existing data.
+type Map_Columns
+    ## Columns are mapped by Name against an existing file.
+    type By_Name
+
+    ## Columns are mapped by Position against an existing file.
+    type By_Position

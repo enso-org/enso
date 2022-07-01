@@ -7,7 +7,7 @@ from Standard.Table.Io.File_Format import Infer
 import Standard.Table.Data.Table
 from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data
 import Standard.Base.Error.Common as Errors
-import Standard.Table.Data.Column_Mapping
+import Standard.Table.Data.Map_Columns
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 polyglot java import org.enso.table.excel.ExcelHeaders
@@ -199,20 +199,24 @@ read_excel file section headers on_problems xls_format=False =
 
     here.read_excel_file file reader
 
-write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Problem_Behavior -> Boolean
-write_excel file table on_existing_file section headers _ xls_format=False =
+## PRIVATE
+   Writes a Table to an Excel file.
+
+   Arguments:
+write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Map_Columns -> Problem_Behavior -> Boolean
+write_excel file table on_existing_file section headers map_columns _ xls_format=False =
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
         here.read_excel_file file stream->(ExcelReader.getWorkbook stream xls_format)
 
-    replace = (on_existing_file == Existing_File_Behavior.Overwrite) || (on_existing_file == Existing_File_Behavior.Backup)
+    existing_data_mode = here.make_java_existing_data_mode on_existing_file map_columns
     java_headers = here.make_java_headers headers
     if ExcelWriter.getEnsoToTextCallback == Nothing then ExcelWriter.getEnsoToTextCallback (.to_text)
     result = here.handle_writer <| case section of
         Sheet sheet skip_rows row_limit ->
-            ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
+            ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
         Cell_Range address skip_rows row_limit -> case address of
-            Excel_Range _ -> ExcelWriter.writeTableToRange workbook address.java_range replace skip_rows table.java_table row_limit java_headers
-            Text -> ExcelWriter.writeTableToRange workbook address replace skip_rows table.java_table row_limit java_headers
+            Excel_Range _ -> ExcelWriter.writeTableToRange workbook address.java_range existing_data_mode skip_rows table.java_table row_limit java_headers
+            Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
 
     if result.is_error then result else
         write_stream stream = stream.with_java_stream java_stream->
@@ -263,16 +267,18 @@ make_java_headers headers = case headers of
         False -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
 
 ## PRIVATE
-make_java_existing_data_mode : Existing_File_Behavior -> Column_Mapping -> ExcelWriter.ExistingDataMode
+make_java_existing_data_mode : Existing_File_Behavior -> Map_Columns -> ExcelWriter.ExistingDataMode
 make_java_existing_data_mode on_existing_file column_mapping = case on_existing_file of
     Existing_File_Behavior.Error -> ExcelWriter.ExistingDataMode.ERROR
     Existing_File_Behavior.Overwrite -> ExcelWriter.ExistingDataMode.REPLACE
     Existing_File_Behavior.Backup -> ExcelWriter.ExistingDataMode.REPLACE
     Existing_File_Behavior.Append -> case column_mapping of
-        Column_Mapping.By_Name -> ExcelWriter.ExistingDataMode.APPEND
-        Column_Mapping.Mapping _ -> ExcelWriter.ExistingDataMode.APPEND_WITH_MAPPING
+        Map_Columns.By_Name -> ExcelWriter.ExistingDataMode.APPEND_BY_NAME
+        Map_Columns.By_Index _ -> ExcelWriter.ExistingDataMode.APPEND_BY_INDEX
 
 ## PRIVATE
+   Handle and map the Java errors when reading an Excel file
+read_excel_file : File -> (Input_Stream -> (Table | Vector)) -> (Table | Vector)
 read_excel_file file reader =
     bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
     handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
@@ -285,6 +291,7 @@ read_excel_file file reader =
             stream.with_java_stream reader
 
 ## PRIVATE
+   Handle and map the Java errors when writing an Excel file
 handle_writer ~writer =
     bad_location caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
     handle_bad_location = Panic.catch InvalidLocationException handler=bad_location
