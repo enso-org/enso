@@ -247,8 +247,20 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       val edits        = pendingEdits.map(_.edit)
       val shouldExecute =
         pendingEdits.isEmpty || pendingEdits.exists(_.execute)
-      val changeset = ctx.executionService.modifyModuleSources(file, edits)
-      Option.when(shouldExecute)(changeset)
+      val changeset = for {
+        module <- ctx.executionService.getContext.getModuleForFile(file).toScala
+        changesetBuilder = new ChangesetBuilder(
+          module.getLiteralSource,
+          module.getIr
+        )
+        changeset = changesetBuilder.build(pendingEdits)
+      } yield changeset
+      ctx.executionService.modifyModuleSources(
+        file,
+        edits,
+        changeset.flatMap(_.simpleUpdate).orNull
+      )
+      changeset.filter(_ => shouldExecute)
     } finally {
       ctx.locking.releasePendingEditsLock()
       ctx.locking.releaseReadCompilationLock()

@@ -23,6 +23,7 @@ import org.enso.polyglot.runtime.Runtime$Api$PushContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
 import org.enso.polyglot.runtime.Runtime$Api$Response;
+import org.enso.polyglot.runtime.Runtime$Api$SetExpressionValueNotification;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$LocalCall;
 import org.enso.text.editing.model;
@@ -77,10 +78,10 @@ public class IncrementalUpdatesTest {
   @Test
   public void sendMultipleUpdates() {
     sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
-    sendEditFile("1000", "333");
+    sendExpressionValue("1000", "333");
     assertEquals(List.newBuilder().addOne("333"), context.consumeOut());
     nodeCountingInstrument.assertNewNodes("No execution on 333, no nodes yet", 0, 0);
-    sendEditFile("333", "22");
+    sendExpressionValue("333", "22");
     assertEquals(List.newBuilder().addOne("22"), context.consumeOut());
     nodeCountingInstrument.assertNewNodes("No execution on 22, no nodes yet", 0, 0);
   }
@@ -216,7 +217,7 @@ public class IncrementalUpdatesTest {
     var literalNode = findLiteralNode(truffleNodeType, allNodesAfterException);
     assertEquals("Check Literal node text in the source", originalText, literalNode.getSourceSection().getCharacters().toString());
 
-    var executionCompleteEvents = sendEditFile(originalText, newText);
+    var executionCompleteEvents = sendExpressionValue(originalText, newText);
     if (executionOutput != null) {
       assertSameElements(executionCompleteEvents, context.executionComplete(contextId));
       assertEquals(List.newBuilder().addOne(executionOutput), context.consumeOut());
@@ -227,9 +228,9 @@ public class IncrementalUpdatesTest {
     return executionCompleteEvents;
   }
 
-  private List<Runtime$Api$Response> sendEditFile(String originalText, String newText) {
+  private List<Runtime$Api$Response> sendExpressionValue(String originalText, String newText) {
     assertNotNull("Main file must be defined before", mainFile);
-    context.send(Request(new Runtime$Api$EditFileNotification(
+    context.send(Request(new Runtime$Api$SetExpressionValueNotification(
       mainFile,
       makeSeq(
         new model.TextEdit(
@@ -237,7 +238,8 @@ public class IncrementalUpdatesTest {
           newText
         )
       ),
-      true
+      UUID.randomUUID(),
+      newText
     )));
     return context.receiveN(1, 10);
   }

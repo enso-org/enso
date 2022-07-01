@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.execution.model.PendingEdit
-import org.enso.interpreter.instrument.job.{ApplyPendingEditsJob, ExecuteJob}
+import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -26,15 +26,17 @@ class SetExpressionValueCmd(request: Api.SetExpressionValueNotification)
     ctx.locking.acquirePendingEditsLock()
     try {
       val pendingApplyEdits =
-        request.edits.map(PendingEdit.SetExpressionValue(_, ))
-      val setValueEdit = PendingEdit.SetExpressionValue(
-        request.expressionId,
-        request.expressionValue
-      )
-      ctx.state.pendingEdits
-        .enqueue(request.path, pendingApplyEdits :+ setValueEdit)
+        request.edits.map(
+          PendingEdit.SetExpressionValue(
+            _,
+            request.expressionId,
+            request.expressionValue
+          )
+        )
+      ctx.state.pendingEdits.enqueue(request.path, pendingApplyEdits)
       ctx.jobControlPlane.abortAllJobs()
-      ctx.jobProcessor.run(new ApplyPendingEditsJob)
+      //ctx.jobProcessor.run(new ApplyPendingEditsJob)
+      ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
       executeJobs.foreach(ctx.jobProcessor.run)
       Future.successful(())
     } finally {

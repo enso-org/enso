@@ -17,12 +17,14 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.compiler.context.Changeset;
 import org.enso.compiler.context.ChangesetBuilder;
+import org.enso.compiler.context.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
+import org.enso.interpreter.instrument.execution.model.PendingEdit;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
@@ -290,10 +292,9 @@ public class ExecutionService {
    *
    * @param path the module to edit.
    * @param edits the edits to apply.
-   * @return an object for computing the changed IR nodes.
    */
-  public Changeset<Rope> modifyModuleSources(
-      File path, scala.collection.immutable.Seq<model.TextEdit> edits) {
+  public void modifyModuleSources(
+      File path, scala.collection.immutable.Seq<model.TextEdit> edits, SimpleUpdate simpleUpdate) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (moduleMay.isEmpty()) {
       throw new ModuleNotFoundForFileException(path);
@@ -304,14 +305,14 @@ public class ExecutionService {
     } catch (IOException e) {
       throw new SourceNotFoundException(path, e);
     }
-    ChangesetBuilder<Rope> changesetBuilder =
-        new ChangesetBuilder<>(
-            module.getLiteralSource(),
-            module.getIr(),
-            TextEditor.ropeTextEditor(),
-            IndexedSource.RopeIndexedSource());
-
-    Changeset<Rope> result = changesetBuilder.build(edits);
+//    ChangesetBuilder<Rope> changesetBuilder =
+//        new ChangesetBuilder<>(
+//            module.getLiteralSource(),
+//            module.getIr(),
+//            TextEditor.ropeTextEditor(),
+//            IndexedSource.RopeIndexedSource());
+//
+//    Changeset<Rope> result = changesetBuilder.build(edits);
 
     JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
         .fold(
@@ -320,12 +321,9 @@ public class ExecutionService {
                   path, edits, failure, module.getLiteralSource());
             },
             rope -> {
-              var su = result.simpleUpdate();
-              module.setLiteralSource(rope, su.isDefined() ? su.get() : null);
+              module.setLiteralSource(rope, simpleUpdate);
               return new Object();
             });
-
-    return result;
   }
 
   /**

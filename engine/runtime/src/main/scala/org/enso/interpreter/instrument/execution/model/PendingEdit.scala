@@ -3,7 +3,10 @@ package org.enso.interpreter.instrument.execution.model
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 import org.enso.text.editing.model.TextEdit
 
-sealed trait PendingEdit
+sealed trait PendingEdit {
+  def edit:    TextEdit
+  def execute: Boolean
+}
 object PendingEdit {
 
   /** The edit that was not applied.
@@ -13,7 +16,9 @@ object PendingEdit {
     */
   case class ApplyEdit(edit: TextEdit, execute: Boolean) extends PendingEdit
 
-  case class SetExpressionValue(id: ExpressionId, value: String)
-      extends PendingEdit
+  case class SetExpressionValue(edit: TextEdit, id: ExpressionId, value: String)
+      extends PendingEdit {
+    override val execute: Boolean = true
+  }
 
 }

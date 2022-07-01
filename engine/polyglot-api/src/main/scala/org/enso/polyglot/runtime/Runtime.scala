@@ -94,6 +94,10 @@ object Runtime {
         name  = "editFileNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.SetExpressionValueNotification],
+        name  = "setExpressionValueNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.CloseFileNotification],
         name  = "closeFileNotification"
       ),
