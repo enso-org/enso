@@ -18,12 +18,13 @@ use crate::syntax::*;
 #[allow(missing_docs)]
 pub enum Item<'s> {
     Token(Token<'s>),
+    Block(Vec<Item<'s>>),
     Tree(Tree<'s>),
 }
 
 impl<'s> Item<'s> {
-    /// Check whether the element is the provided token variant. Returns [`false`] if it was an
-    /// [`Tree`] node.
+    /// Check whether the element is the provided token variant. Returns [`false`] if it was not a
+    /// token.
     pub fn is_variant(&self, variant: token::variant::VariantMarker) -> bool {
         match self {
             Item::Token(token) => token.is(variant),
@@ -32,20 +33,23 @@ impl<'s> Item<'s> {
     }
 
     /// [`location::Span`] of the element.
-    pub fn span(&self) -> span::Ref<'_, 's> {
+    pub fn left_visible_offset(&self) -> VisibleOffset {
         match self {
-            Self::Token(t) => t.span(),
-            Self::Tree(t) => t.span.as_ref(),
+            Self::Token(t) => t.span().left_offset.visible,
+            Self::Tree(t) => t.span.left_offset.visible,
+            Self::Block(t) => t.first().map(|t| t.left_visible_offset()).unwrap_or_default(),
         }
     }
-}
 
-impl<'s> FirstChildTrim<'s> for Item<'s> {
-    #[inline(always)]
-    fn trim_as_first_child(&mut self) -> Span<'s> {
+    /// Convert this item to a [`Tree`].
+    pub fn to_ast(self) -> Tree<'s> {
         match self {
-            Self::Token(t) => t.trim_as_first_child(),
-            Self::Tree(t) => t.span.trim_as_first_child(),
+            Item::Token(token) => match token.variant {
+                token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
+                _ => todo!(),
+            },
+            Item::Tree(ast) => ast,
+            Item::Block(_) => todo!(),
         }
     }
 }
@@ -81,3 +85,35 @@ pub enum Ref<'s, 'a> {
     Token(token::Ref<'s, 'a>),
     Tree(&'a Tree<'s>),
 }
+
+
+
+// ======================
+// === Variant Checks ===
+// ======================
+
+/// For each token variant, generates a function checking if the token is of the given variant. For
+/// example, the `is_ident` function checks if the token is an identifier.
+macro_rules! generate_variant_checks {
+    (
+        $(#$enum_meta:tt)*
+        pub enum $enum:ident {
+            $(
+                $(#$variant_meta:tt)*
+                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
+            ),* $(,)?
+        }
+    ) => { paste!{
+        impl<'s> Item<'s> {
+            $(
+                $(#[$($variant_meta)*])*
+                #[allow(missing_docs)]
+                pub fn [<is_ $variant:snake:lower>](&self) -> bool {
+                    self.is_variant(token::variant::VariantMarker::$variant)
+                }
+            )*
+        }
+    }};
+}
+
+crate::with_token_definition!(generate_variant_checks());
