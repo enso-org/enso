@@ -34,18 +34,21 @@ use syn::Fields;
 /// ```
 ///
 /// # Attributes
-/// All attributes defined before the `#[tagged_enum]` one will be applied to the enum only, while
-/// all other attributes will be applied to both the enum and all the variant structs.
-
-// after #[tagged_enum]: apply to enum + variants
-// after #[tagged_enum(apply-attrs-to = "enum")]: apply only to enum
-// after #[tagged_enum(apply-attrs-to = "variants")]: apply only to variants
-
-// An active attribute can include the `#[tagged_enum]`, if necessary.
-// The interaction is controlled by the attribute.
-
-// To avoid confusion, inert attributes should not be placed before the `#[tagged_enum]`, as their
-// treatment would be inconsistent with that of active attributes.
+/// Attributes defined after `#[tagged_enum]` and not in a section (see below) will be applied to
+/// the enum and also all the variants structs produced; this is the default because it is
+/// appropriate for common attributes like `#[derive(..)]`.
+///
+/// The attribute `#[tagged_enum(apply-attrs-to = "enum")]` starts an attribute section; any
+/// attributes in the section will be applied only to the enum itself.
+///
+/// The attribute `#[tagged_enum(apply-attrs-to = "variants")]` starts an attribute section; any
+/// attributes in the section will be applied only to the variant structs produced.
+///
+/// An attribute can be placed before the `#[tagged_enum]` if its proc macro needs to operate on
+/// the enum before expanding `tagged_enum`; otherwise, to avoid confusion, attributes should not be
+/// placed before `#[tagged_enum]`, as the results would differ for *active* or *inert*
+/// attributes[1].
+/// [1]: https://doc.rust-lang.org/reference/attributes.html#active-and-inert-attributes
 
 pub fn run(
     attr: proc_macro::TokenStream,

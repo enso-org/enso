@@ -12,16 +12,24 @@ const TARGET_VERSION: usize = 14;
 
 /// A class definition.
 #[derive(Debug)]
-#[allow(missing_docs)]
 pub struct Class {
+    #[allow(missing_docs)]
     pub package:   Option<String>,
+    #[allow(missing_docs)]
     pub name:      String,
+    #[allow(missing_docs)]
     pub abstract_: bool,
+    #[allow(missing_docs)]
     pub final_:    bool,
+    #[allow(missing_docs)]
     pub static_:   bool,
+    #[allow(missing_docs)]
     pub parent:    Option<Type>,
+    #[allow(missing_docs)]
     pub fields:    Vec<Field>,
+    #[allow(missing_docs)]
     pub methods:   Vec<Method>,
+    #[allow(missing_docs)]
     pub sealed:    Option<Vec<Type>>,
     /// Classes defined in the scope of this class.
     pub nested:    Vec<Class>,
@@ -29,10 +37,12 @@ pub struct Class {
 
 /// A class field definition.
 #[derive(Debug)]
-#[allow(missing_docs)]
 pub struct Field {
+    #[allow(missing_docs)]
     pub type_:  Type,
+    #[allow(missing_docs)]
     pub name:   String,
+    #[allow(missing_docs)]
     pub final_: bool,
 }
 
@@ -62,17 +72,22 @@ impl Type {
 
 /// A method.
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[allow(missing_docs)]
 pub struct Method {
+    #[allow(missing_docs)]
     pub name:      String,
+    #[allow(missing_docs)]
     pub arguments: Vec<(Type, String)>,
     /// Return value, unless this is a constructor.
     pub return_:   Option<Type>,
+    #[allow(missing_docs)]
     pub static_:   bool,
+    #[allow(missing_docs)]
     pub final_:    bool,
     /// Literal body, not including brackets.
     pub body:      String,
+    #[allow(missing_docs)]
     pub override_: bool,
+    #[allow(missing_docs)]
     pub throws:    Vec<Type>,
 }
 

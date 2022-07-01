@@ -170,14 +170,8 @@ pub fn reflect_lazy<T: ?Sized + Reflect>() -> LazyType {
     LazyType::new(id, evaluate)
 }
 
-/// Get an identifier for the type. If the type does not contain a field marked
-/// `#[reflect(subtype)]`, this will be unique to the type, just like its `TypeId`; however, if
-/// this type does contain such a field, and this type is generic, and exactly one generic
-/// parameter occurs in the type of the given field, this ID will compare equal to another ID
-/// if and only if that ID corresponds to a type that is an instantiation of the same generic
-/// with all the same parameters *ignoring* the parameter that occurs in the `subtype` field.
-///
-/// This is used to implement the `subtype` transform.
+/// Get an identifier that uniquely identifies the type, up to the instantiation of the parameter
+/// of any field marked with the attribute `#[reflect(subtype)]`
 pub fn generic_id<T: ?Sized + Reflect>() -> GenericTypeId {
     GenericTypeId::new(std::any::TypeId::of::<T::SubtypeErased>())
 }
@@ -195,6 +189,6 @@ pub fn type_id<T: ?Sized + Reflect>() -> TypeId {
 
 /// Generate a graph of the given type's relationships with other types.
 #[cfg(feature = "graphviz")]
-pub fn graph<T: Reflect>() -> enso_metamodel::graphviz::Graph {
+pub fn graph<T: Reflect>() -> metamodel::graphviz::Graph {
     graphviz::graph(reflect_lazy::<T>())
 }

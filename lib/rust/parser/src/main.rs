@@ -107,6 +107,7 @@ use crate::prelude::*;
 
 pub mod lexer;
 pub mod macros;
+pub mod serialization;
 pub mod source;
 pub mod syntax;
 

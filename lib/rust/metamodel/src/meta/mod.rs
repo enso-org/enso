@@ -50,7 +50,6 @@ pub struct Type {
     pub abstract_:     bool,
     /// If true, this type is not open to extension by children outside those defined with it.
     pub closed:        bool,
-    // attributes
     /// When serializing/deserializing, indicates the index of the field in a `Type` before which a
     /// child object's data will be placed/expected.
     pub child_field:   Option<usize>,
@@ -343,10 +342,6 @@ impl TypeGraph {
         let mut to_visit = BTreeSet::new();
         to_visit.extend(roots);
         while let Some(id) = to_visit.pop_last() {
-            let ty = match self.types.get(id) {
-                Some(ty) => ty,
-                None => continue,
-            };
             let Type {
                 name: _,
                 data,
@@ -356,7 +351,7 @@ impl TypeGraph {
                 closed: _,
                 child_field: _,
                 discriminants,
-            } = ty;
+            } = &self.types[id];
             let already_visited = !visited.insert(id);
             if already_visited {
                 continue;

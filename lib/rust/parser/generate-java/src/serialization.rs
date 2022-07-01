@@ -1,6 +1,9 @@
+//! Serialization overrides for the `enso_parser` types.
+
 use enso_metamodel::java::bincode::MapperInput;
 use enso_metamodel::java::bincode::MaterializerInput;
 use enso_metamodel::java::*;
+
 
 
 // ==============================
@@ -19,6 +22,7 @@ const TOKEN_LEN: &str = "codeReprLen";
 const TOKEN_OFFSET_BEGIN: &str = "leftOffsetCodeReprBegin";
 //const TOKEN_OFFSET_LEN: &str = "leftOffsetCodeReprLen";
 
+/// Derive deserialization for all types in the typegraph.
 pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
     let source = "source";
     impl_deserialize(graph, tree, token, source);

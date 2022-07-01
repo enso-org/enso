@@ -13,8 +13,9 @@ use crate::prelude::*;
 #[shrinkwrap(mutable)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
-    #[serde(serialize_with = "serialization::cow")]
-    #[reflect(as = "serialization::Code", flatten)]
+    #[serde(serialize_with = "crate::serialization::serialize_cow")]
+    #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
+    #[reflect(as = "crate::serialization::Code", flatten)]
     pub repr: Cow<'s, str>,
 }
 
@@ -78,35 +79,5 @@ impl<'s> std::ops::AddAssign<&Code<'s>> for Code<'s> {
     #[inline(always)]
     fn add_assign(&mut self, other: &Code<'s>) {
         self.repr.add_assign(other.repr.clone());
-    }
-}
-
-
-// === Serialized Representation ===
-
-mod serialization {
-    use crate::prelude::*;
-
-    /// Serialized representation of a source code `Cow`.
-    #[derive(Serialize, Reflect)]
-    pub(super) struct Code {
-        #[reflect(hide)]
-        begin: u32,
-        #[reflect(hide)]
-        len:   u32,
-    }
-
-    /// Serde wrapper to serialize a `Cow` as the `Code` representation.
-    #[allow(clippy::ptr_arg)] // This is the signature required by serde.
-    pub(super) fn cow<S>(cow: &Cow<'_, str>, ser: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
-        let s = match cow {
-            Cow::Borrowed(s) => *s,
-            Cow::Owned(_) => panic!(),
-        };
-        let begin = s.as_ptr() as u32;
-        let len = s.len() as u32;
-        let serializable = Code { begin, len };
-        serializable.serialize(ser)
     }
 }

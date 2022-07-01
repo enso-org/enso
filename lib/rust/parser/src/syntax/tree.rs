@@ -150,34 +150,13 @@ with_ast_definition!(generate_ast_definition());
 // === Invalid ===
 
 /// Error of parsing attached to an [`Tree`] node.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor, Serialize, Reflect)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 #[reflect(transparent)]
+#[serde(from = "crate::serialization::Error")]
 pub struct Error {
+    #[serde(skip_deserializing)]
     pub message: &'static str,
-}
-
-struct DeserializeU64;
-
-impl<'de> serde::de::Visitor<'de> for DeserializeU64 {
-    type Value = u64;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "An unsigned 64-bit integer.")
-    }
-
-    fn visit_u64<E>(self, i: u64) -> Result<Self::Value, E>
-    where E: serde::de::Error {
-        Ok(i)
-    }
-}
-
-impl<'de> Deserialize<'de> for Error {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: serde::Deserializer<'de> {
-        let _ = deserializer.deserialize_u64(DeserializeU64);
-        Ok(Error { message: "" })
-    }
 }
 
 impl Error {
@@ -602,24 +581,5 @@ impl<'s> Tree<'s> {
     pub fn map_mut<T>(&mut self, f: impl Fn(&mut Tree<'s>) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit_mut(&mut visitor);
-    }
-}
-
-
-
-// ===============
-// === Testing ===
-// ===============
-
-/// Support for integration testing.
-// This is not `#[cfg(test)]` because it is for use in tests in dependent crates.
-pub mod test_support {
-    use super::*;
-
-    /// Deserialize a `Tree` from its binary representation.
-    pub fn deserialize(data: &[u8]) -> Result<Tree, bincode::Error> {
-        use bincode::Options;
-        let options = bincode::DefaultOptions::new().with_fixint_encoding();
-        options.deserialize(data)
     }
 }

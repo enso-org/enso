@@ -1,6 +1,7 @@
 //! Serialization analysis on meta representations.
 
 use crate::meta::*;
+use std::fmt::Write;
 use std::mem::take;
 
 const DEBUG: bool = false;
@@ -44,16 +45,15 @@ impl TestCases {
         let accept = accept.join(", \n\t");
         let reject: Vec<_> = self.reject.iter().map(|case| format!("{:?}", case)).collect();
         let reject = reject.join(", \n\t");
-        format!(
-            "{{
-\"accept\": [
-\t{accept}
-],
-\"reject\": [
-\t{reject}
-]}}
-"
-        )
+        let mut out = String::new();
+        writeln!(out, "{{").unwrap();
+        writeln!(out, "\"accept\": [").unwrap();
+        writeln!(out, "\t{accept}").unwrap();
+        writeln!(out, "],").unwrap();
+        writeln!(out, "\"reject\": [").unwrap();
+        writeln!(out, "\t{reject}").unwrap();
+        writeln!(out, "]}}").unwrap();
+        out
     }
 
     /// Render a debug representation of the test program used to generate the cases.
@@ -63,7 +63,6 @@ impl TestCases {
 }
 
 fn fmt_program(program: &[Op], debuginfo: &BTreeMap<usize, String>) -> String {
-    use std::fmt::Write;
     let mut out = String::new();
     let mut indent = 0;
     let continuations = collect_continuations(program);
@@ -198,8 +197,9 @@ impl<'g> ProgramBuilder<'g> {
 
     fn primitive(&mut self, primitive: Primitive, basecase: bool, id: TypeId) {
         match primitive {
-            // Must be 0 so Rust parser doesn't expect following String data in some cases.
-            Primitive::U32 => self.emit(Op::U32(0)),
+            // Value doesn't matter, but this will be recognizable in the output, and will tend not
+            // to encode compatibly with other types.
+            Primitive::U32 => self.emit(Op::U32(1234567890)),
             // Value 1 chosen to detect errors better: 0 encodes the same way as Option::None.
             Primitive::Bool => self.emit(Op::U8(1)),
             // Value doesn't matter, but this will be recognizable in the output, and will tend not
@@ -272,9 +272,6 @@ impl<'g> ProgramBuilder<'g> {
                         self.emit(Op::U32(basecase_discriminant as u32));
                         self.object(vec![basecase_ty], basecase);
                     } else {
-                        // We could eliminate some redundant output here by:
-                        // - Skip any will_visit children
-                        // - If there are no Accept cases, insert basecase
                         let (&max, _) = discriminants.last_key_value().unwrap();
                         self.emit(Op::SwitchPush);
                         self.emit(Op::U32(basecase_discriminant as u32));
@@ -308,8 +305,8 @@ impl<'g> ProgramBuilder<'g> {
     }
 }
 
-/// Choose a discriminant for the specified type, and possibly for some other types reachable from
-/// it in the composition graph, so that the composition graph for the type is non-recursive.
+/// Choose a discriminant for the specified type, and if necessary for some other types reachable
+/// from it in the composition graph, so that the composition graph for the type is non-recursive.
 fn select_basecase(
     graph: &TypeGraph,
     id: TypeId,
