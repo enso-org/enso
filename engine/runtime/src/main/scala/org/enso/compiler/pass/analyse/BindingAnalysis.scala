@@ -83,7 +83,6 @@ case object BindingAnalysis extends IRPass {
             if (!shadowed && n.name == moduleContext.module.getName.item)
               Some(ref.methodName.name)
             else None
-          //case Some(IR.Name.Here(_, _, _)) => Some(ref.methodName.name)
           case Some(IR.Name.Literal(n, _, _, _, _)) =>
             val shadowed = definedConstructors.exists(_.name == n)
             if (!shadowed && n == moduleContext.module.getName.item)

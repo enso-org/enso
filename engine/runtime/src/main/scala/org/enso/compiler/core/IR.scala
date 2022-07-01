@@ -2230,7 +2230,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class MethodReference(
-      typePointer: Option[IR.Name], // will need to get rid of /Here
+      typePointer: Option[IR.Name],
       methodName: IR.Name,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),

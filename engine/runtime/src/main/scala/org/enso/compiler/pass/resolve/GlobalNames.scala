@@ -131,7 +131,6 @@ case object GlobalNames extends IRPass {
               if (isInsideApplication) {
                 lit
                   .updateMetadata(this -->> BindingsMap.Resolution(r))
-                  .copy(isMethod = true)
               } else {
                 val self = freshNameSupply
                   .newName()
@@ -144,7 +143,6 @@ case object GlobalNames extends IRPass {
                 // identifies the node correctly
                 val fun = lit.copy(
                   name     = method.name,
-                  isMethod = true,
                   location = None
                 )
                 val app = IR.Application.Prefix(
@@ -278,7 +276,7 @@ case object GlobalNames extends IRPass {
             BindingAnalysis,
             "Imported module without bindings analysis results"
           )
-          .resolveExportedName(consName.name, caseSensitive = true)
+          .resolveExportedName(consName.name)
         resolution match {
           case Right(cons @ ResolvedConstructor(_, _)) => Some(cons)
           case _                                       => None

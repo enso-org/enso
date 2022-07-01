@@ -173,8 +173,7 @@ case class BindingsMap(
   }
 
   private def findExportedCandidatesInImports(
-    name: String,
-    caseSensitive: Boolean
+    name: String
   ): List[ResolvedName] = {
 
     resolvedImports
@@ -187,7 +186,7 @@ case class BindingsMap(
                   BindingAnalysis,
                   "Wrong pass ordering. Running resolution on an unparsed module."
                 )
-                .findExportedSymbolsFor(name, caseSensitive)
+                .findExportedSymbolsFor(name)
             case ModuleReference.Abstract(name) =>
               throw new CompilerError(
                 s"Cannot find export candidates for abstract module reference $name."
@@ -241,7 +240,7 @@ case class BindingsMap(
       return handleAmbiguity(qualifiedImps)
     }
     handleAmbiguity(
-      findExportedCandidatesInImports(name, caseSensitive = true)
+      findExportedCandidatesInImports(name)
     )
   }
 
@@ -252,8 +251,7 @@ case class BindingsMap(
     */
 
   def resolveQualifiedName(
-    name: List[String],
-    caseSensitive: Boolean
+    name: List[String]
   ): Either[ResolutionError, ResolvedName] =
     name match {
       case List()     => Left(ResolutionNotFound)
@@ -267,7 +265,7 @@ case class BindingsMap(
             var currentModule                 = firstModBindings
             for (modName <- modNames) {
               val resolution =
-                currentModule.resolveExportedName(modName, caseSensitive)
+                currentModule.resolveExportedName(modName)
               resolution match {
                 case Left(err) => return Left(err)
                 case Right(ResolvedModule(mod)) =>
@@ -275,17 +273,15 @@ case class BindingsMap(
                 case _ => return Left(ResolutionNotFound)
               }
             }
-            currentModule.resolveExportedName(consName, caseSensitive)
+            currentModule.resolveExportedName(consName)
           case _ => Left(ResolutionNotFound)
         }
     }
 
   private def findExportedSymbolsFor(
-    name: String,
-    caseSensitive: Boolean
+    name: String
   ): List[ResolvedName] = {
-    val symbolName = if (caseSensitive) name else name.toLowerCase
-    exportedSymbols.getOrElse(symbolName, List())
+    exportedSymbols.getOrElse(name, List())
   }
 
   /** Resolves a name exported by this module.
@@ -294,10 +290,9 @@ case class BindingsMap(
     * @return the resolution for `name`
     */
   def resolveExportedName(
-    name: String,
-    caseSensitive: Boolean
+    name: String
   ): Either[ResolutionError, ResolvedName] = {
-    handleAmbiguity(findExportedSymbolsFor(name, caseSensitive))
+    handleAmbiguity(findExportedSymbolsFor(name))
   }
 
   /** Dumps the export statements from this module into a structure ready for

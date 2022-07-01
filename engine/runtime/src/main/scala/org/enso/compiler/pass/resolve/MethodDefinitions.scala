@@ -99,10 +99,7 @@ case object MethodDefinitions extends IRPass {
           case _ =>
             throw new CompilerError("Impossible to reach.")
         }
-        availableSymbolsMap.resolveQualifiedName(
-          items,
-          caseSensitive = true
-        ) match {
+        availableSymbolsMap.resolveQualifiedName(items) match {
           case Left(err) =>
             IR.Error.Resolution(
               typePointer,
