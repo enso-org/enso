@@ -193,7 +193,7 @@ impl ScrollArea {
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
-        let camera = scene.layers.main.camera();
+        let camera = scene.layers.node_searcher.camera();
         let display_object = display::object::Instance::new(&logger);
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
@@ -335,6 +335,16 @@ impl ScrollArea {
     /// A scene layer containing the content of the ScrollArea.
     pub fn content_layer(&self) -> &layer::Layer {
         &self.model.content_layer
+    }
+
+    /// Set a scene layer for scrollbars.
+    pub fn set_scrollbars_layer(&self, layer: &layer::Layer) {
+        layer.add_exclusive(&self.model.scrollbars);
+    }
+
+    /// A scene layer used as a mask for the content.
+    pub fn mask_layer(&self) -> &layer::Layer {
+        &self.model.display_object.layer.mask_layer
     }
 
 

@@ -62,8 +62,8 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style;
-use ensogl_derive_theme::FromTheme;
 use ensogl_core::Animation;
+use ensogl_derive_theme::FromTheme;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
@@ -94,11 +94,12 @@ const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 
 #[derive(Debug, Clone, CloneRef)]
 struct Layers {
-    groups:         GroupLayers,
-    base:           Layer,
-    selection:      Layer,
-    selection_mask: Layer,
-    scroll_layer:   Layer,
+    groups:          GroupLayers,
+    base:            Layer,
+    selection:       Layer,
+    selection_mask:  Layer,
+    scroll_layer:    Layer,
+    scrollbar_layer: Layer,
 }
 
 impl Layers {
@@ -106,14 +107,16 @@ impl Layers {
         let main_camera = app.display.default_scene.layers.main.camera();
         let base = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
         let selection = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
+        let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &main_camera);
         let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
         selection.set_mask(&selection_mask);
         app.display.default_scene.layers.node_searcher.add_sublayer(&base);
         app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
+        app.display.default_scene.layers.node_searcher.add_sublayer(&scrollbar_layer);
         let content = &scroll_area.content_layer();
         let groups = GroupLayers::new(&app.logger, content, &selection);
         let scroll_layer = scroll_area.content_layer().clone_ref();
-        Self { base, selection, groups, selection_mask, scroll_layer }
+        Self { base, selection, groups, selection_mask, scroll_layer, scrollbar_layer }
     }
 }
 
@@ -318,6 +321,9 @@ impl Model {
         let selection = component_group::selection_box::View::new(&app.logger);
         display_object.add_child(&selection);
         layers.selection_mask.add_exclusive(&selection);
+
+        scroll_area.set_scrollbars_layer(&layers.scrollbar_layer);
+        layers.scrollbar_layer.set_mask(scroll_area.mask_layer());
 
         favourites_section.set_parent(scroll_area.content());
         local_scope_section.set_parent(scroll_area.content());
@@ -695,6 +701,7 @@ impl component::Frp<Model> for Frp {
 
         let selection_animation = Animation::<Vector2>::new(&network);
         let selection_size_animation = Animation::<Vector2>::new(&network);
+        let selection_corners_animation = Animation::<f32>::new(&network);
         let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
         selection_animation.set_spring.emit(spring);
         fn selection_position(model: &Model, id: GroupId, group_local_pos: Vector2) -> Vector2 {
@@ -740,18 +747,20 @@ impl component::Frp<Model> for Frp {
             output.is_header_selected <+ groups.is_header_selected;
             output.header_accepted <+ groups.header_accepted;
 
-            output.size <+ layout_update.map(|style| style.size_inner());
+            output.size <+ layout_frp.update.map(|style| style.size_inner());
 
             selection_size_animation.target <+ groups.selection_size._1();
             selection_animation.target <+ groups.selection_position_target.all_with(
                 &model.scroll_area.scroll_position_y,
                 f!([model]((id, pos), _) selection_position(&model,*id, *pos))
             );
+            selection_corners_animation.target <+ groups.selection_corners_radius._1();
             eval selection_animation.value ((pos) selection.set_position_xy(*pos));
             eval selection_size_animation.value ((pos) selection.size.set(*pos));
+            eval selection_corners_animation.value ((r) selection.corners_radius.set(*r));
             eval_ model.scroll_area.scroll_position_y(selection_animation.skip.emit(()));
         }
-        layout_frp.init.emit(())
+        layout_frp.init.emit(());
         selection_animation.skip.emit(());
     }
 }
