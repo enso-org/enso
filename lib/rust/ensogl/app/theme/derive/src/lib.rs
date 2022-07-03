@@ -8,16 +8,16 @@
 //! `base_path` for that field.
 //!
 //! Example usage
-//!```
+//!```no_compile
 //! use ensogl_core::data::color;
 //! use ensogl_derive_theme::FromTheme;
 //!
 //! #[derive(FromTheme)]
-//! #[theme(base_path = "ensogl_hardcoded_theme")]
+//! #[base_path = "ensogl_hardcoded_theme"]
 //! struct Style {
 //!     some_number: f32,
 //!     some_color:  color::Rgba,
-//!     #[theme(base_path = "ensogl_hardcoded_theme")]
+//!     #[base_path = "ensogl_hardcoded_theme"]
 //!     some_label:  String,
 //! }
 //! ```
