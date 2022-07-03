@@ -67,7 +67,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "ls" (Array.new_1 "--gibberish") "" False False False
+          |    result = System.create_process "bash" (Array.new_2 "-c" "ls --gibberish") "" False False False
           |    result.exit_code
           |""".stripMargin
 
@@ -151,7 +151,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "echo" (Array.new_1 "42") "" True True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "echo 42") "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -185,7 +185,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "echo" (Array.new_1 "9") "" True True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "echo 9") "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -249,7 +249,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "echo" (Array.new_1 "foobar") "" False True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "echo foobar") "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -297,7 +297,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "echo" (Array.new_1 "foobar") "" False False False
+          |    result = System.create_process "bash" (Array.new_2 "-c" "echo foobar") "" False False False
           |    result.stdout
           |""".stripMargin
 

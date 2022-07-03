@@ -1,5 +1,7 @@
 //! Definition of a macro allowing building mock AST structures, mostly useful for testing.
 
+// === Features ===
+#![feature(proc_macro_span)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -36,8 +38,8 @@ use std::mem;
 ///   braces. You can also place segments in quotes, like `{"("} a {")"}`.
 #[proc_macro]
 pub fn ast_builder(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let output = expr(tokens);
-    let output = quote!(syntax::Tree::opr_section_boundary(#output));
+    let output = expr(tokens, None);
+    let output = quote!(crate::syntax::Tree::module(vec![#output]));
     output.into()
 }
 
@@ -54,12 +56,13 @@ impl Segment {
     }
 }
 
-fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
+fn expr(tokens: proc_macro::TokenStream, parent_spacing: Option<usize>) -> TokenStream {
     use proc_macro::TokenTree::*;
     let mut output = quote! {};
     let mut prefix: Option<TokenStream> = None;
     let mut segments: Vec<Segment> = vec![];
     let mut current_segment: Option<Segment> = None;
+    let mut last_column: Option<usize> = None;
     let app_to_output = |output: &mut TokenStream, tok| {
         if output.is_empty() {
             *output = tok;
@@ -67,12 +70,21 @@ fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
             *output = quote! {syntax::Tree::app(#output,#tok)};
         }
     };
+    let mut inherited_spacing = parent_spacing.unwrap_or(0);
     for token in tokens {
-        match token {
+        let spacing = last_column.map(|t| token.span().start().column - t).unwrap_or(0);
+        let spacing = spacing + inherited_spacing;
+        inherited_spacing = 0;
+        last_column = Some(token.span().end().column);
+        match &token {
             // a b c ...
             Ident(ident) => {
                 let ident = ident.to_string();
-                app_to_output(&mut output, quote! {test::ident(#ident)});
+                let spacing = " ".repeat(spacing);
+                app_to_output(
+                    &mut output,
+                    quote! {crate::syntax::Tree::ident(crate::syntax::Token(#spacing, #ident, syntax::token::Variant::new_ident_unchecked(#ident)))},
+                );
             }
             // {if} a {then} b {else} c
             // {"("} a {")"}
@@ -83,12 +95,15 @@ fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
                 } else if !output.is_empty() {
                     prefix = Some(mem::take(&mut output));
                 }
-                let body = group.stream().to_string();
-                current_segment = Some(Segment::new(quote! {Token::ident(#body)})); // Token::symbol
+                let ident = group.stream().to_string();
+                let spacing = " ".repeat(spacing);
+                current_segment = Some(Segment::new(
+                    quote! { Token(#spacing, #ident, syntax::token::Variant::new_ident_unchecked(#ident).into())},
+                )); // Token::symbol
             }
             // a [b c] d
             Group(group) if group.delimiter() == proc_macro::Delimiter::Bracket => {
-                app_to_output(&mut output, expr(group.stream()));
+                app_to_output(&mut output, expr(group.stream(), Some(spacing)));
             }
             _ => panic!("Unsupported token {:?}", token),
         }
@@ -114,10 +129,7 @@ fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
             .unwrap_or_else(|| quote! {None});
         let segments = quote! {NonEmptyVec::try_from(vec![#(#segments),*]).unwrap()};
         output = quote! {
-            span::With::new_no_left_offset_no_start(
-                Bytes::from(0),
-                syntax::tree::Type::MultiSegmentApp(Box::new(syntax::tree::MultiSegmentApp {prefix: #pfx, segments: #segments}))
-            )
+            syntax::Tree::multi_segment_app (#pfx, #segments)
         }
     }
     output

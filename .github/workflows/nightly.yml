@@ -1,59 +1,380 @@
-name: Nightly Release CI
-
-env:
-  # Specifies how many nightly releases should be kept. Any older releases are removed.
-  NIGHTLIES_TO_KEEP: 20
-  GITHUB_TOKEN: ${{ github.token }}
-
-# To prevent race conditions, we allow only a single release workflow at the same time.
-concurrency: "releases"
-
-on:
+---
+name: Nightly Release
+"on":
   schedule:
-    - cron: "0 4 * * 2-6" # 4am (UTC) from Tuesday to Saturday (i.e. after every workday)
-  workflow_dispatch:
-
+    - cron: 0 5 * * 2-6
+  workflow_dispatch: {}
 jobs:
-  prepare:
-    runs-on: [self-hosted]
-    outputs:
-      ENSO_VERSION: ${{ steps.prepare-step.outputs.ENSO_VERSION }}
-      ENSO_RELEASE_ID: ${{ steps.prepare-step.outputs.ENSO_RELEASE_ID }}
+  enso-build-cli-ci-gen-draft-release-linux:
+    name: Create release draft
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
     steps:
-      - uses: enso-org/ci-build/actions/install@deployed
-      - run: enso-build enso --kind nightly create-release
-        id: prepare-step
-
-  build:
-    needs: prepare
-    env:
-      ENSO_VERSION: ${{needs.prepare.outputs.ENSO_VERSION}}
-      ENSO_RELEASE_ID: ${{needs.prepare.outputs.ENSO_RELEASE_ID}}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - [macos-latest]
-          - [self-hosted, Windows, engine]
-          - [self-hosted, Linux, engine]
-      fail-fast: false
-
-    steps:
-      - uses: enso-org/ci-build/actions/install@deployed
-      - run: enso-build enso --kind nightly upload-asset
-
-  finish:
-    runs-on: [self-hosted]
-    needs: [prepare, build]
-    env:
-      ENSO_VERSION: ${{needs.prepare.outputs.ENSO_VERSION}}
-      ENSO_RELEASE_ID: ${{needs.prepare.outputs.ENSO_RELEASE_ID}}
-    steps:
-      - uses: enso-org/ci-build/actions/install@deployed
-      - name: Prepare release
-        run: enso-build enso --kind nightly publish-release
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-west-1
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - id: prepare
+        run: "./run release create-draft"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    outputs:
+      ENSO_RELEASE_ID: "${{ steps.prepare.outputs.ENSO_RELEASE_ID }}"
+      ENSO_VERSION: "${{ steps.prepare.outputs.ENSO_VERSION }}"
+  enso-build-cli-ci-gen-job-build-wasm-linux:
+    name: Build GUI (WASM) (linux)
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+  enso-build-cli-ci-gen-job-upload-backend-linux:
+    name: Upload Backend (linux)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run backend upload"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+    env:
+      ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
+      ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
+  enso-build-cli-ci-gen-job-upload-backend-macos:
+    name: Upload Backend (macos)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+    runs-on:
+      - macos-latest
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run backend upload"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+    env:
+      ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
+      ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
+  enso-build-cli-ci-gen-job-upload-backend-windows:
+    name: Upload Backend (windows)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run backend upload"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+    env:
+      ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
+      ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
+  enso-build-cli-ci-gen-publish-release-linux:
+    name: Publish release (linux)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-upload-ide-linux
+      - enso-build-cli-ci-gen-upload-ide-macos
+      - enso-build-cli-ci-gen-upload-ide-windows
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run release publish"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+    env:
+      AWS_ACCESS_KEY_ID: "${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}"
+      AWS_REGION: us-west-1
+      AWS_SECRET_ACCESS_KEY: "${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY  }}"
+      ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
+      ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
+  enso-build-cli-ci-gen-upload-ide-linux:
+    name: Build IDE (linux)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-cli-ci-gen-job-upload-backend-linux
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+    env:
+      ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
+      ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
+  enso-build-cli-ci-gen-upload-ide-macos:
+    name: Build IDE (macos)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-cli-ci-gen-job-upload-backend-macos
+    runs-on:
+      - macos-latest
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+    env:
+      ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
+      ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
+  enso-build-cli-ci-gen-upload-ide-windows:
+    name: Build IDE (windows)
+    needs:
+      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-cli-ci-gen-job-upload-backend-windows
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run ide upload --wasm-source current-ci-run --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}}"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+    env:
+      ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
+      ENSO_VERSION: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}"
+env:
+  ENSO_BUILD_KIND: nightly
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"
+  RUST_BACKTRACE: full
+concurrency: release

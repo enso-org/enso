@@ -1,88 +1,152 @@
-# This is the new, in progress, Build Workflow for the Enso Engine.
-
-name: Engine CI (new)
-
-on:
+---
+name: Engine CI
+"on":
   push:
-    branches: [develop, "release/*"]
-  pull_request:
-    branches: ["*"]
-  workflow_dispatch:
-
+    branches:
+      - develop
+      - unstable
+      - stable
+  pull_request: {}
+  workflow_dispatch: {}
 jobs:
-  # Engine builds are slow and our runners limited in capacity. Thus we cancel any workflow runs for older commits
-  # on this branch.
-  cancel:
-    name: Cancel previous runs
+  enso-build-cli-ci-gen-job-cancel-workflow-linux:
+    name: Cancel Previous Runs
     runs-on:
-      # We can run pretty much on any runner. The label below is the one present everywhere.
       - X64
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.9.1
         with:
-          access_token: ${{ github.token }}
-
-  test_and_publish:
-    name: Engine
+          access_token: "${{ github.token }}"
+  enso-build-cli-ci-gen-job-ci-check-backend-linux:
+    name: Engine (linux)
     runs-on:
-      - ${{ matrix.os }}
       - self-hosted
+      - Linux
       - engine
-    timeout-minutes: 90
-    strategy:
-      matrix:
-        # The macOS support is not yet done. For now, the GitHub-hosted runner
-        # in the old workflow should be relied upon.
-        os: [Windows, Linux]
-      fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
         with:
           clean: false
-          path: ci-build
-          ref: deployed
-          repository: enso-org/ci-build
-      - uses: actions/checkout@v2
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run backend ci-check"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+      - name: Stdlib test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
         with:
-          path: enso
-      - run: cargo run --release --bin enso-build -- ${{ github.workspace }}/enso build
-        working-directory: ${{ github.workspace }}/ci-build
-
-      #####################
-      # PUBLISH ARTIFACTS #
-      #####################
-      - name: Publish the Engine Distribution Artifact
-        uses: actions/upload-artifact@v2
+          name: Enso Standard Library Tests (linux)
+          path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path-replace-backslashes: "true"
+          reporter: java-junit
+  enso-build-cli-ci-gen-job-ci-check-backend-macos:
+    name: Engine (macos)
+    runs-on:
+      - macos-latest
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          name: ${{ env.ENGINE_DIST_NAME }}
-          # Irregular, engine is pre-zipped to avoid long paths issues of nodejs.
-          path: ${{ env.ENGINE_DIST_ARCHIVE }}
-      - name: Publish the Launcher
-        uses: actions/upload-artifact@v2
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          name: ${{ env.LAUNCHER_DIST_NAME }}
-          path: ${{ env.LAUNCHER_DIST_ROOT }}
-      - name: Publish the Project Manager
-        uses: actions/upload-artifact@v2
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
         with:
-          name: ${{ env.PROJECTMANAGER_DIST_NAME }}
-          path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
-      - name: Publish the FlatBuffers Schemas
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v2
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
         with:
-          name: Engine Protocol FlatBuffers Schemas
-          path: ${{ env.TARGET_DIR }}/fbs-upload/fbs-schema.zip
-      - name: Publish the Parser JS Bundle
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v2
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run backend ci-check"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+      - name: Stdlib test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
         with:
-          name: Parser JS Bundle
-          path: ${{ env.TARGET_DIR }}/scala-parser.js
-      - name: Publish the Manifest
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v2
+          name: Enso Standard Library Tests (macos)
+          path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path-replace-backslashes: "true"
+          reporter: java-junit
+  enso-build-cli-ci-gen-job-ci-check-backend-windows:
+    name: Engine (windows)
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          name: manifest
-          path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run backend ci-check"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+      - name: Stdlib test report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Enso Standard Library Tests (windows)
+          path: "${{ env.ENSO_TEST_JUNIT_DIR }}/**/*.xml"
+          path-replace-backslashes: "true"
+          reporter: java-junit
+env:
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"
