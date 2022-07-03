@@ -214,8 +214,8 @@ branches:
         # Require branches to be up-to-date before merging.
         strict: true
         contexts:
-          - "Engine (Linux)"
-          - "Engine (Windows)"
+          - "Engine (linux)"
+          - "Engine (windows)"
           # The macOS job is intentionally omitted.
           - "Docs Check"
           - "Verify Notice Package"
