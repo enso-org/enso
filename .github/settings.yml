@@ -232,10 +232,10 @@ branches:
           - "Build GUI (WASM) (linux)"
           - "Lint (linux)"
           - "Build GUI (WASM) (windows)"
-          - "Build Project Manager (windows)"
+          - "Build Backend (windows)"
           - "Assert if CHANGELOG.md was updated (on pull request)"
           - "WASM GUI tests (linux)"
-          - "Build Project Manager (linux)"
+          - "Build Backend (linux)"
           - "Package IDE (windows)"
           - "Package IDE (linux)"
           # Integration tests are currently not reliable.
