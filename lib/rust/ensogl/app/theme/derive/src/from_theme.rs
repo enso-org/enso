@@ -70,10 +70,8 @@ fn build_frp(
     let mut prev_value: Option<Ident> = None;
 
     for field in fields.iter() {
-        let field_name = field
-            .ident
-            .as_ref()
-            .expect("Encountered unnamed struct field. This cannot happen.");
+        let field_name =
+            field.ident.as_ref().expect("Encountered unnamed struct field. This cannot happen.");
         let field_update = format_ident!("{}_update", field_name);
         let update = if let Some(prev_value) = prev_value {
             quote! {
