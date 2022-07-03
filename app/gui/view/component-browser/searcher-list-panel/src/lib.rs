@@ -617,6 +617,7 @@ impl component::Frp<Model> for Frp {
     ) {
         let network = &frp_api.network;
         let layout_frp = Style::from_theme(network, style);
+        let scene = &app.display.default_scene;
         frp::extend! { network
             model.favourites_section.content.set_content <+ frp_api.input.set_favourites_section;
             model.local_scope_section.content.set_entries <+ frp_api.input.set_local_scope_section;
@@ -631,7 +632,10 @@ impl component::Frp<Model> for Frp {
 
             eval_ model.scroll_area.viewport( model.update_scroll_viewport() );
 
-            is_hovered <- app.cursor.frp.scene_position.map(f!((pos) model.is_hovered(pos.xy())) ).on_change();
+            is_hovered <- app.cursor.frp.screen_position.map(f!([model,scene](pos) {
+                let pos = scene.screen_to_object_space(&model, pos.xy());
+                model.is_hovered(pos.xy())
+            })).on_change();
 
             on_hover <- is_hovered.on_true();
             on_hover_end <- is_hovered.on_false();

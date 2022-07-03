@@ -237,21 +237,16 @@ fn get_layout(
     frp::extend! { network
         init <- source_();
 
-        entry_colors_part_1 <- all4(
-            &init,
+        entry_colors <- all6(
             &entry_color_0,
             &entry_color_1,
             &entry_color_2,
-        );
-        entry_colors_part_2 <- all4(
-            &init,
             &entry_color_3,
             &entry_color_4,
             &entry_color_5,
         );
-        entry_colors <- all(&entry_colors_part_1,&entry_colors_part_2);
-
-        entry_colors <- entry_colors.map(|((_,c1,c2,c3),(_,c4,c5,c6))| [*c1,*c2,*c3,*c4,*c5,*c6]);
+        entry_colors <- all(&init,&entry_colors);
+        entry_colors <- entry_colors.map(|(_,(c1,c2,c3,c4,c5,c6))| [*c1,*c2,*c3,*c4,*c5,*c6]);
 
         layout_update <- all5(&init, &column_gap, &entry_colors, &content_padding, &content_width);
         layout_update <- layout_update.map(|(_, column_gap,entry_colors,content_padding,content_width)|{
