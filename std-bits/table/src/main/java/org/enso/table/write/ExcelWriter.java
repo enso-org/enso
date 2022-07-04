@@ -193,8 +193,12 @@ public class ExcelWriter {
   public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
       throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
     Name name = workbook.getName(rangeNameOrAddress);
-    ExcelRange excelRange =
-        new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+    ExcelRange excelRange;
+    try {
+      excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+    } catch (IllegalArgumentException e) {
+      throw new InvalidLocationException("Invalid range name or address '" + rangeNameOrAddress + "'.");
+    }
     writeTableToRange(workbook, excelRange, replace, skipRows, table, rowLimit, headers);
   }
 
