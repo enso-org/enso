@@ -22,6 +22,8 @@ import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
+import org.enso.table.problems.WithProblems;
+import org.enso.table.util.ColumnMapper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -132,8 +134,8 @@ public class ExcelWriter {
         shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn());
 
     if ((existingDataMode == ExistingDataMode.APPEND_BY_NAME || existingDataMode == ExistingDataMode.APPEND_BY_INDEX) &&
-        !checkExistingRange(workbook, expanded, false, sheet)) {
-      throw new ExistingDataException("Range already exists, and appended not currently implemented.");
+        checkExistingRange(workbook, expanded, false, sheet)) {
+      appendRangeWithTable(workbook, range, existingDataMode, table, rowLimit, headers, sheet, expanded);
     } else {
       updateRangeWithTable(workbook, expanded, range.isSingleCell(), existingDataMode, table, rowLimit, headers, sheet);
     }
@@ -146,6 +148,38 @@ public class ExcelWriter {
    */
   public static Workbook createWorkbook(boolean xls_format) {
     return xls_format ? new HSSFWorkbook() : new XSSFWorkbook();
+  }
+
+  private static void appendRangeWithTable(Workbook workbook, ExcelRange range, ExistingDataMode existingDataMode, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers, ExcelSheet sheet, ExcelRange expanded) throws RangeExceededException, ExistingDataException {
+    // Map Table
+    WithProblems<Table> mappedTable = switch (existingDataMode) {
+      case APPEND_BY_INDEX -> ColumnMapper.MapColumnsByIndex(table, expanded.getColumnCount());
+      case APPEND_BY_NAME -> {
+        if (headers == ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES) {
+          throw new IllegalArgumentException("Cannot append by name when headers are not present in the existing data.");
+        }
+        String[] currentHeaders = sheet.get(expanded.getTopRow()).getCellsAsText(expanded.getLeftColumn(), expanded.getRightColumn());
+        yield ColumnMapper.MapColumnsByName(table, currentHeaders);
+      }
+      default ->
+          throw new IllegalArgumentException("The existing data mode '" + existingDataMode + "' is not supported.");
+    };
+
+    // Adjust output range to new area.
+    if (range.isSingleCell()) {
+      int bottomRow = expanded.getBottomRow();
+      int requiredRows = Math.min(table.rowCount(), rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue());
+      expanded = new ExcelRange(expanded.getSheetName(), bottomRow + 1, expanded.getLeftColumn(), bottomRow + requiredRows, expanded.getRightColumn());
+    } else {
+      int finalRow = expanded.getLastRow(sheet);
+      if (finalRow == expanded.getBottomRow()) {
+        throw new RangeExceededException("The range is already full.");
+      }
+
+      expanded = new ExcelRange(expanded.getSheetName(), finalRow + 1, expanded.getLeftColumn(), expanded.getBottomRow(), expanded.getRightColumn());
+    }
+
+    updateRangeWithTable(workbook, expanded, false, existingDataMode, table, rowLimit, ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES, sheet);
   }
 
   private static void updateRangeWithTable(Workbook workbook, ExcelRange range, boolean singleCell, ExistingDataMode existingDataMode, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers, ExcelSheet sheet)
@@ -171,7 +205,7 @@ public class ExcelWriter {
     }
 
     // Check or Clear Current Range
-    if (!checkExistingRange(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet)) {
+    if (checkExistingRange(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet)) {
       throw new ExistingDataException("Range is not empty, and cannot be replaced in current mode.");
     }
 
@@ -199,6 +233,9 @@ public class ExcelWriter {
         }
       }
     }
+
+    return true;
+  }
 
   public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
       throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {

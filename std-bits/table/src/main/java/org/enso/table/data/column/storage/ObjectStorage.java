@@ -6,7 +6,6 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 
 import java.util.BitSet;
-import java.util.Comparator;
 
 /** A column storing arbitrary objects. */
 public class ObjectStorage extends Storage {
