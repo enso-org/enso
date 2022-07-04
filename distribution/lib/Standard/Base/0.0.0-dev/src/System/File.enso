@@ -530,7 +530,7 @@ type File
         here.handle_java_exceptions self <| case replace_existing of
             True ->
               copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
-              self.move_builtin destination copy_options
+              self.copy_builtin destination copy_options
             False -> self.copy_builtin destination Array.empty
 
     ## PRIVATE
