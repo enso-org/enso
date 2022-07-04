@@ -333,13 +333,14 @@ ensogl::define_endpoints_2! {
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
-        /// The bounding box of the Node. Includes the visualization if enabled and visible.
-        ///
-        /// Updated when any of [`position`], [`expression`], [`visualization_enabled`], or
-        /// [`visualization_visible`] is updated.
-        bounding_box             (BoundingBox),
         /// The [`display::object::Model::position`] of the Node.
         position                 (Vector2),
+        /// The bounding box of the Node. Includes the bounding box of the visualization if the
+        /// visualization is enabled and visible.
+        ///
+        /// Updated after any of [`position`], [`expression`], [`visualization_enabled`], or
+        /// [`visualization_visible`] is updated.
+        bounding_box             (BoundingBox),
     }
 }
 
@@ -952,10 +953,10 @@ impl Node {
             let visualization_size = &model.visualization.frp.size;
             // Visualization can be enabled and not visible when the node has an error.
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
+            out.position <+ position;
             bbox_input <- all4(
                 &position,&new_size,&visualization_enabled_and_visible,visualization_size);
             out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
-            out.position <+ position;
 
 
             // === VCS Handling ===

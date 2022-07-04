@@ -1630,7 +1630,12 @@ impl GraphEditorModelWithNetwork {
         frp::new_bridge_network! {
             [self.network, node_network, camera_pan_network] graph_node_camera_pan_bridge
             pos_if_editing <- node.output.position.gate(&self.frp.node_editing);
-            eval pos_if_editing([model](_) {
+            pos_updated_while_editing <- pos_if_editing.constant(true);
+            trace pos_updated_while_editing;
+            bbox_after_pos <- node.output.bounding_box.gate(&pos_updated_while_editing);
+            trace bbox_after_pos;
+            eval bbox_after_pos([model](_) {
+            // eval pos_if_editing([model](_) {
                 *camera_pan_network_ref.borrow_mut() = None;
                 model.pan_screen_with_margins_to_node(node_id)
             });
