@@ -237,12 +237,7 @@ write_excel file table on_existing_file section headers _ xls_format=False =
         if result.is_error then result else
             write_stream stream = stream.with_java_stream java_stream->
                 workbook.write java_stream
-            case on_existing_file of
-                Existing_File_Behavior.Error ->
-                    ## Special handling - have successfully added the extra sheet/range so now save file.
-                    file.with_output_stream [Option.Write, Option.Create, Option.Truncate_Existing] write_stream
-                _ ->
-                    on_existing_file.write file write_stream
+            on_existing_file.write file write_stream
 
 ## PRIVATE
 prepare_reader_table : Problem_Behavior -> Any -> Table
@@ -289,8 +284,3 @@ handle_writer ~writer =
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
     handle_illegal_state <| handle_bad_location <| handle_range_exceeded <| handle_existing_data <| writer
-
-## PRIVATE
-handle_illegal_argument ~action =
-    illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
-    Panic.catch IllegalArgumentException handler=illegal_argument action action

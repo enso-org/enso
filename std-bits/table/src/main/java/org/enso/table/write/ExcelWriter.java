@@ -191,7 +191,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws IllegalArgumentException, RangeExceededException, ExistingDataException {
+      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
     Name name = workbook.getName(rangeNameOrAddress);
     ExcelRange excelRange =
         new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
@@ -199,10 +199,10 @@ public class ExcelWriter {
   }
 
   public static void writeTableToRange(Workbook workbook, ExcelRange range, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws IllegalArgumentException, RangeExceededException, ExistingDataException {
+      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
-      throw new IllegalArgumentException("Unknown sheet '" + range.getSheetName() + "'.");
+      throw new InvalidLocationException("Unknown sheet '" + range.getSheetName() + "'.");
     }
     ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
 
