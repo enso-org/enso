@@ -333,7 +333,8 @@ ensogl::define_endpoints_2! {
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
-        /// The [`display::object::Model::position`] of the Node.
+        /// The [`display::object::Model::position`] of the Node. Emitted when the Display Object
+        /// hierarchy is updated (see: [`ensogl_core::display::object::Instance::update`]).
         position                 (Vector2),
         /// The bounding box of the Node. Contains the bounding box of the visualization if the
         /// visualization is enabled and visible.
