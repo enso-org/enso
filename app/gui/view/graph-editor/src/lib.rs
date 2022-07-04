@@ -2396,7 +2396,7 @@ impl GraphEditorModel {
         found
     }
 
-    /// Pan the camera to fully fit the `target_bbox` (expressed in scene coordinates) in a
+    /// Pan the camera to fully fit the `target_bbox` (expressed in scene coordinates) into a
     /// rectangular viewport between `screen_min_xy` and `screen_max_xy` (in screen coordinates).
     /// If `target_bbox` does not fully fit in the viewport, prefer showing the top-left corner of
     /// `target_bbox` than the opposite one.
