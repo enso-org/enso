@@ -1335,8 +1335,8 @@ pub struct GraphEditorModelWithNetwork {
     pub model: GraphEditorModel,
     pub network: frp::Network,
     /// A network watching the bounding box of a newly created node and panning the camera after the
-    /// bounding box is updated. The network is created when the user adds a new node and dropped
-    /// when the camera is panned.
+    /// bounding box is updated. The network is created when a new node is created, and dropped
+    /// when the camera is panned or when another new node is created.
     pub network_for_new_node_camera_pan: Rc<RefCell<Option<frp::Network>>>,
 }
 
@@ -1628,18 +1628,17 @@ impl GraphEditorModelWithNetwork {
         // TODO: explain that we don't need to count if we use this new network/bridge - it'll only
         // trigger on first call, for the most recent node, and then be dropped IIUC.
         let pan_network = frp::Network::new("network_for_new_node_camera_pan");
-        // FIXME: better name
-        let camera_pan_network_ref = self.network_for_new_node_camera_pan.clone();
+        *self.network_for_new_node_camera_pan.borrow_mut() = Some(pan_network.clone());
+        let pan_network_container = self.network_for_new_node_camera_pan.clone();
         frp::new_bridge_network! { [self.network, node_network, pan_network] graph_node_pan_bridge
             pos_if_editing <- node.output.position.gate(&self.frp.node_editing);
             pos_updated_while_editing <- pos_if_editing.constant(true);
             bbox_after_pos <- node.output.bounding_box.gate(&pos_updated_while_editing);
             eval bbox_after_pos([model](_) {
-                *camera_pan_network_ref.borrow_mut() = None;
+                *pan_network_container.borrow_mut() = None;
                 model.pan_camera_to_node(node_id)
             });
         }
-        *self.network_for_new_node_camera_pan.borrow_mut() = Some(pan_network);
 
         node.set_view_mode(self.model.frp.view_mode.value());
         let initial_metadata = visualization::Metadata {
