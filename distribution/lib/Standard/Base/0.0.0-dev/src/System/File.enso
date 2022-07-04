@@ -524,9 +524,30 @@ type File
        Arguments:
        - destination: the destination to move the file to.
        - replace_existing: specifies if the operation should proceed if the
-         destination file already exists. Defaults to `True`.
+         destination file already exists. Defaults to `False`.
+    copy_to : File -> Boolean -> Nothing ! File_Error
+    copy_to destination replace_existing=False =
+        here.handle_java_exceptions self <| case replace_existing of
+            True ->
+              copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
+              self.copy_builtin destination copy_options
+            False -> self.copy_builtin destination Array.empty
+
+    ## PRIVATE
+
+       Builtin method that copies this file to a new destination.
+       Recommended to use `File.copy_to` instead which handles potential exceptions.
+    copy_builtin : File -> Array Any -> Nothing
+    copy_builtin destination copy_options = @Builtin_Method "File.copy_builtin"
+
+    ## Moves the file to the specified destination.
+
+       Arguments:
+       - destination: the destination to move the file to.
+       - replace_existing: specifies if the operation should proceed if the
+         destination file already exists. Defaults to `False`.
     move_to : File -> Boolean -> Nothing ! File_Error
-    move_to destination replace_existing=True =
+    move_to destination replace_existing=False =
         here.handle_java_exceptions self <| case replace_existing of
             True ->
               copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING

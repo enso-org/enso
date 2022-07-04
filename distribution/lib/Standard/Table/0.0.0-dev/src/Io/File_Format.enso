@@ -186,13 +186,22 @@ type Excel
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        format = if self.xls_format != Infer then self.xls_format else
-            extension = file.extension
-            (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
-
+        format = Excel.is_xls_format self.xls_format file
         Excel_Module.read_excel file self.section self.headers on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing
-    write_table _ _ _ _ _ =
-        Errors.unimplemented "`Table.write` for the `Excel` format is not implemented yet."
+    write_table file table on_existing_file _ on_problems =
+        format = Excel.is_xls_format self.xls_format file
+        case self.section of
+            Excel_Module.Sheet_Names -> Error.throw (Illegal_Argument_Error "Sheet_Names cannot be used for `write`.")
+            Excel_Module.Range_Names -> Error.throw (Illegal_Argument_Error "Range_Names cannot be used for `write`.")
+            _ -> Excel_Module.write_excel file table on_existing_file self.section self.headers on_problems format
+
+    ## PRIVATE
+       Resolve the xls_format setting to a boolean.
+    is_xls_format : (Boolean|Infer) -> File -> Boolean
+    is_xls_format xls_format file =
+        if xls_format != Infer then xls_format else
+            extension = file.extension
+            (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")

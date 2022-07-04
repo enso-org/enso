@@ -96,7 +96,7 @@ write_file_backing_up_old_one file action = Panic.recover [Io_Error, File_Not_Fo
                to back-up anymore, but this is not a failure, so it can be
                safely ignored.
             Panic.catch File_Not_Found handler=(_->Nothing) <|
-                Panic.rethrow <| file.move_to bak_file
+                Panic.rethrow <| file.move_to bak_file replace_existing=True
             Panic.rethrow <| new_file.move_to file
     go 0
 
