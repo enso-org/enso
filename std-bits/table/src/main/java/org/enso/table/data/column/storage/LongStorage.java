@@ -1,11 +1,8 @@
 package org.enso.table.data.column.storage;
 
 import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.stream.LongStream;
 
-import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
@@ -98,46 +95,42 @@ public class LongStorage extends NumericStorage {
 
   @Override
   protected Aggregator getVectorizedAggregator(String name, int resultSize) {
-    switch (name) {
-      case Aggregators.SUM:
-        return new LongToLongAggregator(this, resultSize) {
-          @Override
-          protected void runGroup(LongStream items) {
-            long[] elements = items.toArray();
-            if (elements.length == 0) {
-              submitMissing();
-            } else {
-              submit(LongStream.of(elements).sum());
-            }
+    return switch (name) {
+      case Aggregators.SUM -> new LongToLongAggregator(this, resultSize) {
+        @Override
+        protected void runGroup(LongStream items) {
+          long[] elements = items.toArray();
+          if (elements.length == 0) {
+            submitMissing();
+          } else {
+            submit(LongStream.of(elements).sum());
           }
-        };
-      case Aggregators.MAX:
-        return new LongToLongAggregator(this, resultSize) {
-          @Override
-          protected void runGroup(LongStream items) {
-            OptionalLong r = items.max();
-            if (r.isPresent()) {
-              submit(r.getAsLong());
-            } else {
-              submitMissing();
-            }
+        }
+      };
+      case Aggregators.MAX -> new LongToLongAggregator(this, resultSize) {
+        @Override
+        protected void runGroup(LongStream items) {
+          OptionalLong r = items.max();
+          if (r.isPresent()) {
+            submit(r.getAsLong());
+          } else {
+            submitMissing();
           }
-        };
-      case Aggregators.MIN:
-        return new LongToLongAggregator(this, resultSize) {
-          @Override
-          protected void runGroup(LongStream items) {
-            OptionalLong r = items.min();
-            if (r.isPresent()) {
-              submit(r.getAsLong());
-            } else {
-              submitMissing();
-            }
+        }
+      };
+      case Aggregators.MIN -> new LongToLongAggregator(this, resultSize) {
+        @Override
+        protected void runGroup(LongStream items) {
+          OptionalLong r = items.min();
+          if (r.isPresent()) {
+            submit(r.getAsLong());
+          } else {
+            submitMissing();
           }
-        };
-      default:
-        return super.getVectorizedAggregator(name, resultSize);
-    }
+        }
+      };
+      default -> super.getVectorizedAggregator(name, resultSize);
+    };
   }
 
   private Storage fillMissingDouble(double arg) {
@@ -381,10 +374,5 @@ public class LongStorage extends NumericStorage {
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
     return new LongStorage(newData, newSize, newMask);
-  }
-
-  @Override
-  public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
-    cell.setCellValue(getItem(index));
   }
 }

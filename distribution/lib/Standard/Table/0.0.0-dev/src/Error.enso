@@ -174,3 +174,16 @@ type Unsupported_File_Type filename
 Unsupported_File_Type.to_display_text : Text
 Unsupported_File_Type.to_display_text =
     "The "+self.filename+" has a type that is not supported by the Auto format."
+
+## Indicates that the target range contains existing data and the user did not
+   specify to overwrite.
+type Existing_Data message
+
+Existing_Data.to_display_text : Text
+Existing_Data.to_display_text = self.message
+
+## Indicates that the specified range is not large enough to fit the data.
+type Range_Exceeded message
+
+Range_Exceeded.to_display_text : Text
+Range_Exceeded.to_display_text = self.message

@@ -138,6 +138,12 @@ public class EnsoFile implements TruffleObject {
     truffleFile.delete();
   }
 
+  @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  public void copy(EnsoFile target, CopyOption[] options) throws IOException {
+    truffleFile.copy(target.truffleFile, options);
+  }
+
   @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   public void move(EnsoFile target, CopyOption[] options) throws IOException {

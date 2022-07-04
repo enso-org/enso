@@ -21,7 +21,7 @@
 
          example_to_xlsx =
              path = Enso_Project.data / example_xlsx_output.xlsx
-             Examples.inventory_table.write_xlsx path
+             Examples.inventory_table.write path
 
    > Example
      Join multiple tables together. It joins tables on their indices, so we need
