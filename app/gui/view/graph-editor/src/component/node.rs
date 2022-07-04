@@ -697,10 +697,7 @@ impl Node {
         let action_bar = &model.action_bar.frp;
         // Hook up the display object position updates to the node's FRP. Required to calculate the
         // bounding box.
-        frp::extend! { network
-            position <- source::<Vector2>();
-        }
-        model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
+        model.display_object.set_on_updated(f!((p) out.position.emit(p.position().xy())));
 
         frp::extend! { network
 
@@ -953,9 +950,8 @@ impl Node {
             let visualization_size = &model.visualization.frp.size;
             // Visualization can be enabled and not visible when the node has an error.
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
-            out.position <+ position;
             bbox_input <- all4(
-                &position,&new_size,&visualization_enabled_and_visible,visualization_size);
+                &out.position,&new_size,&visualization_enabled_and_visible,visualization_size);
             out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
 
 
