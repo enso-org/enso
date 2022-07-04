@@ -1332,7 +1332,7 @@ pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> boo
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModelWithNetwork {
-    pub model:   GraphEditorModel,
+    pub model: GraphEditorModel,
     pub network: frp::Network,
     pub new_node_camera_pan_network: Rc<RefCell<Option<frp::Network>>>,
 }
@@ -2391,7 +2391,12 @@ impl GraphEditorModel {
     /// rectangular viewport between `screen_min_xy` and `screen_max_xy` in screen coordinates.
     /// If `target_bbox` does not fully fit in the viewport, showing the left & top boundaries of
     /// `target_bbox` takes priority over showing the corresponding opposite ones.
-    fn pan_camera(&self, target_bbox: selection::BoundingBox, screen_min_xy: Vector2, screen_max_xy: Vector2) {
+    fn pan_camera(
+        &self,
+        target_bbox: selection::BoundingBox,
+        screen_min_xy: Vector2,
+        screen_max_xy: Vector2,
+    ) {
         use ensogl::display::navigation::navigator::PanEvent;
         let scene = &self.app.display.default_scene;
         let screen_to_scene_xy = |pos: Vector2| {
