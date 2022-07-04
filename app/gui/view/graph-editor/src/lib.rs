@@ -1626,27 +1626,26 @@ impl GraphEditorModelWithNetwork {
         // === Panning camera to created node ===
 
         // Node position is not available immediately after the node is created, but only after the
-        // Node's display object is updated. Below, we're waiting for the following sequence of
-        // events:
-        //  1. Newly created node becomes edited.
-        //  2. Position of the node becomes updated while the node is edited.
-        //  3. Bounding box of the node becomes updated.
-        // When the sequence is detected, we pan the camera once, and drop the network to stop
-        // watching afterwards.
+        // Node's display object is updated. Therefore, in order to pan the camera to the position
+        // of a newly created node, we need to wait until:
+        //  1. the position of the newly created node becomes updated, and then
+        //  2. the bounding box of the node becomes updated.
+        // When the sequence is detected, and if the node is being edited, we pan the camera to it.
+        // Regardless whether the node is being edited, we drop the network, as we don't want to
+        // pan the camera for any later updates of the bounding box.
         let pan_network_container = self.network_for_new_node_camera_pan.clone();
         let pan_network = frp::Network::new("network_for_new_node_camera_pan");
         pan_network_container.replace(Some(pan_network.clone()));
         frp::new_bridge_network! { [self.network, node_network, pan_network] graph_node_pan_bridge
             pos_updated <- node.output.position.constant(true);
             bbox_updated_after_pos_updated <- node.output.bounding_box.gate(&pos_updated);
-            _eval <- bbox_updated_after_pos_updated.map2(&self.frp.node_being_edited,
-                f!([model](_, node) {
-                    pan_network_container.replace(None);
-                    if *node == Some(node_id) {
-                        model.pan_camera_to_node(node_id);
-                    }
-                })
-            );
+            let node_being_edited = &self.frp.node_being_edited;
+            _eval <- bbox_updated_after_pos_updated.map2(node_being_edited, f!([model](_, node) {
+                pan_network_container.replace(None);
+                if *node == Some(node_id) {
+                    model.pan_camera_to_node(node_id);
+                }
+            }));
         }
 
         node.set_view_mode(self.model.frp.view_mode.value());
