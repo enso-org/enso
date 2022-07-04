@@ -43,13 +43,7 @@ sqlite_specific_spec connection =
             t.at "reals" . sql_type . is_definitely_boolean . should_be_false
             t.at "bools" . sql_type . is_definitely_double . should_be_false
 
-spec =
-    Enso_Project.data.create_directory
-    file = Enso_Project.data / "sqlite_test.db"
-    file.delete_if_exists
-    connection = Database.open_sqlite_file file
-    prefix = "[SQLite] "
-
+sqlite_spec connection prefix =
     name_counter = Ref.new 0
     table_builder columns =
         ix = name_counter.get
@@ -80,6 +74,14 @@ spec =
     Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=True selection
 
     connection.close
+
+spec =
+    Enso_Project.data.create_directory
+    file = Enso_Project.data / "sqlite_test.db"
+    file.delete_if_exists
+    here.sqlite_spec (Database.connect (SQLite file)) "[SQLite] "
     file.delete
+
+    here.sqlite_spec (Database.connect (SQLite InMemory)) "[SQLite Memory] "
 
 main = Test.Suite.run_main here.spec

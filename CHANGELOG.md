@@ -144,6 +144,7 @@
 - [Removed obsolete `from_xls` and `from_xlsx` functions. Added support for
   reading column names from first row in `File_Format.Excel`][3523]
 - [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
+- [Adjusted `Database.connect` API to new design.][3542]
 - [Added `File_Format.Excel` support to `Table.write` for new files.][3551]
 
 [debug-shortcuts]:
@@ -228,6 +229,7 @@
 [3519]: https://github.com/enso-org/enso/pull/3519
 [3523]: https://github.com/enso-org/enso/pull/3523
 [3528]: https://github.com/enso-org/enso/pull/3528
+[3542]: https://github.com/enso-org/enso/pull/3542
 [3551]: https://github.com/enso-org/enso/pull/3551
 
 #### Enso Compiler

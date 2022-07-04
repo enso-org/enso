@@ -1,0 +1,71 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Dialect
+import Standard.Database.Connection.Connection
+from Standard.Database.Connection.Credentials as Credentials_Module import Credentials
+import Standard.Database.Connection.Connection_Options
+import Standard.Database.Connection.SSL_Mode
+from Standard.Database.Connection.SSL_Mode import all
+import Standard.Database.Connection.Client_Certificate
+
+import Standard.Database.Connection.PostgreSQL
+
+polyglot java import com.amazon.redshift.jdbc.Driver
+
+type Redshift
+    ## Connect to a AWS Redshift database.
+
+       Arguments:
+       - host: The hostname of the database server (defaults to localhost).
+       - port: The port of the database server (defaults to 5432).
+       - schema: The schema to connect to (if not provided or empty, the default schema will be used).
+       - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
+       - use_ssl: Whether to use SSL (defaults to `Require`).
+       - client_cert: The client certificate to use or `Nothing` if not needed.
+    type Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Profile|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
+
+    ## Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
+    connect : Connection_Options
+    connect options =
+        if Driver.isRegistered.not then Driver.register
+
+        properties = options.merge self.jdbc_properties
+        Connection.create_jdbc_connection self.jdbc_url properties self.dialect
+
+    ## Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url =
+        prefix = case self.credentials of
+            AWS_Profile _ -> 'jdbc:redshift:iam://'
+            _ -> 'jdbc:redshift://'
+        prefix + self.host + ':' + self.port.to_text + (if self.schema == '' then '' else '/' + self.schema)
+
+    ## Provides the properties for the connection.
+    jdbc_properties : [Pair Text Text]
+    jdbc_properties =
+        credentials = case self.credentials of
+            Nothing -> PostgreSQL.read_pgpass self.host self.port self.schema
+            AWS_Profile profile -> if profile == '' then [] else [Pair 'profile' profile]
+            Credentials username password ->
+                [Pair 'user' username, Pair 'password' password]
+
+        ssl_properties = PostgreSQL.ssl_mode_to_jdbc_properties self.use_ssl
+
+        cert_properties = if self.client_cert.is_nothing then [] else
+            self.client_cert.properties
+
+        ## This is a workaround for the Redshift driver - it looks for an ini file
+           by looking at the jar file location, which is not available in the Graal
+           class loader. This block may be removed when migrated to a Graal version
+           with https://github.com/oracle/graal/issues/3744 fixed.
+        [Pair 'IniFile' (Enso_Project.data/'empty.ini' . absolute . path)] + credentials + ssl_properties + cert_properties
+
+    ## Provides the dialect needed for creating SQL statements.
+    dialect : Dialect
+    dialect = Dialect.redshift
+
+type AWS_Profile
+    type AWS_Profile profile:Text=''
