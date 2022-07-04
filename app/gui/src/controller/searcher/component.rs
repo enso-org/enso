@@ -90,7 +90,7 @@ impl Order {
         match self {
             Order::ByNameNonModulesThenModules => {
                 let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
-                cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
+                cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))
             }
             Order::ByMatch => a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse(),
         }
@@ -264,7 +264,7 @@ impl List {
             group.update_sorting_and_visibility(components_order);
         }
         for group in self.favorites.iter() {
-            group.update_sorting_and_visibility(pattern);
+            group.update_sorting_and_visibility(components_order);
         }
         self.filtered.set(pattern_not_empty);
     }
