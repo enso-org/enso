@@ -28,6 +28,36 @@ pub type Id = suggestion_database::entry::Id;
 pub type MatchInfo = controller::searcher::action::MatchInfo;
 
 
+
+// =============
+// === Order ===
+// =============
+
+/// Defines supported sorting orders for [`Component`]s. Used by
+/// [`Group::update_sorting_and_visibility`].
+#[derive(Copy, Clone, Debug)]
+pub enum Order {
+    /// Order non-modules by name, followed by modules (also by name).
+    ByNameNonModulesThenModules,
+    /// Order [`Component`]s by [`Component::match_info`] score (best scores first).
+    ByMatch,
+}
+
+impl Order {
+    /// Compare two [`Component`]s according to [`Order`].
+    fn compare(&self, a: &Component, b: &Component) -> std::cmp::Ordering {
+        match self {
+            Order::ByNameNonModulesThenModules => {
+                let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+                cmp_can_be_entered.then_with(|| a.label().cmp(b.label()))
+            }
+            Order::ByMatch => a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse(),
+        }
+    }
+}
+
+
+
 // =================
 // === Component ===
 // =================
@@ -128,6 +158,9 @@ pub struct List {
     top_modules_flattened: group::AlphabeticalList,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
     filtered:              Rc<Cell<bool>>,
+    /// Components to display in the "Local Scope" section of the [Component
+    /// Browser](crate::controller::Searcher).
+    pub local_scope:       Group,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// [Component Browser](crate::controller::Searcher).
     pub favorites:         group::List,
@@ -163,20 +196,23 @@ impl List {
         for component in &*self.all_components {
             component.update_matching_info(pattern)
         }
+        let pattern_not_empty = !pattern.is_empty();
+        let components_order =
+            if pattern_not_empty { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
         for group in self.all_groups_not_in_favorites() {
-            group.update_sorting_and_visibility(pattern);
+            group.update_sorting_and_visibility(components_order);
         }
         for group in self.favorites.iter() {
             group.update_visibility();
         }
-        self.filtered.set(!pattern.is_empty());
+        self.filtered.set(pattern_not_empty);
     }
 
     /// All groups from [`List`] without the groups found in [`List::favorites`].
     fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
-        normal.chain(flattened)
+        normal.chain(flattened).chain(std::iter::once(&self.local_scope))
     }
 }
 
@@ -301,7 +337,7 @@ pub(crate) mod tests {
             suggestion_db.put_entry(id, entry.clone())
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
-        let mut builder = builder::List::new();
+        let mut builder = builder::List::new().with_local_scope_module_id(0);
         builder.set_favorites(&suggestion_db, &favorites);
         builder.extend(&suggestion_db, 0..4);
         let list = builder.build();
@@ -309,22 +345,27 @@ pub(crate) mod tests {
         list.update_filtering("fu");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
+        assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
         list.update_filtering("x");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("Sub");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[1]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("y");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 1]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
+        assert_ids_of_matches_entries(&list.local_scope, &[2]);
     }
 
 
@@ -335,7 +376,7 @@ pub(crate) mod tests {
         // Create a components list with sample data.
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
-        let mut builder = builder::List::new();
+        let mut builder = builder::List::new().with_local_scope_module_id(0);
         builder.extend(&suggestion_db, 0..11);
         let list = builder.build();
 

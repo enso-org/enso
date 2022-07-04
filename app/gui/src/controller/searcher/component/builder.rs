@@ -67,6 +67,7 @@ impl ModuleGroups {
 pub struct List {
     all_components: Vec<Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
+    local_scope:    component::Group,
     favorites:      component::group::List,
 }
 
@@ -76,12 +77,25 @@ impl List {
         default()
     }
 
+    /// Return [`List`] with a new [`local_scope`] with its [`Group::component_id`] field set to
+    /// `module_id`. When the [`extend`] method is called on the returned object, components passed
+    /// to the method which have their parent module ID equal to `module_id` will be cloned into
+    /// [`component::List::local_scope`].
+    pub fn with_local_scope_module_id(self, module_id: component::Id) -> Self {
+        const LOCAL_SCOPE_GROUP_NAME: &str = "Local Scope";
+        let id = Some(module_id);
+        let local_scope = component::Group::from_name_and_id(LOCAL_SCOPE_GROUP_NAME, id);
+        Self { local_scope, ..self }
+    }
+
     /// Extend the list with new entries looked up by ID in suggestion database.
     pub fn extend(
         &mut self,
         db: &model::SuggestionDatabase,
         entries: impl IntoIterator<Item = component::Id>,
     ) {
+        use suggestion_database::entry::Kind;
+        let local_scope_id = self.local_scope.component_id;
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
@@ -90,6 +104,12 @@ impl List {
                 if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
+                    let parent_id = parent_group.content.component_id;
+                    let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
+                    let not_module = component.suggestion.kind != Kind::Module;
+                    if in_local_scope && not_module {
+                        self.local_scope.entries.borrow_mut().push(component.clone_ref());
+                    }
                 }
                 if let Some(top_group) = self.lookup_module_group(db, &parent_module.top_module()) {
                     if let Some(flatten_group) = &mut top_group.flattened_content {
@@ -147,12 +167,14 @@ impl List {
     /// Build the list, sorting all group lists and groups' contents appropriately. (Does not sort
     /// the [`component::List::favorites`].)
     pub fn build(self) -> component::List {
+        let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
-            group.content.update_sorting_and_visibility("");
+            group.content.update_sorting_and_visibility(components_order);
             if let Some(flattened) = &group.flattened_content {
-                flattened.update_sorting_and_visibility("");
+                flattened.update_sorting_and_visibility(components_order);
             }
         }
+        self.local_scope.update_sorting_and_visibility(components_order);
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
@@ -165,6 +187,7 @@ impl List {
             module_groups:         Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
+            local_scope:           self.local_scope,
             filtered:              default(),
             favorites:             self.favorites,
         }
@@ -204,8 +227,8 @@ mod tests {
     #[test]
     fn building_component_list() {
         let logger = Logger::new("tests::module_groups_in_component_list");
-        let suggestion_db = Rc::new(mock_suggestion_db(logger));
-        let mut builder = List::new();
+        let suggestion_db = mock_suggestion_db(logger);
+        let mut builder = List::new().with_local_scope_module_id(0);
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
         builder.extend(&suggestion_db, first_part);
@@ -297,5 +320,10 @@ mod tests {
         .into_iter()
         .collect();
         assert_eq!(module_subgroups, expected);
+
+        let local_scope_entries = &list.local_scope.entries;
+        let local_scope_ids = local_scope_entries.borrow().iter().map(|e| *e.id).collect_vec();
+        let expected_ids = vec![5, 6];
+        assert_eq!(local_scope_ids, expected_ids);
     }
 }

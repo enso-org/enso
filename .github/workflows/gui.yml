@@ -9,7 +9,7 @@ name: GUI CI
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  ide-ci-actions-workflow-definition-job-assert-changelog-linux:
+  enso-build-cli-ci-gen-job-assert-changelog-linux:
     name: Assert if CHANGELOG.md was updated (on pull request)
     runs-on:
       - self-hosted
@@ -17,15 +17,15 @@ jobs:
       - engine
     steps:
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
       - id: changed_files
         run: "git fetch\nlist=`git diff --name-only origin/develop HEAD | tr '\\n' ' '`\necho $list\necho \"::set-output name=list::'$list'\""
       - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') || github.event.pull_request.user.login == 'dependabot' }} == false ]]; then exit 1; fi"
         if: "github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'"
-  ide-ci-actions-workflow-definition-job-build-project-manager-linux:
-    name: Build Project Manager (linux)
+  enso-build-cli-ci-gen-job-build-backend-linux:
+    name: Build Backend (linux)
     runs-on:
       - self-hosted
       - Linux
@@ -47,34 +47,21 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run backend get"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run backend get"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-build-project-manager-macos:
-    name: Build Project Manager (macos)
+  enso-build-cli-ci-gen-job-build-backend-macos:
+    name: Build Backend (macos)
     runs-on:
       - macos-latest
     steps:
@@ -94,34 +81,21 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run backend get"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run backend get"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-build-project-manager-windows:
-    name: Build Project Manager (windows)
+  enso-build-cli-ci-gen-job-build-backend-windows:
+    name: Build Backend (windows)
     runs-on:
       - self-hosted
       - Windows
@@ -143,33 +117,20 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run backend get"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run backend get"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-build-wasm-linux:
+  enso-build-cli-ci-gen-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
     runs-on:
       - self-hosted
@@ -192,33 +153,20 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
+      - run: "./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
-      - run: "./run wasm build"
-        if: "runner.os == 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run wasm build"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-build-wasm-macos:
+  enso-build-cli-ci-gen-job-build-wasm-macos:
     name: Build GUI (WASM) (macos)
     runs-on:
       - macos-latest
@@ -239,33 +187,20 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
+      - run: "./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
-      - run: "./run wasm build"
-        if: "runner.os == 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run wasm build"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-build-wasm-windows:
+  enso-build-cli-ci-gen-job-build-wasm-windows:
     name: Build GUI (WASM) (windows)
     runs-on:
       - self-hosted
@@ -288,33 +223,20 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
+      - run: "./run  --upload-artifacts ${{ runner.os == 'Linux' }} wasm build"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
-      - run: "./run wasm build"
-        if: "runner.os == 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run wasm build"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-cancel-workflow-linux:
+  enso-build-cli-ci-gen-job-cancel-workflow-linux:
     name: Cancel Previous Runs
     runs-on:
       - X64
@@ -323,10 +245,10 @@ jobs:
         uses: styfle/cancel-workflow-action@0.9.1
         with:
           access_token: "${{ github.token }}"
-  ide-ci-actions-workflow-definition-job-integration-test-linux:
+  enso-build-cli-ci-gen-job-integration-test-linux:
     name: IDE integration tests (linux)
     needs:
-      - ide-ci-actions-workflow-definition-job-build-project-manager-linux
+      - enso-build-cli-ci-gen-job-build-backend-linux
     runs-on:
       - self-hosted
       - Linux
@@ -348,33 +270,20 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run ide integration-test --backend-source current-ci-run"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run ide integration-test --backend-source current-ci-run"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-lint-linux:
+  enso-build-cli-ci-gen-job-lint-linux:
     name: Lint (linux)
     runs-on:
       - self-hosted
@@ -397,33 +306,20 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run lint"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run lint"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-native-test-linux:
+  enso-build-cli-ci-gen-job-native-test-linux:
     name: Native GUI tests (linux)
     runs-on:
       - self-hosted
@@ -446,37 +342,24 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run wasm test --no-wasm"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run wasm test --no-wasm"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-package-ide-linux:
+  enso-build-cli-ci-gen-job-package-ide-linux:
     name: Package IDE (linux)
     needs:
-      - ide-ci-actions-workflow-definition-job-build-project-manager-linux
-      - ide-ci-actions-workflow-definition-job-build-wasm-linux
+      - enso-build-cli-ci-gen-job-build-backend-linux
+      - enso-build-cli-ci-gen-job-build-wasm-linux
     runs-on:
       - self-hosted
       - Linux
@@ -498,37 +381,24 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run ide build --wasm-source current-ci-run --backend-source current-ci-run"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run ide build --wasm-source current-ci-run --backend-source current-ci-run"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-package-ide-macos:
+  enso-build-cli-ci-gen-job-package-ide-macos:
     name: Package IDE (macos)
     needs:
-      - ide-ci-actions-workflow-definition-job-build-project-manager-macos
-      - ide-ci-actions-workflow-definition-job-build-wasm-macos
+      - enso-build-cli-ci-gen-job-build-backend-macos
+      - enso-build-cli-ci-gen-job-build-wasm-macos
     runs-on:
       - macos-latest
     steps:
@@ -548,37 +418,24 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run ide build --wasm-source current-ci-run --backend-source current-ci-run"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run ide build --wasm-source current-ci-run --backend-source current-ci-run"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-package-ide-windows:
+  enso-build-cli-ci-gen-job-package-ide-windows:
     name: Package IDE (windows)
     needs:
-      - ide-ci-actions-workflow-definition-job-build-project-manager-windows
-      - ide-ci-actions-workflow-definition-job-build-wasm-windows
+      - enso-build-cli-ci-gen-job-build-backend-windows
+      - enso-build-cli-ci-gen-job-build-wasm-windows
     runs-on:
       - self-hosted
       - Windows
@@ -600,33 +457,20 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run ide build --wasm-source current-ci-run --backend-source current-ci-run"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run ide build --wasm-source current-ci-run --backend-source current-ci-run"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()
-  ide-ci-actions-workflow-definition-job-wasm-test-linux:
+  enso-build-cli-ci-gen-job-wasm-test-linux:
     name: WASM GUI tests (linux)
     runs-on:
       - self-hosted
@@ -649,29 +493,16 @@ jobs:
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
       - name: Checking out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           clean: false
-      - run: "./run --help"
-        if: "runner.os == 'Windows'"
+      - name: Build Script Setup
+        run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run --help"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - run: "./run wasm test --no-native"
-        if: "runner.os == 'Windows'"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: pwsh
-      - run: "./run wasm test --no-native"
-        if: "runner.os != 'Windows'"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        shell: bash
       - name: List files if failed
         run: ls -R
         if: failure()

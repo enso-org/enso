@@ -169,11 +169,11 @@ abstract class DummyRepository {
     *             [[createRepository]]
     * @param uploads specifies whether to enable uploads in the server
     */
-  def startServer(
+  private def startServer(
     port: Int,
     root: Path,
-    uploads: Boolean = false
-  ): Server = {
+    uploads: Boolean
+  ): Server = DummyRepository.lock.synchronized {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
 
@@ -220,4 +220,7 @@ abstract class DummyRepository {
     }
     Server(process)
   }
+}
+object DummyRepository {
+  private val lock = new Object
 }

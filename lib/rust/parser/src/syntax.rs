@@ -7,6 +7,7 @@
 // ==============
 
 pub mod item;
+pub mod operator;
 pub mod token;
 pub mod tree;
 
