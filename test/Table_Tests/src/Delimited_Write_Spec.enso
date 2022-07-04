@@ -129,7 +129,7 @@ spec =
             text = File.read_text file
             text.should_equal expected_text+'\n'
 
-        Test.specify "should correctly handle alternative encodings" pending="TODO: will be implemented in the next PR" <|
+        Test.specify "should correctly handle alternative encodings" <|
             table = Table.new [["ąęćś", [0]], ["ß", ["żółw 🐢"]]]
             file = (Enso_Project.data / "transient" / "utf16.csv")
             file.delete_if_exists
@@ -140,7 +140,7 @@ spec =
             text = File.read_text file encoding=Encoding.utf_16_be
             text.should_equal expected_text+'\n'
 
-        Test.specify "should correctly handle encoding errors" pending="TODO: will be implemented in the next PR" <|
+        Test.specify "should correctly handle encoding errors" <|
             table = Table.new [["A", [0, 1]], ["B", ["słówka", "🐢"]]]
             file = (Enso_Project.data / "transient" / "ascii.csv")
             file.delete_if_exists

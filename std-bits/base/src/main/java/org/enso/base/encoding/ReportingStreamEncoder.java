@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
+import java.util.Arrays;
 
 public class ReportingStreamEncoder extends Writer {
   /**
@@ -20,6 +21,7 @@ public class ReportingStreamEncoder extends Writer {
       OutputStream outputStream, CharsetEncoder encoder, byte[] replacementSequence) {
     this.encoder = encoder;
     bufferedOutputStream = new BufferedOutputStream(outputStream);
+    System.out.println(encoder.charset().toString() + " --> " + Arrays.toString(replacementSequence));
   }
 
   private final BufferedOutputStream bufferedOutputStream;
