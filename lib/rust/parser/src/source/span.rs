@@ -79,6 +79,16 @@ impl<'s> Offset<'s> {
     pub fn len(&self) -> Bytes {
         self.code.len()
     }
+
+    /// Check if the offset is 0.
+    pub fn is_empty(&self) -> bool {
+        self.len() == Bytes(0)
+    }
+
+    /// Check if the offset is bigger than 0.
+    pub fn exists(&self) -> bool {
+        self.len() > Bytes(0)
+    }
 }
 
 impl<'s> AsRef<Offset<'s>> for Offset<'s> {
@@ -94,17 +104,31 @@ impl<'s> From<&'s str> for Offset<'s> {
     }
 }
 
+impl<'s> std::ops::AddAssign<Offset<'s>> for Offset<'s> {
+    fn add_assign(&mut self, other: Offset<'s>) {
+        self.visible += other.visible;
+        self.code += other.code;
+    }
+}
+
+impl<'s> std::ops::AddAssign<&Offset<'s>> for Offset<'s> {
+    fn add_assign(&mut self, other: &Offset<'s>) {
+        self.visible += other.visible;
+        self.code += &other.code;
+    }
+}
+
 
 
 // ============
 // === Span ===
 // ============
 
-/// A span of a given syntactic element (token or AST). It contains the left offset code and the
-/// information about the length of the element. It does not contain the code of the element. This
-/// is done in order to not duplicate the data. For example, some AST nodes contain a lot of tokens.
-/// They need to remember their span, but they do not need to remember their code, because it is
-/// already stored in the tokens.
+/// A span of a given syntactic element (token or AST). It is a monoid that contains the left offset
+/// code and the information about the length of the element. It does not contain the code of the
+/// element. This is done in order to not duplicate the data. For example, some AST nodes contain a
+/// lot of tokens. They need to remember their span, but they do not need to remember their code,
+/// because it is already stored in the tokens.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Span<'s> {
@@ -114,35 +138,51 @@ pub struct Span<'s> {
 }
 
 impl<'s> Span<'s> {
-    /// Extend the span with another one. The other span has to be the immediate neighbor of the
-    /// current span.
-    #[inline(always)]
-    pub fn extend<'a, T>(&mut self, other: T)
-    where
-        T: Into<Ref<'s, 'a>>,
-        's: 'a, {
-        let other = other.into();
-        self.code_length += other.left_offset.len() + other.code_length;
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
+    }
+    /// Check whether the span is empty.
+    pub fn is_empty(&self) -> bool {
+        self.left_offset.is_empty() && self.code_length.is_zero()
     }
 
-    /// Self consuming version of [`extend`].
-    pub fn extended<'a, T>(mut self, other: T) -> Self
-    where
-        T: Into<Ref<'s, 'a>>,
-        's: 'a, {
-        self.extend(other);
-        self
+    /// Check whether the span is only an offset, without the code part.
+    pub fn is_only_offset(&self) -> bool {
+        self.code_length.is_zero()
     }
 
     /// Get the [`Ref`] of the current span.
     pub fn as_ref(&self) -> Ref<'_, 's> {
         Ref { left_offset: &self.left_offset, code_length: self.code_length }
     }
+
+    /// Add the item to this span. The item can be anything that implements the span [`Builder`].
+    #[allow(clippy::should_implement_trait)]
+    pub fn add<T: Builder<'s>>(self, elem: &mut T) -> Self {
+        Builder::add_to_span(elem, self)
+    }
 }
 
 impl<'s> AsRef<Span<'s>> for Span<'s> {
     fn as_ref(&self) -> &Span<'s> {
         self
+    }
+}
+
+impl<'s, 'a, T> PartialSemigroup<T> for Span<'s>
+where
+    T: Into<Ref<'s, 'a>>,
+    's: 'a,
+{
+    fn concat_mut(&mut self, other: T) {
+        let other = other.into();
+        if self.code_length.is_zero() {
+            self.left_offset += other.left_offset;
+            self.code_length = other.code_length;
+        } else {
+            self.code_length += other.left_offset.len() + other.code_length;
+        }
     }
 }
 
@@ -233,254 +273,98 @@ impl<'s> FirstChildTrim<'s> for Span<'s> {
 #[macro_export]
 macro_rules! span_builder {
     ($($arg:ident),* $(,)?) => {
-        $crate::source::span::Builder::new() $(.add(&mut $arg))* .span
+        $crate::source::span::Span::new() $(.add(&mut $arg))*
     };
 }
 
-/// A marker struct for span building. The [`T`] parameter can be one of:
-/// - [`()`], which means that the structure was not used yet.
-/// - [`Option<Span<'s>>`], which means that the struct was used to build the span, however, we are
-///   unsure whether the span is known in all the cases.
-/// - [`Span<'s>`], which means that the total span can be always computed for the provided
-///   parameters.
-#[derive(Default, Debug)]
+
+/// Elements implementing this trait can contain a span or multiple spans. If an element is added to
+/// an empty span, it means that it is the first element in the span group. In such a case, the left
+/// offset of the element will be removed and moved to the resulting span. See the docs of
+/// [`FirstChildTrim`] to learn more.
 #[allow(missing_docs)]
-pub struct Builder<T = ()> {
-    pub span: T,
-}
-
-/// Constructor.
-#[allow(non_snake_case)]
-pub fn Builder<T>(span: T) -> Builder<T> {
-    Builder { span }
-}
-
-impl Builder<()> {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-impl<T> Builder<T> {
-    /// Add a new span to the builder.
-    #[inline(always)]
-    #[allow(clippy::should_implement_trait)]
-    pub fn add<S>(self, elem: &mut S) -> Builder<S::Output>
-    where S: Build<T> {
-        Builder(elem.build(self))
-    }
-}
-
-/// A trait defining the behavior of [`Builder`] for different types containing spans.
-///
-/// The trait definition is a little bit strange, consuming the builder as a parameter instead of
-/// consuming it as self. This is done because otherwise Rust type checker goes into infinite
-/// loops.
-#[allow(missing_docs)]
-pub trait Build<T> {
-    type Output;
-    fn build(&mut self, builder: Builder<T>) -> Self::Output;
+pub trait Builder<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s>;
 }
 
 
 // === Instances ===
 
-impl<'s> Build<()> for Span<'s> {
-    type Output = Span<'s>;
+impl<'s> Builder<'s> for Span<'s> {
     #[inline(always)]
-    fn build(&mut self, _builder: Builder<()>) -> Self::Output {
-        self.trim_as_first_child()
-    }
-}
-
-impl<'s> Build<Span<'s>> for Span<'s> {
-    type Output = Span<'s>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
-        builder.span.extended(&*self)
-    }
-}
-
-impl<'s> Build<Option<Span<'s>>> for Span<'s> {
-    type Output = Span<'s>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        match builder.span {
-            Some(span) => span.extended(&*self),
-            None => self.trim_as_first_child(),
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        if span.is_only_offset() {
+            span.concat(&self.trim_as_first_child())
+        } else {
+            span.concat(&*self)
         }
     }
 }
 
-impl<'s> Build<()> for Tree<'s> {
-    type Output = Span<'s>;
+impl<'s> Builder<'s> for Tree<'s> {
     #[inline(always)]
-    fn build(&mut self, builder: Builder<()>) -> Self::Output {
-        Build::build(&mut self.span, builder)
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        Builder::add_to_span(&mut self.span, span)
     }
 }
 
-impl<'s> Build<Span<'s>> for Tree<'s> {
-    type Output = Span<'s>;
+impl<'s, T> Builder<'s> for Token<'s, T> {
     #[inline(always)]
-    fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
-        builder.span.extended(&self.span)
-    }
-}
-
-impl<'s> Build<Option<Span<'s>>> for Tree<'s> {
-    type Output = Span<'s>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        Build::build(&mut self.span, builder)
-    }
-}
-
-impl<'s, T> Build<()> for Token<'s, T> {
-    type Output = Span<'s>;
-    #[inline(always)]
-    fn build(&mut self, _builder: Builder<()>) -> Self::Output {
-        self.trim_as_first_child()
-    }
-}
-
-impl<'s, T> Build<Span<'s>> for Token<'s, T> {
-    type Output = Span<'s>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
-        builder.span.extended(self.span())
-    }
-}
-
-impl<'s, T> Build<Option<Span<'s>>> for Token<'s, T> {
-    type Output = Span<'s>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        match builder.span {
-            Some(span) => span.extended(self.span()),
-            None => self.trim_as_first_child(),
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        if span.is_only_offset() {
+            span.concat(&self.trim_as_first_child())
+        } else {
+            span.concat(self.span())
         }
     }
 }
 
-impl<T> Build<()> for Option<T>
-where T: Build<()>
+impl<'s, T> Builder<'s> for Option<T>
+where T: Builder<'s>
 {
-    type Output = Option<<T as Build<()>>::Output>;
     #[inline(always)]
-    fn build(&mut self, builder: Builder<()>) -> Self::Output {
-        self.as_mut().map(|t| Build::build(t, builder))
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        self.as_mut().map(|t| Builder::add_to_span(t, span)).unwrap_or_default()
     }
 }
 
-impl<'s, T> Build<Option<Span<'s>>> for Option<T>
-where T: Build<Option<Span<'s>>>
-{
-    type Output = Option<<T as Build<Option<Span<'s>>>>::Output>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        self.as_mut().map(|t| Build::build(t, builder))
-    }
-}
-
-impl<'s, T> Build<Span<'s>> for Option<T>
-where T: Build<Span<'s>, Output = Span<'s>>
-{
-    type Output = Span<'s>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
-        match self.as_mut() {
-            None => builder.span,
-            Some(t) => Build::build(t, builder),
-        }
-    }
-}
-
-impl<S, T, E> Build<S> for Result<T, E>
+impl<'s, T, E> Builder<'s> for Result<T, E>
 where
-    T: Build<S>,
-    E: Build<S, Output = <T as Build<S>>::Output>,
+    T: Builder<'s>,
+    E: Builder<'s>,
 {
-    type Output = <T as Build<S>>::Output;
     #[inline(always)]
-    fn build(&mut self, builder: Builder<S>) -> Self::Output {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         match self {
-            Ok(t) => Build::build(t, builder),
-            Err(t) => Build::build(t, builder),
+            Ok(t) => Builder::add_to_span(t, span),
+            Err(t) => Builder::add_to_span(t, span),
         }
     }
 }
 
-impl<S, T> Build<S> for NonEmptyVec<T>
-where
-    T: Build<S>,
-    [T]: Build<<T as Build<S>>::Output>,
+impl<'s, T> Builder<'s> for NonEmptyVec<T>
+where T: Builder<'s>
 {
-    type Output = <[T] as Build<T::Output>>::Output;
     #[inline(always)]
-    fn build(&mut self, builder: Builder<S>) -> Self::Output {
-        let b = Build::build(self.first_mut(), builder);
-        Build::build(self.tail_mut(), Builder(b))
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        self.into_iter().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
     }
 }
 
-impl<'s, T> Build<Span<'s>> for Vec<T>
-where T: Build<Span<'s>, Output = Span<'s>>
+impl<'s, T> Builder<'s> for Vec<T>
+where T: Builder<'s>
 {
-    type Output = Span<'s>;
     #[inline(always)]
-    fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
-        let mut out = builder.span;
-        for elem in self {
-            out = Build::build(elem, Builder(out))
-        }
-        out
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        self.iter_mut().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
     }
 }
 
-impl<'s, T> Build<Option<Span<'s>>> for Vec<T>
-where
-    T: Build<Option<Span<'s>>>,
-    T::Output: Into<Option<Span<'s>>>,
+impl<'s, T> Builder<'s> for [T]
+where T: Builder<'s>
 {
-    type Output = Option<Span<'s>>;
     #[inline(always)]
-    fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        let mut out = builder.span;
-        for elem in self {
-            out = Build::build(elem, Builder(out)).into();
-        }
-        out
-    }
-}
-
-impl<'s, T> Build<Span<'s>> for [T]
-where T: Build<Span<'s>, Output = Span<'s>>
-{
-    type Output = Span<'s>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
-        let mut out = builder.span;
-        for elem in self {
-            out = Build::build(elem, Builder(out));
-        }
-        out
-    }
-}
-
-impl<'s, T> Build<Option<Span<'s>>> for [T]
-where
-    T: Build<Option<Span<'s>>>,
-    T::Output: Into<Option<Span<'s>>>,
-{
-    type Output = Option<Span<'s>>;
-    #[inline(always)]
-    fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        let mut out = builder.span;
-        for elem in self {
-            out = Build::build(elem, Builder(out)).into();
-        }
-        out
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        self.iter_mut().fold(span, |sum, new_span| Builder::add_to_span(new_span, sum))
     }
 }

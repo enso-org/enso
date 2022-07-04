@@ -5,8 +5,11 @@ import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
-import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import java.io.File
 
@@ -65,6 +68,11 @@ val targetStdlibVersion = ensoVersion
 
 ThisBuild / organization := "org.enso"
 ThisBuild / scalaVersion := scalacVersion
+
+/* Tag limiting the concurrent access to tools/simple-library-server in tests.
+ */
+val simpleLibraryServerTag = Tags.Tag("simple-library-server")
+Global / concurrentRestrictions += Tags.limit(simpleLibraryServerTag, 1)
 
 lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
@@ -155,11 +163,11 @@ Global / excludeLintKeys += logManager
 // ============================================================================
 
 ThisBuild / javacOptions ++= Seq(
-  "-encoding",         // Provide explicit encoding (the next line)
-  "UTF-8",             // Specify character encoding used by Java source files
-  "-deprecation",      // Shows a description of each use or override of a deprecated member or class
-  "-g",                // Include debugging information
-  "-Xlint:unchecked",  // Enable additional warnings
+  "-encoding",       // Provide explicit encoding (the next line)
+  "UTF-8",           // Specify character encoding used by Java source files
+  "-deprecation",    // Shows a description of each use or override of a deprecated member or class
+  "-g",              // Include debugging information
+  "-Xlint:unchecked" // Enable additional warnings
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -966,13 +974,16 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     version := "0.1",
     frgaalJavaCompilerSetting,
     Compile / javacOptions := ((Compile / javacOptions).value ++
-      // Only run ServiceProvider processor and ignore those defined in META-INF, thus
-      // fixing incremental compilation setup
-      Seq("-processor", "org.netbeans.modules.openide.util.ServiceProviderProcessor")),
+    // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+    // fixing incremental compilation setup
+    Seq(
+      "-processor",
+      "org.netbeans.modules.openide.util.ServiceProviderProcessor"
+    )),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
       "org.netbeans.api"   % "org-openide-util-lookup" % "RELEASE130",
-      "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
+      "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305")
     )
   )
 
@@ -1158,39 +1169,51 @@ lazy val frgaalJavaCompilerSetting = Seq(
   // accessible from the non-meta build definition.
   libraryDependencies += FrgaalJavaCompiler.frgaal,
   // Ensure that our tooling uses the right Java version for checking the code.
-  Compile / javacOptions ++= Seq("-source", frgaalSourceLevel, "--enable-preview"),
+  Compile / javacOptions ++= Seq(
+    "-source",
+    frgaalSourceLevel,
+    "--enable-preview"
+  )
 )
-
 
 lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
   version := ensoVersion,
   commands += WithDebugCommand.withDebug,
-  Compile/logManager :=
-    sbt.internal.util.CustomLogManager.excludeMsg("Could not determine source for class ", Level.Warn),
-  Compile / javacOptions --= Seq("-source", frgaalSourceLevel, "--enable-preview"),
+  Compile / logManager :=
+    sbt.internal.util.CustomLogManager
+      .excludeMsg("Could not determine source for class ", Level.Warn),
+  Compile / javacOptions --= Seq(
+    "-source",
+    frgaalSourceLevel,
+    "--enable-preview"
+  ),
   libraryDependencies ++= Seq(
-    "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
-    "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
+    "org.graalvm.truffle" % "truffle-api"           % graalVersion % "provided",
+    "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion % "provided"
   ),
   (Compile / javacOptions) ++= Seq(
     "-s",
     (Compile / sourceManaged).value.getAbsolutePath,
-    "-Xlint:unchecked",
-  ),
+    "-Xlint:unchecked"
+  )
 )
 
-lazy val `runtime-language-epb` = (project in file("engine/runtime-language-epb"))
-  .settings(
-    inConfig(Compile)(truffleRunOptionsSettings),
-    instrumentationSettings
-  )
+lazy val `runtime-language-epb` =
+  (project in file("engine/runtime-language-epb"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
-    Compile/logManager :=
-      sbt.internal.util.CustomLogManager.excludeMsg("Could not determine source for class ", Level.Warn),
+    Compile / logManager :=
+      sbt.internal.util.CustomLogManager.excludeMsg(
+        "Could not determine source for class ",
+        Level.Warn
+      ),
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
@@ -1198,7 +1221,11 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Benchmark)(
       Defaults.compilersSetting
     ), // Compile benchmarks with javac, due to jmh issues
-    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel, "--enable-preview"),
+    Benchmark / javacOptions --= Seq(
+      "-source",
+      frgaalSourceLevel,
+      "--enable-preview"
+    ),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
@@ -1298,69 +1325,77 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 
-lazy val `runtime-instrument-id-execution` = (project in file("engine/runtime-instrument-id-execution"))
-  .settings(
-    inConfig(Compile)(truffleRunOptionsSettings),
-    instrumentationSettings
-  )
-  .dependsOn(runtime)
+lazy val `runtime-instrument-id-execution` =
+  (project in file("engine/runtime-instrument-id-execution"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
+    .dependsOn(runtime)
 
-lazy val `runtime-instrument-repl-debugger` = (project in file("engine/runtime-instrument-repl-debugger"))
-  .settings(
-    inConfig(Compile)(truffleRunOptionsSettings),
-    instrumentationSettings
-  )
-  .dependsOn(runtime)
+lazy val `runtime-instrument-repl-debugger` =
+  (project in file("engine/runtime-instrument-repl-debugger"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
+    .dependsOn(runtime)
 
-lazy val `runtime-instrument-runtime-server` = (project in file("engine/runtime-instrument-runtime-server"))
-  .settings(
-    inConfig(Compile)(truffleRunOptionsSettings),
-    instrumentationSettings
-  )
-  .dependsOn(runtime)
+lazy val `runtime-instrument-runtime-server` =
+  (project in file("engine/runtime-instrument-runtime-server"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
+    .dependsOn(runtime)
 
-lazy val `runtime-with-instruments`  = (project in file("engine/runtime-with-instruments"))
-  .configs(Benchmark)
-  .settings(
-    frgaalJavaCompilerSetting,
-    inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    commands += WithDebugCommand.withDebug,
-    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel, "--enable-preview"),
-    Test / javaOptions ++= Seq(
-      "-Dgraalvm.locatorDisabled=true",
-      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
-    ),
-    Test / fork := true,
-    Test / envVars ++= distributionEnvironmentOverrides ++ Map(
-      "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
-    ),
-    libraryDependencies ++= Seq(
-      "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
-      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Test,
-      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % Test,
-    ),
-    // Note [Unmanaged Classpath]
-    Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
-    assembly / assemblyJarName := "runtime.jar",
-    assembly / test := {},
-    assembly / assemblyOutputPath := file("runtime.jar"),
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-        MergeStrategy.discard
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-        MergeStrategy.discard
-      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-        MergeStrategy.discard
-      case PathList("META-INF", "services", xs @ _*) =>
-        MergeStrategy.concat
-      case _ => MergeStrategy.first
-    }
-  )
-  .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
-  .dependsOn(`runtime-instrument-id-execution`)
-  .dependsOn(`runtime-instrument-repl-debugger`)
-  .dependsOn(`runtime-instrument-runtime-server`)
+lazy val `runtime-with-instruments` =
+  (project in file("engine/runtime-with-instruments"))
+    .configs(Benchmark)
+    .settings(
+      frgaalJavaCompilerSetting,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Benchmark)(Defaults.testSettings),
+      commands += WithDebugCommand.withDebug,
+      Benchmark / javacOptions --= Seq(
+        "-source",
+        frgaalSourceLevel,
+        "--enable-preview"
+      ),
+      Test / javaOptions ++= Seq(
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      ),
+      Test / fork := true,
+      Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+        "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      ),
+      libraryDependencies ++= Seq(
+        "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion     % Test,
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % Test
+      ),
+      // Note [Unmanaged Classpath]
+      Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
+      assembly / assemblyJarName := "runtime.jar",
+      assembly / test := {},
+      assembly / assemblyOutputPath := file("runtime.jar"),
+      assembly / assemblyMergeStrategy := {
+        case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+          MergeStrategy.discard
+        case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+          MergeStrategy.discard
+        case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+          MergeStrategy.discard
+        case PathList("META-INF", "services", xs @ _*) =>
+          MergeStrategy.concat
+        case _ => MergeStrategy.first
+      }
+    )
+    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
+    .dependsOn(`runtime-instrument-id-execution`)
+    .dependsOn(`runtime-instrument-repl-debugger`)
+    .dependsOn(`runtime-instrument-runtime-server`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1565,6 +1600,7 @@ lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
   .configs(Test)
   .settings(
+    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
@@ -1601,6 +1637,7 @@ lazy val `library-manager-test` = project
   .in(file("lib/scala/library-manager-test"))
   .configs(Test)
   .settings(
+    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
