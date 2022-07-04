@@ -2396,10 +2396,10 @@ impl GraphEditorModel {
         found
     }
 
-    /// Pan the camera to make the `target_bbox` (expressed in scene coordinates) fully fit in a
+    /// Pan the camera to fully fit the `target_bbox` (expressed in scene coordinates) in a
     /// rectangular viewport between `screen_min_xy` and `screen_max_xy` (in screen coordinates).
-    /// If `target_bbox` does not fully fit in the viewport, showing the left & top boundaries of
-    /// `target_bbox` takes priority over showing the corresponding opposite ones.
+    /// If `target_bbox` does not fully fit in the viewport, prefer showing the top-left corner of
+    /// `target_bbox` than the opposite one.
     fn pan_camera(
         &self,
         target_bbox: selection::BoundingBox,
