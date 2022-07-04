@@ -3,11 +3,9 @@
 
 
 
-mod bounding_box;
-
 use ensogl::prelude::*;
 
-pub use bounding_box::BoundingBox;
+pub use ensogl::data::bounding_box::BoundingBox;
 
 use crate::NodeId;
 use crate::Nodes;
@@ -16,7 +14,6 @@ use crate::TouchState;
 use ensogl::frp;
 use ensogl::gui::cursor;
 use ensogl::gui::cursor::Cursor;
-
 
 
 // ============

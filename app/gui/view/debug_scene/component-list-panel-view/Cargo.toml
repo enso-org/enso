@@ -17,3 +17,4 @@ ensogl-text-msdf-sys = { path = "../../../../../lib/rust/ensogl/component/text/m
 ide-view-component-group = { path = "../../component-browser/component-group" }
 searcher-list-panel = { path = "../../component-browser/searcher-list-panel" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+js-sys = { version = "0.3" }

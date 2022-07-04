@@ -33,14 +33,17 @@ impl Background {
         let width = &sprite_width - shadow::size(style).px();
         let height = &sprite_height - shadow::size(style).px();
         let corner_radius = &height / 2.0;
-        let rect_left = Rect((&width / 2.0, &height)).corners_radius(&corner_radius * corner_left);
-        let rect_left = rect_left.translate_x(-&width / 4.0);
-        let rect_right =
-            Rect((&width / 2.0, &height)).corners_radius(&corner_radius * corner_right);
-        let rect_right = rect_right.translate_x(&width / 4.0);
-        let rect_center = Rect((&corner_radius * 2.0, &height));
+        let left_corner_radius = &corner_radius * corner_left;
+        let right_corner_radius = &corner_radius * corner_right;
 
-        let shape = (rect_left + rect_right + rect_center).into();
+        let shape = Rect((&width, &height))
+            .corners_radiuses(
+                &left_corner_radius,
+                &right_corner_radius,
+                &left_corner_radius,
+                &right_corner_radius,
+            )
+            .into();
 
         Background { width, height, corner_radius, shape }
     }
@@ -100,7 +103,8 @@ pub mod track {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        pointer_events = false;
+        above = [background];
+        below = [left_overflow, right_overflow, io_rect];
         (style:Style,left:f32,right:f32,corner_left:f32,corner_right:f32,corner_inner:f32,
          track_color:Vector4) {
             let background    = Background::new(&corner_left,&corner_right,style);

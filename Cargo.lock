@@ -1516,6 +1516,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
+ "js-sys",
  "searcher-list-panel",
  "wasm-bindgen",
 ]
@@ -2313,6 +2314,16 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "ensogl-derive-theme"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3706,7 +3717,7 @@ dependencies = [
  "js-sys",
  "multi-map",
  "nalgebra 0.26.2",
- "ordered-float 2.10.0",
+ "ordered-float",
  "parser",
  "serde",
  "serde_json",
@@ -3756,7 +3767,7 @@ dependencies = [
  "failure",
  "js-sys",
  "nalgebra 0.26.2",
- "ordered-float 1.1.1",
+ "ordered-float",
  "serde",
  "serde_json",
  "sourcemap",
@@ -4656,24 +4667,6 @@ dependencies = [
 
 [[package]]
 name = "ordered-float"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3305af35278dd29f46fcdd139e0b1fbfae2153f0e5928b39b035542dd31e37b7"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "ordered-float"
-version = "2.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7940cf2ca942593318d07fcf2596cdca60a85c9e7fab408a5e21a4f9dcd40d87"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "ordered-float"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96bcbab4bfea7a59c2c0fe47211a1ac4e3e96bea6eb446d704f310bc5c732ae2"
@@ -5085,9 +5078,9 @@ checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.39"
+version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c54b25569025b7fc9651de43004ae593a75ad88543b17178aa5e1b9c4f15f56f"
+checksum = "dd96a1e8ed2596c337f8eae5f24924ec83f5ad5ab21ea8e455d3566c69fbcaf7"
 dependencies = [
  "unicode-ident",
 ]
@@ -5163,9 +5156,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.18"
+version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1feb54ed693b93a84e14094943b84b7c4eae204c512b7ccb95ab0c66d278ad1"
+checksum = "3bcdf212e9776fbcb2d23ab029360416bb1706b1aea2d1a5ba002727cbcab804"
 dependencies = [
  "proc-macro2",
 ]
@@ -5703,6 +5696,7 @@ dependencies = [
  "approx 0.5.1",
  "enso-frp",
  "ensogl-core",
+ "ensogl-derive-theme",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
@@ -5711,7 +5705,7 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "ide-view-component-group",
- "ordered-float 3.0.0",
+ "ordered-float",
 ]
 
 [[package]]
@@ -6154,9 +6148,9 @@ checksum = "a7973cce6668464ea31f176d85b13c7ab3bba2cb3b77a2ed26abd7801688010a"
 
 [[package]]
 name = "syn"
-version = "1.0.95"
+version = "1.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbaf6116ab8924f39d52792136fb74fd60a80194cf1b1c6ffa6453eef1c3f942"
+checksum = "c50aef8a904de4c23c788f104b7dddc7d6f79c647c7c8ce4cc8f73eb0ca773dd"
 dependencies = [
  "proc-macro2",
  "quote",
