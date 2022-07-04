@@ -160,7 +160,8 @@ public class ExcelReader {
     try {
       excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
     } catch (IllegalArgumentException e) {
-      throw new InvalidLocationException("Invalid range name or address '" + rangeNameOrAddress + "'.");
+      throw new InvalidLocationException(
+          "Invalid range name or address '" + rangeNameOrAddress + "'.");
     }
 
     return readRange(workbook, excelRange, headers, skip_rows, row_limit);
@@ -205,7 +206,8 @@ public class ExcelReader {
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
-      Integer row_limit) throws InvalidLocationException {
+      Integer row_limit)
+      throws InvalidLocationException {
     int sheetIndex = workbook.getSheetIndex(excelRange.getSheetName());
     if (sheetIndex == -1) {
       throw new InvalidLocationException("Unknown sheet '" + excelRange.getSheetName() + "'.");
