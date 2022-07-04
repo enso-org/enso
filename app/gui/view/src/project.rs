@@ -149,7 +149,8 @@ struct SearcherFrp {
 #[derive(Clone, CloneRef, Debug)]
 pub enum SearcherVariant {
     ComponentBrowser(component_browser::View),
-    OldNodeSearcher(searcher::View),
+    /// We keep the old searcher in a Rc, as its memory size is much greater than the new one.
+    OldNodeSearcher(Rc<searcher::View>),
 }
 
 impl SearcherVariant {
@@ -157,7 +158,7 @@ impl SearcherVariant {
         if ARGS.enable_component_browser.unwrap_or(false) {
             Self::ComponentBrowser(app.new_view::<component_browser::View>())
         } else {
-            Self::OldNodeSearcher(app.new_view::<searcher::View>())
+            Self::OldNodeSearcher(Rc::new(app.new_view::<searcher::View>()))
         }
     }
 
@@ -177,9 +178,9 @@ impl SearcherVariant {
                 }
                 is_empty.emit(false);
                 SearcherFrp {
-                    editing_committed: editing_committed.into(),
-                    is_visible:        view.output.is_visible.clone_ref().into(),
-                    is_empty:          is_empty.into(),
+                    editing_committed,
+                    is_visible: view.output.is_visible.clone_ref().into(),
+                    is_empty: is_empty.into(),
                 }
             }
             SearcherVariant::OldNodeSearcher(view) => {
@@ -187,9 +188,9 @@ impl SearcherVariant {
                     editing_committed <- view.editing_committed.constant(());
                 }
                 SearcherFrp {
-                    editing_committed: editing_committed.into(),
-                    is_visible:        view.output.is_visible.clone_ref().into(),
-                    is_empty:          view.output.is_empty.clone_ref().into(),
+                    editing_committed,
+                    is_visible: view.output.is_visible.clone_ref().into(),
+                    is_empty: view.output.is_empty.clone_ref().into(),
                 }
             }
         }
@@ -198,7 +199,7 @@ impl SearcherVariant {
     fn documentation(&self) -> &documentation::View {
         match self {
             SearcherVariant::ComponentBrowser(view) => &view.model().documentation,
-            SearcherVariant::OldNodeSearcher(view) => &view.documentation(),
+            SearcherVariant::OldNodeSearcher(view) => view.documentation(),
         }
     }
 
@@ -760,7 +761,7 @@ impl View {
             model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
             model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
         }
-        model.searcher.setup_anchor(&network, &searcher_anchor.value);
+        model.searcher.setup_anchor(network, &searcher_anchor.value);
         init.emit(());
         std::mem::forget(prompt_visibility);
 

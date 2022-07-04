@@ -348,6 +348,7 @@ impl ScrollArea {
         &self.model.display_object.layer.mask_layer
     }
 
+    /// Set camera in the every layer handled by this Scroll Area.
     pub fn set_camera(&self, camera: impl Into<Camera2d>) {
         let camera = camera.into();
         self.model.display_object.layer.masked_layer.set_camera(camera.clone_ref());

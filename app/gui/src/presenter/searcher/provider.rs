@@ -178,7 +178,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
         let component = self.group.get_entry(id)?;
         let match_info = component.match_info.borrow();
-        let label = component.label().to_owned();
+        let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
         Some(component_group_view::entry::Model {
             icon:             component_group_view::icon::Id::AddColumn,

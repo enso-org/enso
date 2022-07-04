@@ -40,12 +40,6 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-pub mod column_grid;
-
-pub use column_grid::LabeledAnyModelProvider;
-pub use component_group::set::GroupId;
-
-
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
@@ -76,6 +70,16 @@ use ide_view_component_group::set::Group;
 use ide_view_component_group::set::SectionId;
 use ide_view_component_group::Layers as GroupLayers;
 use searcher_theme::list_panel as list_panel_theme;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod column_grid;
+
+pub use column_grid::LabeledAnyModelProvider;
+pub use component_group::set::GroupId;
 
 
 
@@ -700,9 +704,9 @@ impl component::Frp<Model> for Frp {
         let groups = &model.groups_wrapper;
         let selection = &model.selection;
 
-        let selection_animation = Animation::<Vector2>::new(&network);
-        let selection_size_animation = Animation::<Vector2>::new(&network);
-        let selection_corners_animation = Animation::<f32>::new(&network);
+        let selection_animation = Animation::<Vector2>::new(network);
+        let selection_size_animation = Animation::<Vector2>::new(network);
+        let selection_corners_animation = Animation::<f32>::new(network);
         let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
         selection_animation.set_spring.emit(spring);
         fn selection_position(model: &Model, id: GroupId, group_local_pos: Vector2) -> Vector2 {

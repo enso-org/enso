@@ -49,6 +49,10 @@
   node cration.][3186]
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
+- [New Version of the Node Searcher - the Component Browser][3530] The available
+  methods, atoms and functions are presented in nice, categorized view. The most
+  popular tools are available at hand. The The panel is unstable, and thus is
+  available under the `--enable-component-browser` flag.
 
 #### EnsoGL (rendering engine)
 
@@ -227,6 +231,7 @@
 [3519]: https://github.com/enso-org/enso/pull/3519
 [3523]: https://github.com/enso-org/enso/pull/3523
 [3528]: https://github.com/enso-org/enso/pull/3528
+[3530]: https://github.com/enso-org/enso/pull/3530
 
 #### Enso Compiler
 
