@@ -174,7 +174,7 @@ public class ExcelRange {
   }
 
   /**
-   * Given a single cell and the containing sheet, expand cover the connected table of cells.
+   * Given a single cell and the containing sheet, expand the range to cover the connected table of cells.
    *
    * @param excelRange Range referring to top left cell.
    * @param sheet ExcelSheet containing the range refers to.

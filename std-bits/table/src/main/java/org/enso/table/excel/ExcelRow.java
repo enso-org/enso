@@ -67,14 +67,14 @@ public class ExcelRow {
   }
 
   public boolean isEmpty(int column) {
-    return isEmpty(column, column);
+    CellType cellType = getCellType(get(column));
+    return (cellType == CellType._NONE) || (cellType == CellType.BLANK);
   }
 
   public boolean isEmpty(int start, int end) {
     int currentEnd = end == -1 ? getLastColumn() : end;
     for (int column = start; column <= currentEnd; column++) {
-      CellType cellType = getCellType(get(column));
-      if (cellType != CellType._NONE && cellType != CellType.BLANK) {
+      if (!isEmpty(column)) {
         return false;
       }
     }

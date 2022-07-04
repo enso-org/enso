@@ -1,7 +1,8 @@
 package org.enso.table.read;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.column.builder.object.Builder;
@@ -9,6 +10,7 @@ import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.error.InvalidLocationException;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
@@ -67,6 +69,7 @@ public class ExcelReader {
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
+   * @throws InvalidLocationException when the sheet name is not found.
    */
   public static WithProblems<Table> readSheetByName(
       InputStream stream,
@@ -75,12 +78,12 @@ public class ExcelReader {
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
-      throws IOException, IllegalArgumentException {
+      throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
 
     int sheetIndex = workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
-      throw new IllegalArgumentException("Unknown sheet '" + sheetName + "'.");
+      throw new InvalidLocationException("Unknown sheet '" + sheetName + "'.");
     }
 
     return readTable(
@@ -102,6 +105,7 @@ public class ExcelReader {
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
+   * @throws InvalidLocationException when the sheet index is not valid.
    */
   public static WithProblems<Table> readSheetByIndex(
       InputStream stream,
@@ -110,12 +114,12 @@ public class ExcelReader {
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
-      throws IOException, IllegalArgumentException {
+      throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
 
     int sheetCount = workbook.getNumberOfSheets();
     if (index < 1 || index > sheetCount) {
-      throw new IllegalArgumentException(
+      throw new InvalidLocationException(
           "Sheet index is not in valid range (1 to " + sheetCount + " inclusive).");
     }
 
@@ -138,6 +142,7 @@ public class ExcelReader {
    * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
+   * @throws InvalidLocationException when the range name or address is not found.
    */
   public static WithProblems<Table> readRangeByName(
       InputStream stream,
@@ -146,12 +151,18 @@ public class ExcelReader {
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
-      throws IOException {
+      throws IOException, InvalidLocationException {
     Workbook workbook = getWorkbook(stream, xls_format);
 
     Name name = workbook.getName(rangeNameOrAddress);
-    ExcelRange excelRange =
-        new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+
+    ExcelRange excelRange;
+    try {
+      excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+    } catch (IllegalArgumentException e) {
+      throw new InvalidLocationException("Invalid range name or address '" + rangeNameOrAddress + "'.");
+    }
+
     return readRange(workbook, excelRange, headers, skip_rows, row_limit);
   }
 
@@ -173,7 +184,7 @@ public class ExcelReader {
       int skip_rows,
       Integer row_limit,
       boolean xls_format)
-      throws IOException {
+      throws IOException, InvalidLocationException {
     return readRange(getWorkbook(stream, xls_format), excelRange, headers, skip_rows, row_limit);
   }
 
@@ -194,10 +205,10 @@ public class ExcelReader {
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
-      Integer row_limit) {
+      Integer row_limit) throws InvalidLocationException {
     int sheetIndex = workbook.getSheetIndex(excelRange.getSheetName());
     if (sheetIndex == -1) {
-      throw new IllegalArgumentException("Unknown sheet '" + excelRange.getSheetName() + "'.");
+      throw new InvalidLocationException("Unknown sheet '" + excelRange.getSheetName() + "'.");
     }
 
     return readTable(

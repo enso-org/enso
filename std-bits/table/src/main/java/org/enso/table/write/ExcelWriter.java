@@ -1,7 +1,13 @@
 package org.enso.table.write;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Name;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
@@ -11,6 +17,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.ExistingDataException;
 import org.enso.table.error.RangeExceededException;
+import org.enso.table.error.InvalidLocationException;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
@@ -36,7 +43,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToSheet(Workbook workbook, int sheetIndex, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws ExistingDataException {
+      throws ExistingDataException, IllegalStateException {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
       while (workbook.getSheet("Sheet" + i) != null) {
@@ -69,7 +76,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToSheet(Workbook workbook, String sheetName, boolean replace, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws ExistingDataException {
+      throws ExistingDataException, IllegalStateException {
     int sheetIndex = workbook.getNumberOfSheets() == 0 ? -1 : workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
       writeTableToSheet(workbook, workbook.createSheet(sheetName), firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
@@ -91,7 +98,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws IllegalArgumentException, RangeExceededException, ExistingDataException {
+      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
     Name name = workbook.getName(rangeNameOrAddress);
     ExcelRange excelRange =
         new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
@@ -99,10 +106,10 @@ public class ExcelWriter {
   }
 
   public static void writeTableToRange(Workbook workbook, ExcelRange range, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws IllegalArgumentException, RangeExceededException, ExistingDataException {
+      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
-      throw new IllegalArgumentException("Unknown sheet '" + range.getSheetName() + "'.");
+      throw new InvalidLocationException("Unknown sheet '" + range.getSheetName() + "'.");
     }
     ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
 
@@ -188,7 +195,8 @@ public class ExcelWriter {
     return xls_format ? new HSSFWorkbook() : new XSSFWorkbook();
   }
 
-  private static void writeTableToSheet(Workbook workbook, Sheet sheet, int firstRow, int firstColumn, Table table, Long rowLimit, boolean headers) {
+  private static void writeTableToSheet(Workbook workbook, Sheet sheet, int firstRow, int firstColumn, Table table, Long rowLimit, boolean headers)
+    throws IllegalStateException {
     int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - firstRow, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
     int currentRow = firstRow;
     Column[] columns = table.getColumns();
@@ -214,10 +222,11 @@ public class ExcelWriter {
 
       for (int j = 0; j < columns.length; j++) {
         Storage storage = storages[j];
+        int idx = j + firstColumn - 1;
 
-        Cell cell = row.getCell(j + firstColumn - 1);
+        Cell cell = row.getCell(idx);
         if (cell == null) {
-          cell = row.createCell(j + firstColumn - 1);
+          cell = row.createCell(idx);
         }
 
         writeValueToCell(cell, i, storage, workbook);
@@ -241,7 +250,8 @@ public class ExcelWriter {
     return newStyle;
   }
 
-  private static void writeValueToCell(Cell cell, int j, Storage storage, Workbook workbook) {
+  private static void writeValueToCell(Cell cell, int j, Storage storage, Workbook workbook)
+    throws IllegalStateException {
     if (storage.isNa(j)) {
       cell.setBlank();
     } else if (storage instanceof DoubleStorage doubleStorage) {
@@ -273,7 +283,7 @@ public class ExcelWriter {
           if (ensoToTextCallback != null) {
             cell.setCellValue(ensoToTextCallback.apply(value));
           } else {
-            throw new IllegalArgumentException("Enso to text callback is not set. Unable to process value.");
+            throw new IllegalStateException("Enso to text callback is not set. Unable to process value.");
           }
         }
       }
