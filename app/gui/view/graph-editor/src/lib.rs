@@ -2426,21 +2426,23 @@ impl GraphEditorModel {
     }
 
     fn pan_camera_to_node(&self, node_id: NodeId) {
-        use theme::graph_editor::screen_margin_when_panning_camera_to_node as screen_margin;
+        use theme::graph_editor::screen_margin_when_panning_camera_to_node as pan_margin;
         self.with_node(node_id, |node| {
             let camera = &self.app.display.default_scene.camera();
             let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
             let styles = &self.styles_frp;
-            let top_margin = styles.get_number(screen_margin::top).value();
-            let bottom_margin = styles.get_number(screen_margin::bottom).value();
-            let left_margin = styles.get_number(screen_margin::left).value();
-            let right_margin = styles.get_number(screen_margin::right).value();
-            let top = screen_size_halved.y - top_margin;
-            let bottom = -screen_size_halved.y + bottom_margin;
-            let left = -screen_size_halved.x + left_margin;
-            let right = screen_size_halved.x - right_margin;
+            let top_margin = styles.get_number(pan_margin::top).value();
+            let bottom_margin = styles.get_number(pan_margin::bottom).value();
+            let left_margin = styles.get_number(pan_margin::left).value();
+            let right_margin = styles.get_number(pan_margin::right).value();
+            let viewport_max_y = screen_size_halved.y - top_margin;
+            let viewport_min_y = -screen_size_halved.y + bottom_margin;
+            let viewport_min_x = -screen_size_halved.x + left_margin;
+            let viewport_max_x = screen_size_halved.x - right_margin;
+            let viewport_min_xy = Vector2(viewport_min_x, viewport_min_y);
+            let viewport_max_xy = Vector2(viewport_max_x, viewport_max_y);
             let node_bbox = node.bounding_box.value();
-            self.pan_camera(node_bbox, Vector2(left, bottom), Vector2(right, top))
+            self.pan_camera(node_bbox, viewport_min_xy, viewport_max_xy)
         });
     }
 }
