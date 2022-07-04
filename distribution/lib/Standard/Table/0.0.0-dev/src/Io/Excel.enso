@@ -228,9 +228,8 @@ write_excel file table on_existing_file section headers _ xls_format=False =
         java_headers = here.make_java_headers headers
         if ExcelWriter.getEnsoToTextCallback == Nothing then ExcelWriter.getEnsoToTextCallback (.to_text)
         result = here.handle_writer <| case section of
-            Sheet sheet skip_rows row_limit -> case sheet of
-                Integer -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
-                Text -> ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
+            Sheet sheet skip_rows row_limit ->
+                ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
             Cell_Range address skip_rows row_limit -> case address of
                 Excel_Range _ -> ExcelWriter.writeTableToRange workbook address.java_range replace skip_rows table.java_table row_limit java_headers
                 Text -> ExcelWriter.writeTableToRange workbook address replace skip_rows table.java_table row_limit java_headers
