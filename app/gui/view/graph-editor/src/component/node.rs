@@ -945,7 +945,7 @@ impl Node {
                 <+ visualization_visible.not().and(&no_error_set);
 
 
-            // === Bounding Box and Position ===
+            // === Bounding Box ===
 
             let visualization_size = &model.visualization.frp.size;
             // Visualization can be enabled and not visible when the node has an error.
