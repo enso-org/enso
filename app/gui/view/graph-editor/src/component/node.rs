@@ -329,7 +329,7 @@ ensogl::define_endpoints_2! {
         /// Whether visualization was permanently enabled (e.g. by pressing the button).
         visualization_enabled    (bool),
         /// Visualization can be visible even when it is not enabled, e.g. when showing preview.
-        /// It can also be not visible even when it is enabled, e.g. when the node has an error.
+        /// Visualization can be invisible even when enabled, e.g. when the node has an error.
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
