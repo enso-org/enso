@@ -1,5 +1,6 @@
 from Standard.Base import Nothing, File, Illegal_Argument_Error, True, False
 import Standard.Base.System.File.Existing_File_Behavior
+from Standard.Base.System.File import File_Already_Exists_Error
 import Standard.Base.Data.Time.Date
 
 import Standard.Table.Io.File_Read
@@ -144,13 +145,10 @@ spec_write suffix test_sheet_name =
             sub_clothes.write out (File_Format.Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
             out.delete_if_exists
 
-        Test.specify 'should allow adding a new sheet if in Error mode and not clashing' <|
+        Test.specify 'should not allow adding a new sheet if in Error mode and not clashing' <|
             out.delete_if_exists
             (Enso_Project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (File_Format.Excel (Sheet "Testing")) on_existing_file=Existing_File_Behavior.Error
-            written = out.read (File_Format.Excel (Sheet "Testing"))
-            written.should_equal sub_clothes
-            out.delete_if_exists
+            sub_clothes.write out (File_Format.Excel (Sheet "Testing")) on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Already_Exists_Error
 
         Test.specify 'should write a table to non-existent file as a new sheet without headers' <|
             out.delete_if_exists
