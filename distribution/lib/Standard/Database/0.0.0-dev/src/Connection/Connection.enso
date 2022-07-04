@@ -56,6 +56,7 @@ type Connection
     close =
         self.connection_resource . finalize
 
+    ## Returns the list of databases (or catalogs) for the connection.
     databases : [Text]
     databases =
         here.wrap_sql_errors <|
@@ -64,6 +65,7 @@ type Connection
                 schema_result_set = metadata.getCatalogs
                 Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_CAT")
 
+    ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
     schemas =
         here.wrap_sql_errors <|
@@ -333,16 +335,15 @@ Unsupported_Dialect.to_display_text =
    Arguments:
    - url: The URL to connect to.
    - properties: A vector of properties for the connection.
+   - dialect: A Dialect object that will be used to generate SQL.
 create_jdbc_connection : Text -> Vector -> Dialect -> Connection
-create_jdbc_connection url properties dialect=Nothing = here.handle_sql_errors <|
+create_jdbc_connection url properties dialect = here.handle_sql_errors <|
     java_props = Properties.new
     properties.each pair->
         java_props.setProperty pair.first pair.second
     java_connection = JDBCProxy.getConnection url java_props
     resource = Managed_Resource.register java_connection here.close_connection
-
-    used_dialect = dialect.if_nothing <| Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
-    Connection resource used_dialect
+    Connection resource dialect
 
 ## PRIVATE
 

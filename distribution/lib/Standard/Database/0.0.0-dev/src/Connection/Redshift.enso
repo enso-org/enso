@@ -52,15 +52,7 @@ type Redshift
             Credentials username password ->
                 [Pair 'user' username, Pair 'password' password]
 
-        ssl_properties = case self.use_ssl of
-            Disable -> [Pair 'ssl' 'false']
-            Require -> [Pair 'ssl' 'true', Pair 'sslfactory' 'com.amazon.redshift.ssl.NonValidatingFactory']
-            Verify_CA cert_file ->
-                if cert_file.is_nothing then [Pair 'ssl' 'true', Pair 'sslmode' 'verify-ca'] else
-                    [Pair 'ssl' 'true', Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
-            Full_Verification cert_file ->
-                if cert_file.is_nothing then [Pair 'ssl' 'true', Pair 'sslmode' 'verify-full'] else
-                    [Pair 'ssl' 'true', Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+        ssl_properties = PostgreSQL.ssl_mode_to_jdbc_properties self.use_ssl
 
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties

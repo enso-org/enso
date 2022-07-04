@@ -16,11 +16,11 @@ type PostgreSQL
        Arguments:
        - host: The hostname of the database server (defaults to localhost).
        - port: The port of the database server (defaults to 5432).
-       - database: The database to connect to (if not provided or empty, the default database will be used).
+       - database: The database to connect to. If empty, the default database will be used.
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type PostgreSQL (host:Text='localhost') (port:Integer=5432) (database:Text='postgres') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSLMode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    type PostgreSQL (host:Text='localhost') (port:Integer=5432) (database:Text='') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -46,16 +46,7 @@ type PostgreSQL
             Credentials username password ->
                 [Pair 'user' username, Pair 'password' password]
 
-        ssl_properties = case self.use_ssl of
-            Disable -> []
-            Prefer -> [Pair 'sslmode' 'prefer']
-            Require -> [Pair 'sslmode' 'require']
-            Verify_CA cert_file ->
-                if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
-                    [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
-            Full_Verification cert_file ->
-                if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
-                    [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+        ssl_properties = PostgreSQL.ssl_mode_to_jdbc_properties self.use_ssl
 
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
@@ -79,3 +70,17 @@ type PostgreSQL
         ## ToDo: Code not part of the design document.
         ## host port database
         []
+
+    ## PRIVATE - static
+       Given an SSL_Mode
+    ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
+    ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
+        Disable -> []
+        Prefer -> [Pair 'sslmode' 'prefer']
+        Require -> [Pair 'sslmode' 'require']
+        Verify_CA cert_file ->
+            if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
+                [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+        Full_Verification cert_file ->
+            if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
+                [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
