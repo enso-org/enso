@@ -1637,15 +1637,16 @@ impl GraphEditorModelWithNetwork {
         let pan_network = frp::Network::new("network_for_new_node_camera_pan");
         pan_network_container.replace(Some(pan_network.clone()));
         frp::new_bridge_network! { [self.network, node_network, pan_network] graph_node_pan_bridge
-            editing <- self.frp.node_being_edited.map(|n| *n == Some(node_id));
-            pos_if_editing <- node.output.position.gate(&editing);
-            pos_updated_while_editing <- pos_if_editing.constant(true);
-            let bbox = &node.output.bounding_box;
-            bbox_updated_after_pos_updated_while_editing <- bbox.gate(&pos_updated_while_editing);
-            eval bbox_updated_after_pos_updated_while_editing([model](_) {
-                pan_network_container.replace(None);
-                model.pan_camera_to_node(node_id)
-            });
+            pos_updated <- node.output.position.constant(true);
+            bbox_updated_after_pos_updated <- node.output.bounding_box.gate(&pos_updated);
+            _eval <- bbox_updated_after_pos_updated.map2(&self.frp.node_being_edited,
+                f!([model](_, node) {
+                    pan_network_container.replace(None);
+                    if *node == Some(node_id) {
+                        model.pan_camera_to_node(node_id);
+                    }
+                })
+            );
         }
 
         node.set_view_mode(self.model.frp.view_mode.value());
