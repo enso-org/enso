@@ -1334,7 +1334,10 @@ pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> boo
 pub struct GraphEditorModelWithNetwork {
     pub model: GraphEditorModel,
     pub network: frp::Network,
-    pub new_node_camera_pan_network: Rc<RefCell<Option<frp::Network>>>,
+    /// A network watching the bounding box of a newly created node and panning the camera after the
+    /// bounding box is updated. The network is created when the user adds a new node and dropped
+    /// when the camera is panned.
+    pub network_for_new_node_camera_pan: Rc<RefCell<Option<frp::Network>>>,
 }
 
 impl Deref for GraphEditorModelWithNetwork {
@@ -1349,9 +1352,9 @@ impl GraphEditorModelWithNetwork {
     /// Constructor.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network().clone_ref(); // FIXME make weak
-        let new_node_camera_pan_network = default();
+        let network_for_new_node_camera_pan = default();
         let model = GraphEditorModel::new(app, cursor, frp);
-        Self { model, network, new_node_camera_pan_network }
+        Self { model, network, network_for_new_node_camera_pan }
     }
 
     fn is_node_connected_at_input(&self, node_id: NodeId, crumbs: &span_tree::Crumbs) -> bool {
@@ -1624,9 +1627,9 @@ impl GraphEditorModelWithNetwork {
 
         // TODO: explain that we don't need to count if we use this new network/bridge - it'll only
         // trigger on first call, for the most recent node, and then be dropped IIUC.
-        let camera_pan_network = frp::Network::new("new_node_camera_pan_network");
+        let camera_pan_network = frp::Network::new("network_for_new_node_camera_pan");
         // FIXME: better name
-        let camera_pan_network_ref = self.new_node_camera_pan_network.clone();
+        let camera_pan_network_ref = self.network_for_new_node_camera_pan.clone();
         frp::new_bridge_network! {
             [self.network, node_network, camera_pan_network] graph_node_camera_pan_bridge
             pos_if_editing <- node.output.position.gate(&self.frp.node_editing);
@@ -1637,7 +1640,7 @@ impl GraphEditorModelWithNetwork {
                 model.pan_camera_to_node(node_id)
             });
         }
-        *self.new_node_camera_pan_network.borrow_mut() = Some(camera_pan_network);
+        *self.network_for_new_node_camera_pan.borrow_mut() = Some(camera_pan_network);
 
         node.set_view_mode(self.model.frp.view_mode.value());
         let initial_metadata = visualization::Metadata {
@@ -2387,8 +2390,8 @@ impl GraphEditorModel {
         found
     }
 
-    /// Pan the camera to make the `target_bbox` expressed in scene coordinates fully fit in a
-    /// rectangular viewport between `screen_min_xy` and `screen_max_xy` in screen coordinates.
+    /// Pan the camera to make the `target_bbox` (expressed in scene coordinates) fully fit in a
+    /// rectangular viewport between `screen_min_xy` and `screen_max_xy` (in screen coordinates).
     /// If `target_bbox` does not fully fit in the viewport, showing the left & top boundaries of
     /// `target_bbox` takes priority over showing the corresponding opposite ones.
     fn pan_camera(
@@ -2410,11 +2413,6 @@ impl GraphEditorModel {
         let pan_right = some_if_positive(target_bbox.right() - viewport.right());
         let pan_up = some_if_positive(target_bbox.top() - viewport.top());
         let pan_down = some_if_negative(target_bbox.bottom() - viewport.bottom());
-        // If target_bbox cannot be fully contained in viewport...
-        //  - ...horizontally, then panning to the left edge of the target_bbox is preferred over
-        //    panning to the right edge;
-        //  - ...vertically, then panning to the top edge of the target_bbox is preferred over
-        //    panning to the bottom edge.
         let pan_x = pan_left.or(pan_right).unwrap_or_default();
         let pan_y = pan_up.or(pan_down).unwrap_or_default();
         let pan_xy = Vector2(pan_x, pan_y);
