@@ -294,6 +294,15 @@ public class ExcelWriter {
     }
   }
 
+  /**
+   * Determines if an existing range has headers.
+   * Unlike in the ExcelReader, if empty this will default to True.
+   * @param excelSheet the Excel sheet to check.
+   * @param topRow top row index (1-based) of the range to check.
+   * @param startCol start column index (1-based) of the range to check.
+   * @param endCol end column index (1-based) of the range to check. If -1 will continue until end of row.
+   * @return true if the range has headers.
+   */
   private static boolean hasHeaders(ExcelSheet excelSheet, int topRow, int startCol, int endCol) {
     ExcelRow row = excelSheet.get(topRow);
 
