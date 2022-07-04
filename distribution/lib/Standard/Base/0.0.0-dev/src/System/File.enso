@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.System.File.Option
 import Standard.Base.System.File.Existing_File_Behavior
+import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
@@ -795,7 +796,7 @@ type Output_Stream
            - if available, we use the `�` character to and otherwise we fallback
            to `?`.
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
-        Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence action
+        Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.

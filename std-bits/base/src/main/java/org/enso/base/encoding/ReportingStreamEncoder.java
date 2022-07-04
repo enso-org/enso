@@ -16,12 +16,16 @@ public class ReportingStreamEncoder extends Writer {
    *
    * <p>The encoder reports any malformed or unmappable characters as problems and replaces them
    * with the provided replacement sequence.
+   *
+   * <p>The encoder must be closed at the end of the encoding process to indicate that no further
+   * data will be processed so that it can properly handle the finalization of encoding.
    */
   public ReportingStreamEncoder(
       OutputStream outputStream, CharsetEncoder encoder, byte[] replacementSequence) {
     this.encoder = encoder;
     bufferedOutputStream = new BufferedOutputStream(outputStream);
-    System.out.println(encoder.charset().toString() + " --> " + Arrays.toString(replacementSequence));
+    System.out.println(
+        encoder.charset().toString() + " --> " + Arrays.toString(replacementSequence));
   }
 
   private final BufferedOutputStream bufferedOutputStream;
@@ -39,6 +43,8 @@ public class ReportingStreamEncoder extends Writer {
 
   // TODO !
   private final byte[] replacement = new byte[0];
+
+  private boolean wasClosed = false;
 
   private void ensureInputBufferHasEnoughFreeSpace(int bytesToAppend) {
     int freeSpaceInInputBuffer = inputBuffer.capacity() - inputBuffer.remaining();
@@ -120,6 +126,21 @@ public class ReportingStreamEncoder extends Writer {
 
   @Override
   public void close() throws IOException {
+    if (wasClosed) {
+      return;
+    }
+
+    while (encoder.encode(CharBuffer.allocate(0), null, true).isOverflow()) {
+      growOutputBuffer();
+    }
+
+    while (encoder.flush(null).isOverflow()) {
+      growOutputBuffer();
+    }
+
+    bufferedOutputStream.write(null);
+    bufferedOutputStream.flush();
     bufferedOutputStream.close();
+    wasClosed = true;
   }
 }
