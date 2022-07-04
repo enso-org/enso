@@ -398,7 +398,7 @@ jobs:
     name: Package IDE (macos)
     needs:
       - enso-build-cli-ci-gen-job-build-backend-macos
-      - enso-build-cli-ci-gen-job-build-wasm-macos
+      - enso-build-cli-ci-gen-job-build-wasm-linux
     runs-on:
       - macos-latest
     steps:
@@ -435,7 +435,7 @@ jobs:
     name: Package IDE (windows)
     needs:
       - enso-build-cli-ci-gen-job-build-backend-windows
-      - enso-build-cli-ci-gen-job-build-wasm-windows
+      - enso-build-cli-ci-gen-job-build-wasm-linux
     runs-on:
       - self-hosted
       - Windows
