@@ -1625,8 +1625,8 @@ impl GraphEditorModelWithNetwork {
 
         // === Panning camera to created node ===
 
-        // TODO: explain that we don't need to count if we use this new network/bridge - it'll only
-        // trigger on first call, for the most recent node, and then be dropped IIUC.
+        // Node position is not available immediately after the node is created, but only after the
+        // Node's display object is updated.
         let pan_network_container = self.network_for_new_node_camera_pan.clone();
         let pan_network = frp::Network::new("network_for_new_node_camera_pan");
         pan_network_container.replace(Some(pan_network.clone()));
