@@ -329,12 +329,16 @@ ensogl::define_endpoints_2! {
         /// Whether visualization was permanently enabled (e.g. by pressing the button).
         visualization_enabled    (bool),
         /// Visualization can be visible even when it is not enabled, e.g. when showing preview.
+        /// It can also be not visible even when it is enabled, e.g. when the node has an error.
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
+        /// The bounding box of the Node. Includes the visualization if enabled and visible.
+        ///
+        /// Updated when any of [`position`], [`expression`], [`visualization_enabled`], or
+        /// [`visualization_visible`] is updated.
         bounding_box             (BoundingBox),
-        /// The [`display::object::Model::position`] of the Node. The position change events are
-        /// emitted after corresponding [`bounding_box`] change events.
+        /// The [`display::object::Model::position`] of the Node.
         position                 (Vector2),
     }
 }
