@@ -335,7 +335,7 @@ ensogl::define_endpoints_2! {
         expression_label_visible (bool),
         /// The [`display::object::Model::position`] of the Node.
         position                 (Vector2),
-        /// The bounding box of the Node. Includes the bounding box of the visualization if the
+        /// The bounding box of the Node. Contains the bounding box of the visualization if the
         /// visualization is enabled and visible.
         ///
         /// Updated after any of [`position`], [`expression`], [`visualization_enabled`], or
