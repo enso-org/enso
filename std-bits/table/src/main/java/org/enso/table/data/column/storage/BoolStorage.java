@@ -217,8 +217,7 @@ public class BoolStorage extends Storage {
 
               @Override
               public Storage runZip(BoolStorage storage, Storage arg) {
-                if (arg instanceof BoolStorage) {
-                  BoolStorage v = (BoolStorage) arg;
+                if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
                   BitSet out = v.values.get(0, storage.size);
@@ -261,8 +260,7 @@ public class BoolStorage extends Storage {
 
               @Override
               public Storage runZip(BoolStorage storage, Storage arg) {
-                if (arg instanceof BoolStorage) {
-                  BoolStorage v = (BoolStorage) arg;
+                if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
                   BitSet out = v.values.get(0, storage.size);
@@ -300,12 +298,6 @@ public class BoolStorage extends Storage {
     }
     mask.andNot(storage.getIsMissing());
     return mask;
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.naturalOrder();
   }
 
   @Override

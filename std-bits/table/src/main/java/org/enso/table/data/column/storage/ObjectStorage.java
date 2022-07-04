@@ -123,11 +123,6 @@ public class ObjectStorage extends Storage {
     return data;
   }
 
-  @Override
-  public Comparator<Object> getDefaultComparator() {
-    return null;
-  }
-
   private static MapOpStorage<ObjectStorage> buildOps() {
     MapOpStorage<ObjectStorage> ops = new MapOpStorage<>();
     ops.add(

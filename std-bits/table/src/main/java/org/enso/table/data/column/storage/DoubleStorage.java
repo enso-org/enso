@@ -161,11 +161,6 @@ public class DoubleStorage extends NumericStorage {
     return new DoubleStorage(newData, total, newMissing);
   }
 
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.<Double>naturalOrder();
-  }
-
   public BitSet getIsMissing() {
     return isMissing;
   }

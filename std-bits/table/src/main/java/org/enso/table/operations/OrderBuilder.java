@@ -40,19 +40,11 @@ public class OrderBuilder {
      * Builds an index-comparing comparator, that will sort array indexes according to the specified
      * ordering of the underlying column.
      *
-     * @param fallbackComparator a base value comparator, used in case the column does not define a
-     *     natural ordering.
      * @return a comparator with properties described above
      */
-    public Comparator<Integer> toComparator(Comparator<Object> fallbackComparator) {
+    public Comparator<Integer> toComparator() {
       final Storage storage = column.getStorage();
       Comparator<Object> itemCmp = customComparator;
-      if (itemCmp == null) {
-        itemCmp = column.getStorage().getDefaultComparator();
-      }
-      if (itemCmp == null) {
-        itemCmp = fallbackComparator;
-      }
       if (!ascending) {
         itemCmp = itemCmp.reversed();
       }
@@ -63,9 +55,7 @@ public class OrderBuilder {
       }
 
       final Comparator<Object> cmp = itemCmp;
-      Comparator<Integer> result =
-          (i, j) -> cmp.compare(storage.getItemBoxed(i), storage.getItemBoxed(j));
-      return result;
+      return (i, j) -> cmp.compare(storage.getItemBoxed(i), storage.getItemBoxed(j));
     }
   }
 
@@ -77,16 +67,14 @@ public class OrderBuilder {
    *     elements are then internally reordered according to the second rule etc. The ordering is
    *     stable, i.e. if no rule disambiguates the ordering, the original position in the storage is
    *     used instead.
-   * @param fallbackComparator a comparator that should be used for columns that do not define a
-   *     natural ordering.
    * @return an order mask that will result in sorting any storage according to the specified rules.
    */
   public static OrderMask buildOrderMask(
-      List<OrderRule> rules, Comparator<Object> fallbackComparator) {
+      List<OrderRule> rules) {
     int size = rules.get(0).column.getSize();
     Comparator<Integer> comparator =
         rules.stream()
-            .map(rule -> rule.toComparator(fallbackComparator))
+            .map(OrderRule::toComparator)
             .reduce(Comparator::thenComparing)
             .get();
 

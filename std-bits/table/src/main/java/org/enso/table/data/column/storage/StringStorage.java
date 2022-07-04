@@ -77,11 +77,6 @@ public class StringStorage extends ObjectStorage {
     return new StringStorage(storage.getData(), total);
   }
 
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.<String>naturalOrder();
-  }
-
   private static MapOpStorage<StringStorage> buildOps() {
     MapOpStorage<StringStorage> t = ObjectStorage.ops.makeChild();
     t.add(

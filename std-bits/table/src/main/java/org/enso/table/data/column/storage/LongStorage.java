@@ -220,12 +220,6 @@ public class LongStorage extends NumericStorage {
     return new LongStorage(newData, total, newMissing);
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.<Long>naturalOrder();
-  }
-
   public BitSet getIsMissing() {
     return isMissing;
   }
