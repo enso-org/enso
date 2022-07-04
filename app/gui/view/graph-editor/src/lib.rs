@@ -2389,6 +2389,8 @@ impl GraphEditorModel {
 
     /// Pan the camera to make the `target_bbox` expressed in scene coordinates fully fit in a
     /// rectangular viewport between `screen_min_xy` and `screen_max_xy` in screen coordinates.
+    /// If `target_bbox` does not fully fit in the viewport, showing the left & top boundaries of
+    /// `target_bbox` takes priority over showing the corresponding opposite ones.
     fn pan_camera(&self, target_bbox: selection::BoundingBox, screen_min_xy: Vector2, screen_max_xy: Vector2) {
         use ensogl::display::navigation::navigator::PanEvent;
         let scene = &self.app.display.default_scene;
