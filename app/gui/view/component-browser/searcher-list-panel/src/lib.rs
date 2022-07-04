@@ -104,11 +104,11 @@ struct Layers {
 
 impl Layers {
     fn new(app: &Application, scroll_area: &ScrollArea) -> Self {
-        let main_camera = app.display.default_scene.layers.main.camera();
-        let base = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
-        let selection = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
-        let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &main_camera);
-        let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
+        let camera = app.display.default_scene.layers.node_searcher.camera();
+        let base = Layer::new_with_cam(app.logger.sub("component_groups"), &camera);
+        let selection = Layer::new_with_cam(app.logger.sub("selection"), &camera);
+        let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &camera);
+        let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &camera);
         selection.set_mask(&selection_mask);
         app.display.default_scene.layers.node_searcher.add_sublayer(&base);
         app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
@@ -314,6 +314,7 @@ impl Model {
             .set_group_wrapper(&(SectionId::SubModules, groups_wrapper.clone_ref()));
 
         let scroll_area = ScrollArea::new(&app);
+        scroll_area.set_camera(app.display.default_scene.layers.node_searcher.camera());
         display_object.add_child(&scroll_area);
         let layers = Layers::new(&app, &scroll_area);
         layers.base.add_exclusive(&scroll_area);

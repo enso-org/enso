@@ -23,6 +23,7 @@ use ensogl_core::application::Application;
 use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::layer;
 use ensogl_core::display::shape;
@@ -193,7 +194,7 @@ impl ScrollArea {
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
-        let camera = scene.layers.node_searcher.camera();
+        let camera = scene.layers.main.camera();
         let display_object = display::object::Instance::new(&logger);
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
@@ -345,6 +346,14 @@ impl ScrollArea {
     /// A scene layer used as a mask for the content.
     pub fn mask_layer(&self) -> &layer::Layer {
         &self.model.display_object.layer.mask_layer
+    }
+
+    pub fn set_camera(&self, camera: impl Into<Camera2d>) {
+        let camera = camera.into();
+        self.model.display_object.layer.masked_layer.set_camera(camera.clone_ref());
+        self.model.display_object.layer.mask_layer.set_camera(camera.clone_ref());
+        self.model.ui_layer.set_camera(camera.clone_ref());
+        self.model.content_layer.set_camera(camera.clone_ref());
     }
 
 
