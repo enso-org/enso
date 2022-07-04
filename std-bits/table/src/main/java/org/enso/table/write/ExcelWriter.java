@@ -59,7 +59,7 @@ public class ExcelWriter {
     } else if (replace) {
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
         ExcelSheet excelSheet = new ExcelSheet(workbook, sheetIndex);
-        headers = hasHeaders(excelSheet, firstRow + 1, 1, -1)
+        headers = shouldWriteHeaders(excelSheet, firstRow + 1, 1, -1)
             ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
@@ -83,7 +83,7 @@ public class ExcelWriter {
     } else if (replace) {
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
         ExcelSheet excelSheet = new ExcelSheet(workbook, sheetIndex);
-        headers = hasHeaders(excelSheet, firstRow + 1, 1, -1)
+        headers = shouldWriteHeaders(excelSheet, firstRow + 1, 1, -1)
             ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
@@ -131,7 +131,7 @@ public class ExcelWriter {
       ExcelRange expanded = ExcelRange.expandSingleCell(range, sheet);
 
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
-        headers = hasHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
+        headers = shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
             ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
@@ -156,7 +156,7 @@ public class ExcelWriter {
       }
 
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
-        headers = hasHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
+        headers = shouldWriteHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
             ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
@@ -303,7 +303,7 @@ public class ExcelWriter {
    * @param endCol end column index (1-based) of the range to check. If -1 will continue until end of row.
    * @return true if the range has headers.
    */
-  private static boolean hasHeaders(ExcelSheet excelSheet, int topRow, int startCol, int endCol) {
+  private static boolean shouldWriteHeaders(ExcelSheet excelSheet, int topRow, int startCol, int endCol) {
     ExcelRow row = excelSheet.get(topRow);
 
     // If the first row is missing or empty, return true as defaults to writing headers.
