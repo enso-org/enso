@@ -50,7 +50,7 @@ type Redshift
             Nothing -> PostgreSQL.read_pgpass self.host self.port self.schema
             AWS_Profile profile -> if profile == '' then [] else [Pair 'profile' profile]
             Credentials username password ->
-                [ Pair 'user' username, Pair 'password' password ]
+                [Pair 'user' username, Pair 'password' password]
 
         ssl_properties = case self.use_ssl of
             Disable -> [Pair 'ssl' 'false']
