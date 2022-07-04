@@ -1625,9 +1625,9 @@ impl GraphEditorModelWithNetwork {
 
         // === Panning camera to created node ===
 
-        // Node position is not available immediately after the node is created, but only after the
-        // Node's display object is updated. Therefore, in order to pan the camera to the position
-        // of a newly created node, we need to wait until:
+        // Node position and bounding box are not available immediately after the node is created,
+        // but only after the Node's display object is updated. Therefore, in order to pan the
+        // camera to the bounding box of a newly created node, we need to wait until:
         //  1. the position of the newly created node becomes updated, and then
         //  2. the bounding box of the node becomes updated.
         // When the sequence is detected, and if the node is being edited, we pan the camera to it.
