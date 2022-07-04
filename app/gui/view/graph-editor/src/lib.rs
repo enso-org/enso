@@ -2387,44 +2387,23 @@ impl GraphEditorModel {
         found
     }
 
-    /// Pan the camera to make the `target_bbox` expressed in scene coordinates fully fit between
-    /// `screen_min_xy` and `screen_max_xy` expressed in screen coordinates.
-    /// Pan the camera to make the `target_bbox` fully fit in a rectangle between
-    /// `screen_min_x` and `screen_max_x` in screen coordinates.
-    /// Pan the camera to make the viewport rectangle on the screen fully contain the target
-    /// rectangle of the scene. If the target rectangle doesn't fully fit in the viewport, showing
-    /// the left and top boundaries of the target rectangle takes priority over showing the
-    /// corresponding opposite boundaries.
-    /// Pan the camera to fully show `target_bbox` on screen within a rectangle 
-    /// defined by
-    /// [`theme::graph_editor::screen_margin_when_panning_camera_to_node`].
-    fn pan_camera_to_rectangle_with_margins(&self, target_bbox: selection::BoundingBox) {
+    /// Pan the camera to make the `target_bbox` expressed in scene coordinates fully fit in a
+    /// rectangular viewport between `screen_min_xy` and `screen_max_xy` in screen coordinates.
+    fn pan_camera(&self, target_bbox: selection::BoundingBox, screen_min_xy: Vector2, screen_max_xy: Vector2) {
         use ensogl::display::navigation::navigator::PanEvent;
-        use theme::graph_editor::screen_margin_when_panning_camera_to_node as screen_margin;
         let scene = &self.app.display.default_scene;
-        let camera = scene.camera();
-        let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
-        let styles = &self.styles_frp;
-        let top_margin = styles.get_number(screen_margin::top).value();
-        let bottom_margin = styles.get_number(screen_margin::bottom).value();
-        let left_margin = styles.get_number(screen_margin::left).value();
-        let right_margin = styles.get_number(screen_margin::right).value();
-        let top = screen_size_halved.y - top_margin;
-        let bottom = -screen_size_halved.y + bottom_margin;
-        let left = -screen_size_halved.x + left_margin;
-        let right = screen_size_halved.x - right_margin;
         let screen_to_scene_xy = |pos: Vector2| {
             let vec3 = Vector3(pos.x, pos.y, 0.0);
             scene.screen_to_scene_coordinates(vec3).xy()
         };
-        let screen_max_xy = screen_to_scene_xy(Vector2(right, top));
-        let screen_min_xy = screen_to_scene_xy(Vector2(left, bottom));
-        let screen_bbox = selection::BoundingBox::from_corners(screen_min_xy, screen_max_xy);
-        let pan_left = some_if_negative(target_bbox.left() - screen_bbox.left());
-        let pan_right = some_if_positive(target_bbox.right() - screen_bbox.right());
-        let pan_up = some_if_positive(target_bbox.top() - screen_bbox.top());
-        let pan_down = some_if_negative(target_bbox.bottom() - screen_bbox.bottom());
-        // If target_bbox cannot be fully contained in screen_bbox...
+        let scene_min_xy = screen_to_scene_xy(screen_min_xy);
+        let scene_max_xy = screen_to_scene_xy(screen_max_xy);
+        let viewport = selection::BoundingBox::from_corners(scene_min_xy, scene_max_xy);
+        let pan_left = some_if_negative(target_bbox.left() - viewport.left());
+        let pan_right = some_if_positive(target_bbox.right() - viewport.right());
+        let pan_up = some_if_positive(target_bbox.top() - viewport.top());
+        let pan_down = some_if_negative(target_bbox.bottom() - viewport.bottom());
+        // If target_bbox cannot be fully contained in viewport...
         //  - ...horizontally, then panning to the left edge of the target_bbox is preferred over
         //    panning to the right edge;
         //  - ...vertically, then panning to the top edge of the target_bbox is preferred over
@@ -2432,10 +2411,11 @@ impl GraphEditorModel {
         let pan_x = pan_left.or(pan_right).unwrap_or_default();
         let pan_y = pan_up.or(pan_down).unwrap_or_default();
         let pan_xy = Vector2(pan_x, pan_y);
-        self.navigator.emit_pan_event(PanEvent::new(-pan_xy * camera.zoom()));
+        self.navigator.emit_pan_event(PanEvent::new(-pan_xy * scene.camera().zoom()));
     }
 
     fn pan_camera_to_node(&self, node_id: NodeId) {
+        use theme::graph_editor::screen_margin_when_panning_camera_to_node as screen_margin;
         self.with_node(node_id, |node| {
             let camera = &self.app.display.default_scene.camera();
             // let camera = self.app.camera();
@@ -2449,9 +2429,8 @@ impl GraphEditorModel {
             let bottom = -screen_size_halved.y + bottom_margin;
             let left = -screen_size_halved.x + left_margin;
             let right = screen_size_halved.x - right_margin;
-
             let node_bbox = node.bounding_box.value();
-            self.pan_camera_to_rectangle_with_margins(bbox)
+            self.pan_camera(node_bbox, Vector2(left, bottom), Vector2(right, top))
         });
     }
 }
