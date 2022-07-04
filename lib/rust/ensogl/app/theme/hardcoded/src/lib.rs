@@ -465,11 +465,11 @@ define_themes! { [light:0, dark:1]
             to_the_left_of_node  = 25.0  , 25.0;
             to_the_right_of_node = 25.0  , 25.0;
         }
-        margin_when_panning_camera_to_node {
-            above_node = 15.0, 15.0;
-            below_node = 15.0, 15.0;
-            to_the_left_of_node = 15.0, 15.0;
-            to_the_right_of_node = 300.0, 300.0;
+        screen_margin_when_panning_camera_to_node {
+            top = 40.0, 40.0;
+            bottom = 80.0, 80.0;
+            left = 80.0, 80.0;
+            right = 300.0, 300.0;
         }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
