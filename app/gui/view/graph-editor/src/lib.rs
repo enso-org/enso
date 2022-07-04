@@ -2429,7 +2429,6 @@ impl GraphEditorModel {
         use theme::graph_editor::screen_margin_when_panning_camera_to_node as screen_margin;
         self.with_node(node_id, |node| {
             let camera = &self.app.display.default_scene.camera();
-            // let camera = self.app.camera();
             let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
             let styles = &self.styles_frp;
             let top_margin = styles.get_number(screen_margin::top).value();
