@@ -1,6 +1,6 @@
 //! Module that contains an implementation of a simple axis aligned bounding box.
 
-use ensogl::prelude::*;
+use crate::prelude::*;
 
 use nalgebra::clamp;
 
@@ -52,6 +52,12 @@ impl BoundingBox {
         Self::from_corners(position, position + size)
     }
 
+    /// Return a bounding box given by the center and size. Negative sizes
+    /// are valid.
+    pub fn from_center_and_size(position: Vector2, size: Vector2) -> Self {
+        Self::from_corners(position - size / 2.0, position + size / 2.0)
+    }
+
     /// Check whether the given `pos` lies within the bounding box.
     pub fn contains(&self, pos: Vector2) -> bool {
         self.contains_x(pos.x) && self.contains_y(pos.y)
@@ -84,11 +90,13 @@ impl BoundingBox {
         !not_contained
     }
 
+    /// Expand the bounding box in the x direction by the given amount.
     pub fn grow_x(&mut self, size: f32) {
         self.left -= size / 2.0;
         self.right += size / 2.0;
     }
 
+    /// Expand the bounding box in the y direction by the given amount.
     pub fn grow_y(&mut self, size: f32) {
         self.bottom -= size / 2.0;
         self.top += size / 2.0;
