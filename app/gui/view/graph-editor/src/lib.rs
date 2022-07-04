@@ -1626,15 +1626,23 @@ impl GraphEditorModelWithNetwork {
         // === Panning camera to created node ===
 
         // Node position is not available immediately after the node is created, but only after the
-        // Node's display object is updated.
+        // Node's display object is updated. Below, we're waiting for the following sequence of
+        // events:
+        //  1. Newly created node becomes edited.
+        //  2. Position of the node becomes updated while the node is edited.
+        //  3. Bounding box of the node becomes updated.
+        // When the sequence is detected, we pan the camera once, and drop the network to stop
+        // watching afterwards.
         let pan_network_container = self.network_for_new_node_camera_pan.clone();
         let pan_network = frp::Network::new("network_for_new_node_camera_pan");
         pan_network_container.replace(Some(pan_network.clone()));
         frp::new_bridge_network! { [self.network, node_network, pan_network] graph_node_pan_bridge
-            pos_if_editing <- node.output.position.gate(&self.frp.node_editing);
+            editing <- self.frp.node_being_edited.map(|n| *n == Some(node_id));
+            pos_if_editing <- node.output.position.gate(&editing);
             pos_updated_while_editing <- pos_if_editing.constant(true);
-            bbox_after_pos <- node.output.bounding_box.gate(&pos_updated_while_editing);
-            eval bbox_after_pos([model](_) {
+            let bbox = &node.output.bounding_box;
+            bbox_updated_after_pos_updated_while_editing <- bbox.gate(&pos_updated_while_editing);
+            eval bbox_updated_after_pos_updated_while_editing([model](_) {
                 pan_network_container.replace(None);
                 model.pan_camera_to_node(node_id)
             });
