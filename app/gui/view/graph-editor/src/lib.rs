@@ -1627,15 +1627,15 @@ impl GraphEditorModelWithNetwork {
 
         // TODO: explain that we don't need to count if we use this new network/bridge - it'll only
         // trigger on first call, for the most recent node, and then be dropped IIUC.
-        let pan_network = frp::Network::new("network_for_new_node_camera_pan");
-        *self.network_for_new_node_camera_pan.borrow_mut() = Some(pan_network.clone());
         let pan_network_container = self.network_for_new_node_camera_pan.clone();
+        let pan_network = frp::Network::new("network_for_new_node_camera_pan");
+        pan_network_container.replace(Some(pan_network.clone()));
         frp::new_bridge_network! { [self.network, node_network, pan_network] graph_node_pan_bridge
             pos_if_editing <- node.output.position.gate(&self.frp.node_editing);
             pos_updated_while_editing <- pos_if_editing.constant(true);
             bbox_after_pos <- node.output.bounding_box.gate(&pos_updated_while_editing);
             eval bbox_after_pos([model](_) {
-                *pan_network_container.borrow_mut() = None;
+                pan_network_container.replace(None);
                 model.pan_camera_to_node(node_id)
             });
         }
