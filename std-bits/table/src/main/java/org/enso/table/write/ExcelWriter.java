@@ -224,7 +224,7 @@ public class ExcelWriter {
       ExcelRange expanded = ExcelRange.expandSingleCell(range, sheet);
 
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
-        headers = hasHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
+        headers = shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
             ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
@@ -249,7 +249,7 @@ public class ExcelWriter {
       }
 
       if (headers == ExcelHeaders.HeaderBehavior.INFER) {
-        headers = hasHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
+        headers = shouldWriteHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
             ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
       }
