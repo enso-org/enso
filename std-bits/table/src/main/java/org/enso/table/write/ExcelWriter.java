@@ -295,8 +295,9 @@ public class ExcelWriter {
   }
 
   /**
-   * Determines if an existing range has headers.
-   * Unlike in the ExcelReader, if empty this will default to True.
+   * Determines if headers should be written for the given range in {@code INFER} mode.
+   *
+   * Unlike in the {@code ExcelReader}, if empty this will default to True.
    * @param excelSheet the Excel sheet to check.
    * @param topRow top row index (1-based) of the range to check.
    * @param startCol start column index (1-based) of the range to check.
