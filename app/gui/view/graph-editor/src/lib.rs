@@ -1634,7 +1634,7 @@ impl GraphEditorModelWithNetwork {
             bbox_after_pos <- node.output.bounding_box.gate(&pos_updated_while_editing);
             eval bbox_after_pos([model](_) {
                 *camera_pan_network_ref.borrow_mut() = None;
-                model.pan_screen_with_margins_to_node(node_id)
+                model.pan_camera_to_node(node_id)
             });
         }
         *self.new_node_camera_pan_network.borrow_mut() = Some(camera_pan_network);
@@ -2387,7 +2387,18 @@ impl GraphEditorModel {
         found
     }
 
-    fn pan_screen_with_margins_to_rectangle(&self, target_bbox: selection::BoundingBox) {
+    /// Pan the camera to make the `target_bbox` expressed in scene coordinates fully fit between
+    /// `screen_min_xy` and `screen_max_xy` expressed in screen coordinates.
+    /// Pan the camera to make the `target_bbox` fully fit in a rectangle between
+    /// `screen_min_x` and `screen_max_x` in screen coordinates.
+    /// Pan the camera to make the viewport rectangle on the screen fully contain the target
+    /// rectangle of the scene. If the target rectangle doesn't fully fit in the viewport, showing
+    /// the left and top boundaries of the target rectangle takes priority over showing the
+    /// corresponding opposite boundaries.
+    /// Pan the camera to fully show `target_bbox` on screen within a rectangle 
+    /// defined by
+    /// [`theme::graph_editor::screen_margin_when_panning_camera_to_node`].
+    fn pan_camera_to_rectangle_with_margins(&self, target_bbox: selection::BoundingBox) {
         use ensogl::display::navigation::navigator::PanEvent;
         use theme::graph_editor::screen_margin_when_panning_camera_to_node as screen_margin;
         let scene = &self.app.display.default_scene;
@@ -2424,10 +2435,23 @@ impl GraphEditorModel {
         self.navigator.emit_pan_event(PanEvent::new(-pan_xy * camera.zoom()));
     }
 
-    fn pan_screen_with_margins_to_node(&self, node_id: NodeId) {
+    fn pan_camera_to_node(&self, node_id: NodeId) {
         self.with_node(node_id, |node| {
-            let bbox = node.bounding_box.value();
-            self.pan_screen_with_margins_to_rectangle(bbox)
+            let camera = &self.app.display.default_scene.camera();
+            // let camera = self.app.camera();
+            let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
+            let styles = &self.styles_frp;
+            let top_margin = styles.get_number(screen_margin::top).value();
+            let bottom_margin = styles.get_number(screen_margin::bottom).value();
+            let left_margin = styles.get_number(screen_margin::left).value();
+            let right_margin = styles.get_number(screen_margin::right).value();
+            let top = screen_size_halved.y - top_margin;
+            let bottom = -screen_size_halved.y + bottom_margin;
+            let left = -screen_size_halved.x + left_margin;
+            let right = screen_size_halved.x - right_margin;
+
+            let node_bbox = node.bounding_box.value();
+            self.pan_camera_to_rectangle_with_margins(bbox)
         });
     }
 }
