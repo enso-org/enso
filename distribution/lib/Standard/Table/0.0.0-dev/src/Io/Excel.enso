@@ -246,7 +246,8 @@ read_excel_file file reader =
     handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
 
     File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
-        file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
+        file.with_input_stream [File.Option.Read] stream->
+            stream.with_java_stream reader
 
 ## PRIVATE
 handle_writer ~writer =
