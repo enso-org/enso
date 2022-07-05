@@ -73,7 +73,12 @@ fn class_fields_<'v, 's: 'v, 'c: 'v>(
     out.extend(fields);
 }
 
-/// Produce syntax referring to the given type.
+/// Given a [`TypeGraph`] and a definition of a field's contents ([`FieldData`]), produce what is
+/// referred to in the Java AST specification as an an `UnannType`[1]. This value is suitable for
+/// use as the type portion of a field declaration, local variable declaration, formal parameter, or
+/// return type specification.
+///
+/// [1]: https://docs.oracle.com/javase/specs/jls/se18/html/jls-8.html#jls-UnannType
 pub fn quote_type(graph: &TypeGraph, data: &FieldData) -> syntax::Type {
     let class = match data {
         FieldData::Object { type_, .. } => return quote_class_type(graph, *type_),
@@ -84,7 +89,12 @@ pub fn quote_type(graph: &TypeGraph, data: &FieldData) -> syntax::Type {
     syntax::Type::named(class)
 }
 
-/// Produce syntax referring to the given class.
+/// Given a [`TypeGraph`] and an ID identifying a [`Class`], produce what is referred to in the Java
+/// AST specification as an an `UnannClassOrInterfaceType`[1]. This value is suitable for
+/// use anywhere an `UnannType`[2] is expected.
+///
+/// [1]: https://docs.oracle.com/javase/specs/jls/se18/html/jls-8.html#jls-UnannClassOrInterfaceType
+/// [2]: https://docs.oracle.com/javase/specs/jls/se18/html/jls-8.html#jls-UnannType
 pub fn quote_class_type(graph: &TypeGraph, id: ClassId) -> syntax::Type {
     let class = path(graph, id);
     let params = quote_params(graph, &graph[id].params);
@@ -102,6 +112,8 @@ pub fn quote_params<'a>(
 
 // === Helpers ===
 
+/// Given a model of a field ([`Field`]), create a representation of the Java syntax defining a
+/// class field with name, type, and attributes as specified in the model.
 fn quote_field(graph: &TypeGraph, field: &Field) -> syntax::Field {
     let Field { name, data, id: _ } = field;
     let type_ = quote_type(graph, data);
@@ -110,6 +122,8 @@ fn quote_field(graph: &TypeGraph, field: &Field) -> syntax::Field {
     syntax::Field { type_, name, final_ }
 }
 
+/// Given a model of a method ([`Method`]), create a representation of the Java syntax implementing
+/// the method.
 fn method(graph: &TypeGraph, method: &Method, class: &Class) -> syntax::Method {
     match method {
         Method::Dynamic(method) => implement_method(graph, method, class),
@@ -117,6 +131,8 @@ fn method(graph: &TypeGraph, method: &Method, class: &Class) -> syntax::Method {
     }
 }
 
+/// Produce a representation of Java syntax implementing the specified [`Dynamic`] method, for the
+/// specified [`Class`] within the specified [`TypeGraph`].
 fn implement_method(graph: &TypeGraph, method: &Dynamic, class: &Class) -> syntax::Method {
     match method {
         Dynamic::Constructor => implement_constructor(graph, class),
@@ -127,6 +143,15 @@ fn implement_method(graph: &TypeGraph, method: &Dynamic, class: &Class) -> synta
     }
 }
 
+/// Produce a representation of Java syntax implementing a constructor for the given [`Class`].
+///
+/// The constructor will accept a value for each of its fields, and for all fields of any classes
+/// it extends, in an order that matches the order they appear in serialized formats.
+///
+/// For all field that have the `non_null` property sets (see [`FieldData`]), the constructor will
+/// produce `requireNonNull`[1] statements validating the corresponding inputs.
+///
+/// [1]: https://docs.oracle.com/javase/8/docs/api/java/util/Objects.html#requireNonNull-T-
 fn implement_constructor(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let suffix = "__GeneratedArgument";
     let arguments = class_fields(graph, class)
@@ -153,6 +178,14 @@ fn implement_constructor(graph: &TypeGraph, class: &Class) -> syntax::Method {
     method
 }
 
+/// Produce a representation of Java syntax implementing a method overriding `Object.hashCode`[1]
+/// for the specified [`Class`].
+///
+/// The implementation will pass all fields of the class, and of any superclasses, to
+/// `java.util.Objects.hash`[2] and return the result.
+///
+/// [1]: https://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#hashCode()
+/// [2]: https://docs.oracle.com/javase/8/docs/api/java/util/Objects.html#hash-java.lang.Object...-
 fn implement_hash_code(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let fields: Vec<_> =
         class_fields(graph, class).into_iter().map(|field| field.name.as_str()).collect();
@@ -166,6 +199,17 @@ fn implement_hash_code(graph: &TypeGraph, class: &Class) -> syntax::Method {
     method
 }
 
+/// Produce a representation of Java syntax implementing a method overriding `Object.equals`[1]
+/// for the specified [`Class`].
+///
+/// The implementation:
+/// - Returns `true` if the objects are identity-equal.
+/// - Returns `false` if the other object is not of the same type as this object.
+/// Otherwise, returns a boolean-and of a field-by-field comparison:
+/// - Primitive fields are compared with `==`.
+/// - Reference-type fields are compared with `Object.equals`.
+///
+/// [1]: https://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#equals(java.lang.Object)
 fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let object = "object";
     let that = "that";
@@ -190,6 +234,14 @@ fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
     method
 }
 
+/// Produce a representation of Java syntax implementing a method overriding `Object.toString`[1]
+/// for the specified [`Class`].
+///
+/// The generated `toString` formats all the object's fields in the same manner as would be done by
+/// a Java `record`[2] with the same fields.
+///
+/// [1]: https://docs.oracle.com/javase/7/docs/api/java/lang/Object.html#toString()
+/// [2]: https://openjdk.org/jeps/395
 fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let string_builder = "stringBuilder";
     let stringify =
@@ -209,11 +261,16 @@ fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     method
 }
 
+/// Produce a representation of Java syntax implementing a method returning the value of a field
+/// (identified by [`FieldId`]) of the specified [`Class`].
 fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId) -> syntax::Method {
     let field = class.fields.iter().find(|field| field.id() == id).unwrap();
     getter(graph, field)
 }
 
+/// Produce a representation of Java syntax implementing a method returning the value of the
+/// specified [`Field`]. The method must be attached to the same [`syntax::Class`] in which the
+/// [`Field`] is defined.
 fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
     let getter_name = |field| {
         let field = crate::meta::Identifier::from_camel_case(field);
@@ -227,6 +284,8 @@ fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
     method
 }
 
+/// Produce a representation of Java syntax defining a `class` as specified by the given [`Class`]
+/// (identified by its [`ClassId`]).
 fn implement_class(graph: &TypeGraph, id: ClassId) -> syntax::Class {
     let class = &graph[id];
     let name = class.name.clone();

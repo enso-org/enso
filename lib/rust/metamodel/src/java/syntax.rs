@@ -46,7 +46,11 @@ pub struct Field {
     pub final_: bool,
 }
 
-/// Identifies a type.
+/// Identifies a type; this corresponds to `UnannType`[1] in the Java specification.
+/// It is suitable for use as the type portion of a field declaration, local variable declaration,
+/// formal parameter, or return type specification.
+///
+/// [1]: https://docs.oracle.com/javase/specs/jls/se18/html/jls-8.html#jls-UnannType
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Type {
     /// Class name.

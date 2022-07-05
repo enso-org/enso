@@ -178,13 +178,11 @@ mod tests {
 
     #[test]
     fn accept_generic_lifetimes() {
-        let inputs = [
-            quote! {
-                struct Code<'s> {
-                    repr: std::borrow::Cow<'s, str>,
-                }
-            },
-        ];
+        let inputs = [quote! {
+            struct Code<'s> {
+                repr: std::borrow::Cow<'s, str>,
+            }
+        }];
         for input in inputs {
             analyze(input).quote();
         }

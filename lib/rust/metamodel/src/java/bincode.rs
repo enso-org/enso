@@ -1,5 +1,49 @@
 //! Derivation of bincode[1] serialization for Java types.
 //! [1]: https://github.com/bincode-org/bincode
+//!
+//! # Compatibility
+//!
+//! The generated deserialization methods support the same format as Rust's `serde-bincode` for an
+//! analagous tree of types, with the following configuration:
+//! ```
+//! use bincode::Options;
+//! let options = bincode::DefaultOptions::new().with_fixint_encoding();
+//! let serialized = options.serialize(data);
+//! ```
+//!
+//! # Nullability
+//!
+//! The [`crate::java]` model distinguishes between non-null fields, and fields that may be null.
+//! If a field is *not* non-null, or if a type is wrapped in a `java.util.Optional`, whether it's
+//! present is encoded compatibly with Rust's `Option` type (i.e. with a 1-byte discriminant).
+//!
+//! # Basic types
+//!
+//! Basic types (e.g. integer types, `boolean`, `String`) are encoded compatibly with the
+//! corresponding types in Rust.
+//!
+//! # Sequence types
+//!
+//! A sequence (e.g. as encoded for a Rust `Vec<T>`) is represented idiomatically in Java:
+//! internally its implementation type is `java.util.ArrayList`, but in public interfaces it is
+//! exposed as a `java.util.List`.
+//!
+//! # `Result`
+//!
+//! In Java, an `Either<Left, Right>` type is used to represent a `Result` as used in Rust. `Either`
+//! is similar to `Result`, with the main difference being that the `Ok` case is the `Right` value
+//! of an `Either`, and the `Err` case is the `left`.
+//!
+//! # Overrides
+//!
+//! The default deserialization can be replaced or modified per-field; see the
+//! [`DeserializationBuilder`] interface for details.
+//!
+//! # Deserialization errors
+//!
+//! The only runtime error possible is `FormatException`, defined in the Java `serialization`
+//! support package; it is a `RuntimeException` rather than a checked exception, as deserialization
+//! is extensively tested to succeed for any types that may be serialized in `Rust`.
 
 use crate::java::implementation::*;
 use crate::java::*;
