@@ -114,4 +114,10 @@ spec =
             contents = read_file_one_by_one windows_file encoding expected_contents.length expected_problems=expected_problems
             contents.should_equal expected_contents
 
+        Test.specify "should work correctly if no data is read from it" <|
+            result = windows_file.with_input_stream [File.Option.Read] stream->
+                stream.with_stream_decoder Encoding.ascii _->Nothing
+            result.should_equal Nothing
+            Warning.get_all result . map .value . should_equal []
+
 main = Test.Suite.run_main here.spec

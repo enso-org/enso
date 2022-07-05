@@ -788,14 +788,14 @@ type Output_Stream
        output stream with the specified encoding.
     with_stream_encoder : Encoding -> (ReportingStreamEncoder -> Any) -> Any
     with_stream_encoder encoding action = self.with_java_stream java_stream->
-        java_charset = encoding.to_java_charset
         ## We ignore any warnings raised by the `bytes` method, because if the
            original Unicode replacement character failed to encode, the `bytes`
            method will have replaced it with the simple `?` sign which should be
-           available in all encodings. And this is exactly the behavior we want
-           - if available, we use the `�` character to and otherwise we fallback
-           to `?`.
+           available in all encodings. And this is exactly the behavior we wan:
+           if available, we use the `�` character and otherwise we fallback to
+           the `?` character.
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
+        java_charset = encoding.to_java_charset
         Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
 
 ## An input stream, allowing for interactive reading of contents from an open

@@ -1,16 +1,20 @@
 package org.enso.base.encoding;
 
+import org.enso.base.Encoding_Utils;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.util.Arrays;
 
 public class ReportingStreamEncoder extends Writer {
+
   /**
    * Creates a writer which encodes characters and writes them to the provided output stream.
    *
@@ -24,8 +28,7 @@ public class ReportingStreamEncoder extends Writer {
       OutputStream outputStream, CharsetEncoder encoder, byte[] replacementSequence) {
     this.encoder = encoder;
     bufferedOutputStream = new BufferedOutputStream(outputStream);
-    System.out.println(
-        encoder.charset().toString() + " --> " + Arrays.toString(replacementSequence));
+    this.replacementSequence = replacementSequence;
   }
 
   private final BufferedOutputStream bufferedOutputStream;
@@ -41,10 +44,17 @@ public class ReportingStreamEncoder extends Writer {
 
   private long inputCharactersConsumedBeforeCurrentBuffer = 0;
 
-  // TODO !
-  private final byte[] replacement = new byte[0];
+  private final byte[] replacementSequence;
 
   private boolean wasClosed = false;
+
+  /**
+   * The buffer re-used for storing encoded output before writing it to the output stream.
+   *
+   * <p>It is cleared after each call to write, so that it can be freshly re-used in the following
+   * call. It is preserved only to avoid re-allocating a big buffer upon each call.
+   */
+  private ByteBuffer outputBuffer = ByteBuffer.allocate(0);
 
   private void ensureInputBufferHasEnoughFreeSpace(int bytesToAppend) {
     int freeSpaceInInputBuffer = inputBuffer.capacity() - inputBuffer.remaining();
@@ -76,25 +86,28 @@ public class ReportingStreamEncoder extends Writer {
     // We flip the input buffer back to reading mode, to be able to pass it to the encoder.
     inputBuffer.flip();
 
+    if (outputBuffer.capacity() == 0) {
+      outputBuffer =
+          ByteBuffer.allocate((int) (inputBuffer.remaining() * encoder.averageBytesPerChar()));
+    }
     runEncoderOnInputBuffer();
 
-    // TODO write output
+    bufferedOutputStream.write(outputBuffer.array(), 0, outputBuffer.position());
+    outputBuffer.clear();
   }
 
   private void runEncoderOnInputBuffer() {
-    ByteBuffer outputBuffer =
-        ByteBuffer.allocate((int) (inputBuffer.remaining() * encoder.averageBytesPerChar()));
     while (inputBuffer.hasRemaining()) {
       CoderResult cr = encoder.encode(inputBuffer, outputBuffer, false);
 
       if (cr.isMalformed() || cr.isUnmappable()) {
         reportEncodingProblem();
 
-        if (outputBuffer.remaining() < replacement.length) {
+        while (outputBuffer.remaining() < replacementSequence.length) {
           growOutputBuffer();
         }
 
-        outputBuffer.put(replacement);
+        outputBuffer.put(replacementSequence);
         inputBuffer.position(inputBuffer.position() + cr.length());
       } else if (cr.isUnderflow()) {
         break;
@@ -102,17 +115,15 @@ public class ReportingStreamEncoder extends Writer {
         growOutputBuffer();
       }
     }
-
-    // TODO move this to main write
-    //    bufferedOutputStream.write(output);
   }
 
   private void reportEncodingProblem() {
     // TODO
+    System.out.println("Encoding problem!");
   }
 
   private void growOutputBuffer() {
-    // TODO
+    outputBuffer = Encoding_Utils.resize(outputBuffer, ByteBuffer::allocate, ByteBuffer::put);
   }
 
   @Override
@@ -130,15 +141,15 @@ public class ReportingStreamEncoder extends Writer {
       return;
     }
 
-    while (encoder.encode(CharBuffer.allocate(0), null, true).isOverflow()) {
+    while (encoder.encode(inputBuffer, outputBuffer, true).isOverflow()) {
       growOutputBuffer();
     }
 
-    while (encoder.flush(null).isOverflow()) {
+    while (encoder.flush(outputBuffer).isOverflow()) {
       growOutputBuffer();
     }
 
-    bufferedOutputStream.write(null);
+    bufferedOutputStream.write(outputBuffer.array(), 0, outputBuffer.position());
     bufferedOutputStream.flush();
     bufferedOutputStream.close();
     wasClosed = true;
