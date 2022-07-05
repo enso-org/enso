@@ -20,7 +20,6 @@ import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
-import org.enso.table.problems.WithProblems;
 import org.enso.table.util.ColumnMapper;
 
 import java.time.LocalDate;

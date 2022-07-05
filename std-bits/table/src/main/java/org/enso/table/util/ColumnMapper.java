@@ -8,12 +8,13 @@ import org.enso.table.error.ColumnNameMismatchException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ColumnMapper {
   public static Table MapColumnsByName(Table table, String[] columnNames)
       throws ColumnNameMismatchException {
     Column[] columns = new Column[columnNames.length];
-    Set<String> extras = new HashSet<>(Arrays.asList(columnNames));
+    Set<String> extras = Arrays.stream(table.getColumns()).map(Column::getName).collect(Collectors.toSet());
     Set<String> missing = new HashSet<>();
 
     for (int i = 0; i < columnNames.length; i++) {
