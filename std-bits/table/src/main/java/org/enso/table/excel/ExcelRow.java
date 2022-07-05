@@ -37,7 +37,12 @@ public class ExcelRow {
         if (DateUtil.isCellDateFormatted(cell)) {
           return cell.getLocalDateTimeCellValue().toLocalDate();
         } else {
-          return cell.getNumericCellValue();
+          double dblValue = cell.getNumericCellValue();
+          if (dblValue == (long) dblValue) {
+            return (long) dblValue;
+          } else {
+            return dblValue;
+          }
         }
       case STRING:
         return cell.getStringCellValue();
@@ -62,12 +67,14 @@ public class ExcelRow {
   }
 
   public boolean isEmpty(int column) {
-    return isEmpty(column, column);
+    CellType cellType = getCellType(get(column));
+    return (cellType == CellType._NONE) || (cellType == CellType.BLANK);
   }
 
   public boolean isEmpty(int start, int end) {
-    for (int column = start; column <= end; column++) {
-      if (getCellType(get(column)) != CellType._NONE) {
+    int currentEnd = end == -1 ? getLastColumn() : end;
+    for (int column = start; column <= currentEnd; column++) {
+      if (!isEmpty(column)) {
         return false;
       }
     }
@@ -76,9 +83,26 @@ public class ExcelRow {
 
   public int findEndRight(int start) {
     int column = start;
-    while (getCellType(get(column + 1)) != CellType._NONE) {
+    while (!isEmpty(column + 1)) {
       column++;
     }
     return column;
+  }
+
+  public String[] getCellsAsText(int startCol, int endCol) {
+    int currentEndCol = endCol == -1 ? getLastColumn() : endCol;
+
+    String[] output = new String[currentEndCol - startCol + 1];
+    for (int col = startCol; col <= currentEndCol; col++) {
+      Cell cell = get(col);
+      CellType type = ExcelRow.getCellType(cell);
+      if (type != CellType._NONE && type != CellType.BLANK && type != CellType.STRING) {
+        return null;
+      }
+      output[col - startCol] =
+          type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
+    }
+
+    return output;
   }
 }

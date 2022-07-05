@@ -1,16 +1,22 @@
 from Standard.Base import Nothing, File, Illegal_Argument_Error, True, False
-
+import Standard.Base.System.File.Existing_File_Behavior
+from Standard.Base.System.File import File_Already_Exists_Error
 import Standard.Base.Data.Time.Date
 
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
+import Standard.Table.Data.Column_Mapping
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
 from Standard.Table.Io.Excel import Excel_Range, Sheet_Names, Range_Names, Sheet, Cell_Range
-from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names
+from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 
 import Standard.Test
 import Standard.Test.Problems
 
 import Standard.Examples
+
+import project.Util
 
 spec_fmt header file read_method =
     Test.group header <|
@@ -60,6 +66,96 @@ spec_fmt header file read_method =
             t_3.columns.length.should_equal 2
             t_3.at 'B' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
+
+spec_write suffix test_sheet_name =
+    Test.group ("Write " + suffix + " Files") <|
+        ## We disable parsing dates, because date support is not advanced enough
+           for these tests. This should ideally be re-enabled with the
+           completion of the following story:
+           https://www.pivotaltracker.com/story/show/181755990
+        no_dates = File_Format.Delimited "," value_formatter=(Data_Formatter date_formats=[] time_formats=[] datetime_formats=[])
+        out = Enso_Project.data / ('out.' + suffix)
+        table = Enso_Project.data/'varied_column.csv' . read (format = no_dates)
+        clothes = Enso_Project.data/'clothes.csv' . read (format = no_dates)
+        sub_clothes = clothes.select_columns (By_Index [0, 1])
+
+        Test.specify 'should write a table to non-existent file as a new sheet with headers' <|
+            out.delete_if_exists
+            table.write out
+            written = out.read
+            written.should_equal table
+            out.delete_if_exists
+
+        Test.specify 'should create new sheets at the start if index is 0' <|
+            out.delete_if_exists
+            table.write out (File_Format.Excel (Sheet 0))
+            clothes.write out (File_Format.Excel (Sheet 0))
+            read_1 = out.read (File_Format.Excel (Sheet "Sheet1"))
+            read_1 . should_equal table
+            read_2 = out.read (File_Format.Excel (Sheet "Sheet2"))
+            read_2 . should_equal clothes
+            read_3 = out.read (File_Format.Excel (Sheet_Names))
+            read_3 . should_equal ["Sheet2", "Sheet1"]
+            out.delete_if_exists
+
+        Test.specify 'should write a table to specific single cell location of an existing sheet' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            table.write out (File_Format.Excel (Cell_Range "Another!G1"))
+            written = out.read (File_Format.Excel (Cell_Range "Another!G1"))
+            written.should_equal table
+            out.delete_if_exists
+
+        Test.specify 'should clear out an existing fixed range and replace' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1:D20"))
+            written = out.read (File_Format.Excel (Cell_Range "Another!A1"))
+            written.should_equal sub_clothes
+            out.delete_if_exists
+
+        Test.specify 'should clear out an existing range and replace' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1"))
+            written = out.read (File_Format.Excel (Cell_Range "Another!A1"))
+            written.should_equal sub_clothes
+            out.delete_if_exists
+
+        Test.specify 'should result in Invalid_Location error if trying to write in a bad location' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            sub_clothes.write out (File_Format.Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location
+            sub_clothes.write out (File_Format.Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location
+            sub_clothes.write out (File_Format.Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location
+            out.delete_if_exists
+
+        Test.specify 'should result in Range_Exceeded error if trying to write in too small a range' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1:B2")) . should_fail_with Range_Exceeded
+            out.delete_if_exists
+
+        Test.specify 'should result in Existing_Data error if in Error mode and trying to replace' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            sub_clothes.write out (File_Format.Excel (Sheet 1)) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
+            sub_clothes.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
+            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
+            sub_clothes.write out (File_Format.Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data
+            out.delete_if_exists
+
+        Test.specify 'should not allow adding a new sheet if in Error mode and not clashing' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            sub_clothes.write out (File_Format.Excel (Sheet "Testing")) on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Already_Exists_Error
+
+        Test.specify 'should write a table to non-existent file as a new sheet without headers' <|
+            out.delete_if_exists
+            table.write out (File_Format.Excel (Sheet "Sheet1") headers=False)
+            written = out.read
+            written.should_equal (table.rename_columns (Column_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
+            out.delete_if_exists
 
 spec =
     Test.group 'Excel Range' <|
@@ -320,5 +416,9 @@ spec =
             tester = check_table _ ["DD", "DD_1"] [[1,3], [2,4]]
             problems = [Duplicate_Output_Column_Names ["DD"]]
             Problems.test_problem_handling action problems tester
+
+    here.spec_write "xlsx" 'TestSheet.xlsx'
+    here.spec_write "xls" 'TestSheetOld.xls'
+
 
 main = Test.Suite.run_main here.spec
