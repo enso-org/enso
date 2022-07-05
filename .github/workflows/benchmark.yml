@@ -1,7 +1,9 @@
 ---
 name: Benchmark Engine
 "on":
-  push: {}
+  push:
+    branches:
+      - develop
   schedule:
     - cron: 0 5 * * 2-6
   workflow_dispatch: {}
