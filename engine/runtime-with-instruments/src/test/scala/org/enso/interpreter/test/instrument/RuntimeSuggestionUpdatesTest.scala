@@ -165,16 +165,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -230,16 +221,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -317,16 +299,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -424,16 +397,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -541,16 +505,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -811,16 +766,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    Seq(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    Seq(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,
@@ -1123,16 +1069,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     moduleName,
                     "main",
-                    List(
-                      Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        )
-                    ),
+                    List(),
                     "Enso_Test.Test.Main",
                     ConstantsGen.ANY,
                     None,

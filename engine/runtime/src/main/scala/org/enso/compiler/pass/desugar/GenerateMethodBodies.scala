@@ -82,14 +82,14 @@ case object GenerateMethodBodies extends IRPass {
       case ir: IR.Module.Scope.Definition.Method.Explicit =>
         ir.copy(
           body = ir.body match {
-            case fun: IR.Function => processBodyFunction(fun)
-            case expression       => processBodyExpression(expression)
+            case fun: IR.Function => processBodyFunction(fun, ir.methodName)
+            case expression       => processBodyExpression(expression, ir.methodName)
           }
         )
       case ir: Method.Conversion =>
         ir.copy(
           body = ir.body match {
-            case fun: IR.Function => processBodyFunction(fun)
+            case fun: IR.Function => processBodyFunction(fun, ir.methodName)
             case _ =>
               throw new CompilerError(
                 "It should not be possible for a conversion method to have " +
@@ -113,7 +113,7 @@ case object GenerateMethodBodies extends IRPass {
     * @param fun the body function
     * @return the body function with the `self` argument
     */
-  def processBodyFunction(fun: IR.Function): IR.Expression = {
+  def processBodyFunction(fun: IR.Function, name: IR.Name): IR.Expression = {
     val selfArgPos = collectChainedFunctionArgs(fun, 0).collect {
       case (arg, idx) if arg.name.isInstanceOf[IR.Name.Self] =>
         (arg, idx)
@@ -140,10 +140,11 @@ case object GenerateMethodBodies extends IRPass {
         }
       case Nil =>
         // TODO: remove this case once explicit self is implemented
+
         fun match {
           case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
             lam.copy(
-              arguments = genSelfArgument :: args
+              arguments = if (name.name == "main") args else genSelfArgument :: args
             )
           case _: IR.Function.Binding =>
             throw new CompilerError(
@@ -159,10 +160,13 @@ case object GenerateMethodBodies extends IRPass {
     * @param expr the body expression
     * @return `expr` converted to a function taking the `self` argument
     */
-  def processBodyExpression(expr: IR.Expression): IR.Expression = {
+  def processBodyExpression(
+    expr: IR.Expression,
+    name: IR.Name
+  ): IR.Expression = {
     // TODO: remove once explicit self arg is finished
     IR.Function.Lambda(
-      arguments = List(genSelfArgument),
+      arguments = if (name.name == "main") Nil else List(genSelfArgument),
       body      = expr,
       location  = expr.location
     )

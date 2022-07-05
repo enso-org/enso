@@ -189,7 +189,6 @@ class ReplTest
       }
       eval(code)
       scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
-        "self" -> "Test",
         "x"    -> "10",
         "y"    -> "20",
         "z"    -> "30"
@@ -216,7 +215,6 @@ class ReplTest
       }
       eval(code)
       scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
-        "self" -> "Test",
         "x"    -> "50",
         "y"    -> "20",
         "z"    -> "30"
