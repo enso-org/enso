@@ -49,6 +49,12 @@ impl<T> NonEmptyVec<T> {
         NonEmptyVec { elems }
     }
 
+    /// Length of the vector.
+    #[allow(clippy::len_without_is_empty)]
+    pub fn len(&self) -> usize {
+        self.elems.len()
+    }
+
     /// Construct a `NonEmptyVec` containing a single element.
     ///
     /// # Examples
@@ -207,7 +213,7 @@ impl<T> NonEmptyVec<T> {
     /// assert_eq!(*vec.first(), 0);
     /// ```
     pub fn first(&self) -> &T {
-        self.elems.first().expect("The NonEmptyVec always has an item in it.")
+        self.elems.first().unwrap_or_else(|| unreachable!())
     }
 
     /// Obtain a mutable reference to the head of the `NonEmptyVec`.
@@ -220,7 +226,7 @@ impl<T> NonEmptyVec<T> {
     /// assert_eq!(*vec.first_mut(), 0);
     /// ```
     pub fn first_mut(&mut self) -> &mut T {
-        self.elems.first_mut().expect("The NonEmptyVec always has an item in it.")
+        self.elems.first_mut().unwrap_or_else(|| unreachable!())
     }
 
     /// Get the tail reference.
@@ -243,7 +249,7 @@ impl<T> NonEmptyVec<T> {
     /// assert_eq!(*vec.last(), 2)
     /// ```
     pub fn last(&self) -> &T {
-        self.get(self.len() - 1).expect("There is always one element in a NonEmptyVec.")
+        self.get(self.len() - 1).unwrap_or_else(|| unreachable!())
     }
 
     /// Obtain a mutable reference to the last element in the `NonEmptyVec`.
@@ -256,7 +262,7 @@ impl<T> NonEmptyVec<T> {
     /// assert_eq!(*vec.last_mut(), 2)
     /// ```
     pub fn last_mut(&mut self) -> &mut T {
-        self.get_mut(self.len() - 1).expect("There is always one element in a NonEmptyVec.")
+        self.get_mut(self.len() - 1).unwrap_or_else(|| unreachable!())
     }
 
     /// Create a draining iterator that removes the specified range in the vector and yields the

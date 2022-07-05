@@ -25,33 +25,33 @@ public abstract class SortNode extends Node {
   private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
   private final BranchProfile resultProfile = BranchProfile.create();
 
-  abstract Object execute(VirtualFrame frame, Object _this, Object comparator);
+  abstract Object execute(VirtualFrame frame, Object self, Object comparator);
 
   static SortNode build() {
     return SortNodeGen.create();
   }
 
   @Specialization
-  Object doSortFunction(VirtualFrame frame, Array _this, Function comparator) {
+  Object doSortFunction(VirtualFrame frame, Array self, Function comparator) {
     Context context = Context.get(this);
     Comparator<Object> compare = getComparator(comparator, context);
-    return runSort(compare, _this, context);
+    return runSort(compare, self, context);
   }
 
   @Specialization
-  Object doSortCallable(VirtualFrame frame, Array _this, Object comparator) {
+  Object doSortCallable(VirtualFrame frame, Array self, Object comparator) {
     Comparator<Object> compare = (l, r) -> comparatorNode.execute(frame, comparator, l, r);
-    return runSort(compare, _this, Context.get(this));
+    return runSort(compare, self, Context.get(this));
   }
 
   @Specialization
-  Object doAtomThis(VirtualFrame frame, Atom _this, Object that) {
+  Object doAtomThis(VirtualFrame frame, Atom self, Object that) {
     return Context.get(this).getBuiltins().nothing().newInstance();
   }
 
-  Object runSort(Comparator<Object> compare, Array _this, Context context) {
-    doSort(_this.getItems(), compare);
-    LoopNode.reportLoopCount(this, (int) _this.length());
+  Object runSort(Comparator<Object> compare, Array self, Context context) {
+    doSort(self.getItems(), compare);
+    LoopNode.reportLoopCount(this, (int) self.length());
     return context.getBuiltins().nothing().newInstance();
   }
 

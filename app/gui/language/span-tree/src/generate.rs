@@ -951,7 +951,7 @@ mod test {
     fn generating_span_tree_for_unfinished_call() {
         let parser = Parser::new_or_panic();
         let this_param =
-            ArgumentInfo { name: Some("this".to_owned()), tp: Some("Any".to_owned()) };
+            ArgumentInfo { name: Some("self".to_owned()), tp: Some("Any".to_owned()) };
         let param1 =
             ArgumentInfo { name: Some("arg1".to_owned()), tp: Some("Number".to_owned()) };
         let param2 = ArgumentInfo { name: Some("arg2".to_owned()), tp: None };

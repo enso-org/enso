@@ -10,9 +10,10 @@
      Read the active sheet of an XLSX from disk and convert it into a table.
 
          import Standard.Table
+         import Standard.Table.Io.File_Read
          import Standard.Examples
 
-         example_xlsx_to_table = Examples.xlsx.read_xlsx
+         example_xlsx_to_table = Examples.xlsx.read
 
    > Example
      Read a CSV from disk and convert it into a table.
@@ -29,7 +30,7 @@
 
          example_to_xlsx =
              path = Enso_Project.data / example_xlsx_output.xlsx
-             Examples.inventory_table.write_xlsx path
+             Examples.inventory_table.write path
 
    > Example
      Write a table to a CSV file.
@@ -38,5 +39,5 @@
 
          example_to_csv =
              path = Enso_Project.data / example_csv_output.csv
-             Examples.inventory_table.write_csv path
+             Examples.inventory_table.write path
 

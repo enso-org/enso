@@ -120,7 +120,7 @@ type Zone
 
              example_zone_id = Zone.system.zone_id
     zone_id : Text
-    zone_id = this.internal_zone_id . getId
+    zone_id = self.internal_zone_id . getId
 
     ## Convert the time zone to JSON.
 
@@ -131,4 +131,4 @@ type Zone
 
              example_to_json = Zone.system.to_json
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
+    to_json = Json.from_pairs [["type", "Zone"], ["id", self.zone_id]]

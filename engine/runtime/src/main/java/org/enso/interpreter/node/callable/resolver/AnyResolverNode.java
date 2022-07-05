@@ -8,7 +8,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @ReportPolymorphism
 public abstract class AnyResolverNode extends BaseResolverNode {
 
-  public abstract Function execute(UnresolvedSymbol symbol, Object _this);
+  public abstract Function execute(UnresolvedSymbol symbol, Object self);
 
   @Specialization(
       guards = {
@@ -19,14 +19,14 @@ public abstract class AnyResolverNode extends BaseResolverNode {
       limit = "CACHE_SIZE")
   Function resolveCached(
       UnresolvedSymbol symbol,
-      Object _this,
+      Object self,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("resolveMethodOnAny(cachedSymbol)") Function function) {
     return function;
   }
 
   @Specialization(replaces = "resolveCached")
-  Function resolve(UnresolvedSymbol symbol, Object _this) {
-    return throwIfNull(resolveMethodOnAny(symbol), _this, symbol);
+  Function resolve(UnresolvedSymbol symbol, Object self) {
+    return throwIfNull(resolveMethodOnAny(symbol), self, symbol);
   }
 }

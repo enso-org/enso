@@ -139,6 +139,13 @@
   API and added builders for customizing less common settings.][3516]
 - [Allow control of sort direction in `First` and `Last` aggregations.][3517]
 - [Implemented `Text.write`, replacing `File.write_text`.][3518]
+- [Removed obsolete `select`, `group`, `sort` and releated types from tables.]
+  [3519]
+- [Removed obsolete `from_xls` and `from_xlsx` functions. Added support for
+  reading column names from first row in `File_Format.Excel`][3523]
+- [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
+- [Adjusted `Database.connect` API to new design.][3542]
+- [Added `File_Format.Excel` support to `Table.write` for new files.][3551]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -219,6 +226,11 @@
 [3516]: https://github.com/enso-org/enso/pull/3516
 [3517]: https://github.com/enso-org/enso/pull/3517
 [3518]: https://github.com/enso-org/enso/pull/3518
+[3519]: https://github.com/enso-org/enso/pull/3519
+[3523]: https://github.com/enso-org/enso/pull/3523
+[3528]: https://github.com/enso-org/enso/pull/3528
+[3542]: https://github.com/enso-org/enso/pull/3542
+[3551]: https://github.com/enso-org/enso/pull/3551
 
 #### Enso Compiler
 
@@ -229,6 +241,7 @@
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
 - [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Incremental Reparsing of a Simple Edits][3508]
 - [Functions with all-defaulted arguments now execute automatically][3414]
 - [Provide `tagValues` for function arguments in the language server][3422]
 - [Delay construction of Truffle nodes to speed initialization][3429]
@@ -241,8 +254,11 @@
   builtins from method signatures][3454]
 - [Avoid needless concatenations of warning/error messages][3465]
 - [Added a full-blown DSL for builtins][3471]
+- [Integration of Enso with Ideal Graph Visualizer][3533]
 - [Lazy evaluation of RHS argument for || and &&][3492]
 - [Drop Core implementation of IR][3512]
+- [Replace `this` with `self`][3524]
+- [Introduce a smaller version of the standard library, just for testing][3531]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -252,6 +268,7 @@
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
 [3374]: https://github.com/enso-org/enso/pull/3374
+[3508]: https://github.com/enso-org/enso/pull/3508
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414
 [3417]: https://github.com/enso-org/enso/pull/3417
@@ -266,10 +283,13 @@
 [3461]: https://github.com/enso-org/enso/pull/3461
 [3465]: https://github.com/enso-org/enso/pull/3465
 [3471]: https://github.com/enso-org/enso/pull/3471
+[3533]: https://github.com/enso-org/enso/pull/3533
 [3492]: https://github.com/enso-org/enso/pull/3492
 [3493]: https://github.com/enso-org/enso/pull/3493
 [3505]: https://github.com/enso-org/enso/pull/3505
 [3512]: https://github.com/enso-org/enso/pull/3512
+[3524]: https://github.com/enso-org/enso/pull/3524
+[3531]: https://github.com/enso-org/enso/pull/3531
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

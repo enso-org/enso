@@ -180,6 +180,41 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 150.0, 150.0;
         }
         component_browser {
+            searcher {
+                list_panel {
+                    content_width = 400.0, 400.0;
+                    content_height = 398.0, 398.0;
+                    content_padding = 3.0, 3.0;
+                    content_corner_radius = 15.0, 15.0;
+                    content_background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
+
+                    section_divider_height = 2.0, 2.0;
+                    section_heading_size = 16.0, 16.0;
+                    section_heading_offset = 50.0, 50.0;
+                    section_heading_text_offset = 13.0, 13.0;
+                    section_heading_font = "Causten-Semibold", "Causten-Semibold";
+                    section_heading_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
+                    section_divider_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
+
+                    menu_height = 35.0, 35.0;
+                    menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
+                    menu_divider_height = 0.5,0.5;
+
+                    favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
+
+                    section {
+                        column_grid {
+                            column_gap = 3.0, 3.0;
+                            entry_color_0 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
+                            entry_color_1 = Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
+                            entry_color_2 = Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
+                            entry_color_3 = Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0);
+                            entry_color_4 = Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0);
+                            entry_color_5 = Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0),Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0);
+                        }
+                    }
+                }
+            }
             component_group {
                 header {
                     text {
@@ -203,9 +238,18 @@ define_themes! { [light:0, dark:1]
                         offset_y = shadow::offset_y , shadow::offset_y;
                     }
                 }
+                selection {
+                    corners_radius = 10.0, 10.0;
+                    horizontal_padding = 10.0, 10.0;
+                    vertical_padding = 3.0, 3.0;
+                }
                 background_color_intensity = 0.2, 0.2;
+                selection_color_intensity = 1.0, 1.0;
                 dimmed_color_intensity = 0.5, 0.5;
                 entry_list {
+                    background = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
+                    highlight = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
+                    selected_color = Rgba::white(), Rgba::white();
                     text {
                         font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
@@ -222,7 +266,8 @@ define_themes! { [light:0, dark:1]
                         padding = 7.0, 7.0;
                     }
                     highlight {
-                        height = 30.0, 30.0
+                        height = 30.0, 30.0;
+                        corner_radius = 0.0, 0.0;
                     }
                 }
             }
@@ -232,43 +277,8 @@ define_themes! { [light:0, dark:1]
             padding         = 5.0, 5.0;
             icons {
                 favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
-                io {
-                    strong = Rgba(0.475,0.494,0.145,1.0) , Rgba(0.475,0.494,0.145,1.0);
-                    weak   = Rgba(0.612,0.627,0.388,1.0) , Rgba(0.612,0.627,0.388,1.0);
-                }
-                preparation {
-                    strong = Rgba(0.243,0.545,0.161,1.0) , Rgba(0.243,0.545,0.161,1.0);
-                    weak   = Rgba(0.69,0.816,0.663,1.0)  , Rgba(0.69,0.816,0.663,1.0);
-                }
-                join {
-                    strong = Rgba(0.239,0.573,0.808,1.0) , Rgba(0.239,0.573,0.808,1.0);
-                    weak   = Rgba(0.612,0.784,0.902,1.0) , Rgba(0.612,0.784,0.902,1.0);
-                    medium = Rgba(0.42,0.678,0.855,1.0)  , Rgba(0.42,0.678,0.855,1.0);
-                }
-                transform = Rgba(0.169,0.459,0.937,1.0) , Rgba(0.169,0.459,0.937,1.0);
-                text {
-                    strong = Rgba(0.753,0.278,0.671,1.0) , Rgba(0.753,0.278,0.671,1.0);
-                    weak   = Rgba(0.871,0.635,0.831,1.0) , Rgba(0.871,0.635,0.831,1.0);
-                }
-                date_and_time    = Rgba(0.753,0.278,0.671,1.0) , Rgba(0.753,0.278,0.671,1.0);
-                spatial          = Rgba(0.827,0.267,0.255,1.0) , Rgba(0.827,0.267,0.255,1.0);
-                predictive       = Rgba(0.71,0.38,0.137,1.0)   , Rgba(0.71,0.38,0.137,1.0);
-                machine_learning = Rgba(0.71,0.38,0.137,1.0)   , Rgba(0.71,0.38,0.137,1.0);
                 computer_vision {
-                    strong    = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
-                    weak      = Rgba(0.514,0.518,0.518,1.0) , Rgba(0.514,0.518,0.518,1.0);
                     highlight = Rgba(0.872,0.267,0.255,1.0) , Rgba(0.872,0.267,0.255,1.0);
-                }
-                data_science {
-                    red  = Rgba(0.847,0.212,0.435,1.0) , Rgba(0.847,0.212,0.435,1.0);
-                    blue = Rgba(0.235,0.565,0.886,1.0) , Rgba(0.235,0.565,0.886,1.0);
-                    gray = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
-                }
-                network {
-                    _0 = Rgba(0.12,0.451,0.973,1.0)  , Rgba(0.12,0.451,0.973,1.0);
-                    _1 = Rgba(0.114,0.506,0.976,1.0) , Rgba(0.114,0.506,0.976,1.0);
-                    _2 = Rgba(0.255,0.588,0.98,1.0)  , Rgba(0.255,0.588,0.98,1.0);
-                    _3 = Rgba(0.404,0.671,0.984,1.0) , Rgba(0.404,0.671,0.984,1.0);
                 }
                 system {
                     background = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
@@ -604,8 +614,12 @@ define_themes! { [light:0, dark:1]
                 color = Lcha(0.3,0.0,0.0,1.0), Lcha(0.7,0.0,0.0,1.0);
             }
             track {
-                color       = Lcha(0.7,0.0,0.0,1.0), Lcha(0.3,0.0,0.0,1.0);
-                hover_color = Lcha(0.6,0.0,0.0,1.0), Lcha(0.4,0.0,0.0,1.0);
+                color       = Lcha(0.75,0.0,0.0,1.0), Lcha(0.3,0.0,0.0,1.0);
+                hover_color = Lcha(0.75,0.0,0.0,1.0), Lcha(0.4,0.0,0.0,1.0);
+            }
+            background {
+                color       = Lcha(1.0,0.0,0.0,0.5), Lcha(0.3,0.0,0.0,0.5);
+                hover_color = Lcha(1.0,0.0,0.0,0.5), Lcha(0.4,0.0,0.0,0.5);
             }
             overflow {
                 color = Lcha(0.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,1.0);

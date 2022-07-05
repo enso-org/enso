@@ -253,9 +253,6 @@ impl<T:Storable> {
             self.resize_dirty.set();
             GlData::new(ctx)
         });
-        if self.gl.is_none() {
-            self.drop_stats()
-        }
     }
 }}
 

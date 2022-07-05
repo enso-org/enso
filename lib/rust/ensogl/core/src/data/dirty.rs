@@ -319,6 +319,27 @@ where Arg<T>: Display
 }
 
 
+// === Weak References ===
+
+#[derive(Derivative)]
+#[derivative(Debug(bound = "T:Debug"))]
+#[derivative(Clone(bound = ""))]
+pub struct WeakSharedDirtyFlag<T, OnMut> {
+    weak: Weak<RefCell<DirtyFlag<T, OnMut>>>,
+}
+impl<T, OnMut> SharedDirtyFlag<T, OnMut> {
+    pub fn downgrade(&self) -> WeakSharedDirtyFlag<T, OnMut> {
+        let weak = self.rc.downgrade();
+        WeakSharedDirtyFlag { weak }
+    }
+}
+impl<T, OnMut> WeakSharedDirtyFlag<T, OnMut> {
+    pub fn upgrade(&self) -> Option<SharedDirtyFlag<T, OnMut>> {
+        self.weak.upgrade().map(|rc| SharedDirtyFlag { rc })
+    }
+}
+
+
 
 // =============================================================================
 // === Flags ===================================================================
@@ -333,6 +354,7 @@ where Arg<T>: Display
 
 pub type Bool<OnMut = ()> = DirtyFlag<BoolData, OnMut>;
 pub type SharedBool<OnMut = ()> = SharedDirtyFlag<BoolData, OnMut>;
+pub type WeakSharedBool<OnMut = ()> = WeakSharedDirtyFlag<BoolData, OnMut>;
 pub trait BoolCtx<OnMut> = where OnMut: FnMut0;
 
 #[derive(Clone, Copy, Debug, Display, Default)]

@@ -4,10 +4,7 @@ import org.enso.table.problems.Problem;
 import org.enso.table.util.problems.DuplicateNames;
 import org.enso.table.util.problems.InvalidNames;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class NameDeduplicator {
@@ -36,6 +33,10 @@ public class NameDeduplicator {
 
   public List<String> makeUnique(List<String> names) {
     return names.stream().map(this::makeUnique).collect(Collectors.toList());
+  }
+
+  public String[] makeUnique(String[] names) {
+    return Arrays.stream(names).map(this::makeUnique).toArray(String[]::new);
   }
 
   /**

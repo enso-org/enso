@@ -8,13 +8,13 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
 use crate::display::symbol;
+use crate::display::symbol::RenderGroup;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
+use crate::display::symbol::WeakSymbol;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::Context;
-
-use data::opt_vec::OptVec;
 
 
 
@@ -36,7 +36,8 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 /// which the `zoom` value is `1.0`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
-    symbols:            Rc<RefCell<OptVec<Symbol>>>,
+    // Note: WeakSymbol in the Registry
+    symbols:            Rc<RefCell<WeakValueHashMap<SymbolId, WeakSymbol>>>,
     global_id_provider: symbol::GlobalInstanceIdProvider,
     symbol_dirty:       SymbolDirty,
     logger:             Logger,
@@ -45,7 +46,23 @@ pub struct SymbolRegistry {
     variables:          UniformScope,
     context:            Rc<RefCell<Option<Context>>>,
     stats:              Stats,
+    next_id:            Rc<Cell<u32>>,
 }
+
+// Note: WeakSymbol in the Registry
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// The `Symbol` references owned by the `SymbolRegistry` don't need to be fully-weak references,
+// but it's conceptually simpler than introducing a special-purpose type.
+//
+// A weak reference type differs from a strong reference in two properties:
+// 1. If there are no non-weak references to an object, the object will be dropped.
+// 2. A cycle in the reference graph will only prevent an object from being dropped if all
+//    references in the cycle are non-weak.
+//
+// In this case, property 1 is sufficient. The way `Symbol` is implemented (with multiple
+// shared-reference fields, i.e. the `CloneRef` pattern), it would be marginally simpler to
+// implement a semi-weak type that satisfies property 1, but not property 2; however, a
+// general-purpose weak reference is used here because it's a well-known abstraction.
 
 impl SymbolRegistry {
     /// Constructor.
@@ -66,6 +83,7 @@ impl SymbolRegistry {
         let context = default();
         let stats = stats.clone_ref();
         let global_id_provider = default();
+        let next_id = default();
         Self {
             symbols,
             global_id_provider,
@@ -76,49 +94,42 @@ impl SymbolRegistry {
             variables,
             context,
             stats,
+            next_id,
         }
     }
 
-    /// Creates a new `Symbol` instance and returns its id.
-    pub fn new_get_id(&self) -> SymbolId {
+    /// Creates a new `Symbol`.
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(&self) -> Symbol {
         let symbol_dirty = self.symbol_dirty.clone();
         let stats = &self.stats;
-        let index = self.symbols.borrow_mut().insert_with_ix_(|ix| {
-            let id = SymbolId::new(ix as u32);
-            let on_mut = move || symbol_dirty.set(id);
-            let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
-            symbol.set_context(self.context.borrow().as_ref());
-            symbol
-        });
-        SymbolId::new(index as u32)
+        let id_value = self.next_id.get();
+        self.next_id.set(id_value + 1);
+        let id = SymbolId::new(id_value);
+        let on_mut = move || symbol_dirty.set(id);
+        let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
+        symbol.set_context(self.context.borrow().as_ref());
+        self.symbols.borrow_mut().insert(id, symbol.clone_ref());
+        symbol
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
-        for symbol in &*self.symbols.borrow() {
+        for symbol in self.symbols.borrow().values() {
             symbol.set_context(context)
         }
-    }
-
-    /// Creates a new `Symbol` instance.
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(&self) -> Symbol {
-        let ix = self.new_get_id();
-        self.index(ix)
-    }
-
-    /// Get symbol by its ID.
-    pub fn index(&self, id: SymbolId) -> Symbol {
-        self.symbols.borrow()[(*id) as usize].clone_ref()
     }
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self) {
         debug!(self.logger, "Updating.", || {
+            let symbols = self.symbols.borrow();
             for id in self.symbol_dirty.take().iter() {
-                self.symbols.borrow()[(**id) as usize].update(&self.variables)
+                if let Some(symbol) = symbols.get(id) {
+                    symbol.update(&self.variables);
+                }
             }
             self.symbol_dirty.unset_all();
         })
@@ -130,18 +141,22 @@ impl SymbolRegistry {
         self.z_zoom_1.set(camera.z_zoom_1());
     }
 
-    /// Rasterize all symbols.
-    pub fn render_all(&self) {
-        for symbol in &*self.symbols.borrow() {
-            symbol.render()
-        }
-    }
-
     /// Rasterize selected symbols.
-    pub fn render_by_ids(&self, ids: &[SymbolId]) {
-        let symbols = self.symbols.borrow();
-        for id in ids {
-            symbols[(**id) as usize].render();
+    pub fn render_symbols(&self, to_render: &RenderGroup) {
+        let mut symbols = to_render.symbols.borrow_mut();
+        let symbols = symbols.get_or_insert_with(|| {
+            let id_to_symbol = self.symbols.borrow();
+            to_render
+                .ids
+                .iter()
+                .filter_map(|id| id_to_symbol.get(id))
+                .map(|symbol| WeakSymbol::new(&symbol))
+                .collect()
+        });
+        for symbol in symbols {
+            if let Some(symbol) = symbol.view() {
+                symbol.render();
+            }
         }
     }
 }

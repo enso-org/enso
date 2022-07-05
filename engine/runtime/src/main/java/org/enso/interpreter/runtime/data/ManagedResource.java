@@ -105,7 +105,7 @@ public class ManagedResource implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        ManagedResource _this,
+        ManagedResource self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -113,7 +113,7 @@ public class ManagedResource implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(ManagedResource _this, UnresolvedSymbol symbol)
+    static Function resolve(ManagedResource self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {

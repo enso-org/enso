@@ -13,7 +13,7 @@ type Line_Ending_Style
 
     ## Returns the text equivalent of the line ending.
     to_text : Text
-    to_text = case this of
+    to_text = case self of
         Unix -> '\n'
         Windows -> '\r\n'
         Mac_Legacy -> '\r'

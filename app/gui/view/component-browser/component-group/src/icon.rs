@@ -494,7 +494,7 @@ crate::define_icons! {
                     ( 4.0 , -5.5),
                     ( 5.0 , -3.5),
                 ]);
-                let shape = shape.fill(style.get_color(theme::transform));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -555,17 +555,15 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let blue = style.get_color(theme::data_science::blue);
-                let rect1 = Rect((4.0.px(),4.0.px())).translate(((-5.5).px(),3.0.px())).fill(blue);
-                let rect2 = Rect((4.0.px(),4.0.px())).translate_y((-5.5).px()).fill(blue);
+                let circle = Circle(2.0.px());
+                let circle1 = circle.translate_y(5.5.px()).fill(weak_color.clone());
+                let circle2 = circle.translate(((-5.5).px(),(-3.0).px())).fill(weak_color.clone());
+                let circle3 = circle.translate((5.5.px(),(-3.0).px())).fill(weak_color);
 
-                let gray = style.get_color(theme::data_science::gray);
-                let circle1 = Circle(2.0.px()).translate_y(5.5.px()).fill(gray);
-                let circle2 = Circle(2.0.px()).translate(((-5.5).px(),(-3.0).px())).fill(gray);
-                let circle3 = Circle(2.0.px()).translate((5.5.px(),(-3.0).px())).fill(gray);
-
-                let red = style.get_color(theme::data_science::red);
-                let circle4 = Circle(2.0.px()).fill(red);
+                let circle4 = circle.fill(strong_color.clone());
+                let rect = Rect((4.0.px(),4.0.px()));
+                let rect1 = rect.translate(((-5.5).px(),3.0.px())).fill(strong_color.clone());
+                let rect2 = rect.translate_y((-5.5).px()).fill(strong_color);
 
                 let shape = rect1 + rect2 + circle1 + circle2 + circle3 + circle4;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
@@ -580,13 +578,13 @@ crate::define_icons! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
                 let circle = Circle(1.0.px())
-                    .fill(style.get_color(theme::network::_0));
+                    .fill(strong_color.clone());
                 let arc1 = RoundedArc((10.5/3.0*1.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(style.get_color(theme::network::_1));
+                    .fill(strong_color.clone());
                 let arc2 = RoundedArc((10.5/3.0*2.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(style.get_color(theme::network::_2));
+                    .fill(strong_color);
                 let arc3 = RoundedArc((10.5/3.0*3.0).px(),(PI/2.0).radians(),1.5.px())
-                    .fill(style.get_color(theme::network::_3));
+                    .fill(weak_color);
 
                 let shape = circle + arc1 + arc2 + arc3;
                 let shape = shape.translate_y((-5.5).px());
@@ -746,20 +744,18 @@ crate::define_icons! {
         ensogl::define_shape_system! {
             above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
             (style: Style, strong_color: Vector4, weak_color: Vector4) {
-                let left_circle   = Circle(5.0.px()).translate_x((-3.0).px());
-                let right_circle  = Circle(5.0.px()).translate_x(3.0.px());
-                let left_outline  = &left_circle - left_circle.shrink(0.5.px());
-                let right_outline = &right_circle - right_circle.shrink(0.5.px());
-                let intersection  = &left_circle * &right_circle;
+                let left_circle = Circle(5.0.px()).translate_x((-3.0).px());
+                let right_circle = Circle(5.0.px()).translate_x(3.0.px());
+                let intersection = &left_circle * &right_circle;
+                let left_outline = left_circle.grow(1.0.px()) - &left_circle;
+                let right_outline = right_circle.grow(1.0.px()) - &right_circle;
 
-                let left_circle   = left_circle.fill(weak_color.clone());
-                let right_circle  = right_circle.fill(weak_color);
-                let intersection  = intersection.fill(style.get_color(theme::join::medium));
-                let left_outline  = left_outline.fill(strong_color.clone());
-                let right_outline = right_outline.fill(strong_color);
+                let left_circle = left_circle.fill(weak_color.clone());
+                let right_circle = right_circle.fill(weak_color);
+                let intersection = intersection.fill(strong_color.clone());
 
                 let shape =
-                    left_circle + right_circle + intersection + left_outline + right_outline;
+                    left_circle + right_circle + intersection - left_outline - right_outline;
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -804,7 +800,7 @@ crate::define_icons! {
 
                 let shape = circle + big_hand + small_hand;
                 let shape = shape.translate((0.25.px(),0.25.px()));
-                let shape = shape.fill(style.get_color(theme::date_and_time));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -830,7 +826,7 @@ crate::define_icons! {
                 let ellipse     = ellipse - ellipse_gap;
 
                 let shape = marker + ellipse;
-                let shape = shape.fill(style.get_color(theme::spatial));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -855,7 +851,7 @@ crate::define_icons! {
                 let base = base - circle.translate_y(1.5.px()).grow(2.0.px());
 
                 let shape = sphere + base;
-                let shape = shape.fill(style.get_color(theme::predictive));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -881,7 +877,7 @@ crate::define_icons! {
                 let right_arm = Rect((1.0.px(),4.5.px())).translate((6.5.px(),(-2.75).px()));
 
                 let shape = body + collar + left_eye + right_eye + antenna + left_arm + right_arm;
-                let shape = shape.fill(style.get_color(theme::machine_learning));
+                let shape = shape.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }
@@ -907,6 +903,88 @@ crate::define_icons! {
 
                 let shape = lens + outline + base;
                 let shape = shape.translate_y((-2.0).px());
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// Outline of a circle. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Atom`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
+    pub mod atom(Atom) {
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let circle = Circle(5.5.px()) - Circle(4.0.px());
+                let shape = circle.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// A filled triangle pointing to the right. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Function`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
+    pub mod function(Function) {
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let triangle = Triangle(12.0, 12.0).rotate((PI/2.0).radians());
+                let shape = triangle.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// A small filled circle. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Local`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
+    pub mod local(Local) {
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let dot = Circle(4.0.px());
+                let shape = dot.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// A rectangle rotated by 45 degrees. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Method`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
+    pub mod method(Method) {
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let rhomb = path(1.5, &[
+                    (6.0, 0.0),
+                    (0.0, -6.0),
+                    (-6.0, 0.0),
+                    (0.0, 6.0),
+                    (6.0, 0.0),
+                ]);
+                let shape = rhomb.fill(strong_color);
+                let shape = shape.shrink(SHRINK_AMOUNT.px());
+                shape.into()
+            }
+        }
+    }
+
+    /// An outline of a square with rounded corners. A placeholder icon for
+    /// [`enso_gui::model::suggestion_database::entry::Kind::Module`] components. Planned to be
+    /// replaced by a carefully designed icon in the future.
+    pub mod module(Module) {
+        ensogl::define_shape_system! {
+            above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
+            (style: Style, strong_color: Vector4, weak_color: Vector4) {
+                let rect = Rect((14.0.px(), 14.0.px())).corners_radius(3.0.px());
+                let rect = &rect - rect.shrink(1.5.px());
+                let shape = rect.fill(strong_color);
                 let shape = shape.shrink(SHRINK_AMOUNT.px());
                 shape.into()
             }

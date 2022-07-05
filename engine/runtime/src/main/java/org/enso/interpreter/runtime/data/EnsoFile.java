@@ -138,6 +138,12 @@ public class EnsoFile implements TruffleObject {
     truffleFile.delete();
   }
 
+  @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  public void copy(EnsoFile target, CopyOption[] options) throws IOException {
+    truffleFile.copy(target.truffleFile, options);
+  }
+
   @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   public void move(EnsoFile target, CopyOption[] options) throws IOException {
@@ -207,7 +213,7 @@ public class EnsoFile implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        EnsoFile _this,
+        EnsoFile self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -215,7 +221,7 @@ public class EnsoFile implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(EnsoFile _this, UnresolvedSymbol symbol)
+    static Function resolve(EnsoFile self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {

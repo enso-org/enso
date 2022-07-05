@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.data.Array;
     name = "new_atom",
     description = "Creates a new atom with given constructor and fields.")
 public class NewAtomInstanceNode extends Node {
-  Atom execute(Object _this, AtomConstructor constructor, Array fields) {
+  Atom execute(Object self, AtomConstructor constructor, Array fields) {
     return constructor.newInstance(fields.getItems());
   }
 }

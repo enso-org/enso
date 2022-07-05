@@ -30,7 +30,7 @@ public abstract class PrintErrNode extends Node {
   }
 
   abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Object _this, @AcceptsError Object message);
+      VirtualFrame frame, @MonadicState Object state, Object self, @AcceptsError Object message);
 
   @Specialization(guards = "strings.isString(message)")
   Stateful doPrintText(

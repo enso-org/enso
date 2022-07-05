@@ -73,7 +73,7 @@ type Map
 
              example_is_empty = Examples.map.is_empty
     is_empty : Boolean
-    is_empty = case this of
+    is_empty = case self of
         Bin _ _ _ _ _ -> False
         Tip -> True
 
@@ -87,7 +87,7 @@ type Map
 
              example_not_empty = Examples.map.not_empty
     not_empty : Boolean
-    not_empty = this.is_empty.not
+    not_empty = self.is_empty.not
 
     ## Returns the number of entries in this map.
 
@@ -99,7 +99,7 @@ type Map
 
              example_size = Examples.map.size
     size : Integer
-    size = case this of
+    size = case self of
         Bin s _ _ _ _ -> s
         Tip -> 0
 
@@ -124,7 +124,7 @@ type Map
                 to_vector_with_builder r
                 Nothing
             Tip -> Nothing
-        to_vector_with_builder this
+        to_vector_with_builder self
         result = builder.to_vector
         result
 
@@ -138,12 +138,12 @@ type Map
 
              example_to_text = Examples.map.to_text
     to_text : Text
-    to_text = this.to_vector.to_text
+    to_text = self.to_vector.to_text
 
     ## Checks if this map is equal to another map.
 
        Arguments:
-       - that: The map to compare `this` to.
+       - that: The map to compare `self` to.
 
        Maps are equal when they contained the same keys and the values
        associated with each key are pairwise equal.
@@ -158,7 +158,7 @@ type Map
                 other = Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
                 Examples.map == other
     == : Map -> Boolean
-    == that = this.to_vector == that.to_vector
+    == that = self.to_vector == that.to_vector
 
     ## Inserts a key-value mapping into this map, overriding any existing
        instance of `key` with the new `value`.
@@ -175,7 +175,7 @@ type Map
 
              example_insert = Examples.map.insert 7 "seven"
     insert : Any -> Any -> Map
-    insert key value = Internal.insert this key value
+    insert key value = Internal.insert self key value
 
     ## Gets the value associated with `key` in this map, or throws a
        `No_Value_For_Key_Error` if `key` is not present.
@@ -197,7 +197,7 @@ type Map
             Bin _ k v l r ->
                 if k == key then v else
                     if k > key then @Tail_Call go l else @Tail_Call go r
-        result = go this
+        result = go self
         result
 
     ## Gets the value associated with `key` in this map, or returns `other` if
@@ -217,7 +217,7 @@ type Map
              example_get_or_else = Examples.map.get_or_else 2 "zero"
     get_or_else : Any -> Any -> Any
     get_or_else key ~other =
-        this.get key . catch (_ -> other)
+        self.get key . catch (_ -> other)
 
     ## Transforms the map's keys and values to create a new map.
 
@@ -236,7 +236,7 @@ type Map
     transform : (Any -> Any -> [Any, Any]) -> Map
     transform function =
         func_pairs = p -> function (p.at 0) (p.at 1)
-        vec_transformed = this.to_vector.map func_pairs
+        vec_transformed = self.to_vector.map func_pairs
         here.from_vector vec_transformed
 
     ## Maps a function over each value in this map.
@@ -255,7 +255,7 @@ type Map
     map : (Any -> Any) -> Map
     map function =
         kv_func = _ -> function
-        this.map_with_key kv_func
+        self.map_with_key kv_func
 
     ## Maps a function over each key-value pair in the map, transforming the
        value.
@@ -278,7 +278,7 @@ type Map
             Bin s k v l r ->
                 Bin s k (function k v) (go l) (go r)
             Tip -> Tip
-        go this
+        go self
 
     ## Maps a function over each key in this map.
 
@@ -296,7 +296,7 @@ type Map
     map_keys : (Any -> Any) -> Map
     map_keys function =
         trans_function = k -> v -> [function k, v]
-        this.transform trans_function
+        self.transform trans_function
 
     ## Applies a function to each value in the map.
 
@@ -317,7 +317,7 @@ type Map
     each : (Any -> Any) -> Nothing
     each function =
         kv_func = _ -> function
-        this.each_with_key kv_func
+        self.each_with_key kv_func
 
     ## Applies a function to each key-value pair in the map.
 
@@ -346,7 +346,7 @@ type Map
                 go r
                 Nothing
             Tip -> Nothing
-        go this
+        go self
 
     ## Combines the values in the map.
 
@@ -369,7 +369,7 @@ type Map
                 z = function y v
                 go r z
             Tip -> init
-        go this init
+        go self init
 
     ## Combines the key-value pairs in the map.
 
@@ -394,7 +394,7 @@ type Map
                 z = function y k v
                 go r z
             Tip -> init
-        go this init
+        go self init
 
     ## Get a vector containing the keys in the map.
 
@@ -415,7 +415,7 @@ type Map
                 to_vector_with_builder r
                 Nothing
             Tip -> Nothing
-        to_vector_with_builder this
+        to_vector_with_builder self
         builder.to_vector
 
     ## Get a vector containing the values in the map.
@@ -437,7 +437,7 @@ type Map
                 to_vector_with_builder r
                 Nothing
             Tip -> Nothing
-        to_vector_with_builder this
+        to_vector_with_builder self
         builder.to_vector
 
     ## Get a key value pair of the lowest key in the map.
@@ -447,7 +447,7 @@ type Map
         first p m = case m of
             Bin _ k v l _ -> @Tail_Call first (Pair k v) l
             Tip -> p
-        first Nothing this
+        first Nothing self
 
     ## Get a key value pair of the highest key in the map.
        If the map is empty, returns Nothing.
@@ -456,7 +456,7 @@ type Map
         last p m = case m of
             Bin _ k v _ r -> @Tail_Call last (Pair k v) r
             Tip -> p
-        last Nothing this
+        last Nothing self
 
 ## UNSTABLE
 
@@ -471,5 +471,5 @@ type No_Value_For_Key_Error key
    Converts the error into a human-readable representation.
 No_Value_For_Key_Error.to_display_text : Text
 No_Value_For_Key_Error.to_display_text =
-    "The map contained no value for the key " + this.key.to_text + "."
+    "The map contained no value for the key " + self.key.to_text + "."
 

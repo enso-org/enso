@@ -16,28 +16,28 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class PowNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  public abstract Object execute(EnsoBigInteger _this, Object that);
+  public abstract Object execute(EnsoBigInteger self, Object that);
 
   public static PowNode build() {
     return PowNodeGen.create();
   }
 
   @Specialization
-  Object doLong(EnsoBigInteger _this, long that) {
+  Object doLong(EnsoBigInteger self, long that) {
     if (that == 0) {
       return 1L;
     } else if (that > 0) {
-      return toEnsoNumberNode.execute(BigIntegerOps.pow(_this.getValue(), that));
+      return toEnsoNumberNode.execute(BigIntegerOps.pow(self.getValue(), that));
     } else {
-      return Math.pow(BigIntegerOps.toDouble(_this.getValue()), that);
+      return Math.pow(BigIntegerOps.toDouble(self.getValue()), that);
     }
   }
 
   @Specialization
-  Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
+  Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
     if (that.getValue().signum() > 0) {
       return Math.pow(
-          BigIntegerOps.toDouble(_this.getValue()), BigIntegerOps.toDouble(that.getValue()));
+          BigIntegerOps.toDouble(self.getValue()), BigIntegerOps.toDouble(that.getValue()));
     } else if (that.getValue().signum() == 0) {
       return 1.0D;
     } else {
@@ -46,12 +46,12 @@ public abstract class PowNode extends Node {
   }
 
   @Specialization
-  double doDouble(EnsoBigInteger _this, double that) {
-    return Math.pow(BigIntegerOps.toDouble(_this.getValue()), that);
+  double doDouble(EnsoBigInteger self, double that) {
+    return Math.pow(BigIntegerOps.toDouble(self.getValue()), that);
   }
 
   @Fallback
-  Object doOther(EnsoBigInteger _this, Object that) {
+  Object doOther(EnsoBigInteger self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

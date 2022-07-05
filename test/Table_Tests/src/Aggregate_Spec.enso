@@ -830,7 +830,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             table = table_builder [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
             result = table.aggregate [Group_By "A", (Concatenate "B" prefix="[[" suffix="]]" separator="; ")]
             result.row_count . should_equal 2
-            materialized = materialize result . sort "A"
+            materialized = materialize result . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"])
             materialized.columns.length . should_equal 2
             materialized.columns.at 0 . name . should_equal "A"
             materialized.columns.at 0 . to_vector . should_equal ["bar", "foo"]
@@ -910,14 +910,14 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
 
             r1 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=True)]
             r1.row_count . should_equal 2
-            m1 = materialize r1 . sort "G"
+            m1 = materialize r1 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
             m1.columns.length . should_equal 2
             m1.columns.first.to_vector . should_equal ["bar", "foo"]
             m1.columns.second.to_vector . should_equal [0, 1]
 
             r2 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=False)]
             r2.row_count . should_equal 2
-            m2 = materialize r2 . sort "G"
+            m2 = materialize r2 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
             m2.columns.length . should_equal 2
             m2.columns.first.to_vector . should_equal ["bar", "foo"]
             m2.columns.second.to_vector . should_equal [1, 2]
@@ -959,7 +959,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
 
             r2 = table.aggregate [Group_By "G", Average "X"]
             r2.row_count.should_equal 2
-            m2 = materialize r2 . sort "G"
+            m2 = materialize r2 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
             m2.columns.length . should_equal 2
             m2.columns.first.to_vector . should_equal ["a", "b"]
             m2.columns.second.to_vector . should_equal [0.5, 1]
@@ -1145,7 +1145,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
             grouped = table.aggregate [Group_By "B", Group_By "A"]
             grouped.row_count . should_equal 3
-            materialized = materialize grouped . sort ["A", "B"]
+            materialized = materialize grouped . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A", Sort_Column.Name "B"])
             materialized.columns.length . should_equal 2
             materialized.columns.at 1 . name . should_equal "A"
             materialized.columns.at 1 . to_vector . should_equal [1, 1, 2]

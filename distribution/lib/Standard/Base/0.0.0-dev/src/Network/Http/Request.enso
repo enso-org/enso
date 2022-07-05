@@ -158,15 +158,15 @@ type Request
            Pair acc True -> Pair (acc + [h]) True
            Pair acc False ->
                if h.name . equals_ignore_case key then Pair (acc + [new_header]) True else Pair (acc + [h]) False
-       new_headers = case this.headers.fold (Pair [] False) update_header of
+       new_headers = case self.headers.fold (Pair [] False) update_header of
            Pair acc True -> acc
            Pair acc False -> acc + [new_header]
-       Request this.method this.uri new_headers this.body
+       Request self.method self.uri new_headers self.body
 
     ## Sets the headers in the request.
 
        Arguments:
-       - new_headers: A vector of headers to put in the request. If `this` has
+       - new_headers: A vector of headers to put in the request. If `self` has
          any headers they will be replaced with new_headers.
 
        > Example
@@ -178,7 +178,7 @@ type Request
     with_headers : [Header] -> Request
     with_headers new_headers =
         update_header req new_header = req.with_header new_header.name new_header.value
-        new_headers.fold this update_header
+        new_headers.fold self update_header
 
     ## Set the body for the request.
 
@@ -195,7 +195,7 @@ type Request
              example_with_body =
                  Request.post (Uri.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
     with_body : Request_Body -> Request
-    with_body new_body = Request this.method this.uri this.headers new_body
+    with_body new_body = Request self.method self.uri self.headers new_body
 
     ## Set the body text in the request encoded as "application/json".
 
@@ -215,7 +215,7 @@ type Request
     with_json : (Text | Json) -> Request
     with_json json_body =
         new_body = Request_Body.Json json_body
-        Request this.method this.uri this.headers new_body . with_headers [Header.application_json]
+        Request self.method self.uri self.headers new_body . with_headers [Header.application_json]
 
     ## Set body as vector of parts encoded as "application/x-www-form-urlencoded".
 
@@ -233,4 +233,4 @@ type Request
     with_form : (Vector | Form) -> Request
     with_form parts =
         new_body = Request_Body.Form parts.to_form
-        Request this.method this.uri this.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
+        Request self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]

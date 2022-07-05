@@ -23,7 +23,7 @@ type Maybe
        otherwise returning the provided default value.
 
        Arguments:
-       - default: The value to return if `this` is Nothing. This value is lazy
+       - default: The value to return if `self` is Nothing. This value is lazy
          and hence will not execute any provided computation unless it is used.
        - function: The function to execute on the value inside the `Some`, if it
          is a just.
@@ -35,7 +35,7 @@ type Maybe
 
              example_maybe = Maybe.Some 2 . maybe 0 *2
     maybe : Any -> (Any -> Any) -> Any
-    maybe ~default function = case this of
+    maybe ~default function = case self of
         Nothing -> default
         Some val -> function val
 
@@ -48,4 +48,4 @@ type Maybe
 
              example_is_some = Maybe.Some "yes!" . is_some
     is_some : Boolean
-    is_some = this.is_nothing.not
+    is_some = self.is_nothing.not

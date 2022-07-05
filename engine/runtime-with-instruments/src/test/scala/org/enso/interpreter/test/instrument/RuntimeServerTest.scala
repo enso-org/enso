@@ -67,8 +67,12 @@ class RuntimeServerTest
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .option(
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths.get("../../distribution/component").toFile.getAbsolutePath
+          Paths
+            .get("../../test/micro-distribution/component")
+            .toFile
+            .getAbsolutePath
         )
+        .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(logOut)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
@@ -132,7 +136,7 @@ class RuntimeServerTest
             |    z
             |
             |Number.foo = x ->
-            |    y = this + 3
+            |    y = self + 3
             |    z = y * x
             |    z
             |""".stripMargin.linesIterator.mkString("\n")
@@ -622,7 +626,7 @@ class RuntimeServerTest
       """foo a b = a + b
         |
         |main =
-        |    this.foo 1 2
+        |    self.foo 1 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -681,7 +685,7 @@ class RuntimeServerTest
         |foo a b = a + b
         |
         |main =
-        |    IO.println (this.foo 1 2)
+        |    IO.println (self.foo 1 2)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -740,7 +744,7 @@ class RuntimeServerTest
         |import Standard.Base.IO
         |import Standard.Base.Runtime.State
         |
-        |main = IO.println (State.run Number 42 this.bar)
+        |main = IO.println (State.run Number 42 self.bar)
         |
         |bar = State.get Number
         |""".stripMargin
@@ -801,7 +805,7 @@ class RuntimeServerTest
         |import Standard.Base.IO
         |import Standard.Base.Runtime.State
         |
-        |main = IO.println (State.run Number 0 this.bar)
+        |main = IO.println (State.run Number 0 self.bar)
         |
         |bar =
         |    State.put Number 10
@@ -863,7 +867,7 @@ class RuntimeServerTest
       """foo a b = a + b
         |
         |main =
-        |    this.foo 1 2
+        |    self.foo 1 2
         |    1
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -1002,7 +1006,8 @@ class RuntimeServerTest
               model.Range(model.Position(3, 8), model.Position(3, 9)),
               "5"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1025,6 +1030,111 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("5")
+  }
+
+  it should "obey the execute parameter of edit command" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+
+    // foo definition
+    metadata.addItem(25, 22)
+    // foo name
+    metadata.addItem(25, 3)
+    val mainFoo = metadata.addItem(63, 8)
+    val mainRes = metadata.addItem(76, 12)
+
+    val code =
+      """import Standard.Base.IO
+        |
+        |foo =
+        |    x = 4
+        |    x
+        |
+        |main =
+        |    y = here.foo
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          mainFoo,
+          ConstantsGen.INTEGER,
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
+        ),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("4")
+
+    // Modify the foo method
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 8), model.Position(3, 9)),
+              "5"
+            )
+          ),
+          execute = false
+        )
+      )
+    )
+    context.receiveNone shouldEqual None
+
+    // Modify the foo method
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 8), model.Position(3, 9)),
+              "6"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveN(1) should contain theSameElementsAs Seq(
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("6")
   }
 
   it should "not send updates when the type is not changed" in {
@@ -1161,7 +1271,8 @@ class RuntimeServerTest
               model.Range(model.Position(3, 13), model.Position(3, 17)),
               "\"Hi\""
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1250,7 +1361,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "1234.x 4"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1275,7 +1387,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "1000.x 5"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1292,7 +1405,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "here.pie"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1317,7 +1431,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "here.uwu"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1342,7 +1457,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "here.hie"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1367,7 +1483,8 @@ class RuntimeServerTest
               model.Range(model.Position(4, 8), model.Position(4, 16)),
               "\"Hello!\""
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1691,7 +1808,8 @@ class RuntimeServerTest
               model.Range(model.Position(2, 25), model.Position(2, 29)),
               "modified"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1756,7 +1874,8 @@ class RuntimeServerTest
               model.Range(model.Position(0, 0), model.Position(0, 9)),
               "main = 42"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1906,7 +2025,8 @@ class RuntimeServerTest
               model.Range(model.Position(3, 0), model.Position(3, 0)),
               s"Number.lucky = 42$newline$newline"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -2225,7 +2345,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar 40 2 123
+      """main = self.bar 40 2 123
         |
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2293,7 +2413,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar .x .y
+      """main = self.bar .x .y
         |
         |bar one two = one + two
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2369,7 +2489,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
-      """main = this.bar "one" 2
+      """main = self.bar "one" 2
         |
         |bar x y = x + y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2577,13 +2697,13 @@ class RuntimeServerTest
 
     val code =
       """main =
-        |    this.foo
+        |    self.foo
         |
         |foo =
-        |    x = this.bar
+        |    x = self.bar
         |    x
         |bar =
-        |    x = this.baz
+        |    x = self.baz
         |    x
         |baz =
         |    x = 1 + .quux
@@ -2988,7 +3108,7 @@ class RuntimeServerTest
         |foo = 1
         |foo = 2
         |
-        |main = IO.println this.foo
+        |main = IO.println self.foo
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)

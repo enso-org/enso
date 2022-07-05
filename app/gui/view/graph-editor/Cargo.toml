@@ -25,7 +25,7 @@ ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../../lib/rust/ensogl/
 ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { version = "0.1.0", path = "../../../../lib/rust/ensogl/component/drop-manager" }
 failure = { version = "0.1.8" }
-ordered-float = { version = "1.0" }
+ordered-float = { version = "3.0.0" }
 span-tree = { version = "0.1.0", path = "../../language/span-tree" }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
