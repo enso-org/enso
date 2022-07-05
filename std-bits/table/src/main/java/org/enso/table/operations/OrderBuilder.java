@@ -69,14 +69,10 @@ public class OrderBuilder {
    *     used instead.
    * @return an order mask that will result in sorting any storage according to the specified rules.
    */
-  public static OrderMask buildOrderMask(
-      List<OrderRule> rules) {
+  public static OrderMask buildOrderMask(List<OrderRule> rules) {
     int size = rules.get(0).column.getSize();
     Comparator<Integer> comparator =
-        rules.stream()
-            .map(OrderRule::toComparator)
-            .reduce(Comparator::thenComparing)
-            .get();
+        rules.stream().map(OrderRule::toComparator).reduce(Comparator::thenComparing).get();
 
     int[] positions =
         IntStream.range(0, size).boxed().sorted(comparator).mapToInt(i -> i).toArray();

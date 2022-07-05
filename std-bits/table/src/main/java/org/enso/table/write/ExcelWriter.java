@@ -15,9 +15,7 @@ import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.error.ExistingDataException;
-import org.enso.table.error.RangeExceededException;
-import org.enso.table.error.InvalidLocationException;
+import org.enso.table.error.*;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
@@ -45,7 +43,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToSheet(Workbook workbook, int sheetIndex, ExistingDataMode existingDataMode, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws InvalidLocationException, RangeExceededException, ExistingDataException, IllegalStateException {
+      throws InvalidLocationException, RangeExceededException, ExistingDataException, IllegalStateException, ColumnNameMismatchException, ColumnCountMismatchException {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
       while (workbook.getSheet("Sheet" + i) != null) {
@@ -78,7 +76,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToSheet(Workbook workbook, String sheetName, ExistingDataMode existingDataMode, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws InvalidLocationException, RangeExceededException, ExistingDataException, IllegalStateException {
+      throws InvalidLocationException, RangeExceededException, ExistingDataException, IllegalStateException, ColumnNameMismatchException, ColumnCountMismatchException {
     int sheetIndex = workbook.getNumberOfSheets() == 0 ? -1 : workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
       writeTableToSheet(workbook, workbook.createSheet(sheetName), firstRow, 1, table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
@@ -100,7 +98,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, ExistingDataMode existingDataMode, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
+      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException, ColumnNameMismatchException, ColumnCountMismatchException {
     Name name = workbook.getName(rangeNameOrAddress);
     ExcelRange excelRange;
     try {
@@ -112,7 +110,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToRange(Workbook workbook, ExcelRange range, ExistingDataMode existingDataMode, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
+      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException, ColumnNameMismatchException, ColumnCountMismatchException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
       throw new InvalidLocationException("Unknown sheet '" + range.getSheetName() + "'.");
@@ -150,9 +148,10 @@ public class ExcelWriter {
     return xls_format ? new HSSFWorkbook() : new XSSFWorkbook();
   }
 
-  private static void appendRangeWithTable(Workbook workbook, ExcelRange range, ExistingDataMode existingDataMode, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers, ExcelSheet sheet, ExcelRange expanded) throws RangeExceededException, ExistingDataException {
+  private static void appendRangeWithTable(Workbook workbook, ExcelRange range, ExistingDataMode existingDataMode, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers, ExcelSheet sheet, ExcelRange expanded)
+      throws RangeExceededException, ExistingDataException, ColumnNameMismatchException, ColumnCountMismatchException {
     // Map Table
-    WithProblems<Table> mappedTable = switch (existingDataMode) {
+    Table mappedTable = switch (existingDataMode) {
       case APPEND_BY_INDEX -> ColumnMapper.MapColumnsByIndex(table, expanded.getColumnCount());
       case APPEND_BY_NAME -> {
         if (headers == ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES) {
@@ -168,8 +167,8 @@ public class ExcelWriter {
     // Adjust output range to new area.
     if (range.isSingleCell()) {
       int bottomRow = expanded.getBottomRow();
-      int requiredRows = Math.min(table.rowCount(), rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue());
-      expanded = new ExcelRange(expanded.getSheetName(), bottomRow + 1, expanded.getLeftColumn(), bottomRow + requiredRows, expanded.getRightColumn());
+      int requiredRows = Math.min(mappedTable.rowCount(), rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue());
+      expanded = new ExcelRange(expanded.getSheetName(), expanded.getLeftColumn(), bottomRow + 1, expanded.getRightColumn(), bottomRow + requiredRows);
     } else {
       int finalRow = expanded.getLastRow(sheet);
       if (finalRow == expanded.getBottomRow()) {
@@ -179,7 +178,7 @@ public class ExcelWriter {
       expanded = new ExcelRange(expanded.getSheetName(), finalRow + 1, expanded.getLeftColumn(), expanded.getBottomRow(), expanded.getRightColumn());
     }
 
-    updateRangeWithTable(workbook, expanded, false, existingDataMode, table, rowLimit, ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES, sheet);
+    updateRangeWithTable(workbook, expanded, false, existingDataMode, mappedTable, rowLimit, ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES, sheet);
   }
 
   private static void updateRangeWithTable(Workbook workbook, ExcelRange range, boolean singleCell, ExistingDataMode existingDataMode, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers, ExcelSheet sheet)

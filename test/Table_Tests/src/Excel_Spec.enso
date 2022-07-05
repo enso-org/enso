@@ -3,6 +3,7 @@ import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Base.System.File import File_Already_Exists_Error
 import Standard.Base.Data.Time.Date
 
+import Standard.Table
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
 import Standard.Table.Data.Column_Name_Mapping
@@ -181,7 +182,27 @@ spec_write suffix test_sheet_name =
             written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
             out.delete_if_exists
 
-        out.delete_if_exists
+        Test.specify 'should be able to append to a sheet by Name' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
+            expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
+            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append
+            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            written.should_equal expected
+            out.delete_if_exists
+
+        Test.specify 'should be able to append to a sheet by Name out of order' <|
+            out.delete_if_exists
+            (Enso_Project.data / test_sheet_name) . copy_to out
+            extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
+            expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
+            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append
+            written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            written.should_equal expected
+            out.delete_if_exists
+
+        ## out.delete_if_exists
         out_bak.delete_if_exists
 
 spec =

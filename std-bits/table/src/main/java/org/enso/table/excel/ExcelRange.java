@@ -326,9 +326,11 @@ public class ExcelRange {
   }
 
   public int getLastRow(ExcelSheet sheet) {
-    int lastRow = Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
+    int lastRow =
+        Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
 
-    while (lastRow > topRow && !sheet.get(lastRow - 1).isEmpty(leftColumn, isWholeRow() ? -1 : rightColumn)) {
+    while (lastRow > topRow
+        && !sheet.get(lastRow - 1).isEmpty(leftColumn, isWholeRow() ? -1 : rightColumn)) {
       lastRow--;
     }
 
