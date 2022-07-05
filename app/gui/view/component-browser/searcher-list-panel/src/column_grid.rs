@@ -5,6 +5,7 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::searcher_theme;
 use crate::GroupId;
 use crate::Layers;
 use crate::SectionId;
@@ -235,21 +236,19 @@ fn get_layout(
     network: &enso_frp::Network,
     style: &StyleWatchFrp,
 ) -> (enso_frp::Stream<Style>, enso_frp::stream::WeakNode<enso_frp::SourceData>) {
-    let searcher_theme_path: style::Path =
-        ensogl_hardcoded_theme::application::component_browser::searcher::HERE.into();
-    let theme_path: style::Path =
-        searcher_theme_path.sub("list_panel").sub("section").sub("column_grid");
-    let column_gap = style.get_number(theme_path.sub("column_gap"));
-    let entry_color_0 = style.get_color(theme_path.sub("entry_color_0"));
-    let entry_color_1 = style.get_color(theme_path.sub("entry_color_1"));
-    let entry_color_2 = style.get_color(theme_path.sub("entry_color_2"));
-    let entry_color_3 = style.get_color(theme_path.sub("entry_color_3"));
-    let entry_color_4 = style.get_color(theme_path.sub("entry_color_4"));
-    let entry_color_5 = style.get_color(theme_path.sub("entry_color_5"));
+    use searcher_theme::list_panel as list_panel_theme;
+    use searcher_theme::list_panel::section::column_grid as column_grid_theme;
 
-    let theme_path: style::Path = searcher_theme_path.sub("list_panel");
-    let content_padding = style.get_number(theme_path.sub("content_padding"));
-    let content_width = style.get_number(theme_path.sub("content_width"));
+    let column_gap = style.get_number(column_grid_theme::column_gap);
+    let entry_color_0 = style.get_color(column_grid_theme::entry_color_0);
+    let entry_color_1 = style.get_color(column_grid_theme::entry_color_1);
+    let entry_color_2 = style.get_color(column_grid_theme::entry_color_2);
+    let entry_color_3 = style.get_color(column_grid_theme::entry_color_3);
+    let entry_color_4 = style.get_color(column_grid_theme::entry_color_4);
+    let entry_color_5 = style.get_color(column_grid_theme::entry_color_5);
+
+    let content_padding = style.get_number(list_panel_theme::content_padding);
+    let content_width = style.get_number(list_panel_theme::content_width);
 
     frp::extend! { network
         init <- source_();
