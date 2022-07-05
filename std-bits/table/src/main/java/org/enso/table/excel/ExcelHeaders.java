@@ -5,7 +5,6 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.problems.Problem;
-import org.enso.table.read.ExcelReader;
 import org.enso.table.util.NameDeduplicator;
 
 import java.util.List;
@@ -15,7 +14,7 @@ public class ExcelHeaders {
   private final int startCol;
   private final String[] names;
 
-  public ExcelHeaders(ExcelReader.HeaderBehavior headers, ExcelRow startRow, ExcelRow nextRow, int startCol, int endCol) {
+  public ExcelHeaders(HeaderBehavior headers, ExcelRow startRow, ExcelRow nextRow, int startCol, int endCol) {
     deduplicator = new NameDeduplicator();
 
     this.startCol = startCol;
@@ -75,32 +74,27 @@ public class ExcelHeaders {
       return null;
     }
 
-    String[] rowNames = getCellsAsText(row, startCol, endCol);
+    String[] rowNames = row.getCellsAsText(startCol, endCol);
     if (rowNames == null) {
       return null;
     }
 
-    String[] nextNames = getCellsAsText(nextRow, startCol, endCol);
-    if (nextNames != null) {
+    if (nextRow.getCellsAsText(startCol, endCol) != null) {
       return null;
     }
 
     return deduplicator.makeUnique(rowNames);
   }
 
-  private static String[] getCellsAsText(ExcelRow row, int startCol, int endCol) {
-    int currentEndCol = endCol == -1 ? row.getLastColumn() : endCol;
+  /** Specifies how to set the headers for the returned table. */
+  public enum HeaderBehavior {
+    /** Tries to infer if the headers are present in the file. */
+    INFER,
 
-    String[] output = new String[currentEndCol - startCol + 1];
-    for (int col = startCol; col <= currentEndCol; col++) {
-      Cell cell = row.get(col);
-      CellType type = ExcelRow.getCellType(cell);
-      if (type != CellType._NONE && type != CellType.STRING) {
-        return null;
-      }
-      output[col - startCol] = type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
-    }
+    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
+    USE_FIRST_ROW_AS_HEADERS,
 
-    return output;
+    /** Uses the default Excel Column Names (e.g. A, B, C). */
+    EXCEL_COLUMN_NAMES
   }
 }

@@ -3,10 +3,25 @@ import Standard.Database.Data.Column
 import Standard.Database.Connection.Connection
 import Standard.Database.Connection.Database
 
+import Standard.Database.Connection.Credentials
+import Standard.Database.Connection.Client_Certificate
+import Standard.Database.Connection.SSL_Mode
+import Standard.Database.Connection.Connection_Options
+
+import Standard.Database.Connection.PostgreSQL
+import Standard.Database.Connection.SQLite
+import Standard.Database.Connection.Redshift
+
 export Standard.Database.Data.Table
 export Standard.Database.Data.Column
 export Standard.Database.Connection.Connection
 
-from Standard.Database.Connection.Database export all
+from Standard.Database.Connection.Credentials export all
+from Standard.Database.Connection.Client_Certificate export all
+from Standard.Database.Connection.SSL_Mode export all
+from Standard.Database.Connection.Connection_Options export all
 
-import Standard.Table.Data.Table
+from Standard.Database.Connection.Database export all
+from Standard.Database.Connection.PostgreSQL export all
+from Standard.Database.Connection.SQLite export all
+from Standard.Database.Connection.Redshift export all

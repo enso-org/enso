@@ -114,7 +114,7 @@ run_tests connection pending=Nothing =
 
 spec =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
-    db_host = Environment.get "ENSO_DATABASE_TEST_HOST"
+    db_host_port = (Environment.get "ENSO_DATABASE_TEST_HOST").if_nothing "localhost" . split ':'
     db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
     db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
 
@@ -124,10 +124,8 @@ spec =
             connection = Error.throw message
             here.run_tests connection pending=message
         False ->
-            url = case db_host.is_nothing of
-                True -> "postgresql:" + db_name
-                False -> "postgresql://" + db_host + "/" + db_name
-            connection = Database.connect url user=db_user password=db_password
+            db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
+            connection = Database.connect (PostgreSQL (db_host_port.at 0) db_port db_name (Credentials db_user db_password))
             here.run_tests connection
 
 main = Test.Suite.run_main here.spec

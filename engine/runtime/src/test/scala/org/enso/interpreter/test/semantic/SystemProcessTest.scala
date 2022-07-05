@@ -145,6 +145,8 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     }
 
     "redirect stdin unused (Unix)" taggedAs OsUnix in {
+      // Randomly fails on CI https://www.pivotaltracker.com/story/show/182638378
+      pending
       val code =
         """import Standard.Base.System
           |import Standard.Base.Data.Array

@@ -1,57 +1,20 @@
 from Standard.Base import all
 
-from Standard.Database.Connection.Connection import all
+from Standard.Database.Connection.Connection_Options as Connection_Options_Module import Connection_Options
+
+import Standard.Database.Connection.PostgreSQL
+import Standard.Database.Connection.SQLite
+import Standard.Database.Connection.Redshift
+
+from Standard.Database.Connection.Connection import Connection, Sql_Error
 
 ## UNSTABLE
 
-   Tries to connect to the database under a provided URL.
+   Tries to connect to the database.
 
    Arguments:
-   - url: The URL to connect to.
-   - user: A username for authentication. Optional.
-   - password: A password for authentication. Optional.
-   - custom_properties: A vector of key-value Text pairs which can
-     set any other properties that can be used to configure the connection or
-     for authentication. Supported properties depend on the database engine that
-     the connection is made to. Optional.
-
-   Currently SQLite, PostgreSQL and Amazon Redshift are supported.
-
-   ? Finding the URL
-     The exact URL depends on the database engine.  For SQLite the expected o
-     format is `sqlite:/path/to/database/file`.  For PostgreSQL it can be one
-     of:
-     - `postgresql:database_name` - which will connect to the database with the
-       given name on the local machine;
-     - `postgresql:/` - which will connect to the default database
-       (which is the same as the username) on the local machine;
-     - `postgresql://host/database_name` - which will connect to the specified
-       database on a specified host, the `host` can consist of an IP address or=
-       a hostname, optionally followed by colon and a port number, so values
-       like `db.example.com`, `127.0.0.1`, `example.com:1234`, `127.0.0.1:1234`
-       are allowed;
-     - `postgresql://host/` - which will connect to the same database as the
-       username on a specified host, the `host`` is defined as above.
-     For Redshift, the URL can be found in the cluster management section in the
-     AWS admin console.
-connect : Text -> Nothing | Text -> Nothing | Text -> Vector -> Connection ! Sql_Error
-connect url user=Nothing password=Nothing custom_properties=[] =
-    full_url = if url.starts_with "jdbc:" then url else "jdbc:"+url
-    user_prop = if user.is_nothing then [] else [["user", user]]
-    pass_prop = if password.is_nothing then [] else [["password", password]]
-    properties = user_prop + pass_prop + custom_properties
-    Connection.create_jdbc_connection full_url properties
-
-## UNSTABLE
-
-   Connects to an SQLite database in a file on the filesystem.
-
-   Arguments:
-   - file: The path to the database.
-
-   It is an alternative to `connect` that resolves a path to the database file.
-open_sqlite_file : File -> Connection ! Sql_Error
-open_sqlite_file file =
-    url = "sqlite:" + file.absolute.path
-    here.connect url
-
+   - details: Connection_Details to use to connect.
+   - options: Any overriding options to use.
+connect : (PostgreSQL|SQLite|Redshift) -> Connection_Options -> Connection ! Sql_Error
+connect details options=Connection_Options =
+    details.connect options
