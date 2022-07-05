@@ -44,8 +44,7 @@ read_file format file on_problems =
        exceptions), we can catch the exception indicating the limit has been
        reached and restart parsing with an increased limit.
     file.with_input_stream [File.Option.Read] stream->
-        stream.with_java_stream java_stream->
-            here.read_stream format java_stream on_problems related_file=file
+        here.read_stream format stream on_problems related_file=file
 
 read_text : Text -> Delimited -> Problem_Behavior -> Table
 read_text text format on_problems =
@@ -73,7 +72,7 @@ read_stream format stream on_problems max_columns=4096 related_file=Nothing =
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
 
     handle_io_exception <|
-        stream.with_stream_decoder encoding on_problems reporting_stream_decoder->
+        stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
             here.read_from_reader format reporting_stream_decoder on_problems max_columns
 
 ## PRIVATE
