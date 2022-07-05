@@ -114,8 +114,6 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def ensureCompiledScope(modulesInScope: Iterable[Module])(implicit
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
-    ctx.executionService.getLogger
-      .log(Level.FINEST, s"Modules in scope: ${modulesInScope.map(_.getName)}")
     val notIndexedModulesInScope = modulesInScope.filter(!_.isIndexed)
     val (modulesToAnalyze, compilationStatuses) =
       notIndexedModulesInScope.foldLeft(
