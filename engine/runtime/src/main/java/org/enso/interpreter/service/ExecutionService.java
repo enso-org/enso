@@ -4,27 +4,10 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
-import java.io.File;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-import org.enso.compiler.context.Changeset;
-import org.enso.compiler.context.ChangesetBuilder;
 import org.enso.compiler.context.SimpleUpdate;
-import org.enso.interpreter.instrument.Endpoint;
-import org.enso.interpreter.instrument.IdExecutionService;
-import org.enso.interpreter.instrument.MethodCallsCache;
-import org.enso.interpreter.instrument.NotificationHandler;
-import org.enso.interpreter.instrument.RuntimeCache;
-import org.enso.interpreter.instrument.UpdatesSynchronizationState;
-import org.enso.interpreter.instrument.execution.model.PendingEdit;
+import org.enso.interpreter.instrument.*;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
@@ -34,20 +17,18 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.service.error.ConstructorNotFoundException;
-import org.enso.interpreter.service.error.FailedToApplyEditsException;
-import org.enso.interpreter.service.error.MethodNotFoundException;
-import org.enso.interpreter.service.error.ModuleNotFoundException;
-import org.enso.interpreter.service.error.ModuleNotFoundForFileException;
-import org.enso.interpreter.service.error.SourceNotFoundException;
+import org.enso.interpreter.service.error.*;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
-import org.enso.text.buffer.Rope;
-import org.enso.text.editing.IndexedSource;
 import org.enso.text.editing.JavaEditorAdapter;
-import org.enso.text.editing.TextEditor;
 import org.enso.text.editing.model;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -82,12 +63,16 @@ public class ExecutionService {
     this.connectedLockManager = connectedLockManager;
   }
 
-  /** @return the language context. */
+  /**
+   * @return the language context.
+   */
   public Context getContext() {
     return context;
   }
 
-  /** @return the execution service logger. */
+  /**
+   * @return the execution service logger.
+   */
   public TruffleLogger getLogger() {
     return logger;
   }
@@ -290,35 +275,24 @@ public class ExecutionService {
   /**
    * Applies modifications to literal module sources.
    *
-   * @param path the module to edit.
+   * @param module the module to edit.
    * @param edits the edits to apply.
    */
   public void modifyModuleSources(
-      File path, scala.collection.immutable.Seq<model.TextEdit> edits, SimpleUpdate simpleUpdate) {
-    Optional<Module> moduleMay = context.getModuleForFile(path);
-    if (moduleMay.isEmpty()) {
-      throw new ModuleNotFoundForFileException(path);
-    }
-    Module module = moduleMay.get();
+      Module module,
+      scala.collection.immutable.Seq<model.TextEdit> edits,
+      SimpleUpdate simpleUpdate) {
     try {
       module.getSource();
     } catch (IOException e) {
-      throw new SourceNotFoundException(path, e);
+      throw new SourceNotFoundException(module.getName(), e);
     }
-//    ChangesetBuilder<Rope> changesetBuilder =
-//        new ChangesetBuilder<>(
-//            module.getLiteralSource(),
-//            module.getIr(),
-//            TextEditor.ropeTextEditor(),
-//            IndexedSource.RopeIndexedSource());
-//
-//    Changeset<Rope> result = changesetBuilder.build(edits);
 
     JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
         .fold(
             failure -> {
               throw new FailedToApplyEditsException(
-                  path, edits, failure, module.getLiteralSource());
+                  module.getName(), edits, failure, module.getLiteralSource());
             },
             rope -> {
               module.setLiteralSource(rope, simpleUpdate);

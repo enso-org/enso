@@ -14,6 +14,7 @@ import org.enso.interpreter.instrument.execution.{
 }
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
 
@@ -245,20 +246,20 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       val edits        = pendingEdits.map(_.edit)
       val shouldExecute =
         pendingEdits.isEmpty || pendingEdits.exists(_.execute)
-      val changeset = for {
-        module <- ctx.executionService.getContext.getModuleForFile(file).toScala
-        changesetBuilder = new ChangesetBuilder(
-          module.getLiteralSource,
-          module.getIr
-        )
-        changeset = changesetBuilder.build(pendingEdits)
-      } yield changeset
-      ctx.executionService.modifyModuleSources(
-        file,
-        edits,
-        changeset.flatMap(_.simpleUpdate).orNull
+      val module = ctx.executionService.getContext
+        .getModuleForFile(file)
+        .orElseThrow(() => new ModuleNotFoundForFileException(file))
+      val changesetBuilder = new ChangesetBuilder(
+        module.getLiteralSource,
+        module.getIr
       )
-      changeset.filter(_ => shouldExecute)
+      val changeset = changesetBuilder.build(pendingEdits)
+      ctx.executionService.modifyModuleSources(
+        module,
+        edits,
+        changeset.simpleUpdate.orNull
+      )
+      Option.when(shouldExecute)(changeset)
     } finally {
       ctx.locking.releasePendingEditsLock()
       ctx.locking.releaseReadCompilationLock()

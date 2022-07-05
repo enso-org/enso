@@ -61,9 +61,9 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   def build(edits: Seq[PendingEdit]): Changeset[A] = {
 
     val simpleEditOption: Option[PendingEdit.SetExpressionValue] =
-      edits.collectFirst { case edit: PendingEdit.SetExpressionValue =>
+      edits.collect { case edit: PendingEdit.SetExpressionValue =>
         edit
-      }
+      }.lastOption
 
     val simpleUpdateOption = simpleEditOption
       .filter(e => e.edit.range.start.line == e.edit.range.end.line)

@@ -20,12 +20,4 @@ final class PendingFileEdits(
   /** @inheritdoc */
   override def dequeue(file: File): Seq[PendingEdit] =
     pending.remove(file).getOrElse(Seq())
-
-  /** @inheritdoc */
-  override def dequeueAll(): Map[File, Seq[PendingEdit]] = {
-    val snapshot = pending.toMap
-    pending.clear()
-    snapshot
-  }
-
 }

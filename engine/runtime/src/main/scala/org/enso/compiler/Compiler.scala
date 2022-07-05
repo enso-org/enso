@@ -121,20 +121,6 @@ class Compiler(
     )
   }
 
-  /** Processes the provided language sources, registering any bindings in the
-    * given scope.
-    *
-    * @param modules the list of modules to compile
-    * @return a compiler result containing the list of compiled modules
-    */
-  def runAll(modules: Iterable[Module]): CompilerResult = {
-    runInternal(
-      modules.toList,
-      generateCode              = true,
-      shouldCompileDependencies = true
-    )
-  }
-
   /** Compiles the requested packages, writing the compiled IR to the library
     * cache directories.
     *
