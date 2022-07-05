@@ -1,14 +1,23 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+import Standard.Base.System.File.Existing_File_Behavior
+import Standard.Base.System.File.Option
 from Standard.Table.Io.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data
+import Standard.Base.Error.Common as Errors
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
+polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
+polyglot java import org.enso.table.write.ExcelWriter
+polyglot java import org.enso.table.error.ExistingDataException
+polyglot java import org.enso.table.error.RangeExceededException
+polyglot java import org.enso.table.error.InvalidLocationException
 
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.IllegalStateException
 polyglot java import java.io.IOException
 polyglot java import org.apache.poi.UnsupportedFileFormatException
 polyglot java import org.enso.table.util.problems.DuplicateNames
@@ -103,8 +112,9 @@ type Excel_Range
     ## Creates a Range from an address.
     from_address : Text -> Excel_Range
     from_address address =
-        Panic.catch IllegalArgumentException (Excel_Range (Java_Range.new address)) caught_panic->
-            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage caught_panic.payload.cause)
+        illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
+        Panic.catch IllegalArgumentException handler=illegal_argument <|
+            Excel_Range (Java_Range.new address)
 
     ## Create a Range for a single cell.
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
@@ -185,16 +195,31 @@ read_excel file section headers on_problems xls_format=False =
                 Excel_Range _ -> ExcelReader.readRange stream address.java_range (here.make_java_headers headers) skip_rows row_limit xls_format
                 Text -> ExcelReader.readRangeByName stream address (here.make_java_headers headers) skip_rows row_limit xls_format
 
-    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
-    handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
+    here.read_excel_file file reader
 
-    bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
-    handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
+write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Problem_Behavior -> Boolean
+write_excel file table on_existing_file section headers _ xls_format=False =
+    if on_existing_file == Existing_File_Behavior.Append then Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet." else
+        workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
+            here.read_excel_file file stream->(ExcelReader.getWorkbook stream xls_format)
 
-    File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
-        file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
+        replace = (on_existing_file == Existing_File_Behavior.Overwrite) || (on_existing_file == Existing_File_Behavior.Backup)
+        java_headers = here.make_java_headers headers
+        if ExcelWriter.getEnsoToTextCallback == Nothing then ExcelWriter.getEnsoToTextCallback (.to_text)
+        result = here.handle_writer <| case section of
+            Sheet sheet skip_rows row_limit ->
+                ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
+            Cell_Range address skip_rows row_limit -> case address of
+                Excel_Range _ -> ExcelWriter.writeTableToRange workbook address.java_range replace skip_rows table.java_table row_limit java_headers
+                Text -> ExcelWriter.writeTableToRange workbook address replace skip_rows table.java_table row_limit java_headers
+
+        if result.is_error then result else
+            write_stream stream = stream.with_java_stream java_stream->
+                workbook.write java_stream
+            on_existing_file.write file write_stream
 
 ## PRIVATE
+prepare_reader_table : Problem_Behavior -> Any -> Table
 prepare_reader_table on_problems result_with_problems =
     map_problem java_problem =
         if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames) else
@@ -204,9 +229,37 @@ prepare_reader_table on_problems result_with_problems =
     on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
 
 ## PRIVATE
-   Convert True|False|Infer to the correct HeaderBehavior
-make_java_headers : (True|False|Infer) -> ExcelReader.HeaderBehavior
+   Convert Boolean|Infer to the correct HeaderBehavior
+make_java_headers : (Boolean|Infer) -> ExcelHeaders.HeaderBehavior
 make_java_headers headers = case headers of
-        True -> ExcelReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-        Infer -> ExcelReader.HeaderBehavior.INFER
-        False -> ExcelReader.HeaderBehavior.EXCEL_COLUMN_NAMES
+        True -> ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+        Infer -> ExcelHeaders.HeaderBehavior.INFER
+        False -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
+
+## PRIVATE
+read_excel_file file reader =
+    bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
+    handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
+
+    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+    handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
+
+    File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
+        file.with_input_stream [File.Option.Read] stream->
+            stream.with_java_stream reader
+
+## PRIVATE
+handle_writer ~writer =
+    bad_location caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+    handle_bad_location = Panic.catch InvalidLocationException handler=bad_location
+
+    throw_range_exceeded caught_panic = Error.throw (Range_Exceeded caught_panic.payload.cause.getMessage)
+    handle_range_exceeded = Panic.catch RangeExceededException handler=throw_range_exceeded
+
+    throw_existing_data caught_panic = Error.throw (Existing_Data caught_panic.payload.cause.getMessage)
+    handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
+
+    throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error caught_panic.payload.cause.getMessage)
+    handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
+
+    handle_illegal_state <| handle_bad_location <| handle_range_exceeded <| handle_existing_data <| writer

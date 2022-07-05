@@ -1,0 +1,33 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Dialect
+import Standard.Database.Connection.Connection
+import Standard.Database.Connection.Connection_Options
+
+## Connect to a SQLite DB File or InMemory DB.
+type SQLite
+    type SQLite (location:(InMemory|File|Text))
+
+    ## Build the Connection resource.
+    connect : Connection_Options
+    connect options =
+        properties = options.merge self.jdbc_properties
+        Connection.create_jdbc_connection self.jdbc_url properties self.dialect
+
+    ## Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url = case self.location of
+        InMemory -> "jdbc:sqlite::memory:"
+        _ -> "jdbc:sqlite:" + ((File.new self.location).absolute.path.replace '\\' '/')
+
+    ## Provides the properties for the connection.
+    jdbc_properties : Vector
+    jdbc_properties = []
+
+    ## Provides the dialect needed for creating SQL statements.
+    dialect : Dialect
+    dialect = Dialect.sqlite
+
+## Connect to an in-memory SQLite database.
+type InMemory
+    type InMemory

@@ -911,7 +911,7 @@ type Table
              import Standard.Database
 
              example_to_csv =
-                 connection = Database.open_sqlite_file (File.new "db.sqlite")
+                 connection = Database.connect (SQLite (File.new "db.sqlite"))
                  table = connection.access_table "Table"
                  table.write (Enso_Project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
