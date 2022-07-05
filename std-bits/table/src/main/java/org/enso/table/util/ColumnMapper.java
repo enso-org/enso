@@ -14,7 +14,8 @@ public class ColumnMapper {
   public static Table MapColumnsByName(Table table, String[] columnNames)
       throws ColumnNameMismatchException {
     Column[] columns = new Column[columnNames.length];
-    Set<String> extras = Arrays.stream(table.getColumns()).map(Column::getName).collect(Collectors.toSet());
+    Set<String> extras =
+        Arrays.stream(table.getColumns()).map(Column::getName).collect(Collectors.toSet());
     Set<String> missing = new HashSet<>();
 
     for (int i = 0; i < columnNames.length; i++) {
