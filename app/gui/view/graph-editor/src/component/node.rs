@@ -340,7 +340,8 @@ ensogl::define_endpoints_2! {
         /// visualization is enabled and visible.
         ///
         /// Updated after any of [`position`], [`expression`], [`visualization_enabled`], or
-        /// [`visualization_visible`] is updated.
+        /// [`visualization_visible`] is updated. Please remember, that the [`position`] is not
+        /// immediately updated, only during the Display Object hierarchy update
         bounding_box             (BoundingBox),
     }
 }
