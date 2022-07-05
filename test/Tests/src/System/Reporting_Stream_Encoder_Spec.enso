@@ -66,6 +66,19 @@ spec =
             Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at characters 1, 3."]
             f.read_text encoding . should_equal "S?o?wka!"
 
+            f.delete_if_exists
+            result_2 = f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
+                    reporting_stream_encoder.write "ABC"
+                    reporting_stream_encoder.write "ą"
+                    reporting_stream_encoder.write "foo"
+                    reporting_stream_encoder.write " -🚧- "
+                    reporting_stream_encoder.write "bar"
+
+            result_2 . should_equal Nothing
+            Warning.get_all result_2 . map .value . should_equal [Encoding_Error "Encoding issues at characters 3, 9."]
+            f.read_text encoding . should_equal "ABC?foo -?- bar"
+
         Test.specify "should work correctly if no data is written to it" <|
             f = Enso_Project.data / "transient" / "empty.txt"
             encoding = Encoding.ascii
