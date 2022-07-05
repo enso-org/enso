@@ -1,5 +1,6 @@
 package org.enso.table.excel;
 
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.util.CellReference;
 
 import java.util.Optional;
@@ -147,13 +148,65 @@ public class ExcelRange {
     return parsed.value;
   }
 
+  /**
+   * Create an ExcelRange for a given set of columns.
+   *
+   * @param sheetName name of the containing sheet.
+   * @param leftColumn left-hand column index (1-based).
+   * @param rightColumn inclusive right-hand column index (1-based).
+   * @return ExcelRange for the given columns.
+   */
   public static ExcelRange forColumns(String sheetName, int leftColumn, int rightColumn) {
     return new ExcelRange(
         sheetName, leftColumn, WHOLE_ROW_OR_COLUMN, rightColumn, WHOLE_ROW_OR_COLUMN);
   }
 
+  /**
+   * Create an ExcelRange for a given set of rows.
+   *
+   * @param sheetName name of the containing sheet.
+   * @param topRow top row index (1-based).
+   * @param bottomRow inclusive bottom row index (1-based).
+   * @return ExcelRange for the given rows.
+   */
   public static ExcelRange forRows(String sheetName, int topRow, int bottomRow) {
     return new ExcelRange(sheetName, WHOLE_ROW_OR_COLUMN, topRow, WHOLE_ROW_OR_COLUMN, bottomRow);
+  }
+
+  /**
+   * Given a single cell and the containing sheet, expand the range to cover the connected table of
+   * cells.
+   *
+   * @param excelRange Range referring to top left cell.
+   * @param sheet ExcelSheet containing the range refers to.
+   * @return Expanded range covering the connected table of cells.
+   */
+  public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet) {
+    ExcelRow currentRow = sheet.get(excelRange.getTopRow());
+    if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
+      return new ExcelRange(
+          excelRange.getSheetName(),
+          excelRange.getLeftColumn(),
+          excelRange.getTopRow(),
+          excelRange.getLeftColumn(),
+          excelRange.getTopRow());
+    }
+
+    int bottomRow = excelRange.getTopRow();
+    int rightColumn = excelRange.getLeftColumn();
+
+    while (currentRow != null && !currentRow.isEmpty(excelRange.getLeftColumn(), rightColumn)) {
+      rightColumn = currentRow.findEndRight(rightColumn);
+      bottomRow++;
+      currentRow = sheet.get(bottomRow);
+    }
+
+    return new ExcelRange(
+        excelRange.getSheetName(),
+        excelRange.getLeftColumn(),
+        excelRange.getTopRow(),
+        rightColumn,
+        bottomRow - 1);
   }
 
   /**
@@ -251,6 +304,10 @@ public class ExcelRange {
     return rightColumn;
   }
 
+  public int getColumnCount() {
+    return isWholeRow() ? Integer.MAX_VALUE : rightColumn - leftColumn + 1;
+  }
+
   public boolean isWholeColumn() {
     return topRow == WHOLE_ROW_OR_COLUMN;
   }
@@ -261,6 +318,10 @@ public class ExcelRange {
 
   public int getBottomRow() {
     return bottomRow;
+  }
+
+  public int getRowCount() {
+    return isWholeColumn() ? Integer.MAX_VALUE : bottomRow - topRow + 1;
   }
 
   public boolean isSingleCell() {
