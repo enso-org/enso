@@ -8,7 +8,12 @@ import org.enso.table.problems.WithProblems;
 import org.enso.table.util.problems.ColumnCountMismatch;
 import org.enso.table.util.problems.ColumnNameMismatch;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 
 public class ColumnMapper {
   public static WithProblems<Table> MapColumnsByName(Table table, String[] columnNames) {

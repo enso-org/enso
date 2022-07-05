@@ -1109,7 +1109,7 @@ type Table
              import Standard.Table
 
              example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") File_Format.Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Name_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Map_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Map_Columns.By_Name on_problems=Report_Warning =
         format.write_table (File.new path) self on_existing_file column_mapping on_problems
 

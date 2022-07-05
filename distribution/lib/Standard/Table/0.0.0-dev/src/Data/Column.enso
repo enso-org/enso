@@ -1000,7 +1000,7 @@ type Column
         order_bool = case order of
             Sort_Direction.Ascending -> True
             Sort_Direction.Descending -> False
-        java_cmp = Comparator.new cmp
+        java_cmp = Comparator.new comparator
         rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
         mask = OrderBuilder.buildOrderMask [rule].to_array
         new_col = self.java_column.applyMask mask

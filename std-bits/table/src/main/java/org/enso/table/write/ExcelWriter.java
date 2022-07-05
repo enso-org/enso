@@ -100,7 +100,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, ExistingDataMode existingDataMode, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws InvalidLocationException, RangeExceededException, ExistingDataException {
+      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
     Name name = workbook.getName(rangeNameOrAddress);
     ExcelRange excelRange;
     try {
@@ -112,7 +112,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToRange(Workbook workbook, ExcelRange range, ExistingDataMode existingDataMode, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws InvalidLocationException, RangeExceededException, ExistingDataException {
+      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
       throw new InvalidLocationException("Unknown sheet '" + range.getSheetName() + "'.");
@@ -134,7 +134,7 @@ public class ExcelWriter {
         shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn());
 
     if ((existingDataMode == ExistingDataMode.APPEND_BY_NAME || existingDataMode == ExistingDataMode.APPEND_BY_INDEX) &&
-        checkExistingRange(workbook, expanded, false, sheet)) {
+        !checkExistingRange(workbook, expanded, false, sheet)) {
       appendRangeWithTable(workbook, range, existingDataMode, table, rowLimit, headers, sheet, expanded);
     } else {
       updateRangeWithTable(workbook, expanded, range.isSingleCell(), existingDataMode, table, rowLimit, headers, sheet);
@@ -205,13 +205,21 @@ public class ExcelWriter {
     }
 
     // Check or Clear Current Range
-    if (checkExistingRange(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet)) {
+    if (!checkExistingRange(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet)) {
       throw new ExistingDataException("Range is not empty, and cannot be replaced in current mode.");
     }
 
     writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, writeHeaders);
   }
 
+  /***
+   * Checks if a range is empty.
+   * @param workbook The workbook to check.
+   * @param range The range to check.
+   * @param clear Clear the cells if they are not empty.
+   * @param sheet Sheet containing the range.
+   * @return True if range is empty (or cleared), False otherwise.
+   */
   private static boolean checkExistingRange(Workbook workbook, ExcelRange range, boolean clear, ExcelSheet sheet) {
     int topRow = range.isWholeColumn() ? 1 : range.getTopRow();
     int bottomRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
@@ -235,108 +243,6 @@ public class ExcelWriter {
     }
 
     return true;
-  }
-
-  public static void writeTableToRange(Workbook workbook, String rangeNameOrAddress, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
-    Name name = workbook.getName(rangeNameOrAddress);
-    ExcelRange excelRange;
-    try {
-      excelRange = new ExcelRange(name == null ? rangeNameOrAddress : name.getRefersToFormula());
-    } catch (IllegalArgumentException e) {
-      throw new InvalidLocationException("Invalid range name or address '" + rangeNameOrAddress + "'.");
-    }
-    writeTableToRange(workbook, excelRange, replace, skipRows, table, rowLimit, headers);
-  }
-
-  public static void writeTableToRange(Workbook workbook, ExcelRange range, boolean replace, int skipRows, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
-      throws InvalidLocationException, IllegalStateException, RangeExceededException, ExistingDataException {
-    int sheetIndex = workbook.getSheetIndex(range.getSheetName());
-    if (sheetIndex == -1) {
-      throw new InvalidLocationException("Unknown sheet '" + range.getSheetName() + "'.");
-    }
-    ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
-
-    if (skipRows != 0) {
-      if (range.isWholeColumn()) {
-        range = new ExcelRange(range.getSheetName(), skipRows + 1, range.getLeftColumn(), workbook.getSpreadsheetVersion().getMaxRows(), range.getRightColumn());
-      } else if (range.isSingleCell()) {
-        range = new ExcelRange(range.getSheetName(), range.getTopRow() + skipRows, range.getLeftColumn());
-      } else {
-        range = new ExcelRange(range.getSheetName(), range.getTopRow() + skipRows, range.getLeftColumn(), range.getBottomRow(), range.getRightColumn());
-      }
-    }
-
-    if (range.isSingleCell()) {
-      ExcelRange expanded = ExcelRange.expandSingleCell(range, sheet);
-
-      if (headers == ExcelHeaders.HeaderBehavior.INFER) {
-        headers = shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn())
-            ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-            : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
-      }
-
-      // Expand to cover required size
-      int rowCount = (headers == ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS ? 1 : 0) + table.rowCount();
-      if (expanded.getColumnCount() < table.getColumns().length || expanded.getRowCount() < rowCount) {
-        expanded = new ExcelRange(
-            expanded.getSheetName(),
-            expanded.getLeftColumn(),
-            expanded.getTopRow(),
-            Math.max(expanded.getRightColumn(), expanded.getLeftColumn() + table.getColumns().length - 1),
-            Math.max(expanded.getBottomRow(), expanded.getTopRow() + rowCount - 1));
-      }
-
-      checkExistingRange(workbook, expanded, replace, sheet);
-    } else {
-      // Check Size of Range
-      int rowCount = Math.min(Math.min(workbook.getSpreadsheetVersion().getMaxRows() - range.getTopRow() + 1, rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()), table.rowCount());
-      if (range.getColumnCount() < table.getColumns().length || range.getRowCount() < rowCount) {
-        throw new RangeExceededException("Range is too small to fit all columns.");
-      }
-
-      if (headers == ExcelHeaders.HeaderBehavior.INFER) {
-        headers = shouldWriteHeaders(sheet, range.getTopRow(), range.getLeftColumn(), range.isWholeRow() ? -1 : range.getRightColumn())
-            ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-            : ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
-      }
-
-      checkExistingRange(workbook, range, replace, sheet);
-    }
-
-    writeTableToSheet(workbook, sheet.getSheet(), range.getTopRow() - 1, range.getLeftColumn(), table, rowLimit, headers != ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES);
-  }
-
-  private static void checkExistingRange(Workbook workbook, ExcelRange range, boolean replace, ExcelSheet sheet) throws ExistingDataException {
-    int topRow = range.isWholeColumn() ? 1 : range.getTopRow();
-    int bottomRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
-    int leftColumn = range.isWholeRow() ? 1 : range.getLeftColumn();
-    int rightColumn = range.isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : range.getRightColumn();
-
-    for (int row = topRow; row <= bottomRow; row++) {
-      ExcelRow excelRow = sheet.get(row);
-      if (excelRow != null) {
-        for (int column = leftColumn; column <= rightColumn; column++) {
-          Cell cell = excelRow.get(column);
-          if (cell != null) {
-            if (replace) {
-              cell.setBlank();
-            } else {
-              throw new ExistingDataException("Range is not empty, and cannot be replaced in current mode.");
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Creates an empty workbook.
-   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
-   * @return a {@link Workbook} containing the specified data.
-   */
-  public static Workbook createWorkbook(boolean xls_format) {
-    return xls_format ? new HSSFWorkbook() : new XSSFWorkbook();
   }
 
   private static void writeTableToSheet(Workbook workbook, Sheet sheet, int firstRow, int firstColumn, Table table, Long rowLimit, boolean headers)
