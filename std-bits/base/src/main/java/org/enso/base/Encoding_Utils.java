@@ -3,6 +3,7 @@ package org.enso.base;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.base.encoding.ReportingStreamEncoder;
 import org.enso.base.text.ResultWithWarnings;
+import org.graalvm.collections.Pair;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -164,12 +166,17 @@ public class Encoding_Utils {
   /**
    * A helper function which runs an action with a created stream decoder and closes it afterwards.
    */
-  public static <R> R with_stream_decoder(
+  public static <R> Pair<List<String>, R> with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, R> action)
       throws IOException {
-    try (ReportingStreamDecoder decoder = create_stream_decoder(stream, charset)) {
-      return action.apply(decoder);
+    R result;
+    ReportingStreamDecoder decoder = create_stream_decoder(stream, charset);
+    try {
+      result = action.apply(decoder);
+    } finally {
+      decoder.close();
     }
+    return Pair.create(decoder.getReportedProblems(), result);
   }
 
   /** Creates a new instance of {@code ReportingStreamEncoder} encoding a given charset. */
@@ -187,16 +194,20 @@ public class Encoding_Utils {
   /**
    * A helper function which runs an action with a created stream encoder and closes it afterwards.
    */
-  public static <R> R with_stream_encoder(
+  public static <R> Pair<List<String>, R> with_stream_encoder(
       OutputStream stream,
       Charset charset,
       byte[] replacementSequence,
       Function<ReportingStreamEncoder, R> action)
       throws IOException {
-    try (ReportingStreamEncoder encoder =
-        create_stream_encoder(stream, charset, replacementSequence)) {
-      return action.apply(encoder);
+    R result;
+    ReportingStreamEncoder encoder = create_stream_encoder(stream, charset, replacementSequence);
+    try {
+      result = action.apply(encoder);
+    } finally {
+      encoder.close();
     }
+    return Pair.create(encoder.getReportedProblems(), result);
   }
 
   /**

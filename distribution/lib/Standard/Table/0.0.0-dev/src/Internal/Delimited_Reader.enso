@@ -73,10 +73,8 @@ read_stream format stream on_problems max_columns=4096 related_file=Nothing =
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
 
     handle_io_exception <|
-        stream.with_stream_decoder encoding reporting_stream_decoder->
-            result = here.read_from_reader format reporting_stream_decoder on_problems max_columns
-            decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
-            on_problems.attach_problems_after result decoding_problems
+        stream.with_stream_decoder encoding on_problems reporting_stream_decoder->
+            here.read_from_reader format reporting_stream_decoder on_problems max_columns
 
 ## PRIVATE
    Reads data from the provided `Reader` according to the provided format.

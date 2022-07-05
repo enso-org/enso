@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+import Standard.Base.Error.Problem_Behavior
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.nio.CharBuffer
@@ -16,7 +17,7 @@ spec =
             f.exists.should_be_false
             contents = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
             f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
-                stream.with_stream_encoder Encoding.utf_8 reporting_stream_encoder->
+                stream.with_stream_encoder Encoding.utf_8 Problem_Behavior.Report_Error reporting_stream_encoder->
                     contents.char_vector.each char->
                         reporting_stream_encoder.write char
             f.read_text.should_equal contents
@@ -28,7 +29,7 @@ spec =
             encoding = Encoding.utf_16_be
             big = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
             f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
-                stream.with_stream_encoder encoding reporting_stream_encoder->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
                     reporting_stream_encoder.write "A"
                     reporting_stream_encoder.write "Abc"
                     reporting_stream_encoder.write "Defghi"
@@ -48,7 +49,7 @@ spec =
 
             f.delete_if_exists
             f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
-                stream.with_stream_encoder encoding reporting_stream_encoder->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
                     reporting_stream_encoder.write contents
 
             f.read_text encoding . should_equal contents
@@ -59,10 +60,10 @@ spec =
             contents = 'Sło\u0301wka!'
             f.delete_if_exists
             result = f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
-                stream.with_stream_encoder encoding reporting_stream_encoder->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
                     reporting_stream_encoder.write contents
             result . should_equal Nothing
-            Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at bytes 1, 2."]
+            Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at characters 1, 3."]
             f.read_text encoding . should_equal "S?o?wka!"
 
         Test.specify "should work correctly if no data is written to it" <|
@@ -70,9 +71,8 @@ spec =
             encoding = Encoding.ascii
             f.delete_if_exists
             result = f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
-                stream.with_stream_encoder encoding _->Nothing
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error _->Nothing
             result . should_equal Nothing
-            Warning.get_all result . map .value . should_equal []
             f.read_text encoding . should_equal ""
 
 main = Test.Suite.run_main here.spec

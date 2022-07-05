@@ -11,7 +11,10 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class ReportingStreamEncoder extends Writer {
 
@@ -42,7 +45,7 @@ public class ReportingStreamEncoder extends Writer {
    */
   private CharBuffer inputBuffer = CharBuffer.allocate(0);
 
-  private long inputCharactersConsumedBeforeCurrentBuffer = 0;
+  private int inputCharactersConsumedBeforeCurrentBuffer = 0;
 
   private final byte[] replacementSequence;
 
@@ -72,6 +75,11 @@ public class ReportingStreamEncoder extends Writer {
     } else {
       inputBuffer.compact();
     }
+  }
+
+  /** Returns the amount of characters that have already been consumed by the encoder. */
+  private int getCurrentInputPosition() {
+    return inputCharactersConsumedBeforeCurrentBuffer + inputBuffer.position();
   }
 
   @Override
@@ -117,9 +125,31 @@ public class ReportingStreamEncoder extends Writer {
     }
   }
 
+  /**
+   * A list of positions containing encoding issues like malformed characters.
+   *
+   * <p>Used for reporting warnings.
+   */
+  List<Integer> encodingIssuePositions = new ArrayList<>();
+
   private void reportEncodingProblem() {
-    // TODO
-    System.out.println("Encoding problem!");
+    encodingIssuePositions.add(getCurrentInputPosition());
+  }
+
+  public List<String> getReportedProblems() {
+    if (encodingIssuePositions.isEmpty()) {
+      return List.of();
+    } else {
+      if (encodingIssuePositions.size() == 1) {
+        return List.of("Encoding issues at character " + encodingIssuePositions.get(0) + ".");
+      }
+
+      String issues =
+          encodingIssuePositions.stream()
+              .map(String::valueOf)
+              .collect(Collectors.joining(", ", "Encoding issues at characters ", "."));
+      return List.of(issues);
+    }
   }
 
   private void growOutputBuffer() {
