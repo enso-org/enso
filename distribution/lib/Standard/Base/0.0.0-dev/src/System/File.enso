@@ -791,7 +791,7 @@ type Output_Stream
         ## We ignore any warnings raised by the `bytes` method, because if the
            original Unicode replacement character failed to encode, the `bytes`
            method will have replaced it with the simple `?` sign which should be
-           available in all encodings. And this is exactly the behavior we wan:
+           available in all encodings. And this is exactly the behavior we want:
            if available, we use the `�` character and otherwise we fallback to
            the `?` character.
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
