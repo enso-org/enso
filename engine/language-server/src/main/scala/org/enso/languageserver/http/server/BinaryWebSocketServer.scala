@@ -106,9 +106,7 @@ class BinaryWebSocketServer[A, B](
         NotUsed
       }
       .map { (outMsg: B) =>
-        logger.trace(s"Sending binary message ${outMsg.toString.take(20)}")
         val bytes = encoder.encode(outMsg)
-        logger.trace(s"Sending binary message (encoded).")
         BinaryMessage(ByteString.apply(bytes))
       }
   }
