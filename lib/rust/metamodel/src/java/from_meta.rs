@@ -1,4 +1,13 @@
-//! Lowering a `meta` data model to a `crate::java` data model.
+//! Translating a data model in the highly-abstracted `meta` representation to a data model in the
+//! `crate::java` representation.
+//!
+//! As the `meta` and `java` models are similar, this is a straightforward translation. The main
+//! differences are:
+//! - In Java, there is a distinction between a few types that are unboxed primitives and all other
+//!   types, which are reference types.
+//! - In Java, all classes are expected to implement certain methods. These methods are attached in
+//!   this stage, although [`Dynamic`] methods are used so that if any classes are modified before
+//!   the model is rendered to syntax, the generated methods will reflect the changes.
 
 use crate::java::*;
 use crate::meta;

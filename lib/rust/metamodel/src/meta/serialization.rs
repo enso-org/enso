@@ -2,7 +2,6 @@
 
 use crate::meta::*;
 use std::fmt::Write;
-use std::mem::take;
 
 const DEBUG: bool = false;
 
@@ -34,7 +33,7 @@ pub fn testcases(graph: &TypeGraph, root: TypeId) -> TestCases {
     if DEBUG {
         eprintln!("{}", fmt_program(&program, &debuginfo));
     }
-    let (accept, reject) = Vm::run(&program);
+    let (accept, reject) = Interpreter::run(&program);
     TestCases { accept, reject, program, debuginfo }
 }
 
@@ -62,6 +61,7 @@ impl TestCases {
     }
 }
 
+/// Produce a debug representation of a program.
 fn fmt_program(program: &[Op], debuginfo: &BTreeMap<usize, String>) -> String {
     let mut out = String::new();
     let mut indent = 0;
@@ -182,19 +182,41 @@ impl<'g> ProgramBuilder<'g> {
         let basecase = basecase || !self.visited.insert(id);
         let ty = &self.graph[id];
         match &ty.data {
-            Data::Struct(_) => {
-                let mut hierarchy = vec![id];
-                let mut id = id;
-                while let Some(id_) = self.graph[id].parent {
-                    id = id_;
-                    hierarchy.push(id);
-                }
-                self.object(hierarchy, basecase);
-            }
+            Data::Struct(_) => self.object(id, basecase),
             Data::Primitive(primitive) => self.primitive(*primitive, basecase, id),
         }
     }
 
+    /// Emit [`Op`]s reflecting the data of a [`Primitive`].
+    ///
+    /// # Simple primitives
+    ///
+    /// If the [`Primitive`] is scalar data, like an integer or bool, operations producing an
+    /// arbitrary example value will be emitted.
+    ///
+    /// # Compound primitives
+    ///
+    /// For all compound primitives (primitives referring to other types), the `basecase` parameter
+    /// deterimines whether the output is minimal (as appropriate for previously-encountered types),
+    /// or exhaustive.
+    ///
+    /// If the input is an option:
+    /// - If `basecase` is `true`, only the `None` representation will be emitted.
+    /// - If `basecase` is `false`, an alternation of the `None` representation, the `Some`
+    ///   representation, and a reject-case with an invalid discriminant will be emitted.
+    ///
+    /// If the input is a sequence:
+    /// - If `basecase` is `true`, a zero-length sequence will be emitted.
+    /// - If `basecase` is `false`, an alternation of an empty sequence and a 1-object sequence will
+    ///   be emitted (this tests the correspondence between the encoded length and number of
+    ///   elements). Although an `Option` also allows 0 or 1 objects, an `Option` is encoded with a
+    ///   smaller (1-byte) length field, so they are encoded distinctly.
+    ///
+    /// If the input is a result:
+    /// - If `basecase` is `true`, an type that has been determined not to cause recursion will be
+    ///   selected.
+    /// - If `basecase` is `false`, an alternation of the two possible types will be emitted, along
+    ///   with a reject case with an invalid discriminant.
     fn primitive(&mut self, primitive: Primitive, basecase: bool, id: TypeId) {
         match primitive {
             // Value doesn't matter, but this will be recognizable in the output, and will tend not
@@ -206,10 +228,15 @@ impl<'g> ProgramBuilder<'g> {
             // to encode compatibly with other types.
             Primitive::U64 => self.emit(Op::U64(1234567890123456789)),
             Primitive::String => self.emit(Op::U64("".len() as u64)),
-            Primitive::Sequence(t0) if basecase || self.basecase(t0) => self.emit(Op::U64(0)),
+            Primitive::Sequence(_) if basecase => self.emit(Op::U64(0)),
             Primitive::Sequence(t0) => {
+                self.emit(Op::SwitchPush);
+                self.emit(Op::U64(0));
+                self.emit(Op::Case(Case::Accept));
                 self.emit(Op::U64(1));
                 self.type_(t0, basecase);
+                self.emit(Op::Case(Case::Accept));
+                self.emit(Op::SwitchPop);
             }
             Primitive::Option(_) if basecase => self.emit(Op::U8(0)),
             Primitive::Option(t0) => {
@@ -255,7 +282,36 @@ impl<'g> ProgramBuilder<'g> {
         }
     }
 
-    fn object(&mut self, mut hierarchy: Vec<TypeId>, basecase: bool) {
+    /// Emit [`Op`]s reflecting the data of a [`Type`], as identified by ID.
+    ///
+    /// If `basecase` is true: An example of the specified type will be created that is intended to
+    /// be no larger than necessary, and that avoids infinite recursion; this is appropriate when
+    /// emitting data for a type that has already been exercised with `basecase=false`, or for a
+    /// type that has been determined to occur unconditionally as a field of another type.
+    ///
+    /// If `basecase` is false, if the type has child types, an alternation of all possible child
+    /// types will be emitted, along with a reject-case including a discriminant higher than the
+    /// highest valid discriminant, and reject-cases for any invalid discriminants lower than the
+    /// highest valid discriminant.
+    fn object(&mut self, id: TypeId, basecase: bool) {
+        let mut hierarchy = vec![id];
+        let mut id = id;
+        while let Some(id_) = self.graph[id].parent {
+            id = id_;
+            hierarchy.push(id);
+        }
+        self.object_(&mut hierarchy, basecase);
+        assert_eq!(&hierarchy, &[])
+    }
+
+    /// Emit [`Op`]s reflecting the data of a [`Type`], as identified by a `Vec` `hierarchy` in
+    /// which:
+    /// - `hierarchy[0]` is a concrete [`Type`].
+    /// - `hierarchy[i]` is the parent of `hierarchy[i-1]`.
+    /// - `hierarchy[hierarchy.len() - 1]` identifies a type that doesn't have any parent type.
+    ///
+    /// For a design description see the primary interface, [`Self::object`].
+    fn object_(&mut self, hierarchy: &mut Vec<TypeId>, basecase: bool) {
         let id = hierarchy.pop().unwrap();
         let ty = &self.graph[id];
         let fields = match &ty.data {
@@ -268,15 +324,16 @@ impl<'g> ProgramBuilder<'g> {
                     let basecase_discriminant = self.basecase_discriminant[&id];
                     let discriminants = &ty.discriminants;
                     let basecase_ty = discriminants[&basecase_discriminant];
+                    hierarchy.push(basecase_ty);
                     if basecase {
                         self.emit(Op::U32(basecase_discriminant as u32));
-                        self.object(vec![basecase_ty], basecase);
+                        self.object_(hierarchy, basecase);
                     } else {
                         let (&max, _) = discriminants.last_key_value().unwrap();
                         self.emit(Op::SwitchPush);
                         self.emit(Op::U32(basecase_discriminant as u32));
                         self.debug_prev(&self.graph[basecase_ty].name);
-                        self.object(vec![basecase_ty], basecase);
+                        self.object_(hierarchy, basecase);
                         self.emit(Op::Case(Case::Accept));
                         for i in 0..=(max + 1) {
                             if i == basecase_discriminant {
@@ -285,8 +342,9 @@ impl<'g> ProgramBuilder<'g> {
                             self.emit(Op::U32(i as u32));
                             match discriminants.get(&i) {
                                 Some(id) => {
+                                    hierarchy.push(*id);
                                     self.debug_prev(&self.graph[*id].name);
-                                    self.object(vec![*id], basecase);
+                                    self.object_(hierarchy, basecase);
                                     self.emit(Op::Case(Case::Accept));
                                 }
                                 None => self.emit(Op::Case(Case::Reject)),
@@ -295,18 +353,30 @@ impl<'g> ProgramBuilder<'g> {
                         self.emit(Op::SwitchPop);
                     }
                 } else {
-                    self.object(take(&mut hierarchy), basecase);
+                    self.object_(hierarchy, basecase);
                 }
             }
             self.type_(field.type_, basecase);
             self.debug_prev(format!(".{}", &field.name));
         }
-        assert!(hierarchy.is_empty());
     }
 }
 
 /// Choose a discriminant for the specified type, and if necessary for some other types reachable
 /// from it in the composition graph, so that the composition graph for the type is non-recursive.
+///
+/// If any child type doesn't have own any sum-types, we select it. Otherwise, selections are made
+/// according to the following recursive algorithm:
+/// - If we have a child that doesn't own any sum-type fields, choose it and return Ok.
+/// - Otherwise, recurse into each child; if one returns Ok, choose it and return Ok.
+/// - If no child returns Ok, we got here by recursing into a bad choice; return Err.
+/// - If we reach a type we have already visited, this choice contains a cycle; return Err. (Because
+///   we only visit each type once, the time complexity of this algorithm is linear in the number of
+///   types we need to select discriminants for).
+///
+/// The top-level call will always return Ok because: There must be a sum type in our descendants
+/// that has a child that doesn't own any sum-type fields, or there would be a type in the input
+/// that is only possible to instantiate with cyclic or infinite data.
 fn select_basecase(
     graph: &TypeGraph,
     id: TypeId,
@@ -316,6 +386,7 @@ fn select_basecase(
     select_basecase_(graph, id, out, visited).unwrap()
 }
 
+/// Implementation. See the documentation for [`select_basecase`].
 fn select_basecase_(
     graph: &TypeGraph,
     id: TypeId,
@@ -340,13 +411,6 @@ fn select_basecase_(
     if discriminants.is_empty() {
         return Ok(());
     }
-    // - If we have a child that doesn't own any sum-type fields, choose it and return Ok.
-    // - Otherwise, recurse into each child; if one returns Ok, choose it and return Ok.
-    // - If no child returns Ok, we got here by recursing into a bad choice; return Err.
-    //
-    // The top-level call will always return Ok because: There must be a sum type in our descendants
-    // that has a child that doesn't own any sum-type fields, or there would be a type in the input
-    // that is only possible to instantiate with cyclic or infinite data.
     let mut descendants = BTreeMap::<_, Vec<_>>::new();
     let mut child_fields = BTreeSet::new();
     let mut child_sums = BTreeSet::new();
@@ -391,24 +455,32 @@ fn select_basecase_(
 
 /// Runs a test-case-generating program.
 #[derive(Debug, Default)]
-struct Vm<'p> {
+struct Interpreter<'p> {
     program:       &'p [Op],
     continuations: BTreeMap<usize, usize>,
 }
 
+/// A control-stack frame of the interpreted program.
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Frame {
+    /// A return address, as an index into the sequence of [`Op`]s.
     return_:    usize,
+    /// A height of the data stack.
     prefix_len: usize,
 }
 
-impl<'p> Vm<'p> {
+impl<'p> Interpreter<'p> {
+    /// Interpret a program, producing collections of accept-cases and reject-cases.
     fn run(program: &'p [Op]) -> (Vec<Vec<u8>>, Vec<Vec<u8>>) {
         let continuations = collect_continuations(program);
         let self_ = Self { program, continuations };
         self_.run_()
     }
 
+    /// Interpret every instruction in the program, in order. For every case in each switch, emit an
+    /// (accept or reject) output consisting of the basecase interpretation of all data before the
+    /// given switch, the switch case's data, and then the basecase interpretation of all data after
+    /// the switch.
     fn run_(&self) -> (Vec<Vec<u8>>, Vec<Vec<u8>>) {
         let mut accept: Vec<Vec<u8>> = Default::default();
         let mut reject: Vec<Vec<u8>> = Default::default();
@@ -459,6 +531,17 @@ impl<'p> Vm<'p> {
         (accept, reject)
     }
 
+    /// Given an initial return stack, run the program until the last stack frame is exited,
+    /// running only basecase cases of each switch encountered, emitting the data to the `Vec`
+    /// passed in the `out` parameter.
+    ///
+    /// The return value is the program counter when the last stack frame was exited.
+    ///
+    /// If the given stack is the full stack at a certain point in program execution, the
+    /// continuation is an escape continuation that will run the program until completion.
+    ///
+    /// If the given stack is a consecutive slice of the stack at a certain point in program
+    /// execution, the continuation is a delimited continuation.
     fn run_continuation(&self, mut stack: Vec<usize>, out: &mut Vec<u8>) -> usize {
         let mut pc = stack.pop().unwrap();
         while let Some(op) = self.program.get(pc) {
@@ -487,6 +570,8 @@ impl<'p> Vm<'p> {
     }
 }
 
+/// Analyze a program to calculate the index of the target of each [`Op`] that implicitly refers to
+/// another location in the program.
 fn collect_continuations(program: &[Op]) -> BTreeMap<usize, usize> {
     let mut continuations = BTreeMap::new();
     let mut switch_stack = vec![];
