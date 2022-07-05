@@ -8,14 +8,22 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * A {@code Writer} which encodes any characters provided to itself using the provided {@code
+ * CharsetEncoder} and passes the encoded data to the provided {@code OutputStream}.
+ *
+ * <p>Functionally, it should be equivalent to {@code java.io.OutputStreamWriter}. The major
+ * difference is that this class allows more granular reporting of encoding issues - instead of just
+ * replacing malformed characters with a replacement or failing at the first error, it allows to
+ * both perform the replacements but also remember the positions at which the problems occurred and
+ * then return a bulk report of places where the issues have been encountered.
+ */
 public class ReportingStreamEncoder extends Writer {
 
   /**

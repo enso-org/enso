@@ -163,6 +163,9 @@ public class Encoding_Utils {
 
   /**
    * A helper function which runs an action with a created stream decoder and closes it afterwards.
+   *
+   * <p>It returns the result returned from the executed action and any encoding problems that
+   * occurred when processing it.
    */
   public static <R> WithProblems<R, String> with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, R> action)
@@ -191,6 +194,9 @@ public class Encoding_Utils {
 
   /**
    * A helper function which runs an action with a created stream encoder and closes it afterwards.
+   *
+   * <p>It returns the result returned from the executed action and any encoding problems that
+   * occurred when processing it.
    */
   public static <R> WithProblems<R, String> with_stream_encoder(
       OutputStream stream,
