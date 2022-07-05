@@ -134,7 +134,7 @@ public class ExcelWriter {
         shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn());
 
     if ((existingDataMode == ExistingDataMode.APPEND_BY_NAME || existingDataMode == ExistingDataMode.APPEND_BY_INDEX) &&
-        !checkExistingRange(workbook, expanded, false, sheet)) {
+        rangeIsNotEmpty(workbook, expanded, false, sheet)) {
       appendRangeWithTable(workbook, range, existingDataMode, table, rowLimit, headers, sheet, expanded);
     } else {
       updateRangeWithTable(workbook, expanded, range.isSingleCell(), existingDataMode, table, rowLimit, headers, sheet);
@@ -205,7 +205,7 @@ public class ExcelWriter {
     }
 
     // Check or Clear Current Range
-    if (!checkExistingRange(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet)) {
+    if (rangeIsNotEmpty(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet)) {
       throw new ExistingDataException("Range is not empty, and cannot be replaced in current mode.");
     }
 
@@ -218,9 +218,9 @@ public class ExcelWriter {
    * @param range The range to check.
    * @param clear Clear the cells if they are not empty.
    * @param sheet Sheet containing the range.
-   * @return True if range is empty (or cleared), False otherwise.
+   * @return True if range is empty and clear is False, otherwise returns False.
    */
-  private static boolean checkExistingRange(Workbook workbook, ExcelRange range, boolean clear, ExcelSheet sheet) {
+  private static boolean rangeIsNotEmpty(Workbook workbook, ExcelRange range, boolean clear, ExcelSheet sheet) {
     int topRow = range.isWholeColumn() ? 1 : range.getTopRow();
     int bottomRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
     int leftColumn = range.isWholeRow() ? 1 : range.getLeftColumn();
@@ -235,14 +235,14 @@ public class ExcelWriter {
             if (clear) {
               cell.setBlank();
             } else {
-              return false;
+              return true;
             }
           }
         }
       }
     }
 
-    return true;
+    return false;
   }
 
   private static void writeTableToSheet(Workbook workbook, Sheet sheet, int firstRow, int firstColumn, Table table, Long rowLimit, boolean headers)
