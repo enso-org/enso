@@ -9,7 +9,7 @@ use std::fmt::Write;
 // === Implementing Java Datatypes ===
 // ===================================
 
-/// Implement a system of datatypes.
+/// Implement all the types in a [`TypeGraph`].
 pub fn implement(graph: &TypeGraph, package: &str) -> Vec<syntax::Class> {
     let mut implementations = BTreeMap::new();
     for (id, class) in graph.classes.iter() {
@@ -43,6 +43,13 @@ pub fn path(graph: &TypeGraph, id: ClassId) -> String {
     components.join(".")
 }
 
+/// Get the fields owned by a class, including its own fields and the fields of its supertypes.
+pub fn class_fields<'v, 's: 'v, 'c: 'v>(graph: &'s TypeGraph, class: &'c Class) -> Vec<&'v Field> {
+    let mut out = vec![];
+    class_fields_(graph, class, &mut out, None, None);
+    out
+}
+
 fn class_fields_<'v, 's: 'v, 'c: 'v>(
     graph: &'s TypeGraph,
     class: &'c Class,
@@ -64,13 +71,6 @@ fn class_fields_<'v, 's: 'v, 'c: 'v>(
         return;
     }
     out.extend(fields);
-}
-
-/// Get the fields owned by a class, including its own fields and the fields of its supertypes.
-pub fn class_fields<'v, 's: 'v, 'c: 'v>(graph: &'s TypeGraph, class: &'c Class) -> Vec<&'v Field> {
-    let mut out = vec![];
-    class_fields_(graph, class, &mut out, None, None);
-    out
 }
 
 /// Produce syntax referring to the given type.
@@ -140,7 +140,7 @@ fn implement_constructor(graph: &TypeGraph, class: &Class) -> syntax::Method {
         body.push(format!("super({});", fields.join(", ")));
     }
     for field in &class.fields {
-        if let FieldData::Object { nonnull: true, .. } = &field.data {
+        if let FieldData::Object { non_null: true, .. } = &field.data {
             body.push(format!("java.util.Objects.requireNonNull({}{});", &field.name, &suffix));
         }
     }
@@ -191,16 +191,17 @@ fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
 }
 
 fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
-    let sb = "sb";
-    let stringify = |field: &Field| format!("{sb}.append(String.valueOf({}));", field.name);
+    let string_builder = "stringBuilder";
+    let stringify =
+        |field: &Field| format!("{string_builder}.append(String.valueOf({}));", field.name);
     let fields: Vec<_> = class_fields(graph, class).into_iter().map(stringify).collect();
     let mut body = String::new();
     let ty_name = &class.name;
-    writeln!(body, "StringBuilder {sb} = new StringBuilder();").unwrap();
-    writeln!(body, "{sb}.append(\"{ty_name}[\");").unwrap();
-    writeln!(body, "{}", fields.join(&format!("\n{sb}.append(\", \");\n"))).unwrap();
-    writeln!(body, "{sb}.append(\"]\");").unwrap();
-    writeln!(body, "return {sb}.toString();").unwrap();
+    writeln!(body, "StringBuilder {string_builder} = new StringBuilder();").unwrap();
+    writeln!(body, "{string_builder}.append(\"{ty_name}[\");").unwrap();
+    writeln!(body, "{}", fields.join(&format!("\n{string_builder}.append(\", \");\n"))).unwrap();
+    writeln!(body, "{string_builder}.append(\"]\");").unwrap();
+    writeln!(body, "return {string_builder}.toString();").unwrap();
     let return_ = syntax::Type::named("String");
     let mut method = syntax::Method::new("toString", return_);
     method.override_ = true;

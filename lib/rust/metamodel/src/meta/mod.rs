@@ -298,7 +298,8 @@ pub struct TypeGraph {
 }
 
 impl TypeGraph {
-    /// Replace all occurrences of certain IDs with other IDs.
+    /// For every `(id0, id1)` pair in the input, replace all occurrences of `id0` in any type
+    /// definition with the corresponding `id1`.
     pub fn apply_aliases<'a>(&mut self, aliases: impl IntoIterator<Item = &'a (TypeId, TypeId)>) {
         let mut canonical = BTreeMap::new();
         for (from_, to_) in aliases.into_iter() {

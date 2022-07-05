@@ -36,7 +36,6 @@ pub const STRING: &str = "String";
 
 /// Globally unique, stable identifier for a `Field`.
 pub type FieldId = crate::data_structures::Id<Field>;
-
 /// Identifies a Java class within a `TypeGraph`.
 pub type ClassId = crate::data_structures::vecmap::Key<Class>;
 /// Identifier for a class whose value hasn't been set yet.
@@ -157,9 +156,9 @@ pub struct Field {
 
 impl Field {
     /// Create a field referencing a `Class` of a specified type.
-    pub fn object(name: impl Into<String>, type_: ClassId, nonnull: bool) -> Self {
+    pub fn object(name: impl Into<String>, type_: ClassId, non_null: bool) -> Self {
         let name = name.into();
-        let data = FieldData::Object { type_, nonnull };
+        let data = FieldData::Object { type_, non_null };
         let id = Default::default();
         Self { name, data, id }
     }
@@ -184,10 +183,10 @@ pub enum FieldData {
     /// A reference to an object.
     Object {
         #[allow(missing_docs)]
-        type_:   ClassId,
+        type_:    ClassId,
         /// If `true`, this field should be subject to null-checking in constructors, and can be
         /// assumed always to be present.
-        nonnull: bool,
+        non_null: bool,
     },
     /// An unboxed primitive.
     Primitive(Primitive),

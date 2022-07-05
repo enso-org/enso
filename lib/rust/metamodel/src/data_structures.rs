@@ -1,3 +1,5 @@
+//! Data structures used in the crate implementation.
+
 use derivative::Derivative;
 use std::marker::PhantomData;
 use vecmap::*;
@@ -147,15 +149,19 @@ impl<T> std::ops::IndexMut<&Key<T, MaybeBound>> for VecMap<T> {
     }
 }
 
+/// Types used by `VecMap`.
 pub mod vecmap {
     use super::*;
 
+    /// Marker indicating a key that may or may not currently be bound.
     #[derive(Copy, Clone, Debug)]
     pub struct MaybeBound;
+    /// Marker indicating a key that is not yet bound.
     #[allow(missing_copy_implementations)] // Type is one-shot promise.
     #[derive(Debug)]
     pub struct Unbound;
 
+    /// Identifies a location within a `VecMap`.
     #[derive(Derivative)]
     #[derivative(Copy(bound = "State: Copy"))]
     #[derivative(Clone(bound = "State: Clone"))]
@@ -167,7 +173,9 @@ pub mod vecmap {
     #[derivative(Hash(bound = ""))]
     pub struct Key<T, State = MaybeBound> {
         pub(super) index: usize,
+        #[derivative(Debug = "ignore")]
         marker:           PhantomData<*const T>,
+        #[derivative(Debug = "ignore")]
         state:            PhantomData<*const State>,
     }
 
@@ -179,6 +187,7 @@ pub mod vecmap {
         }
     }
 
+    /// Identifies a location within a `VecMap` that does not yet have a value bound.
     pub type UnboundKey<T> = Key<T, Unbound>;
 
     impl<T> From<&'_ Key<T, Unbound>> for Key<T, MaybeBound> {

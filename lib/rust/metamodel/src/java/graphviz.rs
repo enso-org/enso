@@ -31,9 +31,9 @@ pub fn graph(java: &TypeGraph) -> Graph {
         }
         for field in &ty.fields {
             match &field.data {
-                FieldData::Object { type_, nonnull } => {
+                FieldData::Object { type_, non_null } => {
                     let sname2 = format!("{}{}", classes[id].name, type_);
-                    let edgetype = match nonnull {
+                    let edgetype = match non_null {
                         false => EdgeType::OptionalField,
                         true => EdgeType::Field,
                     };

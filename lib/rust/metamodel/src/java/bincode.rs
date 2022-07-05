@@ -85,15 +85,16 @@ pub struct MapperInput<'a, 'b> {
 // === Product Types ===
 
 impl DeserializerBuilder {
+    /// Deserialize a `Class` of a fixed type (not dependant on further runtime data).
     fn deserialize_concrete(&mut self, graph: &TypeGraph) -> syntax::Method {
         let class = &graph[self.root];
         let message = "message";
         let mut body = String::new();
-        let mut n = 0;
+        let mut next_temp_variable_number = 0;
         let mut get_temp = || {
             let prefix = "generatedTemp";
-            let result = format!("{}{}", prefix, n);
-            n += 1;
+            let result = format!("{}{}", prefix, next_temp_variable_number);
+            next_temp_variable_number += 1;
             result
         };
         let fields = class_fields(graph, class);
@@ -103,9 +104,9 @@ impl DeserializerBuilder {
                 (materializer)(MaterializerInput { message })
             } else {
                 match &field.data {
-                    FieldData::Object { type_, nonnull } => {
+                    FieldData::Object { type_, non_null } => {
                         let value = get_temp();
-                        if *nonnull {
+                        if *non_null {
                             self.deserialize_object(
                                 graph,
                                 *type_,
@@ -153,6 +154,7 @@ impl DeserializerBuilder {
         method
     }
 
+    /// Deserialize an optional object; if it is not present, use the Java `null` value.
     fn deserialize_nullable<F>(
         &self,
         graph: &TypeGraph,
@@ -173,6 +175,7 @@ impl DeserializerBuilder {
         writeln!(body, "}}").unwrap();
     }
 
+    /// Deserialize an object that is non-optional (unconditionally present in the serialized data).
     fn deserialize_object<F>(
         &self,
         graph: &TypeGraph,
@@ -253,6 +256,7 @@ impl DeserializerBuilder {
 // === Sum Types ===
 
 impl DeserializerBuilder {
+    /// Deserialize a `Class` of known supertype, with concrete type encoded in the serialized data.
     fn deserialize_abstract(&self, graph: &TypeGraph) -> syntax::Method {
         let class = &graph[self.root];
         let message = "message";

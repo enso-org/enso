@@ -140,7 +140,7 @@ mod tests {
     use quote::quote;
 
     #[test]
-    fn accept_inputs() {
+    fn accept_simple_inputs() {
         let inputs = [
             quote! {
                 struct Foo;
@@ -151,12 +151,15 @@ mod tests {
                     baar: &'static str,
                 }
             },
-            quote! {
-                enum Baz {
-                    Bar(Bar),
-                    Baz,
-                }
-            },
+        ];
+        for input in inputs {
+            analyze(input).quote();
+        }
+    }
+
+    #[test]
+    fn accept_generics() {
+        let inputs = [
             quote! {
                 struct Quux<T> {
                     quux: T,
@@ -167,6 +170,15 @@ mod tests {
                     quux: Box<T>,
                 }
             },
+        ];
+        for input in inputs {
+            analyze(input).quote();
+        }
+    }
+
+    #[test]
+    fn accept_generic_lifetimes() {
+        let inputs = [
             quote! {
                 struct Code<'s> {
                     repr: std::borrow::Cow<'s, str>,
@@ -176,15 +188,5 @@ mod tests {
         for input in inputs {
             analyze(input).quote();
         }
-    }
-
-    #[test]
-    fn aaaaaa() {
-        let input = quote! {
-            pub struct Code<'s> {
-                pub repr: std::borrow::Cow<'s, str>,
-            }
-        };
-        panic!("{}", analyze(input).quote());
     }
 }
