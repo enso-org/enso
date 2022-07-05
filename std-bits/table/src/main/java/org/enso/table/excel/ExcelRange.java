@@ -330,11 +330,11 @@ public class ExcelRange {
         Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
 
     while (lastRow > topRow
-        && !sheet.get(lastRow - 1).isEmpty(leftColumn, isWholeRow() ? -1 : rightColumn)) {
+        && sheet.get(lastRow - 1).isEmpty(leftColumn, isWholeRow() ? -1 : rightColumn)) {
       lastRow--;
     }
 
-    return lastRow;
+    return lastRow - 1;
   }
 
   public boolean isSingleCell() {

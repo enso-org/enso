@@ -174,7 +174,7 @@ public class ExcelWriter {
         throw new RangeExceededException("The range is already full.");
       }
 
-      expanded = new ExcelRange(expanded.getSheetName(), finalRow + 1, expanded.getLeftColumn(), expanded.getBottomRow(), expanded.getRightColumn());
+      expanded = new ExcelRange(expanded.getSheetName(), expanded.getLeftColumn(), finalRow + 1, expanded.getRightColumn(), expanded.getBottomRow());
     }
 
     updateRangeWithTable(workbook, expanded, false, existingDataMode, mappedTable, rowLimit, ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES, sheet);
