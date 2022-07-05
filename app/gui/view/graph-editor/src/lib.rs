@@ -1332,12 +1332,8 @@ pub fn crumbs_overlap(src: &[span_tree::Crumb], tgt: &[span_tree::Crumb]) -> boo
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct GraphEditorModelWithNetwork {
-    pub model: GraphEditorModel,
+    pub model:   GraphEditorModel,
     pub network: frp::Network,
-    /// A network responsible for panning camera to a node newly created by the user. The network
-    /// is created when a new node is created, and dropped after the first update to the node's
-    /// position & bounding box.
-    pub network_for_camera_pan_to_new_node: Rc<RefCell<Option<frp::Network>>>,
 }
 
 impl Deref for GraphEditorModelWithNetwork {
@@ -1352,9 +1348,8 @@ impl GraphEditorModelWithNetwork {
     /// Constructor.
     pub fn new(app: &Application, cursor: cursor::Cursor, frp: &Frp) -> Self {
         let network = frp.network().clone_ref(); // FIXME make weak
-        let network_for_camera_pan_to_new_node = default();
         let model = GraphEditorModel::new(app, cursor, frp);
-        Self { model, network, network_for_camera_pan_to_new_node }
+        Self { model, network }
     }
 
     fn is_node_connected_at_input(&self, node_id: NodeId, crumbs: &span_tree::Crumbs) -> bool {
@@ -1633,9 +1628,8 @@ impl GraphEditorModelWithNetwork {
         // When the sequence is detected, and if the node is being edited, we pan the camera to it.
         // Regardless whether the node is being edited, we drop the network, as we don't want to
         // pan the camera for any later updates of the bounding box.
-        let pan_network_container = self.network_for_camera_pan_to_new_node.clone();
         let pan_network = frp::Network::new("network_for_camera_pan_to_new_node");
-        pan_network_container.replace(Some(pan_network.clone()));
+        let pan_network_container = RefCell::new(Some(pan_network.clone()));
         frp::new_bridge_network! { [self.network, node_network, pan_network] graph_node_pan_bridge
             pos_updated <- node.output.position.constant(true);
             bbox_updated_after_pos_updated <- node.output.bounding_box.gate(&pos_updated);
