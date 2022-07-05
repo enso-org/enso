@@ -38,7 +38,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
