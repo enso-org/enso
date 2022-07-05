@@ -64,14 +64,9 @@ write_to_stream table format stream on_problems related_file=Nothing =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
 
-    # TODO handling encoding
-    #java_charset = format.encoding.to_java_charset
-    _ = on_problems
     handle_io_exception <|
-        stream.with_java_stream java_stream->
-            # TODO create a writer that will use the appropriate encoding and handle mismatches
-            writer = PrintWriter.new java_stream
-            here.write_to_writer table format writer
+        stream.with_stream_encoder format.encoding on_problems reporting_stream_encoder->
+            here.write_to_writer table format reporting_stream_encoder
 
 ## PRIVATE
    Writes data to the provided `Writer` according to the provided format.

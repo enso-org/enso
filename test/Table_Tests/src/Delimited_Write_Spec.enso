@@ -152,7 +152,7 @@ spec =
             text = File.read_text file encoding=Encoding.ascii
             text.should_equal expected_text+'\n'
             result . should_equal Nothing
-            Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at 7, 8, 15."]
+            Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at characters 7, 8, 15."]
 
         Test.specify "should allow only text columns if no formatter is specified" <|
             format = File_Format.Delimited "," value_formatter=Nothing
