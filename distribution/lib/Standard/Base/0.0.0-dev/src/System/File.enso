@@ -797,8 +797,8 @@ type Output_Stream
         replacement_sequence = Encoding_Utils.INVALID_CHARACTER.bytes encoding on_problems=Problem_Behavior.Ignore
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_encoder java_stream java_charset replacement_sequence.to_array action
-        problems = Vector.Vector results.getLeft . map Encoding_Error
-        on_problems.attach_problems_after results.getRight problems
+        problems = Vector.Vector results.problems . map Encoding_Error
+        on_problems.attach_problems_after results.result problems
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.
@@ -931,8 +931,8 @@ type Input_Stream
     with_stream_decoder encoding on_problems action = self.stream_resource . with java_stream->
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
-        problems = Vector.Vector results.getLeft . map Encoding_Error
-        on_problems.attach_problems_after results.getRight problems
+        problems = Vector.Vector results.problems . map Encoding_Error
+        on_problems.attach_problems_after results.result problems
 
 ## PRIVATE
 

@@ -3,7 +3,6 @@ package org.enso.base;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.base.encoding.ReportingStreamEncoder;
 import org.enso.base.text.ResultWithWarnings;
-import org.graalvm.collections.Pair;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.*;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -166,7 +164,7 @@ public class Encoding_Utils {
   /**
    * A helper function which runs an action with a created stream decoder and closes it afterwards.
    */
-  public static <R> Pair<List<String>, R> with_stream_decoder(
+  public static <R> WithProblems<R, String> with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, R> action)
       throws IOException {
     R result;
@@ -176,7 +174,7 @@ public class Encoding_Utils {
     } finally {
       decoder.close();
     }
-    return Pair.create(decoder.getReportedProblems(), result);
+    return new WithProblems<>(result, decoder.getReportedProblems());
   }
 
   /** Creates a new instance of {@code ReportingStreamEncoder} encoding a given charset. */
@@ -194,7 +192,7 @@ public class Encoding_Utils {
   /**
    * A helper function which runs an action with a created stream encoder and closes it afterwards.
    */
-  public static <R> Pair<List<String>, R> with_stream_encoder(
+  public static <R> WithProblems<R, String> with_stream_encoder(
       OutputStream stream,
       Charset charset,
       byte[] replacementSequence,
@@ -207,7 +205,7 @@ public class Encoding_Utils {
     } finally {
       encoder.close();
     }
-    return Pair.create(encoder.getReportedProblems(), result);
+    return new WithProblems<>(result, encoder.getReportedProblems());
   }
 
   /**
