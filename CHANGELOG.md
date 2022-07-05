@@ -147,6 +147,7 @@
 - [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
 - [Adjusted `Database.connect` API to new design.][3542]
 - [Added `File_Format.Excel` support to `Table.write` for new files.][3551]
+- [Added support for custom encodings in `File_Format.Delimited` writing.][3564]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -232,6 +233,7 @@
 [3528]: https://github.com/enso-org/enso/pull/3528
 [3542]: https://github.com/enso-org/enso/pull/3542
 [3551]: https://github.com/enso-org/enso/pull/3551
+[3564]: https://github.com/enso-org/enso/pull/3564
 [3552]: https://github.com/enso-org/enso/pull/3552
 
 #### Enso Compiler
