@@ -314,7 +314,7 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
 
         let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
         let pos_x = left_border + width * *self.id as f32;
-        let half_height = bg_height / 2.0;
+        let half_height = height / 2.0;
         let background_bottom = -bg_height / 2.0;
         let pos_y = background_bottom + half_height + padding / 2.0;
         DEBUG!("MCDBG resize_and_place self.id=" self.id;? ", bg_height=" bg_height;? ", height=" height;? ", padding=" padding;? ", pos_y=" pos_y;?);
