@@ -151,7 +151,6 @@ public class ExcelWriter {
 
   private static void appendRangeWithTable(Workbook workbook, ExcelRange range, ExistingDataMode existingDataMode, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers, ExcelSheet sheet, ExcelRange expanded)
       throws RangeExceededException, ExistingDataException, ColumnNameMismatchException, ColumnCountMismatchException {
-    // Map Table
     Table mappedTable = switch (existingDataMode) {
       case APPEND_BY_INDEX -> ColumnMapper.mapColumnsByPosition(table, expanded.getColumnCount());
       case APPEND_BY_NAME -> {
@@ -165,7 +164,6 @@ public class ExcelWriter {
           throw new IllegalArgumentException("Internal Error: appendRangeWithTable called with illegal existing data mode '" + existingDataMode + "'.");
     };
 
-    // Adjust output range to new area.
     if (range.isSingleCell()) {
       int bottomRow = expanded.getBottomRow();
       int requiredRows = Math.min(mappedTable.rowCount(), rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue());
@@ -187,7 +185,6 @@ public class ExcelWriter {
     boolean writeHeaders = headers == ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
     int requiredRows = Math.min(table.rowCount(), rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue()) + (writeHeaders ? 1 : 0);
 
-    // Expand Single Cell if needed.
     if (singleCell) {
       range = new ExcelRange(
           range.getSheetName(),
@@ -197,14 +194,12 @@ public class ExcelWriter {
           Math.max(range.getBottomRow(), range.getTopRow() + requiredRows - 1));
     }
 
-    // Check Size of Range
     int finalRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
     int availableRows = finalRow - range.getTopRow() + 1;
     if (range.getColumnCount() < table.getColumns().length || availableRows < requiredRows) {
       throw new RangeExceededException("Range is too small to fit all data.");
     }
 
-    // Check or Clear Current Range
     if (existingDataMode == ExistingDataMode.REPLACE) {
       clearRange(workbook, range, sheet);
     } else if (rangeIsNotEmpty(workbook, range, sheet)) {

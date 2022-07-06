@@ -9,8 +9,8 @@ public class ColumnNameMismatchException extends Exception {
   public ColumnNameMismatchException(String[] missingNames, String[] extraNames) {
     super(
         "Columns mismatch."
-            + (missingNames.length == 0 ? "" : " Missing: " + Arrays.toString(missingNames))
-            + (extraNames.length == 0 ? "" : " Extra: " + Arrays.toString(extraNames)));
+            + (missingNames.length == 0 ? "" : " Missing from new data: " + Arrays.toString(missingNames))
+            + (extraNames.length == 0 ? "" : " Extras in new data: " + Arrays.toString(extraNames)));
 
     this.missing = missingNames;
     this.extras = extraNames;
