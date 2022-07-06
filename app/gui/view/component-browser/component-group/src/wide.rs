@@ -317,6 +317,7 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
         let half_height = bg_height / 2.0;
         let background_bottom = -bg_height / 2.0;
         let pos_y = background_bottom + half_height + padding / 2.0;
+        DEBUG!("MCDBG resize_and_place self.id=" self.id;? ", bg_height=" bg_height;? ", height=" height;? ", padding=" padding;? ", pos_y=" pos_y;?);
         self.list_view.set_position_x(pos_x);
         self.list_view.set_position_y(pos_y);
     }
