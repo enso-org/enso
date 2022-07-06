@@ -154,19 +154,13 @@ impl Model {
         &self,
         id: Option<view::component_browser::list_panel::EntryId>,
     ) -> String {
-        if let Some(id) = id {
-            match self.component_by_view_id(id) {
-                Ok(component) =>
-                    component.suggestion.documentation_html.clone().unwrap_or_else(|| {
-                        provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
-                            component.suggestion.clone_ref(),
-                        ))
-                    }),
-                Err(err) => {
-                    error!(self.logger, "Error while obtaining documentation: {err}");
-                    " ".to_owned()
-                }
-            }
+        let component = id.and_then(|id| self.component_by_view_id(id).ok());
+        if let Some(component) = component {
+            component.suggestion.documentation_html.clone().unwrap_or_else(|| {
+                provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
+                    component.suggestion.clone_ref(),
+                ))
+            })
         } else {
             default()
         }

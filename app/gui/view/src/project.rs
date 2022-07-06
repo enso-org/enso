@@ -555,7 +555,6 @@ impl View {
 
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
-                DEBUG!("Searcher visibility change: {is_attached} - {is_visible}.");
                 if !is_attached && *is_visible {
                     model.display_object.add_child(&model.searcher);
                 } else if is_attached && !is_visible {

@@ -246,7 +246,6 @@ optParser.options('enable-component-browser', {
         'Enable to have new Component Browser panel in place of old Node Searcher. A temporary feature flag, ' +
         'until the Component Browser is unstable',
     type: 'boolean',
-    default: BUNDLED_ENGINE_VERSION,
 })
 
 optParser.options('skip-min-version-check', {

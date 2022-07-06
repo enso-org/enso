@@ -852,9 +852,7 @@ class Config {
             : this.skip_min_version_check
         this.preferred_engine_version =
             semver.parse(other.preferred_engine_version) ?? this.preferred_engine_version
-        this.enable_component_browser = ok(other.enable_component_browser)
-            ? tryAsBoolean(other.enable_component_browser)
-            : this.enable_component_browser
+        this.enable_component_browser = parseBoolean(other.enable_component_browser) ?? this.enable_component_browser
     }
 }
 
