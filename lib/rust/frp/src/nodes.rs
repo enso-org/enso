@@ -3106,7 +3106,8 @@ pub struct All7Data<T1, T2, T3, T4, T5, T6, T7> {
     src7: watch::Ref<T7>,
 }
 pub type OwnedAll7<T1, T2, T3, T4, T5, T6, T7> = stream::Node<All7Data<T1, T2, T3, T4, T5, T6, T7>>;
-pub type WeakAll7<T1, T2, T3, T4, T5, T6, T7> = stream::WeakNode<All7Data<T1, T2, T3, T4, T5, T6, T7>>;
+pub type WeakAll7<T1, T2, T3, T4, T5, T6, T7> =
+    stream::WeakNode<All7Data<T1, T2, T3, T4, T5, T6, T7>>;
 
 impl<T1, T2, T3, T4, T5, T6, T7> HasOutput for All7Data<T1, T2, T3, T4, T5, T6, T7>
 where
@@ -3118,7 +3119,8 @@ where
     T6: EventOutput,
     T7: EventOutput,
 {
-    type Output = (Output<T1>, Output<T2>, Output<T3>, Output<T4>, Output<T5>, Output<T6>, Output<T7>);
+    type Output =
+        (Output<T1>, Output<T2>, Output<T3>, Output<T4>, Output<T5>, Output<T6>, Output<T7>);
 }
 
 impl<T1, T2, T3, T4, T5, T6, T7> OwnedAll7<T1, T2, T3, T4, T5, T6, T7>
@@ -3132,7 +3134,16 @@ where
     T7: EventOutput,
 {
     /// Constructor.
-    pub fn new(label: Label, t1: &T1, t2: &T2, t3: &T3, t4: &T4, t5: &T5, t6: &T6, t7: &T7) -> Self {
+    pub fn new(
+        label: Label,
+        t1: &T1,
+        t2: &T2,
+        t3: &T3,
+        t4: &T4,
+        t5: &T5,
+        t6: &T6,
+        t7: &T7,
+    ) -> Self {
         let src1 = watch_stream(t1);
         let src2 = watch_stream(t2);
         let src3 = watch_stream(t3);
@@ -3154,7 +3165,8 @@ where
     }
 }
 
-impl<T1, T2, T3, T4, T5, T6, T7, Out> stream::EventConsumer<Out> for OwnedAll7<T1, T2, T3, T4, T5, T6, T7>
+impl<T1, T2, T3, T4, T5, T6, T7, Out> stream::EventConsumer<Out>
+    for OwnedAll7<T1, T2, T3, T4, T5, T6, T7>
 where
     T1: EventOutput,
     T2: EventOutput,
