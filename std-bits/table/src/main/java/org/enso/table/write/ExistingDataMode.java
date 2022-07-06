@@ -7,16 +7,14 @@ public enum ExistingDataMode {
   REPLACE,
   /**
    * The new data is appended to the current data based on column position. If the new data has
-   * fewer columns than the existing data, extra columns are NULL. If the new data has more columns
-   * than the existing data, extra columns are dropped. If mismatched, a ColumnCountMismatch is
-   * attached to the result.
+   * a different number of columns than the existing data, a ColumnCountMismatch is exception
+   * is thrown.
    */
   APPEND_BY_INDEX,
   /**
    * The new data is appended to the current data based on column name. If an existing column cannot
-   * be found, the new rows will have NULL for that column. If a new column does not exist in
-   * existing table, these columns are dropped. If mismatched, a ColumnNameMismatch is attached to
-   * the result.
+   * be found or if a new column does not exist in theexisting table, a ColumnNameMismatchException
+   * is thrown.
    */
   APPEND_BY_NAME
 }

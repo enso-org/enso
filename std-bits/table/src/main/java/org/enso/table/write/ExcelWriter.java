@@ -153,16 +153,16 @@ public class ExcelWriter {
       throws RangeExceededException, ExistingDataException, ColumnNameMismatchException, ColumnCountMismatchException {
     // Map Table
     Table mappedTable = switch (existingDataMode) {
-      case APPEND_BY_INDEX -> ColumnMapper.MapColumnsByIndex(table, expanded.getColumnCount());
+      case APPEND_BY_INDEX -> ColumnMapper.mapColumnsByPosition(table, expanded.getColumnCount());
       case APPEND_BY_NAME -> {
         if (headers == ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES) {
           throw new IllegalArgumentException("Cannot append by name when headers are not present in the existing data.");
         }
         String[] currentHeaders = sheet.get(expanded.getTopRow()).getCellsAsText(expanded.getLeftColumn(), expanded.getRightColumn());
-        yield ColumnMapper.MapColumnsByName(table, currentHeaders);
+        yield ColumnMapper.mapColumnsByName(table, currentHeaders);
       }
       default ->
-          throw new IllegalArgumentException("The existing data mode '" + existingDataMode + "' is not supported.");
+          throw new IllegalArgumentException("Internal Error: appendRangeWithTable called with illegal existing data mode '" + existingDataMode + "'.");
     };
 
     // Adjust output range to new area.
@@ -171,7 +171,7 @@ public class ExcelWriter {
       int requiredRows = Math.min(mappedTable.rowCount(), rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue());
       expanded = new ExcelRange(expanded.getSheetName(), expanded.getLeftColumn(), bottomRow + 1, expanded.getRightColumn(), bottomRow + requiredRows);
     } else {
-      int finalRow = expanded.getLastRow(sheet);
+      int finalRow = expanded.getLastNonEmptyRow(sheet);
       if (finalRow == expanded.getBottomRow()) {
         throw new RangeExceededException("The range is already full.");
       }
@@ -343,7 +343,7 @@ public class ExcelWriter {
   /**
    * Determines if headers should be written for the given range in {@code INFER} mode.
    *
-   * Unlike in the {@code ExcelReader}, if empty this will default to True.
+   * Unlike in the {@code ExcelReader}, if empty this will default to having headers.
    * @param excelSheet the Excel sheet to check.
    * @param topRow top row index (1-based) of the range to check.
    * @param startCol start column index (1-based) of the range to check.
@@ -353,17 +353,17 @@ public class ExcelWriter {
   private static ExcelHeaders.HeaderBehavior shouldWriteHeaders(ExcelSheet excelSheet, int topRow, int startCol, int endCol) {
     ExcelRow row = excelSheet.get(topRow);
 
-    // If the first row is missing or empty, return true as defaults to writing headers.
+    // If the first row is missing or empty, should write headers.
     if (row == null || row.isEmpty(startCol, endCol)) {
       return ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
     }
 
-    // If the first row is not empty, check if all text.
+    // If the first row is not empty but not all text, should not write headers.
     if (row.getCellsAsText(startCol, endCol) == null) {
       return ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES;
     }
 
-    // If the second row is missing or empty or contains text, return false.
+    // If the second row is missing, empty, or not all text, should write headers.
     ExcelRow nextRow = excelSheet.get(topRow + 1);
     return (nextRow != null && nextRow.getCellsAsText(startCol, endCol) == null)
         ? ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS

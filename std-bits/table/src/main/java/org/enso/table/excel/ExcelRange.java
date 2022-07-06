@@ -1,7 +1,5 @@
 package org.enso.table.excel;
 
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellReference;
 
 import java.util.Optional;
@@ -325,7 +323,7 @@ public class ExcelRange {
     return isWholeColumn() ? Integer.MAX_VALUE : bottomRow - topRow + 1;
   }
 
-  public int getLastRow(ExcelSheet sheet) {
+  public int getLastNonEmptyRow(ExcelSheet sheet) {
     int lastRow =
         Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
 
