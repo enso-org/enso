@@ -29,13 +29,49 @@
 //! Only applicable to single-field `struct`s. The type will be not appear in abstracted reflection
 //! data; all references will appear as references to the contained type.
 //!
+//! ### `#[reflect(hide)]` (field attribute)
+//! In target languages that support it, the field will be hidden from direct access. In the Java
+//! target, this prevents the generation of accessors.
+//!
 //! ### `#[reflect(flatten)]` (field attribute)
 //! In abstracted reflection data, the field will be replaced in this `struct` with the contents of
 //! its type, which must be a `struct` type.
 //!
-//! ### `#[reflect(hide)]` (field attribute)
-//! In target languages that support it, the field will be hidden from direct access. In the Java
-//! target, this prevents the generation of accessors.
+//! To reduce the chance of name conflicts, the names of inserted fields will be created by
+//! prepending the name of the flattened-away field to the names of the fields originating from the
+//! inner type. Other field attributes such as [`hide`](#reflecthide-field-attribute) that were
+//! applied to the flattened field will be inherited by the inserted fields.
+//!
+//! #### Example:
+//! This input code:
+//! ```ignore
+//! #[derive(Reflect)]
+//! struct Outer {
+//!     first: u32,
+//!     #[reflect(flatten, hide)]
+//!     inner: Inner,
+//!     last: u32,
+//! }
+//!
+//! #[derive(Reflect)]
+//! struct Inner {
+//!     value0: u32,
+//!     value1: u32,
+//! }
+//! ```
+//!
+//! Will be represented the same as this input:
+//! ```ignore
+//! #[derive(Reflect)]
+//! struct Outer {
+//!     first: u32,
+//!     #[reflect(hide)]
+//!     inner_value0: u32,
+//!     #[reflect(hide)]
+//!     inner_value1: u32,
+//!     last: u32,
+//! }
+//! ```
 //!
 //! ### `#[reflect(subtype)]` (field attribute)
 //! In the abstracted representation, the containing type will be made the parent of the field's

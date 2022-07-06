@@ -13,6 +13,10 @@ use derivative::Derivative;
 ///
 /// Each inserted field will have its name prepended with the name of its eliminated container.
 /// If the `hide` property is set for the container, it will be inherited by its child fields.
+///
+/// This implements the [`reflect(flatten)`](../enso_reflect_macros/#reflectflatten-field-attribute)
+/// attribute of the `#[derive(Reflect)]` macro; see the `enso_reflect_macros` documentation for an
+/// example of the usage and results of the transformation.
 pub fn flatten(graph: &mut TypeGraph, ids: &mut BTreeSet<FieldId>) {
     let order = toposort(graph.types.keys(), TypeGraphDependencyVisitor { graph, ids });
     for id in order {
@@ -20,6 +24,9 @@ pub fn flatten(graph: &mut TypeGraph, ids: &mut BTreeSet<FieldId>) {
     }
 }
 
+/// `flatten` the fields specified in `to_flatten` into the type identified by `outer`.
+///
+/// For design notes, see [`flatten`].
 fn flatten_(graph: &mut TypeGraph, to_flatten: &mut BTreeSet<FieldId>, outer: TypeId) {
     let outer_fields = match &mut graph[outer].data {
         Data::Struct(ref mut fields) => std::mem::take(fields),
