@@ -2,6 +2,8 @@
 
 set -e
 
+echo $0 | grep lib/rust || ( echo This tool must be run from the repo root, as lib/rust/parser/generate-java/run.sh; exit 1 )
+
 BASE=target/generated_java
 OUT=$BASE/org/enso/syntax2
 LIB=lib/rust/parser/generate-java/java
