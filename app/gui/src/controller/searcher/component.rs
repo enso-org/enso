@@ -64,23 +64,13 @@ pub struct NoSuchComponent {
 /// [`Group::update_sorting_and_visibility`].
 #[derive(Copy, Clone, Debug)]
 pub enum Order {
+    /// The same order of components as when the group was built.
+    /// Will use the [`Group::initial_entries_order`] field.
+    Initial,
     /// Order non-modules by name, followed by modules (also by name).
     ByNameNonModulesThenModules,
     /// Order [`Component`]s by [`Component::match_info`] score (best scores first).
     ByMatch,
-}
-
-impl Order {
-    /// Compare two [`Component`]s according to [`Order`].
-    fn compare(&self, a: &Component, b: &Component) -> std::cmp::Ordering {
-        match self {
-            Order::ByNameNonModulesThenModules => {
-                let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
-                cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))
-            }
-            Order::ByMatch => a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse(),
-        }
-    }
 }
 
 
@@ -153,14 +143,6 @@ impl Display for Component {
         let self_type_not_here =
             self.suggestion.self_type.as_ref().filter(|t| *t != &self.suggestion.module);
         if let Some(self_type) = self_type_not_here {
-            // let should_put_project_name = self_type.name
-            //     == ast::constants::PROJECTS_MAIN_MODULE
-            //     && self_type.module_segments.is_empty();
-            // let self_type_name = if should_put_project_name {
-            //     self_type.project_name.project.as_ref()
-            // } else {
-            //     &self_type.name
-            // };
             write!(f, "{}.{}", self_type.name, self.suggestion.name)
         } else {
             write!(f, "{}", self.suggestion.name.clone())
@@ -237,6 +219,7 @@ impl List {
         self.module_groups.get(&component).map(|mg| &mg.content)
     }
 
+    /// Get the component from Top Modules by index.
     pub fn top_module_entry_by_index(
         &self,
         group_index: usize,
@@ -245,6 +228,7 @@ impl List {
         self.top_modules().entry_by_index("Sub-modules".into(), group_index, entry_index)
     }
 
+    /// Get the component from Favorites section by index.
     pub fn favorites_entry_by_index(
         &self,
         group_index: usize,
@@ -253,6 +237,7 @@ impl List {
         self.favorites.entry_by_index("Favorites".into(), group_index, entry_index)
     }
 
+    /// Get the component from Local Scope section by index.
     pub fn local_scope_entry_by_index(&self, index: usize) -> FallibleResult<Component> {
         let error =
             || NoSuchComponent { group_name: self.local_scope.name.to_string().into(), index };
@@ -266,13 +251,14 @@ impl List {
             component.update_matching_info(pattern)
         }
         let pattern_not_empty = !pattern.is_empty();
-        let components_order =
+        let submodules_order =
             if pattern_not_empty { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
+        let favorites_order = if pattern_not_empty { Order::ByMatch } else { Order::Initial };
         for group in self.all_groups_not_in_favorites() {
-            group.update_sorting_and_visibility(components_order);
+            group.update_sorting(submodules_order);
         }
         for group in self.favorites.iter() {
-            group.update_sorting_and_visibility(components_order);
+            group.update_sorting(favorites_order);
         }
         self.filtered.set(pattern_not_empty);
     }
@@ -390,7 +376,6 @@ pub(crate) mod tests {
             .map(|c| *c.id)
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
-        assert_eq!(group.visible.get(), !expected_ids.is_empty());
     }
 
     #[test]

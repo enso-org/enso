@@ -22,16 +22,16 @@ use ensogl::data::color;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Data {
-    pub name:          ImString,
-    pub color:         Option<color::Rgb>,
+    pub name:                  ImString,
+    pub color:                 Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
     /// contains.
-    pub component_id:  Option<component::Id>,
-    pub entries:       RefCell<Vec<Component>>,
-    /// A flag indicating that the group should be displayed in the Component Browser. It may be
-    /// hidden in some scenarios, e.g. when all items are filtered out.
-    pub visible:       Cell<bool>,
-    pub matched_items: Cell<usize>,
+    pub component_id:          Option<component::Id>,
+    /// The entries in the same order as when the group was built. Used to restore it in some cases
+    /// - see [`Self::update_sorting`] and [`component::Order`].
+    pub initial_entries_order: Vec<Component>,
+    pub entries:               RefCell<Vec<Component>>,
+    pub matched_items:         Cell<usize>,
 }
 
 impl Data {
@@ -40,8 +40,8 @@ impl Data {
             name: name.into(),
             color: None,
             component_id,
+            initial_entries_order: default(),
             entries: default(),
-            visible: default(),
             matched_items: Cell::new(0),
         }
     }
@@ -102,30 +102,34 @@ impl Group {
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
-                name:          group.name.clone(),
-                color:         group.color,
-                component_id:  None,
-                visible:       Cell::new(true),
-                matched_items: Cell::new(looked_up_components.len()),
-                entries:       RefCell::new(looked_up_components),
+                name:                  group.name.clone(),
+                color:                 group.color,
+                component_id:          None,
+                matched_items:         Cell::new(looked_up_components.len()),
+                initial_entries_order: looked_up_components.clone(),
+                entries:               RefCell::new(looked_up_components),
             };
             Group { data: Rc::new(group_data) }
         })
     }
 
-    /// Update the group sorting according to the `order` and call [`update_visibility`].
-    pub fn update_sorting_and_visibility(&self, order: component::Order) {
-        // The `sort_by_key` method is not suitable here, because the closure it takes
-        // cannot return reference nor [`Ref`], and we don't want to copy anything here.
-        self.entries.borrow_mut().sort_by(|a, b| order.compare(a, b));
-        self.update_visibility();
-    }
-
-    /// Sets the [`visible`] flag to [`true`] if at least one of the group's entries is not
-    /// filtered out. Sets the flag to [`false`] otherwise.
-    pub fn update_visibility(&self) {
-        let visible = !self.entries.borrow().iter().all(|c| c.is_filtered_out());
-        self.visible.set(visible);
+    /// Update the group sorting according to the `order` and update information about matched items
+    /// count.
+    pub fn update_sorting(&self, order: component::Order) {
+        let mut entries = self.entries.borrow_mut();
+        match order {
+            component::Order::Initial => *entries = self.initial_entries_order.clone(),
+            component::Order::ByNameNonModulesThenModules => entries.sort_by(|a, b| {
+                let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+                cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))
+            }),
+            component::Order::ByMatch => {
+                entries
+                    .sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
+            }
+        }
+        let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
+        self.matched_items.set(matched_items);
     }
 
     /// Get the number of entries.

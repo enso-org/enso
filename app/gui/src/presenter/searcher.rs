@@ -152,18 +152,23 @@ impl Model {
 
     fn documentation_of_component(
         &self,
-        id: view::component_browser::list_panel::EntryId,
+        id: Option<view::component_browser::list_panel::EntryId>,
     ) -> String {
-        match self.component_by_view_id(id) {
-            Ok(component) => component.suggestion.documentation_html.clone().unwrap_or_else(|| {
-                provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
-                    component.suggestion.clone_ref(),
-                ))
-            }),
-            Err(err) => {
-                error!(self.logger, "Error while obtaining documentation: {err}");
-                " ".to_owned()
+        if let Some(id) = id {
+            match self.component_by_view_id(id) {
+                Ok(component) =>
+                    component.suggestion.documentation_html.clone().unwrap_or_else(|| {
+                        provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
+                            component.suggestion.clone_ref(),
+                        ))
+                    }),
+                Err(err) => {
+                    error!(self.logger, "Error while obtaining documentation: {err}");
+                    " ".to_owned()
+                }
             }
+        } else {
+            default()
         }
     }
 
@@ -225,8 +230,8 @@ impl Searcher {
                     trace new_input;
                     graph.set_node_expression <+ new_input;
 
-                    last_selected_entry <- list_view.selected_entry.filter_map(|entry| *entry);
-                    documentation.frp.display_documentation <+ last_selected_entry.map(f!((entry) model.documentation_of_component(*entry)));
+                    current_docs <- all_with(&action_list_changed, &list_view.selected_entry, f!((_, entry) model.documentation_of_component(*entry)));
+                    documentation.frp.display_documentation <+ current_docs;
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {

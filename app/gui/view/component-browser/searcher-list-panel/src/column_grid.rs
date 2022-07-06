@@ -16,7 +16,6 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
-use ensogl_core::display::style;
 use ensogl_gui_component::component;
 use ensogl_list_view as list_view;
 use ensogl_scroll_area as scroll_area;
