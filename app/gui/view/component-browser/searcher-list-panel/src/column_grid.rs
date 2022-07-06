@@ -242,7 +242,8 @@ fn get_layout(
         init <- source_();
         trace init;
 
-        entry_colors <- all6(
+        entry_colors <- all7(
+            &init,
             &entry_color_0,
             &entry_color_1,
             &entry_color_2,
@@ -250,8 +251,7 @@ fn get_layout(
             &entry_color_4,
             &entry_color_5,
         );
-        entry_colors <- all(&init,&entry_colors);
-        entry_colors <- entry_colors.map(|(_,(c1,c2,c3,c4,c5,c6))| [*c1,*c2,*c3,*c4,*c5,*c6]);
+        entry_colors <- entry_colors.map(|(_,c1,c2,c3,c4,c5,c6)| [*c1,*c2,*c3,*c4,*c5,*c6]);
         _eval <- entry_colors.map(|c| dbg(c));
         _eval <- init.all_with3(&entry_color_0, &column_gap, |a,b,c| dbg((a,b,c)));
 
