@@ -4,8 +4,6 @@ name: Engine CI
   push:
     branches:
       - develop
-      - unstable
-      - stable
   pull_request: {}
   workflow_dispatch: {}
 jobs:
@@ -52,7 +50,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
       - name: Stdlib test report
         uses: dorny/test-reporter@v1
@@ -94,7 +92,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
       - name: Stdlib test report
         uses: dorny/test-reporter@v1
@@ -138,7 +136,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
       - name: Stdlib test report
         uses: dorny/test-reporter@v1

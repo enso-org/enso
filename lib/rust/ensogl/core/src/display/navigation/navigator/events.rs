@@ -52,7 +52,8 @@ pub struct PanEvent {
 }
 
 impl PanEvent {
-    fn new(movement: Vector2<f32>) -> Self {
+    /// Construct.
+    pub fn new(movement: Vector2<f32>) -> Self {
         Self { movement }
     }
 }
