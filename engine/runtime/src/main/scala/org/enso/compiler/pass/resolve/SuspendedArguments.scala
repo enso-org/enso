@@ -130,17 +130,25 @@ case object SuspendedArguments extends IRPass {
                   )
                 }
               case None =>
-                if (args(1).suspended) {
-                  IR.Error.Conversion(
-                    method,
-                    IR.Error.Conversion.SuspendedSourceArgument(
-                      args(1).name.name
+                args match {
+                  case Nil =>
+                    IR.Error.Conversion(
+                      method,
+                      IR.Error.Conversion.SuspendedSourceArgument(
+                        "unknown"
+                      )
                     )
-                  )
-                } else {
-                  method.copy(
-                    body = lam.copy(body = resolveExpression(body))
-                  )
+                  case (self@_) :: first :: _ if first.suspended =>
+                    IR.Error.Conversion(
+                      method,
+                      IR.Error.Conversion.SuspendedSourceArgument(
+                        first.name.name
+                      )
+                    )
+                  case _ =>
+                    method.copy(
+                      body = lam.copy(body = resolveExpression(body))
+                    )
                 }
             }
           case _ =>

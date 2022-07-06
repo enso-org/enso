@@ -31,7 +31,7 @@ type Error
 
              Error.throw "Oops"
     throw : Any -> Error
-    throw payload = @Builtin_Method "Error.throw"
+    throw self payload = @Builtin_Method "Error.throw"
 
     ## PRIVATE
 
@@ -41,14 +41,14 @@ type Error
        Arguments:
        - handler: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
-    catch_primitive handler = @Builtin_Method "Error.catch_primitive"
+    catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
 
     ## PRIVATE
        UNSTABLE
 
        Returns a textual representation of the stack trace attached to an error.
     get_stack_trace_text : Text
-    get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
+    get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
 
     ## Converts an error to a corresponding textual representation.
 
@@ -57,13 +57,13 @@ type Error
 
              Error.throw "foo" . to_text
     to_text : Text
-    to_text = @Builtin_Method "Error.to_text"
+    to_text self = @Builtin_Method "Error.to_text"
 
     ## UNSTABLE
 
        Returns a human-readable text representing this error.
     to_display_text : Text
-    to_display_text  = "Error: " + (self.catch Any .to_display_text)
+    to_display_text self = "Error: " + (self.catch Any .to_display_text)
 
     ## Executes the provided handler on an error, or returns the value unchanged.
 
@@ -91,7 +91,7 @@ type Error
                  error = Error.throw 42
                  error.catch == 42
     catch : Any -> (Error -> Any) -> Any
-    catch (error_type = Any) (handler = x->x) =
+    catch self (error_type = Any) (handler = x->x) =
         self.catch_primitive error_value->
             case error_value.is_a error_type of
                 True -> handler error_value
@@ -108,7 +108,7 @@ type Error
 
              example_display = Examples.throw_error.to_default_visualization_data
     to_default_visualization_data : Text
-    to_default_visualization_data = self.catch Any .to_default_visualization_data
+    to_default_visualization_data self = self.catch Any .to_default_visualization_data
 
     ## UNSTABLE
 
@@ -121,7 +121,7 @@ type Error
 
              example_to_json = Examples.throw_error.to_json
     to_json : Json.Object
-    to_json =
+    to_json self =
         error_type = ["type", "Error"]
         caught = self.catch
         error_content = ["content", caught.to_json]
@@ -145,7 +145,7 @@ type Error
                  map = Examples.map
                  map.get 10 . map_error (_ -> "The element 10 was not found.")
     map_error : (Error -> Error) -> Any
-    map_error f = self.catch Any (x -> Error.throw (f x))
+    map_error self f = self.catch Any (x -> Error.throw (f x))
 
     ## ADVANCED
        UNSTABLE
@@ -155,7 +155,7 @@ type Error
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
     stack_trace : Vector.Vector Runtime.Stack_Trace_Element
-    stack_trace =
+    stack_trace self =
         Panic.get_attached_stack_trace self
 
     ## Checks if `self` is an error.
@@ -165,7 +165,7 @@ type Error
 
              1.is_error
     is_error : Boolean
-    is_error = True
+    is_error self = True
 
 
 type Illegal_State_Error
@@ -222,11 +222,11 @@ type Caught_Panic
     ## Converts this caught panic into a dataflow error containing the same
        payload and stack trace.
     convert_to_dataflow_error : Error
-    convert_to_dataflow_error = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
+    convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
     ## Returns the stack trace of the caught panic.
     stack_trace : Vector.Vector Runtime.Stack_Trace_Element
-    stack_trace =
+    stack_trace self =
         Panic.get_attached_stack_trace self
 
 ## Panics.
@@ -266,7 +266,7 @@ type Panic
                  Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
     throw : Any -> Panic
-    throw payload = @Builtin_Method "Panic.throw"
+    throw self payload = @Builtin_Method "Panic.throw"
 
     ## PRIVATE
        Executes the provided action and if any panic was thrown, calls the
@@ -280,7 +280,7 @@ type Panic
        - action: The code to execute that potentially panics.
        - handler: The callback to handle any panics.
     catch_primitive : Any -> (Caught_Panic -> Any) -> Any
-    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
+    catch_primitive self ~action handler = @Builtin_Method "Panic.catch_primitive"
 
     ## PRIVATE
 
@@ -288,7 +288,7 @@ type Panic
        throwable. It can be a dataflow error, a panic or a native Java exception.
        You probably want `Panic.get_attached_stack_trace` instead.
     primitive_get_attached_stack_trace : Throwable -> Array
-    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
+    primitive_get_attached_stack_trace self throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
 
     ## ADVANCED
        UNSTABLE
@@ -299,7 +299,7 @@ type Panic
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
     get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Runtime.Stack_Trace_Element
-    get_attached_stack_trace error =
+    get_attached_stack_trace self error =
         throwable = case error of
             Caught_Panic _ internal_original_exception -> internal_original_exception
             throwable -> throwable
@@ -320,7 +320,7 @@ type Panic
 
              example_rethrow = Panic.rethrow Examples.throw_error
     rethrow : (Any ! Any) -> Any
-    rethrow value = value.catch Any Panic.throw
+    rethrow self value = value.catch Any Panic.throw
 
     ## Executes the provided action and if a panic matching the provided type was
        thrown, calls the provided callback.
@@ -361,7 +361,7 @@ type Panic
                  Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
                      Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
-    catch panic_type ~action handler =
+    catch self panic_type ~action handler =
         Panic.catch_primitive action caught_panic->
             case Meta.get_polyglot_language panic_type == "java" of
                 False -> case caught_panic.payload.is_a panic_type of
@@ -428,7 +428,7 @@ type Panic
 
              Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
     recover : (Vector.Vector Any | Any) -> Any -> Any
-    recover expected_types ~action =
+    recover self expected_types ~action =
         types_to_check = case expected_types of
             Vector.Vector _ -> expected_types
             _ -> [expected_types]
@@ -444,7 +444,7 @@ type Panic
        Arguments:
        - value: value to return if not an error, or rethrow as a Panic.
     throw_wrapped_if_error : Any -> Any
-    throw_wrapped_if_error ~value =
+    throw_wrapped_if_error self ~value =
         if value.is_error then Panic.throw (Wrapped_Dataflow_Error value.catch) else value
 
     ## Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
@@ -452,7 +452,7 @@ type Panic
        Arguments:
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
     handle_wrapped_dataflow_error : Any -> Any
-    handle_wrapped_dataflow_error ~action =
+    handle_wrapped_dataflow_error self ~action =
         Panic.catch Wrapped_Dataflow_Error action caught_panic->
             Error.throw caught_panic.payload.payload
 
@@ -527,7 +527,7 @@ type No_Such_Method_Error target symbol
              error = Examples.no_such_method
              error.method_name
 No_Such_Method_Error.method_name : Text
-No_Such_Method_Error.method_name =
+No_Such_Method_Error.method_name self =
     Meta.meta self.symbol . name
 
 
@@ -612,7 +612,7 @@ type Unimplemented_Error message
 
    Converts the unimplemented error to a human-readable error message.
 Unimplemented_Error.to_display_text : Text
-Unimplemented_Error.to_display_text = "An implementation is missing: " + self.message
+Unimplemented_Error.to_display_text self = "An implementation is missing: " + self.message
 
 ## ADVANCED
 

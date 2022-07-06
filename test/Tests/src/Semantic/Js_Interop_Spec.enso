@@ -14,7 +14,7 @@ type My_Type
     foreign js my_method = """
         return this.a + this.b;
 
-    my_method_2 x = self.my_method * x
+    my_method_2 self x = self.my_method * x
 
     foreign js my_method_3 y = """
         var r = this.my_method_2(y)

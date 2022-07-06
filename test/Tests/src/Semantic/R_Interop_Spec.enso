@@ -11,7 +11,7 @@ type My_Type
     foreign r my_method = """
         self$a + self$b
 
-    my_method_2 x = self.my_method * x
+    my_method_2 self x = self.my_method * x
 
     foreign r my_method_3 y = """
         r <- self@my_method_2(y)
@@ -20,7 +20,7 @@ type My_Type
     foreign r my_throw = """
         stop("error in R code!", call.=FALSE)
 
-    do_throw = Panic.throw "error!"
+    do_throw self = Panic.throw "error!"
 
     foreign r do_catch = """
         tryCatch(self@do_throw(), error = function(e) e$message)

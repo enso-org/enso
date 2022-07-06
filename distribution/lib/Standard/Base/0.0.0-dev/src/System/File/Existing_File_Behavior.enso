@@ -39,7 +39,7 @@ type Existing_File_Behavior
        The `action` may not be run at all in case the `Error` behavior is
        selected.
     write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | IO_Error | File_Already_Exists_Error
-    write file action =
+    write self file action =
         case self of
             Overwrite -> file.with_output_stream [Option.Write, Option.Create, Option.Truncate_Existing] action
             Append -> file.with_output_stream [Option.Write, Option.Create, Option.Append] action

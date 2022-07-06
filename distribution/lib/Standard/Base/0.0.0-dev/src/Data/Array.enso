@@ -21,7 +21,7 @@ type Array
 
              [1,2,3].to_array.at 1
     at : Integer -> Any
-    at index = @Builtin_Method "Array.at"
+    at self index = @Builtin_Method "Array.at"
 
     ## Set the cell at the specified index to the provided value, returning
        the array.
@@ -37,7 +37,7 @@ type Array
          If index < 0 or index >= self.length, then this operation will result
          in an Invalid_Array_Index_Error exception.
     set_at : Integer -> Any -> Array
-    set_at index value = @Builtin_Method "Array.set_at"
+    set_at self index value = @Builtin_Method "Array.set_at"
 
     ## Gets the length of the array this.
 
@@ -46,7 +46,7 @@ type Array
 
              [1,2,3].to_array.length
     length : Integer
-    length = @Builtin_Method "Array.length"
+    length self = @Builtin_Method "Array.length"
 
     ## Sorts the this array in place.
 
@@ -60,14 +60,14 @@ type Array
 
             [1,2,3].to_array.sort
     sort : (Any -> Any -> Ordering) -> Nothing
-    sort comparator = @Builtin_Method "Array.sort"
+    sort self comparator = @Builtin_Method "Array.sort"
 
     ## Identity.
 
        This method is implemented purely for completeness with the runtime's
        primitive array protocol.
     to_array : Array
-    to_array = @Builtin_Method "Array.to_array"
+    to_array self = @Builtin_Method "Array.to_array"
 
     ## UNSTABLE
        ADVANCED
@@ -83,7 +83,7 @@ type Array
 
              [1, 2, 3, 4].to_array.to_default_visualization_data
     to_default_visualization_data : Text
-    to_default_visualization_data =
+    to_default_visualization_data self =
         Vector.Vector self . to_default_visualization_data
 
 ## Creates an array with length 0.
