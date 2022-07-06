@@ -181,9 +181,21 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
         Some(component_group_view::entry::Model {
-            icon:             component_group_view::icon::Id::AddColumn,
+            icon:             icon_from_kind(component.suggestion.kind),
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
         })
+    }
+}
+
+fn icon_from_kind(kind: suggestion_database::entry::Kind) -> component_group_view::icon::Id {
+    use component_group_view::icon::Id;
+    use suggestion_database::entry::Kind;
+    match kind {
+        Kind::Atom => Id::Atom,
+        Kind::Function => Id::Function,
+        Kind::Local => Id::Local,
+        Kind::Method => Id::Method,
+        Kind::Module => Id::Module,
     }
 }
 
