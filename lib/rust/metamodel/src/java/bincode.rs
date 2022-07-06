@@ -6,6 +6,7 @@
 //! The generated deserialization methods support the same format as Rust's `serde-bincode` for an
 //! analagous tree of types, with the following configuration:
 //! ```
+//! # let data = &[0u8; 0];
 //! use bincode::Options;
 //! let options = bincode::DefaultOptions::new().with_fixint_encoding();
 //! let serialized = options.serialize(data);

@@ -131,3 +131,32 @@ impl FromMeta {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_converting_graph() {
+        let mut meta = meta::TypeGraph::new();
+        let u32_name = meta::TypeName::from_pascal_case("U32");
+        let u32_ty = meta::Type::new(u32_name, meta::Data::Primitive(meta::Primitive::U32));
+        let u32_ = meta.types.insert(u32_ty);
+        let inner_field_name = meta::FieldName::from_snake_case("inner_field");
+        let inner_fields = vec![meta::Field::named(inner_field_name, u32_)];
+        let inner_name = meta::TypeName::from_pascal_case("Inner");
+        let inner = meta.types.insert(meta::Type::new(inner_name, meta::Data::Struct(inner_fields)));
+        let outer_field_inner_name = meta::FieldName::from_snake_case("inner");
+        let outer_name = meta::TypeName::from_pascal_case("Outer");
+        let outer_fields = vec![meta::Field::named(outer_field_inner_name, inner)];
+        let outer_ty = meta::Type::new(outer_name, meta::Data::Struct(outer_fields));
+        let outer = meta.types.insert(outer_ty);
+        let (java, meta_to_java) = from_meta(&meta, "Either");
+        let outer_ = meta_to_java[&outer];
+        let inner_ = meta_to_java[&inner];
+        assert_eq!(java[outer_].name, "Outer");
+        assert_eq!(java[inner_].name, "Inner");
+        assert_eq!(java[outer_].fields[0].data, FieldData::Object { type_: inner_, non_null: true });
+        assert_eq!(java[inner_].fields[0].data, FieldData::Primitive(Primitive::Int { unsigned: true }));
+    }
+}
