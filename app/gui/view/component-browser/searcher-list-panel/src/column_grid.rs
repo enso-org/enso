@@ -237,10 +237,8 @@ fn get_layout(
     let content_padding = style.get_number(theme_path.sub("content_padding"));
     let content_width = style.get_number(theme_path.sub("content_width"));
 
-    fn dbg(d: impl Debug) { DEBUG!("MCDBG stuff=" d;?); }
     frp::extend! { network
         init <- source_();
-        trace init;
 
         entry_colors <- all7(
             &init,
@@ -252,8 +250,6 @@ fn get_layout(
             &entry_color_5,
         );
         entry_colors <- entry_colors.map(|(_,c1,c2,c3,c4,c5,c6)| [*c1,*c2,*c3,*c4,*c5,*c6]);
-        _eval <- entry_colors.map(|c| dbg(c));
-        _eval <- init.all_with3(&entry_color_0, &column_gap, |a,b,c| dbg((a,b,c)));
 
         layout_update <- all5(&init, &column_gap, &entry_colors, &content_padding, &content_width);
         layout_update <- layout_update.map(|(_, column_gap,entry_colors,content_padding,content_width)|{
@@ -264,8 +260,6 @@ fn get_layout(
                 content_width:*content_width
             }
         });
-        _eval <- layout_update.map(|c| dbg(c));
-        trace layout_update;
 
     }
     (layout_update, init)
@@ -290,7 +284,6 @@ impl component::Frp<Model> for Frp {
 
             eval frp_api.input.set_scroll_viewport((viewport) model.set_scroll_viewport(*viewport));
         }
-        DEBUG!("MCDBG running init.emit(())");
         init.emit(());
     }
 }
