@@ -21,7 +21,7 @@ from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_For
 from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
-import Standard.Table.Data.Map_Columns
+import Standard.Table.Data.Match_Columns
 
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
@@ -1060,12 +1060,13 @@ type Table
          specific type and uses the default settings for that type to be used.
          Details of this type are below.
        - on_existing_file: Specified how to handle if the file already exists.
-       - column_matching: Specifies how to map columns against an existing file.
-         If `Column_Matching.By_Name` - the columns are mapped by name against
-         an existing file.
-         If `Column_Matching.By_Position` - the columns are mapped by position
-         against an existing file.
-         If there is a mismatch, then a `Column_Mismatch` error is raised.
+       - match_columns: Specifies how to match columns against an existing file.
+         If `Match_Columns.By_Name` - the columns are mapped by name against an
+         existing file. If there is a mismatch, then a `Column_Name_Mismatch`
+         error is raised.
+         If `Match_Columns.By_Position` - the columns are mapped by position
+         against an existing file. If there is a mismatch, then a
+         `Column_Count_Mismatch` error is raised.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default. The specific issues depend on the `File_Format`
          argument.
@@ -1109,9 +1110,9 @@ type Table
              import Standard.Table
 
              example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") File_Format.Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Map_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
-    write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Map_Columns.By_Name on_problems=Report_Warning =
-        format.write_table (File.new path) self on_existing_file column_mapping on_problems
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
+    write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+        format.write_table (File.new path) self on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

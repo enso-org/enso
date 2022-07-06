@@ -37,8 +37,10 @@ public class ExcelWriter {
     return ensoToTextCallback;
   }
 
-  public static void getEnsoToTextCallback(Function<Object, Boolean> callback) {
-    ensoToTextCallback = callback;
+  public static void setEnsoToTextCallbackIfUnset(Function<Object, Boolean> callback) {
+    if (ensoToTextCallback == null) {
+      ensoToTextCallback = callback;
+    }
   }
 
   public static void writeTableToSheet(Workbook workbook, int sheetIndex, ExistingDataMode existingDataMode, int firstRow, Table table, Long rowLimit, ExcelHeaders.HeaderBehavior headers)
