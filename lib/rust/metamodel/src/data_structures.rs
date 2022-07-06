@@ -56,6 +56,17 @@ impl<T> std::fmt::Display for Id<T> {
 // ==========================
 
 /// Densely-stored map from internally-produced keys.
+///
+/// This is similar in implementation to `enso_data_structures::OptVec`, however there is a core
+/// design difference: `OptVec` is a self-keying map created to be *more efficient* than the
+/// standard map types; this is a self-keying map created to be *safer* than the standard map types,
+/// and also efficient for the expected workload.
+///
+/// `OptVec` uses a freelist to reuse keys and remain dense during mixed remove/create workloads;
+/// `VecMap` statically disallows key reuse--values can be explicitly mutated, but once removed
+/// cannot be rebound. This improves the failure mode of broken references: Rather than likely
+/// become apparently-valid references to the wrong values, attempts to access removed elements will
+/// fail, and be detected.
 #[derive(Debug, Derivative, Clone)]
 #[derivative(Default(bound = ""))]
 pub struct VecMap<T> {
