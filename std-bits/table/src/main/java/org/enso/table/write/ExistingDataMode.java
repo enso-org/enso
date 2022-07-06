@@ -13,7 +13,7 @@ public enum ExistingDataMode {
   APPEND_BY_INDEX,
   /**
    * The new data is appended to the current data based on column name. If an existing column cannot
-   * be found or if a new column does not exist in theexisting table, a ColumnNameMismatchException
+   * be found or if a new column does not exist in the existing table, a ColumnNameMismatchException
    * is thrown.
    */
   APPEND_BY_NAME

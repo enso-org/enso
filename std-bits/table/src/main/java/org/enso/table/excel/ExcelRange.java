@@ -1,5 +1,6 @@
 package org.enso.table.excel;
 
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellReference;
 
 import java.util.Optional;
@@ -353,5 +354,13 @@ public class ExcelRange {
     }
 
     return sheetNameEscaped + "!" + range;
+  }
+
+  public ExcelRange getAbsoluteRange(Workbook workbook) {
+    int topRow = isWholeColumn() ? 1 : getTopRow();
+    int bottomRow = isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : getBottomRow();
+    int leftColumn = isWholeRow() ? 1 : getLeftColumn();
+    int rightColumn = isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : getRightColumn();
+    return  new ExcelRange(getSheetName(), leftColumn, topRow, rightColumn, bottomRow);
   }
 }

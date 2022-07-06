@@ -92,7 +92,7 @@ public class ExcelWriter {
     } else if (existingDataMode == ExistingDataMode.ERROR){
       throw new ExistingDataException("Sheet already exists, and cannot be replaced in current mode.");
     } else {
-      // In Append Mode, so lets go to a Range based approach.
+      // In Append Mode, so switch to appending from the top left cell of the sheet as this is equivalent to appending to the sheet.
       ExcelRange range = new ExcelRange(sheetName, 1, 1);
       writeTableToRange(workbook, range, existingDataMode, firstRow, table, rowLimit, headers);
     }
@@ -133,7 +133,7 @@ public class ExcelWriter {
         shouldWriteHeaders(sheet, expanded.getTopRow(), expanded.getLeftColumn(), expanded.getRightColumn());
 
     if ((existingDataMode == ExistingDataMode.APPEND_BY_NAME || existingDataMode == ExistingDataMode.APPEND_BY_INDEX) &&
-        rangeIsNotEmpty(workbook, expanded, false, sheet)) {
+        rangeIsNotEmpty(workbook, expanded, sheet)) {
       appendRangeWithTable(workbook, range, existingDataMode, table, rowLimit, headers, sheet, expanded);
     } else {
       updateRangeWithTable(workbook, expanded, range.isSingleCell(), existingDataMode, table, rowLimit, headers, sheet);
@@ -205,7 +205,9 @@ public class ExcelWriter {
     }
 
     // Check or Clear Current Range
-    if (rangeIsNotEmpty(workbook, range, existingDataMode == ExistingDataMode.REPLACE, sheet)) {
+    if (existingDataMode == ExistingDataMode.REPLACE) {
+      clearRange(workbook, range, sheet);
+    } else if (rangeIsNotEmpty(workbook, range, sheet)) {
       throw new ExistingDataException("Range is not empty, and cannot be replaced in current mode.");
     }
 
@@ -216,34 +218,41 @@ public class ExcelWriter {
    * Checks if a range is empty.
    * @param workbook The workbook to check.
    * @param range The range to check.
-   * @param clear Clear the cells if they are not empty.
    * @param sheet Sheet containing the range.
    * @return True if range is empty and clear is False, otherwise returns False.
    */
-  private static boolean rangeIsNotEmpty(Workbook workbook, ExcelRange range, boolean clear, ExcelSheet sheet) {
-    int topRow = range.isWholeColumn() ? 1 : range.getTopRow();
-    int bottomRow = range.isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : range.getBottomRow();
-    int leftColumn = range.isWholeRow() ? 1 : range.getLeftColumn();
-    int rightColumn = range.isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : range.getRightColumn();
+  private static boolean rangeIsNotEmpty(Workbook workbook, ExcelRange range, ExcelSheet sheet) {
+    ExcelRange fullRange = range.getAbsoluteRange(workbook);
+    for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
+      ExcelRow excelRow = sheet.get(row);
+      if (excelRow != null && !excelRow.isEmpty(fullRange.getLeftColumn(), fullRange.getRightColumn())) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-    for (int row = topRow; row <= bottomRow; row++) {
+  /***
+   * Clears a range of any content.
+   * @param workbook The workbook to clear.
+   * @param range The range to clear.
+   * @param sheet Sheet containing the range.
+   */
+  private static void clearRange(Workbook workbook, ExcelRange range, ExcelSheet sheet) {
+    ExcelRange fullRange = range.getAbsoluteRange(workbook);
+    for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
       ExcelRow excelRow = sheet.get(row);
       if (excelRow != null) {
-        for (int column = leftColumn; column <= rightColumn; column++) {
+        for (int column = fullRange.getLeftColumn(); column <= fullRange.getRightColumn(); column++) {
           Cell cell = excelRow.get(column);
           if (cell != null) {
-            if (clear) {
-              cell.setBlank();
-            } else {
-              return true;
-            }
+            cell.setBlank();
           }
         }
       }
     }
-
-    return false;
   }
+
 
   private static void writeTableToSheet(Workbook workbook, Sheet sheet, int firstRow, int firstColumn, Table table, Long rowLimit, boolean headers)
     throws IllegalStateException {
