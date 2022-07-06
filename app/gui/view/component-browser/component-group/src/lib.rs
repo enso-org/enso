@@ -427,9 +427,6 @@ impl component::Frp<Model> for Frp {
 
         // === Header ===
 
-        fn dbg(hdr: &String, clr: &color::Rgba) {
-            DEBUG!("MCDBG set_header=" hdr;? ", set_color=" clr;?);
-        }
         frp::extend! { network
             init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
@@ -444,7 +441,6 @@ impl component::Frp<Model> for Frp {
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            _eval <- input.set_header.all_with(&input.set_color, |h,c| dbg(h,c));
             model.header.set_default_color <+ colors.header_text;
             model.selected_header.set_default_color <+ all(&colors.selected.header_text,&init)._0();
             eval colors.background((c) model.background.color.set(c.into()));

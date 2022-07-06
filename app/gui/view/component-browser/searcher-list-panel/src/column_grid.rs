@@ -85,7 +85,6 @@ impl Model {
                     view.set_width(column_width);
                     view.set_entries(content);
                     view.set_header(label.as_str());
-                    DEBUG!("MCDBG ColumnGrid::update_content_layout cgv.id=" view.id() ", header=" label.as_str());
                     self.display_object.add_child(&view);
                     Some(Entry { index, content: view, visible: false })
                 } else {
@@ -116,8 +115,6 @@ impl Model {
                 let entry_height = entry.size.value().y;
                 entry.set_position_y(pos_y + entry_height / 2.0);
                 entry.set_position_x(pos_x);
-                DEBUG!("MCDBG ColumnGrid::update_content_layout entry_ix=" entry_ix ", id=" entry.id() ", color=" style.get_entry_color_for_index(entry_ix);?);
-                // entry.input
                 entry.set_color(style.get_entry_color_for_index(entry_ix));
 
                 entry_ix += 1;
