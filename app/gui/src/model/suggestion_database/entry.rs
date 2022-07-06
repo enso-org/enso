@@ -356,10 +356,7 @@ impl Entry {
                 name,
                 arguments,
                 return_type,
-                documentation_html: Self::make_documentation_html(
-                    documentation,
-                    documentation_html,
-                ),
+                documentation_html: Self::make_html_docs(documentation, documentation_html),
                 module: module.try_into()?,
                 self_type: None,
                 kind: Kind::Atom,
@@ -379,10 +376,7 @@ impl Entry {
                 name,
                 arguments,
                 return_type,
-                documentation_html: Self::make_documentation_html(
-                    documentation,
-                    documentation_html,
-                ),
+                documentation_html: Self::make_html_docs(documentation, documentation_html),
                 module: module.try_into()?,
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
@@ -411,10 +405,7 @@ impl Entry {
             Module { module, documentation, documentation_html, .. } => {
                 let module_name: module::QualifiedName = module.clone().try_into()?;
                 Self {
-                    documentation_html: Self::make_documentation_html(
-                        documentation,
-                        documentation_html,
-                    ),
+                    documentation_html: Self::make_html_docs(documentation, documentation_html),
                     name:               module_name.id().name().into(),
                     arguments:          default(),
                     module:             module_name,
@@ -428,8 +419,13 @@ impl Entry {
         Ok(this)
     }
 
-    //TODO[ao] add docs
-    fn make_documentation_html(docs: Option<String>, docs_html: Option<String>) -> Option<String> {
+    /// Returns the documentation in html depending on the information received from the Engine.
+    ///
+    /// Depending on the engine version, we may receive the documentation in HTML format already,
+    /// or the raw text which needs to be parsed. This function takes two fields of
+    /// [`language_server::types::SuggestionEntry`] and depending on availability, returns the
+    /// HTML docs fields, or parsed raw docs field.
+    fn make_html_docs(docs: Option<String>, docs_html: Option<String>) -> Option<String> {
         if docs_html.is_some() {
             docs_html
         } else {

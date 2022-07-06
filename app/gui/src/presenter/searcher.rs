@@ -217,15 +217,24 @@ impl Searcher {
                 let list_view = &browser.model().list;
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
-                    list_view.set_sub_modules_section <+ action_list_changed.map(f_!(model.create_submodules_providers()));
-                    list_view.set_favourites_section <+ action_list_changed.map(f_!(model.create_favorites_providers()));
-                    list_view.set_local_scope_section <+ action_list_changed.map(f_!(model.create_local_scope_provider().content));
+                    list_view.set_sub_modules_section <+
+                        action_list_changed.map(f_!(model.create_submodules_providers()));
+                    list_view.set_favourites_section <+
+                        action_list_changed.map(f_!(model.create_favorites_providers()));
+                    list_view.set_local_scope_section <+
+                        action_list_changed.map(f_!(model.create_local_scope_provider().content));
                     new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     trace new_input;
                     graph.set_node_expression <+ new_input;
 
-                    current_docs <- all_with(&action_list_changed, &list_view.selected_entry, f!((_, entry) model.documentation_of_component(*entry)));
+                    current_docs <- all_with(
+                        &action_list_changed,
+                        &list_view.selected_entry,
+                        f!((_, entry) model.documentation_of_component(*entry))
+                    );
                     documentation.frp.display_documentation <+ current_docs;
+
+                    eval_ list_view.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                 }
             }
             SearcherVariant::OldNodeSearcher(searcher) => {
@@ -238,6 +247,8 @@ impl Searcher {
                     used_as_suggestion <- searcher.used_as_suggestion.filter_map(|entry| *entry);
                     new_input <- used_as_suggestion.filter_map(f!((e) model.entry_used_as_suggestion(*e)));
                     graph.set_node_expression <+ new_input;
+
+                    eval_ searcher.used_as_suggestion([]analytics::remote_log_event("searcher::used_as_suggestion"));
                 }
             }
         }

@@ -28,7 +28,8 @@ pub struct Data {
     /// contains.
     pub component_id:          Option<component::Id>,
     /// The entries in the same order as when the group was built. Used to restore it in some cases
-    /// - see [`Self::update_sorting`] and [`component::Order`].
+    /// - see [`Self::update_sorting`] and [`component::Order`]. The vector may be empty if the
+    /// group is not meant to have initial order restored.
     pub initial_entries_order: Vec<Component>,
     pub entries:               RefCell<Vec<Component>>,
     pub matched_items:         Cell<usize>,
@@ -118,7 +119,16 @@ impl Group {
     pub fn update_sorting(&self, order: component::Order) {
         let mut entries = self.entries.borrow_mut();
         match order {
-            component::Order::Initial => *entries = self.initial_entries_order.clone(),
+            component::Order::Initial =>
+                if entries.len() != self.initial_entries_order.len() {
+                    tracing::log::error!(
+                        "Tried to restore initial order in group where \
+                        `initial_entries_order` is not initialized or up-to-date. Will keep the \
+                        old order."
+                    )
+                } else {
+                    *entries = self.initial_entries_order.clone()
+                },
             component::Order::ByNameNonModulesThenModules => entries.sort_by(|a, b| {
                 let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
                 cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))

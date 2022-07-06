@@ -297,25 +297,15 @@ impl Model {
 
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        display_object.set_on_scene_layer_changed(|_, _, layers| {
-            DEBUG!("Set layers to {layers.get(0).and_then(|l| l.upgrade()):?}");
-        });
-        // app.display.default_scene.layers.below_main.add_exclusive(&background);
-
         let favourites_section = Self::init_column_section(&app);
         let local_scope_section = Self::init_wide_section(&app);
         let sub_modules_section = Self::init_column_section(&app);
 
-        favourites_section
-            .content
-            .set_group_wrapper(&(SectionId::Favorites, groups_wrapper.clone_ref()));
-        groups_wrapper.add(
-            GroupId::local_scope_group(),
-            Group::Wide(local_scope_section.content.clone_ref()),
-        );
-        sub_modules_section
-            .content
-            .set_group_wrapper(&(SectionId::SubModules, groups_wrapper.clone_ref()));
+        use SectionId::*;
+        favourites_section.content.set_group_wrapper(&(Favorites, groups_wrapper.clone_ref()));
+        let local_scope_id = GroupId::local_scope_group();
+        groups_wrapper.add(local_scope_id, Group::Wide(local_scope_section.content.clone_ref()));
+        sub_modules_section.content.set_group_wrapper(&(SubModules, groups_wrapper.clone_ref()));
 
         let scroll_area = ScrollArea::new(&app);
         scroll_area.set_camera(app.display.default_scene.layers.node_searcher.camera());
