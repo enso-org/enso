@@ -18,7 +18,7 @@ use crate::meta;
 // === Java from Meta ===
 // ======================
 
-/// Lower a data model in the meta representation to a data model in the Java typesystem.
+/// Translate a data model in the [`meta`] representation to a data model in the Java typesystem.
 pub fn from_meta(
     graph: &meta::TypeGraph,
     either_type: impl Into<String>,
@@ -70,6 +70,7 @@ struct FromMeta {
 }
 
 impl FromMeta {
+    /// Translate a primitive in the [`meta`] model to either a Java primitive, or a Java class.
     fn primitive(&self, ty: &meta::Primitive) -> Result<Primitive, Class> {
         match ty {
             meta::Primitive::Bool => Ok(Primitive::Bool),
@@ -86,6 +87,7 @@ impl FromMeta {
         }
     }
 
+    /// Translate a type in the [`meta`] model to a Java class.
     fn class<'f>(
         &self,
         ty: &meta::Type,

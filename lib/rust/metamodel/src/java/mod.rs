@@ -3,7 +3,7 @@
 pub mod bincode;
 mod from_meta;
 #[cfg(feature = "graphviz")]
-pub mod graphviz;
+mod graphviz;
 mod implementation;
 pub mod syntax;
 pub mod transform;
@@ -229,4 +229,14 @@ pub enum Primitive {
 pub struct TypeGraph {
     #[allow(missing_docs)]
     pub classes: VecMap<Class>,
+}
+
+
+// === GraphViz support ===
+
+#[cfg(feature = "graphviz")]
+impl From<&'_ TypeGraph> for crate::graphviz::Graph {
+    fn from(graph: &'_ TypeGraph) -> Self {
+        graphviz::graph(graph)
+    }
 }

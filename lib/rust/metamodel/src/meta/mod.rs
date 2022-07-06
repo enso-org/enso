@@ -1,11 +1,13 @@
-//! An abstracted representation of a data model.
+//! A language-independent metamodel for representing data models.
 //!
-//! This is used in translation from Rust to Java to:
+//! This is used as an intermediate representation in translation from Rust to Java to:
 //! - Decouple the complexities of the source language from those of the target language.
-//! - Provide a simple representation to support analysis and translation.
+//! - Provide a simple representation in which to apply transformations.
+//!
+//! It is also used for language-independent analysis of data models.
 
 #[cfg(feature = "graphviz")]
-pub mod graphviz;
+mod graphviz;
 pub mod serialization;
 pub mod transform;
 
@@ -288,7 +290,9 @@ impl FieldName {
 // === System of Datatypes ===
 // ===========================
 
-/// A system of `Type`s.
+/// A collection of [`Type`]s. The [`TypeGraph`] owns its types; they do not refer to each other
+/// directly, but through [`TypeId`]s, which must be looked up in the graph (its [`Index`]
+/// implementation provides a convenient interface).
 #[derive(Debug, Default, Clone, Index, IndexMut)]
 pub struct TypeGraph {
     #[index]
@@ -385,5 +389,15 @@ impl TypeGraph {
                 self.types.remove(id);
             }
         }
+    }
+}
+
+
+// === GraphViz support ===
+
+#[cfg(feature = "graphviz")]
+impl From<&'_ TypeGraph> for crate::graphviz::Graph {
+    fn from(graph: &'_ TypeGraph) -> Self {
+        graphviz::graph(graph)
     }
 }

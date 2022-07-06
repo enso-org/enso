@@ -1,4 +1,53 @@
 //! Serialization analysis on meta representations.
+//!
+//! # Test Case Generation
+//!
+//! The [`testcases`] function supports generation of deserialization test cases that cover all
+//! types reachable from some root type in a [`TypeGraph`].
+//!
+//! The implementation is based on computing a test program built from a small set of operation,
+//! and then interpreting the program to generate all the needed test cases.
+//!
+//! ## Test programs
+//!
+//! Abstractly, a test program can be considered to be equivalent to a tree, where each node has
+//! three possibilities (the implementation is equivalent, but more efficient to execute):
+//! - `Constant`: Evaluates to some constant data. The value affects the output but is irrelevant to
+//!   control flow. (In the implementation, this is [`Op::U8(_)`], [`Op::U32(_)`], etc.)
+//! - `Concat(A, B)`: Evaluates to the concatenation of the evaluation of its two child nodes. (In
+//!   the implementation, this operator is implicit in program order.)
+//! - `Amb(A, B)`: In every evaluation, this must evaluate to either the value of `A` or the value
+//!   of `B`. For completeness, there must be at least one evaluation of the whole program in which
+//!   this is evaluated to `A`, and at least one evaluation where it is evaluated to `B`. (In the
+//!   implementation, this is an n-ary operator expressed with [`Op::SwitchPush`] /
+//!   [`Op::SwitchPop`] / [`Op::Case(_)`].)
+//!
+//! ## Program generation
+//!
+//! The input typegraph may contain cycles. The first step of program generation is to select a
+//! *basecase* for every sum type such that the type graph, when excluding non-basecase
+//! possibilities from every sum type, does not contain any cycles. For details on this problem and
+//! the algorithm solving it, see [`select_basecase`].
+//!
+//! Once we have the information necessary to avoid trying to emit cyclic structures, program
+//! generation is straightforward: For product types, we use the equivalent of the `Concat`
+//! operation described above; for sum types, the `Amb` operation. Compound primitives like `Option`
+//! and `Result` are treated as similar user-defined sum types would be.
+//!
+//! ## Program interpretation
+//!
+//! Program interpretation is better described in terms of the sequence of [`Op`]s than the more
+//! abstract tree representation described above. The interpreter advances a program counter over
+//! every [`Op`] once, in sequence. It maintains a stack of the [`Op::SwitchPop`] corresponding to
+//! every [`Op::SwitchPush`]--that is, the join points for the n-ary `Amb` operators that the
+//! program counter is currently within. For each [`Op::Case`] (i.e. one possibility of an `Amb`), a
+//! test case is generated: The test case will consist of the basecase-mode evaluation of the whole
+//! program up to the active [`Op::Case`] in each open switch (this value is maintained as execution
+//! proceeds), the present case in each open switch, and then the output of basecase-mode execution
+//! from the join point of the switch on top of stack to the end of the program--thus efficiently
+//! producing one test case for every [`Op::Case`] in the input, with each case composed of the
+//! output of the whole program, using basecase values for all switches not in the stack at the
+//! point the case is reached.
 
 use crate::meta::*;
 use std::fmt::Write;

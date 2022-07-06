@@ -1,4 +1,5 @@
-//! Generation of Java syntax implementing datatypes.
+//! Given a [`java`] representation of a data model, produce a [`java::syntax`] tree that can be
+//! rendered to Java code implementing the data model.
 
 use crate::java::*;
 use std::fmt::Write;
@@ -9,7 +10,7 @@ use std::fmt::Write;
 // === Implementing Java Datatypes ===
 // ===================================
 
-/// Implement all the types in a [`TypeGraph`].
+/// Produce Java syntax implement all the types modeled in a [`TypeGraph`].
 pub fn implement(graph: &TypeGraph, package: &str) -> Vec<syntax::Class> {
     let mut implementations = BTreeMap::new();
     for (id, class) in graph.classes.iter() {
@@ -30,7 +31,28 @@ pub fn implement(graph: &TypeGraph, package: &str) -> Vec<syntax::Class> {
     implementations.into_values().collect()
 }
 
-/// Get a type's qualified name, relative to the generated package.
+/// For some [`Class`] (identified by ID) in a [`TypeGraph`], get its qualified name, relative to
+/// its package. If it is not a nested class, this will be the same as its unqualified name; if it
+/// is a nested class, this will include the hierarchy of classes containing it as part of its
+/// namespace.
+///
+/// # Examples
+///
+/// For a [`Class`] equivalent to the following:
+/// ```java
+/// class Token {
+///     static class Ident { }
+/// };
+/// ```
+/// The `path` would be "Token.Ident".
+///
+/// For a non-nested [`Class`], like this:
+/// ```java
+/// class Error {
+///     String message;
+/// };
+/// ```
+/// The `path` would be "Error".
 pub fn path(graph: &TypeGraph, id: ClassId) -> String {
     let mut components = vec![];
     let mut next_id = Some(id);

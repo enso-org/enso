@@ -190,5 +190,5 @@ pub fn type_id<T: ?Sized + Reflect>() -> TypeId {
 /// Generate a graph of the given type's relationships with other types.
 #[cfg(feature = "graphviz")]
 pub fn graph<T: Reflect>() -> metamodel::graphviz::Graph {
-    graphviz::graph(reflect_lazy::<T>())
+    reflect_lazy::<T>().into()
 }

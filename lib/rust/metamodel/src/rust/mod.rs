@@ -1,9 +1,14 @@
 //! Representation of data models in the Rust typesystem.
+//!
+//! Unlike the other metamodels in this crate, the Rust model uses a lazy-evaluation representation
+//! of type graphs. While this representation doesn't support analysis as easily as the
+//! `crate::data_structures::VecMap` representation, it can be created by a context-free translation
+//! from Rust syntax, so it can be built directly by a proc macro, like [`enso_reflect`].
 
 pub use to_meta::to_meta;
 
 #[cfg(feature = "graphviz")]
-pub mod graphviz;
+mod graphviz;
 mod to_meta;
 
 
@@ -335,5 +340,18 @@ impl UnnamedField {
     #[allow(missing_docs)]
     pub fn type_(&self) -> TypeData {
         self.type_.evaluate()
+    }
+}
+
+
+
+// ========================
+// === GraphViz support ===
+// ========================
+
+#[cfg(feature = "graphviz")]
+impl From<LazyType> for crate::graphviz::Graph {
+    fn from(root: LazyType) -> Self {
+        graphviz::graph(root)
     }
 }
