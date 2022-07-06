@@ -2,6 +2,7 @@
 //! rendered to Java code implementing the data model.
 
 use crate::java::*;
+
 use std::fmt::Write;
 
 

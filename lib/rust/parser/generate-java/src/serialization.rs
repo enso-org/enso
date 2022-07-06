@@ -1,8 +1,9 @@
 //! Serialization overrides for the `enso_parser` types.
 
+use enso_metamodel::java::*;
+
 use enso_metamodel::java::bincode::MapperInput;
 use enso_metamodel::java::bincode::MaterializerInput;
-use enso_metamodel::java::*;
 
 
 

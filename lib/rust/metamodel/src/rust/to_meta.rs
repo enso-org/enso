@@ -1,7 +1,9 @@
 //! Abstracting Rust data models to the `meta` representation.
 
-use crate::meta;
 use crate::rust::*;
+
+use crate::meta;
+
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::mem::take;

@@ -1,6 +1,7 @@
 //! Graphical representation of a `TypeGraph` with GraphViz.
 
 use super::*;
+
 use crate::graphviz::EdgeType;
 use crate::graphviz::Graph;
 use crate::graphviz::Node;

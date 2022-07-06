@@ -6,11 +6,15 @@
 //! dot -Tx11 rust.dot
 //! ```
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 
-// ============================
-// === Graph for Rust types ===
-// ============================
+
+// ===========================
+// === Graphing Rust types ===
+// ===========================
 
 fn main() {
     let rendered = enso_reflect::graph::<enso_parser::syntax::tree::Tree>();

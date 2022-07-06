@@ -6,13 +6,17 @@
 //! dot -Tx11 meta.dot
 //! ```
 
-
-
-// =======================================
-// === Graph for `meta` representation ===
-// =======================================
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use enso_reflect::Reflect;
+
+
+
+// =============================
+// === Graphing `meta` types ===
+// =============================
 
 fn main() {
     let (graph, _) = enso_metamodel::rust::to_meta(enso_parser::syntax::Tree::reflect());

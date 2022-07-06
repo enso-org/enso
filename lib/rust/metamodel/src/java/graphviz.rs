@@ -1,6 +1,7 @@
 //! Generating graphical representations of Java type systems.
 
 use super::*;
+
 use crate::graphviz::EdgeType;
 use crate::graphviz::Graph;
 use crate::graphviz::Node;

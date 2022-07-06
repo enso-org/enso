@@ -1,8 +1,12 @@
 // The type definitions in this crate exercise `#[derive(Reflect)]`.
+
+// === Non-Standard Linter Configuration ===
 #![allow(dead_code)]
 
 use enso_reflect as reflect;
 use enso_reflect_macros::Reflect;
+
+
 
 #[derive(Reflect)]
 struct Foo;

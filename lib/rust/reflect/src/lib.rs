@@ -20,8 +20,16 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-pub use enso_metamodel as metamodel;
 use enso_metamodel::rust::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use enso_metamodel as metamodel;
+
+
 
 /// Imports for crates that `#[derive(Reflect)]`.
 pub mod prelude {

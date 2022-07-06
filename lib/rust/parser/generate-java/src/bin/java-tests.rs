@@ -6,6 +6,10 @@
 //! javac -d generated-java/ GeneratedFormatTests.java && java GeneratedFormatTests
 //! ```
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 
 
 // ============================

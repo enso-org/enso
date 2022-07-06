@@ -1,10 +1,12 @@
 //! Graphical representation of Rust type relationships with GraphViz.
 
 use super::*;
+
 use crate::graphviz::EdgeType;
 use crate::graphviz::Graph;
 use crate::graphviz::Node;
 use crate::graphviz::NodeType;
+
 use std::collections::BTreeMap;
 
 

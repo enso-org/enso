@@ -7,6 +7,7 @@
 //! and rules of how the result inference should be performed.
 
 use enso_reflect::prelude::*;
+
 use paste::paste;
 use std::borrow::Cow;
 use std::marker::PhantomData;

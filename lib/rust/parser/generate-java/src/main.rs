@@ -7,7 +7,6 @@
 //! generate-java org/enso/syntax2/
 //! ```
 
-// === Features ===
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

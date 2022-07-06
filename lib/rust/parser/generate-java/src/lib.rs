@@ -1,7 +1,6 @@
 //! Supports generation of Java types corresponding to `enso-parser`'s AST types, and testing and
 //! debugging the translation process.
 
-// === Features ===
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -20,6 +19,11 @@
 
 use enso_metamodel::meta;
 use enso_reflect::Reflect;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod serialization;
 

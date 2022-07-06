@@ -1,8 +1,9 @@
 //! Data structures used in the crate implementation.
 
+use vecmap::*;
+
 use derivative::Derivative;
 use std::marker::PhantomData;
-use vecmap::*;
 
 
 
