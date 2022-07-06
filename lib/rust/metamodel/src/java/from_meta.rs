@@ -145,7 +145,8 @@ mod test {
         let inner_field_name = meta::FieldName::from_snake_case("inner_field");
         let inner_fields = vec![meta::Field::named(inner_field_name, u32_)];
         let inner_name = meta::TypeName::from_pascal_case("Inner");
-        let inner = meta.types.insert(meta::Type::new(inner_name, meta::Data::Struct(inner_fields)));
+        let inner =
+            meta.types.insert(meta::Type::new(inner_name, meta::Data::Struct(inner_fields)));
         let outer_field_inner_name = meta::FieldName::from_snake_case("inner");
         let outer_name = meta::TypeName::from_pascal_case("Outer");
         let outer_fields = vec![meta::Field::named(outer_field_inner_name, inner)];
@@ -156,7 +157,13 @@ mod test {
         let inner_ = meta_to_java[&inner];
         assert_eq!(java[outer_].name, "Outer");
         assert_eq!(java[inner_].name, "Inner");
-        assert_eq!(java[outer_].fields[0].data, FieldData::Object { type_: inner_, non_null: true });
-        assert_eq!(java[inner_].fields[0].data, FieldData::Primitive(Primitive::Int { unsigned: true }));
+        assert_eq!(java[outer_].fields[0].data, FieldData::Object {
+            type_:    inner_,
+            non_null: true,
+        });
+        assert_eq!(
+            java[inner_].fields[0].data,
+            FieldData::Primitive(Primitive::Int { unsigned: true })
+        );
     }
 }
