@@ -44,9 +44,9 @@ use ensogl_selector::Bounds;
 /// Amount the scrollbar moves on a single click, relative to the viewport size.
 const CLICK_JUMP_PERCENTAGE: f32 = 0.80;
 /// Width of the scrollbar in px.
-pub const WIDTH: f32 = 11.0;
+pub const WIDTH: f32 = 13.0;
 /// The amount of padding on each side inside the scrollbar.
-const PADDING: f32 = 2.0;
+pub const PADDING: f32 = 3.0;
 /// The thumb will be displayed with at least this size to make it more visible and dragging easier.
 const MIN_THUMB_SIZE: f32 = 12.0;
 /// After an animation, the thumb will be visible for this time, before it hides again.
@@ -93,6 +93,7 @@ impl Frp {
         let mouse = &scene.mouse.frp;
         let thumb_position = Animation::new(network);
         let thumb_color = color::Animation::new(network);
+        let background_color = color::Animation::new(network);
         let activity_cool_off = DelayedAnimation::new(network);
         activity_cool_off.frp.set_delay(HIDE_DELAY);
         activity_cool_off.frp.set_duration(0.0);
@@ -105,13 +106,16 @@ impl Frp {
 
         model.use_track_handles(false);
         model.set_track_corner_round(true);
-        model.show_background(false);
+        model.show_background(true);
+        model.show_shadow(false);
         model.show_left_overflow(false);
         model.show_right_overflow(false);
         model.set_padding(PADDING);
 
         let default_color = style.get_color(theme::component::slider::track::color);
         let hover_color = style.get_color(theme::component::slider::track::hover_color);
+        let bg_default_color = style.get_color(theme::component::slider::background::color);
+        let bg_hover_color = style.get_color(theme::component::slider::background::hover_color);
 
         frp::extend! { network
 
@@ -147,12 +151,16 @@ impl Frp {
             // === Color ===
 
             init_color    <- any_mut::<()>();
-            default_color <- all(&default_color,&init_color)._0().map(|c| color::Lch::from(*c));
-            hover_color   <- all(&hover_color,&init_color)._0().map(|c| color::Lch::from(*c));
+            default_color <- all(&default_color,&init_color)._0().map(|c| color::Lcha::from(*c));
+            hover_color   <- all(&hover_color,&init_color)._0().map(|c| color::Lcha::from(*c));
+            bg_default_color <- all(&bg_default_color,&init_color)._0().map(|c| color::Lcha::from(*c));
+            bg_hover_color   <- all(&bg_hover_color,&init_color)._0().map(|c| color::Lcha::from(*c));
 
             engaged                  <- base_frp.track_hover || base_frp.is_dragging_track;
-            thumb_color.target_color <+ engaged.switch(&default_color,&hover_color);
+            thumb_color.target_color <+ engaged.switch(&default_color,&hover_color).map(|c| c.opaque);
+            background_color.target_color <+ engaged.switch(&bg_default_color,&bg_hover_color).map(|c| c.opaque);;
             eval thumb_color.value((c) model.set_track_color(color::Rgba::from(*c)));
+            eval background_color.value((c) model.set_background_color(color::Rgba::from(*c)));
 
 
             // === Hiding ===
@@ -180,8 +188,10 @@ impl Frp {
                 }
             });
 
-            thumb_color.target_alpha <+ all_with5(&recently_active,&base_frp.is_dragging_track,
+            target_alpha <- all_with5(&recently_active,&base_frp.is_dragging_track,
                 &vert_mouse_distance,&frp.set_thumb_size,&frp.set_max,Self::compute_target_alpha);
+            thumb_color.target_alpha <+ target_alpha.map2(&default_color, |target_alpha,base_color| target_alpha*base_color.alpha);
+            background_color.target_alpha <+ target_alpha.map2(&bg_default_color, |target_alpha,base_color| target_alpha*base_color.alpha);;
 
 
             // === Position on Screen ===

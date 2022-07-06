@@ -4,7 +4,6 @@ import Standard.Base.System.Platform
 import Standard.Table.Data.Column
 import Standard.Visualization
 from Standard.Base.Data.Time.Date as Date_Module import Date
-import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.File_Format
 import Standard.Base.System.File
 import Standard.Base.System.File.Existing_File_Behavior
@@ -33,7 +32,6 @@ import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
 polyglot java import org.enso.table.operations.OrderBuilder
 
 ## Creates a new table from a vector of `[name, items]` pairs.
@@ -1030,50 +1028,6 @@ type Table
         mask = OrderBuilder.buildReversedMask self.row_count
         Table <| self.java_table.applyMask mask
 
-    ## ALIAS Write Excel File
-       UNSTABLE
-
-       Writes this table into an XLSX spreadsheet.
-
-       Arguments:
-       - file: the XLSX file to write data to. If it exists, the behavior is
-         specified by the `write_mode` argument. Note that other files may be
-         created or written to if `max_rows_per_file` is used.
-       - sheet: the name of the sheet to use for writing the data.
-       - write_mode: specifies this method's behavior if the specified file and
-         sheet already exist. Can be one of:
-         - Spreadsheet_Write_Mode.Create: this is the default value. This
-           setting will create a new sheet in the file, with a name chosen such
-           that the clash is avoided.
-         - Spreadsheet_Write_Mode.Overwrite: will result in removing all
-           contents of the existing sheet and replacing it with the new data.
-         - Spreadsheet_Write_Mode.Append: will append this data to the existing
-           sheet, such that the new data starts after the last row containing
-           any data.
-       - include_header: Specifies whether the first line of generated CSV
-         should contain the column names.
-       - max_rows_per_file: specifies the maximum number of rows that can be
-         written to a single file. If this option is set and its value is less
-         than the number of rows in this table, the behavior of the `file`
-         argument changes. Instead of writing the contents directly to `file`,
-         its name is parsed and a numbered series of files with names based
-         on `file` is written to instead. For example, if `file` points to
-         `~/my_data/output.xlsx`, `self` contains 250 rows, and
-         `max_rows_per_file` is set to `100`, 3 different files will be written:
-         - `~/my_data/output_1.xlsx`, containing rows 0 through 99;
-         - `~/my_data/output_2.xlsx`, containing rows 100 through 199;
-         - `~/my_data/output_3.xlsx`, containing rows 200 through 249.
-
-       > Example
-         Write a table to an XLSX file.
-
-             import Standard.Examples
-
-             example_to_xlsx = Examples.inventory_table.write_xlsx (Enso_Project.data / example_xlsx_output.xlsx)
-    write_xlsx : File.File -> String -> Spreadsheet_Write_Mode.Speadsheet_Write_Mode -> Boolean -> Nothing | Integer -> Nothing
-    write_xlsx file sheet='Data' write_mode=Spreadsheet_Write_Mode.Create include_header=True max_rows_per_file=Nothing =
-        Spreadsheet_Writer.writeXlsx self.java_table file.absolute.path sheet write_mode.to_java include_header max_rows_per_file .write_to_spreadsheet
-
     ## ALIAS Write JSON
        UNSTABLE
 
@@ -1162,35 +1116,6 @@ type Table
     to_csv : Text
     to_csv = Text.from self (File_Format.Delimited delimiter=",")
 
-## UNSTABLE
-   ADVANCED
-
-   Used to write a value into a spreadsheet cell.
-
-   Arguments:
-   - cell: an instance of `org.apache.poi.ss.usermodel.Cell`, the value of
-     which should be set by this method.
-Any.write_to_spreadsheet cell = cell.setCellValue self.to_text
-
-## UNSTABLE
-   ADVANCED
-
-   Used to write a value into a spreadsheet cell.
-
-   Arguments:
-   - cell: an instance of `org.apache.poi.ss.usermodel.Cell`, the value of
-     which should be set by this method.
-Text.write_to_spreadsheet cell = cell.setCellValue self
-
-## UNSTABLE
-   ADVANCED
-
-   Used to write a value into a spreadsheet cell.
-
-   Arguments:
-   - cell: an instance of `org.apache.poi.ss.usermodel.Cell`, the value of
-     which should be set by this method.
-Date.write_to_spreadsheet cell = cell.setCellValue self.internal_local_date
 
 ## UNSTABLE
 

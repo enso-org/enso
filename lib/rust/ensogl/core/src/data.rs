@@ -5,6 +5,7 @@
 // === Export ===
 // ==============
 
+pub mod bounding_box;
 pub mod color;
 pub mod container;
 pub mod dirty;
