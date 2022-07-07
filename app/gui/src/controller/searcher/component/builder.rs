@@ -184,6 +184,7 @@ impl List {
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
+        let favorites = self.filtered_favorites();
         component::List {
             all_components:        Rc::new(self.all_components),
             top_modules:           top_mdl_bld.build(),
@@ -193,8 +194,13 @@ impl List {
             ),
             local_scope:           self.local_scope,
             filtered:              default(),
-            favorites:             self.favorites,
+            favorites,
         }
+    }
+
+    fn filtered_favorites(&self) -> component::group::List {
+        let mut filtered_groups = Vec::<component::Group>::with_capacity(self.favorites.len());
+        component::group::List::new(filtered_groups)
     }
 }
 
