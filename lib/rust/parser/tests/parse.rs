@@ -23,6 +23,7 @@ use lexpr::sexp;
 // === Test support macros ===
 // ===========================
 
+/// Parses input as a sequence of S-expressions, and wraps it in a `Block`.
 macro_rules! block {
     ( $statements:tt ) => {
         sexp![(Block #($statements))]
