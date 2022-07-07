@@ -94,4 +94,9 @@ spec = Test.group "Meta-Value Manipulation" <|
         enso_project.name.should_equal 'Tests'
         Base.enso_project.name.should_equal 'Base'
 
+    Test.specify "should correctly handle Java values" <|
+        java_meta = Meta.meta Random.new
+        java_meta . should_be_a Meta.Polyglot
+        java_meta . get_language . should_equal Meta.Java
+
 main = Test.Suite.run_main spec
