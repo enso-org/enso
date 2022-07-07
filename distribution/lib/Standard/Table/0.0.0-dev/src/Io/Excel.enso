@@ -199,7 +199,7 @@ read_excel file section headers on_problems xls_format=False =
                 Excel_Range _ -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
                 Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
 
-    here.handle_reader file reader
+    handle_reader file reader
 
 ## PRIVATE
    Writes a Table to an Excel file.
@@ -208,12 +208,12 @@ read_excel file section headers on_problems xls_format=False =
 write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
 write_excel file table on_existing_file section headers match_columns _ xls_format=False =
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
-        here.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
+        handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 
-    existing_data_mode = here.make_java_existing_data_mode on_existing_file match_columns
-    java_headers = here.make_java_headers headers
+    existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
+    java_headers = make_java_headers headers
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-    result = here.handle_writer <| case section of
+    result = handle_writer <| case section of
         Sheet sheet skip_rows row_limit ->
             ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
         Cell_Range address skip_rows row_limit -> case address of
