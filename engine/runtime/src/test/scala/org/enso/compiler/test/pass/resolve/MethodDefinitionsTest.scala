@@ -74,6 +74,7 @@ class MethodDefinitionsTest extends CompilerTest {
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
         .typePointer
+        .get
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
@@ -85,30 +86,29 @@ class MethodDefinitionsTest extends CompilerTest {
       ir.bindings(3)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
-        .typePointer
-        .getMetadata(MethodDefinitions) shouldEqual Some(
-        BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(ModuleReference.Concrete(ctx.module))
-        )
-      )
+        .typePointer shouldBe None
+
       ir.bindings(4)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
         .typePointer
+        .get
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedModule(ModuleReference.Concrete(ctx.module))
         )
       )
+
       ir.bindings(5)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
-        .typePointer shouldBe a[IR.Error.Resolution]
+        .typePointer
+        .get shouldBe a[IR.Error.Resolution]
 
       val conv1 = ir
         .bindings(6)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
-      conv1.methodReference.typePointer.getMetadata(
+      conv1.methodReference.typePointer.get.getMetadata(
         MethodDefinitions
       ) shouldEqual Some(
         BindingsMap.Resolution(
@@ -130,7 +130,7 @@ class MethodDefinitionsTest extends CompilerTest {
       val conv2 = ir
         .bindings(7)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
-      conv2.methodReference.typePointer.getMetadata(
+      conv2.methodReference.typePointer.get.getMetadata(
         MethodDefinitions
       ) shouldEqual Some(
         BindingsMap.Resolution(
@@ -145,7 +145,7 @@ class MethodDefinitionsTest extends CompilerTest {
       val conv3 = ir
         .bindings(8)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
-      conv3.methodReference.typePointer shouldBe an[IR.Error.Resolution]
+      conv3.methodReference.typePointer.get shouldBe an[IR.Error.Resolution]
       conv3.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(

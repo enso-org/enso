@@ -4,3 +4,10 @@ Foo.sum = case self of
     Foo a b c -> a + b + c
 
 another_constant = 10
+
+another_method a = 0+a
+
+method_with_local_vars a =
+  bar = another_constant
+  another_constant = f -> f + a + 1
+  bar + (another_constant a)

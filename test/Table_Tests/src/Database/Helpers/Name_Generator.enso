@@ -11,4 +11,4 @@ random_uuid =
    appending a random UUID.
 random_name : Text -> Text
 random_name prefix =
-    prefix + "-" + here.random_uuid
+    prefix + "-" + random_uuid

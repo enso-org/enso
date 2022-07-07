@@ -20,7 +20,7 @@
          import Standard.Examples
 
          example_to_xlsx =
-             path = Enso_Project.data / example_xlsx_output.xlsx
+             path = enso_project.data / example_xlsx_output.xlsx
              Examples.inventory_table.write path
 
    > Example

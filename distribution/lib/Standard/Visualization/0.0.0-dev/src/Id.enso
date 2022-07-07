@@ -99,4 +99,4 @@ from_module module visualization_name =
 
    Specifies that the builtin JSON visualization should be used for any type,
    unless specified otherwise.
-Any.default_visualization = here.json
+Any.default_visualization = json

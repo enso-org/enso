@@ -19,10 +19,10 @@ type Test_Selection problem_handling=True advanced_stats=True text_concat=True t
 all_tests = Test_Selection True True True True True True True True True True
 
 spec =
-    table = (Enso_Project.data / "data.csv") . read
+    table = (enso_project.data / "data.csv") . read
     empty_table = Table.new <| table.columns.map c->[c.name, []]
     materialize = x->x
-    here.aggregate_spec "[In-Memory] " table empty_table Table.new materialize is_database=False
+    aggregate_spec "[In-Memory] " table empty_table Table.new materialize is_database=False
 
 ## Runs the common aggregate tests.
 
@@ -40,7 +40,7 @@ spec =
      skip checks for backends which do not support particular features.
    - pending: An optional mark to disable all test groups. Can be used to
      indicate that some tests are disabled due to missing test setup.
-aggregate_spec prefix table empty_table table_builder materialize is_database test_selection=here.all_tests pending=Nothing =
+aggregate_spec prefix table empty_table table_builder materialize is_database test_selection=all_tests pending=Nothing =
     expect_column_names names table =
         table.columns . map .name . should_equal names frames_to_skip=2
 
@@ -1369,4 +1369,4 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
                     expect_sum_and_unsupported_errors 1 <|
                         table.aggregate [Sum "X", Count_Distinct (By_Name ["X", "Y"])]
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

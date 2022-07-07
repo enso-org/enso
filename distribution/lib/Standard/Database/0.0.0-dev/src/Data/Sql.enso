@@ -44,9 +44,9 @@ join : Builder | Text -> Vector Builder -> Builder
 join separator statements =
     sep = case separator of
         Builder _ -> separator
-        _ -> here.code separator
+        _ -> code separator
 
-    if statements.length == 0 then here.empty else
+    if statements.length == 0 then empty else
         (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
 
 ## Represents an internal SQL data-type.
@@ -295,7 +295,7 @@ type Builder
        Builds a SQL statement.
     build : Statement
     build =
-        fragments = here.optimize_fragments self.fragments.build
+        fragments = optimize_fragments self.fragments.build
         Statement fragments
 
     ## UNSTABLE
@@ -303,8 +303,8 @@ type Builder
        Wraps the code fragment in parentheses.
     paren : Builder
     paren =
-        l = here.code "("
-        r = here.code ")"
+        l = code "("
+        r = code ")"
         l ++ self ++ r
 
     ## UNSTABLE
@@ -319,7 +319,7 @@ type Builder
     prefix_if_present prefix =
         pref = case prefix of
             Builder _ -> prefix
-            _ -> here.code prefix
+            _ -> code prefix
         if self.is_empty then self else pref++self
 
 ## PRIVATE

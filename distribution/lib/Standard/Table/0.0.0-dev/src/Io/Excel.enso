@@ -125,8 +125,8 @@ type Excel_Range
     for_cell sheet column row =
         col_index = Excel_Range.column_index column
 
-        col_valid = here.validate (Excel_Range.is_valid_column col_index) ("Invalid column for Excel: " + column.to_text + ".")
-        row_valid = here.validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
+        col_valid = validate (Excel_Range.is_valid_column col_index) ("Invalid column for Excel: " + column.to_text + ".")
+        row_valid = validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
 
         col_valid <| row_valid <|
             Excel_Range (Java_Range.new sheet col_index row)
@@ -137,10 +137,10 @@ type Excel_Range
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
-        left_valid = here.validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
-        right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
-        top_valid = here.validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
-        bottom_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
+        left_valid = validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
+        right_valid = validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
+        top_valid = validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
+        bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         left_valid <| right_valid <| top_valid <| bottom_valid <|
             Excel_Range (Java_Range.new sheet left_index top right_index bottom)
@@ -151,8 +151,8 @@ type Excel_Range
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
-        left_valid = here.validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
-        right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
+        left_valid = validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
+        right_valid = validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
 
         left_valid <| right_valid <|
             Excel_Range (Java_Range.forColumns sheet left_index right_index)
@@ -160,8 +160,8 @@ type Excel_Range
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
     for_rows sheet top (bottom=top) =
-        top_valid = here.validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
-        bottom_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
+        top_valid = validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
+        bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         top_valid <| bottom_valid <|
             Excel_Range (Java_Range.forRows sheet top bottom)
@@ -191,15 +191,15 @@ read_excel file section headers on_problems xls_format=False =
         Sheet_Names -> Vector.Vector (ExcelReader.readSheetNames stream xls_format)
         Range_Names -> Vector.Vector (ExcelReader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
-            here.prepare_reader_table on_problems <| case sheet of
-                Integer -> ExcelReader.readSheetByIndex stream sheet (here.make_java_headers headers) skip_rows row_limit xls_format
-                Text -> ExcelReader.readSheetByName stream sheet (here.make_java_headers headers) skip_rows row_limit xls_format
+            prepare_reader_table on_problems <| case sheet of
+                Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
+                Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format
         Cell_Range address skip_rows row_limit ->
-            here.prepare_reader_table on_problems <| case address of
-                Excel_Range _ -> ExcelReader.readRange stream address.java_range (here.make_java_headers headers) skip_rows row_limit xls_format
-                Text -> ExcelReader.readRangeByName stream address (here.make_java_headers headers) skip_rows row_limit xls_format
+            prepare_reader_table on_problems <| case address of
+                Excel_Range _ -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
+                Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
 
-    here.handle_reader file reader
+    handle_reader file reader
 
 ## PRIVATE
    Writes a Table to an Excel file.
@@ -208,12 +208,12 @@ read_excel file section headers on_problems xls_format=False =
 write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
 write_excel file table on_existing_file section headers match_columns _ xls_format=False =
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
-        here.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
+        handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 
-    existing_data_mode = here.make_java_existing_data_mode on_existing_file match_columns
-    java_headers = here.make_java_headers headers
+    existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
+    java_headers = make_java_headers headers
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-    result = here.handle_writer <| case section of
+    result = handle_writer <| case section of
         Sheet sheet skip_rows row_limit ->
             ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
         Cell_Range address skip_rows row_limit -> case address of

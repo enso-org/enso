@@ -55,7 +55,7 @@ type Column
         display_rows = Math.min num_rows show_rows
         items = Vector.new display_rows num->
             row = if storage.isNa num then "Nothing" else
-                here.get_item_string storage num
+                get_item_string storage num
             [index.ilocString num, row]
         table = Table.print_table [index.getName, col_name] items 1 format_terminal
         if num_rows - display_rows <= 0 then table else
@@ -106,7 +106,7 @@ type Column
              example_eq = Examples.integer_column == 1
     == : Column | Any -> Column
     == other =
-        here.run_vectorized_binary_op self "==" (==) other
+        run_vectorized_binary_op self "==" (==) other
 
     ## Element-wise non-equality comparison.
 
@@ -159,7 +159,7 @@ type Column
              example_geq = Examples.integer_column >= 1
     >= : Column | Any -> Column
     >= other =
-        here.run_vectorized_binary_op self ">=" (>=) other
+        run_vectorized_binary_op self ">=" (>=) other
 
     ## Element-wise order comparison.
 
@@ -186,7 +186,7 @@ type Column
              example_leq = Examples.integer_column <= 1
     <= : Column | Any -> Column
     <= other =
-        here.run_vectorized_binary_op self "<=" (<=) other
+        run_vectorized_binary_op self "<=" (<=) other
 
     ## Element-wise order comparison.
 
@@ -213,7 +213,7 @@ type Column
              example_gt = Examples.integer_column > 1
     > : Column | Any -> Column
     > other =
-        here.run_vectorized_binary_op self ">" (>) other
+        run_vectorized_binary_op self ">" (>) other
 
     ## Element-wise order comparison.
 
@@ -239,7 +239,7 @@ type Column
 
              example_lt = Examples.integer_column < 1
     < : Column | Any -> Column
-    < other = here.run_vectorized_binary_op self "<" (<) other
+    < other = run_vectorized_binary_op self "<" (<) other
 
     ## ALIAS Add Columns
 
@@ -267,7 +267,7 @@ type Column
 
              example_plus = Examples.integer_column + 10
     + : Column | Any -> Column
-    + other = here.run_vectorized_binary_op self '+' (+) other
+    + other = run_vectorized_binary_op self '+' (+) other
 
     ## ALIAS Subtract Columns
 
@@ -295,7 +295,7 @@ type Column
 
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
-    - other = here.run_vectorized_binary_op self '-' (-) other
+    - other = run_vectorized_binary_op self '-' (-) other
 
     ## ALIAS Multiply Columns
 
@@ -323,7 +323,7 @@ type Column
 
              example_mul = Examples.integer_column * 10
     * : Column | Any -> Column
-    * other = here.run_vectorized_binary_op self '*' (*) other
+    * other = run_vectorized_binary_op self '*' (*) other
 
     ## ALIAS Divide Columns
 
@@ -351,7 +351,7 @@ type Column
 
              example_div = Examples.integer_column / 10
     / : Column | Any -> Column
-    / other = here.run_vectorized_binary_op self '/' (/) other
+    / other = run_vectorized_binary_op self '/' (/) other
 
     ## ALIAS AND Columns
 
@@ -381,7 +381,7 @@ type Column
              example_and = Examples.bool_column_1 && True
     && : Column | Any -> Column
     && other =
-        here.run_vectorized_binary_op self "&&" (&&) other
+        run_vectorized_binary_op self "&&" (&&) other
 
     ## ALIAS OR Columns
 
@@ -411,7 +411,7 @@ type Column
              example_or = Examples.bool_column_1 || True
     || : Column | Any -> Column
     || other =
-        here.run_vectorized_binary_op self "||" (||) other
+        run_vectorized_binary_op self "||" (||) other
 
     ## ALIAS NOT Columns
 
@@ -424,7 +424,7 @@ type Column
 
              example_not = Examples.bool_column_1.not
     not : Column
-    not = here.run_vectorized_unary_op self "not" .not
+    not = run_vectorized_unary_op self "not" .not
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
@@ -436,7 +436,7 @@ type Column
 
              example_is_missing = Examples.decimal_column.is_missing
     is_missing : Column
-    is_missing = here.run_vectorized_unary_op self "is_missing" (== Nothing)
+    is_missing = run_vectorized_unary_op self "is_missing" (== Nothing)
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
@@ -518,7 +518,7 @@ type Column
              example_starts_with = Examples.text_column_1.starts_with "hell"
     starts_with : Column | Text -> Column
     starts_with other =
-        here.run_vectorized_binary_op self "starts_with" (a -> b -> a.starts_with b) other
+        run_vectorized_binary_op self "starts_with" (a -> b -> a.starts_with b) other
 
     ## Checks for each element of the column if it ends with `other`.
 
@@ -544,7 +544,7 @@ type Column
              example_ends_with = Examples.text_column_1.ends_with "hell"
     ends_with : Column | Text -> Column
     ends_with other =
-        here.run_vectorized_binary_op self "ends_with" (a -> b -> a.ends_with b) other
+        run_vectorized_binary_op self "ends_with" (a -> b -> a.ends_with b) other
 
     ## Checks for each element of the column if it contains `other`.
 
@@ -570,7 +570,7 @@ type Column
              example_contains = Examples.text_column_1.contains "hell"
     contains : Column | Text -> Column
     contains other =
-        here.run_vectorized_binary_op self "contains" (a -> b -> a.contains b) other
+        run_vectorized_binary_op self "contains" (a -> b -> a.contains b) other
 
     ## ALIAS Transform Column
 
@@ -780,10 +780,10 @@ type Column
     storage_type : Storage.Type
     storage_type =
         tp = self.java_column.getStorage.getType
-        if tp == Storage_Type_String then Storage.Text else
-            if tp == Storage_Type_Long then Storage.Integer else
-                if tp == Storage_Type_Double then Storage.Decimal else
-                    if tp == Storage_Type_Bool then Storage.Boolean else
+        if tp == storage_type_string then Storage.Text else
+            if tp == storage_type_long then Storage.Integer else
+                if tp == storage_type_double then Storage.Decimal else
+                    if tp == storage_type_bool then Storage.Boolean else
                         Storage.Any
 
     ## UNSTABLE
@@ -807,7 +807,7 @@ type Column
             Storage.Decimal -> Json.Number
             Storage.Boolean -> Json.Boolean
             _ -> .to_json
-        storage_json = Json.Array (here.storage_to_json storage json_factory)
+        storage_json = Json.Array (storage_to_json storage json_factory)
         fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
         Json.Object fields
 
@@ -1393,6 +1393,6 @@ storage_to_json storage factory =
 get_item_string : Column -> Integer -> Text
 get_item_string column ix =
     tp = column.getType
-    if tp == Storage_Type_String then column.getItem ix else
+    if tp == storage_type_string then column.getItem ix else
         column.getItem ix . to_text
 

@@ -101,4 +101,4 @@ spec =
             Interval.inclusive 0 0 . not_empty . should_be_true
             Interval.inclusive 10 0 . not_empty . should_be_false
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

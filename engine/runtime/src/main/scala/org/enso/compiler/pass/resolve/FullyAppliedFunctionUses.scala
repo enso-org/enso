@@ -15,7 +15,7 @@ object FullyAppliedFunctionUses extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] =
-    Seq(UppercaseNames)
+    Seq(GlobalNames)
   override val invalidatedPasses: Seq[IRPass] = Seq()
 
   override def updateMetadataInDuplicate[T <: IR](sourceIr: T, copyOfIr: T): T =
@@ -54,7 +54,7 @@ object FullyAppliedFunctionUses extends IRPass {
       case app: IR.Application.Prefix =>
         app.copy(arguments = app.arguments.map(_.mapExpressions(doExpression)))
       case name: IR.Name.Literal =>
-        val meta = name.getMetadata(UppercaseNames)
+        val meta = name.getMetadata(GlobalNames)
         meta match {
           case Some(Resolution(ResolvedConstructor(_, cons)))
               if cons.allFieldsDefaulted && cons.arity > 0 =>

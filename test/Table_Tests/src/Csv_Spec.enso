@@ -15,18 +15,18 @@ spec =
 
     Test.group "Table.from Text" <|
         Test.specify "should create a table from a textual CSV" <|
-            file_contents = (Enso_Project.data / "simple_empty.csv") . read_text
+            file_contents = (enso_project.data / "simple_empty.csv") . read_text
             table = Table.Table.from file_contents (format = File_Format.Delimited ",")
             table.should_equal expected_table
 
     Test.group "File.read (Delimited)" <|
         Test.specify "should create a table from a CSV in a file" <|
-            file = (Enso_Project.data / "simple_empty.csv")
+            file = (enso_project.data / "simple_empty.csv")
             table = file.read
             table.should_equal expected_table
 
         Test.specify "should correctly infer types of varied-type columns" <|
-            varied_column = (Enso_Project.data / "varied_column.csv") . read
+            varied_column = (enso_project.data / "varied_column.csv") . read
             c_1 = ["Column_1", ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]]
             # We can re-enable this once date support is improved.
             #c_2 = ["Column_2", ["2005-02-25", "2005-02-28", "2005-03-01", Nothing, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]]
@@ -47,7 +47,7 @@ spec =
 
     Test.group 'Writing' <|
         Test.specify 'should properly serialize simple tables' <|
-            varied_column = (Enso_Project.data / "varied_column.csv") . read
+            varied_column = (enso_project.data / "varied_column.csv") . read
             res = Text.from varied_column format=(File_Format.Delimited ",")
             exp = '''
                 Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
@@ -91,8 +91,8 @@ spec =
 
 
         Test.specify 'should write CSV to a file' <|
-            varied_column = (Enso_Project.data / "varied_column.csv") . read
-            out = Enso_Project.data / 'out.csv'
+            varied_column = (enso_project.data / "varied_column.csv") . read
+            out = enso_project.data / 'out.csv'
             out.delete_if_exists
             varied_column.write out
             exp = '''
@@ -109,4 +109,4 @@ spec =
             out.delete_if_exists
 
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

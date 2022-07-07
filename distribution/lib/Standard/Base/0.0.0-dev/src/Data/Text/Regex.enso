@@ -67,7 +67,7 @@ import Standard.Base.Data.Map
      instead of immediately proceeding to match using it.
 compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern ! Compile_Error
 compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    options_vec = here.from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
+    options_vec = from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
     engine.compile expression options_vec
 
 ## Escape the special characters in `expression` such that the result is a valid

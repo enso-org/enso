@@ -143,4 +143,4 @@ spec =
             Problems.test_problem_handling action problems tester
 
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

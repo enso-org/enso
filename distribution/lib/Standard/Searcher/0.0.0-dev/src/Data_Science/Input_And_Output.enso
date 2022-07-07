@@ -29,7 +29,7 @@
          import Standard.Examples
 
          example_to_xlsx =
-             path = Enso_Project.data / example_xlsx_output.xlsx
+             path = enso_project.data / example_xlsx_output.xlsx
              Examples.inventory_table.write path
 
    > Example
@@ -38,6 +38,6 @@
          import Standard.Examples
 
          example_to_csv =
-             path = Enso_Project.data / example_csv_output.csv
+             path = enso_project.data / example_csv_output.csv
              Examples.inventory_table.write path
 

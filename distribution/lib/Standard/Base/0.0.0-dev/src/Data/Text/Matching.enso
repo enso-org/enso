@@ -142,7 +142,7 @@ Regex_Matcher.match_single_criterion name criterion =
 
          Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 Text_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
-Text_Matcher.match_criteria = here.match_criteria_implementation self
+Text_Matcher.match_criteria = match_criteria_implementation self
 
 ## UNSTABLE
    Selects objects from an input list that match any of the provided criteria.
@@ -183,7 +183,7 @@ Text_Matcher.match_criteria = here.match_criteria_implementation self
 
          Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 Regex_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
-Regex_Matcher.match_criteria = here.match_criteria_implementation self
+Regex_Matcher.match_criteria = match_criteria_implementation self
 
 ## A common supertype representing a matching strategy.
 type Matcher
@@ -192,7 +192,7 @@ type Matcher
 
 ## PRIVATE
 match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning =
-    result = here.internal_match_criteria_implementation matcher objects criteria reorder name_mapper
+    result = internal_match_criteria_implementation matcher objects criteria reorder name_mapper
     unmatched_criteria = result.second
     problems = if unmatched_criteria.is_empty then [] else
         [No_Matches_Found unmatched_criteria]
@@ -200,7 +200,7 @@ match_criteria_implementation matcher objects criteria reorder=False name_mapper
 
 ## PRIVATE
 match_criteria_callback matcher objects criteria problem_callback reorder=False name_mapper=(x->x) =
-    result = here.internal_match_criteria_implementation matcher objects criteria reorder name_mapper
+    result = internal_match_criteria_implementation matcher objects criteria reorder name_mapper
     unmatched_criteria = result.second
     problem_callback unmatched_criteria
     result.first
@@ -260,7 +260,7 @@ internal_match_criteria_implementation matcher objects criteria reorder=False na
     [matcher, objects, criteria, reorder, name_mapper] . each v->
         Panic.rethrow (v.map_error Wrapped_Dataflow_Error)
 
-    match_matrix = here.make_match_matrix matcher objects criteria name_mapper
+    match_matrix = make_match_matrix matcher objects criteria name_mapper
     unmatched_criteria = match_matrix.unmatched_criteria
 
     # Selects object indices which satisfy the provided predicate.

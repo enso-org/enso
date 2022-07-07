@@ -1,5 +1,6 @@
 from Standard.Base import all
 import project.Semantic.Conversion.Methods
+import project.Semantic.Conversion.Types
 
 import Standard.Test
 
@@ -43,7 +44,7 @@ spec =
         Test.specify "should be able to convert text" <|
             Foo.from "123" . foo . should_equal 3
         Test.specify "should be able to convert foreign text" <|
-            Foo.from (here.make_str 4) . foo . should_equal 9
+            Foo.from (make_str 4) . foo . should_equal 9
         Test.specify "should be able to convert numbers" <|
             Foo.from 4 . should_equal (Foo [4, 0, 0, 0])
             Foo.from (10^100) . should_equal (Foo [10^100, 0, 0, 0])
@@ -80,7 +81,7 @@ spec =
             Foo.from that=4 second_param=1 2 . should_equal (Foo [4, 2, 1, 0])
 
         Test.specify "should play nicely with polyglot" <|
-            here.call_function .from Foo . should_equal (Foo 8)
+            call_function .from Foo . should_equal (Foo 8)
 
         Test.specify "should support the meta functions" <|
             meta_from = Meta.meta .from

@@ -149,8 +149,7 @@ case object LambdaShorthandToLambda extends IRPass {
             IR.DefinitionArgument.Specified(
               name = IR.Name.Literal(
                 newName.name,
-                isReferent = false,
-                isMethod   = false,
+                isMethod = false,
                 None
               ),
               ascribedType = None,
@@ -235,8 +234,7 @@ case object LambdaShorthandToLambda extends IRPass {
                 IR.Name
                   .Literal(
                     updatedName.get,
-                    isReferent = false,
-                    isMethod   = false,
+                    isMethod = false,
                     fn.location
                   ),
                 None,
@@ -359,8 +357,7 @@ case object LambdaShorthandToLambda extends IRPass {
           val defArgName =
             IR.Name.Literal(
               value.asInstanceOf[IR.Name.Literal].name,
-              isReferent = false,
-              isMethod   = false,
+              isMethod = false,
               None
             )
 

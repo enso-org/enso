@@ -78,12 +78,12 @@ spec =
             Random.new error . should_fail_with Integer
 
         Test.specify "should allow to inspect their stacktrace" <|
-            error = here.throw_a_bar
+            error = throw_a_bar
             error.catch . should_equal "bar"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar"
 
         Test.specify "should allow to inspect the stack trace of a recovered panic" <|
-            error = Panic.recover Any <| here.throw_a_bar_panicking
+            error = Panic.recover Any <| throw_a_bar_panicking
             error.catch . should_equal "bar"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
@@ -103,20 +103,20 @@ spec =
             result.catch . should_equal 42
 
         Test.specify "should provide access to stack traces" <|
-            stack = Panic.catch Any here.throw_a_bar_panicking caught_panic->
+            stack = Panic.catch Any throw_a_bar_panicking caught_panic->
                 caught_panic.stack_trace
             stack.second.name . should_equal "Error_Spec.throw_a_bar_panicking"
 
         Test.specify "should provide access to Java stack traces" <|
-            stack_1 = Panic.recover Any (here.do_a_parse "foo") . stack_trace
+            stack_1 = Panic.recover Any (do_a_parse "foo") . stack_trace
             stack_1.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
-            stack_2 = Panic.catch Any (here.do_a_parse "foo") caught_panic->
+            stack_2 = Panic.catch Any (do_a_parse "foo") caught_panic->
                 caught_panic.stack_trace
             stack_2.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
         Test.specify "should be able to be rethrown without changing the stack trace" <|
-            caught_panic = Panic.catch Any here.throw_a_bar_panicking x->x
+            caught_panic = Panic.catch Any throw_a_bar_panicking x->x
             rethrow foo = Panic.throw foo
             rethrown_panic = Panic.catch Any (rethrow caught_panic) x->x
             (rethrown_panic.stack_trace.length > 0).should_be_true
@@ -127,9 +127,9 @@ spec =
                 Panic.catch Any action caught_panic->
                     if caught_panic.payload == "bar" then 42 else
                         Panic.throw caught_panic
-            Panic.recover Any (perform_operation here.throw_a_bar_panicking) . should_equal 42
+            Panic.recover Any (perform_operation throw_a_bar_panicking) . should_equal 42
 
-            error = Panic.recover Any (perform_operation here.throw_a_foo_panicking)
+            error = Panic.recover Any (perform_operation throw_a_foo_panicking)
             error.catch . should_equal "foo"
             error.stack_trace.second.name . should_equal "Error_Spec.throw_a_foo_panicking"
 
@@ -153,18 +153,18 @@ spec =
             Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types
 
         Test.specify "should allow to throw raw Java exceptions" <|
-            exception = Panic.catch NumberFormatException (here.throw_raw_java "foo") (p -> p.payload.cause)
+            exception = Panic.catch NumberFormatException (throw_raw_java "foo") (p -> p.payload.cause)
             exception.getMessage . should_equal "foo"
             Panic.get_attached_stack_trace exception . second . name . should_equal "Error_Spec.throw_raw_java"
 
-            caught_panic = Panic.catch Any (here.throw_raw_java "foo") x->x
+            caught_panic = Panic.catch Any (throw_raw_java "foo") x->x
             caught_panic.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"
             caught_panic.payload . should_be_a Polyglot_Error
 
         Test.specify "should allow to re-throw raw Java exceptions" <|
             message_1 = Ref.new ""
             caught_1 = Panic.recover Any <|
-                Panic.catch NumberFormatException (here.do_a_parse "foo") caught_panic->
+                Panic.catch NumberFormatException (do_a_parse "foo") caught_panic->
                     message_1 . put caught_panic.payload.cause.getMessage
                     Panic.throw caught_panic.payload.cause
             message_1.get . should_equal 'For input string: "foo"'
@@ -173,7 +173,7 @@ spec =
 
             message_2 = Ref.new ""
             caught_2 = Panic.recover Any <|
-                Panic.catch NumberFormatException (here.throw_raw_java "foo") caught_panic->
+                Panic.catch NumberFormatException (throw_raw_java "foo") caught_panic->
                     message_2.put caught_panic.payload.cause.getMessage
                     Panic.throw caught_panic.payload.cause
             message_2.get . should_equal "foo"
@@ -216,10 +216,10 @@ spec =
             Test.expect_panic_with <| Panic.recover [Illegal_State_Error, Polyglot_Error] (Panic.throw (Illegal_Argument_Error "msg" Nothing)) . catch
             Test.expect_panic_with <| Panic.recover [] (Panic.throw (Illegal_Argument_Error "msg" Nothing)) . catch
 
-            Panic.recover [Polyglot_Error] (here.do_a_parse "foo") . catch . should_be_a Polyglot_Error
+            Panic.recover [Polyglot_Error] (do_a_parse "foo") . catch . should_be_a Polyglot_Error
 
-            Panic.recover Any here.throw_a_bar_panicking . catch . should_equal "bar"
-            Panic.recover Text here.throw_a_bar_panicking . stack_trace . second . name . should_equal "Error_Spec.throw_a_bar_panicking"
+            Panic.recover Any throw_a_bar_panicking . catch . should_equal "bar"
+            Panic.recover Text throw_a_bar_panicking . stack_trace . second . name . should_equal "Error_Spec.throw_a_bar_panicking"
 
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

@@ -5,18 +5,18 @@ import Standard.Test
 import project.Util
 
 spec = Test.group 'JSON conversion' <|
-    clothes = Enso_Project.data/'clothes.csv' . read
-    simple_empty = Enso_Project.data/'simple_empty.csv' . read
+    clothes = enso_project.data/'clothes.csv' . read
+    simple_empty = enso_project.data/'simple_empty.csv' . read
 
     Test.specify 'should convert tables to a format compatible with Json.Array.to_table' <|
         clothes_json = clothes.to_json
         clothes_json.to_table ['Id', 'Name', 'Quantity', 'Rating', 'Price'] . should_equal clothes
 
     Test.specify 'should write JSON tables to disk' <|
-        out = Enso_Project.data / 'out.json'
+        out = enso_project.data / 'out.json'
         out.delete_if_exists
         simple_empty.write_json out
         (Json.parse out.read_text).to_table ['a', 'b', 'c'] . should_equal simple_empty
         out.delete_if_exists
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec
