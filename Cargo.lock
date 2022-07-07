@@ -2027,6 +2027,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-metamodel"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "derivative",
+ "derive_more",
+]
+
+[[package]]
 name = "enso-optics"
 version = "0.2.0"
 dependencies = [
@@ -2037,12 +2046,26 @@ dependencies = [
 name = "enso-parser"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "enso-data-structures",
  "enso-parser-syntax-tree-builder",
  "enso-parser-syntax-tree-visitor",
  "enso-prelude",
+ "enso-reflect",
  "enso-shapely-macros",
  "enso-types",
+ "serde",
+]
+
+[[package]]
+name = "enso-parser-generate-java"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "enso-metamodel",
+ "enso-parser",
+ "enso-prelude",
+ "enso-reflect",
 ]
 
 [[package]]
@@ -2078,6 +2101,7 @@ dependencies = [
  "derivative",
  "derive_more",
  "enclose",
+ "enso-reflect",
  "enso-shapely",
  "failure",
  "futures 0.3.21",
@@ -2158,6 +2182,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-reflect"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "enso-metamodel",
+ "enso-reflect-macros",
+]
+
+[[package]]
+name = "enso-reflect-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "enso-shapely"
 version = "0.2.0"
 dependencies = [
@@ -2215,9 +2257,11 @@ dependencies = [
 name = "enso-types"
 version = "0.1.0"
 dependencies = [
+ "enso-reflect",
  "nalgebra 0.26.2",
  "num-traits",
  "paste 1.0.7",
+ "serde",
 ]
 
 [[package]]
@@ -3603,7 +3647,7 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.10.1",
+ "base64 0.13.0",
  "bytes 1.1.0",
  "http",
  "httpdate 0.3.2",

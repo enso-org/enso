@@ -23,11 +23,10 @@ pub mod traits {
 /// A strongly typed visible offset size. For example, a space character has value of 1, while the
 /// tab character has value of 4. For other space-like character sizes, refer to the lexer
 /// implementation.
-#[derive(
-    Clone, Copy, Debug, Default, From, Into, Add, AddAssign, Sub, PartialEq, Eq, Hash, PartialOrd,
-    Ord
-)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(From, Into, Add, AddAssign, Sub, Reflect, Serialize, Deserialize)]
 #[allow(missing_docs)]
+#[reflect(transparent)]
 pub struct VisibleOffset {
     pub width_in_spaces: usize,
 }
@@ -60,10 +59,11 @@ impl From<&str> for VisibleOffset {
 
 /// Offset information. In most cases it is used to express the left-hand-side whitespace offset
 /// for tokens and AST nodes.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Offset<'s> {
     pub visible: VisibleOffset,
+    #[reflect(flatten)]
     pub code:    Code<'s>,
 }
 
@@ -129,11 +129,13 @@ impl<'s> std::ops::AddAssign<&Offset<'s>> for Offset<'s> {
 /// element. This is done in order to not duplicate the data. For example, some AST nodes contain a
 /// lot of tokens. They need to remember their span, but they do not need to remember their code,
 /// because it is already stored in the tokens.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Span<'s> {
+    #[reflect(flatten)]
     pub left_offset: Offset<'s>,
     /// The length of the code, excluding [`left_offset`].
+    #[reflect(hide)]
     pub code_length: Bytes,
 }
 
