@@ -468,13 +468,11 @@ type Time
         sign = self.internal_zoned_date_time.compareTo that.internal_zoned_date_time
         Ordering.from_sign sign
 
-    ## Checks if `self` equals `that`.
-
-       Arguments:
-       - that: The other `Time` to compare against.
+    ## Compares two Time for equality.
     == : Time -> Boolean
-    == that =
-        self.internal_zoned_date_time.equals that.internal_zoned_date_time
+    == that = case that of
+        Time _ -> self.internal_zoned_date_time.equals that.internal_zoned_date_time
+        _ -> False
 
 type Time_Error
 

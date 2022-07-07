@@ -108,5 +108,4 @@ spec =
             out.read_text.should_equal exp
             out.delete_if_exists
 
-
 main = Test.Suite.run_main here.spec

@@ -333,3 +333,9 @@ type Time_Of_Day
     compare_to that =
         sign = self.internal_local_time.compareTo that.internal_local_time
         Ordering.from_sign sign
+
+    ## Compares two Time_Of_Day for equality.
+    == : Date -> Boolean
+    == that = case that of
+        Time_Of_Day _ -> self.internal_local_time.equals that.internal_local_time
+        _ -> False

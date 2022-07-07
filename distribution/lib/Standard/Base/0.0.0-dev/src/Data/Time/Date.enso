@@ -336,3 +336,9 @@ type Date
     compare_to that =
         sign = self.internal_local_date.compareTo that.internal_local_date
         Ordering.from_sign sign
+
+    ## Compares two Dates for equality.
+    == : Date -> Boolean
+    == that = case that of
+        Date _ -> self.internal_local_date.equals that.internal_local_date
+        _ -> False
