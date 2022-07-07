@@ -10,14 +10,16 @@ from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Data.Storage
 import Standard.Table.Io.Quote_Style
-import Standard.Table.Internal.Delimited_Reader
+from Standard.Table.Internal.Delimited_Reader import No_Data, Existing_Headers, No_Headers
+import Standard.Table.Data.Match_Columns
 
 polyglot java import org.enso.table.write.DelimitedWriter
 polyglot java import org.enso.table.write.WriteQuoteBehavior
-polyglot java import java.io.PrintWriter
-polyglot java import java.io.IOException
 polyglot java import org.enso.table.formatting.TextFormatter
+polyglot java import org.enso.table.util.ColumnMapper
+polyglot java import java.io.PrintWriter
 polyglot java import java.io.StringWriter
+polyglot java import java.io.IOException
 
 ## Writes a delimited file according to the provided format.
 
@@ -34,7 +36,7 @@ write_file : Table -> File_Format.Delimited -> File -> Existing_File_Behavior ->
 write_file table format file on_existing_file match_columns on_problems =
     case on_existing_file of
         Existing_File_Behavior.Append ->
-            append_to_file table format file on_problems
+            append_to_file table format file match_columns on_problems
         _ ->
             on_existing_file.write file stream->
                 write_to_stream table format stream on_problems related_file=file
@@ -48,13 +50,20 @@ append_to_file : Table -> File_Format.Delimited -> File -> Match_Columns -> Prob
 append_to_file table format file match_columns on_problems =
     Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <|
         preexisting_headers = Delimited_Reader.detect_headers file format
-        reordered_table = case preexisting_headers of
-            No_Data -> table
-            Existing_Headers column_names ->
-            No_Headers column_count ->
-                case match_columns
-                    Match_Columns.By_Name ->
-                    Match_Columns.By_Position -> ???
+        reordered_java_table = case preexisting_headers of
+            No_Data -> table.java_table
+            Existing_Headers column_names -> case match_columns of
+                Match_Columns.By_Name ->
+                    ColumnMapper.mapColumnsByName table.java_table column_names.to_array
+                Match_Columns.By_Position ->
+                    column_count = column_names.length
+                    ColumnMapper.mapColumnsByPosition table.java_table column_count
+            No_Headers column_count -> case match_columns of
+                Match_Columns.By_Name ->
+                    Error.throw (Illegal_Argument_Error "Cannot append by name when headers are not present in the existing data.")
+                Match_Columns.By_Position ->
+                    ColumnMapper.mapColumnsByPosition table.java_table column_count
+        reordered_table = Table.Table reordered_java_table
         writing_new_file = preexisting_headers == No_Data
         amended_format = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers

@@ -295,7 +295,7 @@ public class DelimitedReader {
   }
 
   /** The column names as defined in the input (if applicable, otherwise null). */
-  private String[] definedColumnNames;
+  private String[] definedColumnNames = null;
 
   /** The effective column names.
    *
