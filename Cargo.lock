@@ -2323,6 +2323,7 @@ dependencies = [
  "ensogl-drop-manager",
  "ensogl-file-browser",
  "ensogl-flame-graph",
+ "ensogl-grid-view",
  "ensogl-label",
  "ensogl-list-view",
  "ensogl-scroll-area",
@@ -2655,6 +2656,19 @@ dependencies = [
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-grid-view"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-shadow",
+ "ensogl-text",
+ "itertools 0.10.3",
 ]
 
 [[package]]
