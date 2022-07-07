@@ -7,15 +7,12 @@ authors = ["Enso Team <contact@enso.org>"]
 [dependencies]
 derivative = "2.2"
 derive_more = "0.99"
-lexpr = { version = "0.2.6", optional = true }
 
 [dev-dependencies]
 bincode = "1.3"
-serde = { version = "1", features = ["derive"] }
 
 [features]
-default = ["graphviz", "java", "rust", "s_expr"]
+default = ["graphviz", "java", "rust"]
 graphviz = []
 java = []
 rust = []
-s_expr = ["lexpr"]

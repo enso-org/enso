@@ -2033,6 +2033,16 @@ dependencies = [
  "bincode",
  "derivative",
  "derive_more",
+]
+
+[[package]]
+name = "enso-metamodel-lexpr"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "derivative",
+ "enso-metamodel",
+ "enso-reflect",
  "lexpr",
  "serde",
 ]
@@ -2051,6 +2061,7 @@ dependencies = [
  "bincode",
  "enso-data-structures",
  "enso-metamodel",
+ "enso-metamodel-lexpr",
  "enso-parser-syntax-tree-builder",
  "enso-parser-syntax-tree-visitor",
  "enso-prelude",

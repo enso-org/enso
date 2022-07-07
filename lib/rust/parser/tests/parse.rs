@@ -81,7 +81,7 @@ fn function_block_simple_args() {
 // === Test Support ===
 // ====================
 
-use enso_metamodel::meta;
+use enso_metamodel_lexpr::ToSExpr;
 use enso_reflect::Reflect;
 use std::collections::HashSet;
 
@@ -89,7 +89,7 @@ use std::collections::HashSet;
 /// - The given code parses to the AST represented by the given S-expression.
 /// - The AST pretty-prints back to the original code.
 ///
-/// The S-expression format is as documented for [`enso_metamodel::meta::s_expr`], with some
+/// The S-expression format is as documented for [`enso_metamodel_lexpr`], with some
 /// postprocessing:
 /// - For concision, field names are stripped (as if all structs were tuple structs).
 /// - Most token types are represented as their contents, rather than as a token struct. For
@@ -111,17 +111,11 @@ fn test(code: &str, expect: lexpr::Value) {
 /// Produce an S-expression representation of the input AST type.
 pub fn to_s_expr<T>(value: &T, code: &str) -> lexpr::Value
 where T: serde::Serialize + Reflect {
-    use bincode::Options;
-    let bincoder = bincode::DefaultOptions::new().with_fixint_encoding();
-    let value_ = bincoder.serialize(&value).unwrap();
-
     let (graph, rust_to_meta) = enso_metamodel::rust::to_meta(value.reflect_type());
     let ast_ty = rust_to_meta[&value.reflect_type().id];
-
     let base = code.as_bytes().as_ptr() as usize;
     let code: Box<str> = Box::from(code);
-    let mut value_ = &value_[..];
-    let mut to_s_expr = meta::ToSExpr::new(&graph);
+    let mut to_s_expr = ToSExpr::new(&graph);
     to_s_expr.mapper(ast_ty, strip_hidden_fields);
     let ident_token = rust_to_meta[&enso_parser::syntax::token::variant::Ident::reflect().id];
     let operator_token = rust_to_meta[&enso_parser::syntax::token::variant::Operator::reflect().id];
@@ -138,20 +132,13 @@ where T: serde::Serialize + Reflect {
     to_s_expr.mapper(number_token, move |token| {
         lexpr::Value::Number(token_to_str_(token).parse::<u64>().unwrap().into())
     });
-
-    let s_expr = to_s_expr.value(ast_ty, &mut value_);
-    let s_expr = tuplify(s_expr);
-    assert_eq!(value_, &[0; 0], "{}", s_expr);
-    s_expr
+    tuplify(to_s_expr.value(ast_ty, &value))
 }
 
 /// Strip certain fields that should be excluded from output.
 fn strip_hidden_fields(tree: lexpr::Value) -> lexpr::Value {
-    let hidden_tree_fields = [
-        ":spanLeftOffsetVisible",
-        ":spanLeftOffsetCodeRepr",
-        ":spanCodeLength",
-    ];
+    let hidden_tree_fields =
+        [":spanLeftOffsetVisible", ":spanLeftOffsetCodeRepr", ":spanCodeLength"];
     let hidden_tree_fields: HashSet<_> = hidden_tree_fields.into_iter().collect();
     lexpr::Value::list(tree.to_vec().unwrap().into_iter().filter(|val| match val {
         lexpr::Value::Cons(cons) => match cons.car() {
