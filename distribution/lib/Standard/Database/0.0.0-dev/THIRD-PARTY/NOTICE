@@ -3,42 +3,42 @@ Copyright 2020 - 2022 New Byte Order sp. z o. o.
 
 'redshift-jdbc42', licensed under the Apache License, Version 2.0, is distributed with the Database.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.amazon.redshift.redshift-jdbc42-2.0.0.7`.
+Copyright notices related to this dependency can be found in the directory `com.amazon.redshift.redshift-jdbc42-2.1.0.8`.
 
 
 'aws-java-sdk-core', licensed under the Apache License, Version 2.0, is distributed with the Database.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.amazonaws.aws-java-sdk-core-1.12.58`.
+Copyright notices related to this dependency can be found in the directory `com.amazonaws.aws-java-sdk-core-1.12.239`.
 
 
 'aws-java-sdk-redshift', licensed under the Apache License, Version 2.0, is distributed with the Database.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.amazonaws.aws-java-sdk-redshift-1.12.58`.
+Copyright notices related to this dependency can be found in the directory `com.amazonaws.aws-java-sdk-redshift-1.12.239`.
 
 
 'jmespath-java', licensed under the Apache License, Version 2.0, is distributed with the Database.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.amazonaws.jmespath-java-1.12.58`.
+Copyright notices related to this dependency can be found in the directory `com.amazonaws.jmespath-java-1.12.239`.
 
 
 'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the Database.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.12.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.12.6`.
 
 
 'jackson-core', licensed under the The Apache Software License, Version 2.0, is distributed with the Database.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.12.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.12.6`.
 
 
 'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the Database.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.12.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.12.6.1`.
 
 
 'jackson-dataformat-cbor', licensed under the The Apache Software License, Version 2.0, is distributed with the Database.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.dataformat.jackson-dataformat-cbor-2.12.3`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.dataformat.jackson-dataformat-cbor-2.12.6`.
 
 
 'commons-codec', licensed under the Apache License, Version 2.0, is distributed with the Database.
@@ -73,12 +73,12 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'postgresql', licensed under the BSD-2-Clause, is distributed with the Database.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.postgresql.postgresql-42.2.19`.
+Copyright notices related to this dependency can be found in the directory `org.postgresql.postgresql-42.3.6`.
 
 
 'sqlite-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the Database.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.34.0`.
+Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.36.0.3`.
 
 
 'ion-java', licensed under the The Apache License, Version 2.0, is distributed with the Database.
