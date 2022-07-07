@@ -344,38 +344,38 @@ mod tests {
     #[test]
     fn building_component_list_with_favorites() {
         let logger = Logger::new("tests::building_component_list_with_favorites");
-        let suggestion_db = mock_suggestion_db(logger);
+        let db = mock_suggestion_db(logger);
         let mut builder = List::new();
-        let completion_ids = [0, 1, 2];
-        const SUGGESTION_NAME_NOT_IN_DB: &str = "test.Test.NameNotInSuggestionDb";
-        const SUGGESTION_NAME_NOT_IN_COMPLETION_IDS: &str = "test.Test.TopModule1.fun1";
-        const SUGGESTION_NAME_IN_COMPLETION_IDS: &str = "test.Test.TopModule1";
+        let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let qn_of_db_entry_3 = db.lookup(3).unwrap().qualified_name();
+        const QN_NOT_IN_DB: &str = "test.Test.NameNotInSuggestionDb";
+        assert_eq!(db.lookup_by_qualified_name_str(QN_NOT_IN_DB), None);
         let groups = [
             execution_context::ComponentGroup {
                 name:       "Group 1".into(),
                 color:      None,
                 components: vec![
-                    SUGGESTION_NAME_IN_COMPLETION_IDS.into(),
-                    SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
-                    SUGGESTION_NAME_NOT_IN_DB.into(),
-                    SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
-                    SUGGESTION_NAME_NOT_IN_DB.into(),
-                    SUGGESTION_NAME_IN_COMPLETION_IDS.into(),
+                    qn_of_db_entry_0.clone(),
+                    qn_of_db_entry_3.clone(),
+                    QN_NOT_IN_DB.into(),
+                    qn_of_db_entry_3.clone(),
+                    QN_NOT_IN_DB.into(),
+                    qn_of_db_entry_0.clone(),
                 ],
             },
             execution_context::ComponentGroup {
                 name:       "Group 2".into(),
                 color:      None,
                 components: vec![
-                    SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
-                    SUGGESTION_NAME_NOT_IN_DB.into(),
-                    SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
-                    SUGGESTION_NAME_NOT_IN_DB.into(),
+                    qn_of_db_entry_3.clone(),
+                    QN_NOT_IN_DB.into(),
+                    qn_of_db_entry_3.clone(),
+                    QN_NOT_IN_DB.into(),
                 ],
             },
         ];
-        builder.set_favorites(&suggestion_db, &groups);
-        builder.extend(&suggestion_db, completion_ids.into_iter());
+        builder.set_favorites(&db, &groups);
+        builder.extend(&db, [0, 1, 2].into_iter());
         let list = builder.build();
         let favorites: Vec<ComparableGroupData> = list.favorites.iter().map(Into::into).collect();
         let expected = vec![
