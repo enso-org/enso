@@ -44,13 +44,14 @@ fn application() {
 #[test]
 #[ignore]
 fn type_definition_bool() {
+    #[rustfmt::skip]
     let bool = [
         "type Bool",
         "    False",
-        "    True"
-    ].join("\n");
+        "    True",
+    ];
     let bool_ast = block![()];
-    test(&bool, bool_ast);
+    test(&bool.join("\n"), bool_ast);
 }
 
 #[test]
@@ -63,21 +64,22 @@ fn type_definition_geo() {
         "    Rectangle",
         "    width  : Float",
         "    height : Float",
-    ].join("\n");
+    ];
     let geo_ast = block![()];
-    test(&geo, geo_ast);
+    test(&geo.join("\n"), geo_ast);
 }
 
 #[test]
 #[ignore]
 fn type_definition_option() {
+    #[rustfmt::skip]
     let option = [
         "type Option a",
         "    Some elem:a",
         "    None",
-    ].join("\n");
+    ];
     let option_ast = block![()];
-    test(&option, option_ast);
+    test(&option.join("\n"), option_ast);
 }
 
 #[test]
@@ -89,10 +91,7 @@ fn assignment_simple() {
 fn function_inline_simple_args() {
     test("foo a = 23", block![(Function foo #((Ident a)) "=" (Number 23))]);
     test("foo a b = 23", block![(Function foo #((Ident a) (Ident b)) "=" (Number 23))]);
-    test(
-        "foo a b c = 23",
-        block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" (Number 23))],
-    );
+    test("foo a b c = 23", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" (Number 23))]);
 }
 
 #[test]
