@@ -4,8 +4,9 @@
 //! (which is what is used by `serde_lexpr` to derive an S-expression "format" for data).
 //!
 //! - A struct is represented as a list of its fields.
-//! - No typenames are emitted. For variant types, the discriminant is included before the fields.
+//! - No type names are emitted. For variant types, the discriminant is included before the fields.
 //! - Named fields are represented with the structure used for Lisp's `alist`s: `(name . value)`.
+//! - Field names are prefixed with ':'.
 //! - Sequence types like Rust's `Vec<_>` are represent with `lexpr` `Vector`s: `#(element element)`
 //! - An option prints the same way as its contained value in the `Some` case, or as an empty list
 //!   `()` in the `None` case.
@@ -13,7 +14,6 @@
 use crate::meta::*;
 
 use derivative::Derivative;
-use lexpr::Cons;
 use lexpr::Value;
 
 
@@ -46,33 +46,9 @@ impl<'g> ToSExpr<'g> {
     /// Given a bincode-serialized input, use its `meta` type info to transcribe it to an
     /// S-expression.
     pub fn value(&self, id: TypeId, data: &mut &[u8]) -> Value {
-        let ty = &self.graph[id];
-        let value = match &ty.data {
-            Data::Struct(_) => {
-                let mut out = vec![];
-                let mut hierarchy = vec![];
-                if !ty.discriminants.is_empty() {
-                    let discriminant = read_u32(data);
-                    let child = ty.discriminants[&(discriminant as usize)];
-                    let name = self.graph[child].name.to_pascal_case().into_boxed_str();
-                    out.push(Value::Symbol(name));
-                    hierarchy.push(child);
-                }
-                hierarchy.push(id);
-                let mut id = id;
-                while let Some(parent) = self.graph[id].parent {
-                    hierarchy.push(parent);
-                    id = parent;
-                }
-                self.fields(&mut hierarchy, data, &mut out);
-                assert_eq!(hierarchy, &[]);
-                Value::list(out)
-            }
+        match &self.graph[id].data {
+            Data::Struct(_) => self.struct_(id, data),
             Data::Primitive(primitive) => self.primitive(*primitive, data),
-        };
-        match self.mappers.get(&id) {
-            Some(mapper) => (mapper)(value),
-            None => value,
         }
     }
 }
@@ -81,6 +57,43 @@ impl<'g> ToSExpr<'g> {
 // === Implementation ===
 
 impl<'g> ToSExpr<'g> {
+    fn struct_(&self, id: TypeId, data: &mut &[u8]) -> Value {
+        let mut hierarchy = vec![];
+        let mut child = None;
+        let discriminants = &self.graph[id].discriminants;
+        if !discriminants.is_empty() {
+            let discriminant_index = read_u32(data);
+            let child_ = discriminants[&(discriminant_index as usize)];
+            hierarchy.push(child_);
+            child = Some(child_);
+        }
+        hierarchy.push(id);
+        let mut id_ = id;
+        while let Some(parent) = self.graph[id_].parent {
+            hierarchy.push(parent);
+            id_ = parent;
+        }
+        let mut out = vec![];
+        self.fields(&mut hierarchy, data, &mut out);
+        assert_eq!(hierarchy, &[]);
+        let mut value = Value::list(out);
+        if let Some(id) = child {
+            if let Some(mapper) = self.mappers.get(&id) {
+                value = (mapper)(value);
+                if !value.is_cons() {
+                    value = Value::cons(value, Value::Null);
+                }
+            };
+            let discriminant = self.graph[id].name.to_pascal_case().into_boxed_str();
+            let discriminant = Value::Symbol(discriminant);
+            value = Value::cons(discriminant, value);
+        }
+        if let Some(mapper) = self.mappers.get(&id) {
+            value = (mapper)(value);
+        }
+        value
+    }
+
     fn fields(&self, hierarchy: &mut Vec<TypeId>, data: &mut &[u8], out: &mut Vec<Value>) {
         let id = match hierarchy.pop() {
             Some(id) => id,
@@ -94,10 +107,10 @@ impl<'g> ToSExpr<'g> {
             self.fields(hierarchy, data, out);
         }
         for (i, field) in fields.iter().enumerate() {
-            if let Some(name) = field.name.to_camel_case() {
-                let car = Value::Symbol(name.into_boxed_str());
+            if !field.name.is_empty() {
+                let car = Value::Symbol(format!(":{}", field.name).into_boxed_str());
                 let cdr = self.value(field.type_, data);
-                out.push(Value::Cons(Cons::new(car, cdr)));
+                out.push(Value::cons(car, cdr));
             } else {
                 out.push(self.value(field.type_, data));
             }

@@ -42,6 +42,16 @@ fn application() {
 }
 
 #[test]
+fn type_definition_bool() {
+    test("type Bool", block![(TypeDef (Ident type) (Ident Bool) #())]);
+}
+
+#[test]
+fn type_definition_option() {
+    test("type Option a", block![(TypeDef (Ident type) (Ident Option) #((Ident a)))]);
+}
+
+#[test]
 fn assignment_simple() {
     test("foo = 23", block![(Assignment (Ident foo) "=" (Number 23))]);
 }
@@ -137,7 +147,11 @@ where T: serde::Serialize + Reflect {
 
 /// Strip certain fields that should be excluded from output.
 fn strip_hidden_fields(tree: lexpr::Value) -> lexpr::Value {
-    let hidden_tree_fields = ["spanLeftOffsetVisible", "spanLeftOffsetCodeRepr", "spanCodeLength"];
+    let hidden_tree_fields = [
+        ":spanLeftOffsetVisible",
+        ":spanLeftOffsetCodeRepr",
+        ":spanCodeLength",
+    ];
     let hidden_tree_fields: HashSet<_> = hidden_tree_fields.into_iter().collect();
     lexpr::Value::list(tree.to_vec().unwrap().into_iter().filter(|val| match val {
         lexpr::Value::Cons(cons) => match cons.car() {
@@ -151,13 +165,13 @@ fn strip_hidden_fields(tree: lexpr::Value) -> lexpr::Value {
 /// Given an S-expression representation of a [`Token`] and the base address for `Code` `Cow`s,
 /// return the range of the input code the token references.
 fn token_code_range(token: &lexpr::Value, base: usize) -> std::ops::Range<usize> {
-    let code_repr = fields(token).find(|(name, _)| *name == "codeRepr").unwrap().1;
+    let code_repr = fields(token).find(|(name, _)| *name == ":codeRepr").unwrap().1;
     let mut begin = None;
     let mut len = None;
     for (name, value) in fields(code_repr) {
         match name {
-            "begin" => begin = Some(value.as_u64().unwrap() as u32),
-            "len" => len = Some(value.as_u64().unwrap() as u32),
+            ":begin" => begin = Some(value.as_u64().unwrap() as u32),
+            ":len" => len = Some(value.as_u64().unwrap() as u32),
             _ => (),
         }
     }
@@ -173,7 +187,7 @@ fn token_code_range(token: &lexpr::Value, base: usize) -> std::ops::Range<usize>
 fn fields(value: &'_ lexpr::Value) -> impl Iterator<Item = (&'_ str, &'_ lexpr::Value)> {
     value.list_iter().unwrap().filter_map(|value| match value {
         lexpr::Value::Cons(cons) => match cons.car() {
-            lexpr::Value::Symbol(symbol) => Some((symbol.as_ref(), cons.cdr())),
+            lexpr::Value::Symbol(symbol) => Some((&symbol[..], cons.cdr())),
             _ => None,
         },
         _ => None,
@@ -195,10 +209,8 @@ fn tuplify(value: lexpr::Value) -> lexpr::Value {
         value => return value,
     };
     if let lexpr::Value::Symbol(symbol) = &car {
-        if let Some(c) = symbol.chars().next() {
-            if c.is_ascii_lowercase() {
-                return tuplify(cdr);
-            }
+        if let Some(':') = symbol.chars().next() {
+            return tuplify(cdr);
         }
     }
     let car = tuplify(car);
