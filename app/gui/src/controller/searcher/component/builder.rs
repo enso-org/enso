@@ -66,6 +66,7 @@ impl ModuleGroups {
 #[derive(Clone, Debug, Default)]
 pub struct List {
     all_components: Vec<Component>,
+    components_by_id: HashMap<component::Id, Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
     local_scope:    component::Group,
     favorites:      component::group::List,
