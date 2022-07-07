@@ -1,0 +1,91 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+import Standard.Base.Error.Problem_Behavior
+
+polyglot java import org.enso.base.Encoding_Utils
+polyglot java import java.nio.CharBuffer
+
+import Standard.Test
+import Standard.Test.Problems
+
+spec =
+    Test.group "ReportingStreamEncoder" <|
+        Test.specify "should allow writing a file codepoint by codepoint" <|
+            f = Enso_Project.data / "transient" / "char-by-char.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            contents = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
+            f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
+                stream.with_stream_encoder Encoding.utf_8 Problem_Behavior.Report_Error reporting_stream_encoder->
+                    contents.char_vector.each char->
+                        reporting_stream_encoder.write char
+            f.read_text.should_equal contents
+
+        Test.specify "should work correctly when writing chunks of varying sizes" <|
+            f = Enso_Project.data / "transient" / "varying-utf16.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            encoding = Encoding.utf_16_be
+            big = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
+            f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
+                    reporting_stream_encoder.write "A"
+                    reporting_stream_encoder.write "Abc"
+                    reporting_stream_encoder.write "Defghi"
+                    reporting_stream_encoder.write 'O\u0301'
+                    reporting_stream_encoder.write "X"
+                    reporting_stream_encoder.write big
+                    reporting_stream_encoder.write "Y"
+                    reporting_stream_encoder.write "Ź"
+
+            contents = 'AAbcDefghiO\u0301X' + big + "YŹ"
+            f.read_text encoding . should_equal contents
+
+        Test.specify "should allow writing a Windows file" <|
+            f = Enso_Project.data / "transient" / "windows.txt"
+            encoding = Encoding.windows_1252
+            contents = "Hello World! $¢¤¥"
+
+            f.delete_if_exists
+            f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error reporting_stream_encoder->
+                    reporting_stream_encoder.write contents
+
+            f.read_text encoding . should_equal contents
+
+        Test.specify "should raise warnings when writing characters that cannot be encoded and replace them with the Unicode replacement character or a question mark" <|
+            f = Enso_Project.data / "transient" / "ascii.txt"
+            encoding = Encoding.ascii
+            contents = 'Sło\u0301wka!'
+            f.delete_if_exists
+            result = f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
+                    reporting_stream_encoder.write contents
+            result . should_equal Nothing
+            Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at characters 1, 3."]
+            f.read_text encoding . should_equal "S?o?wka!"
+
+            f.delete_if_exists
+            result_2 = f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Warning reporting_stream_encoder->
+                    reporting_stream_encoder.write "ABC"
+                    reporting_stream_encoder.write "ą"
+                    reporting_stream_encoder.write "foo"
+                    reporting_stream_encoder.write " -🚧- "
+                    reporting_stream_encoder.write "bar"
+
+            result_2 . should_equal Nothing
+            Warning.get_all result_2 . map .value . should_equal [Encoding_Error "Encoding issues at characters 3, 9."]
+            f.read_text encoding . should_equal "ABC?foo -?- bar"
+
+        Test.specify "should work correctly if no data is written to it" <|
+            f = Enso_Project.data / "transient" / "empty.txt"
+            encoding = Encoding.ascii
+            f.delete_if_exists
+            result = f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
+                stream.with_stream_encoder encoding Problem_Behavior.Report_Error _->Nothing
+            result . should_equal Nothing
+            f.read_text encoding . should_equal ""
+
+main = Test.Suite.run_main here.spec
