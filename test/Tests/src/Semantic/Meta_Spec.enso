@@ -5,6 +5,7 @@ import Standard.Base.System.Platform
 import Standard.Test
 
 polyglot java import java.util.Random
+polyglot java import java.util.Locale as JavaLocale
 
 type My_Type foo bar baz
 
@@ -81,7 +82,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         _ -> Nothing
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:83:15-40"
+        loc = "Meta_Spec.enso:84:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|
@@ -93,5 +94,23 @@ spec = Test.group "Meta-Value Manipulation" <|
     Test.specify "should allow access to package names" <|
         enso_project.name.should_equal 'Tests'
         Base.enso_project.name.should_equal 'Base'
+
+    Test.specify "should correctly handle Java values" <|
+        java_meta = Meta.meta Random.new
+        java_meta . should_be_a Meta.Polyglot
+        java_meta . get_language . should_equal Meta.Java
+
+    Test.specify "should correctly handle equality of Java values" <|
+        a = JavaLocale.new "en"
+        b = JavaLocale.new "en"
+        c = JavaLocale.new "pl"
+
+        a==a . should_be_true
+        a==b . should_be_true
+        a==c . should_be_false
+
+        (Test_Type a)==(Test_Type a) . should_be_true
+        (Test_Type a)==(Test_Type b) . should_be_true
+        (Test_Type a)==(Test_Type c) . should_be_false
 
 main = Test.Suite.run_main spec

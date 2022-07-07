@@ -115,7 +115,7 @@ get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
    Returns the language with which a polyglot value is associated.
 Polyglot.get_language : Language
 Polyglot.get_language =
-    lang_str = get_polyglot_language
+    lang_str = get_polyglot_language self.value
     if lang_str == "java" then Java else Unknown
 
 # UnresolvedSymbol methods
