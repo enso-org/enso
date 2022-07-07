@@ -66,7 +66,8 @@ impl ModuleGroups {
 #[derive(Clone, Debug, Default)]
 pub struct List {
     all_components: Vec<Component>, // TODO[MC]: only keep component IDs at this stage?
-    components_by_id: HashMap<component::Id, Component>,
+    // TODO[MC]: use HashMap<component::Id, Component>
+    component_ids:  HashSet<component::Id>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
     local_scope:    component::Group,
     favorites:      component::group::List,
@@ -100,6 +101,7 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
+            self.component_ids.insert(*component.id);
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
