@@ -53,7 +53,7 @@
 - [New Version of the Node Searcher - the Component Browser][3530] The available
   methods, atoms and functions are presented in nice, categorized view. The most
   popular tools are available at hand. The The panel is unstable, and thus is
-  available under the `--enable-component-browser` flag.
+  available under the `--enable-new-component-browser` flag.
 
 #### EnsoGL (rendering engine)
 

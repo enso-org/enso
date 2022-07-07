@@ -155,7 +155,7 @@ pub enum SearcherVariant {
 
 impl SearcherVariant {
     fn new(app: &Application) -> Self {
-        if ARGS.enable_component_browser.unwrap_or(false) {
+        if ARGS.enable_new_component_browser.unwrap_or(false) {
             Self::ComponentBrowser(app.new_view::<component_browser::View>())
         } else {
             Self::OldNodeSearcher(Rc::new(app.new_view::<searcher::View>()))

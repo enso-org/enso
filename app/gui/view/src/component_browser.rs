@@ -1,7 +1,6 @@
 //! A module containing the Component Browser [`View`].
-//!
-//! This module should be extracted to a separate crate in the future; now it shares
-//! the documentation panel with old Node Searcher, that's why it must be in the view crate.
+// TODO[ao]: This module should be extracted to a separate crate in the future; now it shares
+//   the documentation panel with old Node Searcher, that's why it must be in the view crate.
 
 use crate::prelude::*;
 
@@ -76,6 +75,7 @@ impl component::Frp<Model> for Frp {
         model: &Model,
         style: &StyleWatchFrp,
     ) {
+        use crate::graph_editor::component::node::HEIGHT as NODE_HEIGHT;
         let network = &frp_api.network;
         let input = &frp_api.input;
         let out = &frp_api.output;
@@ -96,16 +96,23 @@ impl component::Frp<Model> for Frp {
                 let height = max(list_size.y, doc_size.y);
                 Vector2(width, height)
             });
-            list_position_x <- all_with(&size, &list_panel.size, |size, list_size| list_size.x / 2.0 - size.x / 2.0);
-            doc_position_x <- all_with(&size, &doc_size, |size, doc_size| size.x / 2.0 - doc_size.x / 2.0);
+            list_position_x <-
+                all_with(&size, &list_panel.size, |sz, list_sz| list_sz.x / 2.0 - sz.x / 2.0);
+            doc_position_x <- all_with(&size, &doc_size, |sz, doc_sz| sz.x / 2.0 - doc_sz.x / 2.0);
             eval list_position_x ((x) model.list.set_position_x(*x));
             eval doc_position_x ((x) model.documentation.set_position_x(*x));
 
             out.is_visible <+ bool(&input.hide, &input.show);
             out.size <+ size;
-            out.expression_input_position <+ all_with4(&list_panel.size, &list_position_x, &size, &gap, |list_size, list_x, size, gap| {
-                Vector2(*list_x - list_size.x / 6.0, - size.y / 2.0 - gap - crate::graph_editor::component::node::HEIGHT / 2.0)
-            });
+            out.expression_input_position <+ all_with4(
+                &list_panel.size,
+                &list_position_x,
+                &size,
+                &gap,
+                |list_sz, list_x, sz, gap| {
+                    Vector2(*list_x - list_sz.x / 6.0, - size.y / 2.0 - gap - NODE_HEIGHT / 2.0)
+                }
+            );
         }
         init.emit(());
     }
