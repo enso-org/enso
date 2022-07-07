@@ -168,8 +168,9 @@ impl List {
         }
     }
 
-    /// Build the list, sorting all group lists and groups' contents appropriately. (Does not sort
-    /// the [`component::List::favorites`].)
+    /// Build the list, sorting all group lists and groups' contents appropriately. Filter the
+    /// [`component::List::favorites`] (only components with IDs passed to [`extend`] are
+    /// retained), do not sort them.
     pub fn build(mut self) -> component::List {
         let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
