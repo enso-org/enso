@@ -40,4 +40,4 @@ spec =
             plus [6, 7] . should_equal 42
 
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

@@ -1,4 +1,4 @@
-import Standard.Base
+import Standard.Base.Data.Vector
 
 # Function types.
 type Function
