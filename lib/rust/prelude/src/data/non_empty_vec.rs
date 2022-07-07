@@ -14,7 +14,10 @@ use std::vec::Splice;
 
 /// A version of [`std::vec::Vec`] that can't be empty.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut)]
+#[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut, Reflect)]
+#[reflect(transparent)]
+#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Serialize))]
+#[cfg_attr(feature = "serde", derive(crate::serde_reexports::Deserialize))]
 pub struct NonEmptyVec<T> {
     pub elems: Vec<T>,
 }

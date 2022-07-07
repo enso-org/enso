@@ -1,0 +1,18 @@
+[package]
+name = "enso-reflect-macros"
+version = "0.1.0"
+edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "1.0", features = [
+  "full",
+  "extra-traits",
+  "printing",
+  "parsing"
+] }
