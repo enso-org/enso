@@ -71,7 +71,8 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
     // println!("{:#?}", name);
     // println!("\n\n------------- 2");
 
-    let params = v.nested().query("param").unwrap();
+    let no_params = vec![];
+    let params = v.nested().query("param").unwrap_or(&no_params);
     // println!("{:#?}", params);
     // println!("\n\n------------- 3");
 
