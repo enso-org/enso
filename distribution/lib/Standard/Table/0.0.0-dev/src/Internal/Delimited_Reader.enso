@@ -151,8 +151,8 @@ type Detected_Headers
    count.
 detect_headers : File -> File_Format.Delimited -> Detected_Headers
 detect_headers file format =
-    amended_format = format.clone row_limit=1
     on_problems = Ignore
+    ## TODO this is not a panic but dataflow error, we probably need Error.catch_by_type
     Panic.catch File.File_Not_Found handler=(_->No_Data) <|
         ## We use the default `max_columns` setting. If we want to be able to
            read files with unlimited column limits (risking OutOfMemory
@@ -160,11 +160,14 @@ detect_headers file format =
            reached and restart parsing with an increased limit.
         handle_io_exception file <| handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
             file.with_input_stream [File.Option.Read] stream->
-                stream.with_stream_decoder amended_format.encoding on_problems java_reader->
-                    reader = prepare_delimited_reader java_reader amended_format max_columns=default_max_columns on_problems
+                stream.with_stream_decoder format.encoding on_problems java_reader->
+                    reader = prepare_delimited_reader java_reader format max_columns=default_max_columns on_problems
                     defined_columns = reader.getDefinedColumnNames
                     case defined_columns of
-                        Nothing -> No_Headers reader.getColumnCount
+                        Nothing ->
+                            column_count = reader.getColumnCount
+                            if column_count == 0 then No_Data else
+                                No_Headers column_count
                         _ -> Existing_Headers (Vector.Vector defined_columns)
 
 ## PRIVATE
