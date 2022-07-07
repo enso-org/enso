@@ -39,4 +39,4 @@ spec = Test.group 'Unique_Name_Strategy Helper' <|
         strategy.renames.length . should_equal 2
         strategy.invalid_names.length . should_equal 0
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

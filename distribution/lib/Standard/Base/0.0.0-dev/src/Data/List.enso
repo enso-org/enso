@@ -196,7 +196,7 @@ type List
         Nil -> Nil
         Cons h t ->
             res = Cons (f h) Nil
-            here.map_helper t res f
+            map_helper t res f
             res
 
     ## Applies a function to each element of the list.
@@ -374,5 +374,5 @@ map_helper list cons f = case list of
     Cons h t ->
         res = Cons (f h) Nil
         Unsafe.set_atom_field cons 1 res
-        @Tail_Call here.map_helper t res f
+        @Tail_Call map_helper t res f
     Nil -> Unsafe.set_atom_field cons 1 Nil

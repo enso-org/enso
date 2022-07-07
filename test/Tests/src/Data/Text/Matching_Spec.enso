@@ -76,4 +76,4 @@ spec = Test.group 'Matching Helper' <|
         Test.expect_panic_with matcher=No_Such_Method_Error <|
             Text_Matcher.match_criteria ["a"] ["a"] name_mapper=_.nonexistent_function
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

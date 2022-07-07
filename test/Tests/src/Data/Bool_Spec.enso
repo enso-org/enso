@@ -27,19 +27,19 @@ spec =
             test.method . should_equal test
 
         Test.specify "should short-circuit ||" <|
-            (1 == 1) || (here.crash) . should_equal True
+            (1 == 1) || (crash) . should_equal True
             (1 == 0) || (1 == 1) . should_equal True
-            (1 == 0) || (here.crash) . should_fail_with My_Error
+            (1 == 0) || (crash) . should_fail_with My_Error
             (1 == 1) || "foo" . should_equal True
             (1 == 0) || "foo" . should_equal "foo"
 
         Test.specify "should short-circuit &&" <|
-            (1 == 0) && (here.crash) . should_equal False
+            (1 == 0) && (crash) . should_equal False
             (1 == 1) && (1 == 0) . should_equal False
             (1 == 1) && (1 == 1) . should_equal True
-            (1 == 1) && (here.crash) . should_fail_with My_Error
+            (1 == 1) && (crash) . should_fail_with My_Error
             (1 == 0) && "foo" . should_equal False
             (1 == 1) && "foo" . should_equal "foo"
 
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

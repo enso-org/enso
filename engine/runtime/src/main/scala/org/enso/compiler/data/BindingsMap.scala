@@ -144,11 +144,10 @@ case class BindingsMap(
       .map(ResolvedPolyglotSymbol(currentModule, _))
   }
 
-  private def findMethodCandidates(name: String): List[ResolvedName] = {
-    moduleMethods
-      .filter(_.name.toLowerCase == name.toLowerCase)
-      .map(ResolvedMethod(currentModule, _))
-  }
+  private def findMethodCandidates(
+    name: String
+  ): List[ResolvedName] =
+    moduleMethods.filter(_.name == name).map(ResolvedMethod(currentModule, _))
 
   private def findLocalCandidates(name: String): List[ResolvedName] = {
     val conses   = findConstructorCandidates(name)
@@ -214,7 +213,7 @@ case class BindingsMap(
   ): Either[ResolutionError, ResolvedTypeName] = {
     types.find(_.name == name) match {
       case Some(value) => Right(ResolvedType(currentModule, value))
-      case None        => resolveUppercaseName(name)
+      case None        => resolveName(name)
     }
   }
 
@@ -224,7 +223,7 @@ case class BindingsMap(
     * @return a resolution for `name` or an error, if the name could not be
     *         resolved.
     */
-  def resolveUppercaseName(
+  def resolveName(
     name: String
   ): Either[ResolutionError, ResolvedName] = {
     val local = findLocalCandidates(name)
@@ -249,11 +248,11 @@ case class BindingsMap(
   ): Either[ResolutionError, ResolvedName] =
     name match {
       case List()     => Left(ResolutionNotFound)
-      case List(item) => resolveUppercaseName(item)
+      case List(item) => resolveName(item)
       case firstModuleName :: rest =>
         val consName = rest.last
         val modNames = rest.init
-        resolveUppercaseName(firstModuleName).flatMap {
+        resolveName(firstModuleName).flatMap {
           case ResolvedModule(mod) =>
             val firstModBindings: BindingsMap = getBindingsFrom(mod)
             var currentModule                 = firstModBindings
@@ -274,7 +273,7 @@ case class BindingsMap(
   private def findExportedSymbolsFor(
     name: String
   ): List[ResolvedName] = {
-    exportedSymbols.getOrElse(name.toLowerCase, List())
+    exportedSymbols.getOrElse(name, List())
   }
 
   /** Resolves a name exported by this module.
@@ -904,8 +903,11 @@ object BindingsMap {
       moduleIr.flatMap(_.bindings.find {
         case method: IR.Module.Scope.Definition.Method.Explicit =>
           method.methodReference.methodName.name == this.method.name && method.methodReference.typePointer
-            .getMetadata(MethodDefinitions)
-            .contains(Resolution(ResolvedModule(module)))
+            .map(
+              _.getMetadata(MethodDefinitions)
+                .contains(Resolution(ResolvedModule(module)))
+            )
+            .getOrElse(true)
         case _ => false
       })
     }

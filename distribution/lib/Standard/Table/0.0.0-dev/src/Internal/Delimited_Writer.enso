@@ -36,14 +36,14 @@ write_file table format file on_existing_file on_problems =
             Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet."
         _ ->
             on_existing_file.write file stream->
-                here.write_to_stream table format stream on_problems related_file=file
+                write_to_stream table format stream on_problems related_file=file
 
 ## PRIVATE
    Returns a Text value representing the table in the delimited format.
 write_text : Table -> File_Format.Delimited -> Text
 write_text table format =
     java_writer = StringWriter.new
-    here.write_to_writer table format java_writer
+    write_to_writer table format java_writer
     java_writer.toString
 
 ## PRIVATE
@@ -66,7 +66,7 @@ write_to_stream table format stream on_problems related_file=Nothing =
 
     handle_io_exception <|
         stream.with_stream_encoder format.encoding on_problems reporting_stream_encoder->
-            here.write_to_writer table format reporting_stream_encoder
+            write_to_writer table format reporting_stream_encoder
 
 ## PRIVATE
    Writes data to the provided `Writer` according to the provided format.

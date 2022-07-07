@@ -265,6 +265,7 @@
 - [Drop Core implementation of IR][3512]
 - [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
+- [Remove `here` and make method name resolution case-sensitive][3531]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -296,6 +297,7 @@
 [3512]: https://github.com/enso-org/enso/pull/3512
 [3524]: https://github.com/enso-org/enso/pull/3524
 [3531]: https://github.com/enso-org/enso/pull/3531
+[3538]: https://github.com/enso-org/enso/pull/3538
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

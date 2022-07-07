@@ -66,7 +66,7 @@ new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (ver
 
          example_options = Http.options "http://httpbin.org"
 options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
-options uri (headers = []) = here.new.options uri headers
+options uri (headers = []) = new.options uri headers
 
 ## ALIAS GET Request
 
@@ -105,7 +105,7 @@ options uri (headers = []) = here.new.options uri headers
              res = Http.get "http://httpbin.org/bytes/1024"
              res.body.to_file out_file
 get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
-get uri (headers = []) = here.new.get uri headers
+get uri (headers = []) = new.get uri headers
 
 ## ALIAS Fetch Data
 
@@ -145,7 +145,7 @@ get uri (headers = []) = here.new.get uri headers
              res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
 fetch : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 fetch uri (headers = []) =
-    here.new.get uri headers . body
+    new.get uri headers . body
 
 ## Send a Head request.
 
@@ -160,7 +160,7 @@ fetch uri (headers = []) =
 
          example_head = Http.head "http://httpbin.org"
 head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
-head uri (headers = []) = here.new.options uri headers
+head uri (headers = []) = new.options uri headers
 
 ## ALIAS POST Request
 
@@ -184,7 +184,7 @@ head uri (headers = []) = here.new.options uri headers
              header_binary = Header.content_type "application/octet-stream"
              Http.post "http://httpbin.org/post" body [header_binary]
 post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
-post uri body (headers = []) = here.new.post uri body headers
+post uri body (headers = []) = new.post uri body headers
 
 ## Send a Post request with the form. By default it will be encoded as
    "application/x-www-form-urlencoded". To encode the form as
@@ -203,7 +203,7 @@ post uri body (headers = []) = here.new.post uri body headers
          import Standard.Base.Network.Http.Form
 
          example_post_form =
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
              Http.post_form "http://httpbin.org/post" form
 
    > Example
@@ -215,10 +215,10 @@ post uri body (headers = []) = here.new.post uri body headers
          import Standard.Base.Network.Http.Header
 
          example_post_form =
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
              Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
 post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
-post_form uri parts (headers = []) = here.new.post_form uri parts headers
+post_form uri parts (headers = []) = new.post_form uri parts headers
 
 ## Send a Post request with body with content-type "application/json".
 
@@ -237,7 +237,7 @@ post_form uri parts (headers = []) = here.new.post_form uri parts headers
              json = Json.parse '{"key":"val"}'
              Http.post_json "http://httpbin.org/post" json
 post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
-post_json uri body_json (headers = []) = here.new.post_json uri body_json headers
+post_json uri body_json (headers = []) = new.post_json uri body_json headers
 
 ## ALIAS PUT Request
 
@@ -261,7 +261,7 @@ post_json uri body_json (headers = []) = here.new.post_json uri body_json header
              header_binary = Header.content_type "application/octet-stream"
              Http.put "http://httpbin.org/put" body [header_binary]
 put : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
-put uri body (headers = []) = here.new.put uri body headers
+put uri body (headers = []) = new.put uri body headers
 
 ## Send a Put request with body with content-type "application/json".
 
@@ -280,7 +280,7 @@ put uri body (headers = []) = here.new.put uri body headers
              json = Json.parse '{"key":"val"}'
              HTTP.put_json "http://httpbin.org/put" json
 put_json : (Text | Uri) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
-put_json uri body_json (headers = []) = here.new.put_json uri body_json headers
+put_json uri body_json (headers = []) = new.put_json uri body_json headers
 
 type Http
 
@@ -411,7 +411,7 @@ type Http
              import Standard.Examples
 
              example_post_form =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  Examples.http_client.post_form "http://httpbin.org/post" form
 
        > Example
@@ -423,7 +423,7 @@ type Http
              import Standard.Examples
 
              example_post_form =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  Examples.http_client.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
     post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
     post_form uri parts (headers = []) =
@@ -559,7 +559,7 @@ type Http
              import Standard.Examples
 
              example_request =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  req = Request.post "http://httpbin.org/post" Body.Empty . with_form form
                  Examples.http_client.request req
 
@@ -574,7 +574,7 @@ type Http
              import Standard.Examples
 
              example_request =
-                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  req = Request.post "http://httpbin.org/post" Body.Empty
                  with_form = req.with_form form
                  with_headers = with_form.with_headers [Header.multipart_form_data]
@@ -650,7 +650,7 @@ type Http
                     req.headers.map h-> builder.header h.name h.value
             http_request = builder.build
             body_handler = HttpResponse.BodyHandlers . ofByteArray
-            Response.response (self.internal_http_client.send http_request body_handler)
+            Response.Response (self.internal_http_client.send http_request body_handler)
         response.catch e-> case e of
             Polyglot_Error err ->
                 Error.throw (Request_Error err.getClass.getSimpleName err.getMessage)
@@ -664,7 +664,7 @@ type Http
     internal_http_client =
         builder = HttpClient.newBuilder
         # timeout
-        if self.timeout.is_date then Panic.throw (Time.time_error "Connection timeout does not support date intervals") else
+        if self.timeout.is_date then Panic.throw (Time.Time_Error "Connection timeout does not support date intervals") else
             builder.connectTimeout self.timeout.internal_duration
         # redirect
         redirect = HttpClient.Redirect

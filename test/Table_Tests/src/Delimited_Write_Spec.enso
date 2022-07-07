@@ -29,7 +29,7 @@ spec =
     Test.group "Delimited File Writing" <|
         Test.specify "should correctly write a simple table" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type 10]]]
-            file = (Enso_Project.data / "transient" / "written.csv")
+            file = (enso_project.data / "transient" / "written.csv")
             file.delete_if_exists
             table.write file
             expected_text = """
@@ -43,7 +43,7 @@ spec =
         Test.specify 'should quote values that contain the delimiter or quotes, in the [,""] variant' <|
             data_formatter = Data_Formatter decimal_point=","
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
-            file = (Enso_Project.data / "transient" / "quotes1.csv")
+            file = (enso_project.data / "transient" / "quotes1.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited "," value_formatter=data_formatter)
             expected_text = """
@@ -58,7 +58,7 @@ spec =
         Test.specify 'should quote values that contain the delimiter or quotes, in the [;\\\"] variant' <|
             data_formatter = Data_Formatter thousand_separator="'"
             table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b"]], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing]]]
-            file = (Enso_Project.data / "transient" / "quotes2.csv")
+            file = (enso_project.data / "transient" / "quotes2.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\')
             expected_text = """
@@ -74,7 +74,7 @@ spec =
         Test.specify "should quote values that contain the delimiter or quotes, in the [\t''] variant" <|
             data_formatter = Data_Formatter thousand_separator="'"
             table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2]]]
-            file = (Enso_Project.data / "transient" / "quotes3.csv")
+            file = (enso_project.data / "transient" / "quotes3.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'')
             expected_text = '''
@@ -88,7 +88,7 @@ spec =
 
         Test.specify "should correctly distinguish empty text from a missing value" <|
             table = Table.new [["A", [1,Nothing,3]], ["B", [Nothing,"","abc"]]]
-            file = (Enso_Project.data / "transient" / "empty_vs_null.csv")
+            file = (enso_project.data / "transient" / "empty_vs_null.csv")
             file.delete_if_exists
             table.write file
             expected_text = """
@@ -102,7 +102,7 @@ spec =
         Test.specify 'should not quote values if quoting is disabled' <|
             format = File_Format.Delimited "," value_formatter=(Data_Formatter decimal_point=",") . without_quotes
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
-            file = (Enso_Project.data / "transient" / "quote_disabled.csv")
+            file = (enso_project.data / "transient" / "quote_disabled.csv")
             file.delete_if_exists
             table.write file format
             expected_text = """
@@ -117,7 +117,7 @@ spec =
         Test.specify 'should allow to always quote text and custom values, but for non-text primitves only if absolutely necessary' <|
             format = File_Format.Delimited "," value_formatter=(Data_Formatter thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type 44, (Date.new 2022 06 21 . internal_local_date), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55 . internal_local_time), Nothing, Nothing]]]
-            file = (Enso_Project.data / "transient" / "quote_always.csv")
+            file = (enso_project.data / "transient" / "quote_always.csv")
             file.delete_if_exists
             table.write file format
             expected_text = """
@@ -131,7 +131,7 @@ spec =
 
         Test.specify "should correctly handle alternative encodings" <|
             table = Table.new [["ąęćś", [0]], ["ß", ["żółw 🐢"]]]
-            file = (Enso_Project.data / "transient" / "utf16.csv")
+            file = (enso_project.data / "transient" / "utf16.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited "," encoding=Encoding.utf_16_be)
             expected_text = """
@@ -142,7 +142,7 @@ spec =
 
         Test.specify "should correctly handle encoding errors" <|
             table = Table.new [["A", [0, 1]], ["B", ["słówka", "🐢"]]]
-            file = (Enso_Project.data / "transient" / "ascii.csv")
+            file = (enso_project.data / "transient" / "ascii.csv")
             file.delete_if_exists
             result = table.write file (File_Format.Delimited "," encoding=Encoding.ascii)
             expected_text = """
@@ -157,7 +157,7 @@ spec =
         Test.specify "should allow only text columns if no formatter is specified" <|
             format = File_Format.Delimited "," value_formatter=Nothing
             table_1 = Table.new [["A", ["x", "y"]], ["B", ["z", "w"]]]
-            file_1 = (Enso_Project.data / "transient" / "textonly.csv")
+            file_1 = (enso_project.data / "transient" / "textonly.csv")
             file_1.delete_if_exists
             result_1 = table_1.write file_1 format
             expected_text = """
@@ -169,11 +169,11 @@ spec =
             result_1 . should_equal Nothing
 
             table_2 = Table.new [["A", [1, 2]], ["B", ["z", "w"]]]
-            file_2 = (Enso_Project.data / "transient" / "non-text_but_no_formatter.csv")
+            file_2 = (enso_project.data / "transient" / "non-text_but_no_formatter.csv")
             file_2.delete_if_exists
             result_2 = table_2.write file_2 format
             result_2 . should_fail_with Illegal_Argument_Error
             text_2 = File.read_text file_2
             text_2.should_equal ""
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

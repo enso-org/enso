@@ -13,7 +13,7 @@ from Standard.Database.Error as Database_Errors import Unsupported_Database_Oper
    The dialect of SQLite databases.
 sqlite : Dialect
 sqlite =
-    Sqlite_Dialect here.make_internal_generator_dialect
+    Sqlite_Dialect make_internal_generator_dialect
 
 ## PRIVATE
 
@@ -42,7 +42,7 @@ type Sqlite_Dialect
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
-    resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
+    resolve_target_sql_type aggregate = resolve_target_sql_type aggregate
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -68,9 +68,9 @@ type Sqlite_Dialect
 
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [here.starts_with, here.contains, here.ends_with]+here.concat_ops
-    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
-    stats = [here.agg_stddev_pop, here.agg_stddev_samp]
+    text = [starts_with, contains, ends_with]+concat_ops
+    counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
+    stats = [agg_stddev_pop, agg_stddev_samp]
     my_mappings = text + counts + stats
     Base_Generator.base_dialect . extend_with my_mappings
 
@@ -82,24 +82,24 @@ resolve_target_sql_type aggregate = case aggregate of
     Count _ -> Sql_Type.integer
     Count_Distinct columns _ _ ->
         if columns.length == 1 then Sql_Type.integer else
-            here.unsupported "Count_Distinct on multiple columns"
+            unsupported "Count_Distinct on multiple columns"
     Count_Not_Nothing _ _ -> Sql_Type.integer
     Count_Nothing _ _ -> Sql_Type.integer
     Count_Not_Empty _ _ -> Sql_Type.integer
     Count_Empty _ _ -> Sql_Type.integer
-    Percentile _ _ _ -> here.unsupported "Percentile"
-    Mode _ _ -> here.unsupported "Mode"
-    First _ _ _ _ -> here.unsupported "First"
-    Last _ _ _ _ -> here.unsupported "Last"
+    Percentile _ _ _ -> unsupported "Percentile"
+    Mode _ _ -> unsupported "Mode"
+    First _ _ _ _ -> unsupported "First"
+    Last _ _ _ _ -> unsupported "Last"
     Maximum c _ -> c.sql_type
     Minimum c _ -> c.sql_type
-    Shortest _ _ -> here.unsupported "Shortest"
-    Longest _ _ -> here.unsupported "Longest"
+    Shortest _ _ -> unsupported "Shortest"
+    Longest _ _ -> unsupported "Longest"
     Standard_Deviation _ _ _ -> Sql_Type.real
     Concatenate _ _ _ _ _ _ -> Sql_Type.text
     Sum c _ -> c.sql_type
     Average _ _ -> Sql_Type.real
-    Median _ _ -> here.unsupported "Median"
+    Median _ _ -> unsupported "Median"
 
 ## PRIVATE
 unsupported name =
@@ -138,11 +138,11 @@ agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
    future implementation.
 first_last_aggregators =
     first_value = "first_value"
-    first = here.window_aggregate first_value ignore_null=False
-    first_not_null = here.window_aggregate first_value ignore_null=True
+    first = window_aggregate first_value ignore_null=False
+    first_not_null = window_aggregate first_value ignore_null=True
     last_value = "last_value"
-    last = here.window_aggregate last_value ignore_null=False
-    last_not_null = here.window_aggregate last_value ignore_null=True
+    last = window_aggregate last_value ignore_null=False
+    last_not_null = window_aggregate last_value ignore_null=True
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
 ## PRIVATE
@@ -160,7 +160,7 @@ window_aggregate window_type ignore_null args =
 concat_ops =
     make_raw_concat_expr expr separator =
         Sql.code "group_concat(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
-    concat = Helpers.make_concat make_raw_concat_expr here.make_contains_expr
+    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
@@ -193,4 +193,4 @@ make_contains_expr expr substring =
     Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "contains" here.make_contains_expr
+contains = Base_Generator.lift_binary_op "contains" make_contains_expr

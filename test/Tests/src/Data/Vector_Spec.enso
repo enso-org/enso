@@ -37,7 +37,7 @@ spec = Test.group "Vectors" <|
         Vector.fill 100 1 . fold (0) (+) . should_equal 100
 
     Test.specify "should allow creation from arrays without mutability" <|
-        built = Vector.from_array here.generate_js_array
+        built = Vector.from_array generate_js_array
         built . should_equal [1, 2, 3, 4, 5]
 
     Test.specify "should allow accessing elements" <|
@@ -278,7 +278,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow tail-recursive comparators in sort" <|
          v = [Foo [4,2,2], Foo [1,2,3], Foo [1,2,4]]
          r = [Foo [1,2,3], Foo [1,2,4], Foo [4,2,2]]
-         v.sort by=here.compare_tco . should_equal r
+         v.sort by=compare_tco . should_equal r
 
     Test.specify "should be able to use a custom comparator and projection" <|
         small_vec = [T 1 8, T 1 3, T -20 0, T -1 1, T -1 10, T 4 0]
@@ -355,4 +355,4 @@ spec = Test.group "Vectors" <|
         expected = "abet".utf_8
         input.sort . should_equal expected
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

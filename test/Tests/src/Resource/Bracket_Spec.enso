@@ -53,4 +53,4 @@ spec = Test.group "Resource.bracket" <|
         r_3 = Panic.recover Any <| Resource.bracket 42 (_-> Nothing) (_-> Panic.throw "action")
         r_3.catch . should_equal "action"
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec
