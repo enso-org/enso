@@ -65,7 +65,7 @@ impl ModuleGroups {
 /// groups.
 #[derive(Clone, Debug, Default)]
 pub struct List {
-    all_components: Vec<Component>,
+    all_components: Vec<Component>, // TODO[MC]: only keep component IDs at this stage?
     components_by_id: HashMap<component::Id, Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
     local_scope:    component::Group,
