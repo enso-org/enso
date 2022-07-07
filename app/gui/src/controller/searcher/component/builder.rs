@@ -138,7 +138,8 @@ impl List {
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
         for group in &*self.favorites {
-            // TODO[MC]: can we delete this code, due to only showing IDs of completions returned by Engine?
+            // TODO[MC]: can we delete this code, due to only showing IDs of completions returned by
+            // Engine?
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
     }
@@ -349,8 +350,8 @@ mod tests {
         const SUGGESTION_NAME_IN_COMPLETION_IDS: &str = "test.Test.TopModule1";
         let groups = [
             execution_context::ComponentGroup {
-                name: "Group 1".into(),
-                color: None,
+                name:       "Group 1".into(),
+                color:      None,
                 components: vec![
                     SUGGESTION_NAME_IN_COMPLETION_IDS.into(),
                     SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
@@ -361,8 +362,8 @@ mod tests {
                 ],
             },
             execution_context::ComponentGroup {
-                name: "Group 2".into(),
-                color: None,
+                name:       "Group 2".into(),
+                color:      None,
                 components: vec![
                     SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
                     SUGGESTION_NAME_NOT_IN_DB.into(),
@@ -377,14 +378,14 @@ mod tests {
         let favorites: Vec<ComparableGroupData> = list.favorites.iter().map(Into::into).collect();
         let expected = vec![
             ComparableGroupData {
-                name: "Group 1",
+                name:         "Group 1",
                 component_id: None,
-                entries: vec![0, 0],
+                entries:      vec![0, 0],
             },
             ComparableGroupData {
-                name: "Group 2",
+                name:         "Group 2",
                 component_id: None,
-                entries: vec![],
+                entries:      vec![],
             },
         ];
         assert_eq!(favorites, expected);
