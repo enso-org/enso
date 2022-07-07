@@ -561,8 +561,8 @@ case object AliasAnalysis extends IRPass {
     * @param name the name to analyse
     * @param isInPatternContext whether or not the name is occurring in a
     *                           pattern context
-    * @param isConstructorNameInPatternContext whether or not the name is a constructor name occurring in a
-    *                           pattern context
+    * @param isConstructorNameInPatternContext whether or not the name is
+    *                           constructor name occurring in a pattern context
     * @param graph the graph in which the analysis is taking place
     * @param parentScope the scope in which `name` is delcared
     * @return `name`, with alias analysis information attached
