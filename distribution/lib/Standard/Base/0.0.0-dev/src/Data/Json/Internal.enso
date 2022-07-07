@@ -57,7 +57,7 @@ type Consumer
     on_start_object : Nothing
     on_start_object =
         parent = self.child_consumer . get
-        self.child_consumer . put (here.mk_object_consumer parent)
+        self.child_consumer . put (mk_object_consumer parent)
 
     ## PRIVATE
 
@@ -80,7 +80,7 @@ type Consumer
     on_start_array : Nothing
     on_start_array =
         parent = self.child_consumer . get
-        self.child_consumer . put (here.mk_array_consumer parent)
+        self.child_consumer . put (mk_array_consumer parent)
 
     ## PRIVATE
 
@@ -253,7 +253,7 @@ render_helper builder json = case json of
         render_key_value acc key value =
             separator = r . get
             r.put ","
-            val = here.render_helper "" value
+            val = render_helper "" value
             acc + separator + (Printer.json_escape key) + ":" + val
         arr = fields.fold_with_key "" render_key_value
         builder + "{" + arr + "}"
@@ -262,7 +262,7 @@ render_helper builder json = case json of
         render_array_element acc element =
             separator = r.get
             r.put ","
-            val = here.render_helper "" element
+            val = render_helper "" element
             acc + separator + val
         arr = items.fold "" render_array_element
         builder + "[" + arr + "]"
@@ -288,7 +288,7 @@ render_helper builder json = case json of
 into_helper : Any -> Json -> Any
 into_helper fmt json = case fmt of
     Base.Vector.Vector field -> case json of
-        Array items -> items.map (here.into_helper field)
+        Array items -> items.map (into_helper field)
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     Base.Boolean -> case json of
         Boolean v -> v
@@ -310,7 +310,7 @@ into_helper fmt json = case fmt of
                     field_values = fnames.zip ffmts n-> inner_fmt->
                         fjson = json_fields . get n . catch _->
                             Panic.throw (Missing_Field_Error json fmt n)
-                        here.into_helper inner_fmt fjson
+                        into_helper inner_fmt fjson
                     cons.new field_values
                 _ -> Panic.throw (Type_Mismatch_Error json fmt)
             _ -> Panic.throw (Type_Mismatch_Error json fmt)
@@ -323,6 +323,6 @@ into_helper fmt json = case fmt of
    - json_text: The textual representation of the JSON.
 parse_helper : Text -> Json
 parse_helper json_text =
-    consumer = here.mk_consumer
+    consumer = mk_consumer
     Parser.parse json_text consumer
     consumer.value . get

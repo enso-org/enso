@@ -91,7 +91,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         Meta.get_qualified_type_name y . should_equal "enso_dev.Tests.Semantic.Meta_Spec.My_Type"
 
     Test.specify "should allow access to package names" <|
-        Enso_Project.name.should_equal 'Tests'
+        enso_project.name.should_equal 'Tests'
         Base.enso_project.name.should_equal 'Base'
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

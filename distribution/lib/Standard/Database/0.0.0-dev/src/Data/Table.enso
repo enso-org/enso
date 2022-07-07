@@ -59,7 +59,7 @@ type Table
         df = self.reset_index.to_dataframe max_rows=show_rows
         indices_count = self.context.meta_index.length
         all_rows_count = self.row_count
-        here.display_dataframe df indices_count all_rows_count format_terminal
+        display_dataframe df indices_count all_rows_count format_terminal
 
     ## UNSTABLE
 
@@ -569,7 +569,7 @@ type Table
             # Ensure that the join indices (which are not directly visible to the user, but must be materialized in the sub-query)
             # get a fresh set of names, so that they do not collide with other parts of the query.
             left_used_names = self.internal_columns_with_index.map .name
-            left_join_index_fresh = here.freshen_columns left_used_names left_join_index
+            left_join_index_fresh = freshen_columns left_used_names left_join_index
 
             # Create subqueries that encapsulate the original queries and provide needed columns.
             # We only include the meta_index from the left table, because only this one will be kept in the result.
@@ -592,16 +592,16 @@ type Table
             # Generate new names for all columns (including the indices) that will be retained in the created Table.
             left_names_before = (left_new_meta_index + left_new_columns).map .name
             right_names_before = right_new_columns.map .name
-            new_names = here.combine_names left_names_before right_names_before left_suffix right_suffix
+            new_names = combine_names left_names_before right_names_before left_suffix right_suffix
             left_indices_count = left_new_meta_index.length
             left_new_meta_index_names = new_names.first.take_start left_indices_count
             left_new_columns_names = new_names.first.drop_start left_indices_count
             right_new_columns_names = new_names.second
 
             # Rename columns to the newly allocated names
-            new_index = here.internal_rename_columns left_new_meta_index left_new_meta_index_names
-            left_renamed_columns = here.internal_rename_columns left_new_columns left_new_columns_names
-            right_renamed_columns = here.internal_rename_columns right_new_columns right_new_columns_names
+            new_index = internal_rename_columns left_new_meta_index left_new_meta_index_names
+            left_renamed_columns = internal_rename_columns left_new_columns left_new_columns_names
+            right_renamed_columns = internal_rename_columns right_new_columns right_new_columns_names
             new_columns = left_renamed_columns + right_renamed_columns
 
             on_exprs = left_new_join_index.zip right_new_join_index l-> r->
@@ -795,7 +795,7 @@ type Table
         # TODO [RW] Many places assume that index names are distinct from column names, so when creating a column from
         # index we need to ensure that the names do not collide. In the future we may consider trying to get rid of
         # these distinctness assumptions, to avoid this renaming.
-        ixes = here.freshen_columns [internal.name] self.context.meta_index
+        ixes = freshen_columns [internal.name] self.context.meta_index
         new_ctx = self.context.set_index ixes
         Column internal.name self.connection internal.sql_type internal.expression new_ctx
 
@@ -915,7 +915,7 @@ type Table
              example_to_csv =
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
                  table = connection.access_table "Table"
-                 table.write (Enso_Project.data / "example_csv_output.csv")
+                 table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
@@ -1075,6 +1075,6 @@ internal_rename_columns columns new_names =
    columns are renamed.
 freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Column
 freshen_columns used_names columns =
-    fresh_names = here.fresh_names used_names (columns.map .name)
-    here.internal_rename_columns columns fresh_names
+    new_names = fresh_names used_names (columns.map .name)
+    internal_rename_columns columns new_names
 

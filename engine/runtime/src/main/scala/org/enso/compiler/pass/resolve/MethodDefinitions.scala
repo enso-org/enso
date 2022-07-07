@@ -50,7 +50,7 @@ case object MethodDefinitions extends IRPass {
       case method: IR.Module.Scope.Definition.Method =>
         val methodRef = method.methodReference
         val resolvedTypeRef =
-          resolveType(methodRef.typePointer, availableSymbolsMap)
+          methodRef.typePointer.map(resolveType(_, availableSymbolsMap))
         val resolvedMethodRef = methodRef.copy(typePointer = resolvedTypeRef)
 
         method match {
@@ -92,16 +92,10 @@ case object MethodDefinitions extends IRPass {
     availableSymbolsMap: BindingsMap
   ): IR.Name = {
     typePointer match {
-      case tp: IR.Name.Here =>
-        tp.updateMetadata(
-          this -->> BindingsMap.Resolution(
-            BindingsMap.ResolvedModule(availableSymbolsMap.currentModule)
-          )
-        )
       case _: IR.Name.Qualified | _: IR.Name.Literal =>
         val items = typePointer match {
-          case IR.Name.Qualified(names, _, _, _)    => names.map(_.name)
-          case IR.Name.Literal(name, _, _, _, _, _) => List(name)
+          case IR.Name.Qualified(names, _, _, _) => names.map(_.name)
+          case IR.Name.Literal(name, _, _, _, _) => List(name)
           case _ =>
             throw new CompilerError("Impossible to reach.")
         }

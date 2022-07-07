@@ -24,7 +24,7 @@ main =
     faker = Faker.new fixed_random_seed
 
     IO.println <| "Creating unsorted vector"
-    unsorted = 0.up_to here.vector_size . map _->(faker.string_value template)
+    unsorted = 0.up_to vector_size . map _->(faker.string_value template)
 
     IO.println <| "Benchmarking..."
-    Bench.measure (unsorted.sort by=Natural_Order.compare) "Natural Order" here.iter_size here.num_iterations
+    Bench.measure (unsorted.sort by=Natural_Order.compare) "Natural Order" iter_size num_iterations

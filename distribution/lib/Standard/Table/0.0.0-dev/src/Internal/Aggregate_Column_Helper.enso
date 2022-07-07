@@ -51,7 +51,7 @@ prepare_aggregate_columns aggregates table =
     problem_builder = Problem_Builder.new
 
     # Validate and resolve the columns
-    valid_resolved_aggregate_columns = aggregates.map (here.resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
+    valid_resolved_aggregate_columns = aggregates.map (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 
     # Grouping Key
     is_a_key c = case c of
@@ -69,7 +69,7 @@ prepare_aggregate_columns aggregates table =
     pass_1 = valid_resolved_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
     renamed_columns = pass_1.map_with_index i->name->
         agg = valid_resolved_aggregate_columns.at i
-        new_name = name.if_nothing (unique.make_unique (here.default_aggregate_column_name agg))
+        new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
         Pair new_name agg
 
     # Build Problems Output

@@ -25,7 +25,7 @@ system = Zone ZoneId.systemDefault
 
          example_local = Zone.local
 local : Zone
-local = here.system
+local = system
 
 ## ALIAS UTC Time Zone
 
@@ -38,7 +38,7 @@ local = here.system
 
          example_utc = Zone.utc
 utc : Zone
-utc = here.parse "UTC"
+utc = parse "UTC"
 
 ## Obtains an instance of `Zone` using an offset in hours, minutes and seconds
    from the UTC zone.

@@ -14,7 +14,7 @@ all_character_sets =
 ## Get all available Encodings.
 all_encodings : Vector Encoding
 all_encodings =
-    here.all_character_sets . map Encoding
+    all_character_sets.map Encoding
 
 ## Represents a character encoding.
 type Encoding

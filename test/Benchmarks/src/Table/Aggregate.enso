@@ -28,28 +28,28 @@ create_table rows (seed=1646322139) =
 # The Benchmarks ==============================================================
 main =
     IO.println <| "Making table data..."
-    table = here.create_table here.vector_size
+    table = create_table vector_size
 
-    Bench.measure (table.aggregate [Count Nothing]) "Count table" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Maximum "ValueWithNothing"]) "Max table" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Sum "ValueWithNothing"]) "Sum table" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Count_Distinct "Index"]) "Count Distinct table" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Standard_Deviation "Value"]) "StDev table" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Median "Value"]) "Median table" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Mode "Index"]) "Mode table" here.iter_size here.num_iterations
+    Bench.measure (table.aggregate [Count Nothing]) "Count table" iter_size num_iterations
+    Bench.measure (table.aggregate [Maximum "ValueWithNothing"]) "Max table" iter_size num_iterations
+    Bench.measure (table.aggregate [Sum "ValueWithNothing"]) "Sum table" iter_size num_iterations
+    # Bench.measure (table.aggregate [Count_Distinct "Index"]) "Count Distinct table" iter_size num_iterations
+    Bench.measure (table.aggregate [Standard_Deviation "Value"]) "StDev table" iter_size num_iterations
+    # Bench.measure (table.aggregate [Median "Value"]) "Median table" iter_size num_iterations
+    # Bench.measure (table.aggregate [Mode "Index"]) "Mode table" iter_size num_iterations
 
-    Bench.measure (table.aggregate [Group_By "Index", Count Nothing]) "Count grouped" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Maximum "ValueWithNothing"]) "Max table" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Sum "ValueWithNothing"]) "Sum table" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Count_Distinct "Code"]) "Count Distinct grouped" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Standard_Deviation "Value"]) "StDev grouped" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Median "Value"]) "Median grouped" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Mode "Index"]) "Mode grouped" here.iter_size here.num_iterations
+    Bench.measure (table.aggregate [Group_By "Index", Count Nothing]) "Count grouped" iter_size num_iterations
+    Bench.measure (table.aggregate [Group_By "Index", Maximum "ValueWithNothing"]) "Max table" iter_size num_iterations
+    Bench.measure (table.aggregate [Group_By "Index", Sum "ValueWithNothing"]) "Sum table" iter_size num_iterations
+    # Bench.measure (table.aggregate [Group_By "Index", Count_Distinct "Code"]) "Count Distinct grouped" iter_size num_iterations
+    Bench.measure (table.aggregate [Group_By "Index", Standard_Deviation "Value"]) "StDev grouped" iter_size num_iterations
+    # Bench.measure (table.aggregate [Group_By "Index", Median "Value"]) "Median grouped" iter_size num_iterations
+    # Bench.measure (table.aggregate [Group_By "Index", Mode "Index"]) "Mode grouped" iter_size num_iterations
 
-    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Count Nothing]) "Count 2 level groups" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Maximum "ValueWithNothing"]) "Max table" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Sum "ValueWithNothing"]) "Sum table" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Count_Distinct "Code"]) "Count Distinct 2 level groups" here.iter_size here.num_iterations
-    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value"]) "StDev 2 level groups" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Median "Value"]) "Median 2 level groups" here.iter_size here.num_iterations
-    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Mode "Index"]) "Mode 2 level groups" here.iter_size here.num_iterations
+    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Count Nothing]) "Count 2 level groups" iter_size num_iterations
+    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Maximum "ValueWithNothing"]) "Max table" iter_size num_iterations
+    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Sum "ValueWithNothing"]) "Sum table" iter_size num_iterations
+    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Count_Distinct "Code"]) "Count Distinct 2 level groups" iter_size num_iterations
+    Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value"]) "StDev 2 level groups" iter_size num_iterations
+    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Median "Value"]) "Median 2 level groups" iter_size num_iterations
+    # Bench.measure (table.aggregate [Group_By "Index", Group_By "Flag", Mode "Index"]) "Mode 2 level groups" iter_size num_iterations

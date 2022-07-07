@@ -181,7 +181,6 @@ case object FunctionBinding extends IRPass {
                 val newName = IR.Name
                   .Literal(
                     Constants.Names.THAT_ARGUMENT,
-                    firstArgumentName.isReferent,
                     firstArgumentName.isMethod,
                     firstArgumentName.location
                   )

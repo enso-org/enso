@@ -8,9 +8,9 @@ import Standard.Test
 import Standard.Test.Problems
 
 spec =
-    sample_xxx = Enso_Project.data / "sample.xxx"
-    sample_txt = Enso_Project.data / "sample.txt"
-    windows_log = Enso_Project.data / "windows.log"
+    sample_xxx = enso_project.data / "sample.xxx"
+    sample_txt = enso_project.data / "sample.txt"
+    windows_log = enso_project.data / "windows.log"
 
     Test.group "File_Format.Auto materialise" <|
         Test.specify "should be Bytes for unknown file" <|
@@ -23,7 +23,7 @@ spec =
             File_Format.Auto . materialise windows_log . should_be_a File_Format.Plain_Text
 
         Test.specify "should detect CSV files" <|
-            File_Format.Auto . materialise (Enso_Project.data / "data.csv") . should_equal (File_Format.Delimited ",")
+            File_Format.Auto . materialise (enso_project.data / "data.csv") . should_equal (File_Format.Delimited ",")
 
     Test.group "File_Format.Auto" <|
         Test.specify "should raise an error when reading an unknown file" <|
@@ -63,4 +63,4 @@ spec =
             problems = [Encoding_Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

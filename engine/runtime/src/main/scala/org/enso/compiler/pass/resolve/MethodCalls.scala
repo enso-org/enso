@@ -70,20 +70,17 @@ object MethodCalls extends IRPass {
         case name: IR.Name if name.isMethod =>
           app.arguments match {
             case first :: _ =>
-              val targetBindings = first.value match {
-                case _: IR.Name.Here => Some(bindingsMap)
-                case value =>
-                  value.getMetadata(UppercaseNames) match {
-                    case Some(Resolution(ResolvedModule(module))) =>
-                      Some(
-                        module
-                          .unsafeAsModule()
-                          .getIr
-                          .unsafeGetMetadata(BindingAnalysis, "")
+              val targetBindings =
+                first.value.getMetadata(GlobalNames) match {
+                  case Some(Resolution(ResolvedModule(module))) =>
+                    val moduleIr = module.unsafeAsModule().getIr
+                    Option
+                      .when(moduleIr != null)(
+                        moduleIr.getMetadata(BindingAnalysis)
                       )
-                    case _ => None
-                  }
-              }
+                      .flatten
+                  case _ => None
+                }
               targetBindings match {
                 case Some(bindings) =>
                   val resolution =

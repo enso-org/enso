@@ -25,7 +25,7 @@ polyglot java import java.lang.StringBuilder
                      2*3 . should_equal 6
 Suite.run_main : Any -> Nothing
 Suite.run_main ~specs =
-    config = here.config_from_env
+    config = config_from_env
     r = self.run specs config
     code = if r.is_fail then 1 else 0
     System.exit code
@@ -38,7 +38,7 @@ find_project_root path =
         handler _ = Nothing
         Panic.catch NullPointerException handler=handler <|
             if path.name == "src" then path.parent else
-                @Tail_Call here.find_project_root path.parent
+                @Tail_Call find_project_root path.parent
 
 
 ## PRIVATE
@@ -66,8 +66,8 @@ config_from_env =
 
     junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
     results_path = if junit_folder.is_nothing then Nothing else
-        caller_script = here.find_caller_script Runtime.get_stack_trace
-        project_root = here.find_project_root caller_script
+        caller_script = find_caller_script Runtime.get_stack_trace
+        project_root = find_project_root caller_script
         case project_root.is_nothing of
             True ->
                 IO.println "Unable to determine root project path. JUnit output disabled."
@@ -98,7 +98,7 @@ config_from_env =
 Suite.run : Any -> Suite_Config -> Any
 Suite.run ~specs config =
     builder = if config.should_output_junit then StringBuilder.new else Nothing
-    here.wrap_junit_testsuites config builder <|
+    wrap_junit_testsuites config builder <|
         State.run Suite (Suite config Nil builder) <|
             specs
             State.get Suite
@@ -134,7 +134,7 @@ group name ~behaviors pending=Nothing =
                 new_suite = Suite suite.config (Cons r suite.specs) suite.builder
                 State.put Suite new_suite
             reason ->
-                here.report_pending_group name reason config suite.builder
+                report_pending_group name reason config suite.builder
 
 ## Specifies a single behavior, described by `self`.
 
@@ -165,7 +165,7 @@ group name ~behaviors pending=Nothing =
 specify : Text -> Any -> (Text | Nothing) -> Nothing
 specify label ~behavior pending=Nothing =
     result = case pending of
-        Nothing -> here.run_spec behavior
+        Nothing -> run_spec behavior
         reason -> Pending reason
     spec = State.get Spec
     new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
@@ -215,7 +215,7 @@ fail message =
 Any.should_fail_with : Any -> Integer -> Assertion
 Any.should_fail_with matcher frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    here.fail ("Expected an error " + matcher.to_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
+    fail ("Expected an error " + matcher.to_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
 
 ## Expect a function to fail with the provided dataflow error.
 
@@ -237,7 +237,7 @@ Error.should_fail_with matcher frames_to_skip=0 =
     caught = self.catch x->x
     if caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
-        here.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
+        fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 
 ## Expect a function to fail with the provided panic.
 
@@ -260,10 +260,10 @@ expect_panic_with ~action matcher =
         _ ->
             loc = Meta.get_source_location 2
             return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
-            here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
+            fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
     err = res.catch x->x
     if err.is_a matcher then Nothing else
-        here.fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
+        fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
 ## Asserts that `self` value is equal to the expected value.
 
@@ -285,7 +285,7 @@ Any.should_equal that frames_to_skip=0 = case self == that of
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
-        here.fail msg
+        fail msg
 
 ## Asserts that `self` value is not equal to the expected value.
 
@@ -307,7 +307,7 @@ Any.should_not_equal that frames_to_skip=0 = case self != that of
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
         msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
-        here.fail msg
+        fail msg
 
 ## Asserts that `self` value is equal to the expected value.
 
@@ -322,7 +322,7 @@ Any.should_not_equal that frames_to_skip=0 = case self != that of
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Assertion
-Error.should_equal _ frames_to_skip=0 = here.fail_match_on_unexpected_error self 1+frames_to_skip
+Error.should_equal _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` is within `epsilon` from `that`.
 
@@ -384,7 +384,7 @@ Boolean.should_be_true = case self of
 
          example_should_be_true = Examples.get_boolean . should_be_true
 Error.should_be_true : Assertion
-Error.should_be_true = here.fail_match_on_unexpected_error self 1
+Error.should_be_true = fail_match_on_unexpected_error self 1
 
 ## Asserts that the given `Boolean` is `False`
 
@@ -412,7 +412,7 @@ Boolean.should_be_false = case self of
 
          example_should_be_false = Examples.get_boolean . should_be_false
 Error.should_be_false : Assertion
-Error.should_be_false = here.fail_match_on_unexpected_error self 1
+Error.should_be_false = fail_match_on_unexpected_error self 1
 
 ## Asserts that a value is of a given type.
 
@@ -474,12 +474,12 @@ Any.should_contain_the_same_elements_as that frames_to_skip=0 =
         if self.contains element . not then
             loc = Meta.get_source_location 2+frames_to_skip
             msg = "The collection (" + self.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
-            here.fail msg
+            fail msg
     self.each element->
         if that.contains element . not then
             loc = Meta.get_source_location 2+frames_to_skip
             msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
-            here.fail msg
+            fail msg
 
 ## Asserts that `self` value contains the same elements as `that`.
 
@@ -503,7 +503,7 @@ Any.should_contain_the_same_elements_as that frames_to_skip=0 =
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
 Error.should_contain_the_same_elements_as : Any -> Assertion
-Error.should_contain_the_same_elements_as _ frames_to_skip=0 = here.fail_match_on_unexpected_error self 1+frames_to_skip
+Error.should_contain_the_same_elements_as _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+frames_to_skip
 
 
 type Verbs
@@ -523,7 +523,7 @@ type Verbs
     start_with : Text -> Text -> Assertion
     start_with subject argument =
         if subject.starts_with argument then Success else
-            here.fail (subject.to_text + " did not start with " + argument.to_text))
+            fail (subject.to_text + " did not start with " + argument.to_text))
 
     ## PRIVATE
 
@@ -537,7 +537,7 @@ type Verbs
     equal subject argument =
         if subject == argument then Success else
             msg = subject.to_text + " did not equal " + argument.to_text + "."
-            here.fail msg
+            fail msg
 
     ## PRIVATE
 
@@ -562,7 +562,7 @@ type Verbs
     contain subject argument =
         if subject.contains argument then Success else
             msg = subject.to_text + " did not contain " + argument.to_text + "."
-            here.fail msg
+            fail msg
 
 
 ## PRVATE
@@ -697,7 +697,7 @@ fail_match_on_unexpected_error error frames_to_skip =
     payload = error.catch
     loc = Meta.get_source_location 1+frames_to_skip
     msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
-    here.fail msg
+    fail msg
 
 
 ## PRIVATE
@@ -723,8 +723,8 @@ wrap_junit_testsuites config builder ~action =
 report_pending_group : Text -> Text -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
 report_pending_group name reason config builder =
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (here.escape_xml name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
-        builder.append ('        <testcase name="' + (here.escape_xml name) + '"><skipped message="' + (here.escape_xml reason) + '" /></testcase>\n')
+        builder.append ('    <testsuite name="' + (escape_xml name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
+        builder.append ('        <testcase name="' + (escape_xml name) + '"><skipped message="' + (escape_xml reason) + '" /></testcase>\n')
         builder.append '    </testsuite>\n'
 
     IO.println ("[PENDING] " + name)
@@ -736,18 +736,18 @@ report_pending_group name reason config builder =
 Spec.print_report : Suite_Config -> (StringBuilder|Nothing) -> Nothing
 Spec.print_report config builder =
     if config.should_output_junit then
-        builder.append ('    <testsuite name="' + (here.escape_xml self.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append ('    <testsuite name="' + (escape_xml self.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + self.behaviors.length.to_text + '"')
         builder.append (' disabled="' + self.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
         builder.append (' errors="' + self.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
         builder.append ('>\n')
 
         self.behaviors.reverse.each behavior->
-            builder.append ('        <testcase name="' + (here.escape_xml behavior.name) + '">')
+            builder.append ('        <testcase name="' + (escape_xml behavior.name) + '">')
             case behavior.result of
                 Success -> Nothing
-                Failure msg -> builder.append ('\n            <error message="' + (here.escape_xml msg) + '"/>\n        ')
-                Pending msg -> builder.append ('\n            <skipped message="' + (here.escape_xml msg) + '"/>\n        ')
+                Failure msg -> builder.append ('\n            <error message="' + (escape_xml msg) + '"/>\n        ')
+                Pending msg -> builder.append ('\n            <skipped message="' + (escape_xml msg) + '"/>\n        ')
             builder.append '</testcase>\n'
         builder.append '    </testsuite>\n'
 

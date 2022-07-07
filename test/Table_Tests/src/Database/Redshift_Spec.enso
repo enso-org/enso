@@ -52,12 +52,12 @@ run_tests connection pending=Nothing =
     materialize = .to_dataframe
 
     Common_Spec.spec prefix connection pending=pending
-    here.redshift_specific_spec connection pending=pending
+    redshift_specific_spec connection pending=pending
     common_selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=True order_by=False
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection pending=pending
 
     selection = Aggregate_Spec.Test_Selection text_concat=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False
-    agg_in_memory_table = (Enso_Project.data / "data.csv") . read
+    agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
@@ -67,7 +67,7 @@ run_tests connection pending=Nothing =
     clean_tables tables.to_vector
 
 spec =
-    credentials = Enso_Project.data / 'redshift_credentials.json'
+    credentials = enso_project.data / 'redshift_credentials.json'
     case credentials.exists of
         True ->
             creds = Json.parse credentials.read_text . unwrap
@@ -77,10 +77,10 @@ spec =
             user = creds.get 'db_user'
             props = [access_key, secret_key]
             connection = Database.connect uri user=user custom_properties=props
-            here.run_tests connection
+            run_tests connection
         False ->
             msg = """
                 Redshift connection is not set up. Please create a JSON file containing
                 the credentials in `data/redshift_credentials.json`
             connection = Error.throw msg
-            here.run_tests connection pending=msg
+            run_tests connection pending=msg

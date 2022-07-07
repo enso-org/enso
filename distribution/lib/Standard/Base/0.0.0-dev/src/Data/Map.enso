@@ -237,7 +237,7 @@ type Map
     transform function =
         func_pairs = p -> function (p.at 0) (p.at 1)
         vec_transformed = self.to_vector.map func_pairs
-        here.from_vector vec_transformed
+        from_vector vec_transformed
 
     ## Maps a function over each value in this map.
 

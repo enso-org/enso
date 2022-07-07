@@ -345,4 +345,4 @@ spec = Test.group "Range" <|
         invalid_range . find _->True . should_fail_with Illegal_State_Error
         invalid_range . contains 0 . should_fail_with Illegal_State_Error
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

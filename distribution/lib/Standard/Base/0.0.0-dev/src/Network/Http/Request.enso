@@ -40,7 +40,7 @@ new method addr (headers = []) (body = Request_Body.Empty) =
 
          example_options = Request.options (Uri.parse "http://example.com")
 options : (Text | Uri) -> Vector.Vector -> Request
-options addr (headers = []) = here.new Method.Options addr headers
+options addr (headers = []) = new Method.Options addr headers
 
 ## Create a Get request.
 
@@ -56,7 +56,7 @@ options addr (headers = []) = here.new Method.Options addr headers
 
          example_get = Request.get (Uri.parse "http://example.com")
 get : (Text | Uri) -> Vector.Vector -> Request
-get addr (headers = []) = here.new Method.Get addr headers
+get addr (headers = []) = new Method.Get addr headers
 
 ## Create a Head request.
 
@@ -72,7 +72,7 @@ get addr (headers = []) = here.new Method.Get addr headers
 
          example_head = Request.head (Uri.parse "http://example.com")
 head : (Text | Uri) -> Vector.Vector -> Request
-head addr (headers = []) = here.new Method.Head addr headers
+head addr (headers = []) = new Method.Head addr headers
 
 ## Create a Post request.
 
@@ -90,7 +90,7 @@ head addr (headers = []) = here.new Method.Head addr headers
 
          example_post = Request.post (Uri.parse "http://example.com") Request_Body.Empty
 post : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
-post addr body (headers = []) = here.new Method.Post addr headers body
+post addr body (headers = []) = new Method.Post addr headers body
 
 ## Create a Put request.
 
@@ -108,7 +108,7 @@ post addr body (headers = []) = here.new Method.Post addr headers body
 
          example_put = Request.put (Uri.parse "http://example.com") Request_Body.Empty
 put : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
-put addr body (headers = []) = here.new Method.Put addr headers body
+put addr body (headers = []) = new Method.Put addr headers body
 
 ## Create a Delete request.
 
@@ -124,7 +124,7 @@ put addr body (headers = []) = here.new Method.Put addr headers body
 
          example_delete = Request.delete (Uri.parse "http://example.com")
 delete : (Text | Uri) -> Vector.Vector -> Request
-delete addr (headers = []) = here.new Method.Delete addr headers
+delete addr (headers = []) = new Method.Delete addr headers
 
 type Request
 
