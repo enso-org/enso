@@ -721,12 +721,12 @@ impl<'s> Lexer<'s> {
 /// 2. Some parsers could consume input even if it should be qualified as something else. Thus, some
 ///    parsers should be run first in order to make the token consuming process correct.
 const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
+    |t| t.number(),
     |t| t.ident(),
     |t| t.operator(),
     |t| t.newline(),
     |t| t.symbol(),
     |t| t.comment(),
-    |t| t.number(),
     |t| t.text(),
 ];
 
