@@ -145,19 +145,14 @@ case class BindingsMap(
   }
 
   private def findMethodCandidates(
-    name: String,
-    caseSensitive: Boolean
-  ): List[ResolvedName] = {
-    (if (caseSensitive)
-       moduleMethods.filter(_.name == name)
-     else moduleMethods.filter(_.name.toLowerCase == name.toLowerCase))
-      .map(ResolvedMethod(currentModule, _))
-  }
+    name: String
+  ): List[ResolvedName] =
+    moduleMethods.filter(_.name == name).map(ResolvedMethod(currentModule, _))
 
   private def findLocalCandidates(name: String): List[ResolvedName] = {
     val conses   = findConstructorCandidates(name)
     val polyglot = findPolyglotCandidates(name)
-    val methods  = findMethodCandidates(name, caseSensitive = true)
+    val methods  = findMethodCandidates(name)
     val all      = conses ++ polyglot ++ methods
     if (all.isEmpty && currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
