@@ -6529,6 +6529,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-native-tls"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7d995660bd2b7f8c1568414c1126076c13fbb725c40112dc0120b78eb9b717b"
+dependencies = [
+ "native-tls",
+ "tokio 1.19.2",
+]
+
+[[package]]
 name = "tokio-reactor"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7246,6 +7256,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "websocket-codec"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72154d7f42457a99b2832ff093a22a6b303d88c6fe87ca975515cc6c7bc8d21d"
+dependencies = [
+ "base64 0.13.0",
+ "byteorder",
+ "bytes 1.1.0",
+ "httparse",
+ "rand 0.8.5",
+ "sha1 0.6.1",
+ "tokio-util 0.7.2",
+]
+
+[[package]]
+name = "websocket-lite"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44a2fea74fd5c7e2720dfd619bf029b46acef012cc619793d6d76d29c0ba8c14"
+dependencies = [
+ "base64 0.13.0",
+ "bytes 1.1.0",
+ "futures 0.3.21",
+ "native-tls",
+ "rand 0.8.5",
+ "tokio 1.19.2",
+ "tokio-native-tls",
+ "tokio-util 0.7.2",
+ "url 2.2.2",
+ "websocket-codec",
+]
+
+[[package]]
 name = "welcome-screen"
 version = "0.1.0"
 dependencies = [
@@ -7418,6 +7461,18 @@ checksum = "d59cefebd0c892fa2dd6de581e937301d8552cb44489cdff035c6187cb63fa5e"
 dependencies = [
  "winapi 0.2.8",
  "winapi-build",
+]
+
+[[package]]
+name = "wstest"
+version = "0.1.0"
+dependencies = [
+ "clap 3.1.18",
+ "futures 0.3.21",
+ "time 0.3.9",
+ "tokio 1.19.2",
+ "url 2.2.2",
+ "websocket-lite",
 ]
 
 [[package]]
