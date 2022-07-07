@@ -135,6 +135,7 @@ impl List {
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
         for group in &*self.favorites {
+            // TODO[MC]: can we delete this code, due to only showing IDs of completions returned by Engine?
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
     }
