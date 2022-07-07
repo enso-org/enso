@@ -187,3 +187,18 @@ type Range_Exceeded message
 
 Range_Exceeded.to_display_text : Text
 Range_Exceeded.to_display_text = self.message
+
+## Indicates that the existing table has a different number of columns to the
+   new table.
+type Column_Count_Mismatch expected actual
+
+Column_Count_Mismatch.to_display_text : Text
+Column_Count_Mismatch.to_display_text =
+    "Expected " + self.expected.to_text + " columns, got " + self.actual.to_text + "."
+
+## Indicates that the existing table has a different set of column names to the
+   new table.
+type Column_Name_Mismatch expected actual message
+
+Column_Name_Mismatch.to_display_text : Text
+Column_Name_Mismatch.to_display_text = self.message

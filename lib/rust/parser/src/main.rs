@@ -107,6 +107,7 @@ use crate::prelude::*;
 
 pub mod lexer;
 pub mod macros;
+pub mod serialization;
 pub mod source;
 pub mod syntax;
 
@@ -114,7 +115,10 @@ pub mod syntax;
 
 /// Popular utilities, imported by most modules of this crate.
 pub mod prelude {
+    pub use enso_prelude::serde_reexports::*;
     pub use enso_prelude::*;
+    pub use enso_reflect as reflect;
+    pub use enso_reflect::Reflect;
     pub use enso_types::traits::*;
     pub use enso_types::unit2::Bytes;
 }

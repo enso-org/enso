@@ -10,9 +10,15 @@ repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 [dependencies]
-enso-prelude = { path = "../prelude" }
+enso-prelude = { path = "../prelude", features = ["serde"] }
+enso-reflect = { path = "../reflect" }
 enso-data-structures = { path = "../data-structures" }
-enso-types = { path = "../types" }
+enso-types = { path = "../types", features = ["serde"] }
 enso-shapely-macros = { path = "../shapely/macros" }
 enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
 enso-parser-syntax-tree-builder = { path = "src/syntax/tree/builder" }
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"
+
+[lib]
+path = "src/main.rs"
