@@ -1719,10 +1719,16 @@ pub mod test {
             name:    "Test Group 1".to_string(),
             color:   None,
             icon:    None,
-            exports: vec![language_server::LibraryComponent {
-                name:     module_qualified_name + ".testFunction1",
-                shortcut: None,
-            }],
+            exports: vec![
+                language_server::LibraryComponent {
+                    name:     module_qualified_name.clone() + ".testFunction1",
+                    shortcut: None,
+                },
+                language_server::LibraryComponent {
+                    name:     module_qualified_name + ".testMethod1",
+                    shortcut: None,
+                },
+            ],
         };
         // Create a test fixture with mocked Engine responses.
         let Fixture { mut test, searcher, entry1, entry9, .. } =
