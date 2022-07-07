@@ -86,8 +86,9 @@ type Any
                     0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
             Cons (Meta.Error _) (Meta.Error _) -> self_meta.payload == that_meta.payload
             Cons (Meta.Polyglot o_1) (Meta.Polyglot o_2) ->
-                langs_match = (self_meta.get_language == Meta.Java) && (that_meta.get_language == Meta.Java)
-                if langs_match.not then False else o_1.equals o_2
+                case self_meta.get_language of
+                    Meta.Java -> o_1.equals o_2
+                    _ -> Error.throw (Illegal_Argument_Error "Equality comparison for Polyglot values from languages other than Java are currently not supported.")
             Cons (Meta.Unresolved_Symbol _) (Meta.Unresolved_Symbol _) ->
                 (self_meta.name == that_meta.name) && (self_meta.scope == that_meta.scope)
             ## Constructor comparison is covered by the identity equality.
