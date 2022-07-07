@@ -19,40 +19,91 @@ use lexpr::sexp;
 
 
 
+// ===========================
+// === Test support macros ===
+// ===========================
+
+macro_rules! block {
+    ( $statements:tt ) => {
+        sexp![(Block #($statements))]
+    }
+}
+
+
+
 // =============
 // === Tests ===
 // =============
 
 #[test]
 fn application() {
-    test_statement("a b c", sexp![(App (App (Ident a) (Ident b)) (Ident c))]);
+    test("a b c", block![(App (App (Ident a) (Ident b)) (Ident c))]);
+}
+
+#[test]
+#[ignore]
+fn type_definition_bool() {
+    let bool = [
+        "type Bool",
+        "    False",
+        "    True"
+    ].join("\n");
+    let bool_ast = block![()];
+    test(&bool, bool_ast);
+}
+
+#[test]
+#[ignore]
+fn type_definition_geo() {
+    let geo = [
+        "type Geo",
+        "    Circle",
+        "    radius : Float",
+        "    Rectangle",
+        "    width  : Float",
+        "    height : Float",
+    ].join("\n");
+    let geo_ast = block![()];
+    test(&geo, geo_ast);
+}
+
+#[test]
+#[ignore]
+fn type_definition_option() {
+    let option = [
+        "type Option a",
+        "    Some elem:a",
+        "    None",
+    ].join("\n");
+    let option_ast = block![()];
+    test(&option, option_ast);
 }
 
 #[test]
 fn assignment_simple() {
-    test_statement("foo = 23", sexp![(Assignment (Ident foo) "=" (Number 23))]);
+    test("foo = 23", block![(Assignment (Ident foo) "=" (Number 23))]);
 }
 
 #[test]
 fn function_inline_simple_args() {
-    test_statement("foo a = 23", sexp![(Function foo #((Ident a)) "=" (Number 23))]);
-    test_statement("foo a b = 23", sexp![(Function foo #((Ident a) (Ident b)) "=" (Number 23))]);
-    test_statement(
+    test("foo a = 23", block![(Function foo #((Ident a)) "=" (Number 23))]);
+    test("foo a b = 23", block![(Function foo #((Ident a) (Ident b)) "=" (Number 23))]);
+    test(
         "foo a b c = 23",
-        sexp![(Function foo #((Ident a) (Ident b) (Ident c)) "=" (Number 23))],
+        block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" (Number 23))],
     );
 }
 
 #[test]
 fn function_block_noargs() {
-    test_statement("foo =", sexp![(Function foo #() "=" ())]);
+    test("foo =", block![(Function foo #() "=" ())]);
 }
 
 #[test]
 fn function_block_simple_args() {
-    test_statement("foo a =", sexp![(Function foo #((Ident a)) "=" ())]);
-    test_statement("foo a b =", sexp![(Function foo #((Ident a) (Ident b)) "=" ())]);
-    test_statement("foo a b c =", sexp![(Function foo #((Ident a) (Ident b) (Ident c)) "=" ())]);
+    test("foo a =", block![(Function foo #((Ident a)) "=" ())]);
+    test("foo a b =", block![(Function foo #((Ident a) (Ident b)) "=" ())]);
+    test("foo a b c =", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" ())]);
 }
 
 
@@ -65,7 +116,7 @@ use enso_metamodel::meta;
 use enso_reflect::Reflect;
 use std::collections::HashSet;
 
-/// Given an input containing a single statement, test that:
+/// Given a block of input Enso code, test that:
 /// - The given code parses to the AST represented by the given S-expression.
 /// - The AST pretty-prints back to the original code.
 ///
@@ -75,21 +126,11 @@ use std::collections::HashSet;
 /// - Most token types are represented as their contents, rather than as a token struct. For
 ///   example, a `token::Number` may be represented like: `sexp![10]`, and a `token::Ident` may look
 ///   like `sexp![foo]`.
-fn test_statement(code: &str, expect: lexpr::Value) {
+fn test(code: &str, expect: lexpr::Value) {
     let ast = enso_parser::Parser::new().run(code);
-    let parsed_and_pretty_printed = ast.code();
-    let ast = match *ast.variant {
-        enso_parser::syntax::tree::Variant::Block(enso_parser::syntax::tree::Block {
-            statements,
-        }) => statements,
-        _ => unreachable!(),
-    };
-    assert_eq!(ast.len(), 1);
-    let ast = ast.into_iter().next().unwrap();
-    let ast = to_sexp(&ast, code).to_string();
-    let expect = expect.to_string();
-    assert_eq!(ast, expect);
-    assert_eq!(parsed_and_pretty_printed, code);
+    let ast_sexp = to_sexp(&ast, code);
+    assert_eq!(ast_sexp.to_string(), expect.to_string());
+    assert_eq!(ast.code(), code);
 }
 
 
