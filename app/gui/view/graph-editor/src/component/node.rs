@@ -329,10 +329,20 @@ ensogl::define_endpoints_2! {
         /// Whether visualization was permanently enabled (e.g. by pressing the button).
         visualization_enabled    (bool),
         /// Visualization can be visible even when it is not enabled, e.g. when showing preview.
+        /// Visualization can be invisible even when enabled, e.g. when the node has an error.
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
-        bounding_box             (BoundingBox)
+        /// The [`display::object::Model::position`] of the Node. Emitted when the Display Object
+        /// hierarchy is updated (see: [`ensogl_core::display::object::Instance::update`]).
+        position                 (Vector2),
+        /// The bounding box of the Node. Contains the bounding box of the visualization if the
+        /// visualization is enabled and visible.
+        ///
+        /// Updated after any of [`position`], [`expression`], [`visualization_enabled`], or
+        /// [`visualization_visible`] is updated. Please remember, that the [`position`] is not
+        /// immediately updated, only during the Display Object hierarchy update
+        bounding_box             (BoundingBox),
     }
 }
 
@@ -689,10 +699,7 @@ impl Node {
         let action_bar = &model.action_bar.frp;
         // Hook up the display object position updates to the node's FRP. Required to calculate the
         // bounding box.
-        frp::extend! { network
-            position <- source::<Vector2>();
-        }
-        model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
+        model.display_object.set_on_updated(f!((p) out.position.emit(p.position().xy())));
 
         frp::extend! { network
 
@@ -946,7 +953,7 @@ impl Node {
             // Visualization can be enabled and not visible when the node has an error.
             visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
             bbox_input <- all4(
-                &position,&new_size,&visualization_enabled_and_visible,visualization_size);
+                &out.position,&new_size,&visualization_enabled_and_visible,visualization_size);
             out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
 
 

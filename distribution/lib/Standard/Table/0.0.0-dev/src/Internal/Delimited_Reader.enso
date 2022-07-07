@@ -44,8 +44,7 @@ read_file format file on_problems =
        exceptions), we can catch the exception indicating the limit has been
        reached and restart parsing with an increased limit.
     file.with_input_stream [File.Option.Read] stream->
-        stream.with_java_stream java_stream->
-            here.read_stream format java_stream on_problems related_file=file
+        here.read_stream format stream on_problems related_file=file
 
 read_text : Text -> Delimited -> Problem_Behavior -> Table
 read_text text format on_problems =
@@ -57,7 +56,7 @@ read_text text format on_problems =
 
    Arguments:
    - format: The specification of the delimited file format.
-   - java_stream: A Java `InputStream` used as the data source.
+   - stream: An `Input_Stream` to be used as the data source.
    - on_problems: Specifies the behavior when a problem occurs during the
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
@@ -67,17 +66,14 @@ read_text text format on_problems =
      integer.
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
-read_stream : Delimited -> InputStream -> Problem_Behavior -> Integer -> File | Nothing -> Any
-read_stream format java_stream on_problems max_columns=4096 related_file=Nothing =
+read_stream : Delimited -> Input_Stream -> Problem_Behavior -> Integer -> File | Nothing -> Any
+read_stream format stream on_problems max_columns=4096 related_file=Nothing =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
 
-    java_charset = format.encoding.to_java_charset
     handle_io_exception <|
-        Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
-            result = here.read_from_reader format reporting_stream_decoder on_problems max_columns
-            decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
-            on_problems.attach_problems_after result decoding_problems
+        stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
+            here.read_from_reader format reporting_stream_decoder on_problems max_columns
 
 ## PRIVATE
    Reads data from the provided `Reader` according to the provided format.

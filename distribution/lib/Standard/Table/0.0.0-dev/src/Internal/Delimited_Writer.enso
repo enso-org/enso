@@ -36,8 +36,7 @@ write_file table format file on_existing_file on_problems =
             Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet."
         _ ->
             on_existing_file.write file stream->
-                stream.with_java_stream java_stream->
-                    here.write_to_stream table format java_stream on_problems related_file=file
+                here.write_to_stream table format stream on_problems related_file=file
 
 ## PRIVATE
    Returns a Text value representing the table in the delimited format.
@@ -53,25 +52,21 @@ write_text table format =
    Arguments:
    - table: The table to serialize.
    - format: The specification of the delimited file format.
-   - java_stream: A Java `OutputStream` used as the data destination.
+   - stream: An `Output_Stream` used as the data destination.
    - on_problems: Specifies the behavior when a problem occurs during the
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
-write_to_stream : Table -> File_Format.Delimited -> OutputStream -> Problem_Behavior -> File | Nothing -> Any
-write_to_stream table format java_stream on_problems related_file=Nothing =
+write_to_stream : Table -> File_Format.Delimited -> Output_Stream -> Problem_Behavior -> File | Nothing -> Any
+write_to_stream table format stream on_problems related_file=Nothing =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
 
-    # TODO handling encoding
-    #java_charset = format.encoding.to_java_charset
-    _ = on_problems
     handle_io_exception <|
-        # TODO create a writer that will use the appropriate encoding and handle mismatches
-        writer = PrintWriter.new java_stream
-        here.write_to_writer table format writer
+        stream.with_stream_encoder format.encoding on_problems reporting_stream_encoder->
+            here.write_to_writer table format reporting_stream_encoder
 
 ## PRIVATE
    Writes data to the provided `Writer` according to the provided format.

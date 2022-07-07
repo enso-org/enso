@@ -19,6 +19,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.CopyOption;
 import java.nio.file.OpenOption;
+import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
 
 /**
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
@@ -62,6 +64,20 @@ public class EnsoFile implements TruffleObject {
   @Builtin.Method
   public boolean exists() {
     return truffleFile.exists();
+  }
+
+  @Builtin.Method(name = "creation_time_builtin")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.ReturningGuestObject
+  public ZonedDateTime getCreationTime() throws IOException {
+    return ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC);
+  }
+
+  @Builtin.Method(name = "last_modified_time_builtin")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.ReturningGuestObject
+  public ZonedDateTime getLastModifiedTime() throws IOException {
+    return ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC);
   }
 
   @Builtin.Method(name = "parent")

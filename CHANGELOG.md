@@ -2,6 +2,7 @@
 
 #### Visual Environment
 
+- [Camera is panned to newly created nodes.][3552]
 - [Long names on the Node Searcher's list are truncated.][3373] The part of the
   name that doesn't fit in the Searcher's window is replaced with an ellipsis
   character ("…").
@@ -146,6 +147,8 @@
 - [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
 - [Adjusted `Database.connect` API to new design.][3542]
 - [Added `File_Format.Excel` support to `Table.write` for new files.][3551]
+- [Added append support for `File_Format.Excel`.][3558]
+- [Added support for custom encodings in `File_Format.Delimited` writing.][3564]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -231,6 +234,9 @@
 [3528]: https://github.com/enso-org/enso/pull/3528
 [3542]: https://github.com/enso-org/enso/pull/3542
 [3551]: https://github.com/enso-org/enso/pull/3551
+[3552]: https://github.com/enso-org/enso/pull/3552
+[3558]: https://github.com/enso-org/enso/pull/3558
+[3564]: https://github.com/enso-org/enso/pull/3564
 
 #### Enso Compiler
 

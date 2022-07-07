@@ -434,6 +434,12 @@ define_themes! { [light:0, dark:1]
             to_the_left_of_node  = 25.0  , 25.0;
             to_the_right_of_node = 25.0  , 25.0;
         }
+        screen_margin_when_panning_camera_to_node {
+            top = 40.0, 40.0;
+            bottom = 80.0, 80.0;
+            left = 80.0, 80.0;
+            right = 300.0, 300.0;
+        }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
             // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)

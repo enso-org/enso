@@ -2,7 +2,7 @@ from Standard.Base import all
 
 ## Specifies a selection of columns from the table and the new name for them to
    become.
-type Column_Mapping
+type Column_Name_Mapping
 
     ## Selects columns based on their names.
 

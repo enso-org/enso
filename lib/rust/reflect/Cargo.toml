@@ -1,0 +1,13 @@
+[package]
+name = "enso-reflect"
+version = "0.1.0"
+edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
+
+[dependencies]
+enso-reflect-macros = { path = "macros" }
+enso-metamodel = { path = "../metamodel", features = ["rust"] }
+derivative = "2.2"
+
+[features]
+graphviz = ["enso-metamodel/graphviz"]
