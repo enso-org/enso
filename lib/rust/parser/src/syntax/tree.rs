@@ -68,12 +68,16 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub error: Error,
             pub ast: Tree<'s>,
         },
-        Module {
+        Block {
             pub statements: Vec<Tree<'s>>,
         },
         /// A simple identifier, like `foo` or `bar`.
         Ident {
             pub token: token::Ident<'s>,
+        },
+        /// A numeric literal, like `10`.
+        Number {
+            pub token: token::Number<'s>,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -106,12 +110,22 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         MultiSegmentApp {
             pub segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
         },
-
         TypeDef {
             pub keyword: Token<'s>,
             pub name: Tree<'s>,
             pub params: Vec<Tree<'s>>,
-        }
+        },
+        Assignment {
+            pub pattern: Tree<'s>,
+            pub equals: token::Operator<'s>,
+            pub expr: Tree<'s>,
+        },
+        Function {
+            pub name: token::Ident<'s>,
+            pub args: Vec<Tree<'s>>,
+            pub equals: token::Operator<'s>,
+            pub body: Option<Tree<'s>>,
+        },
     }
 }};}
 

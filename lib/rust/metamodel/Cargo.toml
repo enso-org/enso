@@ -12,6 +12,7 @@ derive_more = "0.99"
 bincode = "1.3"
 
 [features]
+default = ["graphviz", "java", "rust"]
 graphviz = []
 java = []
 rust = []

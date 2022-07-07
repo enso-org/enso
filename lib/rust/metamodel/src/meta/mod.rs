@@ -179,12 +179,13 @@ impl Identifier {
     /// Render in camelCase.
     pub fn to_camel_case(&self) -> String {
         let mut camel = String::with_capacity(self.segments_len());
-        let (head, tail) = self.segments.split_first().unwrap();
-        camel.push_str(head);
-        for segment in tail {
-            let mut chars = segment.chars();
-            camel.push(chars.next().unwrap().to_ascii_uppercase());
-            camel.extend(chars);
+        if let Some((head, tail)) = self.segments.split_first() {
+            camel.push_str(head);
+            for segment in tail {
+                let mut chars = segment.chars();
+                camel.push(chars.next().unwrap().to_ascii_uppercase());
+                camel.extend(chars);
+            }
         }
         camel
     }
@@ -224,6 +225,11 @@ impl Identifier {
     /// chosen at rendering time.
     pub fn append(&mut self, other: Self) {
         self.segments.extend(other.segments)
+    }
+
+    /// Return whether this identifier is zero-length.
+    pub fn is_empty(&self) -> bool {
+        self.segments.is_empty()
     }
 }
 
@@ -283,6 +289,10 @@ impl FieldName {
     /// Append another `FieldName` to the end of `self`. See `Identifier::append`.
     pub fn append(&mut self, other: Self) {
         self.0.append(other.0)
+    }
+    /// Return whether this identifier is zero-length.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 

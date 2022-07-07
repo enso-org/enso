@@ -16,6 +16,7 @@ use crate::syntax::token::Token;
 // computations for any operator (according to the spec)
 fn precedence_of(operator: &str) -> usize {
     match operator {
+        "=" => 1,
         "+" => 3,
         "-" => 3,
         "*" => 7,
