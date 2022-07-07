@@ -180,3 +180,38 @@ fn read_string(buffer: &mut &[u8]) -> String {
     *buffer = rest;
     String::from_utf8(bytes.to_owned()).unwrap()
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test() {
+        #[derive(serde::Serialize)]
+        struct A {
+            value: u32,
+        }
+        let mut graph = TypeGraph::new();
+        let int_name = TypeName::from_pascal_case("U32");
+        let int = Type::new(int_name, Data::Primitive(Primitive::U32));
+        let int = graph.types.insert(int);
+        let a_name = TypeName::from_pascal_case("A");
+        let a_field_name = FieldName::from_snake_case("value");
+        let a_field = Field::named(a_field_name, int);
+        let a = Type::new(a_name, Data::Struct(vec![a_field]));
+        let a = graph.types.insert(a);
+        let a_value = A { value: 36 };
+        use bincode::Options;
+        let bincoder = bincode::DefaultOptions::new().with_fixint_encoding();
+        let a_value = bincoder.serialize(&a_value).unwrap();
+        let mut a_value = &a_value[..];
+        let s_expr = ToSExpr::new(&graph).value(a, &mut a_value);
+        assert_eq!(s_expr, lexpr::sexp![(value.32)]);
+    }
+}
