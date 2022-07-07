@@ -14,6 +14,7 @@ members = [
   "lib/rust/parser/generate-java",
   "lib/rust/profiler/data",
   "integration-test",
+  "tools/logstat",
   "tools/wstest"
 ]
 # The default memebers are those we want to check and test by default.
