@@ -69,7 +69,10 @@ pub enum Order {
     Initial,
     /// Order non-modules by name, followed by modules (also by name).
     ByNameNonModulesThenModules,
-    /// Order [`Component`]s by [`Component::match_info`] score (best scores first).
+    /// Order [`Component`]s by [`Component::match_info`] score. The matching entries will go
+    /// first, and the _lesser_ score will take precedence. That is due to way of displaying
+    /// components in component browser - the lower (with greater indices) entries are more
+    /// handy.
     ByMatch,
 }
 

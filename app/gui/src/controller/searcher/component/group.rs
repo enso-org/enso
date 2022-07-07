@@ -2,9 +2,11 @@
 //! structures.
 
 use crate::prelude::*;
+use std::cmp;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::controller::searcher::component::MatchInfo;
 use crate::controller::searcher::component::NoSuchComponent;
 use crate::controller::searcher::component::NoSuchGroup;
 use crate::model::execution_context;
@@ -117,29 +119,54 @@ impl Group {
     /// Update the group sorting according to the `order` and update information about matched items
     /// count.
     pub fn update_sorting(&self, order: component::Order) {
-        let mut entries = self.entries.borrow_mut();
         match order {
-            component::Order::Initial =>
-                if entries.len() != self.initial_entries_order.len() {
-                    tracing::log::error!(
-                        "Tried to restore initial order in group where \
-                        `initial_entries_order` is not initialized or up-to-date. Will keep the \
-                        old order."
-                    )
-                } else {
-                    *entries = self.initial_entries_order.clone()
-                },
-            component::Order::ByNameNonModulesThenModules => entries.sort_by(|a, b| {
-                let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
-                cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))
-            }),
-            component::Order::ByMatch => {
-                entries
-                    .sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
-            }
+            component::Order::Initial => self.restore_initial_order(),
+            component::Order::ByNameNonModulesThenModules =>
+                self.sort_by_name_non_modules_then_modules(),
+            component::Order::ByMatch => self.sort_by_match(),
         }
+        let entries = self.entries.borrow();
         let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
         self.matched_items.set(matched_items);
+    }
+
+    fn restore_initial_order(&self) {
+        let mut entries = self.entries.borrow_mut();
+        if entries.len() != self.initial_entries_order.len() {
+            tracing::error!(
+                "Tried to restore initial order in group where \
+                        `initial_entries_order` is not initialized or up-to-date. Will keep the \
+                        old order."
+            )
+        } else {
+            *entries = self.initial_entries_order.clone()
+        }
+    }
+
+    fn sort_by_name_non_modules_then_modules(&self) {
+        let mut entries = self.entries.borrow_mut();
+        entries.sort_by(|a, b| {
+            let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+            cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))
+        })
+    }
+
+    fn sort_by_match(&self) {
+        let mut entries = self.entries.borrow_mut();
+        entries.sort_by(|a, b| {
+            Self::entry_match_ordering(&*a.match_info.borrow(), &*b.match_info.borrow())
+        });
+    }
+
+    /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
+    fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
+        match (lhs, rhs) {
+            (MatchInfo::DoesNotMatch, MatchInfo::DoesNotMatch) => cmp::Ordering::Equal,
+            (MatchInfo::DoesNotMatch, MatchInfo::Matches { .. }) => cmp::Ordering::Greater,
+            (MatchInfo::Matches { .. }, MatchInfo::DoesNotMatch) => cmp::Ordering::Less,
+            (MatchInfo::Matches { subsequence: lhs }, MatchInfo::Matches { subsequence: rhs }) =>
+                lhs.compare_scores(rhs),
+        }
     }
 
     /// Get the number of entries.

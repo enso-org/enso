@@ -109,8 +109,8 @@ impl component::Frp<Model> for Frp {
                 &list_position_x,
                 &size,
                 &gap,
-                |list_sz, list_x, sz, gap| {
-                    Vector2(*list_x - list_sz.x / 6.0, - size.y / 2.0 - gap - NODE_HEIGHT / 2.0)
+                |list_size, list_x, size, gap| {
+                    Vector2(*list_x - list_size.x / 6.0, - size.y / 2.0 - gap - NODE_HEIGHT / 2.0)
                 }
             );
         }
