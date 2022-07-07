@@ -13,10 +13,12 @@ import java.util.stream.Collectors;
 public class ColumnMapper {
   /**
    * Match the table's columns against the list of column names and return a reordered table.
+   *
    * @param table the table of data to append.
    * @param columnNames set of existing column names.
    * @return a new table with columns reordered to match to the given column names.
-   * @throws ColumnNameMismatchException if the names in the new table do not match the existing set.
+   * @throws ColumnNameMismatchException if the names in the new table do not match the existing
+   *     set.
    */
   public static Table mapColumnsByName(Table table, String[] columnNames)
       throws ColumnNameMismatchException {
@@ -46,6 +48,7 @@ public class ColumnMapper {
 
   /**
    * Check the column count of the table, if matches return otherwise throw an exception.
+   *
    * @param table the table of data to append.
    * @param columnCount exisitng column count.
    * @return the input table if column count matches.

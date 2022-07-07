@@ -208,7 +208,7 @@ read_excel file section headers on_problems xls_format=False =
 write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
 write_excel file table on_existing_file section headers match_columns _ xls_format=False =
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
-        here.read_excel_file file stream->(ExcelReader.getWorkbook stream xls_format)
+        here.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 
     existing_data_mode = here.make_java_existing_data_mode on_existing_file match_columns
     java_headers = here.make_java_headers headers
