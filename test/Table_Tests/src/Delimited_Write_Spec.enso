@@ -176,4 +176,17 @@ spec =
             text_2 = File.read_text file_2
             text_2.should_equal ""
 
+        Test.specify "should create a new file in append mode if it didn't exist" <|
+            Nothing
+        Test.specify "should correctly append to an empty file" <|
+            Nothing
+        Test.specify "should append to a file, matching columns by name" <|
+            Nothing
+        Test.specify "should append to a file, matching columns by position" <|
+            Nothing
+        Test.specify "should fail on column mismatch when appending to a file" <|
+            Nothing
+        Test.specify "should fail when appending and matching columns by name but column names are not available in the file" <|
+            Nothing
+
 main = Test.Suite.run_main spec

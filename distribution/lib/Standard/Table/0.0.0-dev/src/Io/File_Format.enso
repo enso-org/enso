@@ -118,8 +118,8 @@ type Delimited
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
-    write_table file table on_existing_file _ on_problems =
-        Delimited_Writer.write_file table self file on_existing_file on_problems
+    write_table file table on_existing_file match_columns on_problems =
+        Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
 
     ## PRIVATE
      Clone the instance with some properties overridden.
