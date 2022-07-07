@@ -67,7 +67,7 @@ impl ModuleGroups {
 pub struct List {
     all_components: Vec<Component>, // TODO[MC]: only keep component IDs at this stage?
     // TODO[MC]: use HashMap<component::Id, Component>
-    component_ids:  HashSet<component::Id>,
+    component_ids_to_retain:  HashSet<component::Id>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
     local_scope:    component::Group,
     favorites:      component::group::List,
@@ -101,7 +101,7 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
-            self.component_ids.insert(*component.id);
+            self.component_ids_to_retain.insert(*component.id);
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
@@ -171,7 +171,8 @@ impl List {
 
     /// Build the list, sorting all group lists and groups' contents appropriately. (Does not sort
     /// the [`component::List::favorites`].)
-    pub fn build(self) -> component::List {
+    pub fn build(mut self) -> component::List {
+        self.retain_components_by_id();
         let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
             group.content.update_sorting_and_visibility(components_order);
@@ -185,7 +186,6 @@ impl List {
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
-        self.retain_favorites();
         component::List {
             all_components:        Rc::new(self.all_components),
             top_modules:           top_mdl_bld.build(),
@@ -199,10 +199,12 @@ impl List {
         }
     }
 
-    fn retain_favorites(&self) {
+    fn retain_components_by_id(&mut self) {
+        let component_id_in_retain_set = |c: &Component| self.component_ids_to_retain.contains(&c.id);
         for group in &*self.favorites {
-            group.entries.borrow_mut().retain(|c| self.component_ids.contains(&c.id));
+            group.entries.borrow_mut().retain(component_id_in_retain_set);
         }
+        self.all_components.retain(component_id_in_retain_set);
     }
 }
 
