@@ -1,0 +1,17 @@
+[package]
+name = "enso-metamodel"
+version = "0.1.0"
+edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
+
+[dependencies]
+derivative = "2.2"
+derive_more = "0.99"
+
+[dev-dependencies]
+bincode = "1.3"
+
+[features]
+graphviz = []
+java = []
+rust = []

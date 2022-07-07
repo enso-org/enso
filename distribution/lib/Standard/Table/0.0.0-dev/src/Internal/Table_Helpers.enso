@@ -8,7 +8,7 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 import Standard.Table.Data.Position
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
-import Standard.Table.Data.Column_Mapping
+import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Problem_Builder
 import Standard.Base.Data.Ordering.Natural_Order
@@ -129,7 +129,7 @@ reorder_columns internal_columns selector position on_problems =
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-rename_columns : Vector -> Column_Mapping -> Problem_Behavior -> Map
+rename_columns : Vector -> Column_Name_Mapping -> Problem_Behavior -> Map
 rename_columns internal_columns mapping on_problems =
     unique = Unique_Name_Strategy.new
     col_count = internal_columns.length
@@ -158,9 +158,9 @@ rename_columns internal_columns mapping on_problems =
         new_names
 
     mapped = case mapping of
-        Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher case_sensitive=True)
-        Column_Mapping.By_Name map ms -> name_mapper map.to_vector ms
-        Column_Mapping.By_Index map ->
+        Column_Name_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher case_sensitive=True)
+        Column_Name_Mapping.By_Name map ms -> name_mapper map.to_vector ms
+        Column_Name_Mapping.By_Index map ->
             good_indices = here.validate_indices col_count map.keys problem_builder
 
             index_map = Map.from_vector <| good_indices.map p->[p.at 0, map.get (p.at 1)]
@@ -170,7 +170,7 @@ rename_columns internal_columns mapping on_problems =
                 if target.is_nothing then Nothing else unique.make_unique target
 
             new_names
-        Column_Mapping.By_Position vec ->
+        Column_Name_Mapping.By_Position vec ->
             good_names = case vec.length > col_count of
                 True ->
                     problem_builder.report_other_warning (Too_Many_Column_Names_Provided (vec.drop_start col_count))

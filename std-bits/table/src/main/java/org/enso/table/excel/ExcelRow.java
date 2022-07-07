@@ -73,7 +73,9 @@ public class ExcelRow {
 
   public boolean isEmpty(int start, int end) {
     int currentEnd = end == -1 ? getLastColumn() : end;
-    for (int column = start; column <= currentEnd; column++) {
+    for (int column = Math.max(getFirstColumn(), start);
+        column <= Math.min(getLastColumn(), currentEnd);
+        column++) {
       if (!isEmpty(column)) {
         return false;
       }

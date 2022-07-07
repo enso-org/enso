@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table
 import Standard.Table.Data.Storage
+import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
@@ -996,16 +997,12 @@ type Column
                  Examples.decimal_column.sort comparator=my_comparator
     sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
     sort order=Sort_Direction.Ascending missing_last=True comparator=Nothing =
-        comparator_to_java cmp x y = cmp x y . to_sign
         order_bool = case order of
             Sort_Direction.Ascending -> True
             Sort_Direction.Descending -> False
-        java_cmp = case comparator of
-            Nothing -> Nothing
-            cmp -> comparator_to_java cmp
+        java_cmp = Comparator.new comparator
         rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
-        fallback_cmp = comparator_to_java .compare_to
-        mask = OrderBuilder.buildOrderMask [rule].to_array fallback_cmp
+        mask = OrderBuilder.buildOrderMask [rule].to_array
         new_col = self.java_column.applyMask mask
         Column new_col
 

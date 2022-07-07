@@ -1,6 +1,6 @@
 package org.enso.table.excel;
 
-import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellReference;
 
 import java.util.Optional;
@@ -324,6 +324,18 @@ public class ExcelRange {
     return isWholeColumn() ? Integer.MAX_VALUE : bottomRow - topRow + 1;
   }
 
+  public int getLastNonEmptyRow(ExcelSheet sheet) {
+    int lastRow =
+        Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
+
+    while (lastRow > topRow
+        && sheet.get(lastRow - 1).isEmpty(leftColumn, isWholeRow() ? -1 : rightColumn)) {
+      lastRow--;
+    }
+
+    return lastRow - 1;
+  }
+
   public boolean isSingleCell() {
     return this.singleCell;
   }
@@ -342,5 +354,15 @@ public class ExcelRange {
     }
 
     return sheetNameEscaped + "!" + range;
+  }
+
+  public ExcelRange getAbsoluteRange(Workbook workbook) {
+    int topRow = isWholeColumn() ? 1 : getTopRow();
+    int bottomRow =
+        isWholeColumn() ? workbook.getSpreadsheetVersion().getMaxRows() : getBottomRow();
+    int leftColumn = isWholeRow() ? 1 : getLeftColumn();
+    int rightColumn =
+        isWholeRow() ? workbook.getSpreadsheetVersion().getMaxColumns() : getRightColumn();
+    return new ExcelRange(getSheetName(), leftColumn, topRow, rightColumn, bottomRow);
   }
 }

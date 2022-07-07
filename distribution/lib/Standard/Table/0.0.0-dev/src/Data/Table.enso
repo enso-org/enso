@@ -21,8 +21,9 @@ from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_For
 from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
+import Standard.Table.Data.Match_Columns
 
-import Standard.Table.Data.Column_Mapping
+import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
@@ -459,9 +460,9 @@ type Table
        > Example
          Rename the first column to "FirstColumn"
 
-              table.rename_columns (Column_Mapping.By_Position ["FirstColumn"])
-    rename_columns : Column_Mapping -> Problem_Behavior -> Table
-    rename_columns (column_map=(Column_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
+              table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
+    rename_columns : Column_Name_Mapping -> Problem_Behavior -> Table
+    rename_columns (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
         new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
         if new_names.is_error then new_names else
             new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
@@ -493,7 +494,7 @@ type Table
                 Nothing -> Nothing
                 _ -> val.to_text
         new_names = self.columns.map mapper
-        self.take_end (self.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems
+        self.take_end (self.length - 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
 
     ## ALIAS group, summarize
 
@@ -1059,12 +1060,13 @@ type Table
          specific type and uses the default settings for that type to be used.
          Details of this type are below.
        - on_existing_file: Specified how to handle if the file already exists.
-       - column_matching: Specifies how to map columns against an existing file.
-         If `Column_Matching.By_Name` - the columns are mapped by name against
-         an existing file.
-         If `Column_Matching.By_Position` - the columns are mapped by position
-         against an existing file.
-         If there is a mismatch, then a `Column_Mismatch` error is raised.
+       - match_columns: Specifies how to match columns against an existing file.
+         If `Match_Columns.By_Name` - the columns are mapped by name against an
+         existing file. If there is a mismatch, then a `Column_Name_Mismatch`
+         error is raised.
+         If `Match_Columns.By_Position` - the columns are mapped by position
+         against an existing file. If there is a mismatch, then a
+         `Column_Count_Mismatch` error is raised.
        - on_problems: Specifies how to handle if a problem occurs, raising as a
          warning by default. The specific issues depend on the `File_Format`
          argument.
@@ -1108,9 +1110,9 @@ type Table
              import Standard.Table
 
              example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") File_Format.Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Column_Mapping -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
-    write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup column_mapping=Column_Mapping.By_Name on_problems=Report_Warning =
-        format.write_table (File.new path) self on_existing_file column_mapping on_problems
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
+    write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+        format.write_table (File.new path) self on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text

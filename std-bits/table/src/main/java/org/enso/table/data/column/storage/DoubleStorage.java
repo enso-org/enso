@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.Comparator;
 
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -159,11 +158,6 @@ public class DoubleStorage extends NumericStorage {
       }
     }
     return new DoubleStorage(newData, total, newMissing);
-  }
-
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.<Double>naturalOrder();
   }
 
   public BitSet getIsMissing() {
