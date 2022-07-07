@@ -184,7 +184,7 @@ impl List {
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
-        self.filter_favorites();
+        self.retain_favorites();
         component::List {
             all_components:        Rc::new(self.all_components),
             top_modules:           top_mdl_bld.build(),
@@ -198,7 +198,7 @@ impl List {
         }
     }
 
-    fn filter_favorites(&self) {
+    fn retain_favorites(&self) {
         for group in &*self.favorites {
             group.entries.borrow_mut().retain(|c| self.component_ids.contains(&c.id));
         }
@@ -336,5 +336,45 @@ mod tests {
         let local_scope_ids = local_scope_entries.borrow().iter().map(|e| *e.id).collect_vec();
         let expected_ids = vec![5, 6];
         assert_eq!(local_scope_ids, expected_ids);
+    }
+
+    #[test]
+    fn building_component_list_with_favorites() {
+        let logger = Logger::new("tests::building_component_list_with_favorites");
+        let suggestion_db = mock_suggestion_db(logger);
+        let mut builder = List::new();
+        let completion_ids = [0, 1, 2];
+        const SUGGESTION_NAME_NOT_IN_DB: &str = "test.Test.NameNotInSuggestionDb";
+        const SUGGESTION_NAME_NOT_IN_COMPLETION_IDS: &str = "test.Test.TopModule1.fun1";
+        const SUGGESTION_NAME_IN_COMPLETION_IDS: &str = "test.Test.TopModule1";
+        let groups = [
+            execution_context::ComponentGroup {
+                name: "Group 1".into(),
+                color: None,
+                components: vec![
+                    SUGGESTION_NAME_IN_COMPLETION_IDS.into(),
+                    SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
+                    SUGGESTION_NAME_NOT_IN_DB.into(),
+                    SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
+                    SUGGESTION_NAME_NOT_IN_DB.into(),
+                    SUGGESTION_NAME_IN_COMPLETION_IDS.into(),
+                ],
+            },
+            execution_context::ComponentGroup {
+                name: "Group with items not in DB and not in completions".into(),
+                name: "Group with items not in DB".into(),
+                color: None,
+                components: vec![
+                    SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
+                    SUGGESTION_NAME_NOT_IN_DB.into(),
+                    SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
+                    SUGGESTION_NAME_NOT_IN_DB.into(),
+                ],
+            },
+        ];
+        builder.set_favorites(&suggestion_db, groups);
+        builder.extend(&suggestion_db, &completion_ids);
+        let list = builder.build();
+        let favorites: Vec<ComparableGroupData> = list.favorites.iter().map(Into::into).collect();
     }
 }
