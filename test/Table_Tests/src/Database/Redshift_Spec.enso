@@ -32,6 +32,8 @@ redshift_specific_spec connection pending =
         connection.execute_update 'DROP TABLE "'+tinfo+'"'
 
 run_tests connection pending=Nothing =
+    IO.println "Here we go..."
+
     prefix = "[Redshift] "
     name_counter = Ref.new 0
     tables = Vector.new_builder
@@ -66,21 +68,45 @@ run_tests connection pending=Nothing =
 
     clean_tables tables.to_vector
 
-spec =
+connect_via_json_config =
     credentials = enso_project.data / 'redshift_credentials.json'
-    case credentials.exists of
-        True ->
-            creds = Json.parse credentials.read_text . unwrap
-            access_key = ['AccessKeyID', creds.get 'access_key_id']
-            secret_key = ['SecretAccessKey', creds.get 'secret_access_key']
-            uri = creds.get 'db_uri'
-            user = creds.get 'db_user'
-            props = [access_key, secret_key]
-            connection = Database.connect uri user=user custom_properties=props
+    msg = "Redshift connection is not set up. Please create a JSON file containing the credentials in `data/redshift_credentials.json`"
+
+    if credentials.exists.not then msg else
+        creds = Json.parse credentials.read_text . unwrap
+        access_key = creds.get 'access_key_id'
+        secret_key = creds.get 'secret_access_key'
+        uri = creds.get 'db_uri'
+        user = creds.get 'db_user'
+        Redshift uri credentials=(AWS_Key user access_key secret_key)
+
+connect_via_aws_environment db_host_port =
+    db_host_port_split = db_host_port.split ':'
+    db_uri = db_host_port_split.at 0
+    db_port = if db_host_port_split.length == 1 then 5439 else Integer.parse (db_host_port_split.at 1)
+
+    db_user = Environment.get "ENSO_REDSHIFT_USER"
+    access_key = Environment.get "AWS_ACCESS_KEY_ID"
+    secret_key = Environment.get "AWS_SECRET_ACCESS_KEY"
+
+    credentials = if (access_key.is_nothing || secret_key.is_nothing) then AWS_Profile db_user (Environment.get "AWS_PROFILE" . if_nothing '') else
+        AWS_Key db_user access_key secret_key
+
+    Redshift db_uri db_port credentials=credentials
+
+spec =
+    db_host_port = Environment.get "ENSO_REDSHIFT_URI"
+    connection_details = if db_host_port.is_nothing then connect_via_json_config else
+        connect_via_aws_environment db_host_port
+
+    case connection_details of
+        Text ->
+            connection = Error.throw connection_details
+            run_tests connection pending=connection_details
+        _ ->
+            connection = Database.connect connection_details
             run_tests connection
-        False ->
-            msg = """
-                Redshift connection is not set up. Please create a JSON file containing
-                the credentials in `data/redshift_credentials.json`
-            connection = Error.throw msg
-            run_tests connection pending=msg
+
+    IO.println "Here we stop..."
+
+main = Test.Suite.run_main spec
