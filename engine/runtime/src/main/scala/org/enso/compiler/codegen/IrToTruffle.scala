@@ -246,7 +246,7 @@ class IrToTruffle(
         .unsafeGetMetadata(
           AliasAnalysis,
           s"Missing scope information for method " +
-          s"`${methodDef.typeName.map(_.name + ".")}${methodDef.methodName.name}`."
+          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
