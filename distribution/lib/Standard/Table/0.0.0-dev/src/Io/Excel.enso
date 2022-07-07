@@ -5,16 +5,20 @@ import Standard.Base.System.File.Option
 from Standard.Table.Io.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data
+from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 import Standard.Base.Error.Common as Errors
+import Standard.Table.Data.Match_Columns
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
+polyglot java import org.enso.table.write.ExistingDataMode
 polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.error.InvalidLocationException
+polyglot java import org.enso.table.error.ColumnCountMismatchException
+polyglot java import org.enso.table.error.ColumnNameMismatchException
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IllegalStateException
@@ -195,28 +199,35 @@ read_excel file section headers on_problems xls_format=False =
                 Excel_Range _ -> ExcelReader.readRange stream address.java_range (here.make_java_headers headers) skip_rows row_limit xls_format
                 Text -> ExcelReader.readRangeByName stream address (here.make_java_headers headers) skip_rows row_limit xls_format
 
-    here.read_excel_file file reader
+    here.handle_reader file reader
 
-write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Problem_Behavior -> Boolean
-write_excel file table on_existing_file section headers _ xls_format=False =
-    if on_existing_file == Existing_File_Behavior.Append then Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet." else
-        workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
-            here.read_excel_file file stream->(ExcelReader.getWorkbook stream xls_format)
+## PRIVATE
+   Writes a Table to an Excel file.
 
-        replace = (on_existing_file == Existing_File_Behavior.Overwrite) || (on_existing_file == Existing_File_Behavior.Backup)
-        java_headers = here.make_java_headers headers
-        if ExcelWriter.getEnsoToTextCallback == Nothing then ExcelWriter.getEnsoToTextCallback (.to_text)
-        result = here.handle_writer <| case section of
-            Sheet sheet skip_rows row_limit ->
-                ExcelWriter.writeTableToSheet workbook sheet replace skip_rows table.java_table row_limit java_headers
-            Cell_Range address skip_rows row_limit -> case address of
-                Excel_Range _ -> ExcelWriter.writeTableToRange workbook address.java_range replace skip_rows table.java_table row_limit java_headers
-                Text -> ExcelWriter.writeTableToRange workbook address replace skip_rows table.java_table row_limit java_headers
+   Arguments:
+write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
+write_excel file table on_existing_file section headers match_columns _ xls_format=False =
+    workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
+        here.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 
-        if result.is_error then result else
-            write_stream stream = stream.with_java_stream java_stream->
-                workbook.write java_stream
-            on_existing_file.write file write_stream
+    existing_data_mode = here.make_java_existing_data_mode on_existing_file match_columns
+    java_headers = here.make_java_headers headers
+    ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
+    result = here.handle_writer <| case section of
+        Sheet sheet skip_rows row_limit ->
+            ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
+        Cell_Range address skip_rows row_limit -> case address of
+            Excel_Range java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
+            Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
+
+    if result.is_error then result else
+        write_stream stream = stream.with_java_stream java_stream->
+            workbook.write java_stream
+        case on_existing_file of
+            Existing_File_Behavior.Append ->
+                ## Special handling - have successfully added the extra sheet/range so now overwrite file with backup.
+                Existing_File_Behavior.Backup.write file write_stream
+            _ -> on_existing_file.write file write_stream
 
 ## PRIVATE
 prepare_reader_table : Problem_Behavior -> Any -> Table
@@ -237,7 +248,19 @@ make_java_headers headers = case headers of
         False -> ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES
 
 ## PRIVATE
-read_excel_file file reader =
+make_java_existing_data_mode : Existing_File_Behavior -> Match_Columns -> ExcelWriter.ExistingDataMode
+make_java_existing_data_mode on_existing_file match_columns = case on_existing_file of
+    Existing_File_Behavior.Error -> ExistingDataMode.ERROR
+    Existing_File_Behavior.Overwrite -> ExistingDataMode.REPLACE
+    Existing_File_Behavior.Backup -> ExistingDataMode.REPLACE
+    Existing_File_Behavior.Append -> case match_columns of
+        Match_Columns.By_Name -> ExistingDataMode.APPEND_BY_NAME
+        Match_Columns.By_Position -> ExistingDataMode.APPEND_BY_INDEX
+
+## PRIVATE
+   Handle and map the Java errors when reading an Excel file
+handle_reader : File -> (Input_Stream -> (Table | Vector)) -> (Table | Vector)
+handle_reader file reader =
     bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
     handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
 
@@ -249,6 +272,7 @@ read_excel_file file reader =
             stream.with_java_stream reader
 
 ## PRIVATE
+   Handle and map the Java errors when writing an Excel file
 handle_writer ~writer =
     bad_location caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
     handle_bad_location = Panic.catch InvalidLocationException handler=bad_location
@@ -259,7 +283,23 @@ handle_writer ~writer =
     throw_existing_data caught_panic = Error.throw (Existing_Data caught_panic.payload.cause.getMessage)
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
+    throw_column_count_mismatch caught_panic =
+        cause = caught_panic.payload.cause
+        Error.throw (Column_Count_Mismatch cause.getExpected cause.getActual)
+    handle_column_count_mismatch = Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
+
+    throw_column_name_mismatch caught_panic =
+        cause = caught_panic.payload.cause
+        Error.throw (Column_Name_Mismatch (Vector.Vector cause.getMissing) (Vector.Vector cause.getExtras) cause.getMessage)
+    handle_column_name_mismatch = Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
+
+    ## Illegal argument can occur if appending in an invalid mode
+    illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
+    handle_illegal_argument = Panic.catch IllegalArgumentException handler=illegal_argument
+
+    ## Should be impossible - occurs if no fallback serializer is provided.
     throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error caught_panic.payload.cause.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
-    handle_illegal_state <| handle_bad_location <| handle_range_exceeded <| handle_existing_data <| writer
+    handle_illegal_state <| handle_column_name_mismatch <| handle_column_count_mismatch <| handle_bad_location <|
+        handle_illegal_argument <| handle_range_exceeded <| handle_existing_data <| writer

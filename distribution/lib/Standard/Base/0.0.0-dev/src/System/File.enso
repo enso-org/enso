@@ -8,6 +8,7 @@ import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Base.Runtime.Resource import all
+from Standard.Base.Data.Time as Time_Module import Time
 
 export Standard.Base.System.File.Option
 
@@ -21,6 +22,7 @@ polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
+polyglot java import java.time.ZonedDateTime
 
 ## ALIAS New File
 
@@ -360,6 +362,48 @@ type File
              example_exists = Examples.csv.exists
     exists : Boolean
     exists = @Builtin_Method "File.exists"
+
+    ## Gets the creation time of a file.
+
+       > Example
+         Gets the creation time of a file.
+
+             import Standard.Examples
+
+             example_exists = Examples.csv.creation_time
+    creation_time : Time ! File_Error
+    creation_time =
+        here.handle_java_exceptions self <|
+            Time (self.creation_time_builtin)
+
+    ## PRIVATE
+
+       Builtin method that gets this file's creation time.
+       Recommended to use `File.creation_time` instead which handles potential
+       exceptions.
+    creation_time_builtin : File -> ZonedDateTime
+    creation_time_builtin = @Builtin_Method "File.creation_time_builtin"
+
+    ## Gets the last modified time of a file.
+
+       > Example
+         Gets the last modified time of a file.
+
+             import Standard.Examples
+
+             example_exists = Examples.csv.last_modified_time
+    last_modified_time : Time ! File_Error
+    last_modified_time =
+        here.handle_java_exceptions self <|
+            Time (self.last_modified_time_builtin)
+
+    ## PRIVATE
+
+       Builtin method that gets this file's last modified time.
+       Recommended to use `File.last_modified_time` instead which handles
+       potential exceptions.
+    last_modified_time_builtin : File -> ZonedDateTime
+    last_modified_time_builtin = @Builtin_Method "File.last_modified_time_builtin"
 
     ## Checks whether the file exists and is a directory.
 
