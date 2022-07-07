@@ -165,6 +165,13 @@ impl Default for Parser {
     }
 }
 
+
+// == Parsing helpers ==
+
+/// Reinterpret an expression in a statement context (i.e. as a top level member of a block).
+///
+/// In statement context, an expression that has an assignment operator at its top level is
+/// interpreted as a variable assignment or method definition.
 fn expression_to_statement(tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     match expression_to_statement_(&tree) {
         Some(modified) => modified,
@@ -175,7 +182,8 @@ fn expression_to_statement(tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
 fn expression_to_statement_<'a>(tree: &syntax::Tree<'a>) -> Option<syntax::Tree<'a>> {
     use syntax::tree::*;
     match &*tree.variant {
-        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }) if opr.code == "=" => {
+        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
+        if opr.code == "=" => {
             let mut func_ = lhs;
             let mut args = vec![];
             while let Variant::App(App { func, arg }) = &*func_.variant {

@@ -68,6 +68,13 @@ use std::collections::HashSet;
 /// Given an input containing a single statement, test that:
 /// - The given code parses to the AST represented by the given S-expression.
 /// - The AST pretty-prints back to the original code.
+///
+/// The S-expression format is as documented for [`enso_metamodel::meta::sexp`], with some
+/// postprocessing:
+/// - For concision, field names are stripped (as if all structs were tuple structs).
+/// - Most token types are represented as their contents, rather than as a token struct. For
+///   example, a `token::Number` may be represented like: `sexp![10]`, and a `token::Ident` may look
+///   like `sexp![foo]`.
 fn test_statement(code: &str, expect: lexpr::Value) {
     let ast = enso_parser::Parser::new().run(code);
     let parsed_and_pretty_printed = ast.code();
