@@ -199,12 +199,9 @@ impl List {
     }
 
     fn filter_favorites(&self) {
-        // // TODO[MC}: consider refactoring to functional
-        // let mut filtered_groups = Vec::<component::Group>::with_capacity(self.favorites.len());
         for group in &*self.favorites {
             group.entries.borrow_mut().retain(|c| self.component_ids.contains(&c.id));
         }
-        // component::group::List::new(filtered_groups)
     }
 }
 
