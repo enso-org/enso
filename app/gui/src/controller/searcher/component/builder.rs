@@ -361,7 +361,7 @@ mod tests {
                     QN_NOT_IN_DB.into(),
                     qn_of_db_entry_3.clone(),
                     QN_NOT_IN_DB.into(),
-                    qn_of_db_entry_0.clone(),
+                    qn_of_db_entry_0,
                 ],
             },
             execution_context::ComponentGroup {
@@ -370,7 +370,7 @@ mod tests {
                 components: vec![
                     qn_of_db_entry_3.clone(),
                     QN_NOT_IN_DB.into(),
-                    qn_of_db_entry_3.clone(),
+                    qn_of_db_entry_3,
                     QN_NOT_IN_DB.into(),
                 ],
             },
