@@ -361,8 +361,7 @@ mod tests {
                 ],
             },
             execution_context::ComponentGroup {
-                name: "Group with items not in DB and not in completions".into(),
-                name: "Group with items not in DB".into(),
+                name: "Group 2".into(),
                 color: None,
                 components: vec![
                     SUGGESTION_NAME_NOT_IN_COMPLETION_IDS.into(),
@@ -372,9 +371,22 @@ mod tests {
                 ],
             },
         ];
-        builder.set_favorites(&suggestion_db, groups);
-        builder.extend(&suggestion_db, &completion_ids);
+        builder.set_favorites(&suggestion_db, &groups);
+        builder.extend(&suggestion_db, completion_ids.into_iter());
         let list = builder.build();
         let favorites: Vec<ComparableGroupData> = list.favorites.iter().map(Into::into).collect();
+        let expected = vec![
+            ComparableGroupData {
+                name: "Group 1",
+                component_id: None,
+                entries: vec![0, 0],
+            },
+            ComparableGroupData {
+                name: "Group 2",
+                component_id: None,
+                entries: vec![],
+            },
+        ];
+        assert_eq!(favorites, expected);
     }
 }
