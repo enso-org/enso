@@ -33,7 +33,7 @@ spec =
             contents.write f
             all_codepoints = Vector.new_builder
             read_chars decoder n =
-                case here.read_characters decoder n of
+                case read_characters decoder n of
                     Nothing -> Nothing
                     chars ->
                         chars.each all_codepoints.append
@@ -80,29 +80,29 @@ spec =
             encoding = Encoding.utf_8
             ((0.up_to 100).map _->'Hello World!' . join '\n').write f
             expected_contents = f.read_text
-            contents = here.read_file_one_by_one f encoding expected_contents.length
+            contents = read_file_one_by_one f encoding expected_contents.length
             contents.should_equal expected_contents
 
         Test.specify "should allow reading a Windows file" <|
             encoding = Encoding.windows_1252
             expected_contents = "Hello World! $¢¤¥"
-            contents = here.read_file_one_by_one windows_file encoding expected_contents.length
+            contents = read_file_one_by_one windows_file encoding expected_contents.length
             contents.should_equal expected_contents
 
         Test.specify "should raise warnings when reading invalid characters" <|
             encoding = Encoding.ascii
             expected_contents = 'Hello World! $\uFFFD\uFFFD\uFFFD'
             expected_problems = [Encoding_Error "Encoding issues at bytes 14, 15, 16."]
-            contents_1 = here.read_file_one_by_one windows_file encoding expected_contents.length on_problems=Problem_Behavior.Report_Warning
+            contents_1 = read_file_one_by_one windows_file encoding expected_contents.length on_problems=Problem_Behavior.Report_Warning
             contents_1.should_equal expected_contents
             Warning.get_all contents_1 . map .value . should_equal expected_problems
 
             contents_2 = windows_file.with_input_stream [File.Option.Read] stream->
                 stream.with_stream_decoder encoding Problem_Behavior.Report_Warning reporting_stream_decoder->
                     codepoint_1 = reporting_stream_decoder.read
-                    codepoints_1 = here.read_characters reporting_stream_decoder 5
-                    codepoints_2 = here.read_characters reporting_stream_decoder 3
-                    codepoints_3 = here.read_characters reporting_stream_decoder 100
+                    codepoints_1 = read_characters reporting_stream_decoder 5
+                    codepoints_2 = read_characters reporting_stream_decoder 3
+                    codepoints_3 = read_characters reporting_stream_decoder 100
                     reporting_stream_decoder.read.should_equal -1
                     Text.from_codepoints <| [codepoint_1]+codepoints_1+codepoints_2+codepoints_3
             contents_2.should_equal expected_contents
