@@ -10,16 +10,16 @@
 
 #[cfg(feature = "graphviz")]
 mod graphviz;
+#[cfg(feature = "s_expr")]
+mod s_expr;
 pub mod serialization;
-#[cfg(feature = "sexp")]
-mod sexp;
 pub mod transform;
 
 use crate::data_structures::VecMap;
 use derive_more::Index;
 use derive_more::IndexMut;
-#[cfg(feature = "sexp")]
-pub use sexp::ToSexp;
+#[cfg(feature = "s_expr")]
+pub use s_expr::ToSExpr;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 

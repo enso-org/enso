@@ -21,5 +21,5 @@ serde = { version = "1.0", features = ["derive"] }
 bincode = "1.3"
 
 [dev-dependencies]
-enso-metamodel = { path = "../metamodel", features = ["rust", "sexp"] }
+enso-metamodel = { path = "../metamodel", features = ["rust", "s_expr"] }
 lexpr = "0.2.6"

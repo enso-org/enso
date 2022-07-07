@@ -18,20 +18,20 @@ use lexpr::Value;
 
 
 
-// ====================
-// === Meta to Sexp ===
-// ====================
+// =============================
+// === Meta to S-expressions ===
+// =============================
 
 /// Render data to an S-expression representation based on its `meta` model.
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct ToSexp<'g> {
+pub struct ToSExpr<'g> {
     graph:   &'g TypeGraph,
     #[derivative(Debug = "ignore")]
     mappers: BTreeMap<TypeId, Box<dyn Fn(Value) -> Value>>,
 }
 
-impl<'g> ToSexp<'g> {
+impl<'g> ToSExpr<'g> {
     #[allow(missing_docs)]
     pub fn new(graph: &'g TypeGraph) -> Self {
         let mappers = Default::default();
@@ -43,7 +43,8 @@ impl<'g> ToSexp<'g> {
         self.mappers.insert(id, Box::new(f));
     }
 
-    /// Render a value to an S-expression.
+    /// Given a bincode-serialized input, use its `meta` type info to transcribe it to an
+    /// S-expression.
     pub fn value(&self, id: TypeId, data: &mut &[u8]) -> Value {
         let ty = &self.graph[id];
         let value = match &ty.data {
@@ -79,7 +80,7 @@ impl<'g> ToSexp<'g> {
 
 // === Implementation ===
 
-impl<'g> ToSexp<'g> {
+impl<'g> ToSExpr<'g> {
     fn fields(&self, hierarchy: &mut Vec<TypeId>, data: &mut &[u8], out: &mut Vec<Value>) {
         let id = match hierarchy.pop() {
             Some(id) => id,

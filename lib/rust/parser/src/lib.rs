@@ -173,44 +173,38 @@ impl Default for Parser {
 /// In statement context, an expression that has an assignment operator at its top level is
 /// interpreted as a variable assignment or method definition.
 fn expression_to_statement(tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
-    match expression_to_statement_(&tree) {
+    use syntax::tree::*;
+    let tree_ = match &*tree.variant {
+        Variant::OprSectionBoundary(OprSectionBoundary { ast }) => ast,
+        _ => &tree,
+    };
+    let mut replacement = None;
+    if let Variant::OprApp(opr_app) = &*tree_.variant {
+        replacement = expression_to_binding(opr_app);
+    }
+    match replacement {
         Some(modified) => modified,
         None => tree,
     }
 }
 
-fn expression_to_statement_<'a>(tree: &syntax::Tree<'a>) -> Option<syntax::Tree<'a>> {
+/// If the input is an "=" expression, try to interpret it as either a variable assignment or method
+/// definition.
+fn expression_to_binding<'a>(app: &syntax::tree::OprApp<'a>) -> Option<syntax::Tree<'a>> {
     use syntax::tree::*;
-    match &*tree.variant {
-        Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) })
-        if opr.code == "=" => {
-            let mut func_ = lhs;
+    match app {
+        OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } if opr.code == "=" => {
+            let mut lhs = lhs;
             let mut args = vec![];
-            while let Variant::App(App { func, arg }) = &*func_.variant {
+            while let Variant::App(App { func, arg }) = &*lhs.variant {
+                lhs = func;
                 args.push(arg.clone());
-                func_ = func;
             }
             args.reverse();
-            if args.is_empty() {
+            if let Some(rhs) = rhs && args.is_empty() {
                 Some(Tree::assignment(lhs.clone(), opr.clone(), rhs.clone()))
-            } else if let Variant::Ident(Ident { token }) = &*func_.variant {
-                Some(Tree::function(token.clone(), args, opr.clone(), Some(rhs.clone())))
-            } else {
-                None
-            }
-        }
-        Variant::OprSectionBoundary(OprSectionBoundary { ast })
-        if let Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: None }) = &*ast.variant
-                 && opr.code == "=" => {
-            let mut func_ = lhs;
-            let mut args = vec![];
-            while let Variant::App(App { func, arg }) = &*func_.variant {
-                args.push(arg.clone());
-                func_ = func;
-            }
-            args.reverse();
-            if let Variant::Ident(Ident { token }) = &*func_.variant {
-                Some(Tree::function(token.clone(), args, opr.clone(), None))
+            } else if let Variant::Ident(Ident { token }) = &*lhs.variant {
+                Some(Tree::function(token.clone(), args, opr.clone(), rhs.clone()))
             } else {
                 None
             }

@@ -75,7 +75,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         Ident {
             pub token: token::Ident<'s>,
         },
-        /// A numeric constant, like `10`.
+        /// A numeric literal, like `10`.
         Number {
             pub token: token::Number<'s>,
         },

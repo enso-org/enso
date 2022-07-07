@@ -16,4 +16,4 @@ bincode = "1.3"
 graphviz = []
 java = []
 rust = []
-sexp = ["lexpr"]
+s_expr = ["lexpr"]
