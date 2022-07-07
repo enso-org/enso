@@ -327,12 +327,11 @@ spec_write suffix test_sheet_name =
             (Enso_Project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
-            expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
-        ## out.delete_if_exists
+        out.delete_if_exists
         out_bak.delete_if_exists
 
 spec =
