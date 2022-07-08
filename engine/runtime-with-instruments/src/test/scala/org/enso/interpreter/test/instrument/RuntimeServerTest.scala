@@ -2970,7 +2970,7 @@ class RuntimeServerTest
         |main =
         |    x = Panic.catch_primitive @ .convert_to_dataflow_error
         |    IO.println x
-        |    IO.println (x.catch .to_text)
+        |    IO.println (x.catch Any .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -3032,10 +3032,11 @@ class RuntimeServerTest
     val code =
       """import Standard.Base.IO
         |from Standard.Base.Error.Common import all
+        |from Standard.Base.Data.Any import all
         |
         |main =
         |    x = Panic.catch_primitive () .convert_to_dataflow_error
-        |    IO.println (x.catch .to_text)
+        |    IO.println (x.catch Any .to_text)
         |
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -3076,7 +3077,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Parentheses can't be empty.",
               Some(mainFile),
-              Some(model.Range(model.Position(4, 30), model.Position(4, 32)))
+              Some(model.Range(model.Position(5, 30), model.Position(5, 32)))
             )
           )
         )

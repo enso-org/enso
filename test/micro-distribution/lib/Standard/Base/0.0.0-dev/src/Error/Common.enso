@@ -1,3 +1,5 @@
+from project.Data.Any import Any
+
 type Panic
     @Builtin_Type
     type Panic
