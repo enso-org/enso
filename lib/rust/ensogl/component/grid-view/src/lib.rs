@@ -40,7 +40,6 @@ use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_core::gui::Widget;
 use ensogl_hardcoded_theme as theme;
 
@@ -74,26 +73,37 @@ impl VisibleArea {
         self.left_top + Vector2(self.size.x, -self.size.y)
     }
 
-    fn all_visible_locations(&self, entry_size: Vector2) -> impl Iterator<Item = (Row, Col)> {
-        itertools::iproduct!(self.visible_rows(entry_size), self.visible_columns(entry_size))
+    fn all_visible_locations(
+        &self,
+        entry_size: Vector2,
+        row_count: usize,
+        col_count: usize,
+    ) -> impl Iterator<Item = (Row, Col)> {
+        let visible_rows = self.visible_rows(entry_size, row_count);
+        let visible_cols = self.visible_columns(entry_size, col_count);
+        itertools::iproduct!(visible_rows, visible_cols)
     }
 
-    fn visible_rows(&self, entry_size: Vector2) -> RangeInclusive<Row> {
+    fn visible_rows(&self, entry_size: Vector2, row_count: usize) -> Range<Row> {
         let right_bottom = self.right_bottom();
-        let min_row: Row = (self.left_top.y / -entry_size.y).floor() as Row;
-        let max_row: Row = (right_bottom.y / -entry_size.y).ceil() as Row;
-        min_row..=max_row
+        let first_visible_unrestricted = (self.left_top.y / -entry_size.y).floor() as isize;
+        let first_visible = first_visible_unrestricted.clamp(0, row_count as isize) as Row;
+        let first_not_visible_unrestricted = (right_bottom.y / -entry_size.y).ceil() as isize;
+        let first_not_visible = first_not_visible_unrestricted.clamp(0, row_count as isize) as Row;
+        first_visible..first_not_visible
     }
 
-    fn visible_columns(&self, entry_size: Vector2) -> RangeInclusive<Col> {
+    fn visible_columns(&self, entry_size: Vector2, col_count: usize) -> Range<Col> {
         let right_bottom = self.right_bottom();
-        let min_col: Col = (self.left_top.x / entry_size.x).floor() as Col;
-        let max_col: Col = (right_bottom.x / entry_size.x).ceil() as Col;
-        min_col..=max_col
+        let first_visible_unrestricted = (self.left_top.x / entry_size.x).floor() as isize;
+        let first_visible = first_visible_unrestricted.clamp(0, col_count as isize) as Col;
+        let first_not_visible_unrestricted = (right_bottom.x / entry_size.x).ceil() as isize;
+        let first_not_visible = first_not_visible_unrestricted.clamp(0, col_count as isize) as Col;
+        first_visible..first_not_visible
     }
 }
 
-ensogl_core::define_endpoints! {
+ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
     Input {
         set_visible_area(VisibleArea),
@@ -104,7 +114,12 @@ ensogl_core::define_endpoints! {
     }
 
     Output {
-        size(Vector2<f32>),
+        row_count(usize),
+        column_count(usize),
+        visible_area(VisibleArea),
+        entries_size(Vector2),
+        entries_params(EntryParams),
+        viewport_size(Vector2),
         model_for_entry_needed(Row, Col),
     }
 }
@@ -114,15 +129,17 @@ ensogl_core::define_endpoints! {
 // === Model ===
 // =============
 
-struct EntryCreationCtx {
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+struct EntryCreationCtx<P> {
     app:              Application,
     network:          frp::WeakNetwork,
     set_entry_size:   frp::Stream<Vector2>,
-    set_entry_params: frp::Stream<Vector2>,
+    set_entry_params: frp::Stream<P>,
 }
 
-impl EntryCreationCtx {
-    fn create_entry<E: Entry>(&self) -> E {
+impl<P: frp::node::Data> EntryCreationCtx<P> {
+    fn create_entry<E: Entry<Params = P>>(&self) -> E {
         let entry = E::new(&self.app);
         match self.network.upgrade() {
             Some(network) => {
@@ -149,41 +166,48 @@ fn set_entry_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_s
     entry.set_position_xy(Vector2(x, y));
 }
 
+#[derive(Copy, Clone, Debug, Default)]
+struct Properties {
+    row_count:    usize,
+    col_count:    usize,
+    visible_area: VisibleArea,
+    entries_size: Vector2,
+}
+
+impl Properties {
+    pub fn viewport_size(&self) -> Vector2 {
+        let x = self.col_count as f32 * self.entries_size.x;
+        let y = self.row_count as f32 * self.entries_size.y;
+        Vector2(x, y)
+    }
+}
+
 /// The Model of Select Component.
 #[derive(Clone, Debug)]
-struct Model<E> {
+pub struct Model<E, P> {
     display_object:     display::object::Instance,
     visible_entries:    RefCell<HashMap<(Row, Col), E>>,
     free_entries:       RefCell<Vec<E>>,
-    entry_creation_ctx: EntryCreationCtx,
+    entry_creation_ctx: EntryCreationCtx<P>,
 }
 
-impl<E> Model<E> {
-    fn new(entry_creation_ctx: EntryCreationCtx) -> Self {
+impl<E, P> Model<E, P> {
+    fn new(entry_creation_ctx: EntryCreationCtx<P>) -> Self {
         let logger = Logger::new("GridView");
         let display_object = display::object::Instance::new(&logger);
         let visible_entries = default();
         let free_entries = default();
         Model { display_object, visible_entries, free_entries, entry_creation_ctx }
     }
-
-    fn update_entries_positions(&self, entry_size: Vector2) {
-        for entry in self.visible_entries.borrow() {
-            entry.update_position(entry_size)
-        }
-    }
 }
 
-impl<E: display::Object> Model<E> {
-    fn update_entries_visibility(
-        &self,
-        visible_area: VisibleArea,
-        entry_size: Vector2,
-    ) -> impl IntoIterator<Item = (Row, Col)> {
+impl<E: display::Object, P> Model<E, P> {
+    fn update_entries_visibility(&self, properties: Properties) -> Vec<(Row, Col)> {
+        let Properties { visible_area, entries_size, row_count, col_count } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
-        let visible_rows = visible_area.visible_rows(entry_size);
-        let visible_cols = visible_area.visible_columns(entry_size);
+        let visible_rows = visible_area.visible_rows(entries_size, row_count);
+        let visible_cols = visible_area.visible_columns(entries_size, col_count);
         let no_longer_visible = visible_entries.drain_filter(|(row, col), _| {
             !visible_rows.contains(row) || !visible_cols.contains(col)
         });
@@ -193,28 +217,21 @@ impl<E: display::Object> Model<E> {
         });
         free_entries.extend(detached);
         let uncovered = visible_area
-            .all_visible_locations(entry_size)
+            .all_visible_locations(entries_size, row_count, col_count)
             .filter(|loc| !visible_entries.contains_key(loc));
         uncovered.collect_vec()
     }
 
-    fn update_after_entry_size_change(
-        &self,
-        entry_size: Vector2,
-        visible_area: VisibleArea,
-    ) -> impl IntoIterator<Item = (Row, Col)> {
-        let to_model_request = self.update_entries_visibility(visible_area, entry_size);
+    fn update_after_entries_size_change(&self, properties: Properties) -> Vec<(Row, Col)> {
+        let to_model_request = self.update_entries_visibility(properties);
         for ((row, col), visible_entry) in &*self.visible_entries.borrow() {
-            set_entry_position(visible_entry, *row, *col, entry_size);
+            set_entry_position(visible_entry, *row, *col, properties.entries_size);
         }
         to_model_request
     }
 
-    fn reset_entries(
-        &self,
-        visible_area: VisibleArea,
-        entry_size: Vector2,
-    ) -> impl IntoIterator<Item = (Row, Col)> {
+    fn reset_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
+        let Properties { visible_area, entries_size, row_count, col_count } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
         let detached = visible_entries.drain().map(|(_, entry)| {
@@ -222,26 +239,26 @@ impl<E: display::Object> Model<E> {
             entry
         });
         free_entries.extend(detached);
-        visible_area.all_visible_locations(entry_size)
+        visible_area.all_visible_locations(entries_size, row_count, col_count).collect_vec()
     }
 }
 
-impl<E: Entry> Model<E> {
-    fn update_entry(&self, row: Row, col: Col, model: E::Model) -> E {
+impl<E: Entry> Model<E, E::Params> {
+    fn update_entry(&self, row: Row, col: Col, model: E::Model, entry_size: Vector2) {
         use std::collections::hash_map::Entry::*;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
         let entry = match visible_entries.entry((row, col)) {
-            Occupied(entry) => entry.get(),
+            Occupied(entry) => entry.into_mut(),
             Vacant(lack_of_entry) => {
                 let new_entry =
                     free_entries.pop().unwrap_or_else(|| self.entry_creation_ctx.create_entry());
-                set_entry_position(&new_entry, row, col);
+                set_entry_position(&new_entry, row, col, entry_size);
                 self.display_object.add_child(&new_entry);
                 lack_of_entry.insert(new_entry)
             }
         };
-        entry.frp().set_model(model)
+        entry.frp().set_model(model);
     }
 }
 
@@ -255,43 +272,58 @@ impl<E: Entry> Model<E> {
 #[allow(missing_docs)]
 #[derive(CloneRef, Debug, Deref, Derivative)]
 #[derivative(Clone(bound = ""))]
-struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> {
-    widget: Widget<Frp<M, P>, Model<E>>,
+pub struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> {
+    widget: Widget<Model<E, P>, Frp<M, P>>,
 }
 
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
 impl<E: Entry> GridView<E> {
-    fn new(app: &Application) -> Self {
+    pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let network = frp.network();
+        let input = &frp.private.input;
+        let out = &frp.private.output;
         let entry_creation_ctx = EntryCreationCtx {
             app:              app.clone_ref(),
             network:          network.downgrade(),
-            set_entry_size:   frp.set_entries_size.into(),
-            set_entry_params: frp.set_entries_params.into(),
+            set_entry_size:   input.set_entries_size.clone_ref(),
+            set_entry_params: input.set_entries_params.clone_ref(),
         };
         let model = Rc::new(Model::new(entry_creation_ctx));
-        let out = &frp.output;
         frp::extend! { network
-            params <- all(frp.set_entry_size, frp.set_visible_area);
-            request_models_after_vis_area_change <= frp.set_visible_area.map2(
-                &frp.set_entry_size,
-                f!((area, entry_size) model.update_entries_visibility(area, entry_size))
+            out.row_count <+ input.reset_entries._0();
+            out.column_count <+ input.reset_entries._1();
+            out.visible_area <+ input.set_visible_area;
+            out.entries_size <+ input.set_entries_size;
+            out.entries_params <+ input.set_entries_params;
+            prop <- all_with4(
+                &out.row_count, &out.column_count, &out.visible_area, &out.entries_size,
+                |&row_count, &col_count, &visible_area, &entries_size| {
+                    Properties { row_count, col_count, visible_area, entries_size }
+                }
             );
-            request_models_after_entry_size_change <= frp.set_entry_size.map2(
-                &frp.set_visible_area,
-                f!((entry_size, area) model.update_after_entry_size_change(entry_size, area))
-            );
-            request_models_after_reset <= frp.reset.map3(
-                &frp.entry_size,
-                &frp.visible_area,
-                f!(((), entry_size, area) model.reset_entries(area, entry_size))
-            );
+            out.viewport_size <+ prop.map(|prop| prop.viewport_size());
+
+            request_models_after_vis_area_change <=
+                input.set_visible_area.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
+            request_models_after_entry_size_change <=
+                input.set_entries_size.map2(&prop, f!((_, p) model.update_after_entries_size_change(*p)));
+            request_models_after_reset <=
+                input.reset_entries.map2(&prop, f!((_, p) model.reset_entries(*p)));
             out.model_for_entry_needed <+ request_models_after_vis_area_change;
             out.model_for_entry_needed <+ request_models_after_entry_size_change;
             out.model_for_entry_needed <+ request_models_after_reset;
+
+            model_for_entry_and_prop <- all(input.model_for_entry, prop);
+            eval model_for_entry_and_prop
+                ((((row, col, entry_model), prop): &((Row, Col, E::Model), Properties))
+                    model.update_entry(*row, *col, entry_model.clone_ref(), prop.entries_size)
+                );
         }
+        let display_object = model.display_object.clone_ref();
+        let widget = Widget::new(app, frp, model, display_object);
+        Self { widget }
     }
 }
 

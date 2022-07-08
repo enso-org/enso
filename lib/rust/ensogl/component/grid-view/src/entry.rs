@@ -24,6 +24,7 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
     Output {}
 }
 
+pub type EntryFrp<E> = Frp<<E as Entry>::Model, <E as Entry>::Params>;
 
 
 // =============
@@ -44,7 +45,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     fn new(app: &Application) -> Self;
 
     /// FRP endpoints getter
-    fn frp(&self) -> &Frp<Self::Model, Self::Params>;
+    fn frp(&self) -> &EntryFrp<Self>;
 }
 
 
@@ -57,7 +58,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct LabelParams {
     font:  ImString,
-    size:  Immutable<usize>,
+    size:  Immutable<text::Size>,
     color: Immutable<color::Rgba>,
 }
 
@@ -65,7 +66,7 @@ pub struct LabelParams {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Label {
-    frp:            Frp<<Self as Entry>::Model, <Self as Entry>::Params>,
+    frp:            EntryFrp<Self>,
     display_object: display::object::Instance,
     pub label:      text::Area,
 }
@@ -78,19 +79,19 @@ impl Entry for Label {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new(logger);
         let label = app.new_view::<ensogl_text::Area>();
-        let frp = Frp::new();
+        let frp = EntryFrp::<Self>::new();
         let network = frp.network();
         display_object.add_child(&label);
 
         frp::extend! { network
-            color <- frp.set_params.map(|params| params.color);
+            color <- frp.set_params.map(|params| *params.color);
             font <- frp.set_params.map(|params| params.font.clone_ref());
             size <- frp.set_params.map(|params| *params.size);
 
             label.set_default_color <+ color.on_change();
             label.set_font <+ font.on_change().map(ToString::to_string);
             label.set_default_text_size <+ size.on_change();
-            eval size ((size) label.set_position_y(size/2.0));
+            eval size ((size) label.set_position_y(size.raw / 2.0));
 
             content <- frp.set_model.map(|s| s.to_string());
             max_width_px <- frp.set_size.map(|size| size.x);
@@ -99,7 +100,7 @@ impl Entry for Label {
         Self { frp, display_object, label }
     }
 
-    fn frp(&self) -> &Frp<Self::Model, Self::Params> {
+    fn frp(&self) -> &EntryFrp<Self> {
         &self.frp
     }
 }

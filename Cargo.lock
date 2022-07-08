@@ -2483,6 +2483,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-grid-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-text",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-list-view"
 version = "0.1.0"
 dependencies = [
@@ -2624,6 +2637,7 @@ dependencies = [
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",
  "ensogl-example-glyph-system",
+ "ensogl-example-grid-view",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
  "ensogl-example-profiling-run-graph",
