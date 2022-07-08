@@ -7,14 +7,14 @@ import Standard.Base.Data.Time.Time_Of_Day
 
 import Standard.Table
 import Standard.Table.Data.Column
-from Standard.Table.Error import all
+from Standard.Table.Errors import all
 import Standard.Table.Io.File_Read
 from Standard.Table.Io.File_Format import Delimited
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Io.Quote_Style
 import Standard.Table.Data.Match_Columns
 import Standard.Table.Data.Column_Name_Mapping
-from Standard.Table.Error as Table_Errors import Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors as Table_Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 import Standard.Test
 import Standard.Test.Problems
@@ -264,7 +264,7 @@ spec =
                 file = (enso_project.data / "transient" / "append_by_position.csv")
                 file.delete_if_exists
                 existing_table.write file initial_file_format on_existing_file=Existing_File_Behavior.Overwrite
-                appending_table.write file append_format append_format match_columns=Match_Columns.By_Position on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
+                appending_table.write file append_format match_columns=Match_Columns.By_Position on_existing_file=Existing_File_Behavior.Append
                 read_format = initial_file_format
                 got_table = file.read read_format
                 got_table.should_equal expected_table
@@ -274,7 +274,7 @@ spec =
             with_headers = base_format . with_headers
 
             expected_table_with_headers = Table.new [["A", [1,2,33,44]], ["B", [1.0,1.5,Nothing,0]], ["C", ["x","y","a","BB"]]]
-            expected_table_without_headers = expected_table_with_headers.rename_columns <| Column_Name_Mapping.By_Position ["Column_1", "Column_2", "Column_3"]
+            expected_table_without_headers = expected_table_with_headers.rename_columns (Column_Name_Mapping.By_Position ["Column_1", "Column_2", "Column_3"])
 
             test_append initial_file_format=with_headers append_format=no_headers expected_table_with_headers
             test_append initial_file_format=with_headers append_format=base_format expected_table_with_headers
@@ -289,13 +289,13 @@ spec =
             file.delete_if_exists
             existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
 
-            result_1 = appending_table_1.write file on_existing_file=Existing_File_Behavior.Append
+            result_1 = appending_table_1.write file match_columns=Match_Columns.By_Position on_existing_file=Existing_File_Behavior.Append
             result_1 . should_fail_with Column_Count_Mismatch
             result_1.catch.expected . should_equal 3
             result_1.catch.actual . should_equal 2
             result_1.catch.to_display_text . should_equal "Expected 3 columns, got 2."
 
-            result_2 = appending_table_2.write file on_existing_file=Existing_File_Behavior.Append
+            result_2 = appending_table_2.write file match_columns=Match_Columns.By_Position on_existing_file=Existing_File_Behavior.Append
             result_2 . should_fail_with Column_Count_Mismatch
             result_2.catch.expected . should_equal 3
             result_2.catch.actual . should_equal 4
