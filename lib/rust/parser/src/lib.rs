@@ -79,6 +79,7 @@
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(allocator_api)]
+#![feature(exact_size_is_empty)]
 #![feature(test)]
 #![feature(specialization)]
 #![feature(let_chains)]
@@ -146,16 +147,13 @@ impl Parser {
 
     /// Main entry point.
     pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
+        use syntax::tree::*;
         let tokens = lexer::run(code);
-        let mut statements = vec![];
-        let mut tokens = tokens.into_iter().peekable();
-        while tokens.peek().is_some() {
-            let resolver = macros::resolver::Resolver::new_root();
-            let tree = resolver.run(&self.macros, &mut tokens);
-            let tree = expression_to_statement(tree);
-            statements.push(tree);
-        }
-        syntax::Tree::block(statements)
+        let mut tokens = tokens.into_iter();
+        let resolver = macros::resolver::Resolver::new_root();
+        let lines = resolver.run(&self.macros, &mut tokens);
+        assert_eq!(tokens.next(), None);
+        body_block_from_lines(syntax::token::newline("", ""), lines)
     }
 }
 
@@ -201,7 +199,7 @@ fn expression_to_binding<'a>(app: &syntax::tree::OprApp<'a>) -> Option<syntax::T
                 args.push(arg.clone());
             }
             args.reverse();
-            if let Some(rhs) = rhs && args.is_empty() {
+            if let Some(rhs) = rhs && args.is_empty() && !matches!(&*rhs.variant, Variant::BodyBlock { .. }) {
                 Some(Tree::assignment(lhs.clone(), opr.clone(), rhs.clone()))
             } else if let Variant::Ident(Ident { token }) = &*lhs.variant {
                 Some(Tree::function(token.clone(), args, opr.clone(), rhs.clone()))
@@ -219,6 +217,7 @@ fn expression_to_binding<'a>(app: &syntax::tree::OprApp<'a>) -> Option<syntax::T
 // === Tests ===
 // =============
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -240,6 +239,7 @@ mod tests {
         test_parse! {"a b c" = {[a b] c}};
     }
 }
+ */
 
 
 

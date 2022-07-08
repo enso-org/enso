@@ -78,10 +78,11 @@ pattern_impl_for_char_slice!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 pub struct Lexer<'s> {
     #[deref]
     #[deref_mut]
-    pub state:    LexerState,
-    pub input:    &'s str,
-    pub iterator: str::CharIndices<'s>,
-    pub output:   Vec<Token<'s>>,
+    pub state:            LexerState,
+    pub input:            &'s str,
+    pub iterator:         str::CharIndices<'s>,
+    pub output:           Vec<Token<'s>>,
+    pub temporary_tokens: EmptyVec<Token<'s>>,
 }
 
 /// Internal state of the [`Lexer`].
@@ -101,9 +102,10 @@ impl<'s> Lexer<'s> {
     pub fn new(input: &'s str) -> Self {
         let iterator = input.char_indices();
         let capacity = input.len() / AVERAGE_TOKEN_LEN;
-        let output = Vec::with_capacity(capacity * mem::size_of::<Token<'s>>());
+        let output = Vec::with_capacity(capacity);
         let state = default();
-        Self { input, iterator, output, state }.init()
+        let temporary_tokens = default();
+        Self { input, iterator, output, state, temporary_tokens }.init()
     }
 
     fn init(mut self) -> Self {
@@ -677,35 +679,32 @@ impl<'s> Lexer<'s> {
 
     fn newline(&mut self) {
         if let Some(token) = self.line_break() {
-            let mut newlines = vec![token.with_variant(token::Variant::newline())];
+            let mut line_breaks = self.temporary_tokens.take_storage();
             while let Some(token) = self.line_break() {
-                newlines.push(token.with_variant(token::Variant::newline()));
+                line_breaks.push(token.with_variant(token::Variant::newline()));
             }
             let block_indent = self.last_spaces_visible_offset;
-
             if block_indent > self.current_block_indent {
                 let block_start = self.marker_token(token::Variant::block_start());
                 self.submit_token(block_start);
                 self.start_block(block_indent);
-            } else {
-                while block_indent < self.current_block_indent {
-                    let err = "Lexer internal error. Inconsistent code block hierarchy.";
-                    let parent_block_indent = self.end_block().expect(err);
-                    if block_indent > self.current_block_indent {
-                        // The new line indent is smaller than current block but bigger than the
-                        // // previous one. We are treating the line as belonging to the
-                        // block. The warning should be reported by parser.
-                        self.start_block(parent_block_indent);
-                        break;
-                    } else {
-                        let block_end = self.marker_token(token::Variant::block_end());
-                        self.submit_token(block_end);
-                    }
+            }
+            self.submit_token(token.with_variant(token::Variant::newline()));
+            line_breaks.drain(..).for_each(|token| self.submit_token(token));
+            while block_indent < self.current_block_indent {
+                let err = "Lexer internal error. Inconsistent code block hierarchy.";
+                let parent_block_indent = self.end_block().expect(err);
+                if block_indent > self.current_block_indent {
+                    // The new line indent is smaller than current block but bigger than the
+                    // previous one. We are treating the line as belonging to the
+                    // block. The warning should be reported by parser.
+                    self.start_block(parent_block_indent);
+                    break;
                 }
+                let block_end = self.marker_token(token::Variant::block_end());
+                self.submit_token(block_end);
             }
-            for newline in newlines {
-                self.submit_token(newline);
-            }
+            self.temporary_tokens.set_storage(line_breaks);
         }
     }
 }
@@ -874,6 +873,13 @@ mod tests {
                 ident_("  ", "foo"),
                 newline_("", "\n"),
                 ident_("  ", "bar"),
+                block_end_("", ""),
+            ]),
+            ("foo\n    +", vec![
+                ident_("", "foo"),
+                block_start_("", ""),
+                newline_("", "\n"),
+                operator_("    ", "+"),
                 block_end_("", ""),
             ]),
         ]);

@@ -209,12 +209,13 @@ impl<'s> Resolver<'s> {
         reserved.and_option_from(|| self.macro_stack.pop())
     }
 
-    /// Run the resolver. Returns the resolved AST.
+    /// Run the resolver. Returns the resolved AST for the top-level lines of the input.
     pub fn run(
         mut self,
         root_macro_map: &SegmentMap<'s>,
-        tokens: &mut iter::Peekable<std::vec::IntoIter<syntax::Item<'s>>>,
-    ) -> syntax::Tree<'s> {
+        tokens: impl IntoIterator<Item = syntax::Item<'s>>,
+    ) -> Vec<syntax::tree::Line<'s>> {
+        let mut tokens = tokens.into_iter();
         event!(TRACE, "Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
         let mut opt_item: Option<syntax::Item<'s>>;
         macro_rules! next_token {
@@ -232,9 +233,38 @@ impl<'s> Resolver<'s> {
             };
         }
         next_token!();
-        while let Some(token) = opt_item && !token.is_newline() {
+        let mut lines = vec![];
+        let mut line_contains_items = false;
+        while let Some(token) = opt_item {
+            if let syntax::Item::Token(Token {
+                variant: token::Variant::Newline(_),
+                left_offset,
+                code,
+            }) = &token
+            {
+                let newline = token::newline(left_offset.clone(), code.clone());
+                let expression = line_contains_items.as_some_from(|| self.unwind_stack());
+                lines.push(syntax::tree::Line { expression, newline });
+                next_token!();
+                line_contains_items = false;
+                continue;
+            }
+            line_contains_items = true;
             let step_result = match token {
                 syntax::Item::Token(token) => self.process_token(root_macro_map, token),
+                syntax::Item::Block(tokens) => {
+                    let mut tokens = tokens.into_iter();
+                    let mut out = vec![];
+                    for line in Self::new_root().run(root_macro_map, &mut tokens) {
+                        let syntax::tree::Line { expression, newline } = line;
+                        if let Some(expression) = expression {
+                            out.push(syntax::Item::Tree(expression));
+                        }
+                        out.push(syntax::Item::Token(newline.into()));
+                    }
+                    let out = syntax::Item::Block(out);
+                    Step::NormalToken(out)
+                }
                 _ => Step::NormalToken(token),
             };
             match step_result {
@@ -253,14 +283,27 @@ impl<'s> Resolver<'s> {
                 }
             }
         }
+        if line_contains_items {
+            let expression = Some(self.unwind_stack());
+            lines.push(syntax::tree::Line { expression, newline: token::newline("", "") });
+        }
+        lines
+    }
 
+    fn unwind_stack(&mut self) -> syntax::Tree<'s> {
+        macro_rules! trace_state {
+            () => {
+                event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
+                event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
+            };
+        }
         event!(TRACE, "Finishing resolution. Popping the macro stack.");
         while let Some(parent_macro) = self.macro_stack.pop() {
             self.replace_current_with_parent_macro(parent_macro);
         }
-
         trace_state!();
-        let (tree, rest) = Self::resolve(self.current_macro);
+        let macro_ = mem::replace(&mut self.current_macro, PartiallyMatchedMacro::new_root());
+        let (tree, rest) = Self::resolve(macro_);
         if !rest.is_empty() {
             panic!(
                 "Internal error. Not all tokens were consumed by the macro resolver:\n{:#?}",

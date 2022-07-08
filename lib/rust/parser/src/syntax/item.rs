@@ -14,7 +14,7 @@ use crate::syntax::*;
 /// Abstraction for [`Token`] and [`Tree`]. Some functions, such as macro resolver need to
 /// distinguish between two cases and need to handle both incoming tokens and already constructed
 /// [`Tree`] nodes. This structure provides handy utilities to work with such cases.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum Item<'s> {
     Token(Token<'s>),
@@ -47,10 +47,20 @@ impl<'s> Item<'s> {
             Item::Token(token) => match token.variant {
                 token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
                 token::Variant::Number(number) => Tree::number(token.with_variant(number)),
-                _ => todo!(),
+                _ => todo!("{token:?}"),
             },
             Item::Tree(ast) => ast,
-            Item::Block(_) => todo!(),
+            Item::Block(items) => build_block(items),
+        }
+    }
+
+    /// If this item is an [`Item::Tree`], apply the given function to the contained [`Tree`] and
+    /// return the result.
+    pub fn map_tree<'t: 's, F>(self, f: F) -> Self
+    where F: FnOnce(Tree<'s>) -> Tree<'t> {
+        match self {
+            Item::Tree(tree) => Item::Tree(f(tree)),
+            _ => self,
         }
     }
 }
@@ -71,6 +81,30 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
     fn try_as_ref(&self) -> Option<&Item<'s>> {
         Some(self)
     }
+}
+
+/// Build an AST block from the contents of an `Item::Block`.
+fn build_block<'s>(items: impl IntoIterator<Item = Item<'s>>) -> Tree<'s> {
+    let mut line = vec![];
+    let mut block_builder = tree::BlockBuilder::new();
+    for item in items {
+        match item {
+            Item::Token(Token { variant: token::Variant::Newline(_), left_offset, code }) => {
+                let newline = token::newline(left_offset, code);
+                let line: Vec<_> = line.drain(..).collect();
+                let expression =
+                    (!line.is_empty()).as_some_from(|| operator::resolve_operator_precedence(line));
+                block_builder.push(expression, newline);
+            }
+            _ => line.push(item),
+        }
+    }
+    if !line.is_empty() {
+        let expression = Some(operator::resolve_operator_precedence(line));
+        let newline = token::newline("", "");
+        block_builder.push(expression, newline);
+    }
+    block_builder.build()
 }
 
 

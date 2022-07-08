@@ -39,7 +39,7 @@ use std::mem;
 #[proc_macro]
 pub fn ast_builder(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output = expr(tokens, None);
-    let output = quote!(crate::syntax::Tree::block(vec![#output]));
+    let output = quote!(crate::syntax::Tree::body_block(vec![#output]));
     output.into()
 }
 
