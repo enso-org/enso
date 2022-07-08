@@ -62,8 +62,9 @@ impl From<&str> for VisibleOffset {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Offset<'s> {
+    #[reflect(hide)]
     pub visible: VisibleOffset,
-    #[reflect(flatten)]
+    #[reflect(flatten, hide)]
     pub code:    Code<'s>,
 }
 
