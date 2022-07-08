@@ -744,19 +744,6 @@ impl component::Frp<Model> for Frp {
 
             output.size <+ layout_frp.update.map(|style| style.size_inner());
 
-            selection_size <- all_with(
-                &groups.selection_size,
-                &groups.selected_entry,
-                &groups.is_header_selected,
-                |selection_size, selected_entry, is_header_selected| {
-                    if selected_entry.is_some() || is_header_selected {
-                        selection_size
-                    } else {
-
-                    }
-                }
-            )
-
             selection_size_animation.target <+ groups.selection_size._1();
             selection_animation.target <+ groups.selection_position_target.all_with(
                 &model.scroll_area.scroll_position_y,
