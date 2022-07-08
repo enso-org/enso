@@ -192,17 +192,46 @@ spec =
             got_table = file.read
             got_table.should_equal table
 
-        Test.specify "should append to a file, matching columns by name" <|
+        Test.specify "should append to a file, matching columns by name (headers=Infer)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
             appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
             file = (enso_project.data / "transient" / "append_by_name.csv")
             file.delete_if_exists
             existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
-            # TODO maybe do 2 appends to test both headers infer and headers true
             appending_table.write file on_existing_file=Existing_File_Behavior.Append
             got_table = file.read
             expected_table = Table.new [["A", [1,2,Nothing,0]], ["B", [1.0,1.5,33,44]], ["C", ["x","y","a","BB"]]]
             got_table.should_equal expected_table
+
+        Test.specify "should append to a file, matching columns by name (headers=True)" <|
+            existing_table = Table.new [["0", [1,2]], ["B1", [1.0,1.5]], ["C", ["x","y"]]]
+            appending_table = Table.new [["B1", [33,44]], ["0", [Nothing, 0]], ["C", ["a","BB"]]]
+            file = (enso_project.data / "transient" / "append_by_name_2.csv")
+            file.delete_if_exists
+            existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
+            format = File_Format.Delimited "," . with_headers
+            appending_table.write file format on_existing_file=Existing_File_Behavior.Append
+            got_table = file.read format
+            expected_table = Table.new [["0", [1,2,Nothing,0]], ["B1", [1.0,1.5,33,44]], ["C", ["x","y","a","BB"]]]
+            got_table.should_equal expected_table
+
+        Test.specify "should fail when appending and matching columns by name but column names are not available in the file (headers=Infer)" <|
+            existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
+            appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
+            file = (enso_project.data / "transient" / "append_no_header.csv")
+            file.delete_if_exists
+            no_header_format = File_Format.Delimited "," . without_headers
+            existing_table.write file no_header_format on_existing_file=Existing_File_Behavior.Overwrite
+            appending_table.write file on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
+
+        Test.specify "should fail when appending and matching columns by name but headers are disabled (headers=False)" <|
+            existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
+            appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
+            file = (enso_project.data / "transient" / "append_no_header.csv")
+            file.delete_if_exists
+            no_header_format = File_Format.Delimited "," . without_headers
+            existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
+            appending_table.write file no_header_format on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
 
         Test.specify "should append to a file, matching columns by position" <|
             # TODO test all header modes (true, false, infer with missing, infer with present)
@@ -211,7 +240,5 @@ spec =
         Test.specify "should fail on column mismatch when appending to a file" <|
             Nothing
 
-        Test.specify "should fail when appending and matching columns by name but column names are not available in the file" <|
-            Nothing
 
 main = Test.Suite.run_main spec
