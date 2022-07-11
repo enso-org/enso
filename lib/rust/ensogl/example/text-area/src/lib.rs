@@ -79,7 +79,7 @@ fn init(app: Application) {
     let text = "red green blue";
     let colored_area = app.new_view::<Area>();
     app.display.default_scene.add_child(&colored_area);
-    colored_area.set_font("DejaVuSans");
+    colored_area.set_font(embedded_fonts::DefaultFamily::regular());
     colored_area.set_position_xy(Vector2::new(200.0, 200.0));
 
     colored_area.set_default_color(color::Rgba::black());
