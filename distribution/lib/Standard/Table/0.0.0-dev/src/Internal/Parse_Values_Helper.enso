@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table.Error as Table_Errors import Invalid_Format, Leading_Zeros
+from Standard.Table.Errors as Table_Errors import Invalid_Format, Leading_Zeros
 
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.LeadingZeros

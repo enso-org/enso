@@ -10,7 +10,7 @@ import Standard.Table.Data.Storage
 import Standard.Test
 import Standard.Test.Problems
 import Standard.Visualization
-from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
 
 import project.Common_Table_Spec
 

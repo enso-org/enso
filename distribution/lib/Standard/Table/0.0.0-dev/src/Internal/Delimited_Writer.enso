@@ -4,19 +4,22 @@ import Standard.Table
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 import Standard.Base.System.File.Existing_File_Behavior
-from Standard.Table.Error as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
+from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Data.Storage
 import Standard.Table.Io.Quote_Style
+from Standard.Table.Internal.Delimited_Reader import Existing_Headers, No_Headers
+import Standard.Table.Data.Match_Columns
 
 polyglot java import org.enso.table.write.DelimitedWriter
 polyglot java import org.enso.table.write.WriteQuoteBehavior
-polyglot java import java.io.PrintWriter
-polyglot java import java.io.IOException
 polyglot java import org.enso.table.formatting.TextFormatter
+polyglot java import org.enso.table.util.ColumnMapper
+polyglot java import java.io.PrintWriter
 polyglot java import java.io.StringWriter
+polyglot java import java.io.IOException
 
 ## Writes a delimited file according to the provided format.
 
@@ -29,14 +32,44 @@ polyglot java import java.io.StringWriter
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-write_file : Table -> File_Format.Delimited -> File -> Existing_File_Behavior -> Problem_Behavior -> Any
-write_file table format file on_existing_file on_problems =
+write_file : Table -> File_Format.Delimited -> File -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Any
+write_file table format file on_existing_file match_columns on_problems =
     case on_existing_file of
         Existing_File_Behavior.Append ->
-            Errors.unimplemented "Appending to an existing File_Format.Delimited file is not implemented yet."
+            append_to_file table format file match_columns on_problems
         _ ->
             on_existing_file.write file stream->
                 write_to_stream table format stream on_problems related_file=file
+
+## PRIVATE
+   Handles appending to an existing file, ensuring that the columns are matched
+   against the ones already in the file.
+
+   If the file does not exist or is empty, it acts like a regular overwrite.
+append_to_file : Table -> File_Format.Delimited -> File -> Match_Columns -> Problem_Behavior -> Any
+append_to_file table format file match_columns on_problems =
+    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <|
+        preexisting_headers = Delimited_Reader.detect_headers file format
+        reordered_java_table = case preexisting_headers of
+            Nothing -> table.java_table
+            Existing_Headers column_names -> case match_columns of
+                Match_Columns.By_Name ->
+                    ColumnMapper.mapColumnsByName table.java_table column_names.to_array
+                Match_Columns.By_Position ->
+                    column_count = column_names.length
+                    ColumnMapper.mapColumnsByPosition table.java_table column_count
+            No_Headers column_count -> case match_columns of
+                Match_Columns.By_Name ->
+                    Error.throw (Illegal_Argument_Error "Cannot append by name when headers are not present in the existing data.")
+                Match_Columns.By_Position ->
+                    ColumnMapper.mapColumnsByPosition table.java_table column_count
+        reordered_table = Table.Table reordered_java_table
+        writing_new_file = preexisting_headers == Nothing
+        amended_format = case writing_new_file && (should_write_headers format.headers) of
+            True -> format.with_headers
+            False -> format.without_headers
+        Existing_File_Behavior.Append.write file stream->
+            write_to_stream reordered_table amended_format stream on_problems related_file=file
 
 ## PRIVATE
    Returns a Text value representing the table in the delimited format.
@@ -95,10 +128,13 @@ write_to_writer table format java_writer =
     quote_characters = case format.quote_style of
         Quote_Style.No_Quotes -> Pair Nothing Nothing
         Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
-    write_headers = case format.headers of
-        True -> True
-        Infer -> True
-        False -> False
+    write_headers = should_write_headers format.headers
     new_line = '\n'
     writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter new_line quote_characters.first quote_characters.second quote_behavior write_headers
     writer.write table.java_table
+
+## PRIVATE
+should_write_headers headers = case headers of
+    True -> True
+    Infer -> True
+    False -> False

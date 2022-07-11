@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table.Error as Error_Module import all
+from Standard.Table.Errors as Error_Module import all
 import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Data.Text.Matching
 import Standard.Test
