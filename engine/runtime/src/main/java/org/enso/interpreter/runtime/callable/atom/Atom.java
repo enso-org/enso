@@ -20,15 +20,12 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-public class Atom implements TruffleObject {
+public final class Atom implements TruffleObject {
   final AtomConstructor constructor;
   private final Object[] fields;
 
@@ -61,32 +58,27 @@ public class Atom implements TruffleObject {
     return fields;
   }
 
-  private String toString(boolean shouldParen) {
-    StringBuilder builder = new StringBuilder();
+  private void toString(StringBuilder builder, boolean shouldParen, int depth) {
+    if (depth <= 0) {
+      builder.append("...");
+      return;
+    }
     boolean parensNeeded = shouldParen && fields.length > 0;
     if (parensNeeded) {
       builder.append("(");
     }
     builder.append(getConstructor().getName());
-    if (fields.length > 0) {
-      builder.append(" ");
+    for (var obj : fields) {
+        builder.append(" ");
+        if (obj instanceof Atom atom) {
+          atom.toString(builder, true, depth - 1);
+        } else {
+          builder.append(obj);
+        }
     }
-    List<String> fieldStrings =
-        Arrays.stream(fields)
-            .map(
-                obj -> {
-                  if (obj instanceof Atom) {
-                    return ((Atom) obj).toString(true);
-                  } else {
-                    return obj.toString();
-                  }
-                })
-            .collect(Collectors.toList());
-    builder.append(String.join(" ", fieldStrings));
     if (parensNeeded) {
       builder.append(")");
     }
-    return builder.toString();
   }
 
   /**
@@ -95,9 +87,15 @@ public class Atom implements TruffleObject {
    * @return a textual representation of this Atom.
    */
   @Override
-  @CompilerDirectives.TruffleBoundary
   public String toString() {
-    return toString(false);
+    return toString(10);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private String toString(int depth) {
+    StringBuilder sb = new StringBuilder();
+    toString(sb, false, depth);
+    return sb.toString();
   }
 
   @ExportMessage
@@ -191,7 +189,7 @@ public class Atom implements TruffleObject {
         | UnknownIdentifierException
         | UnsupportedTypeException
         | UnexpectedResultException e) {
-      return Text.create(this.toString());
+      return Text.create(this.toString(10));
     }
   }
 
@@ -238,23 +236,23 @@ public class Atom implements TruffleObject {
         guards = {
           "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
-          "_this.constructor == cachedConstructor",
+          "self.constructor == cachedConstructor",
           "function != null"
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Atom _this,
+        Atom self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("_this.constructor") AtomConstructor cachedConstructor,
+        @Cached("self.constructor") AtomConstructor cachedConstructor,
         @Cached("doResolve(cachedConstructor, cachedSymbol)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Atom _this, UnresolvedSymbol symbol)
+    static Function resolve(Atom self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(_this.constructor, symbol);
+      Function function = doResolve(self.constructor, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }
@@ -287,25 +285,25 @@ public class Atom implements TruffleObject {
           "!getContext().isInlineCachingDisabled()",
           "cachedConversion == conversion",
           "cachedTarget == target",
-          "_this.constructor == cachedConstructor",
+          "self.constructor == cachedConstructor",
           "function != null"
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Atom _this,
+        Atom self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("_this.constructor") AtomConstructor cachedConstructor,
+        @Cached("self.constructor") AtomConstructor cachedConstructor,
         @Cached("target") AtomConstructor cachedTarget,
         @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Atom _this, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Atom self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(_this.constructor, target, conversion);
+      Function function = doResolve(self.constructor, target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
       }

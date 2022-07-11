@@ -29,6 +29,7 @@
 #[warn(missing_docs)]
 pub mod component;
 
+pub mod automation;
 pub mod builtin;
 pub mod data;
 pub mod new_node_position;
@@ -478,6 +479,8 @@ ensogl::define_endpoints_2! {
         /// Set the node as deselected. Ignores selection mode.
         // WARNING: not implemented
         deselect_node                (NodeId),
+        /// Set all nodes as selected. Ignores selection mode.
+        select_all_nodes             (),
 
 
         // === Navigation ===
@@ -522,7 +525,7 @@ ensogl::define_endpoints_2! {
         edit_mode_off(),
         /// Stop node editing, whatever node is currently edited.
         stop_editing(),
-        /// Remove all nodes from the graph.
+        /// Collapse the selected nodes into a new node.
         collapse_selected_nodes(),
         /// Indicate whether this node had an error or not.
         set_node_error_status(NodeId,Option<node::error::Error>),
@@ -1157,6 +1160,13 @@ impl Nodes {
         }
     }
 
+    /// Mark all node as selected and send FRP events to nodes.
+    pub fn select_all(&self) {
+        for id in self.all.keys() {
+            self.select(id);
+        }
+    }
+
     /// Return all nodes marked as selected.
     pub fn all_selected(&self) -> Vec<NodeId> {
         self.selected.items()
@@ -1447,6 +1457,7 @@ struct NodeCreationContext<'a> {
 }
 
 impl GraphEditorModelWithNetwork {
+    #[profile(Objective)]
     fn create_node(
         &self,
         ctx: &NodeCreationContext,
@@ -1475,6 +1486,7 @@ impl GraphEditorModelWithNetwork {
         source_node.map(|node| NodeSource { node })
     }
 
+    #[profile(Debug)]
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
         let view = component::Node::new(&self.app, self.vis_registry.clone_ref());
         let node = Node::new(view);
@@ -1603,6 +1615,31 @@ impl GraphEditorModelWithNetwork {
             let profiling_max_duration              = &self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration <+ self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration(profiling_max_duration.value());
+        }
+
+
+        // === Panning camera to created node ===
+
+        // Node position and bounding box are not available immediately after the node is created,
+        // but only after the Node's display object is updated. Therefore, in order to pan the
+        // camera to the bounding box of a newly created node, we need to wait until:
+        //  1. the position of the newly created node becomes updated, and then
+        //  2. the bounding box of the node becomes updated.
+        // When the sequence is detected, and if the node is being edited, we pan the camera to it.
+        // Regardless whether the node is being edited, we drop the network, as we don't want to
+        // pan the camera for any later updates of the bounding box.
+        let pan_network = frp::Network::new("network_for_camera_pan_to_new_node");
+        let pan_network_container = RefCell::new(Some(pan_network.clone()));
+        frp::new_bridge_network! { [self.network, node_network, pan_network] graph_node_pan_bridge
+            pos_updated <- node.output.position.constant(true);
+            bbox_updated_after_pos_updated <- node.output.bounding_box.gate(&pos_updated);
+            let node_being_edited = &self.frp.node_being_edited;
+            _eval <- bbox_updated_after_pos_updated.map2(node_being_edited, f!([model](_, node) {
+                pan_network_container.replace(None);
+                if *node == Some(node_id) {
+                    model.pan_camera_to_node(node_id);
+                }
+            }));
         }
 
         node.set_view_mode(self.model.frp.view_mode.value());
@@ -2352,7 +2389,71 @@ impl GraphEditorModel {
         });
         found
     }
+
+    /// Pan the camera to fully fit the `target_bbox` (expressed in scene coordinates) into a
+    /// rectangular viewport between `screen_min_xy` and `screen_max_xy` (in screen coordinates).
+    /// If `target_bbox` does not fully fit in the viewport, prefer showing the top-left corner of
+    /// `target_bbox` than the opposite one.
+    fn pan_camera(
+        &self,
+        target_bbox: selection::BoundingBox,
+        screen_min_xy: Vector2,
+        screen_max_xy: Vector2,
+    ) {
+        use ensogl::display::navigation::navigator::PanEvent;
+        let scene = &self.app.display.default_scene;
+        let screen_to_scene_xy = |pos: Vector2| {
+            let vec3 = Vector3(pos.x, pos.y, 0.0);
+            scene.screen_to_scene_coordinates(vec3).xy()
+        };
+        let scene_min_xy = screen_to_scene_xy(screen_min_xy);
+        let scene_max_xy = screen_to_scene_xy(screen_max_xy);
+        let viewport = selection::BoundingBox::from_corners(scene_min_xy, scene_max_xy);
+        let pan_left = some_if_negative(target_bbox.left() - viewport.left());
+        let pan_right = some_if_positive(target_bbox.right() - viewport.right());
+        let pan_up = some_if_positive(target_bbox.top() - viewport.top());
+        let pan_down = some_if_negative(target_bbox.bottom() - viewport.bottom());
+        let pan_x = pan_left.or(pan_right).unwrap_or_default();
+        let pan_y = pan_up.or(pan_down).unwrap_or_default();
+        let pan_xy = Vector2(pan_x, pan_y);
+        self.navigator.emit_pan_event(PanEvent::new(-pan_xy * scene.camera().zoom()));
+    }
+
+    fn pan_camera_to_node(&self, node_id: NodeId) {
+        use theme::graph_editor::screen_margin_when_panning_camera_to_node as pan_margin;
+        self.with_node(node_id, |node| {
+            let camera = &self.app.display.default_scene.camera();
+            let screen_size_halved = Vector2::from(camera.screen()) / 2.0;
+            let styles = &self.styles_frp;
+            let top_margin = styles.get_number(pan_margin::top).value();
+            let bottom_margin = styles.get_number(pan_margin::bottom).value();
+            let left_margin = styles.get_number(pan_margin::left).value();
+            let right_margin = styles.get_number(pan_margin::right).value();
+            let viewport_max_y = screen_size_halved.y - top_margin;
+            let viewport_min_y = -screen_size_halved.y + bottom_margin;
+            let viewport_min_x = -screen_size_halved.x + left_margin;
+            let viewport_max_x = screen_size_halved.x - right_margin;
+            let viewport_min_xy = Vector2(viewport_min_x, viewport_min_y);
+            let viewport_max_xy = Vector2(viewport_max_x, viewport_max_y);
+            let node_bbox = node.bounding_box.value();
+            self.pan_camera(node_bbox, viewport_min_xy, viewport_max_xy)
+        });
+    }
 }
+
+
+// === Utilities ===
+
+fn some_if_positive(x: f32) -> Option<f32> {
+    (x > 0.0).as_some(x)
+}
+
+fn some_if_negative(x: f32) -> Option<f32> {
+    (x < 0.0).as_some(x)
+}
+
+
+// === Display object ===
 
 impl display::Object for GraphEditorModel {
     fn display_object(&self) -> &display::object::Instance {
@@ -2415,14 +2516,16 @@ impl application::View for GraphEditor {
             (Press, "!node_editing", "backspace", "remove_selected_nodes"),
             (Press, "!node_editing", "delete", "remove_selected_nodes"),
             (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
-            (Press, "", "cmd g", "collapse_selected_nodes"), // === Visualization ===
+            (Press, "", "cmd g", "collapse_selected_nodes"),
+            // === Visualization ===
             (Press, "!node_editing", "space", "press_visualization_visibility"),
             (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
             (Release, "!node_editing", "space", "release_visualization_visibility"),
             (Press, "", "cmd i", "reload_visualization_registry"),
             (Press, "is_fs_visualization_displayed", "space", "close_fullscreen_visualization"),
             (Press, "", "cmd", "enable_quick_visualization_preview"),
-            (Release, "", "cmd", "disable_quick_visualization_preview"), // === Selection ===
+            (Release, "", "cmd", "disable_quick_visualization_preview"),
+            // === Selection ===
             (Press, "", "shift", "enable_node_multi_select"),
             (Press, "", "shift left-mouse-button", "enable_node_multi_select"),
             (Release, "", "shift", "disable_node_multi_select"),
@@ -2432,7 +2535,8 @@ impl application::View for GraphEditor {
             (Press, "", "shift alt", "toggle_node_subtract_select"),
             (Release, "", "shift alt", "toggle_node_subtract_select"),
             (Press, "", "shift ctrl alt", "toggle_node_inverse_select"),
-            (Release, "", "shift ctrl alt", "toggle_node_inverse_select"), // === Navigation ===
+            (Release, "", "shift ctrl alt", "toggle_node_inverse_select"),
+            // === Navigation ===
             (
                 Press,
                 "!is_fs_visualization_displayed",
@@ -2443,14 +2547,17 @@ impl application::View for GraphEditor {
             (DoublePress, "", "left-mouse-button", "start_node_creation_from_port"),
             (Press, "", "right-mouse-button", "start_node_creation_from_port"),
             (Press, "!node_editing", "enter", "enter_selected_node"),
-            (Press, "", "alt enter", "exit_node"), // === Node Editing ===
+            (Press, "", "alt enter", "exit_node"),
+            // === Node Editing ===
             (Press, "", "cmd", "edit_mode_on"),
             (Release, "", "cmd", "edit_mode_off"),
             (Press, "", "cmd enter", "edit_selected_node"),
             (Press, "", "cmd left-mouse-button", "edit_mode_on"),
             (Release, "", "cmd left-mouse-button", "edit_mode_off"),
-            (Release, "", "enter", "stop_editing"), // === Profiling Mode ===
-            (Press, "", "cmd p", "toggle_profiling_mode"), // === Debug ===
+            (Release, "", "enter", "stop_editing"),
+            // === Profiling Mode ===
+            (Press, "", "cmd p", "toggle_profiling_mode"),
+            // === Debug ===
             (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
@@ -2860,7 +2967,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         out.node_editing_finished <+ node_being_edited.sample(&edit_switch);
         out.node_editing_started  <+ edit_node;
 
-        out.node_being_edited <+ out.node_editing_started.map(|n| Some(*n));;
+        out.node_being_edited <+ out.node_editing_started.map(|n| Some(*n));
         out.node_being_edited <+ out.node_editing_finished.constant(None);
         out.node_editing      <+ out.node_being_edited.map(|t|t.is_some());
 
@@ -2868,11 +2975,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         out.nodes_labels_visible <+ out.node_edit_mode || node_in_edit_mode;
 
         eval out.node_editing_started ([model] (id) {
+            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_started");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model().input.frp.set_edit_mode(true);
+                node.model().input.set_edit_mode(true);
             }
         });
         eval out.node_editing_finished ([model](id) {
+            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_finished");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
                 node.model().input.set_edit_mode(false);
             }

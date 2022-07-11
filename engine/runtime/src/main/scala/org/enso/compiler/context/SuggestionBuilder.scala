@@ -8,7 +8,6 @@ import org.enso.compiler.pass.resolve.{
   MethodDefinitions,
   TypeSignatures
 }
-import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
@@ -58,9 +57,12 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                   _
                 ) =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            val selfTypeOpt = typePtr
-              .getMetadata(MethodDefinitions)
-              .flatMap(buildSelfType)
+            val selfTypeOpt = typePtr match {
+              case Some(typePtr) =>
+                typePtr.getMetadata(MethodDefinitions).flatMap(buildSelfType)
+              case None =>
+                Some(module)
+            }
             val methodOpt = selfTypeOpt.map { selfType =>
               buildMethod(
                 body.getExternalId,
@@ -82,7 +84,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           case IR.Module.Scope.Definition.Method
                 .Conversion(
                   IR.Name.MethodReference(_, _, _, _, _),
-                  IR.Name.Literal(sourceTypeName, _, _, _, _, _),
+                  IR.Name.Literal(sourceTypeName, _, _, _, _),
                   IR.Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
@@ -297,7 +299,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   ): Seq[Suggestion] =
     arguments.map { argument =>
       val thisArg = IR.DefinitionArgument.Specified(
-        name         = IR.Name.This(argument.name.location),
+        name         = IR.Name.Self(argument.name.location),
         ascribedType = None,
         defaultValue = None,
         suspended    = false,
@@ -336,11 +338,20 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     resolvedName match {
       case BindingsMap.ResolvedModule(module) =>
         Some(module.getName)
-      case BindingsMap.ResolvedConstructor(module, cons) =>
-        Some(module.getName.createChild(cons.name))
+      case cons: BindingsMap.ResolvedConstructor =>
+        Some(cons.qualifiedName)
       case _ =>
         None
     }
+  }
+
+  private def buildResolvedUnionTypeName(
+    resolvedName: BindingsMap.ResolvedTypeName
+  ): Option[TypeArg] = resolvedName match {
+    case tp: BindingsMap.ResolvedType =>
+      Some(TypeArg.Sum(tp.qualifiedName, tp.getVariants.map(_.qualifiedName)))
+    case other: BindingsMap.ResolvedName =>
+      buildResolvedTypeName(other).map(TypeArg.Value)
   }
 
   /** Build type signature from the ir metadata.
@@ -380,9 +391,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           args :++ arg
         case IR.Function.Lambda(List(targ), body, _, _, _, _) =>
           val typeName = targ.name.name
-          val qualifiedTypeName = resolveTypeName(bindings, typeName)
-            .getOrElse(QualifiedName.simpleName(typeName))
-          val tdef = TypeArg.Value(qualifiedTypeName)
+          val tdef = resolveTypeName(bindings, typeName)
+            .getOrElse(TypeArg.Value(QualifiedName.simpleName(typeName)))
           go(body, args :+ tdef)
         case IR.Application.Prefix(tfun, targs, _, _, _, _) =>
           val appFunction = go(tfun, Vector()).head
@@ -390,9 +400,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           args :+ TypeArg.Application(appFunction, appArgs.toVector)
         case tname: IR.Name =>
           val typeName = tname.name
-          val qualifiedTypeName = resolveTypeName(bindings, typeName)
-            .getOrElse(QualifiedName.simpleName(typeName))
-          args :+ TypeArg.Value(qualifiedTypeName)
+          val tdef = resolveTypeName(bindings, typeName)
+            .getOrElse(TypeArg.Value(QualifiedName.simpleName(typeName)))
+          args :+ tdef
+        case seq: IR.Application.Literal.Sequence =>
+          seq.items.foldLeft(args)((a, t) => go(t, a))
         case _ =>
           args
       }
@@ -415,10 +427,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   private def resolveTypeName(
     bindings: Option[BindingAnalysis.Metadata],
     name: String
-  ): Option[QualifiedName] = {
+  ): Option[TypeArg] = {
     bindings
-      .flatMap(_.resolveUppercaseName(name).toOption)
-      .flatMap(buildResolvedTypeName)
+      .flatMap(_.resolveTypeName(name).toOption)
+      .flatMap(buildResolvedUnionTypeName)
   }
 
   /** Build arguments of a method.
@@ -444,7 +456,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       } else {
         vargs match {
           case IR.DefinitionArgument.Specified(
-                name: IR.Name.This,
+                name: IR.Name.Self,
                 _,
                 defaultValue,
                 suspended,
@@ -521,7 +533,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       reprType     = buildTypeArgumentName(targ),
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
-      defaultValue = varg.defaultValue.flatMap(buildDefaultValue)
+      defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
+      tagValues = targ match {
+        case TypeArg.Sum(_, variants) => Some(variants.map(_.toString))
+        case _                        => None
+      }
     )
 
   /** Build the name of type argument.
@@ -549,6 +565,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           val argsList = args.map(go(_, level + 1)).mkString(" ")
           val typeName = s"$funText $argsList"
           if (level > 0) s"($typeName)" else typeName
+        case TypeArg.Sum(n, _) => n.toString
       }
 
     go(targ, 0)
@@ -639,6 +656,13 @@ object SuggestionBuilder {
   sealed private trait TypeArg
   private object TypeArg {
 
+    /** A sum type – one of many possible options.
+      * @param name the qualified name of the type.
+      * @param variants the qualified names of constituent atoms.
+      */
+    case class Sum(name: QualifiedName, variants: Seq[QualifiedName])
+        extends TypeArg
+
     /** Type with the name, like `A`.
       *
       * @param name the name of the type
@@ -672,6 +696,6 @@ object SuggestionBuilder {
 
   }
 
-  val Any: String = Constants.ANY
+  val Any: String = "Standard.Base.Any.Any"
 
 }

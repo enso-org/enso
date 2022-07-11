@@ -13,7 +13,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentM
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has

@@ -1,11 +1,7 @@
-#![allow(clippy::ptr_arg)] // workaround for https://github.com/asomers/mockall/issues/58
-
 //! Project controller.
 //!
 //! Responsible for owning any remote connection clients, and providing controllers for specific
 //! files and modules. Expected to live as long as the project remains open in the IDE.
-
-pub mod synchronized;
 
 use crate::prelude::*;
 
@@ -20,6 +16,13 @@ use flo_stream::Subscriber;
 use mockall::automock;
 use parser::Parser;
 use uuid::Uuid;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod synchronized;
 
 
 

@@ -3,11 +3,10 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
+import sbt.complete.DefaultParsers._
+import sbt.complete.Parser
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
 
@@ -15,9 +14,9 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion         = "2.13.7"
-val graalVersion          = "21.3.0"
-val javaVersion           = "11"
+val scalacVersion = "2.13.7"
+val graalVersion = "21.3.0"
+val javaVersion = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
@@ -66,6 +65,11 @@ val targetStdlibVersion = ensoVersion
 
 ThisBuild / organization := "org.enso"
 ThisBuild / scalaVersion := scalacVersion
+
+/* Tag limiting the concurrent access to tools/simple-library-server in tests.
+ */
+val simpleLibraryServerTag = Tags.Tag("simple-library-server")
+Global / concurrentRestrictions += Tags.limit(simpleLibraryServerTag, 1)
 
 lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
@@ -149,15 +153,18 @@ val packageBuilder = new DistributionPackage.Builder(
 )
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
+Global / excludeLintKeys += logManager
 
 // ============================================================================
 // === Compiler Options =======================================================
 // ============================================================================
 
 ThisBuild / javacOptions ++= Seq(
-  "-encoding",   // Provide explicit encoding (the next line)
-  "UTF-8",       // Specify character encoding used by Java source files.
-  "-deprecation" // Shows a description of each use or override of a deprecated member or class.
+  "-encoding",       // Provide explicit encoding (the next line)
+  "UTF-8",           // Specify character encoding used by Java source files
+  "-deprecation",    // Shows a description of each use or override of a deprecated member or class
+  "-g",              // Include debugging information
+  "-Xlint:unchecked" // Enable additional warnings
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -230,7 +237,6 @@ bootstrap := {}
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    `core-definition`,
     `interpreter-dsl`,
     `json-rpc-server-test`,
     `json-rpc-server`,
@@ -247,6 +253,7 @@ lazy val enso = (project in file("."))
     pkg,
     cli,
     `task-progress-notifications`,
+    `profiling-utils`,
     `logging-utils`,
     `logging-service`,
     `logging-truffle-connector`,
@@ -258,6 +265,11 @@ lazy val enso = (project in file("."))
     searcher,
     launcher,
     downloader,
+    `runtime-language-epb`,
+    `runtime-instrument-id-execution`,
+    `runtime-instrument-repl-debugger`,
+    `runtime-instrument-runtime-server`,
+    `runtime-with-instruments`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
@@ -268,7 +280,12 @@ lazy val enso = (project in file("."))
     `library-manager-test`,
     `connected-lock-manager`,
     syntax.jvm,
-    testkit
+    testkit,
+    `std-base`,
+    `std-database`,
+    `std-google-api`,
+    `std-image`,
+    `std-table`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -680,6 +697,29 @@ lazy val `akka-native` = project
     libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
   )
 
+lazy val `profiling-utils` = project
+  .in(file("lib/scala/profiling-utils"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130"
+      exclude ("org.netbeans.api", "org-openide-loaders")
+      exclude ("org.netbeans.api", "org-openide-nodes")
+      // exclude following when RELEASE140 is out:
+      //   exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
+      //   exclude("org.netbeans.api", "org-netbeans-api-progress")
+      //   exclude("org.netbeans.api", "org-openide-util-lookup")
+      //   exclude("org.netbeans.api", "org-openide-util")
+      //   exclude("org.netbeans.api", "org-openide-dialogs")
+      exclude ("org.netbeans.api", "org-openide-filesystems")
+      exclude ("org.netbeans.api", "org-openide-util-ui")
+      exclude ("org.netbeans.api", "org-openide-awt")
+      exclude ("org.netbeans.api", "org-openide-modules")
+      exclude ("org.netbeans.api", "org-netbeans-api-annotations-common")
+    )
+  )
+
 lazy val `logging-utils` = project
   .in(file("lib/scala/logging-utils"))
   .configs(Test)
@@ -877,9 +917,10 @@ lazy val `json-rpc-server` = project
     libraryDependencies ++= akka ++ akkaTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
-      "io.circe"      %% "circe-literal" % circeVersion,
-      akkaTestkit      % Test,
-      "org.scalatest" %% "scalatest"     % scalatestVersion % Test
+      "io.circe"                   %% "circe-literal" % circeVersion,
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      akkaTestkit                   % Test,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
 
@@ -906,30 +947,6 @@ lazy val testkit = project
     )
   )
 
-lazy val `core-definition` = (project in file("lib/scala/core-definition"))
-  .configs(Benchmark)
-  .settings(
-    version := "0.1",
-    inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    scalacOptions += "-Ymacro-annotations",
-    libraryDependencies ++= jmh ++ Seq(
-      "com.chuusai"                %% "shapeless"    % shapelessVersion,
-      "org.scalacheck"             %% "scalacheck"   % scalacheckVersion % Test,
-      "org.scalactic"              %% "scalactic"    % scalacticVersion  % Test,
-      "org.scalatest"              %% "scalatest"    % scalatestVersion  % Test,
-      "org.typelevel"              %% "cats-core"    % catsVersion,
-      "com.github.julien-truffaut" %% "monocle-core" % monocleVersion
-    ),
-    addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
-    )
-  )
-  .dependsOn(graph)
-  .dependsOn(syntax.jvm)
-
 lazy val searcher = project
   .in(file("lib/scala/searcher"))
   .configs(Test)
@@ -952,7 +969,19 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0.1" exclude ("com.google.code.findbugs", "jsr305")
+    frgaalJavaCompilerSetting,
+    Compile / javacOptions := ((Compile / javacOptions).value ++
+    // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+    // fixing incremental compilation setup
+    Seq(
+      "-processor",
+      "org.netbeans.modules.openide.util.ServiceProviderProcessor"
+    )),
+    libraryDependencies ++= Seq(
+      "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
+      "org.netbeans.api"   % "org-openide-util-lookup" % "RELEASE130",
+      "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305")
+    )
   )
 
 // ============================================================================
@@ -1067,6 +1096,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`docs-generator`)
+  .dependsOn(`profiling-utils`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
@@ -1120,16 +1150,84 @@ val distributionEnvironmentOverrides = {
   )
 }
 
+val frgaalSourceLevel = "18"
+
+/** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
+  * and still compile down to JDK 11
+  */
+lazy val frgaalJavaCompilerSetting = Seq(
+  Compile / compile / compilers := FrgaalJavaCompiler.compilers(
+    (Compile / dependencyClasspath).value,
+    compilers.value,
+    javaVersion
+  ),
+  // This dependency is needed only so that developers don't download Frgaal manually.
+  // Sadly it cannot be placed under plugins either because meta dependencies are not easily
+  // accessible from the non-meta build definition.
+  libraryDependencies += FrgaalJavaCompiler.frgaal,
+  // Ensure that our tooling uses the right Java version for checking the code.
+  Compile / javacOptions ++= Seq(
+    "-source",
+    frgaalSourceLevel,
+    "--enable-preview"
+  )
+)
+
+lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
+  version := ensoVersion,
+  commands += WithDebugCommand.withDebug,
+  Compile / logManager :=
+    sbt.internal.util.CustomLogManager
+      .excludeMsg("Could not determine source for class ", Level.Warn),
+  Compile / javacOptions --= Seq(
+    "-source",
+    frgaalSourceLevel,
+    "--enable-preview"
+  ),
+  libraryDependencies ++= Seq(
+    "org.graalvm.truffle" % "truffle-api"           % graalVersion % "provided",
+    "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion % "provided"
+  ),
+  (Compile / javacOptions) ++= Seq(
+    "-s",
+    (Compile / sourceManaged).value.getAbsolutePath,
+    "-Xlint:unchecked"
+  )
+)
+
+lazy val `runtime-language-epb` =
+  (project in file("engine/runtime-language-epb"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
+    frgaalJavaCompilerSetting,
+    Compile / logManager :=
+      sbt.internal.util.CustomLogManager.excludeMsg(
+        "Could not determine source for class ",
+        Level.Warn
+      ),
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
-    cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(
+      Defaults.compilersSetting
+    ), // Compile benchmarks with javac, due to jmh issues
+    Benchmark / javacOptions --= Seq(
+      "-source",
+      frgaalSourceLevel,
+      "--enable-preview"
+    ),
     Test / parallelExecution := false,
     Test / logBuffered := false,
+    Test / testOptions += Tests.Argument(
+      "-oD"
+    ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
@@ -1147,18 +1245,12 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
-      "eu.timepit"         %% "refined"               % refinedVersion
+      "eu.timepit"         %% "refined"               % refinedVersion,
+      "junit"               % "junit"                 % "4.12"            % Test,
+      "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
     ),
-    // Note [Unmanaged Classpath]
-    Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
-    Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
-    Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
-      .value,
-    Compile / compile := FixInstrumentsGeneration.patchedCompile
-      .dependsOn(FixInstrumentsGeneration.preCompileTask)
-      .dependsOn(`core-definition` / Compile / packageBin)
       .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
@@ -1166,7 +1258,9 @@ lazy val runtime = (project in file("engine/runtime"))
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
     Test / fork := true,
-    Test / envVars ++= distributionEnvironmentOverrides,
+    Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+      "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+    ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
       graalVersion,
@@ -1176,7 +1270,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / javacOptions) ++= Seq(
       "-s",
-      (Compile / sourceManaged).value.getAbsolutePath
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked"
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
@@ -1210,20 +1305,7 @@ lazy val runtime = (project in file("engine/runtime"))
     }.evaluated,
     Benchmark / parallelExecution := false
   )
-  .settings(
-    assembly / assemblyJarName := "runtime.jar",
-    assembly / test := {},
-    assembly / assemblyOutputPath := file("runtime.jar"),
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-        MergeStrategy.discard
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-        MergeStrategy.discard
-      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-        MergeStrategy.discard
-      case _ => MergeStrategy.first
-    }
-  )
+  .dependsOn(`runtime-language-epb`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
@@ -1239,6 +1321,78 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(syntax.jvm)
   .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
+
+lazy val `runtime-instrument-id-execution` =
+  (project in file("engine/runtime-instrument-id-execution"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
+    .dependsOn(runtime)
+
+lazy val `runtime-instrument-repl-debugger` =
+  (project in file("engine/runtime-instrument-repl-debugger"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
+    .dependsOn(runtime)
+
+lazy val `runtime-instrument-runtime-server` =
+  (project in file("engine/runtime-instrument-runtime-server"))
+    .settings(
+      inConfig(Compile)(truffleRunOptionsSettings),
+      instrumentationSettings
+    )
+    .dependsOn(runtime)
+
+lazy val `runtime-with-instruments` =
+  (project in file("engine/runtime-with-instruments"))
+    .configs(Benchmark)
+    .settings(
+      frgaalJavaCompilerSetting,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Benchmark)(Defaults.testSettings),
+      commands += WithDebugCommand.withDebug,
+      Benchmark / javacOptions --= Seq(
+        "-source",
+        frgaalSourceLevel,
+        "--enable-preview"
+      ),
+      Test / javaOptions ++= Seq(
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      ),
+      Test / fork := true,
+      Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+        "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      ),
+      libraryDependencies ++= Seq(
+        "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion     % Test,
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % Test
+      ),
+      // Note [Unmanaged Classpath]
+      Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
+      assembly / assemblyJarName := "runtime.jar",
+      assembly / test := {},
+      assembly / assemblyOutputPath := file("runtime.jar"),
+      assembly / assemblyMergeStrategy := {
+        case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+          MergeStrategy.discard
+        case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+          MergeStrategy.discard
+        case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+          MergeStrategy.discard
+        case PathList("META-INF", "services", xs @ _*) =>
+          MergeStrategy.concat
+        case _ => MergeStrategy.first
+      }
+    )
+    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
+    .dependsOn(`runtime-instrument-id-execution`)
+    .dependsOn(`runtime-instrument-repl-debugger`)
+    .dependsOn(`runtime-instrument-runtime-server`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1298,7 +1452,7 @@ lazy val `engine-runner` = project
   )
   .settings(
     assembly := assembly
-      .dependsOn(runtime / assembly)
+      .dependsOn(`runtime-with-instruments` / assembly)
       .value
   )
   .dependsOn(`version-output`)
@@ -1347,7 +1501,19 @@ lazy val launcher = project
       )
       .value,
     assembly / test := {},
-    assembly / assemblyOutputPath := file("launcher.jar")
+    assembly / assemblyOutputPath := file("launcher.jar"),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case "application.conf" => MergeStrategy.concat
+      case "reference.conf"   => MergeStrategy.concat
+      case x =>
+        MergeStrategy.first
+    }
   )
   .settings(
     (Test / test) := (Test / test)
@@ -1431,6 +1597,7 @@ lazy val `edition-updater` = project
   .in(file("lib/scala/edition-updater"))
   .configs(Test)
   .settings(
+    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
@@ -1467,6 +1634,7 @@ lazy val `library-manager-test` = project
   .in(file("lib/scala/library-manager-test"))
   .configs(Test)
   .settings(
+    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
@@ -1556,6 +1724,7 @@ val `database-polyglot-root` =
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
@@ -1578,6 +1747,7 @@ lazy val `std-base` = project
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
@@ -1585,7 +1755,8 @@ lazy val `std-table` = project
       "com.ibm.icu"         % "icu4j"             % icuVersion,
       "com.univocity"       % "univocity-parsers" % "2.9.0",
       "org.apache.poi"      % "poi-ooxml"         % "5.0.0",
-      "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1"
+      "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1",
+      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1604,6 +1775,7 @@ lazy val `std-table` = project
 lazy val `std-image` = project
   .in(file("std-bits") / "image")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
@@ -1626,6 +1798,7 @@ lazy val `std-image` = project
 lazy val `std-google-api` = project
   .in(file("std-bits") / "google-api")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `google-api-polyglot-root` / "std-google-api.jar",
@@ -1649,6 +1822,7 @@ lazy val `std-google-api` = project
 lazy val `std-database` = project
   .in(file("std-bits") / "database")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
@@ -1736,6 +1910,51 @@ buildEngineDistribution := {
   )
   log.info(s"Engine package created at $root")
 }
+
+val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table")
+val allStdBits: Parser[String] =
+  stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
+
+lazy val buildStdLib =
+  inputKey[Unit]("Build an individual standard library package")
+buildStdLib := Def.inputTaskDyn {
+  val cmd: String = allStdBits.parsed
+  val root: File  = engineDistributionRoot.value
+  // Ensure that a complete distribution was built at least once.
+  // Becasuse of `if` in the sbt task definition and usage of `streams.value` one has to
+  // delegate to another task defintion (sbt restriction).
+  if ((root / "manifest.yaml").exists) {
+    pkgStdLibInternal.toTask(cmd)
+  } else buildEngineDistribution
+}.evaluated
+
+lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
+pkgStdLibInternal := Def.inputTaskDyn {
+  val cmd             = allStdBits.parsed
+  val root            = engineDistributionRoot.value
+  val log: sbt.Logger = streams.value.log
+  val cacheFactory    = streams.value.cacheStoreFactory
+  cmd match {
+    case "Base" =>
+      (`std-base` / Compile / packageBin).value
+    case "Database" =>
+      (`std-database` / Compile / packageBin).value
+    case "Google_Api" =>
+      (`std-google-api` / Compile / packageBin).value
+    case "Image" =>
+      (`std-image` / Compile / packageBin).value
+    case "Table" =>
+      (`std-table` / Compile / packageBin).value
+    case _ =>
+  }
+  StdBits.buildStdLibPackage(
+    cmd,
+    root,
+    cacheFactory,
+    log,
+    defaultDevEnsoVersion
+  )
+}.evaluated
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")

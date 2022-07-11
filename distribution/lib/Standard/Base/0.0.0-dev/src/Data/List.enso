@@ -1,5 +1,8 @@
-from Standard.Builtins import all
-from Standard.Builtins export Nil, Cons
+from Standard.Base.Data.Numbers import all
+from Standard.Base.Error.Common import Error
+from Standard.Base.Data.Boolean import True, False
+import Standard.Base.Nothing
+import Standard.Base.Runtime.Unsafe
 
 ## The basic cons-list type.
 
@@ -11,9 +14,18 @@ from Standard.Builtins export Nil, Cons
    > Example
      A list containing the elements `1`, `2`, and `3`, in this order is:
          Cons 1 (Cons 2 (Cons 3 Nil))
+## Cons lists.
 type List
-    Nil
-    Cons
+
+    ## The type that indicates the end of a cons list.
+    type Nil
+
+    ## A cons cell for a cons list.
+
+       Arguments:
+       - x: The element at this position in the list.
+       - xs: The rest of the list.
+    type Cons x xs
 
     ## Computes the number of elements in the list.
 
@@ -24,7 +36,7 @@ type List
 
              example_length = Examples.list.length
     length : Number
-    length = this.fold 0 (acc -> _ -> acc + 1)
+    length = self.fold 0 (acc -> _ -> acc + 1)
 
     ## Combines all the elements of the list, by iteratively applying the
        passed function with next elements of the list.
@@ -50,7 +62,7 @@ type List
         go acc list = case list of
             Nil -> acc
             Cons h t -> @Tail_Call go (f acc h) t
-        res = go init this
+        res = go init self
         res
 
     ## Checks whether any element of the list matches the given predicate.
@@ -72,7 +84,7 @@ type List
             Nil -> False
             Cons h t -> if predicate h then True else
                 @Tail_Call go t
-        res = go this
+        res = go self
         res
 
     ## Checks whether any element of the list matches the given predicate.
@@ -92,7 +104,7 @@ type List
 
              example_any = Examples.list.any (> 5)
     any : (Any -> Boolean) -> Boolean
-    any predicate = this.exists predicate
+    any predicate = self.exists predicate
 
     ## Checks whether a predicate holds for all elements in this list.
 
@@ -108,7 +120,7 @@ type List
 
              example_all = Examples.list.all (> 0)
     all : (Any -> Boolean) -> Boolean
-    all predicate = this.fold True (l -> r -> l && predicate r)
+    all predicate = self.fold True (l -> r -> l && predicate r)
 
     ## Checks whether this list contains a given value as an element.
 
@@ -122,7 +134,7 @@ type List
 
              example_contains = Examples.list.contains 3
     contains : Any -> Boolean
-    contains elem = this.exists ix-> ix == elem
+    contains elem = self.exists ix-> ix == elem
 
     ## Checks if this list is empty.
 
@@ -133,7 +145,7 @@ type List
 
              example_empty = Examples.list.is_empty
     is_empty : Boolean
-    is_empty = this.length == 0
+    is_empty = self.length == 0
 
     ## Checks if the list is not empty.
 
@@ -144,7 +156,7 @@ type List
 
              example_not_empty = Examples.list.not_empty
     not_empty : Boolean
-    not_empty = this.is_empty.not
+    not_empty = self.is_empty.not
 
     ## Selects all elements of this list which satisfy a predicate.
 
@@ -161,7 +173,7 @@ type List
              example_filter = Examples.list.filter (< 3)
     filter : (Any -> Boolean) -> List
     filter predicate =
-        case this of
+        case self of
             Cons a b ->
                 rest = b.filter predicate
                 if predicate a then Cons a rest else rest
@@ -180,11 +192,11 @@ type List
 
              example_map = Examples.list.map +1
     map : (Any -> Any) -> List
-    map f = case this of
+    map f = case self of
         Nil -> Nil
         Cons h t ->
             res = Cons (f h) Nil
-            here.map_helper t res f
+            map_helper t res f
             res
 
     ## Applies a function to each element of the list.
@@ -208,7 +220,7 @@ type List
             Cons h t ->
                 f h
                 @Tail_Call go t
-        go this
+        go self
         Nothing
 
     ## Reverses the list, returning a list with the same elements, but in the
@@ -221,13 +233,13 @@ type List
 
              example_reverse = Examples.list.reverse
     reverse : List
-    reverse = this.fold Nil (l -> el -> Cons el l)
+    reverse = self.fold Nil (l -> el -> Cons el l)
 
-    ## Creates a new list with the first `count` elements at the start of `this`
+    ## Creates a new list with the first `count` elements at the start of `self`
        removed.
 
        Arguments:
-       - count: The number of elements to take drop the start of `this`.
+       - count: The number of elements to take drop the start of `self`.
 
        > Example
          Removing the first element from a list.
@@ -236,15 +248,15 @@ type List
 
              example_drop_start = Examples.list.drop_start 1
     drop_start : Integer -> List
-    drop_start count = if count <= 0 then this else case this of
+    drop_start count = if count <= 0 then self else case self of
         Cons _ b -> b.drop_start count-1
         Nil -> Nil
 
     ## Creates a new list consisting of the first `count` elements at the start
-       of `this`.
+       of `self`.
 
        Arguments:
-       - count: The number of elements to take from the start of `this`.
+       - count: The number of elements to take from the start of `self`.
 
        > Example
          Obtaining the first 2 elements of a list.
@@ -253,7 +265,7 @@ type List
 
              example_take_start = Examples.list.take_start 2
     take_start : Integer -> List
-    take_start count = if count <= 0 then Nil else case this of
+    take_start count = if count <= 0 then Nil else case self of
         Cons a b -> Cons a (b.take_start count-1)
         Nil -> Nil
 
@@ -264,9 +276,9 @@ type List
 
              import Standard.Examples
 
-             example_head = Examples.list.head
+             example_head = Examples.list.x
     head : Any ! Empty_Error
-    head = case this of
+    head = case self of
         Cons a _ -> a
         Nil -> Error.throw Empty_Error
 
@@ -279,7 +291,7 @@ type List
 
              example_tail = Examples.list.tail
     tail : List ! Empty_Error
-    tail = case this of
+    tail = case self of
         Cons _ b -> b
         Nil -> Error.throw Empty_Error
 
@@ -296,7 +308,7 @@ type List
         init' x y = case y of
             Nil -> Nil
             Cons a b -> Cons x (init' a b)
-        case this of
+        case self of
             Cons a b -> init' a b
             Nil -> Error.throw Empty_Error
 
@@ -309,7 +321,7 @@ type List
 
              example_last = Examples.list.last
     last : Any ! Empty_Error
-    last = case this.fold Nothing (_ -> r -> r) of
+    last = case self.fold Nothing (_ -> r -> r) of
         Nothing -> Error.throw Empty_Error
         a -> a
 
@@ -322,7 +334,7 @@ type List
 
              example_first = Examples.list.first
     first : Any ! Empty_Error
-    first = this.head
+    first = self.head
 
     ## Get all elements from the list except the first.
 
@@ -333,7 +345,7 @@ type List
 
              example_rest = Examples.list.rest
     rest : List ! Empty_Error
-    rest = this.tail
+    rest = self.tail
 
 ## UNSTABLE
 
@@ -362,6 +374,5 @@ map_helper list cons f = case list of
     Cons h t ->
         res = Cons (f h) Nil
         Unsafe.set_atom_field cons 1 res
-        @Tail_Call here.map_helper t res f
+        @Tail_Call map_helper t res f
     Nil -> Unsafe.set_atom_field cons 1 Nil
-

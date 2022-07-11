@@ -35,7 +35,7 @@ use enso_profiler_data as profiler_data;
 
 /// Pretty-print a [`profiler_data::Measurement`], including all children, in a way that illustrates
 /// the hierarchy of the data. Results will be written to stdout.
-fn print_measurement<Metadata>(
+fn print_measurement<Metadata: std::fmt::Display>(
     profile: &profiler_data::Profile<Metadata>,
     measurement: profiler_data::MeasurementId,
     i: usize,
@@ -46,14 +46,21 @@ fn print_measurement<Metadata>(
         indent.push_str("  ");
     }
     println!("{}{}", indent, measurement.label);
-    println!("{}  intervals:", indent);
+    print!("{}", indent);
+    print!("  {:.1}", measurement.created.into_ms());
     for active in &measurement.intervals {
-        let interval = profile[*active].interval;
-        println!("{}    interval: {}", indent, fmt_interval(interval));
+        let interval = &profile[*active];
+        print!("  {}", fmt_interval(interval.interval));
     }
-    println!("{}  children:", indent);
+    println!();
+    for active in &measurement.intervals {
+        let interval = &profile[*active];
+        for metadata in &interval.metadata {
+            println!("{}  {}", indent, metadata.data);
+        }
+    }
     for child in &measurement.children {
-        print_measurement(profile, *child, i + 2);
+        print_measurement(profile, *child, i + 1);
     }
 }
 

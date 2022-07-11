@@ -12,6 +12,7 @@ import org.enso.editions.{EditionResolver, Editions}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.TestClock
+import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   RepoInitialization,
@@ -52,6 +53,7 @@ import org.scalatest.OptionValues
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -91,7 +93,8 @@ class BaseServerTest
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      ProjectDirectoriesConfig(testContentRoot.file)
+      ProjectDirectoriesConfig(testContentRoot.file),
+      ProfilingConfig()
     )
 
   override def protocol: Protocol = JsonRpc.protocol

@@ -1,0 +1,39 @@
+{
+  "version": "0.0.0-dev",
+  "type": "module",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
+  "homepage": "https://github.com/enso-org/ide",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:enso-org/ide.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enso-org/ide/issues"
+  },
+  "name": "enso",
+  "description": "Enso Data Processing Environment.",
+  "main": "index.cjs",
+  "dependencies": {
+    "create-servers": "^3.1.0",
+    "@electron/remote": "^2.0.8",
+    "electron-is-dev": "^1.2.0",
+    "yargs": "^15.3.0"
+  },
+  "devDependencies": {
+    "compression-webpack-plugin": "^9.2.0",
+    "copy-webpack-plugin": "^10.2.4",
+    "electron": "17.1.0",
+    "electron-builder": "^23.0.6",
+    "crypto-js": "4.1.1",
+    "electron-notarize": "1.2.1",
+    "webpack": "^5.72.1"
+  },
+  "scripts": {
+    "start": "electron ../../../../dist/content -- ",
+    "build": "webpack ",
+    "dist": "node electron-builder-config.mjs && electron-builder --publish never --config electron-builder-config.json"
+  }
+}

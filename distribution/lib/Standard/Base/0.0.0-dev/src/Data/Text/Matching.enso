@@ -11,7 +11,7 @@ type No_Matches_Found (criteria : Vector Text)
 
 No_Matches_Found.to_display_text : Text
 No_Matches_Found.to_display_text =
-    "The criteria "+this.criteria.to_text+" did not match any names in the input."
+    "The criteria "+self.criteria.to_text+" did not match any names in the input."
 
 
 ## Represents case-insensitive comparison mode.
@@ -59,85 +59,14 @@ type Regex_Matcher (case_sensitive : (True | Case_Insensitive) = True) (multilin
    `Regex_Matcher`.
 Regex_Matcher.compile : Text -> Pattern
 Regex_Matcher.compile pattern =
-    case_insensitive = case this.case_sensitive of
+    case_insensitive = case self.case_sensitive of
         True -> False
         ## TODO [RW] Currently locale is not supported in case-insensitive
            Regex matching. There are plans to revisit it:
            https://www.pivotaltracker.com/story/show/181313576
         Case_Insensitive _ -> True
-    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=this.match_ascii dot_matches_newline=this.dot_matches_newline multiline=this.multiline comments=this.comments
+    compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=self.match_ascii dot_matches_newline=self.dot_matches_newline multiline=self.multiline comments=self.comments
     compiled_pattern
-
-## UNSTABLE
-   Represents case-insensitive comparison mode.
-
-   Arguments:
-   - locale: The locale used for the comparison.
-
-   A temporary workaround to allow the `Case_Insensitive` constructor to work
-   with default arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Case_Insensitive.new : Locale -> Case_Insensitive
-Case_Insensitive.new locale=Locale.default = Case_Insensitive locale
-
-## UNSTABLE
-   Represents exact text matching mode.
-
-   Arguments:
-   - case_sensitive: Case Sensitive if True. Otherwise, the comparison is case
-     insensitive using the specified locale.
-
-   A temporary workaround to allow the `Text_Matcher` constructor to work with
-   default arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Text_Matcher.new : (True | Case_Insensitive) -> Text_Matcher
-Text_Matcher.new case_sensitive=True = Text_Matcher case_sensitive
-
-## UNSTABLE
-   Represents regex matching mode.
-
-   Arguments:
-   - case_sensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalizes the case of all input text
-     before matching on it.
-   - multiline: Enables or disables the multiline option. Multiline specifies
-     that the `^` and `$` pattern characters match the start and end of lines,
-     as to well as the start and end of the input, respectively.
-   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
-     know your data only contains ASCII, you can enable this for a performance
-     boost on some regex engines.
-   - dot_matches_newline: Enables or disables the dot matches newline option.
-     This specifies that the `.` special character should match everything
-     _including_ newline characters. Without this flag, it matches all
-     characters _except_ newlines.
-   - comments: Enables or disables the comments mode for the regular expression.
-     In comments mode, the following changes apply:
-     - Whitespace within the pattern is ignored, except when within a character
-       class or when preceded by an unescaped backslash, or within grouping
-       constructs (e.g. `(?...)`).
-     - When a line contains a `#` that is not in a character class and is not
-       preceded by an unescaped backslash, all characters from the leftmost such
-       `#` to the end of the line are ignored. That is to say; they act as
-       'comments' in the regex.
-
-   A temporary workaround to allow the `Regex_Matcher` constructor to work with
-   default arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Regex_Matcher.new : (True | Case_Insensitive) -> Boolean -> Boolean -> Boolean -> Boolean -> Regex_Matcher
-Regex_Matcher.new case_sensitive=True multiline=False match_ascii=False dot_matches_newline=False comments=False =
-    Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments
 
 ## UNSTABLE
    Checks if a name matches the provided criterion according to the specified
@@ -150,10 +79,10 @@ Regex_Matcher.new case_sensitive=True multiline=False match_ascii=False dot_matc
    > Example
      Check if the provided name matches a regular expression.
 
-         Text_Matcher.new.match_single_criterion "Foobar" "foo" == False
+         Text_Matcher.match_single_criterion "Foobar" "foo" == False
 Text_Matcher.match_single_criterion : Text -> Text -> Boolean
 Text_Matcher.match_single_criterion name criterion =
-    case this.case_sensitive of
+    case self.case_sensitive of
         True -> name == criterion
         Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
 
@@ -169,10 +98,10 @@ Text_Matcher.match_single_criterion name criterion =
    > Example
      Check if the provided name matches a regular expression.
 
-         Regex_Matcher.new case_sensitive=Case_Insensitive.new . match_single_criterion "Foobar" "f.*" == True
+         Regex_Matcher case_sensitive=Case_Insensitive . match_single_criterion "Foobar" "f.*" == True
 Regex_Matcher.match_single_criterion : Text -> Text -> Boolean
 Regex_Matcher.match_single_criterion name criterion =
-    this.compile criterion . matches name
+    self.compile criterion . matches name
 
 ## UNSTABLE
    Selects objects from an input list that match any of the provided criteria.
@@ -205,15 +134,15 @@ Regex_Matcher.match_single_criterion name criterion =
    > Example
      Selects objects matching one of the provided patterns, preserving the input order.
 
-         Regex_Matcher.new case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
+         Regex_Matcher case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
 
    > Example
      Selects pairs matching their first element with the provided criteria and
      ordering the result according to the order of criteria that matched them.
 
-         Text_Matcher.new.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+         Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 Text_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
-Text_Matcher.match_criteria = here.match_criteria_implementation this
+Text_Matcher.match_criteria = match_criteria_implementation self
 
 ## UNSTABLE
    Selects objects from an input list that match any of the provided criteria.
@@ -246,15 +175,15 @@ Text_Matcher.match_criteria = here.match_criteria_implementation this
    > Example
      Selects objects matching one of the provided patterns, preserving the input order.
 
-         Regex_Matcher.new case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
+         Regex_Matcher case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
 
    > Example
      Selects pairs matching their first element with the provided criteria and
      ordering the result according to the order of criteria that matched them.
 
-         Text_Matcher.new.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+         Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 Regex_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
-Regex_Matcher.match_criteria = here.match_criteria_implementation this
+Regex_Matcher.match_criteria = match_criteria_implementation self
 
 ## A common supertype representing a matching strategy.
 type Matcher
@@ -263,7 +192,7 @@ type Matcher
 
 ## PRIVATE
 match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning =
-    result = here.internal_match_criteria_implementation matcher objects criteria reorder name_mapper
+    result = internal_match_criteria_implementation matcher objects criteria reorder name_mapper
     unmatched_criteria = result.second
     problems = if unmatched_criteria.is_empty then [] else
         [No_Matches_Found unmatched_criteria]
@@ -271,10 +200,59 @@ match_criteria_implementation matcher objects criteria reorder=False name_mapper
 
 ## PRIVATE
 match_criteria_callback matcher objects criteria problem_callback reorder=False name_mapper=(x->x) =
-    result = here.internal_match_criteria_implementation matcher objects criteria reorder name_mapper
+    result = internal_match_criteria_implementation matcher objects criteria reorder name_mapper
     unmatched_criteria = result.second
     problem_callback unmatched_criteria
     result.first
+
+type Match_Matrix
+    ## PRIVATE
+       A helper type holding a matrix of matches.
+    type Match_Matrix matrix criteria objects
+
+    # Checks if the ith object is matched by any criterion.
+    is_object_matched_by_anything : Integer -> Boolean
+    is_object_matched_by_anything i =
+        self.matrix.at i . any x->x
+
+    # Checks if the ith criterion matches any objects.
+    does_criterion_match_anything : Integer -> Boolean
+    does_criterion_match_anything i =
+        self.matrix.map (col -> col.at i) . any x->x
+
+    ## PRIVATE
+       Extracts the list of criteria that did not have any matches.
+    unmatched_criteria =
+        checked_criteria = self.criteria.map_with_index j-> criterion->
+            has_matches = self.does_criterion_match_anything j
+            Pair has_matches criterion
+        checked_criteria.filter (p -> p.first.not) . map .second
+
+    ## PRIVATE
+       Returns the list of criteria that match the ith object.
+    criteria_matching_object : Integer -> Vector
+    criteria_matching_object i =
+        self.criteria.filter_with_index j-> _->
+            self.matrix . at i . at j
+
+    ## PRIVATE
+       Returns the list of criteria indices that match the ith object.
+    criteria_indices_matching_object : Integer -> Vector
+    criteria_indices_matching_object i =
+        (0.up_to self.criteria.length).filter j->
+            self.matrix . at i . at j
+
+## PRIVATE
+   Generates a matrix specifying which criteria match which object.
+
+   The returned `match_matrix` satisfies the following condition:
+   `match_matrix . at i . at j` is `True` if and only if `objects.at i` matches
+   `criteria.at j`.
+make_match_matrix matcher objects criteria object_name_mapper=(x->x) criterion_mapper=(x->x) =
+    matrix = objects.map obj->
+        criteria.map criterion->
+            matcher.match_single_criterion (object_name_mapper obj) (criterion_mapper criterion)
+    Match_Matrix matrix criteria objects
 
 ## PRIVATE
 internal_match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) = Panic.catch Wrapped_Dataflow_Error (handler = x-> x.payload.unwrap) <|
@@ -282,42 +260,23 @@ internal_match_criteria_implementation matcher objects criteria reorder=False na
     [matcher, objects, criteria, reorder, name_mapper] . each v->
         Panic.rethrow (v.map_error Wrapped_Dataflow_Error)
 
-    # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
-    match_matrix = objects.map obj->
-        criteria.map criterion->
-            name = name_mapper obj
-            matcher.match_single_criterion name criterion
-
-    # Checks if the ith object is matched by any criterion.
-    is_object_matched_by_anything : Integer -> Boolean
-    is_object_matched_by_anything i =
-        match_matrix.at i . any x->x
-
-    # Checks if the ith criterion matches any columns.
-    does_criterion_match_anything : Integer -> Boolean
-    does_criterion_match_anything i =
-        match_matrix.map (col -> col.at i) . any x->x
+    match_matrix = make_match_matrix matcher objects criteria name_mapper
+    unmatched_criteria = match_matrix.unmatched_criteria
 
     # Selects object indices which satisfy the provided predicate.
     select_matching_indices : (Integer -> Boolean) -> Vector Text
     select_matching_indices matcher =
         0.up_to objects.length . to_vector . filter matcher
 
-    # Check consistency
-    checked_criteria = criteria.map_with_index j-> criterion->
-        has_matches = does_criterion_match_anything j
-        Pair has_matches criterion
-    unmatched_criteria = checked_criteria.filter (p -> p.first.not) . map .second
-
     selected_indices = case reorder of
         True ->
             nested_indices = 0.up_to criteria.length . map j->
                 is_object_matched_by_this_criterion i =
-                    match_matrix.at i . at j
+                    match_matrix.matrix.at i . at j
                 select_matching_indices is_object_matched_by_this_criterion
             nested_indices.flat_map x->x . distinct
         False ->
-            select_matching_indices is_object_matched_by_anything
+            select_matching_indices match_matrix.is_object_matched_by_anything
 
     result = selected_indices.map objects.at
     Pair result unmatched_criteria

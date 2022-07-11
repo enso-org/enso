@@ -1,0 +1,87 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Dialect
+import Standard.Database.Connection.Connection
+from Standard.Database.Connection.Credentials as Credentials_Module import Credentials
+import Standard.Database.Connection.Connection_Options
+import Standard.Database.Connection.SSL_Mode
+from Standard.Database.Connection.SSL_Mode import all
+import Standard.Database.Connection.Client_Certificate
+
+polyglot java import org.postgresql.Driver
+
+type PostgreSQL
+    ## Connect to a PostgreSQL database.
+
+       Arguments:
+       - host: The hostname of the database server (defaults to localhost).
+       - port: The port of the database server (defaults to 5432).
+       - database: The database to connect to. If empty, the default database will be used.
+       - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
+       - use_ssl: Whether to use SSL (defaults to `Prefer`).
+       - client_cert: The client certificate to use or `Nothing` if not needed.
+    type PostgreSQL (host:Text='localhost') (port:Integer=5432) (database:Text='') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+
+    ## Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
+    connect : Connection_Options
+    connect options =
+        if Driver.isRegistered.not then Driver.register
+
+        properties = options.merge self.jdbc_properties
+        Connection.create_jdbc_connection self.jdbc_url properties self.dialect
+
+    ## Provides the jdbc url for the connection.
+    jdbc_url : Text
+    jdbc_url =
+        'jdbc:postgresql://' + self.host + ':' + self.port.to_text + (if self.database == '' then '' else '/' + self.database)
+
+    ## Provides the properties for the connection.
+    jdbc_properties : [Pair Text Text]
+    jdbc_properties =
+        credentials = case self.credentials of
+            Nothing -> PostgreSQL.read_pgpass self.host self.port self.database
+            Credentials username password ->
+                [Pair 'user' username, Pair 'password' password]
+
+        ssl_properties = PostgreSQL.ssl_mode_to_jdbc_properties self.use_ssl
+
+        cert_properties = if self.client_cert.is_nothing then [] else
+            self.client_cert.properties
+
+        credentials + ssl_properties + cert_properties
+
+    ## Provides the dialect needed for creating SQL statements.
+    dialect : Dialect
+    dialect = Dialect.postgres
+
+    ## PRIVATE - static
+       Read the .pgpass file from the User's home directory and obtain username
+       and password. https://www.postgresql.org/docs/current/libpq-pgpass.html
+
+       Arguments:
+       - host: The hostname of the database server.
+       - port: The port of the database server.
+       - database: The database to connect to.
+    read_pgpass : Text -> Integer -> Text -> [Pair Text Text]
+    read_pgpass _ _ _ =
+        ## ToDo: Code not part of the design document.
+        ## host port database
+        []
+
+    ## PRIVATE - static
+       Given an SSL_Mode, create the JDBC properties to secure a Postgres-based
+       connection.
+    ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
+    ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
+        Disable -> []
+        Prefer -> [Pair 'sslmode' 'prefer']
+        Require -> [Pair 'sslmode' 'require']
+        Verify_CA cert_file ->
+            if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
+                [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+        Full_Verification cert_file ->
+            if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
+                [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]

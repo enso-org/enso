@@ -174,9 +174,10 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case _: Method.Binding     => throw new CompilerError("")
-      case atom: Definition.Atom => atom
-      case err: IR.Error         => err
+      case _: Method.Binding       => throw new CompilerError("")
+      case atom: Definition.Atom   => atom
+      case _: Definition.UnionType => binding
+      case err: IR.Error           => err
       case _: Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present."
@@ -240,7 +241,7 @@ case object SuspendedArguments extends IRPass {
     signature match {
       case IR.Application.Operator.Binary(
             l,
-            IR.Name.Literal("->", _, _, _, _, _),
+            IR.Name.Literal("->", _, _, _, _),
             r,
             _,
             _,
@@ -261,8 +262,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: IR.Expression): Boolean = {
     value match {
-      case IR.Name.Literal("Suspended", _, _, _, _, _) => true
-      case _                                           => false
+      case IR.Name.Literal("Suspended", _, _, _, _) => true
+      case _                                        => false
     }
   }
 

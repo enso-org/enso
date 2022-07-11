@@ -1,9 +1,3 @@
-from Standard.Base import all
-
-from Standard.Builtins import Less, Equal, Greater
-
-from Standard.Builtins export Less, Equal, Greater
-
 ## Converts a sign-based representation of ordering to Enso's native ordering.
 
    Arguments:
@@ -22,12 +16,21 @@ from_sign sign = if sign == 0 then Equal else
    These are intended to be returned from the `compare_to` function, that has a
    type as follows for a type `A`: `A.compare_to : A -> Ordering`.
 
-   The result should be returned in terms of how `this` orders in comparison to
-   `that`. So, if `this` is greater than `that`, you should return `Greater.`
+   The result should be returned in terms of how `self` orders in comparison to
+   `that`. So, if `self` is greater than `that`, you should return `Greater.`
 type Ordering
-    Less
-    Equal
-    Greater
+
+    ## A representation that the first value orders as less than the second.
+    @Builtin_Type
+    type Less
+
+    ## A representation that the first value orders as equal to the second.
+    @Builtin_Type
+    type Equal
+
+    ## A representation that the first value orders as greater than the second.
+    @Builtin_Type
+    type Greater
 
     ## Converts the ordering to the signed notion of ordering based on integers.
 
@@ -38,7 +41,7 @@ type Ordering
 
              example_to_sign = Ordering.Equal.to_sign
     to_sign : Integer
-    to_sign = case this of
+    to_sign = case self of
         Less -> -1
         Greater -> 1
         Equal -> 0

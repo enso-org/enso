@@ -1,8 +1,7 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Prim_Text_Helper
 
 import Standard.Test.Bench
-
-from Standard.Builtins import Prim_Text_Helper
 
 polyglot java import java.lang.StringBuilder
 
@@ -19,5 +18,5 @@ build_long_bldr n =
 
 main =
     n = 1000000
-    Bench.measure (here.build_long_bldr n) "string append bldr" 1 1
-    Bench.measure (here.build_long n) "string append" 1 1
+    Bench.measure (build_long_bldr n) "string append bldr" 1 1
+    Bench.measure (build_long n) "string append" 1 1

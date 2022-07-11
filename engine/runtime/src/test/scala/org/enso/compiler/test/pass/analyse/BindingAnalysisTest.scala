@@ -74,7 +74,7 @@ class BindingAnalysisTest extends CompilerTest {
 
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
-      metadata.types shouldEqual List(
+      metadata.constructors shouldEqual List(
         Cons("Foo", 3, false),
         Cons("Bar", 0, true),
         Cons("Baz", 2, false)

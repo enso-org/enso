@@ -1,11 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.Comparator;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-
-import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
@@ -72,18 +67,13 @@ public class StringStorage extends ObjectStorage {
   @Override
   public StringStorage applyMask(OrderMask mask) {
     ObjectStorage storage = super.applyMask(mask);
-    return new StringStorage(storage.getData(), (int) storage.size());
+    return new StringStorage(storage.getData(), storage.size());
   }
 
   @Override
   public StringStorage countMask(int[] counts, int total) {
     ObjectStorage storage = super.countMask(counts, total);
     return new StringStorage(storage.getData(), total);
-  }
-
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.<String>naturalOrder();
   }
 
   private static MapOpStorage<StringStorage> buildOps() {
@@ -146,15 +136,5 @@ public class StringStorage extends ObjectStorage {
   public StringStorage slice(int offset, int limit) {
     ObjectStorage storage = super.slice(offset, limit);
     return new StringStorage(storage.getData(), storage.size());
-  }
-
-  @Override
-  protected String getPresentCsvString(int index, Function<Object, String> toCsvString) {
-    return getItem(index);
-  }
-
-  @Override
-  public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
-    cell.setCellValue(getItem(index));
   }
 }

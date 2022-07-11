@@ -1,0 +1,26 @@
+from Standard.Base import all
+
+## Specifies the direction of ordering.
+type Sort_Direction
+
+    ## Elements should be sorted in ascending order.
+
+       > Example
+         Create an ascending order.
+
+             Sort_Direction.Ascending
+    type Ascending
+
+    ## Elements should be sorted in descending order.
+
+       > Example
+         Create a descending order.
+
+             Sort_Direction.Descending
+    type Descending
+
+    ## Convert into the sign of the direction
+    to_sign : Integer
+    to_sign = case self of
+        Ascending -> 1
+        Descending -> -1

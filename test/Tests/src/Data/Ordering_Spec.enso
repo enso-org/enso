@@ -7,8 +7,8 @@ import Standard.Test
 type Ord number
 
 Ord.compare_to : Ord -> Ordering
-Ord.compare_to that = if this.number == that.number then Ordering.Equal else
-    if this.number > that.number then Ordering.Greater else Ordering.Less
+Ord.compare_to that = if self.number == that.number then Ordering.Equal else
+    if self.number > that.number then Ordering.Greater else Ordering.Less
 
 
 # === The Tests ===

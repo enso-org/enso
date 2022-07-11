@@ -130,6 +130,7 @@ case object FunctionBinding extends IRPass {
     definition match {
       case a @ Definition.Atom(_, arguments, _, _, _) =>
         a.copy(arguments = arguments.map(_.mapExpressions(desugarExpression)))
+      case _: Definition.UnionType => definition
       case _: Method.Explicit =>
         throw new CompilerError(
           "Explicit method definitions should not exist during function " +
@@ -180,7 +181,6 @@ case object FunctionBinding extends IRPass {
                 val newName = IR.Name
                   .Literal(
                     Constants.Names.THAT_ARGUMENT,
-                    firstArgumentName.isReferent,
                     firstArgumentName.isMethod,
                     firstArgumentName.location
                   )

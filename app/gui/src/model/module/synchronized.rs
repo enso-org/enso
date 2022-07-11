@@ -319,13 +319,15 @@ impl Module {
         content: &LanguageServerContent,
         notification: Notification,
     ) -> FallibleResult<ParsedContentSummary> {
-        let Notification { new_file, kind } = notification;
+        let Notification { new_file, kind, profiler } = notification;
+        let _profiler = profiler::start_debug!(profiler, "handle_notification");
         debug!(self.logger, "Handling notification: {content:?}.");
         match content {
             LanguageServerContent::Desynchronized(summary) =>
-                self.full_invalidation(summary, new_file).await,
+                profiler::await_!(self.full_invalidation(summary, new_file), _profiler),
             LanguageServerContent::Synchronized(summary) => match kind {
-                NotificationKind::Invalidate => self.partial_invalidation(summary, new_file).await,
+                NotificationKind::Invalidate =>
+                    profiler::await_!(self.partial_invalidation(summary, new_file), _profiler),
                 NotificationKind::CodeChanged { change, replaced_location } => {
                     let code_change =
                         TextEdit { range: replaced_location.into(), text: change.text };
@@ -335,14 +337,16 @@ impl Module {
                     };
                     //id_map goes first, because code change may alter its position.
                     let edits = vec![id_map_change, code_change];
-                    self.notify_language_server(&summary.summary, &new_file, edits).await
+                    let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
+                    profiler::await_!(notify_ls, _profiler)
                 }
                 NotificationKind::MetadataChanged => {
                     let edits = vec![TextEdit {
                         range: summary.metadata.into(),
                         text:  new_file.metadata_slice().to_string(),
                     }];
-                    self.notify_language_server(&summary.summary, &new_file, edits).await
+                    let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
+                    profiler::await_!(notify_ls, _profiler)
                 }
             },
         }
@@ -350,6 +354,7 @@ impl Module {
 
     /// Send update to Language Server with the entire file content. Returns the new content summary
     /// of Language Server state.
+    #[profile(Debug)]
     fn full_invalidation(
         &self,
         ls_content: &ContentSummary,
@@ -406,6 +411,7 @@ impl Module {
     ///
     /// Note that a heuristic is used to determine the changed file content. The indicated change
     /// might not be the minimal diff, but will contain all changes.
+    #[profile(Debug)]
     fn partial_invalidation(
         &self,
         ls_content: &ParsedContentSummary,
@@ -426,6 +432,7 @@ impl Module {
 
     /// This is a helper function with all common logic regarding sending the update to
     /// Language Server. Returns the new summary of Language Server state.
+    #[profile(Debug)]
     fn notify_language_server(
         &self,
         ls_content: &ContentSummary,
@@ -441,7 +448,7 @@ impl Module {
         };
         debug!(self.logger, "Notifying LS with edit: {edit:#?}.");
         let ls_future_reply = self.language_server.client.apply_text_file_edit(&edit);
-        async {
+        async move {
             ls_future_reply.await?;
             Ok(summary)
         }

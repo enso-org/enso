@@ -30,22 +30,16 @@ public abstract class WithNode extends Node {
   }
 
   abstract Stateful execute(
-      @MonadicState Object state,
-      VirtualFrame frame,
-      Object _this,
-      ManagedResource resource,
-      Object action);
+      @MonadicState Object state, VirtualFrame frame, Object self, Object action);
 
   @Specialization
-  Stateful doWith(
-      Object state, VirtualFrame frame, Object _this, ManagedResource resource, Object action) {
+  Stateful doWith(Object state, VirtualFrame frame, ManagedResource self, Object action) {
     ResourceManager resourceManager = Context.get(this).getResourceManager();
-    resourceManager.park(resource);
+    resourceManager.park(self);
     try {
-      return invokeCallableNode.execute(
-          action, frame, state, new Object[] {resource.getResource()});
+      return invokeCallableNode.execute(action, frame, state, new Object[] {self.getResource()});
     } finally {
-      resourceManager.unpark(resource);
+      resourceManager.unpark(self);
     }
   }
 }

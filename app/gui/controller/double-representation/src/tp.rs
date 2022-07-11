@@ -89,9 +89,23 @@ impl QualifiedName {
         Ok(QualifiedName { project_name, module_segments, name })
     }
 
+    /// Get all segments of the fully qualified name.
+    pub fn segments(&self) -> impl Iterator<Item = &str> {
+        let module_segments = self.module_segments.iter().map(|seg| seg.as_ref());
+        let name = self.name.as_ref();
+        self.project_name.segments().chain(module_segments).chain(iter::once(name))
+    }
+
     /// Check if the name is defined directly in the given module.
     pub fn in_module(&self, module: &module::QualifiedName) -> bool {
         self.project_name == module.project_name && &self.module_segments == module.id.segments()
+    }
+
+    /// Get the qualified name of module containing this type. Returns [`None`] if the type is
+    /// defined in the project's root module.
+    pub fn parent_module(&self) -> Option<module::QualifiedName> {
+        let id = module::Id::try_new(&self.module_segments).ok()?;
+        Some(module::QualifiedName::new(self.project_name.clone(), id))
     }
 }
 
@@ -132,6 +146,14 @@ impl From<&QualifiedName> for String {
         let segments = name.module_segments.iter().map(AsRef::<str>::as_ref);
         let name = std::iter::once(name.name.as_ref());
         project_name.chain(segments).chain(name).join(".")
+    }
+}
+
+impl<'a> IntoIterator for &'a QualifiedName {
+    type Item = &'a str;
+    type IntoIter = impl Iterator<Item = &'a str>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.segments()
     }
 }
 

@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
@@ -8,7 +7,6 @@ import org.enso.table.data.column.operation.aggregate.CountAggregator;
 import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -268,12 +266,6 @@ public abstract class Storage {
    */
   public abstract Storage countMask(int[] counts, int total);
 
-  /**
-   * @return a comparator comparing objects in this storage in a natural order. May be {@code null}
-   *     to specify no natural ordering.
-   */
-  public abstract Comparator<Object> getDefaultComparator();
-
   /** @return a copy of the storage containing a slice of the original data */
   public abstract Storage slice(int offset, int limit);
 
@@ -297,39 +289,4 @@ public abstract class Storage {
     }
     return new LongStorage(data);
   }
-
-  /**
-   * Gets an element at the specified index and converts it to a CSV representation.
-   *
-   * @param index the index to look up.
-   * @param toCsvString a utility for converting unknown values to CSV.
-   * @return a CSV representation of the value at {@code index}.
-   */
-  public String getCsvString(int index, Function<Object, String> toCsvString) {
-    if (isNa(index)) {
-      return "";
-    } else {
-      return getPresentCsvString(index, toCsvString);
-    }
-  }
-
-  /**
-   * Gets an element at the specified index and converts it to a CSV representation. This method is
-   * guaranteed to only be run with indexes corresponding to non-missing values.
-   *
-   * @param index the index to look up.
-   * @param toCsvString a utility for converting unknown values to CSV.
-   * @return a CSV representation of the value at {@code index}.
-   */
-  protected abstract String getPresentCsvString(int index, Function<Object, String> toCsvString);
-
-  /**
-   * Write the value at the specified index into an XLSX cell.
-   *
-   * @param index the index to read value at. {@link #isNa(long)} must return false for this index.
-   * @param cell the cell to write data to
-   * @param writeCell a callback to delegate writes back to Enso code
-   */
-  public abstract void writeSpreadsheetCell(
-      int index, Cell cell, BiConsumer<Object, Cell> writeCell);
 }

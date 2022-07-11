@@ -128,12 +128,14 @@ public class Context {
 
     Optional<String> languageHome =
         OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
+    var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
     packageRepository =
         PackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
             OptionConverters.toScala(languageHome),
+            OptionConverters.toScala(editionOverride),
             distributionManager,
             resourceManager,
             this,

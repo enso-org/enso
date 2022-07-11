@@ -12,7 +12,7 @@ import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
-import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.effect
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
@@ -55,6 +55,7 @@ import java.net.URI
 import java.time.Clock
 
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
   *
@@ -82,11 +83,23 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
-    directoriesConfig
+    directoriesConfig,
+    serverConfig.profilingConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
-  val zioExec = ZioExec(zio.Runtime.default)
+  implicit val system: ActorSystem =
+    ActorSystem(
+      serverConfig.name,
+      None,
+      None,
+      Some(serverConfig.computeExecutionContext)
+    )
+  log.trace(s"Created ActorSystem $system.")
+
+  private val zioRuntime =
+    effect.Runtime.fromExecutionContext(system.dispatcher)
+  private val zioExec = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
   val fileSystem: FileSystem = new FileSystem
@@ -95,15 +108,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
   log.trace("Created Version Calculator [{}].", versionCalculator)
-
-  implicit val system =
-    ActorSystem(
-      serverConfig.name,
-      None,
-      None,
-      Some(serverConfig.computeExecutionContext)
-    )
-  log.trace(s"Created ActorSystem $system.")
 
   val sqlDatabase =
     DeploymentType.fromEnvironment() match {
@@ -147,8 +151,20 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   )
 
   val runtimeEventsMonitor =
-    if (logLevel == LogLevel.Trace) ApiEventsMonitor()
-    else new NoopEventsMonitor
+    languageServerConfig.profiling.runtimeEventsLogPath match {
+      case Some(path) =>
+        ApiEventsMonitor(path) match {
+          case Success(monitor) =>
+            monitor
+          case Failure(exception) =>
+            log.error(
+              s"Failed to create runtime events monitor for $path ($exception)."
+            )
+            new NoopEventsMonitor
+        }
+      case None =>
+        new NoopEventsMonitor
+    }
   log.trace(
     s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
   )

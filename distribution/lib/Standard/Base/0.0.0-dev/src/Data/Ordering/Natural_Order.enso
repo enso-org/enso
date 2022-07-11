@@ -18,8 +18,12 @@ polyglot java import com.ibm.icu.text.BreakIterator
      Sort a vector of texts according to the natural dictionary ordering.
 
          ["a2", "a1", "a100", "a001", "a0001"].sort by=Natural_Order.compare . should_equal ["a0001", "a001", "a1", "a2", "a100"]
-compare : Text -> Text -> Ordering
-compare text1 text2 =
+compare : Text -> Text -> (True|Case_Insensitive) Ordering
+compare text1 text2 case_sensitive=True =
+    compare_text = case case_sensitive of
+        Case_Insensitive locale -> a -> b -> a.compare_to_ignore_case b locale
+        _ -> _.compare_to _
+
     iter1 = BreakIterator.getCharacterInstance
     iter1.setText text1
 
@@ -79,7 +83,7 @@ compare text1 text2 =
                     if (tmp.first.not && tmp.second) then Ordering.Greater else
                         case tmp.first.not of
                             True ->
-                                text_comparison = substring1.compare_to substring2
+                                text_comparison = compare_text substring1 substring2
                                 if text_comparison != Ordering.Equal then text_comparison else
                                     @Tail_Call order next1 iter1.next next2 iter2.next
                             False ->
@@ -93,7 +97,7 @@ compare text1 text2 =
 
                                 value_comparison = value1.compare_to value2
                                 if value_comparison != Ordering.Equal then value_comparison else
-                                    text_comparison = num_text1.compare_to num_text2
+                                    text_comparison = compare_text num_text1 num_text2
                                     if text_comparison != Ordering.Equal then text_comparison else
                                         @Tail_Call order (parsed1.at 2) (parsed1.at 3) (parsed2.at 2) (parsed2.at 3)
 

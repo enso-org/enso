@@ -1,42 +1,46 @@
 from Standard.Base import all
 
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+import Standard.Base.Runtime.Ref
 import Standard.Table.Internal.Vector_Builder
 
-from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from Standard.Table.Errors as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Column_Matched_By_Multiple_Selectors
 
 type Problem_Builder
     type Problem_Builder oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
 
     report_oob_indices indices =
-        here.append_to_ref this.oob_indices indices
+        append_to_ref self.oob_indices indices
 
     report_duplicate_column_selectors selectors =
-        here.append_to_ref this.duplicate_column_selectors selectors
+        append_to_ref self.duplicate_column_selectors selectors
 
     report_input_indices_already_matched indices =
-        here.append_to_ref this.input_indices_already_matched indices
+        append_to_ref self.input_indices_already_matched indices
 
     report_missing_input_columns columns =
-        here.append_to_ref this.missing_input_columns columns
+        append_to_ref self.missing_input_columns columns
+
+    report_column_matched_by_multiple_selectors column_name selectors =
+        self.report_other_warning (Column_Matched_By_Multiple_Selectors column_name selectors)
 
     report_other_warning warning =
-        this.other.append warning
+        self.other.append warning
 
     ## Returns a vector containing all reported problems, aggregated.
     build_problemset : Vector
     build_problemset =
         problems = Vector.new_builder
         build_vector_and_append ref problem_creator =
-            vec = Ref.get ref . build
+            vec = ref.get . build
             if vec.not_empty then
                 problems.append (problem_creator vec)
 
-        build_vector_and_append this.oob_indices Column_Indexes_Out_Of_Range
-        build_vector_and_append this.duplicate_column_selectors Duplicate_Column_Selectors
-        build_vector_and_append this.input_indices_already_matched Input_Indices_Already_Matched
-        build_vector_and_append this.missing_input_columns Missing_Input_Columns
-        this.other.to_vector.each problems.append
+        build_vector_and_append self.oob_indices Column_Indexes_Out_Of_Range
+        build_vector_and_append self.duplicate_column_selectors Duplicate_Column_Selectors
+        build_vector_and_append self.input_indices_already_matched Input_Indices_Already_Matched
+        build_vector_and_append self.missing_input_columns Missing_Input_Columns
+        self.other.to_vector.each problems.append
 
         problems.to_vector
 
@@ -45,14 +49,14 @@ type Problem_Builder
        builder.
     attach_problems_after : Problem_Behavior -> Any -> Any
     attach_problems_after problem_behavior result =
-        problem_behavior.attach_problems_after result this.build_problemset
+        problem_behavior.attach_problems_after result self.build_problemset
 
     ## Attaches gathered warnings to the result of the provided computation.
        If in `Report_Error` mode and there are any problems gathered, the first
        one will be returned as error without even running the computation.
     attach_problems_before : Problem_Behavior -> Any -> Any
     attach_problems_before problem_behavior ~computation =
-        problem_behavior.attach_problems_before this.build_problemset computation
+        problem_behavior.attach_problems_before self.build_problemset computation
 
 ## PRIVATE
    Creates a new helper object for aggregating problems to report.
@@ -64,5 +68,5 @@ new =
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.
 append_to_ref : Ref Vector_Builder -> Vector -> Nothing
 append_to_ref ref vector =
-    appended = Ref.get ref ++ vector
-    Ref.put ref appended
+    appended = (ref.get) ++ vector
+    ref . put appended

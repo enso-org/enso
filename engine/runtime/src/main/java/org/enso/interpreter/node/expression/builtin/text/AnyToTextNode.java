@@ -22,7 +22,7 @@ public abstract class AnyToTextNode extends Node {
     return AnyToTextNodeGen.create();
   }
 
-  public abstract Text execute(Object _this);
+  public abstract Text execute(Object self);
 
   @Specialization
   Text doAtom(Atom at) {

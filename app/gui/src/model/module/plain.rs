@@ -21,6 +21,10 @@ use parser::Parser;
 
 
 
+// ==============
+// === Module ===
+// ==============
+
 /// A structure describing the module.
 ///
 /// It implements internal mutability pattern, so the state may be shared between different
@@ -58,6 +62,7 @@ impl Module {
     /// Fails if the `new_content` is so broken that it cannot be serialized to text. In such case
     /// the module's state is guaranteed to remain unmodified and the notification will not be
     /// emitted.
+    #[profile(Debug)]
     fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
             debug!(self.logger, "Ignoring spurious update.");
@@ -69,7 +74,7 @@ impl Module {
 
         // We want the line below to fail before changing state.
         let new_file = new_content.serialize()?;
-        let notification = Notification { new_file, kind };
+        let notification = Notification::new(new_file, kind);
         self.content.replace(new_content);
         self.notifications.notify(notification);
         Ok(())
@@ -82,6 +87,7 @@ impl Module {
     ///  This method is intended as internal implementation helper.
     /// `f` gets the borrowed `content`, so any attempt to borrow it directly or transitively from
     /// `self.content` again will panic.
+    #[profile(Debug)]
     fn update_content<R>(
         &self,
         kind: NotificationKind,
@@ -100,6 +106,7 @@ impl Module {
     ///  This method is intended as internal implementation helper.
     /// `f` gets the borrowed `content`, so any attempt to borrow it directly or transitively from
     /// `self.content` again will panic.
+    #[profile(Debug)]
     fn try_updating_content<R>(
         &self,
         kind: NotificationKind,
@@ -147,14 +154,17 @@ impl model::module::API for Module {
         data.ok_or_else(|| NodeMetadataNotFound(id).into())
     }
 
+    #[profile(Debug)]
     fn update_whole(&self, content: Content) -> FallibleResult {
         self.set_content(content, NotificationKind::Invalidate)
     }
 
+    #[profile(Debug)]
     fn update_ast(&self, ast: ast::known::Module) -> FallibleResult {
         self.update_content(NotificationKind::Invalidate, |content| content.ast = ast)
     }
 
+    #[profile(Debug)]
     fn apply_code_change(
         &self,
         change: TextChange,
@@ -171,12 +181,14 @@ impl model::module::API for Module {
         self.update_content(notification, |content| content.ast = new_ast)
     }
 
+    #[profile(Debug)]
     fn set_node_metadata(&self, id: ast::Id, data: NodeMetadata) -> FallibleResult {
         self.update_content(NotificationKind::MetadataChanged, |content| {
             let _ = content.metadata.ide.node.insert(id, data);
         })
     }
 
+    #[profile(Debug)]
     fn remove_node_metadata(&self, id: ast::Id) -> FallibleResult<NodeMetadata> {
         self.try_updating_content(NotificationKind::MetadataChanged, |content| {
             let lookup = content.metadata.ide.node.remove(&id);
@@ -184,6 +196,7 @@ impl model::module::API for Module {
         })
     }
 
+    #[profile(Debug)]
     fn with_node_metadata(
         &self,
         id: ast::Id,
@@ -206,6 +219,7 @@ impl model::module::API for Module {
         }
     }
 
+    #[profile(Debug)]
     fn boxed_update_project_metadata(
         &self,
         fun: Box<dyn FnOnce(&mut ProjectMetadata) + '_>,

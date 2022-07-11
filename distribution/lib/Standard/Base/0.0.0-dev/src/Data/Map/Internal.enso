@@ -15,8 +15,8 @@ from Standard.Base.Data.Map import all
    - r: The right subtree.
 insert_l : Any -> Any -> Any -> Any -> Tree -> Tree -> Tree
 insert_l key value k v l r =
-    new_left = here.insert l key value
-    here.balance_left k v new_left r
+    new_left = insert l key value
+    balance_left k v new_left r
 
 ## PRIVATE
 
@@ -31,8 +31,8 @@ insert_l key value k v l r =
    - r: The right subtree.
 insert_r : Any -> Any -> Any -> Any -> Tree -> Tree -> Tree
 insert_r key value k v l r =
-    new_right = here.insert r key value
-    here.balance_right k v l new_right
+    new_right = insert r key value
+    balance_right k v l new_right
 
 ## PRIVATE
 
@@ -49,9 +49,9 @@ insert_r key value k v l r =
 insert : Map -> Any -> Any -> Map
 insert map key value = case map of
     Bin s k v l r ->
-        if key > k then @Tail_Call here.insert_r key value k v l r else
+        if key > k then @Tail_Call insert_r key value k v l r else
             if key == k then @Tail_Call Bin s k value l r else
-                @Tail_Call here.insert_l key value k v l r
+                @Tail_Call insert_l key value k v l r
     _ -> Bin 1 key value Tip Tip
 
 ## PRIVATE
@@ -67,13 +67,13 @@ balance_left : Any -> Any -> Tree -> Tree -> Tree
 balance_left k x l r = case r of
     Bin rs _ _ _ _ -> case l of
         Bin ls lk lx ll lr ->
-            if ls <= Delta*rs then Bin 1+ls+rs k x l r else
-                lls = here.size ll
+            if ls <= delta*rs then Bin 1+ls+rs k x l r else
+                lls = size ll
                 case lr of
                     Bin lrs lrk lrx lrl lrr ->
-                        if lrs < Ratio*lls then Bin 1+ls+rs lk lx ll (Bin 1+rs+lrs k x lr r) else
-                            lrls = here.size lrl
-                            lrrs = here.size lrr
+                        if lrs < ratio*lls then Bin 1+ls+rs lk lx ll (Bin 1+rs+lrs k x lr r) else
+                            lrls = size lrl
+                            lrrs = size lrr
                             Bin 1+ls+rs lrk lrx (Bin 1+lls+lrls lk lx ll lrl) (Bin 1+rs+lrrs k x lrr r)
         _ -> Bin 1+rs k x Tip r
     _ -> case l of
@@ -83,10 +83,10 @@ balance_left k x l r = case r of
         Bin _ lk lx ll Tip -> Bin 3 lk lx ll (Bin 1 k x Tip Tip)
         Bin ls lk lx ll lr -> case lr of
             Bin lrs lrk lrx lrl lrr ->
-                lls = here.size ll
-                if lrs < Ratio*lls then Bin 1+ls lk lx ll (Bin 1+lrs k x lr Tip) else
-                    lrls = here.size lrl
-                    lrrs = here.size lrr
+                lls = size ll
+                if lrs < ratio*lls then Bin 1+ls lk lx ll (Bin 1+lrs k x lr Tip) else
+                    lrls = size lrl
+                    lrrs = size lrr
                     Bin 1+ls lrk lrx (Bin 1+lls+lrls lk lx ll lrl) (Bin 1+lrrs k x lrr Tip)
 
 ## PRIVATE
@@ -101,13 +101,13 @@ balance_left k x l r = case r of
 balance_right k x l r = case l of
     Bin ls _ _ _ _ -> case r of
         Bin rs rk rx rl rr ->
-            if rs <= Delta*ls then Bin 1+ls+rs k x l r else
+            if rs <= delta*ls then Bin 1+ls+rs k x l r else
                 case rl of
                     Bin rls rlk rlx rll rlr ->
-                        rrs = here.size rr
-                        if rls < Ratio*rrs then Bin 1+ls+rs rk rx (Bin 1+ls+rls k x l rl) rr else
-                            rlls = here.size rll
-                            rlrs = here.size rlr
+                        rrs = size rr
+                        if rls < ratio*rrs then Bin 1+ls+rs rk rx (Bin 1+ls+rls k x l rl) rr else
+                            rlls = size rll
+                            rlrs = size rlr
                             Bin 1+ls+rs rlk rlx (Bin 1+ls+rlls k x l rll) (Bin 1+rrs+rlrs rk rx rlr rr)
         _ -> Bin 1+ls k x l Tip
     _ -> case r of
@@ -118,9 +118,9 @@ balance_right k x l r = case l of
         Bin rs rk rx rl rr -> case rl of
             Bin rls rlk rlx rll rlr -> case rr of
                 Bin rrs _ _ _ _ ->
-                    if rls < Ratio*rrs then Bin 1+rs rk rx (Bin 1+rls k x Tip rl) rr else
-                        srll = here.size rll
-                        srlr = here.size rlr
+                    if rls < ratio*rrs then Bin 1+rs rk rx (Bin 1+rls k x Tip rl) rr else
+                        srll = size rll
+                        srlr = size rlr
                         Bin 1+rs rlk rlx (Bin 1+srll k x Tip rll) (Bin 1+rrs+srlr rk rx rlr rr)
 
 ## PRIVATE

@@ -17,7 +17,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |    type Atom_One
           |    type Atom_Two
           |
-          |    is_atom_one = case this of
+          |    is_atom_one = case self of
           |        Atom_One -> 10
           |        Atom_Two -> -10
           |
@@ -37,7 +37,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |    type Atom_One
           |    type Atom_Two
           |
-          |    is_atom_one n = case this of
+          |    is_atom_one n = case self of
           |        Atom_One -> 10 + n
           |        Atom_Two -> -10 - n
           |
@@ -56,7 +56,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |type My_Type
           |    type My_Atom a
           |
-          |    is_equal n = case this of
+          |    is_equal n = case self of
           |        My_Atom a -> n - a
           |
           |main =
@@ -68,7 +68,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
 
     "work with methods appearing to be suspended blocks" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |type Foo
           |    type Bar
@@ -88,7 +88,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |foo x =
           |    y -> x + y
           |
-          |main = here.foo 1 2
+          |main = foo 1 2
           |""".stripMargin
 
       eval(code) shouldEqual 3

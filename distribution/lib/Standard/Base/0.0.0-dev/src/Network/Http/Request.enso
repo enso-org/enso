@@ -4,7 +4,6 @@ import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request.Body as Request_Body
-import Standard.Base.Network.Internal
 import Standard.Base.Network.Uri
 import Standard.Base.System.File
 
@@ -26,7 +25,7 @@ import Standard.Base.System.File
          example_new = Request.new Method.Post (Uri.parse "http://example.com")
 new : Method -> (Text | Uri) -> Vector.Vector -> Request_Body -> Request
 new method addr (headers = []) (body = Request_Body.Empty) =
-    Panic.recover Any (Request method (Internal.panic_on_error (addr.to_uri)) headers body) . catch Internal.recover_panic
+    Panic.recover Any (Request method (Panic.rethrow (addr.to_uri)) headers body)
 
 ## Create an Options request.
 
@@ -40,7 +39,7 @@ new method addr (headers = []) (body = Request_Body.Empty) =
 
          example_options = Request.options (Uri.parse "http://example.com")
 options : (Text | Uri) -> Vector.Vector -> Request
-options addr (headers = []) = here.new Method.Options addr headers
+options addr (headers = []) = new Method.Options addr headers
 
 ## Create a Get request.
 
@@ -56,7 +55,7 @@ options addr (headers = []) = here.new Method.Options addr headers
 
          example_get = Request.get (Uri.parse "http://example.com")
 get : (Text | Uri) -> Vector.Vector -> Request
-get addr (headers = []) = here.new Method.Get addr headers
+get addr (headers = []) = new Method.Get addr headers
 
 ## Create a Head request.
 
@@ -72,7 +71,7 @@ get addr (headers = []) = here.new Method.Get addr headers
 
          example_head = Request.head (Uri.parse "http://example.com")
 head : (Text | Uri) -> Vector.Vector -> Request
-head addr (headers = []) = here.new Method.Head addr headers
+head addr (headers = []) = new Method.Head addr headers
 
 ## Create a Post request.
 
@@ -90,7 +89,7 @@ head addr (headers = []) = here.new Method.Head addr headers
 
          example_post = Request.post (Uri.parse "http://example.com") Request_Body.Empty
 post : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
-post addr body (headers = []) = here.new Method.Post addr headers body
+post addr body (headers = []) = new Method.Post addr headers body
 
 ## Create a Put request.
 
@@ -108,7 +107,7 @@ post addr body (headers = []) = here.new Method.Post addr headers body
 
          example_put = Request.put (Uri.parse "http://example.com") Request_Body.Empty
 put : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
-put addr body (headers = []) = here.new Method.Put addr headers body
+put addr body (headers = []) = new Method.Put addr headers body
 
 ## Create a Delete request.
 
@@ -124,7 +123,7 @@ put addr body (headers = []) = here.new Method.Put addr headers body
 
          example_delete = Request.delete (Uri.parse "http://example.com")
 delete : (Text | Uri) -> Vector.Vector -> Request
-delete addr (headers = []) = here.new Method.Delete addr headers
+delete addr (headers = []) = new Method.Delete addr headers
 
 type Request
 
@@ -158,15 +157,15 @@ type Request
            Pair acc True -> Pair (acc + [h]) True
            Pair acc False ->
                if h.name . equals_ignore_case key then Pair (acc + [new_header]) True else Pair (acc + [h]) False
-       new_headers = case this.headers.fold (Pair [] False) update_header of
+       new_headers = case self.headers.fold (Pair [] False) update_header of
            Pair acc True -> acc
            Pair acc False -> acc + [new_header]
-       Request this.method this.uri new_headers this.body
+       Request self.method self.uri new_headers self.body
 
     ## Sets the headers in the request.
 
        Arguments:
-       - new_headers: A vector of headers to put in the request. If `this` has
+       - new_headers: A vector of headers to put in the request. If `self` has
          any headers they will be replaced with new_headers.
 
        > Example
@@ -178,7 +177,7 @@ type Request
     with_headers : [Header] -> Request
     with_headers new_headers =
         update_header req new_header = req.with_header new_header.name new_header.value
-        new_headers.fold this update_header
+        new_headers.fold self update_header
 
     ## Set the body for the request.
 
@@ -195,7 +194,7 @@ type Request
              example_with_body =
                  Request.post (Uri.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
     with_body : Request_Body -> Request
-    with_body new_body = Request this.method this.uri this.headers new_body
+    with_body new_body = Request self.method self.uri self.headers new_body
 
     ## Set the body text in the request encoded as "application/json".
 
@@ -215,7 +214,7 @@ type Request
     with_json : (Text | Json) -> Request
     with_json json_body =
         new_body = Request_Body.Json json_body
-        Request this.method this.uri this.headers new_body . with_headers [Header.application_json]
+        Request self.method self.uri self.headers new_body . with_headers [Header.application_json]
 
     ## Set body as vector of parts encoded as "application/x-www-form-urlencoded".
 
@@ -233,4 +232,4 @@ type Request
     with_form : (Vector | Form) -> Request
     with_form parts =
         new_body = Request_Body.Form parts.to_form
-        Request this.method this.uri this.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
+        Request self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]

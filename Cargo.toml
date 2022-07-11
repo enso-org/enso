@@ -1,30 +1,40 @@
 [workspace]
-
 # Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
 # If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/example`), just add it as a path dependency
 # where plausible.
 members = [
-    "app/gui",
-    "app/gui/enso-profiler-enso-data",
-    "build/enso-formatter",
-    "build/rust-scripts",
-    "lib/rust/*",
-    "lib/rust/profiler/data",
-    "integration-test"
+  "app/gui",
+  "app/gui/enso-profiler-enso-data",
+  "build",
+  "build/enso-formatter",
+  "build/rust-scripts",
+  "lib/rust/*",
+  "lib/rust/parser/src/syntax/tree/visitor",
+  "lib/rust/parser/src/syntax/tree/builder",
+  "lib/rust/parser/generate-java",
+  "lib/rust/profiler/data",
+  "integration-test"
 ]
-
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
+
+# We are using a version with extended functionality. The changes have been PR'd upstream:
+# https://github.com/rustwasm/console_error_panic_hook/pull/24
+# Remove this patch when the issue is resolved.
+[patch.crates-io]
+console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }
 
 [profile.dev]
 opt-level = 0
 lto = false
-debug = true
+debug = 0
 debug-assertions = true
 
 [profile.release]
 opt-level = 3
-lto = true
+lto = "thin"
+codegen-units = 16
+incremental = true
 debug = false
 debug-assertions = false
 
@@ -43,3 +53,14 @@ debug-assertions = true
 [profile.integration-test]
 inherits = "test"
 opt-level = 2
+
+[profile.buildscript]
+inherits = "release"
+opt-level = 2
+lto = false
+debug = false
+debug-assertions = true
+#[patch."https://github.com/enso-org/ci-build"]
+#enso-build = { path = '../ci-build/build' }
+#enso-build-cli = { path = '../ci-build/cli' }
+#ide-ci = { path = '../ci-build/ci_utils' }

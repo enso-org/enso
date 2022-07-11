@@ -190,7 +190,7 @@ public class Text implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().text().getText(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().text(), context.getBuiltins().any());
     }
 
     static Context getContext() {
@@ -205,7 +205,7 @@ public class Text implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Text _this,
+        Text self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -213,7 +213,7 @@ public class Text implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Text _this, UnresolvedSymbol symbol)
+    static Function resolve(Text self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -242,7 +242,7 @@ public class Text implements TruffleObject {
     static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
       Context context = getContext();
       return conversion.resolveFor(
-          target, context.getBuiltins().text().getText(), context.getBuiltins().any());
+          target, context.getBuiltins().text(), context.getBuiltins().any());
     }
 
     static Context getContext() {
@@ -258,7 +258,7 @@ public class Text implements TruffleObject {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Text _this,
+        Text self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("target") AtomConstructor cachedTarget,
@@ -268,7 +268,7 @@ public class Text implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Text _this, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Text self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

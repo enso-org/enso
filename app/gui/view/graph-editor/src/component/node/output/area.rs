@@ -42,10 +42,10 @@ const SHOW_DELAY_DURATION_MS: f32 = 150.0;
 pub use span_tree::Crumb;
 pub use span_tree::Crumbs;
 
-/// Specialized `SpanTree` for the input ports model.
+/// Specialized `SpanTree` for the output ports model.
 pub type SpanTree = span_tree::SpanTree<port::Model>;
 
-/// Mutable reference to port inside of a `SpanTree`.
+/// Reference to port inside of a `SpanTree`.
 pub type PortRef<'a> = span_tree::node::Ref<'a, port::Model>;
 
 /// Mutable reference to port inside of a `SpanTree`.
@@ -99,6 +99,7 @@ impl Debug for Expression {
 // === Conversions ===
 
 impl From<node::Expression> for Expression {
+    #[profile(Debug)]
     fn from(expr: node::Expression) -> Self {
         let code = expr.pattern.clone();
         let whole_expr_type = expr.input_span_tree.root.tp().map(|t| t.to_owned().into());
@@ -120,6 +121,8 @@ impl From<node::Expression> for Expression {
 // === Model ===
 // =============
 
+// FIXME: Update to `define_endpoints_2`. Note that `Model` must not own the `api::Private`,
+// because `api::Private` owns the network, which contains (strong) references to the model.
 ensogl::define_endpoints! {
     Input {
         set_size                  (Vector2),
@@ -166,6 +169,7 @@ pub struct Model {
 
 impl Model {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(logger: impl AnyLogger, app: &Application, frp: &Frp) -> Self {
         let logger = Logger::new_sub(&logger, "output_ports");
         let display_object = display::object::Instance::new(&logger);
@@ -196,6 +200,7 @@ impl Model {
         .init()
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
@@ -228,10 +233,12 @@ impl Model {
         ports
     }
 
+    #[profile(Debug)]
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.label.add_to_scene_layer(layer);
     }
 
+    #[profile(Debug)]
     fn set_label(&self, content: impl Into<String>) {
         let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
         self.label.set_content(str);
@@ -239,6 +246,7 @@ impl Model {
     }
 
     /// Update expression type for the particular `ast::Id`.
+    #[profile(Debug)]
     fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
         if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
             if let Some(frp) = &port.frp {
@@ -249,6 +257,7 @@ impl Model {
 
     /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
     /// its root as the port as well.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_mut(
         &self,
         mut f: impl FnMut(bool, &mut PortRefMut, &mut PortLayerBuilder),
@@ -262,6 +271,7 @@ impl Model {
 
     /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
     /// its root as the port as well.
+    #[profile(Debug)]
     fn traverse_borrowed_expression(
         &self,
         mut f: impl FnMut(bool, &PortRef, &mut PortLayerBuilder),
@@ -274,6 +284,7 @@ impl Model {
     }
 
     /// Traverse all span tree nodes that are considered ports.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_raw_mut(
         &self,
         mut f: impl FnMut(bool, &mut PortRefMut, &mut PortLayerBuilder),
@@ -293,6 +304,7 @@ impl Model {
     }
 
     /// Traverse all span tree nodes that are considered ports.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_raw(
         &self,
         mut f: impl FnMut(bool, &PortRef, &mut PortLayerBuilder),
@@ -318,6 +330,7 @@ impl Model {
         count
     }
 
+    #[profile(Debug)]
     fn set_size(&self, size: Vector2) {
         self.ports.set_position_x(size.x / 2.0);
         self.traverse_borrowed_expression_mut(|is_a_port, node, _| {
@@ -327,10 +340,12 @@ impl Model {
         })
     }
 
+    #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.set_label(expression.code());
     }
 
+    #[profile(Debug)]
     fn build_port_shapes_on_new_expression(&self) {
         let mut port_index = 0;
         let mut id_crumbs_map = HashMap::new();
@@ -379,6 +394,7 @@ impl Model {
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
     }
 
+    #[profile(Debug)]
     fn init_definition_types(&self) {
         let port_count = self.port_count.get();
         let whole_expr_type = self.expression.borrow().whole_expr_type.clone();
@@ -399,6 +415,7 @@ impl Model {
         }
     }
 
+    #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>) {
         let new_expression = Expression::from(new_expression.into());
         if DEBUG {

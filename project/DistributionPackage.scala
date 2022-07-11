@@ -38,11 +38,19 @@ object DistributionPackage {
     }
   }
 
+  /**
+    * Conditional copying, based on the contents of cache and timestamps of files.
+    *
+    * @param source source directory
+    * @param destination target directory
+    * @param cache cache used for persisting the cached information
+    * @return true, if copying was necessary, false if no change was detected between the directories
+    */
   def copyDirectoryIncremental(
     source: File,
     destination: File,
     cache: CacheStore
-  ): Unit = {
+  ): Boolean = {
     val allFiles = source.allPaths.get().toSet
     Tracked.diffInputs(cache, FileInfo.lastModified)(allFiles) { diff =>
       val missing = diff.unmodified.exists { f =>
@@ -55,7 +63,8 @@ object DistributionPackage {
       if (diff.modified.nonEmpty || diff.removed.nonEmpty || missing) {
         IO.delete(destination)
         IO.copyDirectory(source, destination)
-      }
+        true
+      } else false
     }
   }
 

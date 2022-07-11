@@ -1,7 +1,5 @@
 package org.enso.languageserver.runtime
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.{ClientId, Config}
@@ -17,7 +15,10 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.searcher.SuggestionsRepo
 
+import java.util.UUID
+
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 /** Registry handles execution context requests and communicates with runtime
   * connector.
@@ -71,7 +72,8 @@ final class ContextRegistry(
 
   import ContextRegistryProtocol._
 
-  private val timeout = config.executionContext.requestTimeout
+  private val timeout: FiniteDuration =
+    config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -117,27 +119,31 @@ final class ContextRegistry(
       case update: Api.VisualisationEvaluationFailed =>
         store.getListener(update.contextId).foreach(_ ! update)
 
-      case CreateContextRequest(client) =>
-        val contextId = UUID.randomUUID()
-        val handler = context.actorOf(
-          CreateContextHandler.props(runtimeFailureMapper, timeout, runtime)
-        )
-        val listener =
-          context.actorOf(
-            ContextEventsListener.props(
-              runtimeFailureMapper,
-              repo,
-              client,
-              contextId,
-              sessionRouter
-            )
+      case CreateContextRequest(client, contextIdOpt) =>
+        val contextId = contextIdOpt.getOrElse(UUID.randomUUID())
+        if (!store.hasContext(client.clientId, contextId)) {
+          val handler = context.actorOf(
+            CreateContextHandler.props(runtimeFailureMapper, timeout, runtime)
           )
-        handler.forward(Api.CreateContextRequest(contextId))
-        context.become(
-          withStore(store.addContext(client.clientId, contextId, listener))
-        )
-        context.system.eventStream
-          .publish(ExecutionContextCreated(contextId, client.clientId))
+          val listener =
+            context.actorOf(
+              ContextEventsListener.props(
+                runtimeFailureMapper,
+                repo,
+                client,
+                contextId,
+                sessionRouter
+              )
+            )
+          handler.forward(Api.CreateContextRequest(contextId))
+          context.become(
+            withStore(store.addContext(client.clientId, contextId, listener))
+          )
+          context.system.eventStream
+            .publish(ExecutionContextCreated(contextId, client.clientId))
+        } else {
+          sender() ! CreateContextResponse(contextId)
+        }
 
       case DestroyContextRequest(client, contextId) =>
         if (store.hasContext(client.clientId, contextId)) {

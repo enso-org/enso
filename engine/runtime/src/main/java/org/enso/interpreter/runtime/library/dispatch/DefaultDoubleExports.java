@@ -43,7 +43,7 @@ public class DefaultDoubleExports {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Double _this,
+        Double self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("doResolve(cachedSymbol)") Function function) {
@@ -51,7 +51,7 @@ public class DefaultDoubleExports {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Double _this, UnresolvedSymbol symbol)
+    static Function resolve(Double self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -96,7 +96,7 @@ public class DefaultDoubleExports {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Double _this,
+        Double self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
@@ -106,7 +106,7 @@ public class DefaultDoubleExports {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Double _this, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Double self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

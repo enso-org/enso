@@ -1,10 +1,12 @@
 //! A visual line capped with an arrow, that shows a tooltip on mouse hover.
+
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use crate::shape;
 use crate::shape::CAP_WIDTH;
 use crate::shape::HOVER_PADDING;
+
 use ensogl::frp;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
@@ -56,7 +58,7 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, app: &Application, model: &Model, _style: &StyleWatchFrp) {
         let network = &api.network;
         let line = &model.line.events;
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             eval api.input.set_size((size) model.set_size(*size));
             eval api.input.set_color((color) model.set_color(*color));
             eval api.input.set_cap((direction) model.set_cap(*direction));

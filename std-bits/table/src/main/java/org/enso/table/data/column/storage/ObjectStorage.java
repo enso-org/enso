@@ -1,16 +1,11 @@
 package org.enso.table.data.column.storage;
 
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Comparator;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-
-import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+
+import java.util.BitSet;
 
 /** A column storing arbitrary objects. */
 public class ObjectStorage extends Storage {
@@ -127,11 +122,6 @@ public class ObjectStorage extends Storage {
     return data;
   }
 
-  @Override
-  public Comparator<Object> getDefaultComparator() {
-    return null;
-  }
-
   private static MapOpStorage<ObjectStorage> buildOps() {
     MapOpStorage<ObjectStorage> ops = new MapOpStorage<>();
     ops.add(
@@ -156,15 +146,5 @@ public class ObjectStorage extends Storage {
     Object[] newData = new Object[newSize];
     System.arraycopy(data, offset, newData, 0, newSize);
     return new ObjectStorage(newData, newSize);
-  }
-
-  @Override
-  protected String getPresentCsvString(int index, Function<Object, String> toCsvString) {
-    return toCsvString.apply(getItem(index));
-  }
-
-  @Override
-  public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
-    writeCell.accept(getItem(index), cell);
   }
 }

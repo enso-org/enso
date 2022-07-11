@@ -1,21 +1,21 @@
 'use strict'
 
-import cfg from '../../../config'
-import * as assert from 'assert'
-import * as buildCfg from '../../../../../dist/build.json'
-import * as Electron from 'electron'
-import * as isDev from 'electron-is-dev'
-import * as path from 'path'
-import * as pkg from '../package.json'
-import * as rootCfg from '../../../package.json'
-import * as Server from 'enso-studio-common/src/server'
-import * as util from 'util'
-import * as yargs from 'yargs'
+import { defaultLogServerHost } from '../../../config.js'
+import assert from 'assert'
+import buildCfg from '../../../build.json'
+import Electron from 'electron'
+import isDev from 'electron-is-dev'
+import path from 'path'
+import * as Server from 'enso-studio-common/src/server.js'
+import util from 'util'
+import yargs from 'yargs'
+import remoteMain from '@electron/remote/main/index.js'
 
-import paths from '../../../../../build/paths'
+import { project_manager_bundle } from '../paths.mjs'
 
-const child_process = require('child_process')
-const fss = require('fs')
+import child_process from 'child_process'
+import fss from 'fs'
+import fsp from 'fs/promises'
 
 // =============
 // === Paths ===
@@ -23,6 +23,11 @@ const fss = require('fs')
 
 const root = Electron.app.getAppPath()
 const resources = path.join(root, '..')
+const project_manager_executable = path.join(
+    resources,
+    project_manager_bundle,
+    PROJECT_MANAGER_IN_BUNDLE_PATH
+)
 
 // FIXME default options parsed wrong
 // https://github.com/yargs/yargs/issues/1590
@@ -60,9 +65,9 @@ const trustedHosts = [
 // =====================
 
 let usage = `
-${pkg.build.productName} ${rootCfg.version} command line interface.
+${buildCfg.name} ${buildCfg.version} command line interface.
 
-Usage: ${pkg.build.productName} [options] [--] [backend args]...
+Usage: ${buildCfg.name} [options] [--] [backend args]...
 `
 
 let epilogue = `
@@ -148,6 +153,28 @@ optParser.options('devtron', {
     describe: 'Install the Devtron Developer Tools extension',
 })
 
+optParser.options('load-profile', {
+    group: debugOptionsGroup,
+    describe:
+        'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
+    requiresArg: true,
+    type: `array`,
+})
+
+optParser.options('save-profile', {
+    group: debugOptionsGroup,
+    describe: 'Record a performance profile and write to a file.',
+    requiresArg: true,
+    type: `string`,
+})
+
+optParser.options('workflow', {
+    group: debugOptionsGroup,
+    describe: 'Specify a workflow for profiling. Must be used with --entry-point=profile.',
+    requiresArg: true,
+    type: `string`,
+})
+
 // === Style Options ===
 
 let styleOptionsGroup = 'Style Options:'
@@ -199,13 +226,24 @@ optParser.options('crash-report-host', {
         'The address of the server that will receive crash reports. ' +
         'Consists of a hostname, optionally followed by a ":" and a port number',
     requiresArg: true,
-    default: cfg.defaultLogServerHost,
+    default: defaultLogServerHost,
 })
 
 optParser.options('data-gathering', {
     describe: 'Enable the sharing of any usage data',
     type: 'boolean',
     default: true,
+})
+
+optParser.options('preferred-engine-version', {
+    describe: 'The Engine version that IDE will try to use for newly created projects',
+    type: 'string',
+    default: BUNDLED_ENGINE_VERSION,
+})
+
+optParser.options('skip-min-version-check', {
+    describe: 'Disables the check whether this IDE version is still supported',
+    type: 'boolean',
 })
 
 // === Parsing ===
@@ -246,8 +284,8 @@ if (args.windowSize) {
 // ==================
 
 let versionInfo = {
-    version: rootCfg.version,
-    build: buildCfg.buildVersion,
+    version: buildCfg.version,
+    build: buildCfg.commit,
     electron: process.versions.electron,
     chrome: process.versions.chrome,
 }
@@ -305,10 +343,7 @@ function secureWebPreferences(webPreferences) {
     delete webPreferences.experimentalFeatures
     delete webPreferences.enableBlinkFeatures
     delete webPreferences.allowpopups
-    // TODO[WD]: We may want to enable it and use IPC to communicate with preload script.
-    //           https://stackoverflow.com/questions/38335004/how-to-pass-parameters-from-main-process-to-render-processes-in-electron
-    // webPreferences.contextIsolation = true
-    webPreferences.enableRemoteModule = true
+    delete webPreferences.contextIsolation
     return webPreferences
 }
 
@@ -358,15 +393,11 @@ Electron.app.on('web-contents-created', (event, contents) => {
 // =======================
 
 function projectManagerPath() {
-    let binPath = args['backend-path']
-    if (!binPath) {
-        binPath = paths.get_project_manager_path(resources)
-    }
+    let binPath = args['backend-path'] ?? project_manager_executable
     let binExists = fss.existsSync(binPath)
     assert(binExists, `Could not find the project manager binary at ${binPath}.`)
     return binPath
 }
-
 /**
  * Executes the Project Manager with given arguments.
  *
@@ -470,7 +501,7 @@ function urlParamsFromObject(obj) {
 
 function createWindow() {
     let webPreferences = secureWebPreferences()
-    webPreferences.preload = path.join(root, 'preload.js')
+    webPreferences.preload = path.join(root, 'preload.cjs')
 
     let windowPreferences = {
         webPreferences: webPreferences,
@@ -500,8 +531,9 @@ function createWindow() {
         windowPreferences.vibrancy = 'fullscreen-ui'
     }
 
+    remoteMain.initialize()
     const window = new Electron.BrowserWindow(windowPreferences)
-
+    remoteMain.enable(window.webContents)
     window.setMenuBarVisibility(false)
 
     if (args.dev) {
@@ -516,16 +548,45 @@ function createWindow() {
         high_contrast: Electron.nativeTheme.shouldUseHighContrastColors,
         crash_report_host: args.crashReportHost,
         data_gathering: args.dataGathering,
+        preferred_engine_version: args.preferredEngineVersion,
         node_labels: args.nodeLabels,
         verbose: args.verbose,
     }
 
+    Electron.ipcMain.on('error', (event, data) => console.error(data))
+
+    // We want to pass this argument only if explicitly passed. Otherwise we allow contents to select default behavior.
+    if (typeof args.skipMinVersionCheck !== 'undefined') {
+        urlCfg.skip_min_version_check = args.skipMinVersionCheck
+    }
     if (args.project) {
         urlCfg.project = args.project
     }
     if (args.entryPoint) {
         urlCfg.entry = args.entryPoint
     }
+    let profilePromises = []
+    if (args.loadProfile) {
+        profilePromises = args.loadProfile.map(path => fsp.readFile(path, 'utf8'))
+    }
+    const profiles = Promise.all(profilePromises)
+    Electron.ipcMain.on('load-profiles', event => {
+        profiles.then(profiles => {
+            event.reply('profiles-loaded', profiles)
+        })
+    })
+    if (args.saveProfile) {
+        Electron.ipcMain.on('save-profile', (event, data) => {
+            fss.writeFileSync(args.saveProfile, data)
+        })
+    }
+    if (args.workflow) {
+        urlCfg.test_workflow = args.workflow
+    }
+
+    Electron.ipcMain.on('quit-ide', () => {
+        Electron.app.quit()
+    })
 
     let params = urlParamsFromObject(urlCfg)
     let address = `${origin}?${params}`
@@ -623,9 +684,9 @@ Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) =
         let ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
         let alt_f4 = !meta && !control && alt && !shift && code === 'F4'
         let ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
-        let quit_on_mac = process.platform == 'darwin' && (cmd_q || alt_f4)
-        let quit_on_win = process.platform == 'win32' && (alt_f4 || ctrl_w)
-        let quit_on_lin = process.platform == 'linux' && (alt_f4 || ctrl_q || ctrl_w)
+        let quit_on_mac = process.platform === 'darwin' && (cmd_q || alt_f4)
+        let quit_on_win = process.platform === 'win32' && (alt_f4 || ctrl_w)
+        let quit_on_lin = process.platform === 'linux' && (alt_f4 || ctrl_q || ctrl_w)
         let quit = quit_on_mac || quit_on_win || quit_on_lin
         if (quit) {
             Electron.app.quit()

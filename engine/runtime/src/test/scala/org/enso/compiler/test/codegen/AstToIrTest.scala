@@ -341,8 +341,7 @@ class AstToIrTest extends CompilerTest with Inside {
       val fn = ir.asInstanceOf[IR.Application.Prefix]
       fn.function shouldEqual IR.Name.Literal(
         "negate",
-        isReferent = false,
-        isMethod   = true,
+        isMethod = true,
         None
       )
 
@@ -421,7 +420,7 @@ class AstToIrTest extends CompilerTest with Inside {
       val tp = tpIr.asInstanceOf[IR.Type.Ascription]
       tp.typed shouldBe a[IR.Name.MethodReference]
       val methodRef = tp.typed.asInstanceOf[IR.Name.MethodReference]
-      methodRef.typePointer.name shouldEqual "My"
+      methodRef.typePointer.get.name shouldEqual "My"
       methodRef.methodName.name shouldEqual "=="
 
       val methodIr = bindings(1)
@@ -429,7 +428,7 @@ class AstToIrTest extends CompilerTest with Inside {
       val method =
         methodIr.asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
       method.methodReference.methodName.name shouldEqual "=="
-      method.methodReference.typePointer.name shouldEqual "My"
+      method.methodReference.typePointer.get.name shouldEqual "My"
     }
 
     "not recognise pattern match bindings" in {

@@ -6,4 +6,4 @@ type Unsupported_Database_Operation_Error message
 
 Unsupported_Database_Operation_Error.to_display_text : Text
 Unsupported_Database_Operation_Error.to_display_text =
-    "Unsupported database operation: " + this.message
+    "Unsupported database operation: " + self.message

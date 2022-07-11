@@ -1,10 +1,11 @@
 from Standard.Base import all
 
-import Standard.Base.Error.Extensions as Errors
+import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Aggregate_Column
 import Standard.Database.Data.Sql
-import Standard.Database.Data.Dialect.Postgres
-import Standard.Database.Data.Dialect.Redshift
+import Standard.Database.Data.Internal.IR
+import Standard.Database.Data.Dialect.Postgres as Postgres_Module
+import Standard.Database.Data.Dialect.Redshift as Redshift_Module
 import Standard.Database.Data.Dialect.Sqlite as Sqlite_Module
 
 ## PRIVATE
@@ -39,14 +40,30 @@ type Dialect
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
     resolve_target_sql_type = Errors.unimplemented "This is an interface only."
 
-## PRIVATE
+    ## PRIVATE
+       Prepares an ordering descriptor.
 
-   A vector of SQL dialects supported by the Database library.
-supported_dialects : Vector Dialect
-supported_dialects = [Postgres.postgresql, Sqlite_Module.sqlite, Redshift.redshift]
+       One of the purposes of this method is to verify if the expected ordering
+       settings are supported by the given database backend.
+    prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor = Errors.unimplemented "This is an interface only."
 
 ## PRIVATE
 
    The dialect of SQLite databases.
 sqlite : Dialect
 sqlite = Sqlite_Module.sqlite
+
+## PRIVATE
+
+   The dialect of PostgreSQL databases.
+postgres : Dialect
+postgres = Postgres_Module.postgresql
+
+## PRIVATE
+
+   The dialect of Redshift databases.
+redshift : Dialect
+redshift = Redshift_Module.redshift
+
+

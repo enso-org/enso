@@ -21,7 +21,9 @@ public abstract class ColumnAggregatedProblems implements Problem {
     return rows.stream().mapToInt(Integer::intValue).toArray();
   }
 
-  public int count() { return rows.size(); }
+  public int count() {
+    return rows.size();
+  }
 
   public abstract boolean merge(ColumnAggregatedProblems another);
 

@@ -11,7 +11,8 @@ class StateTest extends InterpreterTest {
 
     "be accessible from functions" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.State
+          |from Standard.Base.Data.Numbers import Number
           |
           |stateful =
           |    State.put Number 10
@@ -19,7 +20,7 @@ class StateTest extends InterpreterTest {
           |    State.put Number x+1
           |    State.get Number
           |
-          |main = State.run Number 0 here.stateful
+          |main = State.run Number 0 stateful
           |""".stripMargin
 
       eval(code) shouldEqual 11
@@ -27,21 +28,22 @@ class StateTest extends InterpreterTest {
 
     "be implicitly threaded through function executions" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.State
+          |from Standard.Base.Data.Numbers import Number
           |
           |inc_state =
           |  x = State.get Number
           |  State.put Number x+1
           |
           |run =
-          |    here.inc_state
-          |    here.inc_state
-          |    here.inc_state
-          |    here.inc_state
-          |    here.inc_state
+          |    inc_state
+          |    inc_state
+          |    inc_state
+          |    inc_state
+          |    inc_state
           |    State.get Number
           |
-          |main = State.run Number 0 here.run
+          |main = State.run Number 0 run
           |""".stripMargin
 
       eval(code) shouldEqual 5
@@ -49,7 +51,8 @@ class StateTest extends InterpreterTest {
 
     "work well with recursive code" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.State
+          |from Standard.Base.Data.Numbers import Number
           |
           |main =
           |    stateSum = n ->
@@ -64,7 +67,11 @@ class StateTest extends InterpreterTest {
 
     "work with pattern matches" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Numbers import Number
+          |from Standard.Base.Data.List import Nil
+          |import Standard.Base.IO
+          |import Standard.Base.Nothing
+          |import Standard.Base.Runtime.State
           |
           |run =
           |    matcher = x -> case x of
@@ -82,7 +89,7 @@ class StateTest extends InterpreterTest {
           |    IO.println (State.get Number)
           |    0
           |
-          |main = State.run Number 0 here.run
+          |main = State.run Number 0 run
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("11", "16")
@@ -90,7 +97,8 @@ class StateTest extends InterpreterTest {
 
     "undo changes on Panics" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base import all
+          |import Standard.Base.Runtime.State
           |
           |panicker =
           |    State.put Number 400
@@ -98,33 +106,34 @@ class StateTest extends InterpreterTest {
           |
           |stater =
           |    State.put Number 5
-          |    Panic.catch_primitive here.panicker x->x
+          |    Panic.catch_primitive panicker x->x
           |    State.get Number
           |
-          |main = State.run Number 0 here.stater
+          |main = State.run Number 0 stater
           |""".stripMargin
       eval(code) shouldEqual 5
     }
 
     "localize properly with State.run when 1 key used" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.State
+          |from Standard.Base.Data.Numbers import Number
           |
           |inner = State.put Number 0
           |
           |outer =
           |    State.put Number 1
-          |    State.run Number 2 here.inner
+          |    State.run Number 2 inner
           |    State.get Number
           |
-          |main = State.run Number 3 here.outer
+          |main = State.run Number 3 outer
           |""".stripMargin
       eval(code) shouldEqual 1
     }
 
     "localize properly with State.run when 2 states used" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.State
           |
           |type S1
           |type S2
@@ -135,10 +144,10 @@ class StateTest extends InterpreterTest {
           |
           |outer =
           |    State.put S1 1
-          |    State.run S2 2 here.inner
+          |    State.run S2 2 inner
           |    State.get S1
           |
-          |main = State.run S1 3 here.outer
+          |main = State.run S1 3 outer
           |
           |""".stripMargin
       eval(code) shouldEqual 0
@@ -146,7 +155,7 @@ class StateTest extends InterpreterTest {
 
     "localize properly with State.run when multiple states used" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.State
           |
           |type S1
           |type S2
@@ -159,10 +168,10 @@ class StateTest extends InterpreterTest {
           |outer =
           |    State.put S1 1
           |    State.put S3 2
-          |    State.run S2 2 here.inner
+          |    State.run S2 2 inner
           |    State.get S1 + State.get S2 + State.get S3
           |
-          |main = State.run S3 0 (State.run S2 5 (State.run S1 3 here.outer))
+          |main = State.run S3 0 (State.run S2 5 (State.run S1 3 outer))
           |
           |""".stripMargin
       eval(code) shouldEqual 7 // S1 = 0, S2 = 5, S3 = 2

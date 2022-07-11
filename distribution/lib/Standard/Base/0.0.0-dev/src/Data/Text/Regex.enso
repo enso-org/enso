@@ -14,8 +14,6 @@ import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option
 import Standard.Base.Data.Map
 
-import Standard.Base.Error.Extensions as Errors
-
 ## Compile the provided `expression` into a regex pattern that can be used for
    matching.
 
@@ -69,7 +67,7 @@ import Standard.Base.Error.Extensions as Errors
      instead of immediately proceeding to match using it.
 compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern ! Compile_Error
 compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    options_vec = here.from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
+    options_vec = from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
     engine.compile expression options_vec
 
 ## Escape the special characters in `expression` such that the result is a valid
@@ -130,9 +128,9 @@ type No_Such_Group_Error (id : Text | Integer)
 
    Provides a human-readable representation of the `No_Such_Group_Error`.
 No_Such_Group_Error.to_display_text : Text
-No_Such_Group_Error.to_display_text = case this.id of
-    Integer -> "No group exists with the index " + this.id.to_text + "."
-    Text -> "No group exists with the name " + this.id + "."
+No_Such_Group_Error.to_display_text = case self.id of
+    Integer -> "No group exists with the index " + self.id.to_text + "."
+    Text -> "No group exists with the name " + self.id + "."
 
 ## PRIVATE
 
@@ -148,5 +146,5 @@ type Syntax_Error (message : Text)
    Converts the compile error to a human-readable representation.
 Syntax_Error.to_display_text : Text
 Syntax_Error.to_display_text =
-    "The regex could not be compiled: " + this.message
+    "The regex could not be compiled: " + self.message
 

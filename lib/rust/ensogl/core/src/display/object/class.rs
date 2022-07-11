@@ -672,8 +672,8 @@ impl<Host> Instance<Host> {
         self.layers.borrow().clone()
     }
 
-    /// Add this object to the provided scene layer and remove it from all other layers. Do not use
-    /// this method explicitly. Use layers' methods instead.
+    /// Add this object to the provided scene layer.
+    /// Do not use this method explicitly. Use layers' methods instead.
     pub(crate) fn add_to_display_layer(&self, layer: &Layer) {
         let layer = layer.downgrade();
         self.dirty.scene_layer.set();
@@ -872,7 +872,7 @@ impl<Host, T: Object<Host>> Object<Host> for &T {
 // === ObjectOps ===
 // =================
 
-impl<Host, T: Object<Host>> ObjectOps<Host> for T {}
+impl<Host, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
 
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
@@ -894,7 +894,7 @@ pub trait ObjectOps<Host = Scene>: Object<Host> {
 
     /// Add another display object as a child to this display object. Children will inherit all
     /// transformations of their parents.
-    fn add_child<T: Object<Host>>(&self, child: &T) {
+    fn add_child<T: Object<Host> + ?Sized>(&self, child: &T) {
         self.display_object()._add_child(child.display_object());
     }
 

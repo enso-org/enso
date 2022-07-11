@@ -1,7 +1,9 @@
 //! Demo scene showing a sample flame graph. Can be used to display a log file, if you have one.
-//! To do so, set the `PROFILER_LOG_NAME` to contain the profiling log name and it
-//! will be used for rendering the visualisation. See the docs of `PROFILER_LOG_NAME` for more
-//! information.
+//! To do so, set a query parameter in the url to contain `file=<name _of_log_file>` and it
+//! will be used for rendering the visualisation. Note that the log file needs to be located in
+//! the assets subdirectory that is served by the webserver, i.e. `enso/dist/content` or
+//! `app/ide-desktop/lib/content/assets`. If no name is given a file named `profile.json` will
+//! be loaded by default. If that file is not present, some dummy data will be displayed.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -50,16 +52,9 @@ use ensogl_sequence_diagram::SequenceDiagram;
 // === Constants ===
 // =================
 
-
-
-/// Content of a profiler log, that will be rendered. If this is `None` some dummy data will be
-/// generated and rendered.  The file must be located in the assets subdirectory that is
-/// served by the webserver, i.e. `enso/dist/content` or `app/ide-desktop/lib/content/assets`.
-/// For example use `Some("profile.json")`.
-const PROFILER_LOG_NAME: Option<&str> = Some("combined.json");
-
-const SHOW_RPC_EVENT_MARKS: bool = false;
-const SHOW_BACKEND_MESSAGE_MARKS: bool = false;
+const DEFAULT_LOG_NAME: &str = "profile.json";
+const SHOW_RPC_EVENT_MARKS: bool = true;
+const SHOW_BACKEND_MESSAGE_MARKS: bool = true;
 
 
 
@@ -142,6 +137,30 @@ fn init_theme(scene: &Scene) {
 
 
 
+mod js {
+    use super::*;
+
+    #[wasm_bindgen(inline_js = "
+export function get_url() {
+    return window.location.href
+}
+
+")]
+    extern "C" {
+        #[allow(unsafe_code)]
+        pub fn get_url() -> String;
+    }
+}
+
+fn get_target_file_from_url() -> Option<String> {
+    let url = js::get_url();
+    let url = url::Url::parse(&url).ok()?;
+    let query = url.query()?;
+    let query = qstring::QString::from(query);
+    query.get("file").map(|s| s.to_owned())
+}
+
+
 // ===========================
 // === Metadata Processing ===
 // ===========================
@@ -160,7 +179,7 @@ fn profile_to_graph(profile: &Profile<Metadata>, app: &Application) -> flame_gra
 // Create marks for metadata. This will skip `RenderStats` as they are added separately as blocks.
 fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_graph::Mark> {
     profile
-        .iter_metadata()
+        .metadata()
         .filter_map(|metadata: &enso_profiler_data::Timestamped<Metadata>| match metadata.data {
             Metadata::RenderStats(_) => None,
             Metadata::RpcEvent(_) if !SHOW_RPC_EVENT_MARKS => None,
@@ -178,7 +197,7 @@ fn make_rendering_performance_blocks(
     profile: &Profile<Metadata>,
 ) -> Vec<profiler_flame_graph::Block<Performance>> {
     let mut blocks = Vec::default();
-    let render_stats = profile.iter_metadata().filter_map(|metadata| match metadata.data {
+    let render_stats = profile.metadata().filter_map(|metadata| match metadata.data {
         Metadata::RenderStats(data) => Some(metadata.as_ref().map(|_| data)),
         _ => None,
     });
@@ -204,11 +223,22 @@ fn make_rendering_performance_blocks(
 // === Profiler Log Reading ===
 // ============================
 
+/// Read the data from a file specified on the command line.
+async fn get_data_file() -> Option<String> {
+    let files = enso_debug_api::load_profiles()?.await;
+    if files.len() > 1 {
+        ERROR!("Entry point profiling-run-graph doesn't support multiple profile file arguments.");
+    }
+    files.into_iter().next()
+}
+
 /// Read the `PROFILER_LOG_NAME` data from a file.
-async fn get_data_raw() -> Option<String> {
+async fn get_data_http() -> Option<String> {
     use wasm_bindgen::JsCast;
 
-    let url = &["assets/", PROFILER_LOG_NAME?].concat();
+    let file_name = get_target_file_from_url();
+    let file_name = file_name.as_deref().unwrap_or(DEFAULT_LOG_NAME);
+    let url = &["assets/", file_name].concat();
     let mut opts = web_sys::RequestInit::new();
     opts.method("GET");
     opts.mode(web_sys::RequestMode::Cors);
@@ -225,7 +255,10 @@ async fn get_data_raw() -> Option<String> {
 }
 
 async fn get_log_data() -> Vec<Profile<Metadata>> {
-    let data = get_data_raw().await;
+    let data = match get_data_file().await {
+        Some(data) => Some(data),
+        None => get_data_http().await,
+    };
     let data = data.map(|data| {
         parse_multiprocess_profile(&data)
             .filter_map(|result| match result {

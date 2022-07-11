@@ -1,6 +1,4 @@
-from Standard.Base import all
-
-from Standard.Builtins import System
+import Standard.Base.System
 
 ## A representation of the various operating systems on which Enso can run.
 type Os
@@ -26,7 +24,7 @@ type Os
 
          example_os = Platform.os
 os : Os
-os = here.from_text System.os
+os = from_text System.os
 
 ## PRIVATE
 

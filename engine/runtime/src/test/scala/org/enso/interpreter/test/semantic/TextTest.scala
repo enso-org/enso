@@ -11,7 +11,7 @@ class TextTest extends InterpreterTest {
 
     "support text creation with single-line literals" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main = IO.println "hello world!"
           |""".stripMargin
@@ -22,7 +22,7 @@ class TextTest extends InterpreterTest {
 
     "support text concatenation" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main =
           |    h = "Hello, "
@@ -35,7 +35,7 @@ class TextTest extends InterpreterTest {
 
     "support converting arbitrary structures to text" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |type My_Type a
           |
@@ -50,7 +50,7 @@ class TextTest extends InterpreterTest {
 
     "support text creation with raw block literals" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |
            |main =
            |    x = $rawTQ
@@ -67,7 +67,7 @@ class TextTest extends InterpreterTest {
 
     "support escape sequences in literals" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main = IO.println '\"Grzegorz Brzeczyszczykiewicz\"'
           |""".stripMargin
@@ -78,7 +78,7 @@ class TextTest extends InterpreterTest {
 
     "support printing to standard error" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |
            |main = IO.print_err "My error string"
            |""".stripMargin
@@ -91,7 +91,7 @@ class TextTest extends InterpreterTest {
       val inputString = "foobarbaz"
 
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main =
           |    IO.readln + " yay!"
@@ -105,12 +105,15 @@ class TextTest extends InterpreterTest {
     "support converting values to display texts" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |from Standard.Base.Data.List import Cons, Nil
+          |from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
+          |import Standard.Base.Nothing
           |
           |main =
           |    IO.println (Cons Nothing Nothing).to_display_text
           |    IO.println (Syntax_Error "foo").to_display_text
-          |    IO.println (Type_Error Nothing Text "myvar").to_display_text
+          |    IO.println (Type_Error Nothing Nil "myvar").to_display_text
           |    IO.println (Compile_Error "error :(").to_display_text
           |    IO.println (Inexhaustive_Pattern_Match_Error 32).to_display_text
           |    IO.println (Arithmetic_Error "cannot frobnicate quaternions").to_display_text
@@ -122,7 +125,7 @@ class TextTest extends InterpreterTest {
       consumeOut shouldEqual List(
         "Cons",
         "Syntax error: foo",
-        "Type error: expected `myvar` to be Nothing, but got Text.",
+        "Type error: expected `myvar` to be Nothing, but got Nil.",
         "Compile error: error :(",
         "Inexhaustive pattern match: no branch matches 32 (Integer).",
         "Arithmetic error: cannot frobnicate quaternions",

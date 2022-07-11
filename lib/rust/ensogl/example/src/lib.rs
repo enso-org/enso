@@ -37,7 +37,6 @@ pub use ensogl_example_glyph_system as glyph_system;
 pub use ensogl_example_list_view as list_view;
 pub use ensogl_example_mouse_events as mouse_events;
 pub use ensogl_example_profiling_run_graph as profiling_run_graph;
-pub use ensogl_example_render_profile as render_profile;
 pub use ensogl_example_render_profile_flamegraph as render_profile_flamegraph;
 pub use ensogl_example_scroll_area as scroll_area;
 pub use ensogl_example_shape_system as shape_system;

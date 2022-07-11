@@ -20,7 +20,7 @@ type Google_Api_Client
          will show up in access logs etc.
     spreadsheets : Text -> Spreadsheets_Service
     spreadsheets app_name='Enso' =
-        service = Sheets.Builder.new this.http_transport this.json_factory this.credential . setApplicationName app_name . build
+        service = Sheets.Builder.new self.http_transport self.json_factory self.credential . setApplicationName app_name . build
         Spreadsheets_Service service
 
 ## PRIVATE
@@ -37,7 +37,7 @@ type Spreadsheets_Service
          `'Sheet1!A1:B7'`.
     get_table : Text -> Text -> Table
     get_table sheet_id sheet_range =
-        request = this.java_service.spreadsheets.values.get sheet_id sheet_range . setMajorDimension 'COLUMNS' . setValueRenderOption 'UNFORMATTED_VALUE'
+        request = self.java_service.spreadsheets.values.get sheet_id sheet_range . setMajorDimension 'COLUMNS' . setValueRenderOption 'UNFORMATTED_VALUE'
         response = request.execute
         values = Vector.Vector response.getValues . map Vector.Vector
         columned = values.map v-> [v.head, v.tail]

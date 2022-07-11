@@ -68,6 +68,7 @@ pub use tp::*;
 pub use vec::*;
 pub use wrapper::*;
 
+pub use assert_approx_eq::assert_approx_eq;
 pub use boolinator::Boolinator;
 pub use derivative::Derivative;
 pub use derive_more::*;
@@ -90,6 +91,8 @@ pub use std::collections::hash_map::DefaultHasher;
 pub use std::hash::Hash;
 pub use std::hash::Hasher;
 
+pub use enso_reflect::prelude::*;
+
 use std::cell::UnsafeCell;
 
 
@@ -102,6 +105,41 @@ pub mod serde_reexports {
     pub use serde::Deserialize;
     pub use serde::Serialize;
 }
+
+
+
+// ===============
+// === Tracing ===
+// ===============
+
+pub mod tracing {
+    pub use tracing::*;
+    pub use tracing_subscriber::*;
+}
+pub use ::tracing::event;
+pub use ::tracing::span as log_span;
+
+pub const ERROR: tracing::Level = tracing::Level::ERROR;
+pub const WARN: tracing::Level = tracing::Level::WARN;
+pub const INFO: tracing::Level = tracing::Level::INFO;
+pub const DEBUG: tracing::Level = tracing::Level::DEBUG;
+pub const TRACE: tracing::Level = tracing::Level::TRACE;
+
+pub fn init_tracing(level: tracing::Level) {
+    #[cfg(not(target_arch = "wasm32"))]
+    let subscriber =
+        tracing::fmt().compact().with_target(false).with_max_level(level).without_time().finish();
+    #[cfg(target_arch = "wasm32")]
+    let subscriber = {
+        use tracing_subscriber::layer::SubscriberExt;
+        use tracing_wasm::*;
+        let config = WASMLayerConfigBuilder::new().set_max_level(level).build();
+        tracing::Registry::default().with(WASMLayer::new(config))
+    };
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to initialize logger.");
+}
+
+
 
 // =================
 // === Immutable ===

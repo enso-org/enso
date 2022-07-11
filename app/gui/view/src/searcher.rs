@@ -22,8 +22,6 @@ use ensogl_component::list_view::ListView;
 // === Export ===
 // ==============
 
-pub mod icons;
-
 pub use ensogl_component::list_view::entry;
 
 
@@ -38,12 +36,12 @@ pub const SEARCHER_WIDTH: f32 = 480.0;
 ///
 /// Because we don't implement clipping yet, the best UX is when searcher height is almost multiple
 /// of entry height + padding.
-pub const SEARCHER_HEIGHT: f32 = 184.5;
+pub const SEARCHER_HEIGHT: f32 = 183.5;
 
-const ACTION_LIST_GAP: f32 = 180.0;
+const ACTION_LIST_WIDTH: f32 = 180.0;
 const LIST_DOC_GAP: f32 = 15.0;
-const DOCUMENTATION_WIDTH: f32 = SEARCHER_WIDTH - ACTION_LIST_GAP - LIST_DOC_GAP;
-const ACTION_LIST_X: f32 = (ACTION_LIST_GAP - SEARCHER_WIDTH) / 2.0;
+const DOCUMENTATION_WIDTH: f32 = SEARCHER_WIDTH - ACTION_LIST_WIDTH - LIST_DOC_GAP;
+const ACTION_LIST_X: f32 = (ACTION_LIST_WIDTH - SEARCHER_WIDTH) / 2.0;
 const DOCUMENTATION_X: f32 = (SEARCHER_WIDTH - DOCUMENTATION_WIDTH) / 2.0;
 
 
@@ -124,6 +122,7 @@ impl Model {
         let logger = Logger::new("SearcherView");
         let display_object = display::object::Instance::new(&logger);
         let list = app.new_view::<ListView<Entry>>();
+        list.focus();
         let documentation = documentation::View::new(scene);
         let doc_provider = default();
         scene.layers.node_searcher.add_exclusive(&list);
@@ -135,7 +134,7 @@ impl Model {
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let action_list_gap_path = ensogl_hardcoded_theme::application::searcher::action_list_gap;
         let action_list_gap = style.get_number_or(action_list_gap_path, 0.0);
-        list.set_label_layer(scene.layers.node_searcher_text.id());
+        list.set_label_layer(&scene.layers.node_searcher_text);
         list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
@@ -150,7 +149,7 @@ impl Model {
     }
 
     fn set_height(&self, h: f32) {
-        self.list.resize(Vector2(ACTION_LIST_GAP, h));
+        self.list.resize(Vector2(ACTION_LIST_WIDTH, h));
         self.documentation.visualization_frp.inputs.set_size.emit(Vector2(DOCUMENTATION_WIDTH, h));
     }
 }

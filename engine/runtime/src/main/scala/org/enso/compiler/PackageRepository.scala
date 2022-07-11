@@ -5,7 +5,7 @@ import com.typesafe.scalalogging.Logger
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
-import org.enso.editions.{DefaultEdition, LibraryName, LibraryVersion}
+import org.enso.editions.{DefaultEdition, Editions, LibraryName, LibraryVersion}
 import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
@@ -27,7 +27,7 @@ import org.enso.pkg.{
 }
 
 import java.nio.file.Path
-
+import scala.collection.immutable.ListSet
 import scala.util.Try
 
 /** Manages loaded packages and modules. */
@@ -72,7 +72,7 @@ trait PackageRepository {
   def getComponents: PackageRepository.ComponentsMap
 
   /** Modules required for compilation after loading the component groups. */
-  def getPendingModules: Set[Module]
+  def getPendingModules: ListSet[Module]
 
   /** Get a loaded module by its qualified name. */
   def getLoadedModule(qualifiedName: String): Option[Module]
@@ -169,9 +169,9 @@ object PackageRepository {
       * already fully processed.
       */
     private val loadedPackages
-      : collection.concurrent.Map[LibraryName, Option[Package[TruffleFile]]] = {
+      : collection.mutable.Map[LibraryName, Option[Package[TruffleFile]]] = {
       val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
-      collection.concurrent.TrieMap(builtinsName -> None)
+      collection.mutable.LinkedHashMap(builtinsName -> None)
     }
 
     /** The mapping containing loaded modules.
@@ -187,24 +187,25 @@ object PackageRepository {
 
     /** The mapping containing loaded component groups.
       *
+      * It should be modified and read only from within synchronized sections.
       * The component mapping is added to the collection after ensuring that the
       * corresponding library was loaded.
       */
     private val loadedComponents
-      : collection.concurrent.TrieMap[LibraryName, ComponentGroups] = {
+      : collection.mutable.Map[LibraryName, ComponentGroups] = {
       val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
-      collection.concurrent.TrieMap(builtinsName -> ComponentGroups.empty)
+      collection.mutable.LinkedHashMap(builtinsName -> ComponentGroups.empty)
     }
 
-    private def getComponentModules: Set[Module] = {
+    private def getComponentModules: ListSet[Module] = {
       val modules = for {
-        componentGroups <- loadedComponents.readOnlySnapshot().values
+        componentGroups <- loadedComponents.values
         newComponents      = componentGroups.newGroups.flatMap(_.exports)
         extendedComponents = componentGroups.extendedGroups.flatMap(_.exports)
         component <- newComponents ++ extendedComponents
         module    <- findComponentModule(component)
       } yield module
-      modules.toSet
+      modules.to(ListSet)
     }
 
     private def findComponentModule(component: Component): Option[Module] = {
@@ -231,18 +232,22 @@ object PackageRepository {
 
     /** @inheritdoc */
     override def getComponents: ComponentsMap =
-      loadedComponents.readOnlySnapshot().toMap
+      this.synchronized {
+        loadedComponents.toMap
+      }
 
     /** @inheritdoc */
-    override def getPendingModules: Set[Module] =
-      for {
-        module <- getComponentModules
-        isCompiled =
-          module.getCompilationStage.isAtLeast(
-            Module.CompilationStage.AFTER_CODEGEN
-          )
-        if !isCompiled
-      } yield module
+    override def getPendingModules: ListSet[Module] =
+      this.synchronized {
+        for {
+          module <- getComponentModules
+          isCompiled =
+            module.getCompilationStage.isAtLeast(
+              Module.CompilationStage.AFTER_CODEGEN
+            )
+          if !isCompiled
+        } yield module
+      }
 
     /** @inheritdoc */
     override def registerMainProjectPackage(
@@ -531,14 +536,19 @@ object PackageRepository {
   def initializeRepository(
     projectPackage: Option[Package[TruffleFile]],
     languageHome: Option[String],
+    editionOverride: Option[String],
     distributionManager: DistributionManager,
     resourceManager: ResourceManager,
     context: Context,
     builtins: Builtins,
     notificationHandler: NotificationHandler
   ): PackageRepository = {
-    val rawEdition = projectPackage
-      .flatMap(_.config.edition)
+    val rawEdition = editionOverride
+      .map(v => Editions.Raw.Edition(parent = Some(v)))
+      .orElse(
+        projectPackage
+          .flatMap(_.config.edition)
+      )
       .getOrElse(DefaultEdition.getDefaultEdition)
 
     val homeManager    = languageHome.map { home => LanguageHome(Path.of(home)) }

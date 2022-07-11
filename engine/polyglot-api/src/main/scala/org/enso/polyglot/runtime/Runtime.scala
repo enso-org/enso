@@ -194,6 +194,10 @@ object Runtime {
         name  = "suggestionsDatabaseModuleUpdateNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.AnalyzeModuleInScopeJobFinished],
+        name  = "analyzeModuleInScopeJobFinished"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexRequest],
         name  = "invalidateModulesIndexRequest"
       ),
@@ -1214,11 +1218,15 @@ object Runtime {
     /** A notification sent to the server about in-memory file contents being
       * edited.
       *
-      * @param path the file being edited.
-      * @param edits the diffs to apply to the contents.
+      * @param path the file being edited
+      * @param edits the diffs to apply to the contents
+      * @param execute whether to execute the program after applying the edits
       */
-    final case class EditFileNotification(path: File, edits: Seq[TextEdit])
-        extends ApiRequest
+    final case class EditFileNotification(
+      path: File,
+      edits: Seq[TextEdit],
+      execute: Boolean
+    ) extends ApiRequest
         with ToLogString {
 
       /** @inheritdoc */
@@ -1226,7 +1234,7 @@ object Runtime {
         "EditFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
         (if (shouldMask) edits.map(_ => STUB) else edits) +
-        ")"
+        ",execute=" + execute + ")"
     }
 
     /** A notification sent to the server about dropping the file from memory
@@ -1374,6 +1382,9 @@ object Runtime {
         s"updates=${updates.map(_.toLogString(shouldMask))}" +
         ")"
     }
+
+    /** A notification about the finished background analyze job. */
+    final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
     final case class InvalidateModulesIndexRequest() extends ApiRequest

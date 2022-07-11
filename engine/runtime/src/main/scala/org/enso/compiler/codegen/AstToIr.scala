@@ -5,6 +5,7 @@ import java.nio.ByteBuffer
 
 import cats.Foldable
 import cats.implicits._
+import org.enso.interpreter.Constants
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
@@ -191,18 +192,19 @@ object AstToIr {
           val typeSegments = methodSegments.init
 
           Name.MethodReference(
-            IR.Name.Qualified(
-              typeSegments,
-              MethodReference.genLocation(typeSegments)
+            Some(
+              IR.Name.Qualified(
+                typeSegments,
+                MethodReference.genLocation(typeSegments)
+              )
             ),
             methodSegments.last,
             MethodReference.genLocation(methodSegments)
           )
         } else {
-          val typeName   = Name.Here(None)
           val methodName = buildName(nameId)
           Name.MethodReference(
-            typeName,
+            None,
             methodName,
             methodName.location
           )
@@ -221,9 +223,8 @@ object AstToIr {
           ) =>
         translateForeignDefinition(header, body) match {
           case Right((name, arguments, body)) =>
-            val typeName = Name.Here(None)
             val methodRef =
-              Name.MethodReference(typeName, name, name.location)
+              Name.MethodReference(None, name, name.location)
             Module.Scope.Definition.Method.Binding(
               methodRef,
               arguments,
@@ -237,11 +238,10 @@ object AstToIr {
             )
         }
       case AstView.FunctionSugar(name, args, body) =>
-        val typeName   = Name.Here(None)
         val methodName = buildName(name)
 
         val methodReference = Name.MethodReference(
-          typeName,
+          None,
           methodName,
           methodName.location
         )
@@ -255,10 +255,9 @@ object AstToIr {
       case AST.Comment.any(comment) => translateComment(comment)
       case AstView.TypeAscription(typed, sig) =>
         def buildAscription(ident: AST.Ident): IR.Type.Ascription = {
-          val typeName   = Name.Here(None)
           val methodName = buildName(ident)
           val methodReference = Name.MethodReference(
-            typeName,
+            None,
             methodName,
             methodName.location
           )
@@ -414,7 +413,9 @@ object AstToIr {
       case AstView.MethodReference(path, methodName) =>
         val typeParts = path.map(translateExpression(_).asInstanceOf[IR.Name])
         IR.Name.MethodReference(
-          IR.Name.Qualified(typeParts, MethodReference.genLocation(typeParts)),
+          Some(
+            IR.Name.Qualified(typeParts, MethodReference.genLocation(typeParts))
+          ),
           translateExpression(methodName).asInstanceOf[IR.Name],
           getIdentifiedLocation(inputAst)
         )
@@ -450,7 +451,7 @@ object AstToIr {
           case _ =>
             IR.Application.Prefix(
               IR.Name
-                .Literal("negate", isReferent = false, isMethod = true, None),
+                .Literal("negate", isMethod = true, None),
               List(
                 IR.CallArgument.Specified(
                   None,
@@ -1002,10 +1003,8 @@ object AstToIr {
   def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
       case AST.Ident.Var(name) =>
-        if (name == "this") {
-          Name.This(getIdentifiedLocation(identifier))
-        } else if (name == "here") {
-          Name.Here(getIdentifiedLocation(identifier))
+        if (name == Constants.Names.SELF_ARGUMENT) {
+          Name.Self(getIdentifiedLocation(identifier))
         } else {
           buildName(identifier)
         }
@@ -1226,20 +1225,14 @@ object AstToIr {
     }
   }
 
-  private def isReferant(ident: AST.Ident): Boolean =
-    ident match {
-      case AST.Ident.Cons.any(_) => true
-      case _                     => false
-    }
-
   private def buildName(
     ident: AST.Ident,
     isMethod: Boolean = false
-  ): IR.Name.Literal =
+  ): IR.Name.Literal = {
     IR.Name.Literal(
       ident.name,
-      isReferant(ident),
       isMethod || AST.Opr.any.unapply(ident).isDefined,
       getIdentifiedLocation(ident)
     )
+  }
 }

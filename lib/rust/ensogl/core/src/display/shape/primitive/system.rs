@@ -48,19 +48,23 @@ pub struct ShapeSystem {
     pub sprite_system:  SpriteSystem,
     pub shape:          Rc<RefCell<def::AnyShape>>,
     pub material:       Rc<RefCell<Material>>,
-    pub pointer_events: Rc<Cell<bool>>,
+    /// Enables or disables pointer events on this shape system. All shapes of a shape system which
+    /// has pointer events disabled would be completely transparent for the mouse (they would pass
+    /// through all mouse events).
+    pub pointer_events: Immutable<bool>,
 }
 
 impl ShapeSystem {
     /// Constructor.
-    pub fn new<'t, S, Sh>(scene: S, shape: Sh) -> Self
+    #[profile(Detail)]
+    pub fn new<'t, S, Sh>(scene: S, shape: Sh, pointer_events: bool) -> Self
     where
         S: Into<&'t Scene>,
         Sh: Into<def::AnyShape>, {
         let shape = shape.into();
         let sprite_system = SpriteSystem::new(scene);
         let material = Rc::new(RefCell::new(Self::surface_material()));
-        let pointer_events = Rc::new(Cell::new(true));
+        let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let this = Self { sprite_system, shape, material, pointer_events };
         this.reload_shape();
@@ -81,15 +85,8 @@ impl ShapeSystem {
         material
     }
 
-    /// Enables or disables pointer events on this shape system. All shapes of a shape system which
-    /// has pointer events disabled would be completely transparent for the mouse (they would pass
-    /// through all mouse events).
-    pub fn set_pointer_events(&self, val: bool) {
-        self.pointer_events.set(val);
-        self.reload_shape();
-    }
-
     /// Replaces the shape definition.
+    #[profile(Detail)]
     pub fn set_shape<S: Into<def::AnyShape>>(&self, shape: S) {
         let shape = shape.into();
         *self.shape.borrow_mut() = shape;
@@ -97,14 +94,15 @@ impl ShapeSystem {
     }
 
     /// Generates the shape again. It is used after some parameters are changed, like setting new
-    /// `pointer_events` value.
+    /// `shape`.
     fn reload_shape(&self) {
-        let code = shader::builder::Builder::run(&*self.shape.borrow(), self.pointer_events.get());
+        let code = shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
         self.material.borrow_mut().set_code(code);
         self.reload_material();
     }
 
     /// Define a new shader input.
+    #[profile(Debug)]
     pub fn add_input<T: material::Input + Storable>(&self, name: &str, t: T) -> Buffer<T>
     where AnyBuffer: From<Buffer<T>> {
         self.material.borrow_mut().add_input(name, t);
@@ -114,6 +112,7 @@ impl ShapeSystem {
     }
 
     /// Regenerate the shader with the current material.
+    #[profile(Detail)]
     fn reload_material(&self) {
         self.sprite_system.set_material(&*self.material.borrow());
     }
@@ -326,24 +325,24 @@ macro_rules! define_shape_system {
     (
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_define_shape_system! {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
+            $(pointer_events = $pointer_events;)?
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
 
     (
-        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
-        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $($arg:ident = $arg_val:tt;)*
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?) {$($body:tt)*}
     ) => {
-        $crate::_define_shape_system! {
-            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
-            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
-            [style] ($($gpu_param : $gpu_param_type),*){$($body)*}
+        $crate::define_shape_system! {
+            $($arg = $arg_val;)*
+            (style : Style, $($gpu_param : $gpu_param_type),*){$($body)*}
         }
     }
 }
@@ -354,6 +353,7 @@ macro_rules! _define_shape_system {
     (
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
@@ -463,6 +463,7 @@ macro_rules! _define_shape_system {
                 type StaticShape = Shape;
                 type System      = ShapeSystem;
 
+                #[profile(Debug)]
                 fn new(logger:impl AnyLogger) -> Self {
                     let logger : Logger = Logger::new_sub(&logger,"dyn_shape");
                     let display_object  = display::object::Instance::new(&logger);
@@ -481,6 +482,7 @@ macro_rules! _define_shape_system {
             }
 
             impl display::shape::system::DynamicShapeInternals for DynamicShape {
+                #[profile(Debug)]
                 fn add_instance(&self, shape:Shape) {
                     self.display_object.add_child(&shape);
                     self.params.size.add_attribute_binding(shape.sprite.size.clone_ref());
@@ -491,6 +493,7 @@ macro_rules! _define_shape_system {
                     self.shapes.borrow_mut().push(shape);
                 }
 
+                #[profile(Debug)]
                 fn drop_instances(&self) {
                     for shape in mem::take(&mut *self.shapes.borrow_mut()) {
                         self.display_object.remove_child(&shape);
@@ -543,10 +546,13 @@ macro_rules! _define_shape_system {
                     std::any::TypeId::of::<ShapeSystem>().into()
                 }
 
+                #[profile(Debug)]
                 fn new(scene:&display::scene::Scene) -> Self {
-                    let style_watch  = display::shape::StyleWatch::new(&scene.style_sheet);
-                    let shape_def    = Self::shape_def(&style_watch);
-                    let shape_system = display::shape::ShapeSystem::new(scene,&shape_def);
+                    let style_watch   = display::shape::StyleWatch::new(&scene.style_sheet);
+                    let shape_def     = Self::shape_def(&style_watch);
+                    let _events       = true;
+                    $( let _events     = $pointer_events; )?
+                    let shape_system = display::shape::ShapeSystem::new(scene,&shape_def,_events);
                     $(
                         let name = stringify!($gpu_param);
                         let val  = gpu::data::default::gpu_default::<$gpu_param_type>();
@@ -570,6 +576,7 @@ macro_rules! _define_shape_system {
             impl display::shape::StaticShapeSystemInstance for ShapeSystem {
                 type Shape = Shape;
 
+                #[profile(Debug)]
                 fn new_instance(&self) -> Self::Shape {
                     let sprite = self.shape_system.new_instance();
                     let id     = sprite.instance_id;
@@ -581,6 +588,7 @@ macro_rules! _define_shape_system {
             impl display::shape::DynShapeSystemInstance for ShapeSystem {
                 type DynamicShape = DynamicShape;
 
+                #[profile(Debug)]
                 fn instantiate(&self, dyn_shape:&Self::DynamicShape) -> symbol::GlobalInstanceId {
                     let sprite = self.shape_system.new_instance();
                     let instance_id = sprite.instance_id;
@@ -599,6 +607,7 @@ macro_rules! _define_shape_system {
             }
 
             impl ShapeSystem {
+                #[profile(Debug)]
                 fn init_refresh_on_style_change(self) -> Self {
                     let shape_system = self.shape_system.clone_ref();
                     let style_watch  = self.style_watch.clone_ref();
@@ -609,6 +618,7 @@ macro_rules! _define_shape_system {
                 }
 
                 /// The canvas shape definition.
+                #[profile(Debug)]
                 pub fn shape_def
                 (__style_watch__:&display::shape::StyleWatch)
                 -> display::shape::primitive::def::AnyShape {

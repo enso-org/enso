@@ -14,29 +14,29 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Decimal", name = "%", description = "Modulo division of numbers.")
 public abstract class ModNode extends Node {
-  abstract double execute(double _this, Object that);
+  abstract double execute(double self, Object that);
 
   static ModNode build() {
     return ModNodeGen.create();
   }
 
   @Specialization
-  double doDouble(double _this, double that) {
-    return _this % that;
+  double doDouble(double self, double that) {
+    return self % that;
   }
 
   @Specialization
-  double doLong(double _this, long that) {
-    return _this % that;
+  double doLong(double self, long that) {
+    return self % that;
   }
 
   @Specialization
-  double doBigInteger(double _this, EnsoBigInteger that) {
-    return _this % BigIntegerOps.toDouble(that.getValue());
+  double doBigInteger(double self, EnsoBigInteger that) {
+    return self % BigIntegerOps.toDouble(that.getValue());
   }
 
   @Fallback
-  double doOther(double _this, Object that) {
+  double doOther(double self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

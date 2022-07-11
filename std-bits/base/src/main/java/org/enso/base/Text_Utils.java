@@ -6,30 +6,16 @@ import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.BiConsumer;
-import java.util.function.IntFunction;
-import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
-import org.enso.base.text.ResultWithWarnings;
 import org.enso.base.text.Utf16Span;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
-  private static final String INVALID_CHARACTER = "\uFFFD";
 
   /**
    * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
@@ -53,80 +39,6 @@ public class Text_Utils {
    */
   public static String drop_first(String string, int from) {
     return string.substring(from);
-  }
-
-  private static <T extends Buffer> T resize(T old, IntFunction<T> allocate, BiConsumer<T, T> put) {
-    int n = old.capacity();
-    int new_n = 2 * n + 1;
-    T o = allocate.apply(new_n);
-    old.flip();
-    put.accept(o, old);
-    return o;
-  }
-
-  /**
-   * Converts a string into an array of bytes using the specified encoding.
-   *
-   * @param str the string to convert
-   * @param charset the character set to use to encode the string
-   * @return the UTF-8 representation of the string.
-   */
-  public static ResultWithWarnings<byte[]> get_bytes(String str, Charset charset) {
-    if (str.isEmpty()) {
-      return new ResultWithWarnings<>(new byte[0]);
-    }
-
-    CharsetEncoder encoder =
-        charset
-            .newEncoder()
-            .onMalformedInput(CodingErrorAction.REPORT)
-            .onUnmappableCharacter(CodingErrorAction.REPORT)
-            .reset();
-
-    CharBuffer in = CharBuffer.wrap(str.toCharArray());
-    ByteBuffer out = ByteBuffer.allocate((int) (in.remaining() * encoder.averageBytesPerChar()));
-
-    StringBuilder warnings = null;
-    while (in.hasRemaining()) {
-      CoderResult cr = encoder.encode(in, out, true);
-      if (cr.isMalformed() || cr.isUnmappable()) {
-        // Get current position for error reporting
-        int position = in.position();
-
-        if (out.remaining() < encoder.replacement().length) {
-          out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
-        }
-        out.put(encoder.replacement());
-        in.position(in.position() + cr.length());
-
-        if (warnings == null) {
-          warnings = new StringBuilder();
-          warnings.append("Encoding issues at ");
-        } else {
-          warnings.append(", ");
-        }
-        warnings.append(position);
-      } else if (cr.isUnderflow()) {
-        // Finished
-        encoder.flush(out);
-        break;
-      } else if (cr.isOverflow()) {
-        out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
-      }
-    }
-
-    out.flip();
-    byte[] array = out.array();
-    if (out.limit() != array.length) {
-      array = Arrays.copyOf(array, out.limit());
-    }
-
-    if (warnings == null) {
-      return new ResultWithWarnings<>(array);
-    }
-
-    warnings.append(".");
-    return new ResultWithWarnings<>(array, warnings.toString());
   }
 
   /**
@@ -212,9 +124,8 @@ public class Text_Utils {
    * @return the result of comparison
    */
   public static boolean equals_ignore_case(String str1, Object str2, Locale locale) {
-    if (str2 instanceof String) {
-      Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
-      return compare_normalized(fold.apply(str1), fold.apply((String) str2)) == 0;
+    if (str2 instanceof String string2) {
+      return compare_normalized_ignoring_case(str1, string2, locale) == 0;
     } else {
       return false;
     }
@@ -228,67 +139,6 @@ public class Text_Utils {
    */
   public static String from_codepoints(int[] codepoints) {
     return new String(codepoints, 0, codepoints.length);
-  }
-
-  /**
-   * Converts an array of encoded bytes into a string.
-   *
-   * @param bytes the bytes to convert
-   * @param charset the character set to use to decode the bytes
-   * @return the resulting string
-   */
-  public static ResultWithWarnings<String> from_bytes(byte[] bytes, Charset charset) {
-    if (bytes.length == 0) {
-      return new ResultWithWarnings<>("");
-    }
-
-    CharsetDecoder decoder =
-        charset
-            .newDecoder()
-            .onMalformedInput(CodingErrorAction.REPORT)
-            .onUnmappableCharacter(CodingErrorAction.REPORT)
-            .reset();
-
-    ByteBuffer in = ByteBuffer.wrap(bytes);
-    CharBuffer out = CharBuffer.allocate((int) (bytes.length * decoder.averageCharsPerByte()));
-
-    StringBuilder warnings = null;
-    while (in.hasRemaining()) {
-      CoderResult cr = decoder.decode(in, out, true);
-      if (cr.isMalformed() || cr.isUnmappable()) {
-        // Get current position for error reporting
-        int position = in.position();
-
-        if (out.remaining() < INVALID_CHARACTER.length()) {
-          out = resize(out, CharBuffer::allocate, CharBuffer::put);
-        }
-        out.put(INVALID_CHARACTER);
-        in.position(in.position() + cr.length());
-
-        if (warnings == null) {
-          warnings = new StringBuilder();
-          warnings.append("Encoding issues at ");
-        } else {
-          warnings.append(", ");
-        }
-        warnings.append(position);
-      } else if (cr.isUnderflow()) {
-        // Finished
-        decoder.flush(out);
-        break;
-      } else if (cr.isOverflow()) {
-        out = resize(out, CharBuffer::allocate, CharBuffer::put);
-      }
-    }
-
-    out.flip();
-
-    if (warnings == null) {
-      return new ResultWithWarnings<>(out.toString());
-    }
-
-    warnings.append(".");
-    return new ResultWithWarnings<>(out.toString(), warnings.toString());
   }
 
   /**
@@ -312,6 +162,21 @@ public class Text_Utils {
    */
   public static int compare_normalized(String a, String b) {
     return Normalizer.compare(a, b, Normalizer.FOLD_CASE_DEFAULT);
+  }
+
+  /**
+   * Compares {@code a} to {@code b} according to the lexicographical order, handling Unicode
+   * normalization.
+   *
+   * @param a the left operand
+   * @param b the right operand
+   * @param locale the locale to use for case folding
+   * @return a negative value if {@code a} is before {@code b}, 0 if both values are equal and a
+   *     positive value if {@code a} is after {@code b}
+   */
+  public static int compare_normalized_ignoring_case(String a, String b, Locale locale) {
+    Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
+    return Normalizer.compare(fold.apply(a), fold.apply(b), Normalizer.FOLD_CASE_DEFAULT);
   }
 
   /**

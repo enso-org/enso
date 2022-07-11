@@ -54,7 +54,6 @@ class PassesTest extends CompilerTest {
           BindingAnalysis,
           GenerateDocumentation,
           MethodDefinitions,
-          ModuleThisToHere,
           SectionsToBinOp,
           OperatorToFunction,
           LambdaShorthandToLambda,

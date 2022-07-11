@@ -51,4 +51,4 @@ spec =
             april1st.day.should_equal 1
 
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

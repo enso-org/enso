@@ -19,7 +19,6 @@ use enso_text::text::Text;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::Scene;
 use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_component::text;
@@ -124,6 +123,7 @@ impl ExprConversion {
 impl From<node::Expression> for Expression {
     /// Traverses the `SpanTree` and constructs `viz_code` based on `code` and the `SpanTree`
     /// structure. It also computes `port::Model` values in the `viz_code` representation.
+    #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
         let mut shift = 0.bytes();
@@ -234,6 +234,7 @@ pub struct Model {
 
 impl Model {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let logger = Logger::new_sub(&logger, "input_ports");
         let display_object = display::object::Instance::new(&logger);
@@ -263,6 +264,7 @@ impl Model {
         .init()
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
@@ -299,10 +301,6 @@ impl Model {
         self.label.add_to_scene_layer(layer);
     }
 
-    fn scene(&self) -> &Scene {
-        &self.app.display.default_scene
-    }
-
     /// Run the provided function on the target port if exists.
     fn with_port_mut(&self, crumbs: &Crumbs, f: impl FnOnce(PortRefMut)) {
         let mut expression = self.expression.borrow_mut();
@@ -317,6 +315,7 @@ impl Model {
     }
 
     /// Update expression type for the particular `ast::Id`.
+    #[profile(Debug)]
     fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
         if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
             port.set_usage_type(tp)
@@ -356,6 +355,7 @@ impl Deref for Area {
 
 impl Area {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let model = Rc::new(Model::new(logger, app));
         let frp = Frp::new();
@@ -523,6 +523,7 @@ struct PortLayerBuilder {
 
 impl PortLayerBuilder {
     /// Constructor.
+    #[profile(Debug)]
     fn new(
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
@@ -539,6 +540,7 @@ impl PortLayerBuilder {
     }
 
     /// Create a nested builder with increased depth and updated `parent_frp`.
+    #[profile(Debug)]
     fn nested(
         &self,
         parent: display::object::Instance,
@@ -553,10 +555,12 @@ impl PortLayerBuilder {
 }
 
 impl Area {
+    #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.model.label.set_content(expression.viz_code.clone());
     }
 
+    #[profile(Debug)]
     fn build_port_shapes_on_new_expression(&self, expression: &mut Expression) {
         let mut is_header = true;
         let mut id_crumbs_map = HashMap::new();
@@ -613,8 +617,7 @@ impl Area {
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
                 let logger = &self.model.logger;
-                let scene = self.model.scene();
-                let port_shape = port.payload_mut().init_shape(logger, scene, size, node::HEIGHT);
+                let port_shape = port.payload_mut().init_shape(logger, size, node::HEIGHT);
 
                 port_shape.mod_position(|t| t.x = unit * i32::from(index) as f32);
                 if DEBUG {
@@ -731,6 +734,7 @@ impl Area {
     /// Initializes FRP network for every port. Please note that the networks are connected
     /// hierarchically (children get events from parents), so it is easier to init all networks
     /// this way, rather than delegate it to every port.
+    #[profile(Debug)]
     fn init_port_frp_on_new_expression(&self, expression: &mut Expression) {
         let model = &self.model;
 
@@ -881,6 +885,7 @@ impl Area {
     /// For example, firing the `port::set_definition_type` will fire `on_port_type_change`, which
     /// may require some edges to re-color, which consequently will require to checking the current
     /// expression types.
+    #[profile(Debug)]
     fn init_new_expression(&self, expression: Expression) {
         *self.model.expression.borrow_mut() = expression;
         let expression = self.model.expression.borrow();
@@ -889,6 +894,7 @@ impl Area {
         });
     }
 
+    #[profile(Debug)]
     pub(crate) fn set_expression(&self, new_expression: impl Into<node::Expression>) {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {

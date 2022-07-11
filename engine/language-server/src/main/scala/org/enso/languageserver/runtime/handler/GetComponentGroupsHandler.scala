@@ -20,6 +20,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
 
+import scala.collection.immutable.ListMap
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for getting component groups commands.
@@ -64,7 +65,7 @@ final class GetComponentGroupsHandler(
 
     case Api.Response(_, Api.GetComponentGroupsResponse(componentGroups)) =>
       replyTo ! GetComponentGroupsResponse(
-        resolveComponentGroups(componentGroups.toMap)
+        resolveComponentGroups(componentGroups.to(ListMap))
       )
       cancellable.cancel()
       context.stop(self)

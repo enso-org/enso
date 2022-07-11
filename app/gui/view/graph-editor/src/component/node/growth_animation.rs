@@ -78,10 +78,10 @@ pub fn initialize_edited_node_animator(
         });
 
         // We want to:
-        // 1. Smothly animate edited node camera from `main_cam` position to `searcher_cam` position when we
+        // 1. Smoothly animate edited node camera from `main_cam` position to `searcher_cam` position when we
         // start/finish node editing so that the edited node "grows" or "shrinks" to reach the correct
         // visible size. This is `growth_animation`.
-        // 2. Keep `searcher_cam` and `edited_node_cam` at the same position everywhen else so that the
+        // 2. Keep `searcher_cam` and `edited_node_cam` at the same position everywhere else so that the
         // searcher and the edited node are at the same visible position at all times. This is
         // `edited_node_cam_target`.
         //
@@ -114,6 +114,7 @@ pub fn initialize_edited_node_animator(
 
 impl GraphEditorModelWithNetwork {
     /// Move node to the `edited_node` scene layer, so that it is rendered by the separate camera.
+    #[profile(Debug)]
     fn move_node_to_edited_node_layer(&self, node_id: NodeId) {
         if let Some(node) = self.nodes.get_cloned(&node_id) {
             node.model().move_to_edited_node_layer();
@@ -121,6 +122,7 @@ impl GraphEditorModelWithNetwork {
     }
 
     /// Move node to the `main` scene layer, so that it is rendered by the main camera.
+    #[profile(Debug)]
     fn move_node_to_main_layer(&self, node_id: NodeId) {
         if let Some(node) = self.nodes.get_cloned(&node_id) {
             node.model().move_to_main_layer();

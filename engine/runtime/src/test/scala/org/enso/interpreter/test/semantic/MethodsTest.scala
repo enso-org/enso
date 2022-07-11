@@ -22,11 +22,12 @@ class MethodsTest extends InterpreterTest {
       eval(code) shouldEqual 11
     }
 
-    "execute `this` argument once" in {
+    "execute `self` argument once" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
-          |Nothing.foo = 0
+          |Nothing.Nothing.foo = 0
           |
           |main = (IO.println "foo").foo
           |""".stripMargin
@@ -87,10 +88,10 @@ class MethodsTest extends InterpreterTest {
 
     "be definable as blocks without arguments" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Any import all
           |
-          |Any.method =
-          |    x = this * this
+          |Any.Any.method =
+          |    x = self * self
           |    y = x * 2
           |    y + 1
           |
@@ -101,10 +102,10 @@ class MethodsTest extends InterpreterTest {
 
     "be dispatched to the proper constructor" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |Nil.sum = acc -> acc
-          |Cons.sum = acc -> case this of
+          |Cons.sum = acc -> case self of
           |  Cons h t -> t.sum (h + acc)
           |
           |main = Cons 1 (Cons 2 Nil) . sum 0
@@ -125,13 +126,15 @@ class MethodsTest extends InterpreterTest {
 
     "be callable for any type when defined on Any" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Any import all
+          |import Standard.Base.IO
+          |import Standard.Base.Nothing
           |
           |type Foo
           |type Bar
           |type Baz
           |
-          |Any.method = case this of
+          |Any.Any.method = case self of
           |  Foo -> 1
           |  Bar -> 2
           |  Baz -> 3
@@ -149,12 +152,26 @@ class MethodsTest extends InterpreterTest {
       consumeOut shouldEqual List("1", "2", "3", "0", "0", "0")
     }
 
+    "be callable for any type when defined on Any (resolved as a type name)" in {
+      import annotation.unused
+      @unused val code =
+        """from Standard.Base.Data.Any import all
+          |
+          |Any.method = 1
+          |
+          |main =
+          |    2.method
+          |""".stripMargin
+      //eval(code) shouldEqual 1
+      pending
+    }
+
     "work as expected when defined across different constructors" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |Nil.sum = 0
-          |Cons.sum = case this of
+          |Cons.sum = case self of
           |  Cons h t -> h + t.sum
           |
           |main =

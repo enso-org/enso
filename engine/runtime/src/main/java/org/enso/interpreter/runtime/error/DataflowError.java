@@ -116,7 +116,7 @@ public class DataflowError extends AbstractTruffleException {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
       Context context = getContext();
-      return conversion.resolveFor(target, context.getBuiltins().dataflowError().constructor());
+      return conversion.resolveFor(target, context.getBuiltins().dataflowError());
     }
 
     static Context getContext() {
@@ -132,7 +132,7 @@ public class DataflowError extends AbstractTruffleException {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        DataflowError _this,
+        DataflowError self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
@@ -143,7 +143,7 @@ public class DataflowError extends AbstractTruffleException {
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        DataflowError _this, AtomConstructor target, UnresolvedConversion conversion)
+        DataflowError self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

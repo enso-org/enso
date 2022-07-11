@@ -19,14 +19,14 @@ public class GetArraySizeNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  long execute(Object _this, Object array) {
+  long execute(Object self, Object array) {
     try {
       return library.getArraySize(array);
     } catch (UnsupportedMessageException e) {
       err.enter();
       Builtins builtins = Context.get(this).getBuiltins();
       throw new PanicException(
-          builtins.error().makeTypeError(builtins.mutable().array(), array, "array"), this);
+          builtins.error().makeTypeError(builtins.array(), array, "array"), this);
     }
   }
 }

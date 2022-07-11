@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable.atom;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -29,13 +30,16 @@ import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
+import java.util.Map;
+
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
 public final class AtomConstructor implements TruffleObject {
 
   private final String name;
-  private final ModuleScope definitionScope;
+  private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
+  private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
@@ -48,8 +52,47 @@ public final class AtomConstructor implements TruffleObject {
    * @param definitionScope the scope in which this constructor was defined
    */
   public AtomConstructor(String name, ModuleScope definitionScope) {
+    this(name, definitionScope, false);
+  }
+
+  /**
+   * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
+   * AtomConstructor#initializeFields(LocalScope,ExpressionNode[],ExpressionNode[],ArgumentDefinition...)}
+   * is called.
+   *
+   * @param name the name of the Atom constructor
+   * @param definitionScope the scope in which this constructor was defined
+   * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
+   */
+  public AtomConstructor(String name, ModuleScope definitionScope, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
+    this.builtin = builtin;
+  }
+
+  public boolean isInitialized() {
+    return constructorFunction != null;
+  }
+
+  public boolean isBuiltin() {
+    return builtin;
+  }
+
+  public void setShadowDefinitions(ModuleScope scope) {
+    if (builtin) {
+      // Ensure that synthetic methods, such as getters for fields are in the scope
+      // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
+      // check.
+      CompilerAsserts.neverPartOfCompilation();
+      Map<String, Function> methods = this.definitionScope.getMethods().get(this);
+      if (methods != null) {
+        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
+      }
+      this.definitionScope = scope;
+    } else {
+      throw new RuntimeException(
+          "Attempting to modify scope of a non-builtin type post-construction is not allowed");
+    }
   }
 
   /**
@@ -111,7 +154,7 @@ public final class AtomConstructor implements TruffleObject {
       ArgumentDefinition[] args) {
 
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
-    BlockNode instantiateBlock = BlockNode.build(assignments, instantiateNode);
+    BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
         ClosureRootNode.build(
             null,
@@ -119,7 +162,9 @@ public final class AtomConstructor implements TruffleObject {
             definitionScope,
             instantiateBlock,
             instantiateNode.getSourceSection(),
-            definitionScope.getModule().getName().item() + "." + name);
+            definitionScope.getModule().getName().item() + "." + name,
+            null,
+            false);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(callTarget, null, new FunctionSchema(args));
   }
@@ -282,23 +327,23 @@ public final class AtomConstructor implements TruffleObject {
         guards = {
           "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
-          "_this == cachedConstructor",
+          "self == cachedConstructor",
           "function != null"
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        AtomConstructor _this,
+        AtomConstructor self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("_this") AtomConstructor cachedConstructor,
+        @Cached("self") AtomConstructor cachedConstructor,
         @Cached("doResolve(cachedConstructor, cachedSymbol)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(AtomConstructor _this, UnresolvedSymbol symbol)
+    static Function resolve(AtomConstructor self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(_this, symbol);
+      Function function = doResolve(self, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }
@@ -330,26 +375,26 @@ public final class AtomConstructor implements TruffleObject {
           "!getContext().isInlineCachingDisabled()",
           "cachedConversion == conversion",
           "cachedTarget == target",
-          "_this == cachedConstructor",
+          "self == cachedConstructor",
           "function != null"
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        AtomConstructor _this,
+        AtomConstructor self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("target") AtomConstructor cachedTarget,
-        @Cached("_this") AtomConstructor cachedConstructor,
+        @Cached("self") AtomConstructor cachedConstructor,
         @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        AtomConstructor _this, AtomConstructor target, UnresolvedConversion conversion)
+        AtomConstructor self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(_this, target, conversion);
+      Function function = doResolve(self, target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
       }

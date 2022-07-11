@@ -41,11 +41,11 @@ main =
         prefix = common_prefix.repeat 100000
         big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
 
-        Bench.measure (here.compare_all_adjacent very_short) suite_prefix+"very short" 10 10
-        Bench.measure (here.compare_all_adjacent medium) suite_prefix+"medium" 10 10
-        Bench.measure (here.compare_all_adjacent big_random) suite_prefix+"big - random" 10 10
-        Bench.measure (here.compare_all_adjacent big_early_difference) suite_prefix+"big - early difference" 10 10
-        Bench.measure (here.compare_all_adjacent big_late_difference) suite_prefix+"big - late difference" 10 10
+        Bench.measure (compare_all_adjacent very_short) suite_prefix+"very short" 10 10
+        Bench.measure (compare_all_adjacent medium) suite_prefix+"medium" 10 10
+        Bench.measure (compare_all_adjacent big_random) suite_prefix+"big - random" 10 10
+        Bench.measure (compare_all_adjacent big_early_difference) suite_prefix+"big - early difference" 10 10
+        Bench.measure (compare_all_adjacent big_late_difference) suite_prefix+"big - late difference" 10 10
 
     bench_strcmp "strcmp Unicode " (Faker.upper_case_letters + 'ę\u{301}\u{302}'.char_vector) 'ę\u{301}'
     bench_strcmp "strcmp ASCII " Faker.upper_case_letters 'A'

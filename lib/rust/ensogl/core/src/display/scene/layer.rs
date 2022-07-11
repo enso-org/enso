@@ -14,6 +14,7 @@ use crate::display::shape::system::KnownShapeSystemId;
 use crate::display::shape::system::ShapeSystemId;
 use crate::display::shape::ShapeSystemInstance;
 use crate::display::symbol;
+use crate::display::symbol::RenderGroup;
 use crate::display::symbol::SymbolId;
 
 use enso_data_structures::dependency_graph::DependencyGraph;
@@ -185,6 +186,7 @@ impl Layer {
     }
 
     /// Constructor.
+    #[profile(Detail)]
     pub fn new_with_cam(logger: Logger, camera: &Camera2d) -> Self {
         let this = Self::new(logger);
         this.set_camera(camera);
@@ -195,6 +197,11 @@ impl Layer {
     pub fn downgrade(&self) -> WeakLayer {
         let model = Rc::downgrade(&self.model);
         WeakLayer { model }
+    }
+
+    /// Add the display object to this layer without removing it from other layers.
+    pub fn add(&self, object: impl display::Object) {
+        object.display_object().add_to_display_layer(self);
     }
 
     /// Add the display object to this layer and remove it from any other layers.
@@ -318,7 +325,7 @@ pub struct LayerModel {
     shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
     symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemId>>,
     elements: RefCell<BTreeSet<LayerItem>>,
-    symbols_ordered: RefCell<Vec<SymbolId>>,
+    symbols_renderable: Rc<RefCell<RenderGroup>>,
     depth_order: RefCell<DependencyGraph<LayerItem>>,
     depth_order_dirty: dirty::SharedBool<OnDepthOrderDirty>,
     parents: Rc<RefCell<Vec<Sublayers>>>,
@@ -335,7 +342,7 @@ impl Debug for LayerModel {
             .field("id", &self.id().raw)
             .field("registry", &self.shape_system_registry)
             .field("elements", &self.elements.borrow().iter().collect_vec())
-            .field("symbols_ordered", &self.symbols_ordered.borrow().iter().collect_vec())
+            .field("symbols_renderable", &self.symbols_renderable)
             .finish()
     }
 }
@@ -358,13 +365,13 @@ impl LayerModel {
         let shape_system_to_symbol_info_map = default();
         let symbol_to_shape_system_map = default();
         let elements = default();
-        let symbols_ordered = default();
+        let symbols_renderable = default();
         let depth_order = default();
         let parents = default();
         let on_mut = on_depth_order_dirty(&parents);
         let depth_order_dirty = dirty::SharedBool::new(logger_dirty, on_mut);
         let global_element_depth_order = default();
-        let sublayers = Sublayers::new(Logger::new_sub(&logger, "registry"));
+        let sublayers = Sublayers::new(Logger::new_sub(&logger, "registry"), &parents);
         let mask = default();
         let scissor_box = default();
         let mem_mark = default();
@@ -375,7 +382,7 @@ impl LayerModel {
             shape_system_to_symbol_info_map,
             symbol_to_shape_system_map,
             elements,
-            symbols_ordered,
+            symbols_renderable,
             depth_order,
             depth_order_dirty,
             parents,
@@ -397,8 +404,8 @@ impl LayerModel {
     /// dependencies. Please note that this function does not update the depth-ordering of the
     /// elements. Updates are performed by calling the `update` method on [`Group`], which usually
     /// happens once per animation frame.
-    pub fn symbols(&self) -> Vec<SymbolId> {
-        self.symbols_ordered.borrow().clone()
+    pub fn symbols(&self) -> impl Deref<Target = RenderGroup> + '_ {
+        self.symbols_renderable.borrow()
     }
 
     /// Return the [`SymbolId`] of the provided [`LayerItem`] if it was added to the current
@@ -556,6 +563,7 @@ impl LayerModel {
     }
 
     /// Consume all dirty flags and update the ordering of elements if needed.
+    #[profile(Debug)]
     pub(crate) fn update_internal(
         &self,
         global_element_depth_order: Option<&DependencyGraph<LayerItem>>,
@@ -634,7 +642,7 @@ impl LayerModel {
                 }
             })
             .collect();
-        *self.symbols_ordered.borrow_mut() = sorted_symbols;
+        self.symbols_renderable.borrow_mut().set(sorted_symbols);
     }
 }
 
@@ -704,6 +712,14 @@ impl LayerModel {
         for layer in layers {
             self.add_sublayer(layer)
         }
+    }
+
+    /// Create a new sublayer to this layer, with the same camera.
+    pub fn create_sublayer(&self) -> Layer {
+        let logger = self.logger.sub("Sublayer");
+        let layer = Layer::new_with_cam(logger, &self.camera.borrow());
+        self.add_sublayer(&layer);
+        layer
     }
 
     /// The layer's mask, if any.
@@ -798,12 +814,14 @@ impl LayerModel {
     }
 }
 
-/// Unboxed callback.
+/// The callback setting `element_depth_order_dirty` in parents.
 pub type OnDepthOrderDirty = impl Fn();
 fn on_depth_order_dirty(parents: &Rc<RefCell<Vec<Sublayers>>>) -> OnDepthOrderDirty {
     let parents = parents.clone();
     move || {
         for parent in &*parents.borrow() {
+            // It's safe to do it having parents borrowed, because the only possible callback called
+            // [`OnElementDepthOrderDirty`], which don't borrow_mut at any point.
             parent.element_depth_order_dirty.set()
         }
     }
@@ -849,11 +867,24 @@ impl LayerDynamicShapeInstance {
 // === Sublayers ===
 // =================
 
+/// The callback propagating `element_depth_order_dirty` flag to parents.
+pub type OnElementDepthOrderDirty = impl Fn();
+fn on_element_depth_order_dirty(parents: &Rc<RefCell<Vec<Sublayers>>>) -> OnElementDepthOrderDirty {
+    let parents = parents.clone_ref();
+    move || {
+        for sublayers in parents.borrow().iter() {
+            // It's safe to do it having parents borrowed, because the only possible callback called
+            // [`OnElementDepthOrderDirty`], which don't borrow_mut at any point.
+            sublayers.element_depth_order_dirty.set()
+        }
+    }
+}
+
 /// Abstraction for layer sublayers.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Sublayers {
     model:                     Rc<RefCell<SublayersModel>>,
-    element_depth_order_dirty: dirty::SharedBool,
+    element_depth_order_dirty: dirty::SharedBool<OnElementDepthOrderDirty>,
 }
 
 impl Deref for Sublayers {
@@ -872,10 +903,11 @@ impl PartialEq for Sublayers {
 
 impl Sublayers {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
+    pub fn new(logger: impl AnyLogger, parents: &Rc<RefCell<Vec<Sublayers>>>) -> Self {
         let element_dirty_logger = Logger::new_sub(&logger, "dirty");
         let model = default();
-        let element_depth_order_dirty = dirty::SharedBool::new(element_dirty_logger, ());
+        let dirty_on_mut = on_element_depth_order_dirty(parents);
+        let element_depth_order_dirty = dirty::SharedBool::new(element_dirty_logger, dirty_on_mut);
         Self { model, element_depth_order_dirty }
     }
 }

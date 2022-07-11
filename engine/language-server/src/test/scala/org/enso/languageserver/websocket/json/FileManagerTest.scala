@@ -1,18 +1,19 @@
 package org.enso.languageserver.websocket.json
 
+import io.circe.literal._
+import io.circe.parser.parse
+import org.apache.commons.io.FileUtils
+import org.bouncycastle.util.encoders.Hex
+import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.data._
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.RetrySpec
+
 import java.io.File
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, Paths}
 import java.security.MessageDigest
 import java.util.UUID
-
-import io.circe.literal._
-import io.circe.parser.parse
-import org.apache.commons.io.FileUtils
-import org.bouncycastle.util.encoders.Hex
-import org.enso.languageserver.data._
-import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.RetrySpec
 
 import scala.concurrent.duration._
 
@@ -26,7 +27,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      ProjectDirectoriesConfig.initialize(testContentRoot.file)
+      ProjectDirectoriesConfig.initialize(testContentRoot.file),
+      ProfilingConfig()
     )
   }
 
