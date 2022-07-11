@@ -10,10 +10,10 @@ import Standard.Test
 polyglot java import java.time.LocalDate
 
 spec =
-    here.specWith "Date" Date.new Date.parse
-    here.specWith "JavaScriptDate" here.jsDate here.jsParse
-    here.specWith "JavaDate" here.javaDate Date.parse
-    here.specWith "JavaScriptArrayWithADate" here.jsArrayDate Date.parse
+    specWith "Date" Date.new Date.parse
+    specWith "JavaScriptDate" jsDate jsParse
+    specWith "JavaDate" javaDate Date.parse
+    specWith "JavaScriptArrayWithADate" jsArrayDate Date.parse
 
 specWith name createNewDate parseDate =
     Test.group name <|
@@ -144,10 +144,10 @@ parseNormally x y = (Date.parse x y) . to_text
 
 jsParse text format=Nothing =
     d = Date.parse text format
-    here.jsDate d.year d.month d.day
+    jsDate d.year d.month d.day
 
 jsDate year month=1 day=1 =
-    Panic.recover Any (here.jsDateImpl year month day) . catch e-> case e of
+    Panic.recover Any (jsDateImpl year month day) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err)
         x -> x
 
@@ -158,7 +158,7 @@ foreign js jsDateImpl year month=1 day=1 = """
     return new Date(year, month - 1, day);
 
 jsArrayDate year month=1 day=1 =
-    arr = Panic.recover Any (here.jsArrayDateCreate year month day) . catch e-> case e of
+    arr = Panic.recover Any (jsArrayDateCreate year month day) . catch e-> case e of
         Polyglot_Error err ->
             Error.throw (Time.Time_Error err)
         x -> x
