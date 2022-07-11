@@ -30,6 +30,17 @@ object ExecutionContextJsonMessages {
             }
             """
 
+  def executionContextCreateRequest(reqId: Int, contextId: Api.ContextId) =
+    json"""
+            { "jsonrpc": "2.0",
+              "method": "executionContext/create",
+              "id": $reqId,
+              "params": {
+                "contextId": $contextId
+              }
+            }
+            """
+
   def executionContextCreateResponse(reqId: Int, contextId: Api.ContextId) =
     json"""
           { "jsonrpc": "2.0",

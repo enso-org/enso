@@ -3224,7 +3224,10 @@ stack is empty.
 
 Sent from the client to the server to create a new execution context. Return
 capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
-[`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
+[`executionContext/receivesUpdates`](#executioncontextreceivesupdates). The
+command takes optional `contextId` parameter with the id to create. The command
+is idempotent and returns success if the context with provided id already
+exists.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -3234,7 +3237,9 @@ capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
 #### Parameters
 
 ```typescript
-null;
+{
+  contextId?: ContextId
+}
 ```
 
 #### Result
