@@ -66,7 +66,7 @@ impl ModuleGroups {
 #[derive(Clone, Debug, Default)]
 pub struct List {
     all_components:       Vec<Component>,
-    /// IDs passed as arguments to the [`extend`] method and found in
+    /// IDs passed as arguments to the [`extend`] method and present in
     /// [`model::SuggestionDatabase`].
     ids_passed_to_extend: HashSet<component::Id>,
     module_groups:        HashMap<component::Id, ModuleGroups>,
