@@ -721,12 +721,12 @@ impl<'s> Lexer<'s> {
 /// 2. Some parsers could consume input even if it should be qualified as something else. Thus, some
 ///    parsers should be run first in order to make the token consuming process correct.
 const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
+    |t| t.number(),
     |t| t.ident(),
     |t| t.operator(),
     |t| t.newline(),
     |t| t.symbol(),
     |t| t.comment(),
-    |t| t.number(),
     |t| t.text(),
 ];
 
@@ -752,7 +752,7 @@ impl<'s> Lexer<'s> {
             }
         }
         if self.current_char != None {
-            panic!("Internal error. Lexer did not consume all input.");
+            panic!("Internal error. Lexer did not consume all input. State: {self:?}");
         }
         while self.end_block().is_some() {
             let block_end = self.marker_token(token::Variant::block_end());
@@ -900,6 +900,11 @@ mod tests {
             "đượchậuđải",
             "❤️foo",
         ]))
+    }
+
+    #[test]
+    fn test_numeric_literal() {
+        test_lexer("10", vec![number_("", "10")]);
     }
 
     #[test]

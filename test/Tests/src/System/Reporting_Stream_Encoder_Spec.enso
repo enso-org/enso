@@ -12,7 +12,7 @@ import Standard.Test.Problems
 spec =
     Test.group "ReportingStreamEncoder" <|
         Test.specify "should allow writing a file codepoint by codepoint" <|
-            f = Enso_Project.data / "transient" / "char-by-char.txt"
+            f = enso_project.data / "transient" / "char-by-char.txt"
             f.delete_if_exists
             f.exists.should_be_false
             contents = 1.up_to 7 . map _->'Cześc\u0301 😎🚀🚧!' . join '\n'
@@ -23,7 +23,7 @@ spec =
             f.read_text.should_equal contents
 
         Test.specify "should work correctly when writing chunks of varying sizes" <|
-            f = Enso_Project.data / "transient" / "varying-utf16.txt"
+            f = enso_project.data / "transient" / "varying-utf16.txt"
             f.delete_if_exists
             f.exists.should_be_false
             encoding = Encoding.utf_16_be
@@ -43,7 +43,7 @@ spec =
             f.read_text encoding . should_equal contents
 
         Test.specify "should allow writing a Windows file" <|
-            f = Enso_Project.data / "transient" / "windows.txt"
+            f = enso_project.data / "transient" / "windows.txt"
             encoding = Encoding.windows_1252
             contents = "Hello World! $¢¤¥"
 
@@ -55,7 +55,7 @@ spec =
             f.read_text encoding . should_equal contents
 
         Test.specify "should raise warnings when writing characters that cannot be encoded and replace them with the Unicode replacement character or a question mark" <|
-            f = Enso_Project.data / "transient" / "ascii.txt"
+            f = enso_project.data / "transient" / "ascii.txt"
             encoding = Encoding.ascii
             contents = 'Sło\u0301wka!'
             f.delete_if_exists
@@ -80,7 +80,7 @@ spec =
             f.read_text encoding . should_equal "ABC?foo -?- bar"
 
         Test.specify "should work correctly if no data is written to it" <|
-            f = Enso_Project.data / "transient" / "empty.txt"
+            f = enso_project.data / "transient" / "empty.txt"
             encoding = Encoding.ascii
             f.delete_if_exists
             result = f.with_output_stream [File.Option.Write, File.Option.Create_New] stream->
@@ -88,4 +88,4 @@ spec =
             result . should_equal Nothing
             f.read_text encoding . should_equal ""
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

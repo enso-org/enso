@@ -15,7 +15,7 @@ use crate::prelude::*;
 pub struct Code<'s> {
     #[serde(serialize_with = "crate::serialization::serialize_cow")]
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
-    #[reflect(as = "crate::serialization::Code", flatten)]
+    #[reflect(as = "crate::serialization::Code")]
     pub repr: Cow<'s, str>,
 }
 

@@ -2036,6 +2036,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-metamodel-lexpr"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "derivative",
+ "enso-metamodel",
+ "enso-reflect",
+ "lexpr",
+ "serde",
+]
+
+[[package]]
 name = "enso-optics"
 version = "0.2.0"
 dependencies = [
@@ -2048,12 +2060,15 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "enso-data-structures",
+ "enso-metamodel",
+ "enso-metamodel-lexpr",
  "enso-parser-syntax-tree-builder",
  "enso-parser-syntax-tree-visitor",
  "enso-prelude",
  "enso-reflect",
  "enso-shapely-macros",
  "enso-types",
+ "lexpr",
  "serde",
 ]
 
@@ -3650,7 +3665,7 @@ dependencies = [
  "base64 0.13.0",
  "bytes 1.1.0",
  "http",
- "httpdate 0.3.2",
+ "httpdate 1.0.2",
  "language-tags 0.3.2",
  "mime 0.3.16",
  "percent-encoding 2.1.0",
@@ -4074,6 +4089,29 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+
+[[package]]
+name = "lexpr"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ceee0b80e0043f17bf81130471e1b0975179af75fe657af45577d80e2698fe3b"
+dependencies = [
+ "itoa 0.4.8",
+ "lexpr-macros",
+ "proc-macro-hack",
+ "ryu",
+]
+
+[[package]]
+name = "lexpr-macros"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd627fb38e19c00d8d068618259205f7a91c91aeade5c15bc35dbca037bb1c35"
+dependencies = [
+ "proc-macro-hack",
+ "proc-macro2",
+ "quote",
+]
 
 [[package]]
 name = "libc"
