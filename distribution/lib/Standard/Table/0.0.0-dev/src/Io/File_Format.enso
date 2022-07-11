@@ -109,7 +109,16 @@ type Delimited
        - keep_invalid_rows: Specifies whether rows that contain less or more
          columns than expected should be kept (setting the missing columns to
          `Nothing` or dropping the excess columns) or dropped.
-    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True)
+       - line_separator: Sets the line separator to use. Defaults to `Nothing`
+         which infers the separator used in a given file in read mode and uses
+         the system-default for writing.
+       - comment_character: Sets the character which indicates the start of a
+         comment within a delimited file. Any content in the current line after
+         the comment is ignored and lines that only consist of a comment are
+         skipped. This option is only applicable for read mode and does not
+         affect writing. It defaults to `Nothing` which means that comments are
+         disabled.
+    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True) (line_separator:Text|Nothing=Nothing) (comment_character:Text|Nothing=Nothing)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -124,9 +133,9 @@ type Delimited
     ## PRIVATE
      Clone the instance with some properties overridden.
      Note: This function is internal until such time as Atom cloning with modification is built into Enso.
-    clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->Delimited
-    clone (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) =
-        Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows
+    clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->(Text|Nothing)->(Text|Nothing)->Delimited
+    clone (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_separator=self.line_separator) (comment_character=self.comment_character) =
+        Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_separator comment_character
 
     ## Create a clone of this with specified quoting settings.
     with_quotes : Text->Text->Boolean->Delimited
@@ -158,6 +167,21 @@ type Delimited
     without_parsing : Delimited
     without_parsing =
         self.clone value_formatter=Nothing
+
+    ## Creates a clone of this with a changed line separator.
+    with_line_separator : Text|Nothing -> Delimited
+    with_line_separator line_separator=System.default_line_separator =
+        self.clone line_separator=line_separator
+
+    ## Creates a clone of this with comment parsing enabled.
+    with_comments : Text -> Delimited
+    with_comments comment_character='#' =
+        self.clone comment_character=comment_character
+
+    ## Creates a clone of this with comment parsing disabled.
+    without_comments : Delimited
+    without_comments =
+        self.clone comment_character=Nothing
 
 ## A setting to infer the default behaviour of some option.
 type Infer
