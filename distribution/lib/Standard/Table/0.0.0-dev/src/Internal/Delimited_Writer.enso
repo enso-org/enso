@@ -10,7 +10,7 @@ from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Data.Storage
 import Standard.Table.Io.Quote_Style
-from Standard.Table.Internal.Delimited_Reader import No_Data, Existing_Headers, No_Headers
+from Standard.Table.Internal.Delimited_Reader import Existing_Headers, No_Headers
 import Standard.Table.Data.Match_Columns
 
 polyglot java import org.enso.table.write.DelimitedWriter
@@ -51,7 +51,7 @@ append_to_file table format file match_columns on_problems =
     Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <|
         preexisting_headers = Delimited_Reader.detect_headers file format
         reordered_java_table = case preexisting_headers of
-            No_Data -> table.java_table
+            Nothing -> table.java_table
             Existing_Headers column_names -> case match_columns of
                 Match_Columns.By_Name ->
                     ColumnMapper.mapColumnsByName table.java_table column_names.to_array
@@ -64,7 +64,7 @@ append_to_file table format file match_columns on_problems =
                 Match_Columns.By_Position ->
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
         reordered_table = Table.Table reordered_java_table
-        writing_new_file = preexisting_headers == No_Data
+        writing_new_file = preexisting_headers == Nothing
         amended_format = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers
             False -> format.without_headers
