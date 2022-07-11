@@ -4,10 +4,19 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.compiler.context.SimpleUpdate;
-import org.enso.interpreter.instrument.*;
+import org.enso.interpreter.instrument.Endpoint;
+import org.enso.interpreter.instrument.IdExecutionService;
+import org.enso.interpreter.instrument.MethodCallsCache;
+import org.enso.interpreter.instrument.NotificationHandler;
+import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
@@ -17,7 +26,11 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.service.error.*;
+import org.enso.interpreter.service.error.ConstructorNotFoundException;
+import org.enso.interpreter.service.error.FailedToApplyEditsException;
+import org.enso.interpreter.service.error.MethodNotFoundException;
+import org.enso.interpreter.service.error.ModuleNotFoundException;
+import org.enso.interpreter.service.error.SourceNotFoundException;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
@@ -63,16 +76,12 @@ public class ExecutionService {
     this.connectedLockManager = connectedLockManager;
   }
 
-  /**
-   * @return the language context.
-   */
+  /** @return the language context. */
   public Context getContext() {
     return context;
   }
 
-  /**
-   * @return the execution service logger.
-   */
+  /** @return the execution service logger. */
   public TruffleLogger getLogger() {
     return logger;
   }

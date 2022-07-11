@@ -14,7 +14,8 @@ public class FailedToApplyEditsException extends RuntimeException implements Ser
    * @param failure the failure object.
    * @param source the source text.
    */
-  public FailedToApplyEditsException(QualifiedName module, Object edits, Object failure, Object source) {
+  public FailedToApplyEditsException(
+      QualifiedName module, Object edits, Object failure, Object source) {
     super(
         "Failed to apply edits for "
             + module
