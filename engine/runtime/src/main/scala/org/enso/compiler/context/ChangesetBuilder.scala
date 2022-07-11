@@ -60,10 +60,26 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   @throws[CompilerError]
   def build(edits: Seq[PendingEdit]): Changeset[A] = {
 
-    val simpleEditOption: Option[PendingEdit.SetExpressionValue] =
+    val simpleEditOptionFromSetValue: Option[PendingEdit.SetExpressionValue] =
       edits.collect { case edit: PendingEdit.SetExpressionValue =>
         edit
       }.lastOption
+
+    // Try to detect if the text edit is a simple edit
+    val simpleEditFromTextEditOption = edits match {
+      case Seq(first) => Some(first)
+      case Seq(head, realEdit) =>
+        val firstAffected = invalidated(Seq(head.edit))
+        if (firstAffected.isEmpty) {
+          Some(realEdit)
+        } else {
+          None
+        }
+      case _ => None
+    }
+
+    val simpleEditOption =
+      simpleEditOptionFromSetValue.orElse(simpleEditFromTextEditOption)
 
     val simpleUpdateOption = simpleEditOption
       .filter(e => e.edit.range.start.line == e.edit.range.end.line)
@@ -75,9 +91,13 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
           ir.preorder.filter(_.getExternalId == directlyAffectedId)
         val oldIr = literals.head
 
-        def newIR(): Option[IR.Literal] = {
+        def newIR(edit: PendingEdit): Option[IR.Literal] = {
+          val value = edit match {
+            case pending: PendingEdit.SetExpressionValue => pending.value
+            case other: PendingEdit.ApplyEdit            => other.edit.text
+          }
           AstToIr
-            .translateInline(Parser().run(pending.value))
+            .translateInline(Parser().run(value))
             .flatMap(_ match {
               case ir: IR.Literal => Some(ir.setLocation(oldIr.location))
               case _              => None
@@ -86,9 +106,9 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
 
         oldIr match {
           case node: IR.Literal.Number =>
-            newIR().map(ir => SimpleUpdate(node, pending.edit, ir))
+            newIR(pending).map(ir => SimpleUpdate(node, pending.edit, ir))
           case node: IR.Literal.Text =>
-            newIR().map(ir => SimpleUpdate(node, pending.edit, ir))
+            newIR(pending).map(ir => SimpleUpdate(node, pending.edit, ir))
           case _ => None
         }
       }
