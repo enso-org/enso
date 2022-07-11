@@ -13,7 +13,7 @@ from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Table import No_Such_Column_Error
-from Standard.Table.Error as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 spec =
