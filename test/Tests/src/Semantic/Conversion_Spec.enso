@@ -71,9 +71,9 @@ spec =
             Text.from Methods.get_bar . should_equal "'bar'"
 
         Test.specify "should fail graciously when there is no conversion" <|
-            Panic.recover Any (Foo.from (Quux 10)) . catch .to_display_text . should_equal "Could not find a conversion from `Quux` to `Foo`"
+            Panic.recover Any (Foo.from (Quux 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux` to `Foo`"
         Test.specify "should fail graciously when the conversion target is invalid" <|
-            Panic.recover Any (123.from (Quux 10)) . catch .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
+            Panic.recover Any (123.from (Quux 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
 
         Test.specify "should be callable with by-name arguments" <|
             .from that=4 self=Foo . should_equal (Foo [4, 0, 0, 0])

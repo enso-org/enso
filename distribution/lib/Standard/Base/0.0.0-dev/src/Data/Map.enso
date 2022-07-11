@@ -217,7 +217,7 @@ type Map
              example_get_or_else = Examples.map.get_or_else 2 "zero"
     get_or_else : Any -> Any -> Any
     get_or_else key ~other =
-        self.get key . catch (_ -> other)
+        self.get key . catch No_Value_For_Key_Error (_ -> other)
 
     ## Transforms the map's keys and values to create a new map.
 

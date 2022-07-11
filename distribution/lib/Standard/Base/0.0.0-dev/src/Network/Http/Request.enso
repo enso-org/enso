@@ -4,7 +4,6 @@ import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request.Body as Request_Body
-import Standard.Base.Network.Internal
 import Standard.Base.Network.Uri
 import Standard.Base.System.File
 
@@ -26,7 +25,7 @@ import Standard.Base.System.File
          example_new = Request.new Method.Post (Uri.parse "http://example.com")
 new : Method -> (Text | Uri) -> Vector.Vector -> Request_Body -> Request
 new method addr (headers = []) (body = Request_Body.Empty) =
-    Panic.recover Any (Request method (Internal.panic_on_error (addr.to_uri)) headers body) . catch Internal.recover_panic
+    Panic.recover Any (Request method (Panic.rethrow (addr.to_uri)) headers body)
 
 ## Create an Options request.
 

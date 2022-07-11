@@ -22,9 +22,8 @@ polyglot java import java.util.Optional
          example_parse = Uri.parse "http://example.com"
 parse : Text -> Uri ! Syntax_Error
 parse text =
-    Panic.recover Any (Uri (Java_URI.create text)) . catch e-> case e of
-        Polyglot_Error ex -> Error.throw (Syntax_Error ex.getMessage)
-        other -> Panic.throw other
+    Panic.catch_java Any (Uri (Java_URI.create text)) java_exception->
+        Error.throw (Syntax_Error java_exception.getMessage)
 
 ## Convert Text to a Uri.
 

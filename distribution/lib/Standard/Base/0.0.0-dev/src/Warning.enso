@@ -156,7 +156,7 @@ map_attached_warnings mapper value =
 map_warnings_and_errors : (Any -> Maybe Any) -> Any -> Any
 map_warnings_and_errors mapper value =
     mapped_warnings_or_error = map_attached_warnings_helper mapper value 1
-    mapped_warnings_or_error.catch error->
+    mapped_warnings_or_error.catch Any error->
         case mapper error of
             Maybe.Some new_error -> Error.throw new_error
             ## If the mapper did not want to affect the error, we return the

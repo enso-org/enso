@@ -61,24 +61,39 @@ type Error
 
        Returns a human-readable text representing this error.
     to_display_text : Text
-    to_display_text  = "Error: " + (self.catch .to_display_text)
+    to_display_text  = "Error: " + (self.catch Any .to_display_text)
 
-    ## Executes the provided handler on a dataflow error, or returns a non-error
-       value unchanged.
+    ## Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
-       - handler: The function to call on this if it is an error value. By default
-         this is identity.
+       - error_type: The type of error to handle. Defaults to `Any` to handle
+         all errors.
+       - handler: The function to call on this if it is an error value of a
+         matching type. By default this is identity.
 
        > Example
-         Catching an erroneous value and getting the length of its message.
+         Catching an `Illegal_Argument_Error` and returning its message.
 
-             import Standard.Examples
+             from Standard.Base import all
 
              example_catch =
-                 Examples.throw_error.catch (err -> err.message.length)
-    catch : (Error -> Any) -> Any
-    catch (handler = x->x) = self.catch_primitive handler
+                 error = Error.throw (Illegal_Argument_Error "My message")
+                 error.catch Illegal_Argument_Error (err -> err.message)
+
+       > Example
+         Catching any dataflow error and turning it into a regular value.
+
+             from Standard.Base import all
+
+             example_catch =
+                 error = Error.throw 42
+                 error.catch == 42
+    catch : Any -> (Error -> Any) -> Any
+    catch (error_type = Any) (handler = x->x) =
+        self.catch_primitive error_value->
+            case error_value.is_a error_type of
+                True -> handler error_value
+                False -> self
 
     ## UNSTABLE
 
@@ -91,7 +106,7 @@ type Error
 
              example_display = Examples.throw_error.to_default_visualization_data
     to_default_visualization_data : Text
-    to_default_visualization_data = self.catch .to_default_visualization_data
+    to_default_visualization_data = self.catch Any .to_default_visualization_data
 
     ## UNSTABLE
 
@@ -106,8 +121,9 @@ type Error
     to_json : Json.Object
     to_json =
         error_type = ["type", "Error"]
-        error_content = ["content", self.catch .to_json]
-        error_message = ["message", self.catch .to_display_text]
+        caught = self.catch
+        error_content = ["content", caught.to_json]
+        error_message = ["message", caught.to_display_text]
         Json.from_pairs [error_type, error_content, error_message]
 
     ## Transforms an error.
@@ -127,7 +143,7 @@ type Error
                  map = Examples.map
                  map.get 10 . map_error (_ -> "The element 10 was not found.")
     map_error : (Error -> Error) -> Any
-    map_error f = self.catch (x -> Error.throw (f x))
+    map_error f = self.catch Any (x -> Error.throw (f x))
 
     ## ADVANCED
        UNSTABLE
@@ -297,7 +313,7 @@ type Panic
 
              example_rethrow = Panic.rethrow Examples.throw_error
     rethrow : (Any ! Any) -> Any
-    rethrow value = value.catch Panic.throw
+    rethrow value = value.catch Any Panic.throw
 
     ## Executes the provided action and if a panic matching the provided type was
        thrown, calls the provided callback.
@@ -350,6 +366,36 @@ type Panic
                             True -> handler caught_panic
                             False -> Panic.throw caught_panic
                     _ -> Panic.throw caught_panic
+
+    ## Executes the provided action and if a Java exception matching the provided type was
+       thrown, calls the provided callback.
+
+       Normally, Java exceptions are wrapped in a `Polyglot_Error` instance, so
+       using a `Panic.catch` requires unwrapping the error by calling
+       `caught_panic.payload.cause`. This helper function allows the handler to
+       work with the Java exception directly. The downside is that if the Java
+       exception is rethrown, it will be rethrown as a Java exception object
+       wrapped in an Enso panic. So if the handler needs to rethrow the original
+       exception preserving its shape and stacktrace, `Panic.catch` should still
+       be preferred.`
+
+       > Example
+         Convert a string to an integer, catching the Java `NumberFormatException`
+         and converting it to a more Enso-friendly dataflow error.
+
+             polyglot java import java.lang.Long
+             polyglot java import java.lang.NumberFormatException
+             parse str =
+                 Panic.catch_java NumberFormatException (Long.parseLong str) java_exception->
+                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+java_exception.getMessage)
+    catch_java : Any -> Any -> (Throwable -> Any) -> Any
+    catch_java panic_type ~action handler =
+        Panic.catch_primitive action caught_panic-> case caught_panic.payload of
+            Polyglot_Error java_exception ->
+                case (panic_type == Any) || (Java.is_instance java_exception panic_type) of
+                    True -> handler java_exception
+                    False -> Panic.throw caught_panic
+            _ -> Panic.throw caught_panic
 
     ## Executes the provided action and converts a possible panic matching any of
        the provided types into a dataflow Error.

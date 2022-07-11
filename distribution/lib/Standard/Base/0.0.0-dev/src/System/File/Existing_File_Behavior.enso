@@ -57,7 +57,7 @@ type Existing_File_Behavior
                    temporary file and creates a backup.
                 handle_file_already_exists <| handle_internal_dataflow <|
                     Panic.rethrow <| file.with_output_stream [Option.Write, Option.Create_New] output_stream->
-                        action output_stream . catch dataflow_error->
+                        action output_stream . catch Any dataflow_error->
                             Panic.throw (Internal_Write_Operation_Errored dataflow_error)
 
 ## PRIVATE
@@ -87,7 +87,7 @@ write_file_backing_up_old_one file action = Panic.recover [Io_Error, File_Not_Fo
                 new_file.with_output_stream [Option.Write, Option.Create_New] output_stream->
                     result = Panic.catch Any (action output_stream) caught_panic->
                         Panic.throw (Internal_Write_Operation_Panicked caught_panic)
-                    result.catch dataflow_error->
+                    result.catch Any dataflow_error->
                         Panic.throw (Internal_Write_Operation_Errored dataflow_error)
             ## We ignore the file not found error, because it means that there
                is no file to back-up. This may also be caused by someone
