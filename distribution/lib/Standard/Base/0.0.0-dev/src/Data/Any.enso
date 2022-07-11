@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from Standard.Base.Error.Common import dataflow_error_handler
+
 # The type that subsumes all types.
 type Any
 
@@ -18,7 +20,7 @@ type Any
        Arguments:
        - handler: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
-    catch_primitive handler = @Builtin_Method "Any.catch"
+    catch_primitive handler = @Builtin_Method "Any.catch_primitive"
 
     ## Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
@@ -246,23 +248,37 @@ type Any
     if_nothing : Any -> Any
     if_nothing ~_ = self
 
-    ## Executes the provided handler on an error, or returns a non-error value
-       unchanged.
+    ## Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
-       - handler: The function to call on this if it is an error value. By default
-         this is identity.
+       - error_type: The type of error to handle. Defaults to `Any` to handle
+         all errors.
+       - handler: The function to call on this if it is an error value of a
+         matching type. By default this is identity.
 
        > Example
-         Catching an erroneous value and getting the length of its message.
+         Catching an `Illegal_Argument_Error` and returning its message.
 
              from Standard.Base import all
 
              example_catch =
-                 error = Error.throw "My message"
-                 error.catch (err -> err.length)
-    catch : (Error -> Any) -> Any
-    catch (handler = x->x) = self.catch_primitive handler
+                 error = Error.throw (Illegal_Argument_Error "My message")
+                 error.catch Illegal_Argument_Error (err -> err.message)
+
+       > Example
+         Catching any dataflow error and turning it into a regular value.
+
+             from Standard.Base import all
+
+             example_catch =
+                 error = Error.throw 42
+                 error.catch == 42
+    catch : Any -> (Error -> Any) -> Any
+    catch (error_type = Any) (handler = x->x) =
+        self.catch_primitive error_value->
+            case error_value.is_a error_type of
+                True -> handler error_value
+                False -> self
 
     ## Transforms an error.
 

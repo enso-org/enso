@@ -17,7 +17,7 @@ spec =
             date . day . should_equal 1
 
         Test.specify "should handle errors when creating local date" <|
-            case Date.new 2020 30 30 . catch (x -> x) of
+            case Date.new 2020 30 30 . catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 30"
                 result ->
@@ -39,7 +39,7 @@ spec =
             date . day . should_equal 21
 
         Test.specify "should throw error when parsing invalid date" <|
-            case Date.parse "birthday" . catch (x -> x) of
+            case Date.parse "birthday" . catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Text 'birthday' could not be parsed at index 0"
                 result ->
@@ -59,7 +59,7 @@ spec =
 
         Test.specify "should throw error when parsing custom format" <|
             date = Date.parse "1999-01-01" "yyyy M d"
-            case date.catch (x -> x) of
+            case date.catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Text '1999-01-01' could not be parsed at index 4"
                 result ->
@@ -100,14 +100,14 @@ spec =
             date . day . should_equal 1
 
         Test.specify "should throw error when adding time-based interval" <|
-            case (Date.new 1970 + 1.hour) . catch (x -> x) of
+            case (Date.new 1970 + 1.hour) . catch of
                 Time.Time_Error message ->
                     message . should_equal "Date does not support time intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting time-based interval" <|
-            case (Date.new 1970 - (1.day - 1.minute)) . catch (x -> x) of
+            case (Date.new 1970 - (1.day - 1.minute)) . catch of
                 Time.Time_Error message ->
                     message . should_equal "Date does not support time intervals"
                 result ->

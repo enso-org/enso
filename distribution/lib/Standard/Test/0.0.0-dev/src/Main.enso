@@ -234,7 +234,7 @@ Any.should_fail_with matcher frames_to_skip=0 =
             Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Integer -> Assertion
 Error.should_fail_with matcher frames_to_skip=0 =
-    caught = self.catch x->x
+    caught = self.catch
     if caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
         fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
@@ -261,7 +261,7 @@ expect_panic_with ~action matcher =
             loc = Meta.get_source_location 2
             return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
             fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
-    err = res.catch x->x
+    err = res.catch
     if err.is_a matcher then Nothing else
         fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
@@ -572,7 +572,7 @@ type Suite_Config
     should_run_group name =
         regexp = self.only_group_regexp
         case regexp of
-            Text -> name.matches regexp . catch (_->True)
+            Text -> name.matches regexp . catch Any (_->True)
             _ -> True
 
     should_output_junit =
@@ -678,11 +678,12 @@ run_spec : Any -> Assertion
 run_spec ~behavior =
     recovery = Panic.recover Any <|
         result = behavior
-        result.catch err-> Panic.throw (Finished_With_Error err result.get_stack_trace_text)
+        result.catch Any err->
+            Panic.throw (Finished_With_Error err result.get_stack_trace_text)
         Nothing
     maybeExc = case recovery of
         _ -> Success
-    result = maybeExc.catch ex->
+    result = maybeExc.catch Any ex->
         case ex of
             Failure _ -> ex
             Finished_With_Error err stack_trace_text ->

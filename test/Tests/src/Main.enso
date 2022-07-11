@@ -20,6 +20,7 @@ import project.Semantic.R_Interop_Spec
 
 import project.Data.Array_Spec
 import project.Data.Bool_Spec
+import project.Data.Function_Spec
 import project.Data.Interval_Spec
 import project.Data.Json_Spec
 import project.Data.List_Spec
@@ -66,6 +67,7 @@ main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
     Bool_Spec.spec
+    Function_Spec.spec
     Case_Spec.spec
     Conversion_Spec.spec
     Deep_Export_Spec.spec

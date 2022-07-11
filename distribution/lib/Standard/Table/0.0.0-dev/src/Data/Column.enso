@@ -1061,7 +1061,7 @@ type Column
 
              example_first = Examples.integer_column.first
     first : Any ! Empty_Error
-    first = self.at 0 . catch (_ -> Error.throw Empty_Error)
+    first = self.at 0 . catch Index_Out_Of_Bounds_Error (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1093,7 +1093,7 @@ type Column
 
              example_last = Examples.integer_column.last
     last : Any ! Empty_Error
-    last = self.at (self.length - 1) . catch (_ -> Error.throw Empty_Error)
+    last = self.at (self.length - 1) . catch Index_Out_Of_Bounds_Error (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 

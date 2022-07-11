@@ -308,7 +308,7 @@ into_helper fmt json = case fmt of
                     fnames = cons.fields
                     ffmts = m.fields
                     field_values = fnames.zip ffmts n-> inner_fmt->
-                        fjson = json_fields . get n . catch _->
+                        fjson = json_fields . get n . catch Any _->
                             Panic.throw (Missing_Field_Error json fmt n)
                         into_helper inner_fmt fjson
                     cons.new field_values
