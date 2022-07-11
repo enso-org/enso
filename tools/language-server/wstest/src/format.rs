@@ -1,25 +1,48 @@
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
-static REQUEST_SENT: &str = "wstest sent request";
-static RESPONSE_RECEIVED: &str = "wstest received response";
-static MESSAGE_UNKNOWN: &str = "<message>";
+pub static MESSAGE_BINARY: &str = "<binary>";
 
-pub fn request(message: &str) -> String {
-    fmt(format!("{} [{}]", REQUEST_SENT, message).as_str())
+static INIT_REQUEST_SENT: &str = "wstest sent init request";
+static BENCH_REQUEST_SENT: &str = "wstest sent bench request";
+static RESPONSE_RECEIVED: &str = "wstest received response";
+static RESPONSE_IGNORED: &str = "wstest received response (ignored)";
+
+static FMT_LEVEL: &str = "info";
+static FMT_MODULE: &str = "main";
+
+/// Message for logging the initialization request
+pub fn init_request(message: &str) -> String {
+    fmt(format!("{} [{}]", INIT_REQUEST_SENT, message).as_str())
 }
 
-pub fn response(message: Option<&str>) -> String {
-    fmt(format!("{} [{}]", RESPONSE_RECEIVED, message.unwrap_or(MESSAGE_UNKNOWN)).as_str())
+/// Message for logging the benchmarking request
+pub fn bench_request(message: &str) -> String {
+    fmt(format!("{} [{}]", BENCH_REQUEST_SENT, message).as_str())
+}
+
+/// Message for logging the text response
+pub fn response_text(message: &str) -> String {
+    fmt(format!("{} [{}]", RESPONSE_RECEIVED, message).as_str())
+}
+
+/// Message for logging the binary response
+pub fn response_binary() -> String {
+    fmt(format!("{} [{}]", RESPONSE_RECEIVED, MESSAGE_BINARY).as_str())
+}
+
+/// Message for logging the ignored response
+pub fn response_ignored(message: &str) -> String {
+    fmt(format!("{} [{}]", RESPONSE_IGNORED, message).as_str())
 }
 
 fn fmt(message: &str) -> String {
     let time_now = OffsetDateTime::now_utc();
     format!(
         "[{level}] [{timestamp}] [{module}] {message}",
-        level = "info",
+        level = FMT_LEVEL,
         timestamp = time_now.format(&Rfc3339).unwrap(),
-        module = "main",
+        module = FMT_MODULE,
         message = message,
     )
 }

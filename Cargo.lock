@@ -1666,9 +1666,9 @@ checksum = "4bb454f0228b18c7f4c3b0ebbee346ed9c52e7443b0999cd543ff3571205701d"
 
 [[package]]
 name = "either"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
 
 [[package]]
 name = "enclose"
@@ -7478,8 +7478,11 @@ dependencies = [
 name = "wstest"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
  "clap 3.1.18",
+ "either",
  "futures 0.3.21",
+ "regex",
  "time 0.3.9",
  "tokio 1.19.2",
  "url 2.2.2",
