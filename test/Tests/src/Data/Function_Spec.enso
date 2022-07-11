@@ -36,8 +36,8 @@ spec =
 
     Test.group "uncurry" <|
         Test.specify "uncurry on number list" <|
-            plus = uncurry (*)
-            plus [6, 7] . should_equal 42
+            times = uncurry (*)
+            times [6, 7] . should_equal 42
 
 
 main = Test.Suite.run_main spec
