@@ -129,6 +129,8 @@ spec =
             'a,b,c\nd,e,f\r1,2,3'.write (path 'mixed.csv')
             File.read (path 'mixed.csv') (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row
 
+            # TODO add a test where mixed is read differently by overriding line separator
+
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
         Test.specify "should work with Windows-1252 encoding" <|
@@ -171,7 +173,6 @@ spec =
                 table.at 'c' . to_vector . should_equal ['\uFFFD']
             problems_2 = [Encoding_Error "Encoding issues at byte 22."]
             Problems.test_problem_handling action_2 problems_2 tester_2
-
 
         Test.specify "should handle duplicated columns" <|
             action on_problems = File.read (enso_project.data / "duplicated_columns.csv") (Delimited "," headers=True value_formatter=Nothing) on_problems
@@ -357,5 +358,12 @@ spec =
             custom_formatter = Data_Formatter true_values=["A", "B", "C"] false_values=["D", "E", "F"]
             Delimited ',' . with_parsing custom_formatter . should_equal (Delimited ',' value_formatter=custom_formatter)
             Delimited ',' row_limit=456 . without_parsing . should_equal (Delimited ',' value_formatter=Nothing row_limit=456)
+
+        Test.specify "should be able to read column names starting with #" <|
+            Nothing
+
+        Test.specify "should be able to handle comments if enabled" <|
+            # TODO check # and other comment style; check both ignored whole lines and parts of lines
+            Nothing
 
 main = Test.Suite.run_main spec

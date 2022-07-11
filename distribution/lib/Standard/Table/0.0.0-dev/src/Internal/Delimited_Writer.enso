@@ -50,7 +50,10 @@ write_file table format file on_existing_file match_columns on_problems =
 append_to_file : Table -> File_Format.Delimited -> File -> Match_Columns -> Problem_Behavior -> Any
 append_to_file table format file match_columns on_problems =
     Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <|
-        preexisting_headers = Delimited_Reader.detect_headers file format
+        metadata = Delimited_Reader.detect_metadata file format
+        preexisting_headers = metadata.headers
+        effective_line_separator = metadata.line_separator
+        # TODO the separator will switch to ADT so we need to pass it differently
         reordered_java_table = case preexisting_headers of
             Nothing -> table.java_table
             Existing_Headers column_names -> case match_columns of

@@ -40,8 +40,13 @@ spec =
                 2,1.5,y,2
                 3,2.2,z,[[[My Type :: 10]]]
             text = File.read_text file
+            # TODO check that system default is used
             text.should_equal expected_text+'\n'
             file.delete
+
+        Test.specify "should allow to specify line ending style" <|
+            # TODO check manual overrides of all 3 styles
+            Nothing
 
         Test.specify "should be able to write an empty table" <|
             table = Table.new []
@@ -323,5 +328,25 @@ spec =
             result_2.catch.to_display_text . should_equal "Expected 3 columns, got 4."
 
             file.delete
+
+        Test.specify "should be able to correctly append to a file that contains no actual data but only commented out lines" <|
+            # TODO
+            Nothing
+
+        Test.specify "should use the same line ending style as existing data when appending" <|
+            # TODO check all 3 styles - initial manually set, appending autodetected
+            Nothing
+
+        Test.specify "should use the system default line ending style when appending to an empty or nonexistent file" <|
+            # TODO
+            Nothing
+
+        Test.specify "should use the existing line ending style when appending to a file consisting of only comments" <|
+            # TODO
+            Nothing
+
+        Test.specify "should use the explicitly specified line ending style regardless of the detected one" <|
+            # TOOD write in one style than append in other
+            Nothing
 
 main = Test.Suite.run_main spec
