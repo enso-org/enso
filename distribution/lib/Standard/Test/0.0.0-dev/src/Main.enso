@@ -24,9 +24,9 @@ polyglot java import java.lang.StringBuilder
                  Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
 Suite.run_main : Any -> Nothing
-Suite.run_main self ~specs =
+Suite.run_main ~specs =
     config = config_from_env
-    r = self.run specs config
+    r = Suite.run specs config
     code = if r.is_fail then 1 else 0
     System.exit code
 
@@ -96,7 +96,7 @@ config_from_env =
                  Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
 Suite.run : Any -> Suite_Config -> Any
-Suite.run self ~specs config =
+Suite.run ~specs config =
     builder = if config.should_output_junit then StringBuilder.new else Nothing
     wrap_junit_testsuites config builder <|
         State.run Suite (Suite config Nil builder) <|

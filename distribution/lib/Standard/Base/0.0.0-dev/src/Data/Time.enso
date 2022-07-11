@@ -251,7 +251,7 @@ type Time
 
              example_zone = Time.now.zone
     zone : Zone
-    zone = Zone.Zone self.internal_zoned_date_time.getZone
+    zone self = Zone.Zone self.internal_zoned_date_time.getZone
 
     ## Return the number of seconds from the Unix epoch.
 

@@ -18,7 +18,7 @@ type Statistic
     ## PRIVATE
        Convert the Enso Statistic into Java equivalent.
     to_moment_statistic : SingleValue
-    to_moment_statistic = case self of
+    to_moment_statistic self = case self of
         Sum -> Moments.SUM
         Mean -> Moments.MEAN
         Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE

@@ -31,7 +31,7 @@ type Error
 
              Error.throw "Oops"
     throw : Any -> Error
-    throw self payload = @Builtin_Method "Error.throw"
+    throw payload = @Builtin_Method "Error.throw"
 
     ## PRIVATE
 
@@ -266,7 +266,7 @@ type Panic
                  Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
                  other_panic -> Panic.throw other_panic
     throw : Any -> Panic
-    throw self payload = @Builtin_Method "Panic.throw"
+    throw payload = @Builtin_Method "Panic.throw"
 
     ## PRIVATE
        Executes the provided action and if any panic was thrown, calls the
@@ -280,7 +280,7 @@ type Panic
        - action: The code to execute that potentially panics.
        - handler: The callback to handle any panics.
     catch_primitive : Any -> (Caught_Panic -> Any) -> Any
-    catch_primitive self ~action handler = @Builtin_Method "Panic.catch_primitive"
+    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
 
     ## PRIVATE
 
@@ -288,7 +288,7 @@ type Panic
        throwable. It can be a dataflow error, a panic or a native Java exception.
        You probably want `Panic.get_attached_stack_trace` instead.
     primitive_get_attached_stack_trace : Throwable -> Array
-    primitive_get_attached_stack_trace self throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
+    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
 
     ## ADVANCED
        UNSTABLE

@@ -90,14 +90,14 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
    Returns a vector of field values of the given atom.
 Atom.fields : Vector.Vector
-Atom.fields = Vector.Vector (get_atom_fields self.value)
+Atom.fields self = Vector.Vector (get_atom_fields self.value)
 
 ## UNSTABLE
    ADVANCED
 
    Returns a constructor value of the given atom.
 Atom.constructor : Atom_Constructor
-Atom.constructor = get_atom_constructor self.value
+Atom.constructor self = get_atom_constructor self.value
 
 # Polyglot methods
 ## PRIVATE

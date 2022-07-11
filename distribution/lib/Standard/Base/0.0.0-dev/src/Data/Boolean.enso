@@ -61,6 +61,19 @@ type Boolean
     not : Boolean
     not self = @Builtin_Method "Boolean.not"
 
+    ## Compares the two operands to determine the ordering of this with
+       respect to that.
+
+       Arguments:
+       - that: The operand to order this with respect to.
+
+       > Example
+         Computing the ordering of True and False
+
+             True.compare_to False
+    compare_to : Boolean -> Ordering
+    compare_to self that = @Builtin_Method "Boolean.compare_to"
+
     ## The if-then-else control flow operator that executes one of two branches
        based on a conditional.
 

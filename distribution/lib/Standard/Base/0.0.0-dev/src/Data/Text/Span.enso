@@ -105,7 +105,7 @@ type Utf_16_Span
     ## The index of the first code unit after `start` that is _not_ included in
        the span.
     end : Integer
-    end = self.range.end
+    end self = self.range.end
 
     ## The length of the span in UTF-16 code units.
     length : Integer
