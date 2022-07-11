@@ -68,8 +68,8 @@ read_text text format on_problems =
      or `Nothing`. It is used for more detailed error reporting.
 read_stream : Delimited -> Input_Stream -> Problem_Behavior -> Integer -> File | Nothing -> Any
 read_stream format stream on_problems max_columns=4096 related_file=Nothing =
-    handle_io_exception ~action = Panic.catch IOException action caught_panic->
-        Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
+    handle_io_exception ~action = Panic.catch_java IOException action java_exception->
+        Error.throw (File.wrap_io_exception related_file java_exception)
 
     handle_io_exception <|
         stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->

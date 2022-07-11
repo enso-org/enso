@@ -149,6 +149,7 @@
 - [Added `File_Format.Excel` support to `Table.write` for new files.][3551]
 - [Added append support for `File_Format.Excel`.][3558]
 - [Added support for custom encodings in `File_Format.Delimited` writing.][3564]
+- [Allow filtering caught error type in `Error.catch`.][3574]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -237,6 +238,7 @@
 [3552]: https://github.com/enso-org/enso/pull/3552
 [3558]: https://github.com/enso-org/enso/pull/3558
 [3564]: https://github.com/enso-org/enso/pull/3564
+[3574]: https://github.com/enso-org/enso/pull/3574
 
 #### Enso Compiler
 

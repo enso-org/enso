@@ -60,7 +60,14 @@ today = now
 
 new : Integer -> Integer -> Integer -> Date ! Time.Time_Error
 new year (month = 1) (day = 1) =
-    Panic.recover Any (LocalDate.of year month day) . catch e-> case e of
+    ## TODO This is left using the old error handling approach, because
+       magically, changing this to the `catch_java` (which is now preferred way
+       of catching Polyglot_Errors) lead to the "should format local date using
+       provided pattern" test failing because it called the `LocalDate.format`
+       instead of Enso format. Hopefully this will be fixed with
+       https://github.com/enso-org/enso/pull/3559
+       Then this should be switched to use `Panic.catch_java`.
+    Panic.recover Any (LocalDate.of year month day) . catch Any e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
@@ -107,8 +114,8 @@ new year (month = 1) (day = 1) =
          import Standard.Base.Data.Time.Date
          import Standard.Base.Data.Time
 
-         example_parse_err = Date.parse "my birthday" . catch e-> case e of
-             Time.Time_Error _ -> Date.new 2000 1 1
+         example_parse_err = Date.parse "my birthday" . catch Time.Time_Error _->
+             Date.new 2000 1 1
 
    > Example
      Parse "1999-1-1" as Date using a custom format.
@@ -125,8 +132,7 @@ new year (month = 1) (day = 1) =
 
          example_parse_err =
              date = Date.parse "1999-1-1" "yyyy-MM-dd"
-             date.catch e-> case e of
-                 Time.Time_Error _ -> Date.new 2000 1 1
+             date.catch Time.Time_Error (_->Date.new 2000 1 1)
 parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of

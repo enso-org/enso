@@ -20,7 +20,7 @@ spec =
             time . zone . zone_id . should_equal Zone.utc.zone_id
 
         Test.specify "should handle errors when creating time" <|
-            case Time.new 1970 0 0 . catch (x -> x) of
+            case Time.new 1970 0 0 . catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 0"
                 result ->
@@ -108,7 +108,7 @@ spec =
             time . zone . zone_id . should_equal "Europe/Paris"
 
         Test.specify "should throw error when parsing invalid time" <|
-            case Time.parse "2008-1-1" . catch (x -> x) of
+            case Time.parse "2008-1-1" . catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Text '2008-1-1' could not be parsed at index 5"
                 result ->
@@ -137,7 +137,7 @@ spec =
 
         Test.specify "should throw error when parsing custom format" <|
             time = Time.parse "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['z']'"
-            case time.catch (x -> x) of
+            case time.catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Text '2008-01-01' could not be parsed at index 10"
                 result ->
