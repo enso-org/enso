@@ -81,7 +81,9 @@ impl Group {
     /// Create empty group referring to some module component.
     pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
         let name: String = if entry.module.is_top_module() {
-            (&entry.module).into()
+            let project = &entry.module.project_name.project;
+            let module = entry.module.name();
+            format!("{}.{}", project, module)
         } else {
             entry.module.name().into()
         };

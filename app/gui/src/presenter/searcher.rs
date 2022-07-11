@@ -11,6 +11,7 @@ use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
+use crate::model::suggestion_database::entry::Kind;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
@@ -156,11 +157,25 @@ impl Model {
     ) -> String {
         let component = id.and_then(|id| self.component_by_view_id(id).ok());
         if let Some(component) = component {
-            component.suggestion.documentation_html.clone().unwrap_or_else(|| {
+            if let Some(documentation) = &component.suggestion.documentation_html {
+                let title = match component.suggestion.kind {
+                    Kind::Atom => format!("Atom {}", component.suggestion.name),
+                    Kind::Function => format!("Function {}", component.suggestion.name),
+                    Kind::Local => format!("Node {}", component.suggestion.name),
+                    Kind::Method => format!(
+                        "Method {}{}{}",
+                        component.suggestion.name,
+                        if component.suggestion.self_type.is_some() { " of " } else { "" },
+                        component.suggestion.self_type.as_ref().map_or("", |tp| &tp.name),
+                    ),
+                    Kind::Module => format!("Module {}", component.suggestion.name),
+                };
+                format!("<div class=\"enso docs summary\"><p />{title}</div>{documentation}")
+            } else {
                 provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
                     component.suggestion.clone_ref(),
                 ))
-            })
+            }
         } else {
             default()
         }

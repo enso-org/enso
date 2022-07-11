@@ -615,6 +615,7 @@ define_themes! { [light:0, dark:1]
             text {
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
+                font   = "DejaVuSans", "DejaVuSans";
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;
