@@ -68,7 +68,7 @@ create payload origin = @Builtin_Method "Warning.create"
 attach : Any -> Any -> Any
 attach warning value =
     origin = Runtime.get_stack_trace
-    here.attach_with_stacktrace value warning (origin.drop_start 1)
+    attach_with_stacktrace value warning (origin.drop_start 1)
 
 ## PRIVATE
 
@@ -82,7 +82,7 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
    Gets all the warnings attached to the given value. Warnings are returned in the
    reverse-chronological order with respect to their attachment time.
 get_all : Any -> Vector.Vector Warning
-get_all value = Vector.Vector (here.get_all_array value)
+get_all value = Vector.Vector (get_all_array value)
 
 
 ## PRIVATE
@@ -101,7 +101,7 @@ get_all_array value = @Builtin_Method "Warning.get_all_array"
    - value: the value to which warnings should be set to.
    - warnings: vector of warnings to set to the value.
 set : Any -> Vector.Vector Warning -> Any
-set value warnings = here.set_array value warnings.to_array
+set value warnings = set_array value warnings.to_array
 
 ## PRIVATE
 
@@ -133,7 +133,7 @@ set_array value warnings = @Builtin_Method "Warning.set_array"
          Warning.map_attached_warnings mapper value
 map_attached_warnings : (Any -> Maybe Any) -> Any -> Any
 map_attached_warnings mapper value =
-    here.map_attached_warnings_helper mapper value 1
+    map_attached_warnings_helper mapper value 1
 
 ## UNSTABLE
    An utility function which applies the mapping function both to any attached
@@ -155,7 +155,7 @@ map_attached_warnings mapper value =
          Warning.map_warnings_and_errors mapper value
 map_warnings_and_errors : (Any -> Maybe Any) -> Any -> Any
 map_warnings_and_errors mapper value =
-    mapped_warnings_or_error = here.map_attached_warnings_helper mapper value 1
+    mapped_warnings_or_error = map_attached_warnings_helper mapper value 1
     mapped_warnings_or_error.catch error->
         case mapper error of
             Maybe.Some new_error -> Error.throw new_error
@@ -169,7 +169,7 @@ map_warnings_and_errors mapper value =
    An internal helper function to avoid repeating the implementation.
 map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
 map_attached_warnings_helper mapper value frames_to_drop =
-    warnings = here.get_all value
+    warnings = get_all value
     mapped_warnings = warnings.map warning->
         case mapper warning.value of
             Maybe.Some new_payload ->
@@ -177,11 +177,11 @@ map_attached_warnings_helper mapper value frames_to_drop =
                 stack_trace = Runtime.get_stack_trace
                 stack_trace_up_to_this_function = stack_trace.drop_while element-> element.name != self_call_name
                 new_origin = stack_trace_up_to_this_function.drop_start 1+frames_to_drop
-                here.create new_payload new_origin
+                create new_payload new_origin
             ## If the mapper did not want to affect this warning, we return the
                original (unwrapped) warning instance.
             Nothing -> warning
-    here.set value mapped_warnings
+    set value mapped_warnings
 
 ## UNSTABLE
    A helper function which selects warnings matching a predicate and returns a
@@ -201,11 +201,11 @@ map_attached_warnings_helper mapper value frames_to_drop =
          result.second # the list of matched warnings
 detach_selected_warnings : Any -> (Any -> Boolean) -> Pair Any Vector
 detach_selected_warnings value predicate =
-    warnings = here.get_all value
+    warnings = get_all value
     result = warnings.partition w-> predicate w.value
     matched = result.first
     remaining = result.second
-    Pair (here.set remaining value) matched
+    Pair (set remaining value) matched
 
 ## UNSTABLE
    A helper function which gathers warnings matching some predicate and passes
@@ -229,7 +229,7 @@ detach_selected_warnings value predicate =
              [No_Matches_Found all_criteria]
 merge_matched_warnings : Any -> (Any -> Boolean) -> (Vector -> Vector) -> Any
 merge_matched_warnings value matcher merger =
-    result = here.detach_selected_warnings value matcher
+    result = detach_selected_warnings value matcher
     if result.second.is_empty then result.first else
         new_warnings = merger (result.second.map .value)
         new_warnings.fold result.first acc-> warning->

@@ -291,7 +291,7 @@ object Builtin {
 
       val itemsImport = {
         val all: Pattern = Var("all")
-        val items        = Pattern.SepList(Pattern.Cons(), Opr(","))
+        val items        = Pattern.SepList(Pattern.Cons() | Pattern.Var(), Opr(","))
         val hiding       = Var("hiding") :: items
 
         Definition(

@@ -122,4 +122,4 @@ spec = Test.group "Examples" <|
         match.groups.length . should_equal 5
         match.named_groups.size . should_equal 2
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

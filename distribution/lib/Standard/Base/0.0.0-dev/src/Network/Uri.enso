@@ -37,7 +37,7 @@ parse text =
 
          example_parse = "http://example.com".to_uri
 Text.to_uri : Uri ! Syntax_Error
-Text.to_uri = here.parse self
+Text.to_uri = parse self
 
 type Uri
 

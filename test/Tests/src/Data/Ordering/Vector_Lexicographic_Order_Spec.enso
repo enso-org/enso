@@ -18,4 +18,4 @@ spec = Test.group "Lexicographic Order on Vectors" <|
         Vector_Lexicographic_Order.compare [My_Type "a" 1, My_Type "b" 1, My_Type "c" 1] [My_Type "b" 1, My_Type "a" 1, My_Type "c" 1] element_comparator=comparator . should_equal Ordering.Less
         Vector_Lexicographic_Order.compare [My_Type "a" 1, My_Type "b" 1, My_Type "c" 1] [My_Type "a" 100, My_Type "b" 2, My_Type "c" 3] element_comparator=comparator . should_equal Ordering.Equal
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

@@ -289,4 +289,4 @@ spec = Test.group "Table.parse_values" <|
         t2.at "floats" . to_vector . should_equal c2
         t2.at "bools" . to_vector . should_equal c3
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

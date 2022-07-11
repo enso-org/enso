@@ -154,15 +154,6 @@ trait CompilerRunner {
     */
   def genId: IR.Identifier = IR.randomId
 
-  /** Creates an IR name from a string.
-    *
-    * @param str the string to turn into a name
-    * @return an IR name representing the name `str`
-    */
-  def nameFromString(str: String): IR.Name.Literal = {
-    IR.Name.Literal(str, isReferent = false, isMethod = false, None)
-  }
-
   // === IR Testing Utils =====================================================
 
   /** A variety of extension methods on IR expressions to aid testing.
@@ -178,15 +169,17 @@ trait CompilerRunner {
     def asMethod: IR.Module.Scope.Definition.Method = {
       IR.Module.Scope.Definition.Method.Explicit(
         IR.Name.MethodReference(
-          IR.Name.Qualified(
-            List(
-              IR.Name
-                .Literal("TestType", isReferent = true, isMethod = false, None)
-            ),
-            None
+          Some(
+            IR.Name.Qualified(
+              List(
+                IR.Name
+                  .Literal("TestType", isMethod = false, None)
+              ),
+              None
+            )
           ),
           IR.Name
-            .Literal("testMethod", isReferent = false, isMethod = false, None),
+            .Literal("testMethod", isMethod = false, None),
           None
         ),
         ir,
@@ -200,12 +193,12 @@ trait CompilerRunner {
       */
     def asAtomDefaultArg: IR.Module.Scope.Definition.Atom = {
       IR.Module.Scope.Definition.Atom(
-        IR.Name.Literal("TestAtom", isReferent = true, isMethod = false, None),
+        IR.Name.Literal("TestAtom", isMethod = false, None),
         List(
           IR.DefinitionArgument
             .Specified(
               IR.Name
-                .Literal("arg", isReferent = false, isMethod = false, None),
+                .Literal("arg", isMethod = false, None),
               None,
               Some(ir),
               suspended = false,

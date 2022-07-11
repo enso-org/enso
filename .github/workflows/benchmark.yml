@@ -1,0 +1,46 @@
+---
+name: Benchmark Engine
+"on":
+  push:
+    branches:
+      - develop
+  schedule:
+    - cron: 0 5 * * 2-6
+  workflow_dispatch: {}
+jobs:
+  benchmark-engine:
+    name: Benchmark Engine
+    runs-on:
+      - benchmark
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+      - name: Build Script Setup
+        run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - run: "./run backend benchmark runtime"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: List files if failed
+        run: ls -lR
+        if: failure()
+env:
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"

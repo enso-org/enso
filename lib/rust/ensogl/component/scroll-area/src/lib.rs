@@ -67,6 +67,39 @@ ensogl_core::define_endpoints! {
         scroll_position_x (f32),
         /// The content's y coordinate at the top edge of the area.
         scroll_position_y (f32),
+        /// The visible content's height in px.
+        scroll_area_height (f32),
+        /// Position of the scroll viewport.
+        viewport(Viewport)
+    }
+}
+
+/// Coordinates of the visible viewport of the scroll area.
+#[derive(Clone, Debug, Copy, Default)]
+#[allow(missing_docs)]
+pub struct Viewport {
+    pub top:    f32,
+    pub bottom: f32,
+    pub left:   f32,
+    pub right:  f32,
+}
+
+impl Viewport {
+    /// Clamp the given coordinates to this viewport.
+    pub fn clamp(&self, pos: Vector2) -> Vector2 {
+        let x = pos.x.clamp(self.left, self.right);
+        let y = pos.y.clamp(self.bottom, self.top);
+        Vector2::new(x, y)
+    }
+
+    /// Return whether some object with the given position and size intersects the viewport and thus
+    /// should be visible.
+    pub fn intersects(&self, pos: Vector2, size: Vector2) -> bool {
+        let top = pos.y;
+        let bottom = pos.y - size.y;
+        let left = pos.x;
+        let right = pos.x + size.x;
+        !(top < self.bottom || bottom > self.top || left > self.right || right < self.left)
     }
 }
 
@@ -100,7 +133,10 @@ mod mask {
 #[derive(Debug, Clone, CloneRef)]
 struct Model {
     content:        display::object::Instance,
+    scrollbars:     display::object::Instance,
     display_object: display::object::InstanceWithLayer<layer::Masked>,
+    content_layer:  layer::Layer,
+    ui_layer:       layer::Layer,
     mask:           mask::View,
     h_scrollbar:    Scrollbar,
     v_scrollbar:    Scrollbar,
@@ -109,7 +145,8 @@ struct Model {
 impl Model {
     fn resize(&self, size: Vector2) {
         self.h_scrollbar.set_position_y(-size.y + scrollbar::WIDTH / 2.0);
-        self.v_scrollbar.set_position_x(size.x - scrollbar::WIDTH / 2.0);
+        let scrollbar_y = size.x - scrollbar::WIDTH / 2.0 + scrollbar::PADDING / 2.0 + 1.0;
+        self.v_scrollbar.set_position_x(scrollbar_y);
         self.h_scrollbar.set_position_x(size.x / 2.0);
         self.v_scrollbar.set_position_y(-size.y / 2.0);
         self.mask.size.set(size);
@@ -161,23 +198,38 @@ impl ScrollArea {
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
 
+        let content_layer = display_object.layer.masked_layer.create_sublayer();
+        let ui_layer = display_object.layer.masked_layer.create_sublayer();
+
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);
+        content_layer.add_exclusive(&content);
+
+        let scrollbars = display::object::Instance::new(&logger);
+        display_object.add_child(&scrollbars);
+        ui_layer.add_exclusive(&scrollbars);
 
         let mask = mask::View::new(&logger);
         display_object.add_child(&mask);
-
-        display_object.layer.masked_layer.add_exclusive(&content);
         display_object.layer.mask_layer.add_exclusive(&mask);
 
         let h_scrollbar = Scrollbar::new(app);
-        display_object.add_child(&h_scrollbar);
+        scrollbars.add_child(&h_scrollbar);
 
         let v_scrollbar = Scrollbar::new(app);
-        display_object.add_child(&v_scrollbar);
+        scrollbars.add_child(&v_scrollbar);
         v_scrollbar.set_rotation_z(-90.0_f32.to_radians());
 
-        let model = Model { display_object, content, v_scrollbar, h_scrollbar, mask };
+        let model = Model {
+            display_object,
+            content,
+            v_scrollbar,
+            h_scrollbar,
+            mask,
+            scrollbars,
+            content_layer,
+            ui_layer,
+        };
 
         let frp = Frp::new();
         let network = &frp.network;
@@ -192,6 +244,7 @@ impl ScrollArea {
             model.v_scrollbar.set_thumb_size <+ frp.resize.map(|size| size.y);
             model.h_scrollbar.set_length     <+ frp.resize.map(|size| size.x);
             model.v_scrollbar.set_length     <+ frp.resize.map(|size| size.y);
+            frp.source.scroll_area_height    <+ frp.resize.map(|size| size.y);
 
             eval frp.resize((size) model.resize(*size));
 
@@ -227,6 +280,23 @@ impl ScrollArea {
 
             eval frp.scroll_position_x((&pos) model.content.set_position_x(pos));
             eval frp.scroll_position_y((&pos) model.content.set_position_y(pos));
+
+            scroll_position <- all(&frp.scroll_position_x, &frp.scroll_position_y);
+            scroll_position <- scroll_position.map(|(x,y)| Vector2::new(*x,*y));
+
+            let scroll_dimension = frp.resize.clone_ref();
+
+            viewport <- all(&scroll_position,&scroll_dimension);
+            viewport <- viewport.map(|(position,dimension)|{
+                Viewport{
+                    top: -position.y,
+                    left: position.x,
+                    right: position.x + dimension.x,
+                    bottom: -position.y - dimension.y,
+                }
+            });
+            frp.source.viewport <+ viewport;
+
         }
 
 
@@ -264,6 +334,38 @@ impl ScrollArea {
 
     /// A scene layer containing the content of the ScrollArea.
     pub fn content_layer(&self) -> &layer::Layer {
-        &self.model.display_object.layer.masked_layer
+        &self.model.content_layer
+    }
+
+
+    /// Return whether some object with the given position and size is visible in the scoll area.
+    pub fn is_visible(&self, pos: Vector2, size: Vector2) -> bool {
+        use enso_frp::stream::ValueProvider;
+
+        let viewport = self.frp.source.viewport.value();
+        viewport.intersects(pos, size)
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_viewport_intersection() {
+        let viewport = Viewport { top: -100.0, bottom: -200.5, left: 0.0, right: 400.1 };
+        let should_not_intersect =
+            [(Vector2::new(200.66666, -250.0), Vector2::new(200.83333, 121.0))];
+
+        for (pos, size) in should_not_intersect.into_iter() {
+            assert!(!viewport.intersects(pos, size))
+        }
+
+        let should_intersect = [(Vector2::new(0.0, 0.0), Vector2::new(200.00, 200.0))];
+
+        for (pos, size) in should_intersect.into_iter() {
+            assert!(viewport.intersects(pos, size))
+        }
     }
 }

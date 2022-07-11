@@ -1,0 +1,17 @@
+[package]
+name = "enso-parser-generate-java"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+description = "Generates Java bindings and deserialization for Enso Parser AST types."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso"
+repository = "https://github.com/enso-org/enso"
+license-file = "../../LICENSE"
+
+[dependencies]
+enso-metamodel = { path = "../../metamodel", features = ["rust", "java"] }
+enso-prelude = { path = "../../prelude" }
+enso-parser = { path = ".." }
+enso-reflect = { path = "../../reflect", features = ["graphviz"] }
+derivative = "2.2"

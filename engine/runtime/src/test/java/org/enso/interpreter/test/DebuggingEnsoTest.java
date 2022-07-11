@@ -52,7 +52,7 @@ public class DebuggingEnsoTest {
             .buildLiteral();
 
     var module = ctx.eval(facSrc);
-    var facFn = module.invokeMember("eval_expression", "here.fac");
+    var facFn = module.invokeMember("eval_expression", "fac");
     final var dbg = Debugger.find(eng);
     final var values = new TreeSet<Integer>();
     try (var session = dbg.startSession((event) -> {

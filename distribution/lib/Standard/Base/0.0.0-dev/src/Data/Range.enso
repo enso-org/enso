@@ -27,7 +27,7 @@ type Range
     with_step : Integer -> Range
     with_step new_step = case new_step of
         Integer ->
-            if new_step == 0 then here.throw_zero_step_error else
+            if new_step == 0 then throw_zero_step_error else
                 if new_step < 0 then Error.throw (Illegal_Argument_Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
                     Range self.start self.end self.step.signum*new_step
         _ ->
@@ -66,7 +66,7 @@ type Range
     is_empty : Boolean
     is_empty = if self.step > 0 then self.end <= self.start else
         if self.step < 0 then self.start <= self.end else
-            here.throw_zero_step_error
+            throw_zero_step_error
 
     ## Checks if this range is not empty.
 
@@ -125,7 +125,7 @@ type Range
                 @Tail_Call go end_condition current+self.step
         if self.step > 0 then go (>=) self.start else
             if self.step < 0 then go (<=) self.start else
-                here.throw_zero_step_error
+                throw_zero_step_error
 
     ## Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
@@ -153,7 +153,7 @@ type Range
                 @Tail_Call go end_condition new_acc current+self.step
         if self.step > 0 then go (>=) init self.start else
             if self.step < 0 then go (<=) init self.start else
-                here.throw_zero_step_error
+                throw_zero_step_error
 
     ## Checks whether `predicate` is satisfied for all numbers in this range.
 
@@ -217,7 +217,7 @@ type Range
                     @Tail_Call go end_condition current+self.step
         if self.step > 0 then go (>=) self.start else
             if self.step < 0 then go (<=) self.start else
-                here.throw_zero_step_error
+                throw_zero_step_error
 
     ## Converts the range to a vector containing the numbers in the range.
 
@@ -240,7 +240,7 @@ type Range
         Integer ->
             if self.step > 0 then (value >= self.start) && (value < self.end) && (((value - self.start) % self.step) == 0) else
                 if self.step < 0 then (value <= self.start) && (value > self.end) && (((self.start - value) % (-self.step)) == 0) else
-                    here.throw_zero_step_error
+                    throw_zero_step_error
         ## In the future this will be handled by type-checking, but for now we
            add this so that we avoid a confusing
            `Range 0 10 . contains 3.0 == False` and get a type error for

@@ -1379,4 +1379,4 @@ spec =
             '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' matcher=Regex_Matcher . should_equal 'content is at url'
             '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '${text} is at ${address}' matcher=Regex_Matcher . should_equal 'content is at url'
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

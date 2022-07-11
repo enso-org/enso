@@ -78,7 +78,7 @@ type Span
          (Span (Range 1 3) text).to_utf_16_span == (Utf_16_Span (Range 1 4) text)
     to_utf_16_span : Utf_16_Span
     to_utf_16_span =
-        Utf_16_Span (here.range_to_char_indices self.text self.range) self.text
+        Utf_16_Span (range_to_char_indices self.text self.range) self.text
 
 type Utf_16_Span
 
