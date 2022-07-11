@@ -32,8 +32,6 @@ redshift_specific_spec connection pending =
         connection.execute_update 'DROP TABLE "'+tinfo+'"'
 
 run_tests connection pending=Nothing =
-    IO.println "Here we go..."
-
     prefix = "[Redshift] "
     name_counter = Ref.new 0
     tables = Vector.new_builder
@@ -122,7 +120,5 @@ spec =
         _ ->
             connection = Database.connect connection_details
             run_tests connection
-
-    IO.println "Here we stop..."
 
 main = Test.Suite.run_main spec
