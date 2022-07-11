@@ -1,3 +1,5 @@
+import Standard.Base.Data.Vector
+
 # Function types.
 type Function
 
@@ -7,3 +9,56 @@ type Function
        the this argument.
     @Builtin_Type
     type Function
+
+
+## An identity function which returns the provided argument.
+
+   Arguments:
+   - x: the value to return.
+
+   > Example
+     five = Function.identity 5 # returns number 5
+
+identity : a -> a
+identity x = x
+
+## Flips the first two arguments of a function. Returns function that
+   takes two arguments, but in opposite order.
+
+   Arguments:
+   - f function that takes two arguments
+
+   > Example
+    IO.println <| Function.flip (+) "world" "hello" # Prints 'helloworld'
+
+flip : (a -> b -> c) -> (b -> a -> c)
+flip f = (x -> y -> f y x)
+
+
+## Creates a function which drops its input and returns the provided value instead.
+   The expression const a is the same as \_ -> a.
+
+   Arguments:
+   - x constant value to return
+
+   > Example
+    IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
+
+const : a -> b -> a
+const x _ = x
+
+## Converts a single-argument function accepting a pair of elements into a multi-argument one.
+
+   Arguments:
+   - f function accepting pair of values
+
+curry : ([a, b] -> c) -> (a -> b -> c)
+curry f = x -> y -> f [x, y]
+
+## Converts a multi-argument function into a single-argument one accepting a pair of elements.
+
+   Arguments:
+   - f function accepting multiple arguments
+
+uncurry : (a -> b -> c) -> ([a, b] -> c)
+uncurry f = (pair -> f pair.head pair.second)
