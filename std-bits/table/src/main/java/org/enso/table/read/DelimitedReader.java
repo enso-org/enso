@@ -200,7 +200,14 @@ public class DelimitedReader {
     }
   }
 
-  private Row internalReadNextRow() {
+  /**
+   * Loads a next row from the CSV file.
+   *
+   * <p>This is an internal function that just loads the row but does not update the state nor take
+   * into consideration pending rows. The regular reading process should use {@code readNextRow}
+   * instead.
+   */
+  private Row loadNextRow() {
     long line = parser.getContext().currentLine() + 1;
     String[] cells = parser.parseNext();
     if (cells == null) return null;
@@ -209,15 +216,17 @@ public class DelimitedReader {
 
   private record Row(long lineNumber, String[] cells) {}
 
-  private final Deque<Row> pendingRows = new ArrayDeque<>(2);
+  private final Queue<Row> pendingRows = new ArrayDeque<>(2);
 
   /**
-   * Reads the next row and updates the current line accordingly.
+   * Reads the next row and updates the current line accordingly. It takes into consideration the
+   * pending rows that have already been loaded when inferring the headers but were still not
+   * processed.
    *
    * <p>Will return {@code null} if no more rows are available.
    */
   private String[] readNextRow() {
-    Row row = pendingRows.isEmpty() ? internalReadNextRow() : pendingRows.pop();
+    Row row = pendingRows.isEmpty() ? loadNextRow() : pendingRows.remove();
     if (row == null) {
       return null;
     }
@@ -308,18 +317,12 @@ public class DelimitedReader {
    *
    * Will return {@code null} if {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers were found inside of the file. */
   public String[] getDefinedColumnNames() {
-    if (effectiveColumnNames == null) {
-      detectHeaders();
-    }
-
+    ensureHeadersDetected();
     return definedColumnNames;
   }
 
   public int getColumnCount() {
-    if (effectiveColumnNames == null) {
-      detectHeaders();
-    }
-
+    ensureHeadersDetected();
     return effectiveColumnNames.length;
   }
 
@@ -331,7 +334,7 @@ public class DelimitedReader {
 
   private void detectHeaders() {
     skipFirstRows();
-    Row firstRow = internalReadNextRow();
+    Row firstRow = loadNextRow();
     if (firstRow == null) {
       effectiveColumnNames = new String[0];
       headerProblems = Collections.emptyList();
@@ -344,9 +347,10 @@ public class DelimitedReader {
 
     switch (headerBehavior) {
       case INFER -> {
-        Row secondRow = internalReadNextRow();
+        Row secondRow = loadNextRow();
         if (secondRow == null) {
-          // If there is only one row in the file, we generate the headers and stop further processing (as nothing more to process).
+          /** If there is only one row in the file, we generate the headers and
+           * stop further processing (as nothing more to process). */
           headerNames = generateDefaultHeaders(expectedColumnCount);
           pendingRows.add(firstRow);
         } else {
@@ -385,7 +389,7 @@ public class DelimitedReader {
 
   private void skipFirstRows() {
     for (long i = 0; i < skipRows; ++i) {
-      internalReadNextRow();
+      loadNextRow();
     }
   }
 
