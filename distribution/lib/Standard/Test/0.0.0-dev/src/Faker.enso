@@ -48,7 +48,7 @@ type Faker
        - upper_case: use upper_case letters
     alpha : Integer->Boolean->Text
     alpha length=1 upper_case=False =
-        alphabet = if upper_case then here.upper_case_letters else here.lower_case_letters
+        alphabet = if upper_case then upper_case_letters else lower_case_letters
         self.string_value <| 0.up_to length . map _->alphabet
 
     ## Generates a Text consisting of lower/upper case characters and digits.
@@ -58,7 +58,7 @@ type Faker
        - upper_case: use upper_case letters
     alpha_numeric : Integer->Boolean->Text
     alpha_numeric length=1 upper_case=False =
-        alphabet = (if upper_case then here.upper_case_letters else here.lower_case_letters) + here.numbers
+        alphabet = (if upper_case then upper_case_letters else lower_case_letters) + numbers
         self.string_value <| 0.up_to length . map _->alphabet
 
     ## Generates a Text for a hexadecimal number

@@ -39,6 +39,7 @@ pub(crate) fn serialize_cow<S>(cow: &Cow<'_, str>, ser: S) -> Result<S::Ok, S::E
 where S: serde::Serializer {
     let s = match cow {
         Cow::Borrowed(s) => *s,
+        Cow::Owned(s) if s.is_empty() => "",
         Cow::Owned(_) => panic!(),
     };
     let begin = s.as_ptr() as u32;

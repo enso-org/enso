@@ -44,7 +44,7 @@ read_file format file on_problems =
        exceptions), we can catch the exception indicating the limit has been
        reached and restart parsing with an increased limit.
     file.with_input_stream [File.Option.Read] stream->
-        here.read_stream format stream on_problems related_file=file
+        read_stream format stream on_problems related_file=file
 
 read_text : Text -> Delimited -> Problem_Behavior -> Table
 read_text text format on_problems =
@@ -73,7 +73,7 @@ read_stream format stream on_problems max_columns=4096 related_file=Nothing =
 
     handle_io_exception <|
         stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
-            here.read_from_reader format reporting_stream_decoder on_problems max_columns
+            read_from_reader format reporting_stream_decoder on_problems max_columns
 
 ## PRIVATE
    Reads data from the provided `Reader` according to the provided format.
@@ -107,7 +107,7 @@ read_from_reader format java_reader on_problems max_columns=4096 =
     handle_illegal_arguments = Panic.catch IllegalArgumentException handler=translate_illegal_argument
 
     translate_parsing_failure caught_panic =
-        Error.throw (here.translate_reader_problem caught_panic.payload.cause.problem)
+        Error.throw (translate_reader_problem caught_panic.payload.cause.problem)
     handle_parsing_failure = Panic.catch ParsingFailedException handler=translate_parsing_failure
 
     translate_parsing_exception caught_panic =
@@ -133,7 +133,7 @@ read_from_reader format java_reader on_problems max_columns=4096 =
             TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
         reader = DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
         result_with_problems = reader.read
-        parsing_problems = Vector.Vector (result_with_problems.problems) . map here.translate_reader_problem
+        parsing_problems = Vector.Vector (result_with_problems.problems) . map translate_reader_problem
         on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
 
 translate_reader_problem problem =

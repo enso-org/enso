@@ -16,7 +16,7 @@ import org.enso.interpreter.Constants
 
 import scala.annotation.unused
 
-/** Resolves and desugars referent name occurences in non-pattern contexts.
+/** Resolves name occurences in non-pattern contexts.
   *
   * 1. Attaches resolution metadata to encountered constructors, modules,
   *    and polygot symbols.
@@ -26,7 +26,7 @@ import scala.annotation.unused
   *    if `consName` refers to a constructor and `KnownModule` was successfully
   *    resolved to a module.
   */
-case object UppercaseNames extends IRPass {
+case object GlobalNames extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
   override type Metadata = BindingsMap.Resolution
@@ -119,8 +119,8 @@ case object UppercaseNames extends IRPass {
   ): IR.Expression =
     ir.transformExpressions {
       case lit: IR.Name.Literal =>
-        if (lit.isReferent && !isLocalVar(lit)) {
-          val resolution = bindings.resolveUppercaseName(lit.name)
+        if (!lit.isMethod && !isLocalVar(lit)) {
+          val resolution = bindings.resolveName(lit.name)
           resolution match {
             case Left(error) =>
               IR.Error.Resolution(
@@ -130,22 +130,34 @@ case object UppercaseNames extends IRPass {
             case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
               if (isInsideApplication) {
                 lit.updateMetadata(this -->> BindingsMap.Resolution(r))
-
               } else {
                 val self = freshNameSupply
-                  .newName(isReferent = true)
+                  .newName()
                   .updateMetadata(
                     this -->> BindingsMap.Resolution(
                       BindingsMap.ResolvedModule(mod)
                     )
                   )
-                val fun = lit.copy(name = method.name)
+                // The synthetic applications gets the location so that instrumentation
+                // identifies the node correctly
+                val fun = lit.copy(
+                  name     = method.name,
+                  location = None
+                )
                 val app = IR.Application.Prefix(
                   fun,
                   List(IR.CallArgument.Specified(None, self, None)),
                   hasDefaultsSuspended = false,
-                  None
+                  lit.location
                 )
+                fun
+                  .getMetadata(ExpressionAnnotations)
+                  .foreach(annotationsMeta =>
+                    app.updateMetadata(
+                      ExpressionAnnotations -->> annotationsMeta
+                    )
+                  )
+                fun.passData.remove(ExpressionAnnotations)
                 app
               }
             case Right(value) =>
@@ -155,9 +167,9 @@ case object UppercaseNames extends IRPass {
         } else { lit }
       case app: IR.Application.Prefix =>
         app.function match {
-          case n: IR.Name.Literal =>
-            if (n.isReferent)
-              resolveReferantApplication(app, bindings, freshNameSupply)
+          case lit: IR.Name.Literal =>
+            if (!lit.isMethod)
+              resolveReferantApplication(app, lit, bindings, freshNameSupply)
             else resolveLocalApplication(app, bindings, freshNameSupply)
           case _ =>
             app.mapExpressions(processExpression(_, bindings, freshNameSupply))
@@ -168,6 +180,7 @@ case object UppercaseNames extends IRPass {
 
   private def resolveReferantApplication(
     app: IR.Application.Prefix,
+    fun: IR.Name.Literal,
     bindingsMap: BindingsMap,
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
@@ -181,27 +194,21 @@ case object UppercaseNames extends IRPass {
       _.mapExpressions(processExpression(_, bindingsMap, freshNameSupply))
     )
     processedFun.getMetadata(this) match {
-      case Some(Resolution(ResolvedMethod(mod, method))) =>
+      case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
         val self = freshNameSupply
-          .newName(isReferent = true)
+          .newName()
           .updateMetadata(
             this -->> BindingsMap.Resolution(
               BindingsMap.ResolvedModule(mod)
             )
           )
         val selfArg = IR.CallArgument.Specified(None, self, None)
-        processedFun.passData.remove(this)
-        val renamed = rename(processedFun, method.name)
-        app.copy(function = renamed, arguments = selfArg :: processedArgs)
-      case _ => app.copy(function = processedFun, arguments = processedArgs)
+        processedFun.passData.remove(this) // Necessary for IrToTruffle
+        app.copy(function = processedFun, arguments = selfArg :: processedArgs)
+      case _ =>
+        app.copy(function = processedFun, arguments = processedArgs)
     }
   }
-
-  private def rename(name: IR.Expression, newName: String): IR.Expression =
-    name match {
-      case lit: IR.Name.Literal => lit.copy(name = newName)
-      case _                    => name
-    }
 
   private def resolveLocalApplication(
     app: IR.Application.Prefix,
@@ -249,7 +256,7 @@ case object UppercaseNames extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
     freshNameSupply
-      .newName(isReferent = true)
+      .newName()
       .updateMetadata(this -->> BindingsMap.Resolution(cons))
   }
 
@@ -286,7 +293,7 @@ case object UppercaseNames extends IRPass {
   private def asGlobalVar(ir: IR): Option[IR.Name.Literal] =
     ir match {
       case name: IR.Name.Literal =>
-        if (isLocalVar(name) || name.isReferent) None else Some(name)
+        if (isLocalVar(name)) None else Some(name)
       case _ => None
     }
 

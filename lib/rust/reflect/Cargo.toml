@@ -10,4 +10,5 @@ enso-metamodel = { path = "../metamodel", features = ["rust"] }
 derivative = "2.2"
 
 [features]
+default = ["graphviz"]
 graphviz = ["enso-metamodel/graphviz"]

@@ -254,7 +254,7 @@ type Time
 
              example_zone = Time.now.zone
     zone : Zone
-    zone = Zone.zone (self . internal_zoned_date_time . getZone)
+    zone = Zone.Zone self.internal_zoned_date_time.getZone
 
     ## Return the number of seconds from the Unix epoch.
 
@@ -288,7 +288,7 @@ type Time
 
              example_time_of_day = Time.now.time_of_day
     time_of_day : Time_Of_Day
-    time_of_day = Time_Of_Day.time_of_day self.internal_zoned_date_time.toLocalTime
+    time_of_day = Time_Of_Day.Time_Of_Day self.internal_zoned_date_time.toLocalTime
 
     ## ALIAS Time to Date
 
@@ -302,7 +302,7 @@ type Time
 
              example_date = Time.now.date
     date : Date
-    date = Date.date self.internal_zoned_date_time.toLocalDate
+    date = Date.Date self.internal_zoned_date_time.toLocalDate
 
     ## ALIAS Change Time Zone
 

@@ -10,16 +10,16 @@ type Problem_Builder
     type Problem_Builder oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
 
     report_oob_indices indices =
-        here.append_to_ref self.oob_indices indices
+        append_to_ref self.oob_indices indices
 
     report_duplicate_column_selectors selectors =
-        here.append_to_ref self.duplicate_column_selectors selectors
+        append_to_ref self.duplicate_column_selectors selectors
 
     report_input_indices_already_matched indices =
-        here.append_to_ref self.input_indices_already_matched indices
+        append_to_ref self.input_indices_already_matched indices
 
     report_missing_input_columns columns =
-        here.append_to_ref self.missing_input_columns columns
+        append_to_ref self.missing_input_columns columns
 
     report_column_matched_by_multiple_selectors column_name selectors =
         self.report_other_warning (Column_Matched_By_Multiple_Selectors column_name selectors)

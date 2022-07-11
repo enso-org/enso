@@ -25,7 +25,7 @@ Table.Table.linear_regression : Text -> Text -> Vector Number ! Fit_Error
 Table.Table.linear_regression x_column y_column =
     x_values = self.at x_column
     y_values = self.at y_column
-    here.linear_regression x_values y_values
+    linear_regression x_values y_values
 
 ## Compute the linear regression between the x and y coordinates, returning a
    vector containing the slope in the first position and the bias in the second.

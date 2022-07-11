@@ -98,12 +98,12 @@ run_tests connection pending=Nothing =
     materialize = .to_dataframe
 
     Common_Spec.spec prefix connection pending=pending
-    here.postgres_specific_spec connection pending=pending
+    postgres_specific_spec connection pending=pending
     common_selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=True order_by_unicode_normalization_by_default=True
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection pending=pending
 
     selection = Aggregate_Spec.Test_Selection first_last_row_order=False aggregation_problems=False
-    agg_in_memory_table = (Enso_Project.data / "data.csv") . read
+    agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
@@ -122,10 +122,10 @@ spec =
         True ->
             message = "PostgreSQL test database is not configured. See README.md for instructions."
             connection = Error.throw message
-            here.run_tests connection pending=message
+            run_tests connection pending=message
         False ->
             db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
             connection = Database.connect (PostgreSQL (db_host_port.at 0) db_port db_name (Credentials db_user db_password))
-            here.run_tests connection
+            run_tests connection
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

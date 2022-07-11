@@ -16,7 +16,7 @@ sum_list_meta list =
     res = folder 0 list
     res
 
-sum_recur n = if n == 0 then 0 else 1 + here.sum_recur n-1
+sum_recur n = if n == 0 then 0 else 1 + sum_recur n-1
 
 build_map size =
     rand = Random.new
@@ -24,11 +24,11 @@ build_map size =
 
 main =
     mil = 1000000
-    list = here.gen_list mil
+    list = gen_list mil
     vec = Vector.new mil (ix -> ix + 1)
     vec_decimal = Vector.new mil (ix -> ix + 0.0)
-    Bench.measure (here.sum_list_meta list) "list meta-fold" 1000 10
+    Bench.measure (sum_list_meta list) "list meta-fold" 1000 10
     Bench.measure (list.fold 0 (+)) "list fold" 1000 10
     Bench.measure (vec.fold 0 (+)) "vector fold" 1000 10
     Bench.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
-    Bench.measure (here.build_map 10000) "build a map" 100 10
+    Bench.measure (build_map 10000) "build a map" 100 10

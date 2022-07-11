@@ -1743,7 +1743,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           |quux x = x
           |
           |main =
-          |    here.quux A
+          |    quux A
           |    A.quux A""".stripMargin
       val module = code.preprocessModule
 

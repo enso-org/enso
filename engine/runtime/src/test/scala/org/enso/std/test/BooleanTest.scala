@@ -49,7 +49,7 @@ class BooleanTest extends InterpreterTest {
           |    _ -> 10
           |
           |main =
-          |    here.to_num True + here.to_num False
+          |    to_num True + to_num False
           |""".stripMargin
       eval(code) shouldEqual 3
     }

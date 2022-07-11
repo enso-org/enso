@@ -36,11 +36,11 @@ spec = Test.group "Locale" <|
         locale = Locale.from_language_tag "en-US-x-lvariant-UTF-8"
         locale.variant . should_equal "UTF_8"
     Test.specify "should allow getting the display language" <|
-        here.with_locale Locale.us <|
+        with_locale Locale.us <|
             display = Locale.from_language_tag "en-GB" . display_language
             display . should_equal "English"
     Test.specify "should allow getting the display country" <|
-        here.with_locale Locale.us <|
+        with_locale Locale.us <|
             display = Locale.from_language_tag "en-GB" . display_country
             display . should_equal "United Kingdom"
     Test.specify "should allow getting the display variant" <|
@@ -75,4 +75,4 @@ spec = Test.group "Locale" <|
         Locale.uk . should_equal Locale.uk
         Locale.uk . should_not_equal Locale.us
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

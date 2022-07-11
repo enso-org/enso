@@ -4,17 +4,17 @@ import Standard.Test
 type My_Type
 
 bar = Runtime.get_stack_trace
-baz = here.bar
-Number.foo = here.baz
+baz = bar
+Number.foo = baz
 foo x = x.foo
-My_Type.foo = here.foo 123
+My_Type.foo = foo 123
 
 spec = Test.group "Stack traces" <|
     Test.specify "should capture traces correctly" <|
-        modname = Meta.Constructor (Meta.meta here . constructor) . name
+        modname = Meta.Constructor (Meta.meta Stack_Traces_Spec . constructor) . name
         stack = My_Type.foo
         names = [modname + ".bar", modname + ".baz", "Number.foo", modname + ".foo", "My_Type.foo"]
         stack.take_start 5 . map .name . should_equal names
-        file = Enso_Project.root / 'src' / 'Runtime' / 'Stack_Traces_Spec.enso'
+        file = enso_project.root / 'src' / 'Runtime' / 'Stack_Traces_Spec.enso'
         stack.take_start 5 . map (.source_location >> .file) . each (_.should_equal file)
 

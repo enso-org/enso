@@ -55,7 +55,7 @@ new columns =
         case c of
             Vector.Vector _ -> Column.from_vector (c.at 0) (c.at 1) . java_column
             Column.Column java_col -> java_col
-    here.from_columns cols
+    from_columns cols
 
 ## Creates a new table from a vector of column names and a vector of vectors
    specifying row contents.
@@ -80,7 +80,7 @@ new columns =
 from_rows : Vector.Vector -> Vector.Vector -> Table
 from_rows header rows =
     columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
-    here.new columns
+    new columns
 
 ## ALIAS Join Tables
 
@@ -167,7 +167,7 @@ type Table
             cols = col_vals.map col->
                 if col.isNa row_num then "Nothing" else Column.get_item_string col row_num
             [index.ilocString row_num] + cols
-        table = here.print_table col_names rows 1 format_terminal
+        table = print_table col_names rows 1 format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -301,7 +301,7 @@ type Table
     select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
-        here.new new_columns
+        new new_columns
 
     ## Returns a new table with the chosen set of columns, as specified by the
        `columns`, removed from the input table. Any unmatched input columns will
@@ -350,7 +350,7 @@ type Table
     remove_columns : Column_Selector -> Problem_Behavior -> Table
     remove_columns (columns = By_Index [0]) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.remove_columns internal_columns=self.columns selector=columns on_problems=on_problems
-        here.new new_columns
+        new new_columns
 
     ## Returns a new table with the specified selection of columns moved to
        either the start or the end in the specified order.
@@ -404,7 +404,7 @@ type Table
     reorder_columns : Column_Selector -> Position.Position -> Problem_Behavior -> Table
     reorder_columns (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.reorder_columns internal_columns=self.columns selector=columns position=position on_problems=on_problems
-        here.new new_columns
+        new new_columns
 
     ## Returns a new table with the columns sorted by name according to the
        specified sort method. By default, sorting will be according to
@@ -432,7 +432,7 @@ type Table
     sort_columns : Sort_Direction -> Text_Ordering -> Table
     sort_columns direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
         new_columns = Table_Helpers.sort_columns internal_columns=self.columns direction text_ordering
-        here.new new_columns
+        new new_columns
 
     ## Returns a new table with the columns renamed based on either a mapping
        from the old name to the new or a positional list of new names.
@@ -466,7 +466,7 @@ type Table
         new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
         if new_names.is_error then new_names else
             new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
-            here.new new_columns
+            new new_columns
 
     ## Returns a new table with the columns renamed based on entries in the
        first row.
@@ -683,7 +683,7 @@ type Table
 
         ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
            https://github.com/enso-org/enso/pull/3400
-        result = here.new new_columns
+        result = new new_columns
         on_problems.attach_problems_after result problem_builder.to_vector
 
     ## ALIAS Filter Rows
@@ -895,7 +895,7 @@ type Table
     info : Table
     info =
         cols = self.columns
-        here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
+        new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
 
     ## UNSTABLE
 
@@ -1045,7 +1045,7 @@ type Table
 
              import Standard.Examples
 
-             example_to_json = Examples.inventory_table.write_json (Enso_Project.data / 'example.json')
+             example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
     write_json : File.File -> Nothing
     write_json file = self.to_json.to_text.write file
 
@@ -1109,7 +1109,7 @@ type Table
              import Standard.Examples
              import Standard.Table
 
-             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") File_Format.Excel
+             example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") File_Format.Excel
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         format.write_table (File.new path) self on_existing_file match_columns on_problems
@@ -1203,11 +1203,11 @@ print_table header rows indices_count format_term =
     content_lengths = Vector.new header.length i->
         max_row = 0.up_to rows.length . fold 0 a-> j-> Math.max a (rows.at j . at i . characters . length)
         Math.max max_row (header.at i . characters . length)
-    header_line = header.zip content_lengths here.pad . map (here.ansi_bold format_term) . join ' | '
+    header_line = header.zip content_lengths pad . map (ansi_bold format_term) . join ' | '
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
-        x = r.zip content_lengths here.pad
-        ixes = x.take_start indices_count . map (here.ansi_bold format_term)
+        x = r.zip content_lengths pad
+        ixes = x.take_start indices_count . map (ansi_bold format_term)
         with_bold_ix = ixes + x.drop_start indices_count
         y = with_bold_ix . join ' | '
         " " + y
