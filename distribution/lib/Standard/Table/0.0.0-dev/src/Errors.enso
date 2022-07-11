@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+polyglot java import org.enso.table.error.ColumnCountMismatchException
+polyglot java import org.enso.table.error.ColumnNameMismatchException
+
 ## One or more columns not found in the input table.
    Can occur when using By_Name or By_Column.
 type Missing_Input_Columns (criteria : [Text])
@@ -196,9 +199,23 @@ Column_Count_Mismatch.to_display_text : Text
 Column_Count_Mismatch.to_display_text =
     "Expected " + self.expected.to_text + " columns, got " + self.actual.to_text + "."
 
+## PRIVATE
+Column_Count_Mismatch.handle_java_exception =
+    throw_column_count_mismatch caught_panic =
+        cause = caught_panic.payload.cause
+        Error.throw (Column_Count_Mismatch cause.getExpected cause.getActual)
+    Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
+
 ## Indicates that the existing table has a different set of column names to the
    new table.
-type Column_Name_Mismatch expected actual message
+type Column_Name_Mismatch missing extras message
 
 Column_Name_Mismatch.to_display_text : Text
 Column_Name_Mismatch.to_display_text = self.message
+
+## PRIVATE
+Column_Name_Mismatch.handle_java_exception =
+    throw_column_name_mismatch caught_panic =
+        cause = caught_panic.payload.cause
+        Error.throw (Column_Name_Mismatch (Vector.Vector cause.getMissing) (Vector.Vector cause.getExtras) cause.getMessage)
+    Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
