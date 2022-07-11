@@ -59,8 +59,10 @@ type Redshift
             AWS_Key db_user access_key secret_access_key ->
                 [Pair 'user' db_user, Pair 'AccessKeyID' access_key, Pair 'SecretAccessKey' secret_access_key]
             Credentials username password ->
-                [Pair 'user' username, Pair 'password' password]
 
+       [Pair 'user' username, Pair 'password' password]
+
+        ## Disabled as Redshift SSL settings are different to PostgreSQL.
         ## ssl_properties = PostgreSQL.PostgreSQL.ssl_mode_to_jdbc_properties self.use_ssl
         ssl_properties = []
 
@@ -74,6 +76,18 @@ type Redshift
     dialect = Dialect.redshift
 
 type AWS_Profile
+    ## Access Redshift using IAM via an AWS profile.
+    
+       Arguments:
+       - db_user: Redshift username to connect as.
+       - profile: AWS profile name (if empty uses default).
     type AWS_Profile db_user:Text profile:Text=''
 
+
+    ## Access Redshift using IAM via an AWS access key ID and secret access key.
+    
+       Arguments:
+       - db_user: Redshift username to connect as.
+       - access_key: AWS access key ID.
+       - secret_access_key: AWS secret access key.
     type AWS_Key db_user:Text access_key:Text secret_access_key:Text
