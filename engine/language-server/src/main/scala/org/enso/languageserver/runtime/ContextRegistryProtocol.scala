@@ -23,8 +23,12 @@ object ContextRegistryProtocol {
   /** A request to the context registry to create a new execution context.
     *
     * @param rpcSession reference to the client
+    * @param contextId the context id to create
     */
-  case class CreateContextRequest(rpcSession: JsonSession)
+  case class CreateContextRequest(
+    rpcSession: JsonSession,
+    contextId: Option[ContextId]
+  )
 
   /** A response about creation of a new execution context.
     *
