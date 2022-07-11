@@ -87,6 +87,8 @@ public class DelimitedReader {
       DatatypeParser valueParser,
       TypeInferringParser cellTypeGuesser,
       boolean keepInvalidRows,
+      String newline,
+      String commentCharacter,
       boolean warningsAsErrors) {
     if (delimiter.isEmpty()) {
       throw new IllegalArgumentException("Empty delimiters are not supported.");
@@ -140,23 +142,43 @@ public class DelimitedReader {
 
     this.valueParser = valueParser;
     this.cellTypeGuesser = cellTypeGuesser;
-    parser = setupCsvParser(input);
+    parser = setupCsvParser(input, newline, commentCharacter);
   }
 
   /** Creates a {@code CsvParser} according to the settings specified at construction. */
-  private CsvParser setupCsvParser(Reader input) {
+  private CsvParser setupCsvParser(Reader input, String newline, String commentCharacter) {
     CsvParserSettings settings = new CsvParserSettings();
     settings.setHeaderExtractionEnabled(false);
     CsvFormat format = new CsvFormat();
     format.setDelimiter(delimiter);
     format.setQuote(quoteCharacter);
     format.setQuoteEscape(quoteEscapeCharacter);
-    settings.setFormat(format);
     settings.setMaxCharsPerColumn(-1);
     settings.setMaxColumns(maxColumns);
     settings.setSkipEmptyLines(false);
     settings.setKeepQuotes(true);
-    settings.setLineSeparatorDetectionEnabled(true);
+
+    if (newline == null) {
+      settings.setLineSeparatorDetectionEnabled(true);
+    } else {
+      if (newline.length() > 2 || newline.isEmpty()) {
+        throw new IllegalArgumentException("The newline sequence should consist of at least 1 and at most 2 characters (codepoints).");
+      }
+      format.setLineSeparator(newline);
+    }
+
+    if (commentCharacter == null) {
+      format.setComment('\0');
+    } else {
+      if (commentCharacter.length() != 1) {
+        throw new IllegalArgumentException("The comment character should be set to Nothing or consist of exactly one character (codepoint).");
+      }
+
+      format.setComment(commentCharacter.charAt(0));
+    }
+
+    settings.setFormat(format);
+    settings.setNumberOfRowsToSkip(skipRows);
     CsvParser parser = new CsvParser(settings);
     parser.beginParsing(input);
     return parser;
@@ -333,7 +355,6 @@ public class DelimitedReader {
   }
 
   private void detectHeaders() {
-    skipFirstRows();
     Row firstRow = loadNextRow();
     if (firstRow == null) {
       effectiveColumnNames = new String[0];
@@ -384,12 +405,6 @@ public class DelimitedReader {
     effectiveColumnNames = headerNames.value().toArray(new String[0]);
     if (wereHeadersDefined) {
       definedColumnNames = effectiveColumnNames;
-    }
-  }
-
-  private void skipFirstRows() {
-    for (long i = 0; i < skipRows; ++i) {
-      loadNextRow();
     }
   }
 

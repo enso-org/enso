@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Table
 
 import Standard.Base.Error.Common as Errors
+import Standard.Base.System
 import Standard.Table.Data.Match_Columns
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding

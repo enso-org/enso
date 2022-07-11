@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Table
 
 import Standard.Base.Error.Common as Errors
+import Standard.Base.System
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
@@ -129,7 +130,7 @@ write_to_writer table format java_writer =
         Quote_Style.No_Quotes -> Pair Nothing Nothing
         Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
     write_headers = should_write_headers format.headers
-    new_line = '\n'
+    new_line = format.line_separator.if_nothing System.default_line_separator
     writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter new_line quote_characters.first quote_characters.second quote_behavior write_headers
     writer.write table.java_table
 
