@@ -48,9 +48,8 @@ now = Time_Of_Day LocalTime.now
          example_epoch = Time_Of_Day.new hour=9 minute=30
 new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time.Time_Error
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Panic.recover Any (Time_Of_Day (LocalTime.of hour minute second nanosecond)) . catch e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
-        x -> x
+    Panic.catch_java Any (Time_Of_Day (LocalTime.of hour minute second nanosecond)) java_exception->
+        Error.throw (Time.Time_Error java_exception.getMessage)
 
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -97,8 +96,8 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
          import Standard.Base.Data.Time
          import Standard.Base.Data.Time.Time_Of_Day
 
-         example_parse = Time_Of_Day.parse "half twelve" . catch e-> case e of
-             Time.Time_Error _ -> Time_Of_Day.new
+         example_parse = Time_Of_Day.parse "half twelve" . catch Time.Time_Error _->
+             Time_Of_Day.new
 
    > Example
      Parse "04:30:20" as Time_Of_Day.

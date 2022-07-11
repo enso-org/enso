@@ -10,7 +10,6 @@ import Standard.Base.Network.Http.Request
 import Standard.Base.Network.Http.Request.Body as Request_Body
 import Standard.Base.Network.Http.Response
 import Standard.Base.Network.Http.Version
-import Standard.Base.Network.Internal
 import Standard.Base.Network.Proxy
 import Standard.Base.Network.Uri
 import Standard.Base.System.File
@@ -597,11 +596,13 @@ type Http
                  http.request req
     request : Request -> Response ! Request_Error
     request req =
-        response = Panic.recover Any <|
+        handle_request_error =
+            Panic.catch_java Any handler=(err-> Error.throw (Request_Error err.getClass.getSimpleName err.getMessage))
+        Panic.recover Any <| handle_request_error <|
             body_publishers = HttpRequest.BodyPublishers
             builder = HttpRequest.newBuilder
             # set uri
-            builder.uri (Internal.panic_on_error req.uri.internal_uri)
+            builder.uri (Panic.rethrow req.uri.internal_uri)
             # prepare headers and body
             req_with_body = case req.body of
                 Request_Body.Empty ->
@@ -651,11 +652,6 @@ type Http
             http_request = builder.build
             body_handler = HttpResponse.BodyHandlers . ofByteArray
             Response.Response (self.internal_http_client.send http_request body_handler)
-        response.catch e-> case e of
-            Polyglot_Error err ->
-                Error.throw (Request_Error err.getClass.getSimpleName err.getMessage)
-            _ ->
-                Error.throw e
 
     ## PRIVATE
 

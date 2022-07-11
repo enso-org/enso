@@ -198,7 +198,7 @@ type Table
              example_to_json = Examples.inventory_table.to_json
     to_json : Json
     to_json =
-        index_prep = case self.index.catch (_->Nothing) of
+        index_prep = case self.index.catch No_Index_Set_Error (_->Nothing) of
             Nothing -> []
             index -> [index]
         cols = index_prep + self.columns
