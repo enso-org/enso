@@ -61,4 +61,4 @@ curry f = x -> y -> f [x, y]
    - f function accepting multiple arguments
 
 uncurry : (a -> b -> c) -> ([a, b] -> c)
-uncurry f = (pair -> f pair.head pair.tail.head)
+uncurry f = (pair -> f pair.head pair.second)
