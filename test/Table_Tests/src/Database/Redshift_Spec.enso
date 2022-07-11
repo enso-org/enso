@@ -76,14 +76,19 @@ connect_via_json_config =
         creds = Json.parse credentials.read_text . unwrap
         access_key = creds.get 'access_key_id'
         secret_key = creds.get 'secret_access_key'
-        uri = creds.get 'db_uri'
+        uri = uri_parse (creds.get 'db_uri')
+        db_uri = uri.at 0
+        db_port = uri.at 1
+        db_name = uri.at 2
+
         user = creds.get 'db_user'
-        Redshift uri credentials=(AWS_Key user access_key secret_key)
+        Redshift db_uri db_port db_name credentials=(AWS_Key user access_key secret_key)
 
 connect_via_aws_environment db_host_port =
-    db_host_port_split = db_host_port.split ':'
+    db_host_port_split = uri_parse db_host_port
     db_uri = db_host_port_split.at 0
-    db_port = if db_host_port_split.length == 1 then 5439 else Integer.parse (db_host_port_split.at 1)
+    db_port = db_host_port_split.at 1
+    db_name = db_host_port_split.at 2
 
     db_user = Environment.get "ENSO_REDSHIFT_USER"
     access_key = Environment.get "AWS_ACCESS_KEY_ID"
@@ -92,7 +97,18 @@ connect_via_aws_environment db_host_port =
     credentials = if (access_key.is_nothing || secret_key.is_nothing) then AWS_Profile db_user (Environment.get "AWS_PROFILE" . if_nothing '') else
         AWS_Key db_user access_key secret_key
 
-    Redshift db_uri db_port credentials=credentials
+    Redshift db_uri db_port db_name credentials=credentials
+
+ uri_parse uri =
+    host_db_split = uri.split '/'
+    host_split = host_db_split.at 0 . split ':'
+
+    db_host = host_split.first
+    db_port = if host_split.length == 1 then 5439 else
+        Integer.parse (host_split.at 1)
+
+    db_name = if host_db_split.length == 1 then '' else host_db_split.at 1
+    [db_host, db_port, db_name]
 
 spec =
     db_host_port = Environment.get "ENSO_REDSHIFT_URI"
