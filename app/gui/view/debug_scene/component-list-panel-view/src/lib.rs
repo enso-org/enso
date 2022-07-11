@@ -134,7 +134,7 @@ fn mock_data() -> Vec<LabeledAnyModelProvider> {
     .enumerate()
     .map(|(index, mock_entries)| LabeledAnyModelProvider {
         content: AnyModelProvider::from(mock_entries.clone_ref()),
-        label:   format!("Header {}", index).into(),
+        label:   format!("Header {}", index),
     })
     .collect_vec()
 }
