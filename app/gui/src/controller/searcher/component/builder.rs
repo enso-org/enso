@@ -171,6 +171,10 @@ impl List {
     /// Build the list, sorting all group lists and groups' contents appropriately. Filter the
     /// [`component::List::favorites`] (only components with IDs passed to [`extend`] are
     /// retained), do not sort them.
+    ///
+    /// If a component group in favorites is empty after the filtering, the empty group is
+    /// retained. This allows layoing out the favorites in [Component
+    /// Browser](crate::controller::Searcher) in the same columns regardless of filtering.
     pub fn build(mut self) -> component::List {
         let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
@@ -342,12 +346,15 @@ mod tests {
         assert_eq!(local_scope_ids, expected_ids);
     }
 
+    /// Test building a component list with non-empty favorites. Verify that the favorites are
+    /// processed as described in the docs of the [`List::build`] method.
     #[test]
     fn building_component_list_with_favorites() {
         let logger = Logger::new("tests::building_component_list_with_favorites");
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
         let qn_of_db_entry_3 = db.lookup(3).unwrap().qualified_name();
         const QN_NOT_IN_DB: &str = "test.Test.NameNotInSuggestionDb";
         assert_eq!(db.lookup_by_qualified_name_str(QN_NOT_IN_DB), None);
@@ -361,6 +368,7 @@ mod tests {
                     QN_NOT_IN_DB.into(),
                     qn_of_db_entry_3.clone(),
                     QN_NOT_IN_DB.into(),
+                    qn_of_db_entry_1,
                     qn_of_db_entry_0,
                 ],
             },
@@ -383,7 +391,7 @@ mod tests {
             ComparableGroupData {
                 name:         "Group 1",
                 component_id: None,
-                entries:      vec![0, 0],
+                entries:      vec![0, 1, 0],
             },
             ComparableGroupData {
                 name:         "Group 2",
