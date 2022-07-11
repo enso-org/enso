@@ -26,7 +26,9 @@
 // ==============
 
 pub mod entry;
+pub mod visible_area;
 
+pub use visible_area::VisibleArea;
 
 
 /// Commonly used types and functions.
@@ -61,47 +63,6 @@ const DEFAULT_STYLE_PATH: &str = theme::widget::list_view::HERE.str;
 
 pub type Row = usize;
 pub type Col = usize;
-
-#[derive(Copy, Clone, Debug, Default)]
-pub struct VisibleArea {
-    left_top: Vector2,
-    size:     Vector2,
-}
-
-impl VisibleArea {
-    fn right_bottom(&self) -> Vector2 {
-        self.left_top + Vector2(self.size.x, -self.size.y)
-    }
-
-    fn all_visible_locations(
-        &self,
-        entry_size: Vector2,
-        row_count: usize,
-        col_count: usize,
-    ) -> impl Iterator<Item = (Row, Col)> {
-        let visible_rows = self.visible_rows(entry_size, row_count);
-        let visible_cols = self.visible_columns(entry_size, col_count);
-        itertools::iproduct!(visible_rows, visible_cols)
-    }
-
-    fn visible_rows(&self, entry_size: Vector2, row_count: usize) -> Range<Row> {
-        let right_bottom = self.right_bottom();
-        let first_visible_unrestricted = (self.left_top.y / -entry_size.y).floor() as isize;
-        let first_visible = first_visible_unrestricted.clamp(0, row_count as isize) as Row;
-        let first_not_visible_unrestricted = (right_bottom.y / -entry_size.y).ceil() as isize;
-        let first_not_visible = first_not_visible_unrestricted.clamp(0, row_count as isize) as Row;
-        first_visible..first_not_visible
-    }
-
-    fn visible_columns(&self, entry_size: Vector2, col_count: usize) -> Range<Col> {
-        let right_bottom = self.right_bottom();
-        let first_visible_unrestricted = (self.left_top.x / entry_size.x).floor() as isize;
-        let first_visible = first_visible_unrestricted.clamp(0, col_count as isize) as Col;
-        let first_not_visible_unrestricted = (right_bottom.x / entry_size.x).ceil() as isize;
-        let first_not_visible = first_not_visible_unrestricted.clamp(0, col_count as isize) as Col;
-        first_visible..first_not_visible
-    }
-}
 
 ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
@@ -147,8 +108,10 @@ impl<P: frp::node::Data> EntryCreationCtx<P> {
                 let entry_network = entry_frp.network();
                 frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
                     init <- source_();
-                    entry_frp.set_size <+ self.set_entry_size;
-                    entry_frp.set_params <+ self.set_entry_params;
+                    size <- all(init, self.set_entry_size)._1();
+                    trace size;
+                    entry_frp.set_size <+ all(init, self.set_entry_size)._1();
+                    entry_frp.set_params <+ all(init, self.set_entry_params)._1();
                 }
                 init.emit(());
             }
@@ -284,18 +247,26 @@ impl<E: Entry> GridView<E> {
         let network = frp.network();
         let input = &frp.private.input;
         let out = &frp.private.output;
+        frp::extend! { network
+            set_entry_size <- input.set_entries_size.sampler();
+            set_entry_params <- input.set_entries_params.sampler();
+        }
         let entry_creation_ctx = EntryCreationCtx {
             app:              app.clone_ref(),
             network:          network.downgrade(),
-            set_entry_size:   input.set_entries_size.clone_ref(),
-            set_entry_params: input.set_entries_params.clone_ref(),
+            set_entry_size:   set_entry_size.into(),
+            set_entry_params: set_entry_params.into(),
         };
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
+            trace model.entry_creation_ctx.set_entry_size;
             out.row_count <+ input.reset_entries._0();
             out.column_count <+ input.reset_entries._1();
             out.visible_area <+ input.set_visible_area;
             out.entries_size <+ input.set_entries_size;
+            trace input.set_entries_size;
+            let some_other = input.set_entries_size.clone_ref();
+            trace some_other;
             out.entries_params <+ input.set_entries_params;
             prop <- all_with4(
                 &out.row_count, &out.column_count, &out.visible_area, &out.entries_size,
@@ -318,7 +289,7 @@ impl<E: Entry> GridView<E> {
             model_for_entry_and_prop <- all(input.model_for_entry, prop);
             eval model_for_entry_and_prop
                 ((((row, col, entry_model), prop): &((Row, Col, E::Model), Properties))
-                    model.update_entry(*row, *col, entry_model.clone_ref(), prop.entries_size)
+                    model.update_entry(*row, *col, entry_model.clone(), prop.entries_size)
                 );
         }
         let display_object = model.display_object.clone_ref();
