@@ -41,6 +41,7 @@ spec =
                 3,2.2,z,[[[My Type :: 10]]]
             text = File.read_text file
             text.should_equal expected_text+'\n'
+            file.delete
 
         Test.specify "should be able to write an empty table" <|
             table = Table.new []
@@ -49,6 +50,7 @@ spec =
             table.write file
             text = File.read_text file
             text.should_equal ''
+            file.delete
 
         Test.specify 'should quote values that contain the delimiter or quotes, in the [,""] variant' <|
             data_formatter = Data_Formatter decimal_point=","
@@ -64,6 +66,7 @@ spec =
                 "one, two, three","-1,5"
             text = File.read_text file
             text.should_equal expected_text+'\n'
+            file.delete
 
         Test.specify 'should quote values that contain the delimiter or quotes, in the [;\\\"] variant' <|
             data_formatter = Data_Formatter thousand_separator="'"
@@ -80,6 +83,7 @@ spec =
                 "a\\b";
             text = File.read_text file
             text.should_equal expected_text+'\n'
+            file.delete
 
         Test.specify "should quote values that contain the delimiter or quotes, in the [\t''] variant" <|
             data_formatter = Data_Formatter thousand_separator="'"
@@ -95,6 +99,7 @@ spec =
                 'a\tb'\t-1.2
             text = File.read_text file
             text.should_equal expected_text+'\n'
+            file.delete
 
         Test.specify "should correctly distinguish empty text from a missing value" <|
             table = Table.new [["A", [1,Nothing,3]], ["B", [Nothing,"","abc"]]]
@@ -108,6 +113,7 @@ spec =
                 3,abc
             text = File.read_text file
             text.should_equal expected_text+'\n'
+            file.delete
 
         Test.specify 'should not quote values if quoting is disabled' <|
             format = File_Format.Delimited "," value_formatter=(Data_Formatter decimal_point=",") . without_quotes
@@ -123,6 +129,7 @@ spec =
                 one, two, three,-1,5
             text = File.read_text file
             text.should_equal expected_text+'\n'
+            file.delete
 
         Test.specify 'should allow to always quote text and custom values, but for non-text primitves only if absolutely necessary' <|
             format = File_Format.Delimited "," value_formatter=(Data_Formatter thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
@@ -138,6 +145,7 @@ spec =
                 "one, two, three",-1.5,42,"4\"000",
             text = File.read_text file
             text.should_equal expected_text+'\n'
+            file.delete
 
         Test.specify "should correctly handle alternative encodings" <|
             table = Table.new [["ąęćś", [0]], ["ß", ["żółw 🐢"]]]
@@ -149,6 +157,7 @@ spec =
                 0,żółw 🐢
             text = File.read_text file encoding=Encoding.utf_16_be
             text.should_equal expected_text+'\n'
+            file.delete
 
         Test.specify "should correctly handle encoding errors" <|
             table = Table.new [["A", [0, 1]], ["B", ["słówka", "🐢"]]]
@@ -163,6 +172,7 @@ spec =
             text.should_equal expected_text+'\n'
             result . should_equal Nothing
             Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at characters 7, 8, 15."]
+            file.delete
 
         Test.specify "should allow only text columns if no formatter is specified" <|
             format = File_Format.Delimited "," value_formatter=Nothing
@@ -186,6 +196,9 @@ spec =
             text_2 = File.read_text file_2
             text_2.should_equal ""
 
+            file_1.delete
+            file_2.delete
+
         Test.specify "should create a new file in append mode if it didn't exist" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
             file = (enso_project.data / "transient" / "append_nonexistent.csv")
@@ -193,6 +206,7 @@ spec =
             table.write file on_existing_file=Existing_File_Behavior.Append
             got_table = file.read
             got_table.should_equal table
+            file.delete
 
         Test.specify "should correctly append to an empty file" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
@@ -202,6 +216,7 @@ spec =
             table.write file on_existing_file=Existing_File_Behavior.Append
             got_table = file.read
             got_table.should_equal table
+            file.delete
 
         Test.specify "should append to a file, matching columns by name (headers=Infer)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
@@ -213,6 +228,7 @@ spec =
             got_table = file.read
             expected_table = Table.new [["A", [1,2,Nothing,0]], ["B", [1.0,1.5,33,44]], ["C", ["x","y","a","BB"]]]
             got_table.should_equal expected_table
+            file.delete
 
         Test.specify "should append to a file, matching columns by name (headers=True)" <|
             existing_table = Table.new [["0", [1,2]], ["B1", [1.0,1.5]], ["C", ["x","y"]]]
@@ -225,6 +241,7 @@ spec =
             got_table = file.read format
             expected_table = Table.new [["0", [1,2,Nothing,0]], ["B1", [1.0,1.5,33,44]], ["C", ["x","y","a","BB"]]]
             got_table.should_equal expected_table
+            file.delete
 
         Test.specify "should fail when appending and matching columns by name but column names are not available in the file (headers=Infer)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
@@ -234,6 +251,7 @@ spec =
             no_header_format = File_Format.Delimited "," . without_headers
             existing_table.write file no_header_format on_existing_file=Existing_File_Behavior.Overwrite
             appending_table.write file on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
+            file.delete
 
         Test.specify "should fail when appending and matching columns by name but headers are disabled (headers=False)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
@@ -243,6 +261,7 @@ spec =
             no_header_format = File_Format.Delimited "," . without_headers
             existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
             appending_table.write file no_header_format on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
+            file.delete
 
         Test.specify "should fail on column mismatch when appending to a file by name" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]]]
@@ -255,6 +274,7 @@ spec =
             result.catch.missing . should_equal ["A"]
             result.catch.extras . should_equal ["X"]
             result.catch.to_display_text . should_equal "Columns mismatch. Missing from new data: [A] Extras in new data: [X]"
+            file.delete
 
         Test.specify "should append to a file, matching columns by position" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
@@ -268,6 +288,7 @@ spec =
                 read_format = initial_file_format
                 got_table = file.read read_format
                 got_table.should_equal expected_table
+                file.delete
 
             base_format = File_Format.Delimited ","
             no_headers = base_format . without_headers
@@ -300,5 +321,7 @@ spec =
             result_2.catch.expected . should_equal 3
             result_2.catch.actual . should_equal 4
             result_2.catch.to_display_text . should_equal "Expected 3 columns, got 4."
+
+            file.delete
 
 main = Test.Suite.run_main spec
