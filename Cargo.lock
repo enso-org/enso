@@ -1944,6 +1944,7 @@ dependencies = [
  "ast",
  "bimap",
  "console_error_panic_hook",
+ "convert_case 0.5.0",
  "double-representation",
  "engine-protocol",
  "enso-callback",

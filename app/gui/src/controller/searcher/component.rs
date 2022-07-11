@@ -5,6 +5,8 @@
 use crate::prelude::*;
 
 use crate::model::suggestion_database;
+use convert_case::Case;
+use convert_case::Casing;
 
 
 // ==============
@@ -146,9 +148,11 @@ impl Display for Component {
         let self_type_not_here =
             self.suggestion.self_type.as_ref().filter(|t| *t != &self.suggestion.module);
         if let Some(self_type) = self_type_not_here {
-            write!(f, "{}.{}", self_type.name, self.suggestion.name)
+            let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
+            let name = self.suggestion.name.from_case(Case::Snake).to_case(Case::Lower);
+            write!(f, "{} {}", self_name, name)
         } else {
-            write!(f, "{}", self.suggestion.name.clone())
+            write!(f, "{}", self.suggestion.name.from_case(Case::Snake).to_case(Case::Lower))
         }
     }
 }
