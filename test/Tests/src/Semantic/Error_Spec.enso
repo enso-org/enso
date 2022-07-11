@@ -18,9 +18,9 @@ do_a_parse str = Long.parseLong str
 spec =
     Test.group "No Method Errors" <|
         Test.specify "should be recoverable" <|
-            err_1 = Panic.recover Any (123 . foobar "baz") . catch e->e
-            err_2 = Panic.recover Any ("foo" . baz 123) . catch e->e
-            err_3 = Panic.recover Any (My_Type False . nope) . catch e->e
+            err_1 = Panic.recover Any (123 . foobar "baz") . catch
+            err_2 = Panic.recover Any ("foo" . baz 123) . catch
+            err_3 = Panic.recover Any (My_Type False . nope) . catch
 
             err_1.target.should_equal 123
             err_1.method_name.should_equal "foobar"
@@ -32,6 +32,17 @@ spec =
             err_3.method_name.should_equal "nope"
 
     Test.group "Dataflow Errors" <|
+        Test.specify "should be recoverable" <|
+            err = Error.throw 42
+            err.catch . should_equal 42
+            err.should_fail_with Integer
+
+        Test.specify "should allow recovery of only a specific error-type" <|
+            recover_illegal_argument ~action =
+                action . catch Illegal_Argument_Error err->
+                    "recovered error: "+err.message
+            (recover_illegal_argument (Error.throw (Illegal_Argument_Error "foo"))) . should_equal "recovered error: foo"
+            (recover_illegal_argument (Error.throw (Illegal_State_Error "bar"))) . should_fail_with Illegal_State_Error
 
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type "aaa").to_default_visualization_data
@@ -153,7 +164,7 @@ spec =
             Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types
 
         Test.specify "should allow to throw raw Java exceptions" <|
-            exception = Panic.catch NumberFormatException (throw_raw_java "foo") (p -> p.payload.cause)
+            exception = Panic.catch_java NumberFormatException (throw_raw_java "foo") (p -> p)
             exception.getMessage . should_equal "foo"
             Panic.get_attached_stack_trace exception . second . name . should_equal "Error_Spec.throw_raw_java"
 

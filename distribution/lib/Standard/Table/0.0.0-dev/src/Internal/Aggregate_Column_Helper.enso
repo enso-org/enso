@@ -167,9 +167,7 @@ resolve_aggregate table problem_builder aggregate_column =
 
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.
-    result.catch err-> case err of
-        Internal_Missing_Column_Error -> Nothing
-        _ -> result
+    result.catch Internal_Missing_Column_Error (_->Nothing)
 
 ## PRIVATE
    A marker for missing columns during resolution.

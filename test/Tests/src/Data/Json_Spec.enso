@@ -8,7 +8,7 @@ type Book title author
 Text.should_fail_parsing_with expected =
     as_fail = case Json.parse self of
         _ -> Test.Failure "Expected a parse error, but no error reported."
-    result = as_fail.catch e-> case e of
+    result = as_fail.catch Any e-> case e of
         Json.Parse_Error msg ->
             if msg.contains expected then Test.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
