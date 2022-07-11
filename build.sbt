@@ -1831,6 +1831,7 @@ lazy val `std-database` = project
       "org.postgresql"      % "postgresql"            % "42.3.6",
       "com.amazon.redshift" % "redshift-jdbc42"       % "2.1.0.8",
       "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.239",
+      "com.amazonaws"       % "aws-java-sdk-sts"     % "1.12.239",
       "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.239"
     ),
     Compile / packageBin := Def.task {
@@ -1840,7 +1841,7 @@ lazy val `std-database` = project
           `database-polyglot-root`,
           Some("std-database.jar"),
           ignoreScalaLibrary = true,
-          unpackedDeps       = Set("aws-java-sdk-core", "httpclient")
+          unpackedDeps       = Set("httpclient")
         )
         .value
       result

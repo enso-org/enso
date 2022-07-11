@@ -1,5 +1,7 @@
 package org.enso.database;
 
+import com.amazon.redshift.jdbc42.Driver;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -39,6 +41,11 @@ public class JDBCProxy {
    */
   public static Connection getConnection(String url, Properties properties) throws SQLException {
     return DriverManager.getConnection(url, properties);
+  }
+
+  public static Connection getRedshiftConnection(String url, Properties properties) throws SQLException {
+    Driver driver = new Driver();
+    return driver.connect(url, properties);
   }
 
   public static String[] getStringColumn(ResultSet resultSet, String column) throws SQLException {

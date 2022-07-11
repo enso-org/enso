@@ -11,6 +11,8 @@ import Standard.Database.Connection.Client_Certificate
 import Standard.Database.Connection.PostgreSQL
 
 polyglot java import com.amazon.redshift.jdbc.Driver
+polyglot java import java.util.Properties
+polyglot java import org.enso.database.JDBCProxy
 
 type Redshift
     ## Connect to a AWS Redshift database.
@@ -33,6 +35,10 @@ type Redshift
         if Driver.isRegistered.not then Driver.register
 
         properties = options.merge self.jdbc_properties
+        java_props = Properties.new
+        properties.each pair->
+            java_props.setProperty pair.first pair.second
+        JDBCProxy.getRedshiftConnection self.jdbc_url java_props
         Connection.create_jdbc_connection self.jdbc_url properties self.dialect
 
     ## Provides the jdbc url for the connection.
@@ -56,7 +62,8 @@ type Redshift
             Credentials username password ->
                 [Pair 'user' username, Pair 'password' password]
 
-        ssl_properties = PostgreSQL.PostgreSQL.ssl_mode_to_jdbc_properties self.use_ssl
+        ## ssl_properties = PostgreSQL.PostgreSQL.ssl_mode_to_jdbc_properties self.use_ssl
+        ssl_properties = []
 
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
