@@ -1,0 +1,43 @@
+from Standard.Base import all
+import Standard.Base.Data.Numbers
+
+import Standard.Test
+from Standard.Base.Data.Ordering import Equal, Less, Greater
+
+spec =
+    Test.group "identity" <|
+        Test.specify "identity on number" <|
+            (identity 5) . should_equal 5
+
+        Test.specify "identity on text" <|
+            (identity '5') . should_equal '5'
+
+        Test.specify "identity on boolean" <|
+            (identity False) . should_equal False
+
+    Test.group "flip" <|
+        Test.specify "flip on number" <|
+            (flip (-) 2 5) . should_equal 3
+
+        Test.specify "flip on text" <|
+            (flip (+) "world" "hello") . should_equal "helloworld"
+
+    Test.group "const" <|
+        Test.specify "const on number" <|
+            two = const 2
+            two 5 . should_equal 2
+
+    Test.group "curry" <|
+        Test.specify "curry on number list" <|
+            sum = x -> x.fold 0 (+)
+            sum [1, 2, 3, 4] . should_equal 10
+            plus = curry sum
+            plus 6 3 . should_equal 9
+
+    Test.group "uncurry" <|
+        Test.specify "uncurry on number list" <|
+            times = uncurry (*)
+            times [6, 7] . should_equal 42
+
+
+main = Test.Suite.run_main spec

@@ -403,6 +403,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           val tdef = resolveTypeName(bindings, typeName)
             .getOrElse(TypeArg.Value(QualifiedName.simpleName(typeName)))
           args :+ tdef
+        case seq: IR.Application.Literal.Sequence =>
+          seq.items.foldLeft(args)((a, t) => go(t, a))
         case _ =>
           args
       }
