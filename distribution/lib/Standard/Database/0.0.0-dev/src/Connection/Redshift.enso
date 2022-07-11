@@ -38,7 +38,6 @@ type Redshift
         java_props = Properties.new
         properties.each pair->
             java_props.setProperty pair.first pair.second
-        JDBCProxy.getRedshiftConnection self.jdbc_url java_props
         Connection.create_jdbc_connection self.jdbc_url properties self.dialect
 
     ## Provides the jdbc url for the connection.

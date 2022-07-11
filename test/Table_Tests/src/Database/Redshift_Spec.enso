@@ -97,7 +97,7 @@ connect_via_aws_environment db_host_port =
 
     Redshift db_uri db_port db_name credentials=credentials
 
- uri_parse uri =
+uri_parse uri =
     host_db_split = uri.split '/'
     host_split = host_db_split.at 0 . split ':'
 
