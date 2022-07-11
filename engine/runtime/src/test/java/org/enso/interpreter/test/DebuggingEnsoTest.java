@@ -109,8 +109,8 @@ public class DebuggingEnsoTest {
             .buildLiteral();
 
     var module = ctx.eval(onesSrc);
-    var ones = module.invokeMember("eval_expression", "here.ones");
-    var next = module.invokeMember("eval_expression", "here.next");
+    var ones = module.invokeMember("eval_expression", "ones");
+    var next = module.invokeMember("eval_expression", "next");
 
 
     final var dbg = Debugger.find(eng);
