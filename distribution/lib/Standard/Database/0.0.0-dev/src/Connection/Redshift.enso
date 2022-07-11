@@ -61,7 +61,7 @@ type Redshift
            by looking at the jar file location, which is not available in the Graal
            class loader. This block may be removed when migrated to a Graal version
            with https://github.com/oracle/graal/issues/3744 fixed.
-        [Pair 'IniFile' (Enso_Project.data/'empty.ini' . absolute . path)] + credentials + ssl_properties + cert_properties
+        [Pair 'IniFile' (enso_project.data/'empty.ini' . absolute . path)] + credentials + ssl_properties + cert_properties
 
     ## Provides the dialect needed for creating SQL statements.
     dialect : Dialect

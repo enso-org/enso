@@ -91,7 +91,7 @@ new_builder (capacity=1) = Builder.new capacity
      If this didn't happen then it would be possible for the underlying array to
      be mutated under the hood, and sneak mutability into our immutable data.
 from_array : Any -> Vector.Vector Any
-from_array arr = here.new (Polyglot.get_array_size arr) (arr.at _)
+from_array arr = new (Polyglot.get_array_size arr) (arr.at _)
 
 ## The basic, immutable, vector type.
 type Vector
@@ -343,7 +343,7 @@ type Vector
              [1, 2, 3, 4, 5].filter (> 3)
     filter : (Any -> Boolean) -> Vector Any
     filter predicate =
-        builder = self.fold here.new_builder builder-> elem->
+        builder = self.fold new_builder builder-> elem->
             if predicate elem then builder.append elem else builder
         builder.to_vector
 
@@ -360,7 +360,7 @@ type Vector
              [0, 10, 2, 2].filter (==) == [0, 2]
     filter_with_index : (Integer -> Any -> Boolean) -> Vector Any
     filter_with_index predicate =
-        builder = self.fold_with_index here.new_builder builder-> ix-> elem->
+        builder = self.fold_with_index new_builder builder-> ix-> elem->
             if predicate ix elem then builder.append elem else builder
         builder.to_vector
 
@@ -384,7 +384,7 @@ type Vector
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition predicate =
-        pair = self.fold (Pair here.new_builder here.new_builder) acc-> elem->
+        pair = self.fold (Pair new_builder new_builder) acc-> elem->
             case predicate elem of
                 True ->
                     Pair (acc.first.append elem) acc.second
@@ -412,7 +412,7 @@ type Vector
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index predicate =
-        pair = self.fold_with_index (Pair here.new_builder here.new_builder) acc-> ix-> elem->
+        pair = self.fold_with_index (Pair new_builder new_builder) acc-> ix-> elem->
             case predicate ix elem of
                 True -> Pair (acc.first.append elem) acc.second
                 False -> Pair acc.first (acc.second.append elem)
@@ -431,7 +431,7 @@ type Vector
              [1, 2, 3] . map +1
     map : (Any -> Any) -> Vector Any
     map function =
-        here.new self.length i-> function (self.unsafe_at i)
+        new self.length i-> function (self.unsafe_at i)
 
     ## Applies a function to each element of the vector, returning the vector
        that contains all results concatenated.
@@ -479,7 +479,7 @@ type Vector
 
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Vector Any
-    map_with_index function = here.new self.length i-> function i (self.unsafe_at i)
+    map_with_index function = new self.length i-> function i (self.unsafe_at i)
 
     ## Applies a function to each element of the vector.
 
@@ -526,7 +526,7 @@ type Vector
 
              [1, 2].reverse
     reverse : Vector Any
-    reverse = here.new self.length (i -> self.unsafe_at (self.length - (1 + i)))
+    reverse = new self.length (i -> self.unsafe_at (self.length - (1 + i)))
 
     ## Generates a human-readable text representation of the vector.
 
@@ -756,7 +756,7 @@ type Vector
     zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip that function=[_,_] =
         len = Math.min self.length that.length
-        here.new len i-> function (self.unsafe_at i) (that.unsafe_at i)
+        new len i-> function (self.unsafe_at i) (that.unsafe_at i)
 
     ## Extend `self` vector to the length of `n` appending elements `elem` to
        the end.
@@ -780,7 +780,7 @@ type Vector
     pad : Integer -> Any -> Vector Any
     pad n elem =
         if self.length >= n then self else
-            self + (here.fill n-self.length elem)
+            self + (fill n-self.length elem)
 
     ## Vector to JSON conversion.
 
@@ -957,8 +957,8 @@ type Vector
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        here.handle_incomparable_value <|
-            builder = here.new_builder
+        handle_incomparable_value <|
+            builder = new_builder
             self.fold Map.empty existing->
                 item->
                     key = on item

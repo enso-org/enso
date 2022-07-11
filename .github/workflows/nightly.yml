@@ -76,7 +76,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-upload-backend-linux:
     name: Upload Backend (linux)
@@ -114,7 +114,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
@@ -153,7 +153,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
@@ -194,7 +194,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
@@ -238,7 +238,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
     env:
       AWS_ACCESS_KEY_ID: "${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}"
@@ -284,7 +284,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
@@ -325,7 +325,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"
@@ -368,7 +368,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
     env:
       ENSO_RELEASE_ID: "${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}"

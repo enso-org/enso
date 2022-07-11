@@ -10,13 +10,10 @@ class FreshNameSupply {
 
   private def mkName(
     numId: Long,
-    isReferent: Boolean,
     isMethod: Boolean
   ): IR.Name.Literal = {
-    val refMarker = if (isReferent) "ref" else ""
     IR.Name.Literal(
-      s"<internal-$refMarker-${numId}>",
-      isReferent,
+      s"<internal-${numId}>",
       isMethod,
       None
     )
@@ -29,12 +26,11 @@ class FreshNameSupply {
     * @return a new name
     */
   def newName(
-    isReferent: Boolean = false,
-    isMethod: Boolean   = false
+    isMethod: Boolean = false
   ): IR.Name.Literal = {
     val num = counter
     counter += 1
 
-    mkName(num, isReferent, isMethod)
+    mkName(num, isMethod)
   }
 }

@@ -15,7 +15,7 @@ from Standard.Database.Error as Database_Errors import Unsupported_Database_Oper
 make_aggregate_column : Table -> Aggregate_Column -> Text -> IR.Internal_Column
 make_aggregate_column table aggregate new_name =
     sql_type = table.connection.dialect.resolve_target_sql_type aggregate
-    expression = here.make_expression aggregate table.connection.dialect
+    expression = make_expression aggregate table.connection.dialect
     IR.Internal_Column new_name sql_type expression
 
 ## PRIVATE

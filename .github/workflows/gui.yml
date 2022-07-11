@@ -4,8 +4,6 @@ name: GUI CI
   push:
     branches:
       - develop
-      - unstable
-      - stable
   pull_request: {}
   workflow_dispatch: {}
 jobs:
@@ -58,7 +56,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-build-backend-macos:
     name: Build Backend (macos)
@@ -92,7 +90,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-build-backend-windows:
     name: Build Backend (windows)
@@ -128,7 +126,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
@@ -164,7 +162,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-build-wasm-macos:
     name: Build GUI (WASM) (macos)
@@ -198,7 +196,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-build-wasm-windows:
     name: Build GUI (WASM) (windows)
@@ -234,7 +232,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-cancel-workflow-linux:
     name: Cancel Previous Runs
@@ -281,7 +279,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-lint-linux:
     name: Lint (linux)
@@ -317,7 +315,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-native-test-linux:
     name: Native GUI tests (linux)
@@ -353,7 +351,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-package-ide-linux:
     name: Package IDE (linux)
@@ -392,13 +390,13 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-package-ide-macos:
     name: Package IDE (macos)
     needs:
       - enso-build-cli-ci-gen-job-build-backend-macos
-      - enso-build-cli-ci-gen-job-build-wasm-macos
+      - enso-build-cli-ci-gen-job-build-wasm-linux
     runs-on:
       - macos-latest
     steps:
@@ -429,13 +427,13 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-package-ide-windows:
     name: Package IDE (windows)
     needs:
       - enso-build-cli-ci-gen-job-build-backend-windows
-      - enso-build-cli-ci-gen-job-build-wasm-windows
+      - enso-build-cli-ci-gen-job-build-wasm-linux
     runs-on:
       - self-hosted
       - Windows
@@ -468,7 +466,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
   enso-build-cli-ci-gen-job-wasm-test-linux:
     name: WASM GUI tests (linux)
@@ -504,7 +502,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: List files if failed
-        run: ls -R
+        run: ls -lR
         if: failure()
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

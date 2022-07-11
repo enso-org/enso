@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.Comparator;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
@@ -75,11 +74,6 @@ public class StringStorage extends ObjectStorage {
   public StringStorage countMask(int[] counts, int total) {
     ObjectStorage storage = super.countMask(counts, total);
     return new StringStorage(storage.getData(), total);
-  }
-
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.<String>naturalOrder();
   }
 
   private static MapOpStorage<StringStorage> buildOps() {

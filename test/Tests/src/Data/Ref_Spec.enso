@@ -10,4 +10,4 @@ spec = Test.group "Refs" <|
         v = r.get
         v.should_equal 'bar'
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

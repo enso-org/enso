@@ -14,7 +14,7 @@ from Standard.Database.Error as Database_Errors import Unsupported_Database_Oper
    The dialect of PostgreSQL databases.
 postgresql : Dialect
 postgresql =
-    Postgresql_Dialect here.make_internal_generator_dialect
+    Postgresql_Dialect make_internal_generator_dialect
 
 
 ## PRIVATE
@@ -44,7 +44,7 @@ type Postgresql_Dialect
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
-    resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
+    resolve_target_sql_type aggregate = resolve_target_sql_type aggregate
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -53,18 +53,18 @@ type Postgresql_Dialect
        settings are supported by the given database backend.
     prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
     prepare_order_descriptor internal_column sort_direction text_ordering =
-        here.make_order_descriptor internal_column sort_direction text_ordering
+        make_order_descriptor internal_column sort_direction text_ordering
 
 ## PRIVATE
 make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [here.starts_with, here.contains, here.ends_with, here.agg_shortest, here.agg_longest]+here.concat_ops+cases
-    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest]+concat_ops+cases
+    counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
-    stats = [here.agg_median, here.agg_mode, here.agg_percentile, stddev_pop, stddev_samp]
-    my_mappings = text + counts + stats + here.first_last_aggregators
+    stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
+    my_mappings = text + counts + stats + first_last_aggregators
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -142,10 +142,10 @@ agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
    compatible with other group-by aggregations out-of-the-box. In the future, we
    may want to consider some alternative solutions.
 first_last_aggregators =
-    first = here.make_first_aggregator reverse=False ignore_null=False
-    first_not_null = here.make_first_aggregator reverse=False ignore_null=True
-    last = here.make_first_aggregator reverse=True ignore_null=False
-    last_not_null = here.make_first_aggregator reverse=True ignore_null=True
+    first = make_first_aggregator reverse=False ignore_null=False
+    first_not_null = make_first_aggregator reverse=False ignore_null=True
+    last = make_first_aggregator reverse=True ignore_null=False
+    last_not_null = make_first_aggregator reverse=True ignore_null=True
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
 make_first_aggregator reverse ignore_null args =
@@ -178,7 +178,7 @@ agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
 concat_ops =
     make_raw_concat_expr expr separator =
         Sql.code "string_agg(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
-    concat = Helpers.make_concat make_raw_concat_expr here.make_contains_expr
+    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
@@ -217,7 +217,7 @@ make_contains_expr expr substring =
     Sql.code "position(" ++ substring ++ Sql.code " in " ++ expr ++ Sql.code ") > 0"
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "contains" here.make_contains_expr
+contains = Base_Generator.lift_binary_op "contains" make_contains_expr
 
 ## PRIVATE
 make_order_descriptor internal_column sort_direction text_ordering =

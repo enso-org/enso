@@ -217,7 +217,7 @@ type Map
              example_get_or_else = Examples.map.get_or_else 2 "zero"
     get_or_else : Any -> Any -> Any
     get_or_else key ~other =
-        self.get key . catch (_ -> other)
+        self.get key . catch No_Value_For_Key_Error (_ -> other)
 
     ## Transforms the map's keys and values to create a new map.
 
@@ -237,7 +237,7 @@ type Map
     transform function =
         func_pairs = p -> function (p.at 0) (p.at 1)
         vec_transformed = self.to_vector.map func_pairs
-        here.from_vector vec_transformed
+        from_vector vec_transformed
 
     ## Maps a function over each value in this map.
 

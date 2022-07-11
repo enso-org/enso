@@ -7,4 +7,4 @@ fac n =
 
     facacc n 1
 
-main = IO.println (here.fac 6)
+main = IO.println (fac 6)

@@ -136,7 +136,7 @@ public class IncrementalUpdatesTest {
           *x*
       &
       main =
-          y = @here.foo@
+          y = @foo@
           %IO.println y%
         """.replace("{originalText}", originalText),
             "&$#*@%", pos);

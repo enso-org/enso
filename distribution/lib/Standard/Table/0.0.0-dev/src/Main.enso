@@ -56,7 +56,7 @@ Json.Array.to_table fields = case self of
         rows = items.map item-> case item of
             Json.Object fs ->
                 row = if item.get_type == Geo_Json.Feature.to_text then item.get_feature_row else fs
-                fields.map n-> row.get n . unwrap . catch (_ -> Nothing)
+                fields.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
             _ -> Vector.fill fields.length Nothing
         cols = fields.map_with_index i-> n->
             [n, rows.map (_.at i)]
@@ -107,7 +107,7 @@ Json.Object.to_table fields=Nothing =
                         column_names_row.keys
                     _ -> fields
                 rows = feature_rows.map row->
-                    column_names.map n-> row.get n . unwrap . catch (_ -> Nothing)
+                    column_names.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
                 cols = column_names.map_with_index i-> n->
                     [n, rows.map (_.at i)]
                 Table.new cols

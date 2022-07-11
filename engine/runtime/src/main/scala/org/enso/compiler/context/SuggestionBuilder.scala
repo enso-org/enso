@@ -57,9 +57,12 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                   _
                 ) =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            val selfTypeOpt = typePtr
-              .getMetadata(MethodDefinitions)
-              .flatMap(buildSelfType)
+            val selfTypeOpt = typePtr match {
+              case Some(typePtr) =>
+                typePtr.getMetadata(MethodDefinitions).flatMap(buildSelfType)
+              case None =>
+                Some(module)
+            }
             val methodOpt = selfTypeOpt.map { selfType =>
               buildMethod(
                 body.getExternalId,
@@ -81,7 +84,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           case IR.Module.Scope.Definition.Method
                 .Conversion(
                   IR.Name.MethodReference(_, _, _, _, _),
-                  IR.Name.Literal(sourceTypeName, _, _, _, _, _),
+                  IR.Name.Literal(sourceTypeName, _, _, _, _),
                   IR.Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
@@ -400,6 +403,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           val tdef = resolveTypeName(bindings, typeName)
             .getOrElse(TypeArg.Value(QualifiedName.simpleName(typeName)))
           args :+ tdef
+        case seq: IR.Application.Literal.Sequence =>
+          seq.items.foldLeft(args)((a, t) => go(t, a))
         case _ =>
           args
       }

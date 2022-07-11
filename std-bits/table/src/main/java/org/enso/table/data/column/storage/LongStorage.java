@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
-import java.util.*;
+import java.util.BitSet;
+import java.util.OptionalLong;
 import java.util.stream.LongStream;
 
 import org.enso.table.data.column.builder.object.NumericBuilder;
@@ -218,12 +219,6 @@ public class LongStorage extends NumericStorage {
       }
     }
     return new LongStorage(newData, total, newMissing);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.<Long>naturalOrder();
   }
 
   public BitSet getIsMissing() {

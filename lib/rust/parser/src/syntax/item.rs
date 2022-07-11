@@ -46,6 +46,7 @@ impl<'s> Item<'s> {
         match self {
             Item::Token(token) => match token.variant {
                 token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
+                token::Variant::Number(number) => Tree::number(token.with_variant(number)),
                 _ => todo!(),
             },
             Item::Tree(ast) => ast,

@@ -238,7 +238,7 @@ class RuntimeVisualisationsTest
         """
           |encode = x -> x.to_text
           |
-          |incAndEncode = x -> here.encode x+1
+          |incAndEncode = x -> encode x+1
           |
           |""".stripMargin
 
@@ -312,7 +312,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "x -> here.encode x"
+            "x -> encode x"
           )
         )
       )
@@ -424,7 +424,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "x -> here.encode x"
+            "x -> encode x"
           )
         )
       )
@@ -553,7 +553,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "x -> here.encode x"
+            "x -> encode x"
           )
         )
       )
@@ -676,7 +676,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "here.encode"
+            "encode"
           )
         )
       )
@@ -797,7 +797,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "x -> here.encode x"
+            "x -> encode x"
           )
         )
       )
@@ -833,7 +833,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "x -> here.incAndEncode x"
+            "x -> incAndEncode x"
           )
         )
       )
@@ -900,7 +900,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "x -> here.encode x"
+            "x -> encode x"
           )
         )
       )
@@ -1053,7 +1053,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "here.encode"
+            "encode"
           )
         )
       )
@@ -1158,7 +1158,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "x -> here.encode x"
+            "x -> encode x"
           )
         )
       )
@@ -1194,7 +1194,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "x -> here.incAndEncode x"
+            "x -> incAndEncode x"
           )
         )
       )
@@ -1430,7 +1430,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Main",
-            "here.does_not_exist"
+            "Main.does_not_exist"
           )
         )
       )
@@ -1550,7 +1550,7 @@ class RuntimeVisualisationsTest
       """
         |encode x = x.visualise_me
         |
-        |inc_and_encode x = here.encode x+1
+        |inc_and_encode x = encode x+1
         |""".stripMargin.linesIterator.mkString("\n")
 
     val visualisationFile =
@@ -1609,7 +1609,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             "Enso_Test.Test.Visualisation",
-            "here.inc_and_encode"
+            "inc_and_encode"
           )
         )
       )
@@ -1641,7 +1641,7 @@ class RuntimeVisualisationsTest
                   "Visualisation.inc_and_encode",
                   Some(visualisationFile),
                   Some(
-                    model.Range(model.Position(3, 19), model.Position(3, 34))
+                    model.Range(model.Position(3, 19), model.Position(3, 29))
                   ),
                   None
                 )
