@@ -78,7 +78,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'pureconfig_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig_2.13-0.17.1`.
 
 
 'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the project-manager.
@@ -208,7 +207,6 @@ Copyright notices related to this dependency can be found in the directory `io.c
 
 'circe-numbers_2.13', licensed under the Apache 2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `io.circe.circe-numbers_2.13-0.14.1`.
 
 
 'circe-parser_2.13', licensed under the Apache 2.0, is distributed with the project-manager.
@@ -288,7 +286,6 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'cats-core_2.13', licensed under the MIT, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.typelevel.cats-core_2.13-2.7.0`.
 
 
 'cats-kernel_2.13', licensed under the MIT, is distributed with the project-manager.
