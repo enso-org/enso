@@ -2477,6 +2477,7 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "ensogl-text",
+ "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
 ]
@@ -2608,6 +2609,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-text",
+ "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
 ]
@@ -2673,6 +2675,7 @@ name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "ensogl-text-embedded-fonts",
 ]
 
 [[package]]
@@ -2779,8 +2782,13 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
+ "ensogl-text-embedded-fonts-names",
  "zip 0.5.13",
 ]
+
+[[package]]
+name = "ensogl-text-embedded-fonts-names"
+version = "0.1.0"
 
 [[package]]
 name = "ensogl-text-msdf-sys"
@@ -2789,6 +2797,7 @@ dependencies = [
  "enso-build-utilities",
  "enso-prelude",
  "ensogl-text-embedded-fonts",
+ "ensogl-text-embedded-fonts-names",
  "futures 0.3.21",
  "js-sys",
  "nalgebra 0.26.2",
