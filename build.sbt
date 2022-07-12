@@ -1827,11 +1827,12 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.xerial"          % "sqlite-jdbc"           % "3.34.0",
-      "org.postgresql"      % "postgresql"            % "42.2.19",
-      "com.amazon.redshift" % "redshift-jdbc42"       % "2.0.0.7",
-      "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.58",
-      "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.58"
+      "org.xerial"          % "sqlite-jdbc"           % "3.36.0.3",
+      "org.postgresql"      % "postgresql"            % "42.3.6",
+      "com.amazon.redshift" % "redshift-jdbc42"       % "2.1.0.1",
+      "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.23",
+      "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.23",
+      "com.amazonaws"       % "aws-java-sdk-sts"      % "1.12.23"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1839,8 +1840,7 @@ lazy val `std-database` = project
         .copyDependencies(
           `database-polyglot-root`,
           Some("std-database.jar"),
-          ignoreScalaLibrary = true,
-          unpackedDeps       = Set("aws-java-sdk-core", "httpclient")
+          ignoreScalaLibrary = true
         )
         .value
       result
