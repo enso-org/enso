@@ -208,6 +208,10 @@ ThisBuild / scalacOptions ++= Seq(
   "-Ywarn-unused:privates"              // Warn if a private member is unused.
 )
 
+ThisBuild / Test / testOptions += Tests.Argument(
+  "-oI"
+)
+
 val jsSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
 )
