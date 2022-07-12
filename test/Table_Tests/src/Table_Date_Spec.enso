@@ -45,7 +45,7 @@ spec =
 
         Test.specify "should serialise dates with format" <|
             test_table = Table.new [c_from]
-            expected_text = 'From\n04.05.1979\n28.11.1990\n02.05.1997\n27.06.2007\n11.05.2010\n13.07.2016\n24.07.2019\n07.07.2022\n'
+            expected_text = 'From\n04.05.1979\n28.11.1990\n02.05.1997\n27.06.2007\n11.05.2010\n13.07.2016\n24.07.2019\n'
             data_formatter = Data_Formatter . with_datetime_formats date_formats=["dd.MM.yyyy"]
             delimited = Text.from test_table format=(File_Format.Delimited "," value_formatter=data_formatter)
             delimited.should_equal expected_text
