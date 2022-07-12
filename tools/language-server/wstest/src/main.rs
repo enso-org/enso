@@ -16,6 +16,9 @@ use websocket_lite::Message;
 use websocket_lite::Opcode;
 use websocket_lite::Result;
 
+static EXPECT_TEXT_RESPONSE: &str = "t|";
+static EXPECT_BINARY_RESPONSE: &str = "b|";
+
 #[derive(Parser, Debug)]
 #[clap(version, about)]
 struct Args {
@@ -134,14 +137,21 @@ async fn main() -> Result<()> {
             let mut lines = BufReader::new(file).lines();
 
             while let Some(line) = lines.next_line().await? {
-                let message = Message::text(line.as_str());
+                let (prefix, message_text) = line.split_at(2);
+                let message = Message::text(message_text);
 
                 sink_mut.send(message).await?;
-                println!("{}", format::init_request(line.as_str()));
+                println!("{}", format::init_request(message_text));
 
                 // wait for response
-                if let None = text_rx.recv().await {
-                    break;
+                if prefix == EXPECT_TEXT_RESPONSE {
+                    if let None = text_rx.recv().await {
+                        break;
+                    }
+                } else if prefix == EXPECT_BINARY_RESPONSE {
+                    if let None = binary_rx.recv().await {
+                        break;
+                    }
                 }
             }
         }
