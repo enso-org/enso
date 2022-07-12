@@ -46,6 +46,9 @@ struct Args {
     #[clap(long, value_name = "FILE", value_hint = ValueHint::FilePath)]
     input: Option<PathBuf>,
 
+    /// Number of times to run the input messages
+    #[clap(long, default_value = "1")]
+    input_repeat_times:             u64,
     /// Input commands expect responses from a binary socket
     #[clap(long)]
     input_expects_binary_responses: bool,
@@ -162,27 +165,31 @@ async fn main() -> Result<()> {
         // send input messages
         match args.input {
             Some(path_buf) => {
-                let file = tokio::fs::File::open(path_buf.as_path()).await?;
-                let mut lines = BufReader::new(file).lines();
+                let lines = read_lines(path_buf).await?;
+                let mut input_repeats: u64 = 0;
 
-                while let Some(line) = lines.next_line().await? {
-                    let message = Message::text(line.as_str());
+                'outer: while input_repeats < args.input_repeat_times {
+                    for line in &lines {
+                        let message = Message::text(line.as_str());
 
-                    sink_mut.send(message).await?;
-                    println!("{}", format::bench_request(line.as_str()));
+                        sink_mut.send(message).await?;
+                        println!("{}", format::bench_request(line.as_str()));
 
-                    // wait for response
-                    if args.input_expects_binary_responses {
-                        if let None = binary_rx.recv().await {
-                            break;
+                        // wait for response
+                        if args.input_expects_binary_responses {
+                            if let None = binary_rx.recv().await {
+                                break 'outer;
+                            }
+                        } else {
+                            if let None = text_rx.recv().await {
+                                break 'outer;
+                            }
                         }
-                    } else {
-                        if let None = text_rx.recv().await {
-                            break;
-                        }
+
+                        tokio::time::sleep(Duration::from_millis(args.wait_after_response)).await;
                     }
 
-                    tokio::time::sleep(Duration::from_millis(args.wait_after_response)).await;
+                    input_repeats += 1;
                 }
             }
             None => {

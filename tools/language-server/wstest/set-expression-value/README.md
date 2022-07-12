@@ -34,6 +34,7 @@ cargo run -p wstest -- \
   --ignore-text-socket-responses tools/language-server/wstest/set-expression-value/ignore_responses.txt \
   --input tools/language-server/wstest/set-expression-value/input.txt \
   --input-expects-binary-responses \
+  --input-repeat-times 20 \
   ws://127.0.0.1:30616
 ```
 
