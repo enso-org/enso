@@ -482,9 +482,9 @@ public class Context {
       ensureModuleIsLoaded(stdDateModuleName);
       Optional<Module> dateModule = findModule(stdDateModuleName);
       if (dateModule.isPresent()) {
-        date =
-            Optional.ofNullable(
-                dateModule.get().getScope().getConstructors().get(stdDateConstructorName));
+        final Module m = dateModule.get();
+        m.ensureScopeExists();
+        date = Optional.ofNullable(m.getScope().getConstructors().get(stdDateConstructorName));
       } else {
         date = Optional.empty();
       }
