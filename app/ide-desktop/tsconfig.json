@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "rootDir": "./src",
+
     "sourceMap": true,
     "noImplicitAny": true,
     "target": "ES2018",
@@ -8,7 +12,9 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true
   },
-
+  "files": [
+    "./src/index.ts"
+  ],
   "ts-node": {
     "esm": true
   }

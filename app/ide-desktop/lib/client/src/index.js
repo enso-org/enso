@@ -6,7 +6,8 @@ import buildCfg from '../../../build.json'
 import Electron from 'electron'
 import isDev from 'electron-is-dev'
 import path from 'path'
-import * as Server from 'enso-studio-common/src/server.js'
+// import * as Server from 'enso-studio-common/src/server.js'
+import * as server from 'enso-gui-server'
 import util from 'util'
 import yargs from 'yargs'
 import remoteMain from '@electron/remote/main/index.js'
@@ -89,7 +90,7 @@ let configOptionsGroup = 'Config Options:'
 
 optParser.options('port', {
     group: configOptionsGroup,
-    describe: `Port to use [${Server.DEFAULT_PORT}]`,
+    describe: `Port to use [${server.DEFAULT_PORT}]`,
 })
 
 optParser.options('project', {
@@ -464,19 +465,17 @@ async function backendVersion() {
 
 let hideInsteadOfQuit = false
 
-let server = null
 let mainWindow = null
 let origin = null
+
 
 async function main(args) {
     runBackend()
     console.log('Starting the IDE service.')
     if (args.server !== false) {
-        let serverCfg = Object.assign({}, args)
-        serverCfg.dir = root
-        serverCfg.fallback = '/assets/index.html'
-        server = await Server.create(serverCfg)
-        origin = `http://localhost:${server.port}`
+// TODO customize port
+        let port = await server.start(root)
+        origin = `http://localhost:${port}`
     }
     if (args.window !== false) {
         console.log('Starting the IDE client.')

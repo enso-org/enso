@@ -2,38 +2,27 @@ import esbuild from 'esbuild'
 import 'esbuild-plugin-yaml'
 import plugin_yaml from 'esbuild-plugin-yaml'
 import NodeModulesPolyfillPlugin from '@esbuild-plugins/node-modules-polyfill'
-import path, { dirname } from 'node:path'
+import path, {dirname} from 'node:path'
 import child_process from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import {fileURLToPath} from 'node:url'
 import aliasPlugin from 'esbuild-plugin-alias'
 import timePlugin from 'esbuild-plugin-time'
-import copyPlugin from 'esbuild-copy-static-files'
-import { require_env } from '../../utils.mjs'
-import * as BUILD_INFO from '../../build.json' assert { type: 'json' }
+import {require_env} from '../../utils.mjs'
+import * as BUILD_INFO from '../../build.json' assert {type: 'json'}
 import * as fs from "fs";
+import * as copy_plugin from 'enso-copy-plugin'
 
-import esBuildDevServer from "esbuild-dev-server";
-
-const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
+export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
+export const output_path = path.resolve(require_env('ENSO_BUILD_GUI'), 'assets')
+export const wasm_path = require_env('ENSO_BUILD_GUI_WASM')
+export const js_glue_path = require_env('ENSO_BUILD_GUI_JS_GLUE')
+export const assets_path = require_env('ENSO_BUILD_GUI_ASSETS')
 
 function git(command) {
     return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
 
-const output_path = require_env('ENSO_BUILD_GUI')
-const wasm_path = require_env('ENSO_BUILD_GUI_WASM')
-const js_glue_path = require_env('ENSO_BUILD_GUI_JS_GLUE')
-const assets_path = require_env('ENSO_BUILD_GUI_ASSETS')
-
-function sleep(ms) {
-    return new Promise(resolve => {
-        setTimeout(resolve, ms)
-    })
-}
-
-// await sleep(100000);
-
-let files_to_copy = [
+const always_copied_files = [
     path.resolve(thisPath, 'src', 'index.html'),
     path.resolve(thisPath, 'src', 'run.js'),
     path.resolve(thisPath, 'src', 'style.css'),
@@ -41,32 +30,26 @@ let files_to_copy = [
     wasm_path,
 ]
 
-let my_copy_plugin = {
-    name: 'mwu-copy',
-    setup(build) {
-        console.log(build)
-        build.onEnd(() => {
-            const cpOpts = {
-                recursive: true,
-                force: true,
-                dereference: true
-            };
-            fs.cpSync(assets_path, build.initialOptions.outdir, cpOpts)
-            files_to_copy.forEach(from => fs.cpSync(from, path.join(build.initialOptions.outdir, path.basename(from)), cpOpts))
-        });
-    },
-};
+async function* files_to_copy_provider() {
+    console.log("Preparing a new generator for files to copy.")
+    yield* always_copied_files
+    for (const file of await fs.promises.readdir(assets_path)) {
+        yield path.resolve(assets_path, file)
+    }
+    console.log("Generator for files to copy finished.")
+}
 
-let config = {
+const config = {
     bundle: true,
     entryPoints: ['src/index.ts', 'src/wasm_imports.js'],
-    outdir: 'assets',
+    outdir: output_path,
+    outbase: 'src',
     plugins: [
         plugin_yaml.yamlPlugin(),
         NodeModulesPolyfillPlugin.NodeModulesPolyfillPlugin(),
         aliasPlugin({ wasm_rust_glue: js_glue_path }),
         timePlugin(),
-        my_copy_plugin
+        copy_plugin.create(files_to_copy_provider)
     ],
     define: {
         GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
@@ -78,32 +61,15 @@ let config = {
     metafile: true,
     publicPath: '/assets',
     incremental: true,
+    color: true,
+    watch: {
+        onRebuild(error, result) {
+            if (error) console.error('watch build failed:', error)
+            else console.log('watch build succeeded:', result)
+        },
+    },
 }
 
-let buildJob = esbuild.build(config)
-
-esBuildDevServer.start(
-    buildJob,
-    {
-        port:      "8080", // optional, default: 8080
-        watchDir:  "src", // optional, default: "src"
-        index:     "assets/index.html", // optional
-        staticDir: "assets", // optional
-        onBeforeRebuild: {}, // optional
-        onAfterRebuild:  {}, // optional
-    }
-)
-
-
-//
-// await esbuild.serve({
-//     servedir: 'assets',
-// }, config)
-//
-// let result = await buildJob
-
-
-
-
-// let text = await esbuild.analyzeMetafile(result.metafile)
-// console.log(text)
+export async function bundle() {
+    return esbuild.build(config)
+}
