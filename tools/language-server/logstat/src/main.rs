@@ -27,6 +27,10 @@ struct Args {
     /// Number of iterations to skip
     #[clap(long, default_value = "10")]
     warmup_iterations: usize,
+
+    /// Calculate median instead of mean
+    #[clap(long)]
+    median: bool,
 }
 
 /// Specification contains lines to lookup in the log file
@@ -170,8 +174,19 @@ fn cleanse(ops: &[Iteration], skip: usize) -> &[Iteration] {
     &ops[skip..]
 }
 
+/// Median of values
+fn median(durations: &mut [Duration]) -> Duration {
+    durations.sort();
+    let mid = durations.len() / 2;
+    if durations.len() % 2 == 0 {
+        (durations[mid - 1] + durations[mid]) / 2
+    } else {
+        durations[mid]
+    }
+}
+
 /// Analyze benchmark results
-fn analyze_iterations(ops: &[Iteration]) -> Vec<Stats> {
+fn analyze_iterations(ops: &[Iteration], use_median: bool) -> Vec<Stats> {
     let mut stats = vec![];
     let ops_len = ops.len();
     let splits_len = ops.first().unwrap().operations.len();
@@ -181,15 +196,17 @@ fn analyze_iterations(ops: &[Iteration]) -> Vec<Stats> {
         let mut min = Duration::MAX;
         let mut max = Duration::ZERO;
         let mut sum = Duration::ZERO;
+        let mut durations = vec![];
         let current_line = &ops[0].operations[i].line;
         for op in ops {
             let timed = &op.operations[i];
+            durations.push(timed.duration);
             min = timed.duration.min(min);
             max = timed.duration.max(max);
             sum += timed.duration;
         }
-        let op_stats =
-            Stats { min, max, avg: sum / ops_len as u32, line: current_line.to_string() };
+        let avg = if use_median { median(&mut durations) } else { sum / ops_len as u32 };
+        let op_stats = Stats { min, max, avg, line: current_line.to_string() };
         stats.push(op_stats);
         i += 1;
     }
@@ -220,9 +237,9 @@ async fn main() -> Result<()> {
 
     let raw_iterations = read_logfile(&args.files[0], &spec).await?;
     let iterations = cleanse(&raw_iterations, args.warmup_iterations);
-    let stats = analyze_iterations(iterations);
+    let stats = analyze_iterations(iterations, args.median);
 
-    println!("Stats (of {} records)", iterations.len());
+    println!("avg [min..max] (of {} records)", iterations.len());
     for s in &stats {
         println!("{}", s);
     }
