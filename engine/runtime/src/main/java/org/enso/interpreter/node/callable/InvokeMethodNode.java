@@ -23,6 +23,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -198,6 +199,21 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
     }
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
+    if (!(res instanceof Atom)) {
+      if (interop.isDate(res)) {
+        final Context ctx = Context.get(this);
+        var dateConstructor = ctx.getDateConstructor();
+        if (dateConstructor.isPresent()) {
+          try {
+            var hostLocalDate = interop.asDate(res);
+            var guestLocalDate = ctx.getEnvironment().asGuestValue(hostLocalDate);
+            res = dateConstructor.get().newInstance(guestLocalDate);
+          } catch (UnsupportedMessageException ex) {
+            res = dateConstructor.get().newInstance(res);
+          }
+        }
+      }
+    }
     if (anyWarnings) {
       anyWarningsProfile.enter();
       res = WithWarnings.prependTo(res, accumulatedWarnings);
