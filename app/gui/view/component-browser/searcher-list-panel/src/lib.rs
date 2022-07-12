@@ -363,9 +363,11 @@ impl Model {
         let full_height = favourites_section_height + local_scope_height + sub_modules_height;
 
         self.sub_modules_section.set_base_position_y(0.0, style);
-        self.favourites_section.set_base_position_y(-sub_modules_height, style);
-        let local_scope_y = -favourites_section_height - sub_modules_height;
+        let local_scope_y = -sub_modules_height;
         self.local_scope_section.set_base_position_y(local_scope_y, style);
+        let favourites_section_y = -local_scope_height - sub_modules_height;
+        self.favourites_section.set_base_position_y(favourites_section_y, style);
+
 
         self.scroll_area.set_content_height(full_height);
         self.scroll_area.jump_to_y(full_height);
