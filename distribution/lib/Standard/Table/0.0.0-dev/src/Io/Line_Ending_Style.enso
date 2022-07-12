@@ -1,0 +1,29 @@
+from Standard.Base import Nothing
+from Standard.Table.Io.File_Format import Infer
+
+## Specifies what line endings to use in a file format.
+type Line_Ending_Style
+    ## The line ending style is chosen automatically.
+
+       When reading a file or appending to an existing file, the line endings
+       are detected from file contents. When writing a new file, the OS defaults
+       are used.
+    Infer
+
+    ## The UNIX line endings.
+    type Unix_Line_Endings
+
+    ## The Windows line endings.
+    type Windows_Line_Endings
+
+    ## The classic Mac OS line endings. Used for legacy applications, as modern
+       Mac OS uses the UNIX line endings.
+    type Classic_Mac_Line_Endings
+
+## PRIVATE
+line_separator_sequence : Line_Ending_Style -> Text
+line_separator_sequence line_endings = case line_endings of
+    Unix_Line_Endings -> '\n'
+    Windows_Line_Endings -> '\r\n'
+    Classic_Mac_Line_Endings -> '\r'
+    Infer -> Nothing

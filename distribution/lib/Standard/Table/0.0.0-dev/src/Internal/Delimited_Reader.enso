@@ -8,6 +8,7 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Io.Quote_Style
+from Standard.Table.Io.Line_Ending_Style import line_separator_sequence
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
@@ -120,7 +121,8 @@ prepare_delimited_reader java_reader format max_columns on_problems =
     cell_type_guesser = if format.headers != Infer then Nothing else
         formatter = format.value_formatter.if_nothing Data_Formatter
         TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-    DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows format.line_separator format.comment_character warnings_as_errors
+    newline = line_separator_sequence format.line_endings
+    DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 translate_reader_problem problem =
     invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row))]
