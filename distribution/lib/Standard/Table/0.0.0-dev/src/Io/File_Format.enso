@@ -115,11 +115,11 @@ type Delimited
          are detected from file contents; when writing a new file, the OS
          defaults are used.
        - comment_character: Sets the character which indicates the start of a
-         comment within a delimited file. Any content in the current line after
-         the comment is ignored and lines that only consist of a comment are
-         skipped. This option is only applicable for read mode and does not
-         affect writing. It defaults to `Nothing` which means that comments are
-         disabled.
+         comment within a delimited file. Any line that begins with the comment
+         character is skipped. The comment character is treated as any other
+         character if it anywhere else than at the beginning of the line. This
+         option is only applicable for read mode and does not affect writing. It
+         defaults to `Nothing` which means that comments are disabled.
     type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## Implements the `File.read` for this `File_Format`

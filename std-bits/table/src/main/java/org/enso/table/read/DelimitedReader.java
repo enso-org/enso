@@ -168,6 +168,7 @@ public class DelimitedReader {
       if (newlineSetting.length() > 2 || newlineSetting.isEmpty()) {
         throw new IllegalArgumentException("The newline sequence should consist of at least 1 and at most 2 characters (codepoints).");
       }
+      settings.setLineSeparatorDetectionEnabled(false);
       format.setLineSeparator(newlineSetting);
     }
 
