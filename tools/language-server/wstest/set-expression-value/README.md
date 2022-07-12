@@ -1,11 +1,17 @@
+# set-expression-value
+
+Benchmark for command that sets the expression value.
+
 ## Run
 
 Build Enso distribution.
-```dtd
+
+```bash
 sbt buildEngineDistribution
 ```
 
 Start the Language Server and redirect ouput to `language-server.log`
+
 ```bash
 built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso \
   --log-level trace \
@@ -18,6 +24,7 @@ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso \
 ```
 
 Run the test
+
 ```bash
 cargo run -p wstest -- \
   --binary-socket ws://127.0.0.1:30717 \
@@ -31,6 +38,7 @@ cargo run -p wstest -- \
 ```
 
 Analyze the `language-server.log`
+
 ```bash
 cargo run -p logstat -- \
   --warmup-iterations 20 \
@@ -39,6 +47,7 @@ cargo run -p logstat -- \
 ```
 
 Example output
+
 ```text
 Stats (of 107 records)
 0ms [0..0] [org.enso.jsonrpc.JsonRpcServer] Received text message: { "jsonrpc": "2.0", "met

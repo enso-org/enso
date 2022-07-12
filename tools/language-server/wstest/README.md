@@ -1,3 +1,3 @@
 # wstest
 
-A tool to send sequence of requests to specified url.
+A tool for sending a sequence of requests to the language server.
