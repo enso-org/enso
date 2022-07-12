@@ -30,7 +30,7 @@ cargo run -p wstest -- \
   --binary-socket ws://127.0.0.1:30717 \
   --init-binary-socket tools/language-server/wstest/set-expression-value/init.bin \
   --init-text-socket tools/language-server/wstest/set-expression-value/init.txt \
-  --wait-after-init 5000 \
+  --wait-after-init 10000 \
   --ignore-text-socket-responses tools/language-server/wstest/set-expression-value/ignore_responses.txt \
   --input tools/language-server/wstest/set-expression-value/input.txt \
   --input-expects-binary-responses \
