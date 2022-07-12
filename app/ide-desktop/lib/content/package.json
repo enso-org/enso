@@ -15,7 +15,7 @@
     "url": "https://github.com/enso-org/ide/issues"
   },
   "scripts": {
-    "build": "npx webpack",
+    "build": "ts-node bundle.ts",
     "watch": "node watch.mjs",
     "bundle": "node bundle2.mjs",
     "start": "node start2.mjs"

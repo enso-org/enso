@@ -40,6 +40,7 @@ const options = {
     ],
     entryPoints,
     define,
+    external: ['emitter'] // required only for non-node environment by batch
 }
 await esbuild.build(options)
 

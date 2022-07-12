@@ -70,6 +70,10 @@ const config = {
     },
 }
 
-export async function bundle() {
+export async function watch() {
     return esbuild.build(config)
+}
+
+export async function bundle() {
+    return esbuild.build({...config, watch: false, incremental: false})
 }

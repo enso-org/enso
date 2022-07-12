@@ -21,6 +21,7 @@
     "@electron/remote": "^2.0.8",
     "electron-is-dev": "^1.2.0",
     "passport": "^0.3.2",
+    "http-proxy": "^1.13.3",
     "yargs": "^15.3.0"
   },
   "devDependencies": {
