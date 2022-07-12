@@ -127,9 +127,12 @@ class CollaborativeBuffer(
     case ApplyExpressionValue(
           clientId,
           expressionId,
-          expressionValue,
-          change
+          path,
+          edit,
+          oldVersion,
+          newVersion
         ) =>
+      val change = FileEdit(path, List(edit), oldVersion, newVersion)
       editExpressionValue(
         buffer,
         clients,
@@ -137,7 +140,7 @@ class CollaborativeBuffer(
         clientId,
         change,
         expressionId,
-        expressionValue
+        edit.text
       )
 
     case SaveFile(clientId, _, clientVersion) =>

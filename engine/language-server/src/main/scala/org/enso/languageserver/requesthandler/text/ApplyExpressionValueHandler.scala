@@ -45,8 +45,10 @@ class ApplyExpressionValueHandler(
       bufferRegistry ! TextProtocol.ApplyExpressionValue(
         rpcSession.clientId,
         params.expressionId,
-        params.expressionValue,
-        params.edit
+        params.path,
+        params.edit,
+        params.oldVersion,
+        params.newVersion
       )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)

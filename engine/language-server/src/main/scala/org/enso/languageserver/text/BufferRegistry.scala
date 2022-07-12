@@ -138,7 +138,7 @@ class BufferRegistry(
         sender() ! FileNotOpened
       }
 
-    case msg @ ApplyExpressionValue(_, _, _, FileEdit(path, _, _, _)) =>
+    case msg @ ApplyExpressionValue(_, _, path, _, _, _) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)
       } else {

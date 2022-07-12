@@ -2820,11 +2820,17 @@ interface TextApplyExpressionValue {
   /** The expression id to update. */
   expressionId: ExpressionId;
 
-  /** The new value of the expression. */
-  expressionValue: string;
+  /** The path to a file. */
+  path: Path;
 
-  /** The file edit. */
-  edit: FileEdit;
+  /** The file edit containing the new expression value. */
+  edit: TextEdit;
+
+  /** The current version of a buffer. */
+  oldVersion: SHA3-224;
+
+  /** The version of a buffer after applying the edit. */
+  newVersion: SHA3-224;
 }
 ```
 

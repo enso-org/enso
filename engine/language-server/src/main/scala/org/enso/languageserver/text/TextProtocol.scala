@@ -4,6 +4,7 @@ import org.enso.languageserver.data.{CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.languageserver.session.JsonSession
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
+import org.enso.text.editing.model.TextEdit
 
 object TextProtocol {
 
@@ -74,14 +75,18 @@ object TextProtocol {
     *
     * @param clientId the client requesting to set the expression value.
     * @param expressionId the expression to update
-    * @param expressionValue the new value of the expression
+    * @param path a path of a file
     * @param edit a diff describing changes made to a file
+    * @param oldVersion the current version of a buffer
+    * @param newVersion the version of a buffer after applying all edits
     */
   case class ApplyExpressionValue(
     clientId: ClientId,
     expressionId: ExpressionId,
-    expressionValue: String,
-    edit: FileEdit
+    path: Path,
+    edit: TextEdit,
+    oldVersion: TextApi.Version,
+    newVersion: TextApi.Version
   )
 
   /** Signals that the client doesn't hold write lock to the buffer.
