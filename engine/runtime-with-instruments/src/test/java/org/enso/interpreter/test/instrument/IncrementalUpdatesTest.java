@@ -58,7 +58,7 @@ public class IncrementalUpdatesTest {
 
   @Test
   public void sendUpdatesWhenFunctionBodyIsChanged() {
-    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "5", "5", LiteralNode.class);
+    sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "5", "5", LiteralNode.class);
     var m = context.languageContext().findModule(MODULE_NAME).orElse(null);
     assertNotNull("Module found", m);
     var numbers = m.getIr().preorder().filter((v1) -> {
@@ -71,13 +71,18 @@ public class IncrementalUpdatesTest {
   }
 
   @Test
-  public void sendUpdatesWhenWhenLineIsChanged() {
-    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
+  public void sendUpdatesWhenWhenLineIsChangedBySettingValue() {
+    sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
+  }
+
+  @Test
+  public void sendUpdatesWhenWhenLineIsChangedByTextEdit() {
+    sendUpdatesWhenFunctionBodyIsChangedByTextEdit("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
   }
 
   @Test
   public void sendMultipleUpdates() {
-    sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
+    sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "1000", "1000", LiteralNode.class);
     sendExpressionValue("1000", "333");
     assertEquals(List.newBuilder().addOne("333"), context.consumeOut());
     nodeCountingInstrument.assertNewNodes("No execution on 333, no nodes yet", 0, 0);
@@ -87,13 +92,18 @@ public class IncrementalUpdatesTest {
   }
 
   @Test
-  public void sendUpdatesWhenTextIsChanged() {
-    sendUpdatesWhenFunctionBodyIsChanged("\"hi\"", ConstantsGen.TEXT, "hi", "\"text\"", "text", LiteralNode.class);
+  public void sendUpdatesWhenTextIsChangedByTextEdit() {
+    sendUpdatesWhenFunctionBodyIsChangedByTextEdit("\"hi\"", ConstantsGen.TEXT, "hi", "\"text\"", "text", LiteralNode.class);
+  }
+
+  @Test
+  public void sendUpdatesWhenTextIsChangedBySettingValue() {
+    sendUpdatesWhenFunctionBodyIsChangedBySettingValue("\"hi\"", ConstantsGen.TEXT, "hi", "\"text\"", "text", LiteralNode.class);
   }
 
   @Test
   public void sendNotANumberChange() {
-    var failed = sendUpdatesWhenFunctionBodyIsChanged("4", ConstantsGen.INTEGER, "4", "x", null, LiteralNode.class);
+    var failed = sendUpdatesWhenFunctionBodyIsChangedBySettingValue("4", ConstantsGen.INTEGER, "4", "x", null, LiteralNode.class);
     assertTrue("Execution failed: " + failed, failed.head().payload() instanceof Runtime$Api$ExecutionFailed);
   }
 
@@ -119,9 +129,24 @@ public class IncrementalUpdatesTest {
     return code;
   }
 
+  private List<Runtime$Api$Response> sendUpdatesWhenFunctionBodyIsChangedByTextEdit(
+      String originalText, String exprType, String originalOutput,
+      String newText, String executionOutput, Class<? extends Node> truffleNodeType
+  ) {
+    return sendUpdatesWhenFunctionBodyIsChanged(originalText, exprType, originalOutput, newText, executionOutput, truffleNodeType, this::sendEditFile);
+  }
+
+  private List<Runtime$Api$Response> sendUpdatesWhenFunctionBodyIsChangedBySettingValue(
+      String originalText, String exprType, String originalOutput,
+      String newText, String executionOutput, Class<? extends Node> truffleNodeType
+  ) {
+    return sendUpdatesWhenFunctionBodyIsChanged(originalText, exprType, originalOutput, newText, executionOutput, truffleNodeType, this::sendExpressionValue);
+  }
+
   private List<Runtime$Api$Response> sendUpdatesWhenFunctionBodyIsChanged(
           String originalText, String exprType, String originalOutput,
-          String newText, String executionOutput, Class<? extends Node> truffleNodeType
+          String newText, String executionOutput, Class<? extends Node> truffleNodeType,
+          java.util.function.BiFunction<String, String, List<Runtime$Api$Response>> sendEdit
   ) {
     var contextId = UUID.randomUUID();
     var requestId = UUID.randomUUID();
@@ -217,7 +242,7 @@ public class IncrementalUpdatesTest {
     var literalNode = findLiteralNode(truffleNodeType, allNodesAfterException);
     assertEquals("Check Literal node text in the source", originalText, literalNode.getSourceSection().getCharacters().toString());
 
-    var executionCompleteEvents = sendExpressionValue(originalText, newText);
+    var executionCompleteEvents = sendEdit.apply(originalText, newText);
     if (executionOutput != null) {
       assertSameElements(executionCompleteEvents, context.executionComplete(contextId));
       assertEquals(List.newBuilder().addOne(executionOutput), context.consumeOut());
@@ -226,6 +251,21 @@ public class IncrementalUpdatesTest {
       assertEquals("Literal node has been updated in the source", newText, literalNode.getSourceSection().getCharacters().toString());
     }
     return executionCompleteEvents;
+  }
+
+  private List<Runtime$Api$Response> sendEditFile(String originalText, String newText) {
+    assertNotNull("Main file must be defined before", mainFile);
+    context.send(Request(new Runtime$Api$EditFileNotification(
+        mainFile,
+        makeSeq(
+            new model.TextEdit(
+                new model.Range(new model.Position(3, 8), new model.Position(3, 8 + originalText.length())),
+                newText
+            )
+        ),
+        true
+    )));
+    return context.receiveN(1, 10);
   }
 
   private List<Runtime$Api$Response> sendExpressionValue(String originalText, String newText) {
