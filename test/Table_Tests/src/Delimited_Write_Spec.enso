@@ -30,6 +30,8 @@ type My_Type
     to_text = "[[[My Type :: " + self.x.to_text + "]]]"
 
 spec =
+    line_ending_pairs = [[Unix_Line_Endings, '\n'], [Windows_Line_Endings, '\r\n'], [Classic_Mac_Line_Endings, '\r']]
+    system_separator = if System.os == "windows" then '\r\n' else '\n'
     Test.group "Delimited File Writing" <|
         Test.specify "should correctly write a simple table" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type 10]]]
@@ -42,14 +44,13 @@ spec =
                 2,1.5,y,2
                 3,2.2,z,[[[My Type :: 10]]]
             text = File.read_text file
-            separator = if System.os == "windows" then '\r\n' else '\n'
-            text.should_equal (expected_text.lines.join separator suffix=separator)
+            text.should_equal (expected_text.lines.join system_separator suffix=system_separator)
             file.delete
 
         Test.specify "should allow to specify line ending style" <|
             table = Table.new [["a", ["b", "c"]], ["d", ["e", "f"]]]
             lines = ["a,d", "b,e", "c,f"]
-            [[Unix_Line_Endings, '\n'], [Windows_Line_Endings, '\r\n'], [Classic_Mac_Line_Endings, '\r']].each setting->
+            line_ending_pairs.each setting->
                 style=setting.first
                 separator=setting.second
                 file = (enso_project.data / "transient" / "endings.csv")
@@ -339,24 +340,41 @@ spec =
 
             file.delete
 
-        Test.specify "should be able to correctly append to a file that contains no actual data but only commented out lines" <|
-            # TODO
-            Nothing
-
         Test.specify "should use the same line ending style as existing data when appending" <|
-            # TODO check all 3 styles - initial manually set, appending autodetected
-            Nothing
+            initial_table = Table.new [["a", [1, 2]], ["d", ["e", "f"]]]
+            table_to_append = Table.new [["a", ["x", "y"]], ["d", ["z", "w"]]]
+            expected_lines = ["a,d", "1,e", "2,f", "x,z", "y,w"]
+            line_ending_pairs.each setting->
+                style=setting.first
+                separator=setting.second
+                file = (enso_project.data / "transient" / "endings.csv")
+                initial_table.write file (File_Format.Delimited ',' line_endings=style)
+                table_to_append.write file on_existing_file=Existing_File_Behavior.Append . should_equal Nothing
+                text = File.read_text file
+                text.should_equal (expected_lines.join separator suffix=separator)
+                file.delete
 
         Test.specify "should use the system default line ending style when appending to an empty or nonexistent file" <|
-            # TODO
-            Nothing
+            empty_file = (enso_project.data / "transient" / "empty.csv")
+            "".write empty_file
+            nonexistent_file = (enso_project.data / "transient" / "nonexistent.csv")
+            nonexistent_file.delete_if_exists
+
+            table_to_append = Table.new [["a", ["x", "y"]], ["d", ["z", "w"]]]
+            table_to_append.write nonexistent_file on_existing_file=Existing_File_Behavior.Append
+            table_to_append.write empty_file on_existing_file=Existing_File_Behavior.Append
+
+            expected_lines = ["a,d", "x,z", "y,w"]
+            expected_text = (expected_lines.join system_separator suffix=system_separator)
+            File.read_text empty_file . should_equal expected_text
+            File.read_text nonexistent_file . should_equal expected_text
 
         Test.specify "should use the existing line ending style when appending to a file consisting of only comments" <|
             # TODO
             Nothing
 
         Test.specify "should use the explicitly specified line ending style regardless of the detected one" <|
-            # TOOD write in one style than append in other
+            # TODO write in one style than append in other
             Nothing
 
 main = Test.Suite.run_main spec
