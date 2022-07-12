@@ -20,6 +20,8 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.*;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.node.expression.builtin.date.Date;
+import org.enso.interpreter.node.expression.builtin.date.EnsoDate;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -199,21 +201,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
     }
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
-    if (!(res instanceof Atom)) {
-      if (interop.isDate(res)) {
-        final Context ctx = Context.get(this);
-        var dateConstructor = ctx.getDateConstructor();
-        if (dateConstructor.isPresent()) {
-          try {
-            var hostLocalDate = interop.asDate(res);
-            var guestLocalDate = ctx.getEnvironment().asGuestValue(hostLocalDate);
-            res = dateConstructor.get().newInstance(guestLocalDate);
-          } catch (UnsupportedMessageException ex) {
-            res = dateConstructor.get().newInstance(res);
-          }
-        }
-      }
-    }
     if (anyWarnings) {
       anyWarningsProfile.enter();
       res = WithWarnings.prependTo(res, accumulatedWarnings);
@@ -265,25 +252,13 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
-    final Context ctx = Context.get(this);
+    var ctx = Context.get(this);
     try {
-      var dateConstructor = ctx.getDateConstructor();
-      Object date;
-      if (dateConstructor.isPresent()) {
-        try {
-          var hostLocalDate = interop.asDate(self);
-          var guestLocalDate = ctx.getEnvironment().asGuestValue(hostLocalDate);
-          date = dateConstructor.get().newInstance(guestLocalDate);
-        } catch (UnsupportedMessageException ex) {
-          date = dateConstructor.get().newInstance(self);
-        }
-      } else {
-        date = self;
-      }
+      var hostLocalDate = interop.asDate(self);
+      var date = new EnsoDate(hostLocalDate);
       Function function = dateDispatch.getFunctionalDispatch(date, symbol);
-      arguments[0] = date;
       return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
+    } catch (UnsupportedMessageException | MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }

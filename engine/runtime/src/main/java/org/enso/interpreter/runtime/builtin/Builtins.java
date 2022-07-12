@@ -75,6 +75,7 @@ public class Builtins {
   private final BuiltinAtomConstructor debug;
   private final BuiltinAtomConstructor projectDescription;
   private final BuiltinAtomConstructor file;
+  private final BuiltinAtomConstructor date;
   private final BuiltinAtomConstructor warning;
 
   /**
@@ -113,6 +114,7 @@ public class Builtins {
     debug = new BuiltinAtomConstructor(this, Debug.class);
     projectDescription = new BuiltinAtomConstructor(this, ProjectDescription.class);
     file = new BuiltinAtomConstructor(this, File.class);
+    date = new BuiltinAtomConstructor(this, org.enso.interpreter.node.expression.builtin.date.Date.class);
     special = new Special(language);
     warning = new BuiltinAtomConstructor(this, Warning.class);
   }
@@ -411,6 +413,15 @@ public class Builtins {
    */
   public AtomConstructor file() {
     return file.constructor();
+  }
+
+  /**
+   * Returns the {@code Date} atom constructor.
+   *
+   * @return the {@code Date} atom constructor
+   */
+  public AtomConstructor date() {
+    return date.constructor();
   }
 
   /**

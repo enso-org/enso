@@ -20,7 +20,7 @@ polyglot java import org.enso.base.Time_Utils
 
          example_now = Date.now
 now : Date
-now = LocalDate.now
+now = @Builtin_Method "Date.now"
 
 ## ALIAS Current Date
 
@@ -156,7 +156,8 @@ type Date
        is a description of the date, as used for birthdays. It cannot represent
        an instant on the time-line without additional information such as an
        offset or timezone.
-    type Date internal_local_date
+    @Builtin_Type
+    type Date
 
     ## Get the year field.
 
@@ -167,7 +168,7 @@ type Date
 
              example_year = Date.now.year
     year : Integer
-    year = self . internal_local_date . getYear
+    year = @Builtin_Method "Date.year"
 
     ## Get the month of year field, as a number from 1 to 12.
 
@@ -345,6 +346,4 @@ type Date
 
     ## Compares two Dates for equality.
     == : Date -> Boolean
-    == that = case that of
-        Date _ -> self.internal_local_date.equals that.internal_local_date
-        _ -> False
+    == that = @Builtin_Method "Date.=="
