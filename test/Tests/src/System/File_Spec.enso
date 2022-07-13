@@ -158,7 +158,7 @@ spec =
             f_bak.exists.should_be_false
             f.delete_if_exists
 
-        Test.specify "should allow to appending bytes to a new file" <|
+        Test.specify "should allow appending bytes to a new file" <|
             f = transient / "new_file.dat"
             f.delete_if_exists
             f.exists.should_be_false
@@ -174,7 +174,7 @@ spec =
             [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument_Error
             [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument_Error
 
-        Test.specify "should not change the file when invalid byte vector" <|
+        Test.specify "should not change the file when trying to write an invalid byte vector" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f_bak = transient / "work.txt.bak"
