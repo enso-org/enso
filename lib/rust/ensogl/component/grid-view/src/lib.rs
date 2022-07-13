@@ -32,6 +32,7 @@ pub mod visible_area;
 pub use visible_area::VisibleArea;
 
 
+
 /// Commonly used types and functions.
 pub mod prelude {
     pub use ensogl_core::prelude::*;
@@ -44,17 +45,9 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::gui::Widget;
-use ensogl_hardcoded_theme as theme;
 
 use crate::entry::EntryFrp;
 pub use entry::Entry;
-
-
-// =================
-// === Constants ===
-// =================
-
-const DEFAULT_STYLE_PATH: &str = theme::widget::list_view::HERE.str;
 
 
 
@@ -62,34 +55,48 @@ const DEFAULT_STYLE_PATH: &str = theme::widget::list_view::HERE.str;
 // === FRP ===
 // ===========
 
+/// A row index in [`GridView`].
 pub type Row = usize;
+/// A column index  in [`GridView`].
 pub type Col = usize;
 
 ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
     Input {
+        /// Declare what area of the GridView is visible. The area position is relative to left-top
+        /// corner of the Grid View.
         set_visible_area(VisibleArea),
+        /// Reset entries, providing number of rows and columns. All currently displayed entries
+        /// will be detached and their models re-requested.
         reset_entries(Row, Col),
+        /// Probide model for specific entry. Should be called only after `model_for_entry_needed`
+        /// event for given row and column. After that the entry will be visible.
         model_for_entry(Row, Col, EntryModel),
+        /// Set the entries size. All entries have the same size.
         set_entries_size(Vector2),
+        /// Set the entries parameters.
         set_entries_params(EntryParams),
     }
 
     Output {
-        row_count(usize),
-        column_count(usize),
+        row_count(Row),
+        column_count(Col),
         visible_area(VisibleArea),
         entries_size(Vector2),
         entries_params(EntryParams),
         viewport_size(Vector2),
+        /// Event emitted when the Grid View needs model for an uncovered entry.
         model_for_entry_needed(Row, Col),
     }
 }
 
 
+
 // =============
 // === Model ===
 // =============
+
+// === EntryCreationCtx ===
 
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
@@ -109,7 +116,6 @@ impl<P: frp::node::Data> EntryCreationCtx<P> {
                 let entry_network = entry_frp.network();
                 frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
                     init <- source_();
-                    size <- all(init, self.set_entry_size)._1();
                     entry_frp.set_size <+ all(init, self.set_entry_size)._1();
                     entry_frp.set_params <+ all(init, self.set_entry_params)._1();
                 }
@@ -129,6 +135,9 @@ fn set_entry_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_s
     entry.set_position_xy(Vector2(x, y));
 }
 
+
+// === Properties ===
+
 #[derive(Copy, Clone, Debug, Default)]
 struct Properties {
     row_count:    usize,
@@ -144,6 +153,9 @@ impl Properties {
         Vector2(x, y)
     }
 }
+
+
+// === Model ===
 
 /// The Model of Select Component.
 #[derive(Clone, Debug)]
@@ -231,17 +243,54 @@ impl<E: Entry> Model<E, E::Params> {
 // === GridView ===
 // ================
 
-
-#[allow(missing_docs)]
+/// A template for [`GridView`] structure, where entry parameters and model are separate generic
+/// arguments.
+///
+/// It may be useful when using GridView in parametrized structs, where we want to avoid rewriting
+/// `Entry` bound in each place. Otherwise it's better to use [`GridView`].
+///
+/// Please note that some bounds are still required, as we use [`Widget`] and [`Frp`] nodes.
 #[derive(CloneRef, Debug, Deref, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> {
     widget: Widget<Model<E, P>, Frp<M, P>>,
 }
 
+/// Grid View Component.
+///
+/// This Component displays any kind of entry `E` in a grid. To have it working, you need to
+/// * Set entries size ([`Frp::set_entries_size`]),
+/// * Declare (and keep up-to-date) the visible area ([`Frp::set_visible_area`]),
+/// * Set up logic for providing models (see _Requesting for Models_ section).
+/// * Optionally entries parameters, if given entry does not have sensible default.
+/// * Finally reset the content, providing number of rows and columns ([`Frp::reset_entries`]).
+///
+/// # Positioning
+///
+/// Please mark, that this structure has its left-top corner docked to (0, 0) point of parent
+/// display object, as this is more intuitive way with handling grids.
+///
+/// # Entries Instantiation
+///
+/// The entry should implement [`Entry`] trait. Entries are instantiated lazily, only those visible
+/// in provided [`Frp::view_area`]. Once entries are no longer visible, are detached, but not
+/// dropped and may be re-used to display new entries when needed. This way we can achieve very
+/// efficient scrolling.
+///
+/// ## Requesting for Models
+///
+/// Once an entry is uncovered, the Grid View emits [`Frp::model_for_entry_needed`]. Then the proper
+/// model should be provided using [`Frp::model_for_entry`] endpoint - only then the entry will be
+/// displayed.
+///
+/// **Important**. The [`Frp::model_for_entry_needed`] are emitted once when needed and not repeated
+/// anymore, after adding connections to this FRP node in particular. Therefore make sure, that you
+/// connect providing models logic before emitting any of [`Frp::set_entries_size`] or
+/// [`Frp::set_visible_area`].  
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
 impl<E: Entry> GridView<E> {
+    /// Create new Grid View.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let network = frp.network();
@@ -263,7 +312,6 @@ impl<E: Entry> GridView<E> {
             out.column_count <+ input.reset_entries._1();
             out.visible_area <+ input.set_visible_area;
             out.entries_size <+ input.set_entries_size;
-            let some_other = input.set_entries_size.clone_ref();
             out.entries_params <+ input.set_entries_params;
             prop <- all_with4(
                 &out.row_count, &out.column_count, &out.visible_area, &out.entries_size,
@@ -275,15 +323,18 @@ impl<E: Entry> GridView<E> {
 
             request_models_after_vis_area_change <=
                 input.set_visible_area.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
-            request_models_after_entry_size_change <=
-                input.set_entries_size.map2(&prop, f!((_, p) model.update_after_entries_size_change(*p)));
+            request_models_after_entry_size_change <= input.set_entries_size.map2(
+                &prop,
+                f!((_, p) model.update_after_entries_size_change(*p))
+            );
             request_models_after_reset <=
                 input.reset_entries.map2(&prop, f!((_, p) model.reset_entries(*p)));
             out.model_for_entry_needed <+ request_models_after_vis_area_change;
             out.model_for_entry_needed <+ request_models_after_entry_size_change;
             out.model_for_entry_needed <+ request_models_after_reset;
 
-            model_for_entry_and_prop <- input.model_for_entry.map2(&prop, |model, prop| (model.clone(), *prop));
+            model_for_entry_and_prop <-
+                input.model_for_entry.map2(&prop, |model, prop| (model.clone(), *prop));
             eval model_for_entry_and_prop
                 ((((row, col, entry_model), prop): &((Row, Col, E::Model), Properties))
                     model.update_entry(*row, *col, entry_model.clone(), prop.entries_size)
@@ -297,7 +348,7 @@ impl<E: Entry> GridView<E> {
 
 impl<E, M: frp::node::Data, P: frp::node::Data> display::Object for GridViewTemplate<E, M, P> {
     fn display_object(&self) -> &display::object::Instance {
-        &self.widget.display_object()
+        self.widget.display_object()
     }
 }
 
@@ -310,9 +361,6 @@ impl<E, M: frp::node::Data, P: frp::node::Data> display::Object for GridViewTemp
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ensogl_core::display::object::Instance;
-    use ensogl_core::display::object::WeakInstance;
-    use ensogl_core::display::Scene;
 
     #[derive(Copy, Clone, CloneRef, Debug, Default)]
     struct TestEntryParams {
@@ -321,7 +369,7 @@ mod tests {
 
     #[derive(Clone, CloneRef, Debug)]
     struct TestEntry {
-        frp:            entry::EntryFrp<Self>,
+        frp:            EntryFrp<Self>,
         param_set:      Rc<Cell<usize>>,
         model_set:      Rc<Cell<usize>>,
         display_object: display::object::Instance,
@@ -331,7 +379,7 @@ mod tests {
         type Model = Immutable<usize>;
         type Params = TestEntryParams;
 
-        fn new(app: &Application) -> Self {
+        fn new(_app: &Application) -> Self {
             let frp = entry::EntryFrp::<Self>::new();
             let network = frp.network();
             let param_set = Rc::new(Cell::new(0));
@@ -371,10 +419,11 @@ mod tests {
         grid_view.set_entries_params(TestEntryParams { param: Immutable(13) });
 
         assert_eq!(grid_view.model().visible_entries.borrow().len(), 0);
+        assert_eq!(updates_requested.value(), 25);
 
         for i in 0..5 {
             for j in 0..5 {
-                grid_view.model_for_entry(i as Row, j as Col, Immutable(i * 200 + j));
+                grid_view.model_for_entry(i, j, Immutable(i * 200 + j));
             }
         }
 
@@ -426,7 +475,7 @@ mod tests {
 
         let hiding_old_entries =
             VisibleArea { left_top: Vector2(20.0, -20.0), size: Vector2(100.0, 100.0) };
-        grid_view.set_visible_area(uncovering_new_entries);
+        grid_view.set_visible_area(hiding_old_entries);
         assert_eq!(updates_requested.value(), 11); // Count should not change.
         assert_eq!(grid_view.model().visible_entries.borrow().len(), 25);
         assert_eq!(grid_view.model().free_entries.borrow().len(), 11);

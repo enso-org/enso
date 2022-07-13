@@ -1,8 +1,14 @@
+//! A module with [`VisibleArea`] structure.
+
 use crate::prelude::*;
 
 use crate::Col;
 use crate::Row;
 
+
+
+/// Describes the visible are of [`crate::GridView`].
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default)]
 pub struct VisibleArea {
     pub left_top: Vector2,
@@ -10,6 +16,7 @@ pub struct VisibleArea {
 }
 
 impl VisibleArea {
+    /// Right-bottom corner of the area.
     pub fn right_bottom(&self) -> Vector2 {
         self.left_top + Vector2(self.size.x, -self.size.y)
     }
@@ -18,6 +25,7 @@ impl VisibleArea {
         self.size.x > f32::EPSILON && self.size.y > f32::EPSILON
     }
 
+    /// Returns iterator over all visible locations (row-column pairs).
     pub fn all_visible_locations(
         &self,
         entry_size: Vector2,
@@ -29,23 +37,21 @@ impl VisibleArea {
         itertools::iproduct!(visible_rows, visible_cols)
     }
 
+    /// Return range of visible rows.
     pub fn visible_rows(&self, entry_size: Vector2, row_count: usize) -> Range<Row> {
         let right_bottom = self.right_bottom();
         let first_visible_unrestricted = (self.left_top.y / -entry_size.y).floor() as isize;
-        // tracing::warn!("visible_rows first: {first_visible_unrestricted:?}");
         let first_visible = first_visible_unrestricted.clamp(0, row_count as isize) as Row;
-        // tracing::warn!("visible_rows first: {first_visible:?}");
         let first_not_visible = if self.has_size() {
             let first_not_visible_unrestricted = (right_bottom.y / -entry_size.y).ceil() as isize;
-            // tracing::warn!("visible_rows first_invs: {first_not_visible_unrestricted:?}");
             first_not_visible_unrestricted.clamp(0, row_count as isize) as Row
         } else {
             first_visible
         };
-        // tracing::warn!("visible_rows first_invs: {first_not_visible:?}");
         first_visible..first_not_visible
     }
 
+    /// Return range of visible columns.
     pub fn visible_columns(&self, entry_size: Vector2, col_count: usize) -> Range<Col> {
         let right_bottom = self.right_bottom();
         let first_visible_unrestricted = (self.left_top.x / entry_size.x).floor() as isize;

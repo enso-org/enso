@@ -1,15 +1,11 @@
-//! A single entry in [`crate::list_view::ListView`].
+//! A module with an [`Entry`] abstraction for [`crate::GridView`]. `GridView` can be parametrized
+//! by any entry with the specified API.
 
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::scene::layer::WeakLayer;
-use ensogl_core::display::scene::Layer;
-use ensogl_text as text;
 
 
 
@@ -26,6 +22,7 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
     Output {}
 }
 
+/// FRP Api of a specific Entry.
 pub type EntryFrp<E> = Frp<<E as Entry>::Model, <E as Entry>::Params>;
 
 
@@ -33,19 +30,23 @@ pub type EntryFrp<E> = Frp<<E as Entry>::Model, <E as Entry>::Params>;
 // === Trait ===
 // =============
 
+/// The abstraction of Entry for [`crate::GridView`].
+///
+/// The entry may be any [`display::Object`] which can provide the [`EntryFRP`] API.
 pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// The model of this entry. The entry should be a representation of data from the Model.
     /// For example, the entry being just a caption can have [`String`] as its model - the text to
     /// be displayed.
     type Model: Clone + Debug + Default;
 
-    /// A type parametrizing the visual aspects of how the entry will be rendered in an instance of
-    /// [`crate::ListView`].
+    /// A type parametrizing the various aspects of the entry, independed of the Model (for example
+    /// the text color). The parameters are set in [`crate::GridView`] and shared between all
+    /// entries.
     type Params: Clone + Debug + Default;
 
-    /// An Object constructor.
+    /// An Entry constructor.
     fn new(app: &Application) -> Self;
 
-    /// FRP endpoints getter
+    /// FRP endpoints getter.
     fn frp(&self) -> &EntryFrp<Self>;
 }

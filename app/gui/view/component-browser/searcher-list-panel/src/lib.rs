@@ -40,13 +40,9 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
-pub mod column_grid;
-
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -70,6 +66,15 @@ use ensogl_text as text;
 use ide_view_component_group as component_group;
 use ide_view_component_group::Layers as GroupLayers;
 use searcher_theme::list_panel as list_panel_theme;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod column_grid;
+
+pub use column_grid::LabeledAnyModelProvider;
 
 
 

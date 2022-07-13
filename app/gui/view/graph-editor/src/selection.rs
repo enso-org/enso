@@ -1,11 +1,7 @@
 //! Module that contains the logic for selecting nodes. This includes selecting single nodes
 //! by clicking on them separately, as well as click+drag for selecting with a selection area.
 
-
-
 use ensogl::prelude::*;
-
-pub use ensogl::data::bounding_box::BoundingBox;
 
 use crate::NodeId;
 use crate::Nodes;
@@ -14,6 +10,14 @@ use crate::TouchState;
 use ensogl::frp;
 use ensogl::gui::cursor;
 use ensogl::gui::cursor::Cursor;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use ensogl::data::bounding_box::BoundingBox;
+
 
 
 // ============

@@ -20,8 +20,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use rand::Rng;
 use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
@@ -29,12 +29,12 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::*;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::VisibleArea;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf_sys::run_once_initialized;
 use logger::TraceLogger as Logger;
+use rand::Rng;
 
 
 
@@ -62,7 +62,7 @@ mod visible_area {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        above = [grid_view::basic::background];
+        above = [grid_view::basic::entry_background];
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

@@ -1,25 +1,32 @@
+//! A module defining the [`BasicGridView`] with all helper structures.
+
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
+
+use crate::EntryFrp;
+
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
-
-use crate::EntryFrp;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::shape::*;
 use ensogl_text as text;
+
 
 
 // ==================
 // === Background ===
 // ==================
 
-pub mod background {
+/// The background of single Entry. The actually displayed rectangle is shrunk by [`PADDING_PX`]
+/// from the shape size, to avoid antialiasing glitches.  
+pub mod entry_background {
     use super::*;
 
-    pub const PADDING_PX: f32 = 2.0;
+    /// A padding added to the background rectangle to avoid antialiasing glitches.
+    pub const PADDING_PX: f32 = 5.0;
 
     ensogl_core::define_shape_system! {
         (style:Style, color: Vector4) {
@@ -38,6 +45,8 @@ pub mod background {
 // === EntryParams ===
 // ===================
 
+/// The parameters of [`BasicGridView`]`s entries.
+#[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct EntryParams {
     pub bg_color:    color::Rgba,
@@ -50,6 +59,7 @@ pub struct EntryParams {
 }
 
 impl EntryParams {
+    /// Take self and return it with new text layer.
     pub fn with_text_layer(mut self, layer: &Layer) -> Self {
         self.text_layer = Some(layer.downgrade());
         self
@@ -76,20 +86,25 @@ impl Default for EntryParams {
 // === Entry ===
 // =============
 
+// === EntryData ===
+
+/// An internal structure of [`Entry`], which may be passed to FRP network without risk of memory
+/// leaks.
+#[allow(missing_docs)]
 #[derive(Clone, Debug)]
-pub struct EntryModel {
+pub struct EntryData {
     display_object:     display::object::Instance,
     pub label:          text::Area,
-    pub background:     background::View,
+    pub background:     entry_background::View,
     current_text_layer: RefCell<Option<WeakLayer>>,
 }
 
-impl EntryModel {
+impl EntryData {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new(&logger);
         let label = app.new_view::<ensogl_text::Area>();
-        let background = background::View::new(&logger);
+        let background = entry_background::View::new(&logger);
         let current_text_layer = default();
         display_object.add_child(&label);
         display_object.add_child(&background);
@@ -103,7 +118,7 @@ impl EntryModel {
         text_size: text::Size,
         text_offset: f32,
     ) {
-        use background::PADDING_PX;
+        use entry_background::PADDING_PX;
         let bg_size = entry_size - Vector2(bg_margin, bg_margin) * 2.0;
         let bg_size_with_padding = bg_size + Vector2(PADDING_PX, PADDING_PX) * 2.0;
         self.background.size.set(bg_size_with_padding);
@@ -136,24 +151,24 @@ impl EntryModel {
 }
 
 
+// === Entry ===
+
+/// A [`BasicGridView`] entry - a label with background.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Entry {
-    frp:   EntryFrp<Self>,
-    model: Rc<EntryModel>,
+    frp:  EntryFrp<Self>,
+    data: Rc<EntryData>,
 }
-
-impl Entry {}
 
 impl crate::Entry for Entry {
     type Model = ImString;
     type Params = EntryParams;
 
     fn new(app: &Application) -> Self {
-        let model = Rc::new(EntryModel::new(app));
+        let data = Rc::new(EntryData::new(app));
         let frp = EntryFrp::<Self>::new();
         let input = &frp.private().input;
         let network = frp.network();
-
 
         enso_frp::extend! { network
             bg_color <- input.set_params.map(|params| params.bg_color).on_change();
@@ -165,19 +180,19 @@ impl crate::Entry for Entry {
             text_layer <- input.set_params.map(|params| params.text_layer.clone());
 
             layout <- all(input.set_size, bg_margin, text_size, text_offset);
-            eval layout ((&(es, m, ts, to)) model.update_layout(es, m, ts, to));
+            eval layout ((&(es, m, ts, to)) data.update_layout(es, m, ts, to));
 
-            eval bg_color ((color) model.background.color.set(color.into()));
-            model.label.set_default_color <+ text_color.on_change();
-            model.label.set_font <+ font.on_change().map(ToString::to_string);
-            model.label.set_default_text_size <+ text_size.on_change();
-            eval text_layer ((layer) model.set_label_layer(layer));
+            eval bg_color ((color) data.background.color.set(color.into()));
+            data.label.set_default_color <+ text_color.on_change();
+            data.label.set_font <+ font.on_change().map(ToString::to_string);
+            data.label.set_default_text_size <+ text_size.on_change();
+            eval text_layer ((layer) data.set_label_layer(layer));
 
             content <- input.set_model.map(|s| s.to_string());
             max_width_px <- input.set_size.map(|size| size.x);
-            model.label.set_content_truncated <+ all(&content, &max_width_px);
+            data.label.set_content_truncated <+ all(&content, &max_width_px);
         }
-        Self { frp, model }
+        Self { frp, data }
     }
 
     fn frp(&self) -> &EntryFrp<Self> {
@@ -187,7 +202,7 @@ impl crate::Entry for Entry {
 
 impl display::Object for Entry {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        &self.data.display_object
     }
 }
 
@@ -195,4 +210,5 @@ impl display::Object for Entry {
 // === BasicGridView ===
 // =====================
 
+/// The Basic version of Grid View, where each entry is just a label with background.
 pub type BasicGridView = crate::GridView<Entry>;
