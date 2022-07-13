@@ -368,8 +368,8 @@ pub struct IdeMetadata {
     project: Option<ProjectMetadata>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq)]
 /// Metadata about a nodes edit status.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq)]
 pub enum NodeEditStatus {
     /// The node was edited and had a previous expression.
     Edited {
