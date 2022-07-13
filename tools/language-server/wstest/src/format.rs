@@ -5,8 +5,8 @@ pub static MESSAGE_BINARY: &str = "<binary>";
 
 static INIT_REQUEST_SENT: &str = "wstest sent init request";
 static BENCH_REQUEST_SENT: &str = "wstest sent bench request";
-static RESPONSE_RECEIVED: &str = "wstest received response";
-static RESPONSE_IGNORED: &str = "wstest received response (ignored)";
+static RESPONSE_HANDLED: &str = "wstest handled response";
+static RESPONSE_IGNORED: &str = "wstest ignored response";
 
 static FMT_LEVEL: &str = "info";
 static FMT_MODULE: &str = "main";
@@ -23,12 +23,12 @@ pub fn bench_request(message: &str) -> String {
 
 /// Message for logging the text response
 pub fn response_text(message: &str) -> String {
-    fmt(format!("{} [{}]", RESPONSE_RECEIVED, message).as_str())
+    fmt(format!("{} [{}]", RESPONSE_HANDLED, message).as_str())
 }
 
 /// Message for logging the binary response
 pub fn response_binary() -> String {
-    fmt(format!("{} [{}]", RESPONSE_RECEIVED, MESSAGE_BINARY).as_str())
+    fmt(format!("{} [{}]", RESPONSE_HANDLED, MESSAGE_BINARY).as_str())
 }
 
 /// Message for logging the ignored response

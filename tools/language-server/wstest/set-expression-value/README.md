@@ -23,7 +23,7 @@ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso \
   &| tee language-server.log
 ```
 
-Run the test
+Run the test and redirect output to `wstest.log`
 
 ```bash
 cargo run -p wstest -- \
@@ -35,28 +35,33 @@ cargo run -p wstest -- \
   --input tools/language-server/wstest/set-expression-value/input.txt \
   --input-expects-binary-responses \
   --input-repeat-times 20 \
-  ws://127.0.0.1:30616
+  ws://127.0.0.1:30616 \
+  &| tee wstest.log
 ```
 
-Analyze the `language-server.log`
+Analyze logs
 
 ```bash
 cargo run -p logstat -- \
-  --warmup-iterations 20 \
+  --median
+  --warmup-iterations 50 \
   --spec tools/language-server/logstat/apply-expression-value-spec.txt \
+  --wstest_log wstest.log
   language-server.log
 ```
 
 Example output
 
-```text
-Stats (of 107 records)
-0ms [0..0] [org.enso.jsonrpc.JsonRpcServer] Received text message: { "jsonrpc": "2.0", "met
-1ms [0..27] [org.enso.languageserver.protocol.json.JsonConnectionController] received handle
-1ms [1..4] [org.enso.languageserver.runtime.RuntimeConnector] received handled Request(None
+````text
+avg [min..max] (of 150 records)
+0ms [0..0] [main] wstest sent bench request [{ "jsonrpc": "2.0", "method": "text/applyExpre
+0ms [0..2] [org.enso.jsonrpc.JsonRpcServer] Received text message: { "jsonrpc": "2.0", "met
+0ms [0..1] [org.enso.languageserver.protocol.json.JsonConnectionController] received handle
+1ms [0..2] [org.enso.languageserver.runtime.RuntimeConnector] received handled Request(None
 0ms [0..2] [enso] Executing command: SetExpressionValueCmd...
-14ms [8..44] [enso] Job EnsureCompiledJob finished in 19 ms.
-2ms [1..13] [enso] Visualisation computed 524dd815-b652-4bbe-b9f2-26b35d17993a.
-0ms [0..2] [org.enso.languageserver.runtime.ContextRegistry] received handled Visualisation
-22ms [13..53] Total
-```
+5ms [3..16] [enso] Job EnsureCompiledJob finished in 5 ms.
+1ms [0..9] [enso] Visualisation computed 524dd815-b652-4bbe-b9f2-26b35d17993a.
+0ms [0..1] [org.enso.languageserver.runtime.ContextRegistry] received handled Visualisation
+1ms [0..1] [main] wstest handled response [<binary>]
+8ms [7..22] Total```
+````
