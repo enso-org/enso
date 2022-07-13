@@ -254,7 +254,7 @@ public class MethodDefinition {
                 element);
         return false;
       }
-      
+
       return true;
     }
 
