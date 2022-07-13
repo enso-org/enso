@@ -358,6 +358,52 @@ Decimal.should_equal that epsilon=0 frames_to_skip=0 =
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
             Panic.throw (Failure msg)
 
+## Asserts that `self` value is not an error.
+
+   It returns the original value, so that it can be inspected further.
+
+   Arguments:
+   - allow_warnings (optional): By default set to `False`, which means that the
+     returned value is also checked for attached warnings and any warnings are
+     treated as a failure. If set to `True`, the warnings will be ignored, so
+     only errors are checked.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that a given action did not result in errors or warnings.
+
+         "foobar".write (enso_project.data / "f.txt") . should_succeed
+Any.should_succeed : Boolean -> Integer -> Any
+Any.should_succeed allow_warnings=False frames_to_skip=0 =
+    if allow_warnings then self else
+        reported_warnings = Warning.get_all self . map .value
+        if reported_warnings.is_empty then self else
+            loc = Meta.get_source_location 3+frames_to_skip
+            msg = "Action produced unexpected warnings: " + reported_warnings.to_text + " (at " + loc + ")."
+            fail msg
+
+## Asserts that `self` value is not an error.
+
+   It returns the original value, so that it can be inspected further.
+
+   Arguments:
+   - allow_warnings (optional): By default set to `False`, which means that the
+     returned value is also checked for attached warnings and any warnings are
+     treated as a failure. If set to `True`, the warnings will be ignored, so
+     only errors are checked.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that a given action did not result in errors or warnings.
+
+         "foobar".write (enso_project.data / "f.txt") . should_succeed
+Error.should_succeed : Boolean -> Integer -> Any
+Error.should_succeed allow_warnings=False frames_to_skip=0 =
+    _ = allow_warnings
+    fail_match_on_unexpected_error self 1+frames_to_skip
+
 ## Asserts that the given `Boolean` is `True`
 
    > Example
