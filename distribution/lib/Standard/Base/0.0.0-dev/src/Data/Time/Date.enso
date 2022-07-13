@@ -4,6 +4,7 @@ import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.Data.Time.Zone
+import Standard.Base.Data.Time.Date_Internal
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
@@ -20,7 +21,7 @@ polyglot java import org.enso.base.Time_Utils
 
          example_now = Date.now
 now : Date
-now = @Builtin_Method "Date.now"
+now = Date_Internal.date_now 0
 
 ## ALIAS Current Date
 
@@ -67,7 +68,7 @@ new year (month = 1) (day = 1) =
        instead of Enso format. Hopefully this will be fixed with
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
-    Panic.recover Any (LocalDate.of year month day) . catch Any e-> case e of
+    Panic.recover Any (Date_Internal.date_new year month day) . catch Any e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
@@ -136,19 +137,16 @@ new year (month = 1) (day = 1) =
 parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
-        Nothing -> LocalDate.parse text
-        Text -> LocalDate.parse text (DateTimeFormatter.ofPattern pattern)
+        Nothing -> Date_Internal.parse text 0
+        Text -> Date_Internal.parse text pattern
         _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
-    Date result . map_error <| case _ of
+    result . map_error <| case _ of
         Polyglot_Error err -> Time.Time_Error err.getMessage
         x -> x
 
 type Date
 
     ## This type represents a date, often viewed as year-month-day.
-
-       Arguments:
-       - internal_local_date: The internal date representation.
 
        For example, the value "2nd October 2007" can be stored in a `Date`.
 
@@ -168,7 +166,7 @@ type Date
 
              example_year = Date.now.year
     year : Integer
-    year = @Builtin_Method "Date.year"
+    year = Date_Internal.date_value 1 self
 
     ## Get the month of year field, as a number from 1 to 12.
 
@@ -179,7 +177,7 @@ type Date
 
              example_month = Date.now.month
     month : Integer
-    month = self . internal_local_date . getMonthValue
+    month = Date_Internal.date_value 2 self
 
     ## Get the day of month field.
 
@@ -190,7 +188,7 @@ type Date
 
              example_day = Date.now.day
     day : Integer
-    day = self . internal_local_date . getDayOfMonth
+    day = Date_Internal.date_value 3 self
 
     ## Returns the number of week of year this date falls into.
 
@@ -271,7 +269,7 @@ type Date
 
              example_to_text = Date.now.to_text
     to_text : Text
-    to_text = Time_Utils.default_date_formatter . format self.internal_local_date
+    to_text = Time_Utils.local_date_to_text self
 
     ## A Date to Json conversion.
 

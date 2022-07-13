@@ -6,15 +6,15 @@ import java.time.LocalDate;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(
-    type = "Date",
-    name = "now",
+    type = "Date_Internal",
+    name = "date_create",
     description = "Returns current Date")
 public abstract class NowNode extends Node {
   static NowNode build() {
     return NowNodeGen.create();
   }
 
-  abstract Object execute(Object self);
+  abstract Object execute(Object self, long type);
 
   @Specialization
   Object doNow(Object self) {

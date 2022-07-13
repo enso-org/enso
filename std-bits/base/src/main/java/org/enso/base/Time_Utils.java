@@ -1,6 +1,7 @@
 package org.enso.base;
 
 import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
@@ -8,7 +9,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
-import java.util.Random;
 
 /** Utils for standard library operations on Time. */
 public class Time_Utils {
@@ -51,6 +51,10 @@ public class Time_Utils {
   /** @return default Time_Of_Day formatter. */
   public static DateTimeFormatter default_time_of_day_formatter() {
     return DateTimeFormatter.ISO_LOCAL_TIME;
+  }
+
+  public static String local_date_to_text(LocalDate date) {
+      return default_date_formatter().format(date);
   }
 
   /**
