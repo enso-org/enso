@@ -75,7 +75,7 @@ public abstract class InteropApplicationNode extends Node {
     for (int i = 0; i < cachedArgsLength; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    return sorterNode.execute(function, null, state, args).getValue();
+    return sorterNode.execute(function, null, state, args, true).getValue();
   }
 
   @Specialization(replaces = "callCached")

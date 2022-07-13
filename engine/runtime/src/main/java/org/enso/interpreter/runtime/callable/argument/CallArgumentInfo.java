@@ -5,6 +5,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 
+import java.util.Arrays;
 import java.util.OptionalInt;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
@@ -109,7 +110,14 @@ public final class CallArgumentInfo {
      * @return the generated argument mapping
      */
     @CompilerDirectives.TruffleBoundary
-    public static ArgumentMapping generate(FunctionSchema schema, CallArgumentInfo[] callArgs) {
+    public static ArgumentMapping generate(
+        FunctionSchema schema, CallArgumentInfo[] callArgs0, boolean withSelfArg) {
+      CallArgumentInfo[] callArgs;
+      if (withSelfArg || callArgs0.length == 0) {
+        callArgs = callArgs0;
+      } else {
+        callArgs = Arrays.copyOfRange(callArgs0, 1, callArgs0.length);
+      }
       ArgumentMappingBuilder mapping = new ArgumentMappingBuilder(schema, callArgs);
       mapping.processArguments();
       return mapping.getAppliedMapping();

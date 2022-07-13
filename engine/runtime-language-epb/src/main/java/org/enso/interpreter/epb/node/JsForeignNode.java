@@ -29,11 +29,17 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
   @Specialization
   Object doExecute(
       Object[] arguments, @CachedLibrary("foreignFunction") InteropLibrary interopLibrary) {
-    Object[] positionalArgs = new Object[getArity() - 1];
-    if (getArity() - 1 >= 0) System.arraycopy(arguments, 1, positionalArgs, 0, getArity() - 1);
+    int positionalArity = getArity() == 0 ? 0 : getArity() - 1;
+    Object[] positionalArgs = new Object[positionalArity];
+    if (positionalArity > 0) System.arraycopy(arguments, 1, positionalArgs, 0, positionalArity);
     try {
-      return interopLibrary.invokeMember(
-          getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs));
+      if (getArity() == 0) {
+        return interopLibrary.invokeMember(
+            getForeignFunction(), "apply", new ReadOnlyArray(positionalArgs));
+      } else {
+        return interopLibrary.invokeMember(
+            getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs));
+      }
     } catch (UnsupportedMessageException
         | UnknownIdentifierException
         | ArityException

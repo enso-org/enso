@@ -11,6 +11,8 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
+
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
@@ -21,6 +23,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
@@ -77,17 +80,27 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Stateful execute(
       VirtualFrame frame, Object state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
+  private Object[] argumentsForInvocation(Object[] arguments, boolean withSelf) {
+    if (withSelf || arguments.length == 0) {
+      return arguments;
+    } else {
+      return Arrays.copyOfRange(arguments, 1, arguments.length);
+    }
+  }
+
   @Specialization(guards = "dispatch.hasFunctionalDispatch(self)")
   Stateful doFunctionalDispatch(
       VirtualFrame frame,
       Object state,
       UnresolvedSymbol symbol,
       Object self,
-      Object[] arguments,
+      Object[] arguments0,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch) {
     try {
       Function function = dispatch.getFunctionalDispatch(self, symbol);
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      boolean withSelf = function.getSchema().hasSelf();
+      Object[] arguments = argumentsForInvocation(arguments0, withSelf);
+      return invokeFunctionNode.execute(function, frame, state, arguments, withSelf);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
           Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
@@ -100,13 +113,15 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object state,
       UnresolvedSymbol symbol,
       DataflowError self,
-      Object[] arguments,
+      Object[] arguments0,
       @Cached DataflowErrorResolverNode dataflowErrorResolverNode) {
     Function function = dataflowErrorResolverNode.execute(symbol, self);
     if (errorReceiverProfile.profile(function == null)) {
       return new Stateful(state, self);
     } else {
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      boolean withSelf = function.getSchema().hasSelf();
+      Object[] arguments = argumentsForInvocation(arguments0, withSelf);
+      return invokeFunctionNode.execute(function, frame, state, arguments, withSelf);
     }
   }
 
@@ -223,7 +238,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Text txt = Text.create(str);
       Function function = textDispatch.getFunctionalDispatch(txt, symbol);
       arguments[0] = txt;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, state, arguments, true);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
@@ -253,7 +268,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       var date = new EnsoDate(hostLocalDate);
       Function function = dateDispatch.getFunctionalDispatch(date, symbol);
       arguments[0] = date;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, state, arguments, true);
     } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
@@ -275,7 +290,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached AnyResolverNode anyResolverNode) {
     Function function = anyResolverNode.execute(symbol, self);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+    return invokeFunctionNode.execute(function, frame, state, arguments, true);
   }
 
   @Override

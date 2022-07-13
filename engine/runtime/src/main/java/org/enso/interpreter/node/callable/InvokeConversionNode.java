@@ -24,6 +24,7 @@ import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
@@ -107,11 +108,21 @@ public abstract class InvokeConversionNode extends BaseNode {
     try {
       Function function =
           dispatch.getConversionFunction(that, extractConstructor(self), conversion);
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      boolean withSelf = function.getSchema().hasSelf();
+      Object[] arguments1 = argumentsForInvocation(arguments, withSelf);
+      return invokeFunctionNode.execute(function, frame, state, arguments1, withSelf);
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       throw new PanicException(
           Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
           this);
+    }
+  }
+
+  private Object[] argumentsForInvocation(Object[] arguments, boolean withSelf) {
+    if (withSelf || arguments.length == 0) {
+      return arguments;
+    } else {
+      return Arrays.copyOfRange(arguments, 1, arguments.length);
     }
   }
 
@@ -128,7 +139,8 @@ public abstract class InvokeConversionNode extends BaseNode {
     try {
       Function function =
           dispatch.getConversionFunction(that, extractConstructor(self), conversion);
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(
+          function, frame, state, arguments, function.getSchema().hasSelf());
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       profile.enter();
       return new Stateful(state, that);
@@ -198,7 +210,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       Function function =
           textDispatch.getConversionFunction(txt, extractConstructor(self), conversion);
       arguments[0] = txt;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, state, arguments, function.hasSelf());
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, that is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {

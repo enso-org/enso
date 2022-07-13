@@ -66,15 +66,20 @@ public abstract class InvokeFunctionNode extends BaseNode {
   }
 
   @Specialization(
-      guards = {"!getContext().isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
+      guards = {
+        "!getContext().isInlineCachingDisabled()",
+        "function.getSchema() == cachedSchema",
+        "withSelf"
+      },
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   Stateful invokeCached(
       Function function,
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
+      boolean withSelf,
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
-      @Cached("generate(cachedSchema, getSchema())")
+      @Cached("generate(cachedSchema, getSchema(), withSelf)")
           CallArgumentInfo.ArgumentMapping argumentMapping,
       @Cached("build(cachedSchema, argumentMapping, getArgumentsExecutionMode())")
           ArgumentSorterNode mappingNode,
@@ -114,10 +119,12 @@ public abstract class InvokeFunctionNode extends BaseNode {
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
+      boolean withSelf,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
     CallArgumentInfo.ArgumentMapping argumentMapping =
-        CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), getSchema());
+        CallArgumentInfo.ArgumentMappingBuilder.generate(
+            function.getSchema(), getSchema(), withSelf);
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(
@@ -160,7 +167,11 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
   public abstract Stateful execute(
-      Function callable, VirtualFrame callerFrame, Object state, Object[] arguments);
+      Function callable,
+      VirtualFrame callerFrame,
+      Object state,
+      Object[] arguments,
+      boolean withSelf);
 
   public CallArgumentInfo[] getSchema() {
     return schema;

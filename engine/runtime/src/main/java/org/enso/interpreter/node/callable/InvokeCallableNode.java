@@ -158,7 +158,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Specialization
   Stateful invokeFunction(
       Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
-    return this.invokeFunctionNode.execute(function, callerFrame, state, arguments);
+    return this.invokeFunctionNode.execute(function, callerFrame, state, arguments, true);
   }
 
   @Specialization
