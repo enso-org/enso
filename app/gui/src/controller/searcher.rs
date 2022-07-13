@@ -964,6 +964,7 @@ impl Searcher {
             });
             let responses: Result<Vec<language_server::response::Completion>, _> =
                 futures::future::join_all(requests).await.into_iter().collect();
+            DEBUG!("MCDBG responses...");
             match responses {
                 Ok(responses) => {
                     info!(this.logger, "Received suggestions from Language Server.");
@@ -972,6 +973,7 @@ impl Searcher {
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
                     data.components = this.make_component_list(completions);
+                    DEBUG!("MCDBG data.components.favorites=" data.components.favorites;?);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";

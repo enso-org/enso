@@ -135,12 +135,14 @@ impl Group {
     fn restore_initial_order(&self) {
         let mut entries = self.entries.borrow_mut();
         if entries.len() != self.initial_entries_order.len() {
+            DEBUG!("MCDBG why I don't see the error below?");
             tracing::error!(
                 "Tried to restore initial order in group where \
                         `initial_entries_order` is not initialized or up-to-date. Will keep the \
                         old order."
             )
         } else {
+            DEBUG!("MCDBG clone initial entries @" self.initial_entries_order.len());
             *entries = self.initial_entries_order.clone()
         }
     }
