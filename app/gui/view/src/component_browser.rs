@@ -1,4 +1,5 @@
 //! A module containing the Component Browser [`View`].
+
 // TODO[ao]: This module should be extracted to a separate crate in the future; now it shares
 //   the documentation panel with old Node Searcher, that's why it must be in the view crate.
 

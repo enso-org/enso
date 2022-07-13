@@ -1,5 +1,6 @@
 //! Downloader of fonts considered as "embedded" into the application.
 
+// === Features ===
 #![feature(const_trait_impl)]
 
 use std::env;

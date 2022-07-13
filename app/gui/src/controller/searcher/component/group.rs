@@ -2,7 +2,6 @@
 //! structures.
 
 use crate::prelude::*;
-use std::cmp;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
@@ -13,6 +12,7 @@ use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use ensogl::data::color;
+use std::cmp;
 
 
 

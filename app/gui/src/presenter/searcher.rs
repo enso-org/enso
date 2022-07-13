@@ -7,11 +7,11 @@ use crate::controller::searcher::action::Suggestion;
 use crate::controller::searcher::Notification;
 use crate::controller::searcher::UserAction;
 use crate::executor::global::spawn_stream_handler;
+use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
-use crate::model::suggestion_database::entry::Kind;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;

@@ -5,6 +5,7 @@
 use crate::prelude::*;
 
 use crate::model::suggestion_database;
+
 use convert_case::Case;
 use convert_case::Casing;
 
