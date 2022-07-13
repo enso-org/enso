@@ -21,7 +21,7 @@ from Standard.Table.Errors as Table_Errors import Column_Count_Mismatch, Column_
 import Standard.Test
 import Standard.Test.Problems
 
-import project.Util
+from project.Util import all
 
 type My_Type
     type My_Type x
@@ -38,13 +38,13 @@ spec =
             file = (enso_project.data / "transient" / "written.csv")
             file.delete_if_exists
             table.write file
-            expected_text = """
+            expected_text = normalize_lines <| """
                 A,B,C,D
                 1,1.0,x,a
                 2,1.5,y,2
                 3,2.2,z,[[[My Type :: 10]]]
             text = File.read_text file
-            text.should_equal (expected_text.lines.join system_separator suffix=system_separator)
+            text.should_equal expected_text
             file.delete
 
         Test.specify "should allow to specify line ending style" <|
@@ -74,14 +74,14 @@ spec =
             file = (enso_project.data / "transient" / "quotes1.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited "," value_formatter=data_formatter)
-            expected_text = """
+            expected_text = normalize_lines <| """
                 "The Column ""Name""","Hello, Column?"
                 foo,"1,0"
                 'bar',"1000000,5"
                 """baz""","2,2"
                 "one, two, three","-1,5"
             text = File.read_text file
-            text.should_equal expected_text+'\n'
+            text.should_equal expected_text
             file.delete
 
         Test.specify 'should quote values that contain the delimiter or quotes, in the [;\\\"] variant' <|
@@ -90,7 +90,7 @@ spec =
             file = (enso_project.data / "transient" / "quotes2.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\')
-            expected_text = """
+            expected_text = normalize_lines <| """
                 "\"A\"";B
                 foo;1'000'000.5
                 "!\"baz\" ";1'000.0
@@ -98,7 +98,7 @@ spec =
                 "a;b; c ";-1.2
                 "a\\b";
             text = File.read_text file
-            text.should_equal expected_text+'\n'
+            text.should_equal expected_text
             file.delete
 
         Test.specify "should quote values that contain the delimiter or quotes, in the [\t''] variant" <|
@@ -107,14 +107,14 @@ spec =
             file = (enso_project.data / "transient" / "quotes3.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'')
-            expected_text = '''
+            expected_text = normalize_lines <| '''
                 "A"\tB\\C
                 \t'1''000''000.5'
                 'The ''thing''.'\t'1''000.0'
                 one, "two", three\t
                 'a\tb'\t-1.2
             text = File.read_text file
-            text.should_equal expected_text+'\n'
+            text.should_equal expected_text
             file.delete
 
         Test.specify "should correctly distinguish empty text from a missing value" <|
@@ -122,13 +122,13 @@ spec =
             file = (enso_project.data / "transient" / "empty_vs_null.csv")
             file.delete_if_exists
             table.write file
-            expected_text = """
+            expected_text = normalize_lines <| """
                 A,B
                 1,
                 ,""
                 3,abc
             text = File.read_text file
-            text.should_equal expected_text+'\n'
+            text.should_equal expected_text
             file.delete
 
         Test.specify 'should not quote values if quoting is disabled' <|
@@ -137,14 +137,14 @@ spec =
             file = (enso_project.data / "transient" / "quote_disabled.csv")
             file.delete_if_exists
             table.write file format
-            expected_text = """
+            expected_text = normalize_lines <| """
                 The Column "Name",Hello, Column?
                 foo,1,0
                 'bar',1000000,5
                 "baz",2,2
                 one, two, three,-1,5
             text = File.read_text file
-            text.should_equal expected_text+'\n'
+            text.should_equal expected_text
             file.delete
 
         Test.specify 'should allow to always quote text and custom values, but for non-text primitves only if absolutely necessary' <|
@@ -153,14 +153,14 @@ spec =
             file = (enso_project.data / "transient" / "quote_always.csv")
             file.delete_if_exists
             table.write file format
-            expected_text = """
+            expected_text = normalize_lines <| """
                 "The Column \"Name\"","B","C","D","E"
                 "foo",1.0,"foo",1,
                 "'bar'","1\"000\"000.5","[[[My Type :: 44]]]",2,13:55:00
                 "\"baz\"",2.2,"Tue, 21 Jun 2022",3,
                 "one, two, three",-1.5,42,"4\"000",
             text = File.read_text file
-            text.should_equal expected_text+'\n'
+            text.should_equal expected_text
             file.delete
 
         Test.specify "should correctly handle alternative encodings" <|
@@ -168,11 +168,11 @@ spec =
             file = (enso_project.data / "transient" / "utf16.csv")
             file.delete_if_exists
             table.write file (File_Format.Delimited "," encoding=Encoding.utf_16_be)
-            expected_text = """
+            expected_text = normalize_lines <| """
                 ąęćś,ß
                 0,żółw 🐢
             text = File.read_text file encoding=Encoding.utf_16_be
-            text.should_equal expected_text+'\n'
+            text.should_equal expected_text
             file.delete
 
         Test.specify "should correctly handle encoding errors" <|
@@ -180,12 +180,12 @@ spec =
             file = (enso_project.data / "transient" / "ascii.csv")
             file.delete_if_exists
             result = table.write file (File_Format.Delimited "," encoding=Encoding.ascii)
-            expected_text = """
+            expected_text = normalize_lines <| """
                 A,B
                 0,s??wka
                 1,?
             text = File.read_text file encoding=Encoding.ascii
-            text.should_equal expected_text+'\n'
+            text.should_equal expected_text
             result . should_equal Nothing
             Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at characters 7, 8, 15."]
             file.delete
@@ -196,12 +196,12 @@ spec =
             file_1 = (enso_project.data / "transient" / "textonly.csv")
             file_1.delete_if_exists
             result_1 = table_1.write file_1 format
-            expected_text = """
+            expected_text = normalize_lines <| """
                 A,B
                 x,z
                 y,w
             text_1 = File.read_text file_1
-            text_1.should_equal expected_text+'\n'
+            text_1.should_equal expected_text
             result_1 . should_equal Nothing
 
             table_2 = Table.new [["A", [1, 2]], ["B", ["z", "w"]]]

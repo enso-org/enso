@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.System
 import Standard.Table
 import Standard.Test
 
@@ -8,3 +9,8 @@ Table.Table.should_equal expected =
     that_cols = expected.columns
     self_cols.map .name . should_equal (that_cols.map .name) frames_to_skip=1
     self_cols.map .to_vector . should_equal (that_cols.map .to_vector) frames_to_skip=1
+
+normalize_lines string line_separator=System.default_line_separator newline_at_end=True =
+    case newline_at_end of
+        True -> string.lines.join line_separator suffix=line_separator
+        False -> string.lines.join line_separator
