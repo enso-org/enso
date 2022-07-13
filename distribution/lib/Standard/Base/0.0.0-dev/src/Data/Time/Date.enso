@@ -70,7 +70,7 @@ new year (month = 1) (day = 1) =
        Then this should be switched to use `Panic.catch_java`.
     Panic.recover Any (Date_Internal.date_new year month day) . catch Any e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
-        x -> x
+        ex -> Error.throw (Time.Time_Error ex)
 
 ## ALIAS Date from Text
 
@@ -137,12 +137,12 @@ new year (month = 1) (day = 1) =
 parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
-        Nothing -> Date_Internal.parse text 0
-        Text -> Date_Internal.parse text pattern
+        Nothing -> Date_Internal.date_parse text 0
+        Text -> Date_Internal.date_parse text pattern
         _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
     result . map_error <| case _ of
         Polyglot_Error err -> Time.Time_Error err.getMessage
-        x -> x
+        ex -> Time.Time_Error ex
 
 type Date
 
@@ -326,7 +326,7 @@ type Date
 
              example_format = Date.new 2020 6 2 . format "yyyyGG"
     format : Text -> Text
-    format pattern = DateTimeFormatter.ofPattern pattern . format self.internal_local_date
+    format pattern = Time_Utils.local_date_format self pattern
 
     ## Compares `self` to `that` to produce an ordering.
 

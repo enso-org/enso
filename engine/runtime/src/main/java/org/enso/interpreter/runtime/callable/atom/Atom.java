@@ -204,6 +204,22 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
+  boolean isDate(@CachedLibrary("this") InteropLibrary iop) {
+    var dateConstructor = Context.get(iop).getDateConstructor();
+    if (dateConstructor.isPresent()) {
+      return dateConstructor.get() == this.constructor;
+    } else {
+      return false;
+    }
+  }
+
+  @ExportMessage
+  LocalDate asDate(@CachedLibrary(limit = "3") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    return iop.asDate(fields[0]);
+  }
+
+  @ExportMessage
   static class GetFunctionalDispatch {
     static final int CACHE_SIZE = 10;
 

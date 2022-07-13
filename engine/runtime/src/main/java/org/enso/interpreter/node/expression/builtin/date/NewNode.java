@@ -1,9 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.date;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Date_Internal",
@@ -18,6 +21,11 @@ public abstract class NewNode extends Node {
 
   @Specialization
   Object doNew(Object self, long year, long month, long day) {
-    return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
+    try {
+      return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
+    } catch (DateTimeException ex) {
+      CompilerDirectives.transferToInterpreter();
+      throw new PanicException(ex.getMessage(), this);
+    }
   }
 }

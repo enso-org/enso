@@ -23,9 +23,9 @@ public abstract class ParseNode extends Node {
   @Specialization
   Object doParse(Object self, Text text, Long noPattern) {
     try {
-      return new EnsoDate(LocalDate.parse(text.toString()));
+      return new EnsoDate(LocalDate.parse(text.getContents().toString()));
     } catch (DateTimeParseException ex) {
-      throw new PanicException(ex, this);
+      throw new PanicException(ex.getMessage(), this);
     }
   }
 
@@ -33,7 +33,7 @@ public abstract class ParseNode extends Node {
   Object doParse(Object self, Text text, Text pattern) {
     try {
       var formatter = DateTimeFormatter.ofPattern(pattern.toString());
-      return new EnsoDate(LocalDate.parse(text.toString(), formatter));
+      return new EnsoDate(LocalDate.parse(text.getContents().toString(), formatter));
     } catch (DateTimeParseException ex) {
       throw new PanicException(ex.getMessage(), this);
     }
