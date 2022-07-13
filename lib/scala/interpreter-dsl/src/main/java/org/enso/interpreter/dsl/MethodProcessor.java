@@ -200,8 +200,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println(
           "        new "
               + methodDefinition.getClassName()
-              + "(language)"
-              + (methodDefinition.getArguments().size() > 0 ? "," : ""));
+              + "(language)");
       List<String> argumentDefs = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
         if (arg.isPositional()) {
@@ -215,6 +214,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
                   + executionMode
                   + ")");
         }
+      }
+      if (!argumentDefs.isEmpty()) {
+        out.println(",");
       }
       out.println(String.join(",\n", argumentDefs) + ");");
       out.println("  }");

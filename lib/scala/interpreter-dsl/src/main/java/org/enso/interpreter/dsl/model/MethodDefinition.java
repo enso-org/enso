@@ -254,17 +254,7 @@ public class MethodDefinition {
                 element);
         return false;
       }
-
-      if (isPositional() && position == 0 && !isSelf()) {
-        processingEnvironment
-            .getMessager()
-            .printMessage(
-                Diagnostic.Kind.ERROR,
-                "The first positional argument should be called `self`.",
-                element);
-        return false;
-      }
-
+      
       return true;
     }
 
