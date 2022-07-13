@@ -38,7 +38,7 @@ read location flags=[] =
             if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                 flags.map .to_integer . reduce (_.bit_or _)
         _ -> flags.to_integer
-    Panic.catch_java Any (Image.Image (Java_Codecs.read path read_flags)) java_exception->
+    Panic.catch_java Any (Image.Image (Java_Codecs.read path read_flags)) _->
         Error.throw (File.Io_Error (File.new path) 'Failed to read the file')
 
 ## UNSTABLE
@@ -69,7 +69,7 @@ Image.Image.write location flags=[] =
         Vector.Vector _ -> flags
         _ -> [flags]
     int_flags = Internal.mat_of_int (write_flags.flat_map x-> [x.to_integer, x.value])
-    Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) java_exception->
+    Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
         Error.throw (File.Io_Error (File.new path) 'Failed to write to the file')
 
 ## UNSTABLE

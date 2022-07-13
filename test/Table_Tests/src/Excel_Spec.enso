@@ -251,8 +251,8 @@ spec_write suffix test_sheet_name =
         Test.specify 'should be able to append to a range by name' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
-            expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
+            extra_another = Table.new [['AA', ['d', 'e']], ['BB', [4, 5]], ['CC', [True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
+            expected = Table.new [['AA', ['a', 'b', 'c', 'd', 'e']], ['BB', [1, 2, 3, 4, 5]], ['CC', [True, False, False, True, False]]]
             extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
@@ -265,6 +265,36 @@ spec_write suffix test_sheet_name =
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
             extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
+            written.should_equal expected
+            out.delete_if_exists
+
+        Test.specify 'should be able to append to a range by name not in top left' <|
+            out.delete_if_exists
+            (enso_project.data / test_sheet_name) . copy_to out
+            extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
+            expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['CC',[True, False, False, True, False]]]
+            extra_another.write out (File_Format.Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append
+            written = out.read (File_Format.Excel (Cell_Range "Random!K9")) . select_columns (By_Index [0, 1, 2])
+            written.should_equal expected
+            out.delete_if_exists
+
+        Test.specify 'should be able to append to a range by name after deduplication of names' <|
+            out.delete_if_exists
+            (enso_project.data / test_sheet_name) . copy_to out
+            extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['AA_1',[True, False]], ['BB_1', ['2022-01-20', '2022-01-21']]]
+            expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['AA_1',[True, False, False, True, False]]]
+            extra_another.write out (File_Format.Excel (Cell_Range "Random!S3")) on_existing_file=Existing_File_Behavior.Append
+            written = out.read (File_Format.Excel (Cell_Range "Random!S3")) . select_columns (By_Index [0, 1, 2])
+            written.should_equal expected
+            out.delete_if_exists
+
+        Test.specify 'should be able to append to a range by position not in top left' <|
+            out.delete_if_exists
+            (enso_project.data / test_sheet_name) . copy_to out
+            extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
+            expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['CC',[True, False, False, True, False]]]
+            extra_another.write out (File_Format.Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            written = out.read (File_Format.Excel (Cell_Range "Random!K9")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
 
@@ -328,6 +358,15 @@ spec_write suffix test_sheet_name =
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded
+            out.last_modified_time.should_equal lmd
+            out.delete_if_exists
+
+        Test.specify 'should fail to append to a range by name if it hits another table' <|
+            out.delete_if_exists
+            (enso_project.data / test_sheet_name) . copy_to out
+            lmd = out.last_modified_time
+            extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
+            extra_another.write out (File_Format.Excel (Cell_Range "Random!B3")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Existing_Data
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -466,7 +505,7 @@ spec =
             check_table <| File.read xls_path File_Format.Excel
 
         Test.specify "should let you read the sheet names" <|
-            sheet_names = ["Sheet1", "Another", "NoHeaders"]
+            sheet_names = ["Sheet1", "Another", "NoHeaders", "Random"]
             xlsx_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
             xls_sheet.read (File_Format.Excel Sheet_Names) . should_equal sheet_names
 
