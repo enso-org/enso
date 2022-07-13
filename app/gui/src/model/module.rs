@@ -376,7 +376,7 @@ pub enum NodeEditStatus {
         /// Expression of the node before the edit was started.
         previous_expression: String,
     },
-    /// The node was not created and did not previously exist.
+    /// The node was created and did not previously exist.
     Created,
 }
 
