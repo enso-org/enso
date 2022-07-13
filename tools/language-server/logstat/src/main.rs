@@ -284,7 +284,11 @@ async fn main() -> Result<()> {
         ws_iterations = read_logfile(&path_buf, &WSTEST_SPEC).await?;
 
         if ws_iterations.len() != log_iterations.len() {
-            eprintln!("[ERR] Unequal number of iterations in log files!");
+            eprintln!(
+                "[ERR] Unequal number of iterations in log files! [{}] and [{}]",
+                ws_iterations.len(),
+                log_iterations.len()
+            );
             process::exit(1);
         }
 
