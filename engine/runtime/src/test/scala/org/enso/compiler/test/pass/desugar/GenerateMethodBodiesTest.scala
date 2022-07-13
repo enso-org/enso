@@ -54,15 +54,15 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irResult       = ir.desugar
     val irResultMethod = irResult.bindings.head.asInstanceOf[Method]
 
-    "have the `self` argument prepended to the argument list" in {
+    "not have the `self` argument prepended to the argument list" in {
       val resultArgs =
         irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
 
       resultArgs.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldEqual IR.Name.Self(None)
+        .name should not be a[IR.Name.Self]
 
-      resultArgs.tail shouldEqual irMethod.body
+      resultArgs shouldEqual irMethod.body
         .asInstanceOf[IR.Function.Lambda]
         .arguments
     }
@@ -93,16 +93,48 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val bodyArgs =
         irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
 
-      bodyArgs.length shouldEqual 1
-      bodyArgs.head
-        .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldEqual IR.Name.Self(None)
+      bodyArgs.length shouldEqual 0
     }
 
     "have the body of the function be equivalent to the expression" in {
       irResultMethod.body
         .asInstanceOf[IR.Function.Lambda]
         .body shouldEqual irMethod.body
+    }
+
+    "have the body function's location equivalent to the original body" in {
+      irMethod.body.location shouldEqual irResultMethod.body.location
+    }
+  }
+
+  "Methods with explicit self and expressions as bodies" should {
+    val ir =
+      """
+        |Unit.method self = 1
+        |""".stripMargin.preprocessModule
+    val irMethod = ir.bindings.head.asInstanceOf[Method]
+
+    val irResult       = ir.desugar
+    val irResultMethod = irResult.bindings.head.asInstanceOf[Method]
+
+    "have the expression converted into a function" in {
+      irResultMethod.body shouldBe an[IR.Function.Lambda]
+    }
+
+    "have the resultant function take the `self` argument" in { // TODO old semantics
+      val bodyArgs =
+        irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
+
+      bodyArgs.length shouldEqual 1
+      bodyArgs.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name shouldBe a[IR.Name.Self]
+    }
+
+    "have the body of the function be equivalent to the expression" in {
+      irResultMethod.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body shouldEqual irMethod.body.asInstanceOf[IR.Function.Lambda].body
     }
 
     "have the body function's location equivalent to the original body" in {
@@ -271,10 +303,11 @@ class GenerateMethodBodiesTest extends CompilerTest {
         ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
-      body.arguments.length shouldEqual 2
-      body.arguments.head.name shouldBe an[IR.Name.Self]
+      body.arguments.length shouldEqual 1
+      body.arguments.head.name should not be a[IR.Name.Self]
     }
 
+    // FIXME: This should probably be prohibited
     "have the `self` argument unchanged when defined explicitly" in {
       val ir =
         s"""My_Type.$from (self : My_Type) (that : Other) = that.a

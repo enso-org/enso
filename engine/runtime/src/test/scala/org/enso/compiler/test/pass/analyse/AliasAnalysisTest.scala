@@ -917,7 +917,7 @@ class AliasAnalysisTest extends CompilerTest {
 
     "create the correct usage links for resolvable entities" in {
       val valueDefId = lambda
-        .arguments(1)
+        .arguments(0)
         .getMetadata(AliasAnalysis)
         .get
         .unsafeAs[Info.Occurrence]
@@ -998,7 +998,7 @@ class AliasAnalysisTest extends CompilerTest {
       graph.rootScope.getOccurrence(scrutBindingExprId) shouldBe defined
 
       val aDefId = lambda
-        .arguments(1)
+        .arguments(0)
         .getMetadata(AliasAnalysis)
         .get
         .as[Info.Occurrence]

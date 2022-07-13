@@ -5,10 +5,11 @@ import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap.{
   Cons,
+  ModuleMethod,
   ModuleReference,
   Resolution,
   ResolvedConstructor,
-  ResolvedModule
+  ResolvedMethod
 }
 import org.enso.compiler.pass.resolve.GlobalNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -120,9 +121,14 @@ class GlobalNamesTest extends CompilerTest {
       expr shouldBe an[IR.Application.Prefix]
       val app = expr.asInstanceOf[IR.Application.Prefix]
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "constant"
-      app.arguments.length shouldEqual 1
-      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
-        Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
+      app.arguments.length shouldEqual 0
+      app.function.getMetadata(GlobalNames) shouldEqual Some(
+        Resolution(
+          ResolvedMethod(
+            ModuleReference.Concrete(ctx.module),
+            ModuleMethod("constant")
+          )
+        )
       )
     }
 
@@ -138,9 +144,14 @@ class GlobalNamesTest extends CompilerTest {
       expr shouldBe an[IR.Application.Prefix]
       val app = expr.asInstanceOf[IR.Application.Prefix]
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
-      app.arguments.length shouldEqual 2
-      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
-        Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
+      app.arguments.length shouldEqual 1
+      app.function.getMetadata(GlobalNames) shouldEqual Some(
+        Resolution(
+          ResolvedMethod(
+            ModuleReference.Concrete(ctx.module),
+            ModuleMethod("add_one")
+          )
+        )
       )
     }
 
@@ -149,9 +160,14 @@ class GlobalNamesTest extends CompilerTest {
       expr shouldBe an[IR.Application.Prefix]
       val app = expr.asInstanceOf[IR.Application.Prefix]
       app.function.asInstanceOf[IR.Name.Literal].name shouldEqual "add_one"
-      app.arguments.length shouldEqual 1
-      app.arguments(0).value.getMetadata(GlobalNames) shouldEqual Some(
-        Resolution(ResolvedModule(ModuleReference.Concrete(ctx.module)))
+      app.arguments.length shouldEqual 0
+      app.function.getMetadata(GlobalNames) shouldEqual Some(
+        Resolution(
+          ResolvedMethod(
+            ModuleReference.Concrete(ctx.module),
+            ModuleMethod("add_one")
+          )
+        )
       )
     }
 

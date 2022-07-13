@@ -88,8 +88,8 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       val ir =
         """
-          |Any.id : Suspended -> a
-          |Any.id a = a
+          |Any.id : Any -> Suspended -> a
+          |Any.id self a = a
           |""".stripMargin.preprocessModule.resolve.bindings.head
           .asInstanceOf[Method]
 
@@ -145,10 +145,10 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
 
-      bodyLam.arguments.length shouldEqual 3
+      bodyLam.arguments.length shouldEqual 2
 
-      assert(!bodyLam.arguments(1).suspended, "open_options was suspended")
-      assert(!bodyLam.arguments(2).suspended, "action was suspended")
+      assert(!bodyLam.arguments(0).suspended, "open_options was suspended")
+      assert(!bodyLam.arguments(1).suspended, "action was suspended")
     }
 
     "work for conversion methods" in {
@@ -163,9 +163,9 @@ class SuspendedArgumentsTest extends CompilerTest {
       val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
       val args    = bodyLam.arguments
 
-      args.length shouldEqual 3
-      assert(!args(1).suspended, "the source argument was suspended")
-      assert(args(2).suspended, "the config argument was not suspended")
+      args.length shouldEqual 2
+      assert(!args(0).suspended, "the source argument was suspended")
+      assert(args(1).suspended, "the config argument was not suspended")
     }
 
     "raise an error if a conversion method marks its source argument as suspended" in {
@@ -179,6 +179,29 @@ class SuspendedArgumentsTest extends CompilerTest {
       ir.asInstanceOf[IR.Error.Conversion]
         .reason shouldBe an[IR.Error.Conversion.SuspendedSourceArgument]
     }
+
+    "work for local functions applications" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |foo : Number -> Number -> Any
+          |foo self ~a = self+a
+          |
+          |foo 1 1
+          |""".stripMargin.preprocessModule.resolve.bindings.head
+          .asInstanceOf[Method]
+
+      val lam = ir.body
+        .asInstanceOf[IR.Function.Lambda]
+      val bodyBlock = lam.body
+        .asInstanceOf[IR.Application.Prefix]
+
+      lam.arguments.length shouldEqual 2
+      lam.arguments(1).suspended shouldBe true
+      bodyBlock.arguments.length shouldEqual 2
+    }
+
   }
 
   "Suspended arguments resolution in expressions" should {

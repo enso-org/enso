@@ -68,7 +68,7 @@ class VectorLiteralsTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
 
-      val arg = fun.arguments(1).defaultValue.get
+      val arg = fun.arguments(0).defaultValue.get
       arg shouldBe an[IR.Application.Prefix]
       arg
         .asInstanceOf[IR.Application.Prefix]

@@ -298,8 +298,8 @@ class DataflowAnalysisTest extends CompilerTest {
     val fn = method.body.asInstanceOf[IR.Function.Lambda]
     val fnArgThis =
       fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
-    val fnArgA = fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
-    val fnArgB = fn.arguments(2).asInstanceOf[IR.DefinitionArgument.Specified]
+    val fnArgA = fn.arguments(0).asInstanceOf[IR.DefinitionArgument.Specified]
+    val fnArgB = fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
     val fnBody = fn.body.asInstanceOf[IR.Expression.Block]
 
     // The `IO.println` expression
@@ -1527,10 +1527,8 @@ class DataflowAnalysisTest extends CompilerTest {
     val conversion = ir.bindings.head.asInstanceOf[Method.Conversion]
     val sourceType = conversion.sourceTypeName.asInstanceOf[IR.Name]
     val lambda     = conversion.body.asInstanceOf[IR.Function.Lambda]
-    val fnArgThis =
-      lambda.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
     val fnArgValue =
-      lambda.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
+      lambda.arguments(0).asInstanceOf[IR.DefinitionArgument.Specified]
     val fnBody = lambda.body.asInstanceOf[IR.Expression.Block]
 
     // The `Foo` application
@@ -1548,7 +1546,6 @@ class DataflowAnalysisTest extends CompilerTest {
     val conversionId  = mkStaticDep(conversion.getId)
     val sourceTypeId  = mkStaticDep(sourceType.getId)
     val lambdaId      = mkStaticDep(lambda.getId)
-    val fnArgThisId   = mkStaticDep(fnArgThis.getId)
     val fnArgValueId  = mkStaticDep(fnArgValue.getId)
     val fnBodyId      = mkStaticDep(fnBody.getId)
     val fooExprId     = mkStaticDep(fooExpr.getId)
@@ -1574,7 +1571,6 @@ class DataflowAnalysisTest extends CompilerTest {
       dependents.getDirect(conversionId) shouldBe empty
       dependents.getDirect(sourceTypeId) shouldEqual Some(Set(conversionId))
       dependents.getDirect(lambdaId) shouldEqual Some(Set(conversionId))
-      dependents.getDirect(fnArgThisId) shouldBe empty
       dependents.getDirect(fnArgValueId) shouldBe Some(Set(fooArg1ExprId))
       dependents.getDirect(fnBodyId) shouldBe Some(Set(lambdaId))
       dependents.getDirect(fooExprId) shouldBe Some(Set(fnBodyId))
@@ -1606,7 +1602,6 @@ class DataflowAnalysisTest extends CompilerTest {
       conversion.hasDependencyInfo
       sourceType.hasDependencyInfo
       lambda.hasDependencyInfo
-      fnArgThis.hasDependencyInfo
       fnArgValue.hasDependencyInfo
       fnBody.hasDependencyInfo
       fooExpr.hasDependencyInfo
