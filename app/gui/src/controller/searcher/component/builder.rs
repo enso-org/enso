@@ -239,12 +239,12 @@ mod tests {
             list.top_modules.iter().map(Into::into).collect();
         let expected = vec![
             ComparableGroupData {
-                name:         "test.Test.TopModule1",
+                name:         "Test.TopModule1",
                 component_id: Some(0),
                 entries:      vec![5, 6, 2, 3],
             },
             ComparableGroupData {
-                name:         "test.Test.TopModule2",
+                name:         "Test.TopModule2",
                 component_id: Some(1),
                 entries:      vec![7],
             },
@@ -255,12 +255,12 @@ mod tests {
             list.top_modules_flattened.iter().map(Into::into).collect();
         let expected = vec![
             ComparableGroupData {
-                name:         "test.Test.TopModule1",
+                name:         "Test.TopModule1",
                 component_id: Some(0),
                 entries:      vec![5, 6, 8, 9, 10, 2, 3, 4],
             },
             ComparableGroupData {
-                name:         "test.Test.TopModule2",
+                name:         "Test.TopModule2",
                 component_id: Some(1),
                 entries:      vec![7],
             },
@@ -274,12 +274,12 @@ mod tests {
             .collect();
         let expected: BTreeMap<component::Id, ComparableGroupData> = [
             (0, ComparableGroupData {
-                name:         "test.Test.TopModule1",
+                name:         "Test.TopModule1",
                 component_id: Some(0),
                 entries:      vec![5, 6, 2, 3],
             }),
             (1, ComparableGroupData {
-                name:         "test.Test.TopModule2",
+                name:         "Test.TopModule2",
                 component_id: Some(1),
                 entries:      vec![7],
             }),
