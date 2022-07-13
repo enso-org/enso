@@ -370,11 +370,30 @@ spec =
             File.read_text nonexistent_file . should_equal expected_text
 
         Test.specify "should use the existing line ending style when appending to a file consisting of only comments" <|
-            # TODO
-            Nothing
+            initial_lines = ["# comment 1", "# comment 2"]
+            table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
+            expected_lines = initial_lines + ["a,b", "x,z", "y,w"]
+            file = (enso_project.data / "transient" / "endings_comments_only.csv")
+            line_ending_pairs.each setting->
+                separator=setting.second
+                file.delete_if_exists
+                (initial_lines.join separator suffix=separator).write file
+                format = File_Format.Delimited ',' . with_comments
+                table_to_append.write file format on_existing_file=Existing_File_Behavior.Append . should_equal Nothing
+                text = File.read_text file
+                expected_text = expected_lines.join separator suffix=separator
+                text.should_equal expected_text
+                file.delete
 
-        Test.specify "should use the explicitly specified line ending style regardless of the detected one" <|
-            # TODO write in one style than append in other
-            Nothing
+        Test.specify "should fail if explicitly provided line endings do not match line endings in the file when appending" <|
+            initial_table = Table.new [["a", [1, 2]]]
+            table_to_append = Table.new [["a", ["x", "y"]]]
+            file = (enso_project.data / "transient" / "endings_mismatch.csv")
+            file.delete_if_exists
+            initial_table.write file (File_Format.Delimited ',' line_endings=Classic_Mac_Line_Endings)
+            result = table_to_append.write file (File_Format.Delimited ',' line_endings=Unix_Line_Endings) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            result . should_fail_with Illegal_Argument_Error
+            result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
+            file.delete
 
 main = Test.Suite.run_main spec

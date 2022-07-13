@@ -50,9 +50,19 @@ write_file table format file on_existing_file match_columns on_problems =
    If the file does not exist or is empty, it acts like a regular overwrite.
 append_to_file : Table -> File_Format.Delimited -> File -> Match_Columns -> Problem_Behavior -> Any
 append_to_file table format file match_columns on_problems =
-    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <|
-        metadata = Delimited_Reader.detect_metadata file format
+    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument_Error <|
+        inferring_format = format.with_line_endings Infer
+        metadata = Delimited_Reader.detect_metadata file inferring_format
         preexisting_headers = metadata.headers
+        case format.line_endings of
+            Infer -> Nothing
+            other_ending_style ->
+                selected_separator = line_separator_sequence other_ending_style
+                existing_separator = metadata.line_separator
+                if selected_separator != existing_separator then
+                    Panic.throw <| Illegal_Argument_Error <|
+                        # Ensure that these are properly escaped once `to_text` meaning is changed.
+                        "The explicitly provided line endings (" + selected_separator.to_text + ") do not match the line endings in the file (" + existing_separator.to_text + ")."
         effective_line_separator = metadata.line_separator
         reordered_java_table = case preexisting_headers of
             Nothing -> table.java_table
