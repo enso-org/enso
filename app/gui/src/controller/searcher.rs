@@ -1194,8 +1194,7 @@ fn component_list_builder_with_favorites<'a>(
 
 // === Node Edit Metadata Guard ===
 
-/// On creation the `EditMetadataGuard` saves the current expression of the node to its metadata in
-/// the `edited` field.
+/// On creation the `EditMetadataGuard` saves the current expression of the node to its metadata.
 /// When dropped the metadata is cleared again.
 #[derive(Debug)]
 struct EditMetadataGuard {
