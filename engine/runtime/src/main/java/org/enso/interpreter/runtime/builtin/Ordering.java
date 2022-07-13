@@ -9,18 +9,18 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 /** A container for builtin ordering types. */
 public class Ordering {
 
-  private final BuiltinAtomConstructor ordering;
-  private final BuiltinAtomConstructor less;
-  private final BuiltinAtomConstructor equal;
-  private final BuiltinAtomConstructor greater;
+  private final BuiltinType ordering;
+  private final BuiltinType less;
+  private final BuiltinType equal;
+  private final BuiltinType greater;
 
   public Ordering(Builtins builtins) {
     ordering =
-        new BuiltinAtomConstructor(
+        new BuiltinType(
             builtins, org.enso.interpreter.node.expression.builtin.ordering.Ordering.class);
-    less = new BuiltinAtomConstructor(builtins, Less.class);
-    equal = new BuiltinAtomConstructor(builtins, Equal.class);
-    greater = new BuiltinAtomConstructor(builtins, Greater.class);
+    less = new BuiltinType(builtins, Less.class);
+    equal = new BuiltinType(builtins, Equal.class);
+    greater = new BuiltinType(builtins, Greater.class);
   }
 
   /**
@@ -56,21 +56,21 @@ public class Ordering {
 
   /** @return the Ordering constructor. */
   public AtomConstructor ordering() {
-    return ordering.constructor();
+    return ordering.getType();
   }
 
   /** @return the Less constructor */
   public AtomConstructor less() {
-    return less.constructor();
+    return less.getType();
   }
 
   /** @return the Equal constructor */
   public AtomConstructor equal() {
-    return equal.constructor();
+    return equal.getType();
   }
 
   /** @return the Greater constructor */
   public AtomConstructor greater() {
-    return greater.constructor();
+    return greater.getType();
   }
 }

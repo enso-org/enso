@@ -6,11 +6,11 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 /** A container class for all System-related stdlib builtins. */
 public class System {
 
-  private final BuiltinAtomConstructor systemProcessResult;
+  private final BuiltinType systemProcessResult;
 
   /** Create builders for all {@code System} atom constructors. */
   public System(Builtins builtins) {
-    systemProcessResult = new BuiltinAtomConstructor(builtins, SystemProcessResult.class);
+    systemProcessResult = new BuiltinType(builtins, SystemProcessResult.class);
   }
 
   /** @return the atom constructor for {@code Process_Result}. */

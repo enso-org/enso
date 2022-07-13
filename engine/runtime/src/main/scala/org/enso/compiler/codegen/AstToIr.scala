@@ -146,23 +146,24 @@ object AstToIr {
             .head
           Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
         } else {
-          Module.Scope.Definition.Atom(
+          Module.Scope.Definition.SugaredType(
             buildName(consName),
             newArgs,
+            List(),
             getIdentifiedLocation(inputAst)
           )
         }
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
         val containsAtomDefOrInclude = translatedBody.exists {
-          case _: IR.Module.Scope.Definition.Atom => true
+          case _: IR.Module.Scope.Definition.Data => true
           case _: IR.Name.Literal                 => true
           case _                                  => false
         }
         val hasArgs = args.nonEmpty
 
         if (containsAtomDefOrInclude && !hasArgs) {
-          Module.Scope.Definition.Type(
+          Module.Scope.Definition.SugaredType(
             buildName(typeName),
             args.map(translateArgumentDefinition(_)),
             translatedBody,
@@ -317,10 +318,18 @@ object AstToIr {
       .getOrElse(maybeParensedInput)
 
     inputAst match {
+      case AST.Ident.Cons.any(cons) =>
+        IR.Module.Scope.Definition
+          .Data(buildName(cons), List(), getIdentifiedLocation(inputAst))
+      case AstView.SpacedList(AST.Ident.Cons.any(cons) :: args) =>
+        IR.Module.Scope.Definition
+          .Data(
+            buildName(cons),
+            args.map(translateArgumentDefinition(_)),
+            getIdentifiedLocation(inputAst)
+          )
       case AST.Ident.Annotation.any(ann) =>
         IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
-      case AST.Ident.Cons.any(include) => translateIdent(include)
-      case atom @ AstView.Atom(_, _)   => translateModuleSymbol(atom)
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
             header,

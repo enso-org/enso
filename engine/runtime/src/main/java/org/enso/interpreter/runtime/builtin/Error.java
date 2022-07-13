@@ -15,24 +15,24 @@ import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAnd
 /** Container for builtin Error types */
 public class Error {
 
-  private final BuiltinAtomConstructor syntaxError;
-  private final BuiltinAtomConstructor typeError;
-  private final BuiltinAtomConstructor compileError;
-  private final BuiltinAtomConstructor inexhaustivePatternMatchError;
-  private final BuiltinAtomConstructor uninitializedState;
-  private final BuiltinAtomConstructor noSuchMethodError;
-  private final BuiltinAtomConstructor noSuchConversionError;
-  private final BuiltinAtomConstructor polyglotError;
-  private final BuiltinAtomConstructor moduleNotInPackageError;
-  private final BuiltinAtomConstructor arithmeticError;
-  private final BuiltinAtomConstructor invalidArrayIndexError;
-  private final BuiltinAtomConstructor arityError;
-  private final BuiltinAtomConstructor unsupportedArgumentsError;
-  private final BuiltinAtomConstructor moduleDoesNotExistError;
-  private final BuiltinAtomConstructor notInvokableError;
-  private final BuiltinAtomConstructor invalidConversionTargetError;
-  private final BuiltinAtomConstructor panic;
-  private final BuiltinAtomConstructor caughtPanic;
+  private final BuiltinType syntaxError;
+  private final BuiltinType typeError;
+  private final BuiltinType compileError;
+  private final BuiltinType inexhaustivePatternMatchError;
+  private final BuiltinType uninitializedState;
+  private final BuiltinType noSuchMethodError;
+  private final BuiltinType noSuchConversionError;
+  private final BuiltinType polyglotError;
+  private final BuiltinType moduleNotInPackageError;
+  private final BuiltinType arithmeticError;
+  private final BuiltinType invalidArrayIndexError;
+  private final BuiltinType arityError;
+  private final BuiltinType unsupportedArgumentsError;
+  private final BuiltinType moduleDoesNotExistError;
+  private final BuiltinType notInvokableError;
+  private final BuiltinType invalidConversionTargetError;
+  private final BuiltinType panic;
+  private final BuiltinType caughtPanic;
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
@@ -43,27 +43,27 @@ public class Error {
 
   /** Creates builders for error Atom Constructors. */
   public Error(Builtins builtins) {
-    syntaxError = new BuiltinAtomConstructor(builtins, SyntaxError.class);
-    typeError = new BuiltinAtomConstructor(builtins, TypeError.class);
-    compileError = new BuiltinAtomConstructor(builtins, CompileError.class);
+    syntaxError = new BuiltinType(builtins, SyntaxError.class);
+    typeError = new BuiltinType(builtins, TypeError.class);
+    compileError = new BuiltinType(builtins, CompileError.class);
     inexhaustivePatternMatchError =
-        new BuiltinAtomConstructor(builtins, InexhaustivePatternMatchError.class);
-    uninitializedState = new BuiltinAtomConstructor(builtins, UninitializedState.class);
-    noSuchMethodError = new BuiltinAtomConstructor(builtins, NoSuchMethodError.class);
-    noSuchConversionError = new BuiltinAtomConstructor(builtins, NoSuchConversionError.class);
-    polyglotError = new BuiltinAtomConstructor(builtins, PolyglotError.class);
-    moduleNotInPackageError = new BuiltinAtomConstructor(builtins, ModuleNotInPackageError.class);
-    arithmeticError = new BuiltinAtomConstructor(builtins, ArithmeticError.class);
-    invalidArrayIndexError = new BuiltinAtomConstructor(builtins, InvalidArrayIndexError.class);
-    arityError = new BuiltinAtomConstructor(builtins, ArityError.class);
+        new BuiltinType(builtins, InexhaustivePatternMatchError.class);
+    uninitializedState = new BuiltinType(builtins, UninitializedState.class);
+    noSuchMethodError = new BuiltinType(builtins, NoSuchMethodError.class);
+    noSuchConversionError = new BuiltinType(builtins, NoSuchConversionError.class);
+    polyglotError = new BuiltinType(builtins, PolyglotError.class);
+    moduleNotInPackageError = new BuiltinType(builtins, ModuleNotInPackageError.class);
+    arithmeticError = new BuiltinType(builtins, ArithmeticError.class);
+    invalidArrayIndexError = new BuiltinType(builtins, InvalidArrayIndexError.class);
+    arityError = new BuiltinType(builtins, ArityError.class);
     unsupportedArgumentsError =
-        new BuiltinAtomConstructor(builtins, UnsupportedArgumentTypes.class);
-    moduleDoesNotExistError = new BuiltinAtomConstructor(builtins, ModuleDoesNotExist.class);
-    notInvokableError = new BuiltinAtomConstructor(builtins, NotInvokableError.class);
+        new BuiltinType(builtins, UnsupportedArgumentTypes.class);
+    moduleDoesNotExistError = new BuiltinType(builtins, ModuleDoesNotExist.class);
+    notInvokableError = new BuiltinType(builtins, NotInvokableError.class);
     invalidConversionTargetError =
-        new BuiltinAtomConstructor(builtins, InvalidConversionTargetError.class);
-    panic = new BuiltinAtomConstructor(builtins, Panic.class);
-    caughtPanic = new BuiltinAtomConstructor(builtins, CaughtPanic.class);
+        new BuiltinType(builtins, InvalidConversionTargetError.class);
+    panic = new BuiltinType(builtins, Panic.class);
+    caughtPanic = new BuiltinType(builtins, CaughtPanic.class);
   }
 
   public Atom makeSyntaxError(Object message) {
@@ -87,11 +87,11 @@ public class Error {
   }
 
   public AtomConstructor panic() {
-    return panic.constructor();
+    return panic.getType();
   }
 
   public AtomConstructor caughtPanic() {
-    return caughtPanic.constructor();
+    return caughtPanic.getType();
   }
 
   /**

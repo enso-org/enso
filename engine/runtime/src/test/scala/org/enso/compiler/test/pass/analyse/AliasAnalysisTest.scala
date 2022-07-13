@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
+import org.enso.compiler.core.IR.Module.Scope.Definition.{Data, Method}
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -401,7 +401,7 @@ class AliasAnalysisTest extends CompilerTest {
       """
         |type MyAtom a b (c=a)
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Atom]
+        .asInstanceOf[Data]
     val goodMeta  = goodAtom.getMetadata(AliasAnalysis)
     val goodGraph = goodMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
 
@@ -409,7 +409,7 @@ class AliasAnalysisTest extends CompilerTest {
       """
         |type MyAtom a=b b
         |""".stripMargin.preprocessModule.analyse.bindings.head
-        .asInstanceOf[Atom]
+        .asInstanceOf[Data]
     val badMeta  = badAtom.getMetadata(AliasAnalysis)
     val badGraph = badMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
 

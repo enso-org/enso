@@ -162,7 +162,7 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 4
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Data]
       ir.bindings(2) shouldBe an[IR.Module.Scope.Definition.Method]
       ir.bindings(2).getMetadata(TypeSignatures) shouldBe defined
       ir.bindings(2).getMetadata(DocumentationComments) shouldBe defined

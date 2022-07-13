@@ -33,6 +33,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
@@ -51,7 +52,7 @@ public class Builtins {
   }
 
   private final Map<String, Map<String, Class<BuiltinRootNode>>> builtinMethodNodes;
-  private final Map<String, AtomConstructor> builtins;
+  private final Map<String, Type> builtins;
 
   private final Error error;
   private final Module module;
@@ -63,19 +64,19 @@ public class Builtins {
   private final Special special;
 
   // Builtin types
-  private final BuiltinAtomConstructor any;
-  private final BuiltinAtomConstructor nothing;
-  private final BuiltinAtomConstructor function;
-  private final BuiltinAtomConstructor polyglot;
-  private final BuiltinAtomConstructor text;
-  private final BuiltinAtomConstructor array;
-  private final BuiltinAtomConstructor dataflowError;
-  private final BuiltinAtomConstructor ref;
-  private final BuiltinAtomConstructor managedResource;
-  private final BuiltinAtomConstructor debug;
-  private final BuiltinAtomConstructor projectDescription;
-  private final BuiltinAtomConstructor file;
-  private final BuiltinAtomConstructor warning;
+  private final BuiltinType any;
+  private final BuiltinType nothing;
+  private final BuiltinType function;
+  private final BuiltinType polyglot;
+  private final BuiltinType text;
+  private final BuiltinType array;
+  private final BuiltinType dataflowError;
+  private final BuiltinType ref;
+  private final BuiltinType managedResource;
+  private final BuiltinType debug;
+  private final BuiltinType projectDescription;
+  private final BuiltinType file;
+  private final BuiltinType warning;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -98,23 +99,23 @@ public class Builtins {
     number = new Number(this);
     bool = new Bool(this);
 
-    any = new BuiltinAtomConstructor(this, Any.class);
-    nothing = new BuiltinAtomConstructor(this, Nothing.class);
+    any = new BuiltinType(this, Any.class);
+    nothing = new BuiltinType(this, Nothing.class);
     function =
-        new BuiltinAtomConstructor(
+        new BuiltinType(
             this, org.enso.interpreter.node.expression.builtin.function.Function.class);
-    polyglot = new BuiltinAtomConstructor(this, Polyglot.class);
-    text = new BuiltinAtomConstructor(this, Text.class);
-    array = new BuiltinAtomConstructor(this, Array.class);
+    polyglot = new BuiltinType(this, Polyglot.class);
+    text = new BuiltinType(this, Text.class);
+    array = new BuiltinType(this, Array.class);
     dataflowError =
-        new BuiltinAtomConstructor(this, org.enso.interpreter.node.expression.builtin.Error.class);
-    ref = new BuiltinAtomConstructor(this, Ref.class);
-    managedResource = new BuiltinAtomConstructor(this, ManagedResource.class);
-    debug = new BuiltinAtomConstructor(this, Debug.class);
-    projectDescription = new BuiltinAtomConstructor(this, ProjectDescription.class);
-    file = new BuiltinAtomConstructor(this, File.class);
+        new BuiltinType(this, org.enso.interpreter.node.expression.builtin.Error.class);
+    ref = new BuiltinType(this, Ref.class);
+    managedResource = new BuiltinType(this, ManagedResource.class);
+    debug = new BuiltinType(this, Debug.class);
+    projectDescription = new BuiltinType(this, ProjectDescription.class);
+    file = new BuiltinType(this, File.class);
     special = new Special(language);
-    warning = new BuiltinAtomConstructor(this, Warning.class);
+    warning = new BuiltinType(this, Warning.class);
   }
 
   /**
@@ -311,9 +312,9 @@ public class Builtins {
    *     builtin method was ever registerd
    */
   public Optional<Function> getBuiltinFunction(
-      AtomConstructor atom, String methodName, Language language) {
+      Type type, String methodName, Language language) {
     // TODO: move away from String mapping once Builtins is gone
-    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(atom.getName());
+    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(type.getName());
     if (atomNodes == null) return Optional.empty();
     Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
     if (clazz == null) return Optional.empty();
@@ -341,7 +342,7 @@ public class Builtins {
    * @return the {@code Nothing} atom constructor
    */
   public AtomConstructor nothing() {
-    return nothing.constructor();
+    return nothing.getType();
   }
 
   /**
@@ -350,7 +351,7 @@ public class Builtins {
    * @return the {@code Text} part of builtins.
    */
   public AtomConstructor text() {
-    return text.constructor();
+    return text.getType();
   }
 
   /**
@@ -359,7 +360,7 @@ public class Builtins {
    * @return the {@code Function} atom constructor
    */
   public AtomConstructor function() {
-    return function.constructor();
+    return function.getType();
   }
 
   /**
@@ -378,7 +379,7 @@ public class Builtins {
 
   /** @return the ManagedResource constructor. */
   public AtomConstructor managedResource() {
-    return managedResource.constructor();
+    return managedResource.getType();
   }
 
   /** @return the builtin Error types container. */
@@ -392,7 +393,7 @@ public class Builtins {
    * @return the {@code Any} atom constructor
    */
   public AtomConstructor any() {
-    return any.constructor();
+    return any.getType();
   }
 
   /**
@@ -401,7 +402,7 @@ public class Builtins {
    * @return the {@code Warning} atom constructor
    */
   public AtomConstructor warning() {
-    return warning.constructor();
+    return warning.getType();
   }
 
   /**
@@ -410,7 +411,7 @@ public class Builtins {
    * @return the {@code File} atom constructor
    */
   public AtomConstructor file() {
-    return file.constructor();
+    return file.getType();
   }
 
   /**
@@ -420,12 +421,12 @@ public class Builtins {
    * @return the {@code Debug} atom constructor
    */
   public AtomConstructor debug() {
-    return debug.constructor();
+    return debug.getType();
   }
 
   /** @return the {@code Project_Description} atom constructor */
   public AtomConstructor getProjectDescription() {
-    return projectDescription.constructor();
+    return projectDescription.getType();
   }
 
   /** @return the {@code System} atom constructor. */
@@ -435,17 +436,17 @@ public class Builtins {
 
   /** @return the Array constructor. */
   public AtomConstructor array() {
-    return array.constructor();
+    return array.getType();
   }
 
   /** @return the Ref constructor. */
   public AtomConstructor ref() {
-    return ref.constructor();
+    return ref.getType();
   }
 
   /** @return the container for polyglot-related builtins. */
   public AtomConstructor polyglot() {
-    return polyglot.constructor();
+    return polyglot.getType();
   }
 
   /** @return the {@code Caught_Panic} atom constructor */
@@ -465,7 +466,7 @@ public class Builtins {
 
   /** @return the container for the dataflow error-related builtins */
   public AtomConstructor dataflowError() {
-    return dataflowError.constructor();
+    return dataflowError.getType();
   }
 
   public Special special() {

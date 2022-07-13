@@ -8,17 +8,19 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
 
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope implements TruffleObject {
-  private final AtomConstructor associatedType;
+  private final Type associatedType;
   private final Module module;
   private Map<String, Object> polyglotSymbols = new HashMap<>();
   private Map<String, AtomConstructor> constructors = new HashMap<>();
-  private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
-  private Map<AtomConstructor, Map<AtomConstructor, Function>> conversions = new HashMap<>();
+  private Map<String, Type> types = new HashMap<>();
+  private Map<Type, Map<String, Function>> methods = new HashMap<>();
+  private Map<Type, Map<Type, Function>> conversions = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
   private Set<ModuleScope> exports = new HashSet<>();
 
@@ -29,7 +31,7 @@ public class ModuleScope implements TruffleObject {
    */
   public ModuleScope(Module module) {
     this.module = module;
-    this.associatedType = new AtomConstructor(module.getName().item(), this).initializeFields();
+    this.associatedType = new Type(module.getName().item(), this);
   }
 
   /**
@@ -41,17 +43,23 @@ public class ModuleScope implements TruffleObject {
     constructors.put(constructor.getName(), constructor);
   }
 
-  /** @return the associated type of this module. */
-  public AtomConstructor getAssociatedType() {
+  /**
+   * @return the associated type of this module.
+   */
+  public Type getAssociatedType() {
     return associatedType;
   }
 
-  /** @return the module associated with this scope. */
+  /**
+   * @return the module associated with this scope.
+   */
   public Module getModule() {
     return module;
   }
 
-  /** @return the set of modules imported by this module. */
+  /**
+   * @return the set of modules imported by this module.
+   */
   public Set<ModuleScope> getImports() {
     return imports;
   }
@@ -63,9 +71,9 @@ public class ModuleScope implements TruffleObject {
    * @return the atom constructor associated with {@code name}, or {@link Optional#empty()}
    */
   public Optional<AtomConstructor> getLocalConstructor(String name) {
-    if (associatedType.getName().equals(name)) {
-      return Optional.of(associatedType);
-    }
+    //    if (associatedType.getName().equals(name)) {
+    //      return Optional.of(associatedType);
+    //    }
     return Optional.ofNullable(this.constructors.get(name));
   }
 
@@ -88,15 +96,15 @@ public class ModuleScope implements TruffleObject {
   /**
    * Returns a map of methods defined in this module for a given constructor.
    *
-   * @param cons the constructor for which method map is requested
+   * @param type the type for which method map is requested
    * @return a map containing all the defined methods by name
    */
-  private Map<String, Function> ensureMethodMapFor(AtomConstructor cons) {
-    return methods.computeIfAbsent(cons, k -> new HashMap<>());
+  private Map<String, Function> ensureMethodMapFor(Type type) {
+    return methods.computeIfAbsent(type, k -> new HashMap<>());
   }
 
-  private Map<String, Function> getMethodMapFor(AtomConstructor cons) {
-    Map<String, Function> result = methods.get(cons);
+  private Map<String, Function> getMethodMapFor(Type type) {
+    Map<String, Function> result = methods.get(type);
     if (result == null) {
       return new HashMap<>();
     }
@@ -106,18 +114,18 @@ public class ModuleScope implements TruffleObject {
   /**
    * Registers a method defined for a given type.
    *
-   * @param atom type the method was defined for
+   * @param type the type the method was defined for
    * @param method method name
    * @param function the {@link Function} associated with this definition
    */
-  public void registerMethod(AtomConstructor atom, String method, Function function) {
+  public void registerMethod(Type type, String method, Function function) {
     method = method.toLowerCase();
-    Map<String, Function> methodMap = ensureMethodMapFor(atom);
+    Map<String, Function> methodMap = ensureMethodMapFor(type);
 
     if (methodMap.containsKey(method)) {
       // Builtin types will have double definition because of
       // BuiltinMethod and that's OK
-      throw new RedefinedMethodException(atom.getName(), method);
+      throw new RedefinedMethodException(type.getName(), method);
     } else {
       methodMap.put(method, function);
     }
@@ -126,15 +134,15 @@ public class ModuleScope implements TruffleObject {
   /**
    * Returns a list of the conversion methods defined in this module for a given constructor.
    *
-   * @param cons the constructor for which method map is requested
+   * @param type the type for which method map is requested
    * @return a list containing all the defined conversions in definition order
    */
-  private Map<AtomConstructor, Function> ensureConversionsFor(AtomConstructor cons) {
-    return conversions.computeIfAbsent(cons, k -> new HashMap<>());
+  private Map<Type, Function> ensureConversionsFor(Type type) {
+    return conversions.computeIfAbsent(type, k -> new HashMap<>());
   }
 
-  private Map<AtomConstructor, Function> getConversionsFor(AtomConstructor cons) {
-    Map<AtomConstructor, Function> result = conversions.get(cons);
+  private Map<Type, Function> getConversionsFor(Type type) {
+    var result = conversions.get(type);
     if (result == null) {
       return new HashMap<>();
     }
@@ -148,9 +156,8 @@ public class ModuleScope implements TruffleObject {
    * @param fromType type the conversion was defined from
    * @param function the {@link Function} associated with this definition
    */
-  public void registerConversionMethod(
-      AtomConstructor toType, AtomConstructor fromType, Function function) {
-    Map<AtomConstructor, Function> sourceMap = ensureConversionsFor(toType);
+  public void registerConversionMethod(Type toType, Type fromType, Function function) {
+    var sourceMap = ensureConversionsFor(toType);
     if (sourceMap.containsKey(fromType)) {
       throw new RedefinedConversionException(toType.getName(), fromType.getName());
     } else {
@@ -185,66 +192,66 @@ public class ModuleScope implements TruffleObject {
    * site (i.e. non-overloads), then looks for methods defined in this scope and finally tries to
    * resolve the method in all dependencies of this module.
    *
-   * @param atom type to lookup the method for.
+   * @param type type to lookup the method for.
    * @param name the method name.
    * @return the matching method definition or null if not found.
    */
   @CompilerDirectives.TruffleBoundary
-  public Function lookupMethodDefinition(AtomConstructor atom, String name) {
+  public Function lookupMethodDefinition(Type type, String name) {
     String lowerName = name.toLowerCase();
-    Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(lowerName);
+    Function definedWithAtom = type.getDefinitionScope().getMethodMapFor(type).get(lowerName);
     if (definedWithAtom != null) {
       return definedWithAtom;
     }
 
-    Function definedHere = getMethodMapFor(atom).get(lowerName);
+    Function definedHere = getMethodMapFor(type).get(lowerName);
     if (definedHere != null) {
       return definedHere;
     }
 
     return imports.stream()
-        .map(scope -> scope.getExportedMethod(atom, name))
+        .map(scope -> scope.getExportedMethod(type, name))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
   }
 
   @CompilerDirectives.TruffleBoundary
-  public Function lookupConversionDefinition(AtomConstructor atom, AtomConstructor target) {
-    Function definedWithAtom = atom.getDefinitionScope().getConversionsFor(target).get(atom);
+  public Function lookupConversionDefinition(Type type, Type target) {
+    Function definedWithAtom = type.getDefinitionScope().getConversionsFor(target).get(type);
     if (definedWithAtom != null) {
       return definedWithAtom;
     }
-    Function definedHere = getConversionsFor(target).get(atom);
+    Function definedHere = getConversionsFor(target).get(type);
     if (definedHere != null) {
       return definedHere;
     }
     return imports.stream()
-        .map(scope -> scope.getExportedConversion(atom, target))
+        .map(scope -> scope.getExportedConversion(type, target))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
   }
 
-  private Function getExportedMethod(AtomConstructor atom, String name) {
-    Function here = getMethodMapFor(atom).get(name);
+  private Function getExportedMethod(Type type, String name) {
+    Function here = getMethodMapFor(type).get(name);
     if (here != null) {
       return here;
     }
     return exports.stream()
-        .map(scope -> scope.getMethodMapFor(atom).get(name))
+        .map(scope -> scope.getMethodMapFor(type).get(name))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
   }
 
-  private Function getExportedConversion(AtomConstructor atom, AtomConstructor target) {
-    Function here = getConversionsFor(target).get(atom);
+  private Function getExportedConversion(Type type, Type target) {
+    Function here = getConversionsFor(target).get(type);
     if (here != null) {
       return here;
     }
     return exports.stream()
-        .map(scope -> scope.getConversionsFor(target).get(atom))
+        .map(scope -> scope.getConversionsFor(target).get(type))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
@@ -272,17 +279,27 @@ public class ModuleScope implements TruffleObject {
     return constructors;
   }
 
-  /** @return the raw method map held by this module */
-  public Map<AtomConstructor, Map<String, Function>> getMethods() {
+  public Map<String, Type> getTypes() {
+    return types;
+  }
+
+  /**
+   * @return the raw method map held by this module
+   */
+  public Map<Type, Map<String, Function>> getMethods() {
     return methods;
   }
 
-  /** @return the raw conversions map held by this module */
-  public Map<AtomConstructor, Map<AtomConstructor, Function>> getConversions() {
+  /**
+   * @return the raw conversions map held by this module
+   */
+  public Map<Type, Map<Type, Function>> getConversions() {
     return conversions;
   }
 
-  /** @return the polyglot symbols imported into this scope. */
+  /**
+   * @return the polyglot symbols imported into this scope.
+   */
   public Map<String, Object> getPolyglotSymbols() {
     return polyglotSymbols;
   }

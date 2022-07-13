@@ -80,13 +80,13 @@ class ComplexTypeTest extends CompilerTest {
           |    type Bar
           |""".stripMargin.preprocessModule.desugar
 
-      exactly(2, ir.bindings) shouldBe a[Definition.Atom]
+      exactly(2, ir.bindings) shouldBe a[Definition.Data]
       ir.bindings(0)
-        .asInstanceOf[Definition.UnionType]
+        .asInstanceOf[Definition.Type]
         .name
         .name shouldEqual "MyType"
-      ir.bindings(1).asInstanceOf[Definition.Atom].name.name shouldEqual "Foo"
-      ir.bindings(2).asInstanceOf[Definition.Atom].name.name shouldEqual "Bar"
+      ir.bindings(1).asInstanceOf[Definition.Data].name.name shouldEqual "Foo"
+      ir.bindings(2).asInstanceOf[Definition.Data].name.name shouldEqual "Bar"
     }
 
     "have annotations on the type desugared to annotations on the defined" in {
@@ -97,9 +97,9 @@ class ComplexTypeTest extends CompilerTest {
           |    type Bar
           |""".stripMargin.preprocessModule.desugar
 
-      exactly(1, ir.bindings) shouldBe a[Definition.Atom]
+      exactly(1, ir.bindings) shouldBe a[Definition.Data]
       ir.bindings(1)
-        .asInstanceOf[Definition.Atom]
+        .asInstanceOf[Definition.Data]
         .unsafeGetMetadata(ModuleAnnotations, "")
         .annotations
         .head
@@ -229,8 +229,8 @@ class ComplexTypeTest extends CompilerTest {
         |""".stripMargin.preprocessModule.desugar
 
     "have their types translated untouched" in {
-      ir.bindings(1) shouldBe a[Definition.Atom]
-      val atom = ir.bindings(1).asInstanceOf[Definition.Atom]
+      ir.bindings(1) shouldBe a[Definition.Data]
+      val atom = ir.bindings(1).asInstanceOf[Definition.Data]
       atom.name.name shouldEqual "Baz"
     }
 

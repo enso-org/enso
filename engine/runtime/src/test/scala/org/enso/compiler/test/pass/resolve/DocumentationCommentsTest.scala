@@ -95,7 +95,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
     "be associated with atoms and methods" in {
       ir.bindings.length shouldEqual 2
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
 
       getDoc(ir.bindings.head) shouldEqual " This is doc for My_Atom"
@@ -279,7 +279,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        ## the return
           |        0
           |""".stripMargin.preprocessModule.resolve
-      val tp = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Type]
+      val tp = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
       getDoc(tp) shouldEqual " the type Foo"
       val t1 = tp.body.head
       getDoc(t1) shouldEqual " the constructor Bar"

@@ -953,9 +953,10 @@ object IR {
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
-        sealed case class UnionType(
+        sealed case class Type(
           name: IR.Name,
-          members: List[IR.Name],
+          params: List[IR.DefinitionArgument],
+          members: List[IR.Module.Scope.Definition.Data],
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -964,14 +965,16 @@ object IR {
           override protected var id: Identifier = randomId
 
           def copy(
-            name: IR.Name                        = name,
-            members: List[IR.Name]               = members,
-            location: Option[IdentifiedLocation] = location,
-            passData: MetadataStorage            = passData,
-            diagnostics: DiagnosticStorage       = diagnostics,
-            id: Identifier                       = id
-          ): UnionType = {
-            val res = UnionType(name, members, location, passData, diagnostics)
+            name: IR.Name                                  = name,
+            params: List[IR.DefinitionArgument]            = params,
+            members: List[IR.Module.Scope.Definition.Data] = members,
+            location: Option[IdentifiedLocation]           = location,
+            passData: MetadataStorage                      = passData,
+            diagnostics: DiagnosticStorage                 = diagnostics,
+            id: Identifier                                 = id
+          ): Type = {
+            val res =
+              Type(name, params, members, location, passData, diagnostics)
             res.id = id
             res
           }
@@ -982,7 +985,7 @@ object IR {
             keepMetadata: Boolean    = true,
             keepDiagnostics: Boolean = true,
             keepIdentifiers: Boolean = false
-          ): UnionType =
+          ): Type =
             copy(
               name = name.duplicate(
                 keepLocations,
@@ -1009,18 +1012,22 @@ object IR {
           /** @inheritdoc */
           override def setLocation(
             location: Option[IdentifiedLocation]
-          ): UnionType =
+          ): Type =
             copy(location = location)
 
           /** @inheritdoc */
-          override def mapExpressions(fn: Expression => Expression): UnionType =
-            this
+          override def mapExpressions(fn: Expression => Expression): Type =
+            copy(
+              params  = params.map(_.mapExpressions(fn)),
+              members = members.map(_.mapExpressions(fn))
+            )
 
           /** @inheritdoc */
           override def toString: String =
             s"""
                |IR.Module.Scope.Definition.UnionType(
                |name = $name,
+               |params = $params,
                |members = $members,
                |location = $location,
                |passData = ${this.showPassData},
@@ -1030,7 +1037,7 @@ object IR {
                |""".toSingleLine
 
           /** @inheritdoc */
-          override def children: List[IR] = name :: members
+          override def children: List[IR] = name :: (params :++ members)
 
           /** @inheritdoc */
           override def showCode(indent: Int): String = {
@@ -1048,13 +1055,13 @@ object IR {
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
-        sealed case class Atom(
+        sealed case class Data(
           name: IR.Name,
           arguments: List[DefinitionArgument],
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends Definition
+        ) extends IR
             with IRKind.Primitive {
           override protected var id: Identifier = randomId
 
@@ -1075,8 +1082,8 @@ object IR {
             passData: MetadataStorage            = passData,
             diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
-          ): Atom = {
-            val res = Atom(name, arguments, location, passData, diagnostics)
+          ): Data = {
+            val res = Data(name, arguments, location, passData, diagnostics)
             res.id = id
             res
           }
@@ -1087,7 +1094,7 @@ object IR {
             keepMetadata: Boolean    = true,
             keepDiagnostics: Boolean = true,
             keepIdentifiers: Boolean = false
-          ): Atom =
+          ): Data =
             copy(
               name = name.duplicate(
                 keepLocations,
@@ -1112,11 +1119,11 @@ object IR {
             )
 
           /** @inheritdoc */
-          override def setLocation(location: Option[IdentifiedLocation]): Atom =
+          override def setLocation(location: Option[IdentifiedLocation]): Data =
             copy(location = location)
 
           /** @inheritdoc */
-          override def mapExpressions(fn: Expression => Expression): Atom = {
+          override def mapExpressions(fn: Expression => Expression): Data = {
             copy(
               name      = name.mapExpressions(fn),
               arguments = arguments.map(_.mapExpressions(fn))
@@ -1157,7 +1164,7 @@ object IR {
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
-        sealed case class Type(
+        sealed case class SugaredType(
           name: IR.Name,
           arguments: List[DefinitionArgument],
           body: List[IR],
@@ -1187,8 +1194,8 @@ object IR {
             passData: MetadataStorage            = passData,
             diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
-          ): Type = {
-            val res = Type(
+          ): SugaredType = {
+            val res = SugaredType(
               name,
               arguments,
               body,
@@ -1206,7 +1213,7 @@ object IR {
             keepMetadata: Boolean    = true,
             keepDiagnostics: Boolean = true,
             keepIdentifiers: Boolean = false
-          ): Type =
+          ): SugaredType =
             copy(
               name = name.duplicate(
                 keepLocations,
@@ -1239,13 +1246,15 @@ object IR {
             )
 
           /** @inheritdoc */
-          override def mapExpressions(fn: Expression => Expression): Type =
+          override def mapExpressions(
+            fn: Expression => Expression
+          ): SugaredType =
             copy(body = body.map(_.mapExpressions(fn)))
 
           /** @inheritdoc */
           override def setLocation(
             location: Option[IdentifiedLocation]
-          ): Type = copy(location = location)
+          ): SugaredType = copy(location = location)
 
           /** @inheritdoc */
           override def toString: String =
@@ -4463,7 +4472,7 @@ object IR {
   object DefinitionArgument {
 
     /** The representation of an argument from a [[Function]] or
-      * [[IR.Module.Scope.Definition.Atom]] definition site.
+      * [[IR.Module.Scope.Definition.Data]] definition site.
       *
       * To create an ignored argument, the argument name should be an
       * [[IR.Name.Blank]].
@@ -6963,7 +6972,7 @@ object IR {
       case class UnexpectedType(context: String) extends Reason {
         override def explain(originalName: Name): String =
           s"The name ${originalName.name} resolved to a type, " +
-            s"but types are not allowed in $context."
+          s"but types are not allowed in $context."
       }
 
       /** An error coming from usage of an undefined variable name.
@@ -7875,14 +7884,14 @@ object IR {
 
       /** An error representing the redefinition of an atom in a given module.
         *
-        * @param atomName the name of the atom being redefined
+        * @param typeName the name of the atom being redefined
         * @param location the location in the source to which this error
         *                 corresponds
         * @param passData the pass metadata for the error
         * @param diagnostics any diagnostics associated with this error.
         */
-      sealed case class Atom(
-        atomName: IR.Name,
+      sealed case class Type(
+        typeName: IR.Name,
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7892,7 +7901,7 @@ object IR {
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
-        /** Creates a copy of `this`.
+         /** Creates a copy of `this`.
           *
           * @param atomName the name of the atom the method was being redefined
           *                 on
@@ -7904,14 +7913,14 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          atomName: IR.Name                    = atomName,
+          atomName: IR.Name                    = typeName,
           location: Option[IdentifiedLocation] = location,
           passData: MetadataStorage            = passData,
           diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
-        ): Atom = {
+        ): Type = {
           val res =
-            Atom(atomName, location, passData, diagnostics)
+            Type(atomName, location, passData, diagnostics)
           res.id = id
           res
         }
@@ -7922,9 +7931,9 @@ object IR {
           keepMetadata: Boolean    = true,
           keepDiagnostics: Boolean = true,
           keepIdentifiers: Boolean = false
-        ): Atom =
+        ): Type =
           copy(
-            atomName = atomName.duplicate(
+            atomName = typeName.duplicate(
               keepLocations,
               keepMetadata,
               keepDiagnostics,
@@ -7939,24 +7948,24 @@ object IR {
           )
 
         /** @inheritdoc */
-        override def setLocation(location: Option[IdentifiedLocation]): Atom =
+        override def setLocation(location: Option[IdentifiedLocation]): Type =
           copy(location = location)
 
         /** @inheritdoc */
         override def message: String =
-          s"Redefining atoms is not supported: ${atomName.name} is " +
+          s"Redefining atoms is not supported: ${typeName.name} is " +
           s"defined multiple times in this module."
 
-        override def diagnosticKeys(): Array[Any] = Array(atomName.name)
+        override def diagnosticKeys(): Array[Any] = Array(typeName.name)
 
         /** @inheritdoc */
-        override def mapExpressions(fn: Expression => Expression): Atom = this
+        override def mapExpressions(fn: Expression => Expression): Type = this
 
         /** @inheritdoc */
         override def toString: String =
           s"""
              |IR.Error.Redefined.Atom(
-             |atomName = $atomName,
+             |atomName = $typeName,
              |location = $location,
              |passData = ${this.showPassData},
              |diagnostics = $diagnostics,
@@ -7965,11 +7974,11 @@ object IR {
              |""".stripMargin
 
         /** @inheritdoc */
-        override def children: List[IR] = List(atomName)
+        override def children: List[IR] = List(typeName)
 
         /** @inheritdoc */
         override def showCode(indent: Int): String =
-          s"(Redefined (Atom $atomName))"
+          s"(Redefined (Atom $typeName))"
       }
 
       /** An error representing the redefinition of a binding in a given scope.

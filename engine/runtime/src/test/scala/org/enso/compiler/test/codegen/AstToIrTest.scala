@@ -502,8 +502,8 @@ class AstToIrTest extends CompilerTest with Inside {
           |type My_Type
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
+      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Data]
       atom.name.name shouldEqual "My_Type"
     }
 
@@ -513,8 +513,8 @@ class AstToIrTest extends CompilerTest with Inside {
           |type My_Type a b c
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
+      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Data]
       atom.name.name shouldEqual "My_Type"
       val args = atom.arguments
       args.length shouldEqual 3
@@ -529,8 +529,8 @@ class AstToIrTest extends CompilerTest with Inside {
           |type My_Type (a = 1)
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
+      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Data]
       atom.name.name shouldEqual "My_Type"
       val args = atom.arguments
       args.length shouldEqual 1
@@ -558,8 +558,8 @@ class AstToIrTest extends CompilerTest with Inside {
           |type My_Type a:b (c : d = 1)
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Data]
+      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Data]
       atom.name.name shouldEqual "My_Type"
       val args = atom.arguments
       args.length shouldEqual 2
@@ -607,7 +607,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |type MyAtom a b
           |""".stripMargin.toIrModule.bindings.head
 
-      ir shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir shouldBe an[IR.Module.Scope.Definition.Data]
     }
 
     "translate complex type defs properly" in {
@@ -624,15 +624,15 @@ class AstToIrTest extends CompilerTest with Inside {
           |    fn a b = a + b
           |""".stripMargin.toIrModule.bindings.head
 
-      ir shouldBe an[IR.Module.Scope.Definition.Type]
+      ir shouldBe an[IR.Module.Scope.Definition.SugaredType]
 
-      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.Type]
+      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
       typeDef.name.name shouldEqual "Maybe"
       typeDef.arguments.length shouldEqual 0
 
       typeDef.body.head shouldBe an[IR.Name.Literal]
-      typeDef.body(1) shouldBe an[IR.Module.Scope.Definition.Atom]
+      typeDef.body(1) shouldBe an[IR.Module.Scope.Definition.Data]
       typeDef.body(2) shouldBe an[IR.Expression.Binding]
       typeDef.body(3) shouldBe an[IR.Function.Binding]
     }
@@ -652,9 +652,9 @@ class AstToIrTest extends CompilerTest with Inside {
           |    fn a b = a + b
           |""".stripMargin.toIrModule.bindings.head
 
-      ir shouldBe an[IR.Module.Scope.Definition.Type]
+      ir shouldBe an[IR.Module.Scope.Definition.SugaredType]
 
-      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.Type]
+      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
       typeDef.body(2) shouldBe an[IR.Error.Syntax]
       typeDef
@@ -704,7 +704,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |    + : My -> My
           |    + that = My this.a+that.a
           |""".stripMargin.toIrModule.bindings.head
-          .asInstanceOf[IR.Module.Scope.Definition.Type]
+          .asInstanceOf[IR.Module.Scope.Definition.SugaredType]
           .body
 
       body(1) shouldBe an[IR.Type.Ascription]
@@ -912,7 +912,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |    foo : this -> integer
           |    foo = 0
           |""".stripMargin.toIrModule.bindings.head
-          .asInstanceOf[IR.Module.Scope.Definition.Type]
+          .asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
       ir.body.length shouldEqual 3
       ir.body(1) shouldBe an[IR.Type.Ascription]
@@ -1002,7 +1002,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
 
       ir.bindings.head shouldBe an[IR.Name.Annotation]
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Data]
     }
 
     "support annotations inside complex type bodies" in {
@@ -1015,9 +1015,9 @@ class AstToIrTest extends CompilerTest with Inside {
           |  add a = this + a
           |""".stripMargin.toIrModule
 
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Type]
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.SugaredType]
       val complexType =
-        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Type]
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.SugaredType]
 
       complexType.body.head shouldBe an[IR.Name.Annotation]
       complexType.body(2) shouldBe an[IR.Name.Annotation]
@@ -1100,7 +1100,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |    (()
           |""".stripMargin.toIrModule
       inside(ir.bindings.head) {
-        case definition: IR.Module.Scope.Definition.Type =>
+        case definition: IR.Module.Scope.Definition.SugaredType =>
           inside(definition.body(2)) { case error: IR.Error.Syntax =>
             error.reason shouldBe IR.Error.Syntax.UnexpectedDeclarationInType
           }

@@ -119,6 +119,8 @@ case object MethodDefinitions extends IRPass {
             typePointer.updateMetadata(
               this -->> BindingsMap.Resolution(value)
             )
+          case Right(value: BindingsMap.ResolvedType) =>
+            typePointer.updateMetadata(this -->> BindingsMap.Resolution(value))
           case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
             IR.Error.Resolution(
               typePointer,
@@ -133,8 +135,7 @@ case object MethodDefinitions extends IRPass {
                 "a method definition target"
               )
             )
-          case Right(_: BindingsMap.ResolvedType) =>
-            throw new CompilerError("todo")
+
         }
       case tp: IR.Error.Resolution => tp
       case _ =>

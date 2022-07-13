@@ -156,8 +156,9 @@ class IrToTruffle(
         moduleScope.addExport(exp.module.unsafeAsModule().getScope)
       }
     val imports = module.imports
-    val atomDefs = module.bindings.collect {
-      case atom: IR.Module.Scope.Definition.Atom => atom
+    val atomDefs = module.bindings.flatMap {
+      case tp: IR.Module.Scope.Definition.Type => tp.members
+      case _                                   => List()
     }
     val methodDefs = module.bindings.collect {
       case method: IR.Module.Scope.Definition.Method.Explicit => method
@@ -259,16 +260,14 @@ class IrToTruffle(
           .getMetadata(MethodDefinitions)
           .map { res =>
             res.target match {
-              case _: BindingsMap.ResolvedType =>
-                throw new CompilerError("todo")
+              case BindingsMap.ResolvedType(module, tp) =>
+                module.unsafeAsModule().getScope.getTypes.get(tp.name)
               case BindingsMap.ResolvedModule(module) =>
                 module.unsafeAsModule().getScope.getAssociatedType
-              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                definitionModule
-                  .unsafeAsModule()
-                  .getScope
-                  .getConstructors
-                  .get(cons.name)
+              case BindingsMap.ResolvedConstructor(_, _) =>
+                throw new CompilerError(
+                  "Impossible, should be caught by MethodDefinitions pass"
+                )
               case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
                 throw new CompilerError(
                   "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
@@ -1079,7 +1078,7 @@ class IrToTruffle(
                     .get(cons.name)
                 )
               case BindingsMap.ResolvedModule(module) =>
-                ConstructorNode.build(
+                ConstantObjectNode.build(
                   module.unsafeAsModule().getScope.getAssociatedType
                 )
               case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
@@ -1195,7 +1194,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.Atom =>
+        case err: Error.Redefined.Type =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))

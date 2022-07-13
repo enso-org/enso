@@ -8,45 +8,45 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 /** A container for all number-related builtins. */
 public class Number {
-  private final BuiltinAtomConstructor smallInteger;
-  private final BuiltinAtomConstructor bigInteger;
-  private final BuiltinAtomConstructor integer;
-  private final BuiltinAtomConstructor number;
-  private final BuiltinAtomConstructor decimal;
+  private final BuiltinType smallInteger;
+  private final BuiltinType bigInteger;
+  private final BuiltinType integer;
+  private final BuiltinType number;
+  private final BuiltinType decimal;
 
   /** Creates builders for number Atom Constructors. */
   public Number(Builtins builtins) {
-    smallInteger = new BuiltinAtomConstructor(builtins, SmallInteger.class);
-    bigInteger = new BuiltinAtomConstructor(builtins, BigInteger.class);
-    integer = new BuiltinAtomConstructor(builtins, Integer.class);
+    smallInteger = new BuiltinType(builtins, SmallInteger.class);
+    bigInteger = new BuiltinType(builtins, BigInteger.class);
+    integer = new BuiltinType(builtins, Integer.class);
     number =
-        new BuiltinAtomConstructor(
+        new BuiltinType(
             builtins, org.enso.interpreter.node.expression.builtin.number.Number.class);
-    decimal = new BuiltinAtomConstructor(builtins, Decimal.class);
+    decimal = new BuiltinType(builtins, Decimal.class);
   }
 
   /** @return the Int64 atom constructor. */
   public AtomConstructor getSmallInteger() {
-    return smallInteger.constructor();
+    return smallInteger.getType();
   }
 
   /** @return the Big_Integer atom constructor. */
   public AtomConstructor getBigInteger() {
-    return bigInteger.constructor();
+    return bigInteger.getType();
   }
 
   /** @return the Integer atom constructor */
   public AtomConstructor getInteger() {
-    return integer.constructor();
+    return integer.getType();
   }
 
   /** @return the Number atom constructor */
   public AtomConstructor getNumber() {
-    return number.constructor();
+    return number.getType();
   }
 
   /** @return the Decimal atom constructor */
   public AtomConstructor getDecimal() {
-    return decimal.constructor();
+    return decimal.getType();
   }
 }

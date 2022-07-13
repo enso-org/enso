@@ -6,29 +6,29 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 /** A container class for all Boolean-related stdlib builtins. */
 public class Bool {
-  private final BuiltinAtomConstructor tru;
-  private final BuiltinAtomConstructor fls;
-  private final BuiltinAtomConstructor bool;
+  private final BuiltinType tru;
+  private final BuiltinType fls;
+  private final BuiltinType bool;
 
   /** Creates builders for all the boolean constructors. */
   public Bool(Builtins builtins) {
-    bool = new BuiltinAtomConstructor(builtins, Boolean.class);
-    tru = new BuiltinAtomConstructor(builtins, True.class);
-    fls = new BuiltinAtomConstructor(builtins, False.class);
+    bool = new BuiltinType(builtins, Boolean.class);
+    tru = new BuiltinType(builtins, True.class);
+    fls = new BuiltinType(builtins, False.class);
   }
 
   /** @return the atom constructor for {@code True}. */
   public AtomConstructor getTrue() {
-    return tru.constructor();
+    return tru.getType();
   }
 
   /** @return the atom constructor for {@code False}. */
   public AtomConstructor getFalse() {
-    return fls.constructor();
+    return fls.getType();
   }
 
   /** @return the atom constructor for {@code Boolean}. */
   public AtomConstructor getBool() {
-    return bool.constructor();
+    return bool.getType();
   }
 }

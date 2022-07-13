@@ -119,19 +119,6 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.Module.Scope.Definition = {
     binding match {
-      case atom @ IR.Module.Scope.Definition.Atom(_, arguments, _, _, _) =>
-        arguments.foreach(arg => {
-          val argDep  = asStatic(arg)
-          val atomDep = asStatic(atom)
-          info.dependents.updateAt(argDep, Set(atomDep))
-          info.dependencies.updateAt(atomDep, Set(argDep))
-        })
-
-        atom
-          .copy(
-            arguments = arguments.map(analyseDefinitionArgument(_, info))
-          )
-          .updateMetadata(this -->> info)
       case m: Method.Conversion =>
         val bodyDep       = asStatic(m.body)
         val methodDep     = asStatic(m)
@@ -154,13 +141,13 @@ case object DataflowAnalysis extends IRPass {
         method
           .copy(body = analyseExpression(body, info))
           .updateMetadata(this -->> info)
-      case _: IR.Module.Scope.Definition.UnionType => binding
+      case _: IR.Module.Scope.Definition.Type => binding
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during dataflow " +
           "analysis."
         )
-      case _: IR.Module.Scope.Definition.Type =>
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "dataflow analysis."

@@ -227,12 +227,24 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Method definition sugar should not occur during alias analysis."
         )
-      case a @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
-        a.copy(
-          arguments =
-            analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
+      case t: IR.Module.Scope.Definition.Type =>
+        t.copy(
+          params = analyseArgumentDefs(
+            t.params,
+            topLevelGraph,
+            topLevelGraph.rootScope
+          ),
+          members = t.members.map(d =>
+            d.copy(arguments =
+              analyseArgumentDefs(
+                d.arguments,
+                topLevelGraph,
+                topLevelGraph.rootScope
+              )
+            ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+          )
         ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
-      case _: IR.Module.Scope.Definition.Type =>
+      case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
           "alias analysis."
@@ -251,8 +263,7 @@ case object AliasAnalysis extends IRPass {
           "Annotations should already be associated by the point of alias " +
           "analysis."
         )
-      case err: IR.Error                            => err
-      case ut: IR.Module.Scope.Definition.UnionType => ut
+      case err: IR.Error => err
     }
   }
 

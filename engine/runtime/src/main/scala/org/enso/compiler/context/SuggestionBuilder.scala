@@ -42,7 +42,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
+          case IR.Module.Scope.Definition.Data(name, arguments, _, _, _) =>
             val suggestions =
               buildAtom(module, name.name, arguments, doc)
             go(tree ++= suggestions.map(Tree.Node(_, Vector())), scope)
