@@ -52,16 +52,14 @@ public abstract class BracketNode extends Node {
   abstract Stateful execute(
       @MonadicState Object state,
       VirtualFrame frame,
-      Object self,
       @Suspend Object constructor,
-      Object destructor,
-      Object action);
+      Object destructor, // TODO: based on stdlib signature this should be suspended as well
+      Object action); // TODO: based on stdlib signature this should be suspended as well
 
   @Specialization
   Stateful doBracket(
       Object state,
       VirtualFrame frame,
-      Object self,
       Object constructor,
       Object destructor,
       Object action,
