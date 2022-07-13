@@ -363,10 +363,6 @@ Decimal.should_equal that epsilon=0 frames_to_skip=0 =
    It returns the original value, so that it can be inspected further.
 
    Arguments:
-   - allow_warnings (optional): By default set to `False`, which means that the
-     returned value is also checked for attached warnings and any warnings are
-     treated as a failure. If set to `True`, the warnings will be ignored, so
-     only errors are checked.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -375,23 +371,15 @@ Decimal.should_equal that epsilon=0 frames_to_skip=0 =
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
 Any.should_succeed : Boolean -> Integer -> Any
-Any.should_succeed allow_warnings=False frames_to_skip=0 =
-    if allow_warnings then self else
-        reported_warnings = Warning.get_all self . map .value
-        if reported_warnings.is_empty then self else
-            loc = Meta.get_source_location 3+frames_to_skip
-            msg = "Action produced unexpected warnings: " + reported_warnings.to_text + " (at " + loc + ")."
-            fail msg
+Any.should_succeed frames_to_skip=0 =
+    _ = frames_to_skip
+    self
 
 ## Asserts that `self` value is not an error.
 
    It returns the original value, so that it can be inspected further.
 
    Arguments:
-   - allow_warnings (optional): By default set to `False`, which means that the
-     returned value is also checked for attached warnings and any warnings are
-     treated as a failure. If set to `True`, the warnings will be ignored, so
-     only errors are checked.
    - frames_to_skip (optional, advanced): used to alter the location which is
      displayed as the source of this error.
 
@@ -400,9 +388,21 @@ Any.should_succeed allow_warnings=False frames_to_skip=0 =
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
 Error.should_succeed : Boolean -> Integer -> Any
-Error.should_succeed allow_warnings=False frames_to_skip=0 =
-    _ = allow_warnings
+Error.should_succeed frames_to_skip=0 =
     fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Checks that the provided action returns without any errors or warnings.
+
+   If you just want to check for errors, usage of the `.should_succeed`
+   extension function is preferred.
+assert_no_problems value frames_to_skip=0 =
+    value.catch Any _->
+        fail_match_on_unexpected_error value 2+frames_to_skip
+    warnings = Warning.get_all value . map .value
+    if warnings.not_empty then
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + loc + ")."
+        fail msg
 
 ## Asserts that the given `Boolean` is `True`
 
