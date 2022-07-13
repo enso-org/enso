@@ -148,7 +148,7 @@ spec =
         Test.specify "should report errors when encountering malformed characters" <|
             utf8_file = (enso_project.data / "transient" / "utf8_invalid.csv")
             utf8_bytes = [97, 44, 98, 44, 99, 10, -60, -123, 44, -17, -65, -65, 44, -61, 40, -61, 40, 10]
-            utf8_file.write_bytes utf8_bytes
+            utf8_bytes.write_bytes utf8_file
             action_1 on_problems =
                 utf8_file.read (Delimited "," headers=True) on_problems
             tester_1 table =
