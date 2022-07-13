@@ -1086,8 +1086,8 @@ Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.
          example_append_bytes = [32, 63, 95, -120, -43].write_bytes Examples.scratch_file Existing_File_Behavior.Append
 Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
 Vector.Vector.write_bytes path on_existing_file=Existing_File_Behavior.Backup =
-    Panic.catch Unsupported_Argument_Types handler=(Error.throw (Illegal_Argument_Error "Can only write Vector's of bytes.")) <|
-        ## Convert to a byte array before writing - and fail early if a problem.
+    Panic.catch Unsupported_Argument_Types handler=(Error.throw (Illegal_Argument_Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
+        ## Convert to a byte array before writing - and fail early if there is any problem.
         byte_array = Array_Utils.ensureByteArray self.to_array
 
         file = new path
