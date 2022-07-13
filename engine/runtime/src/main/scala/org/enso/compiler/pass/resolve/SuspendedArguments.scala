@@ -99,7 +99,7 @@ case object SuspendedArguments extends IRPass {
   /** Resolves suspended arguments for a module binding.
     *
     * It is expected that module-level type signatures _do not_ include the
-    * `this` argument.
+    * `self` argument.
     *
     * @param binding the top-level binding to resolve suspensions in
     * @return `binding`, with any suspended arguments resolved
@@ -113,7 +113,7 @@ case object SuspendedArguments extends IRPass {
           case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
             method.getMetadata(TypeSignatures) match {
               case Some(Signature(signature)) =>
-                val newArgs = computeSuspensions(args.drop(1), signature)
+                val newArgs = computeSuspensions(args, signature)
                 if (newArgs.head.suspended) {
                   IR.Error.Conversion(
                     method,
@@ -124,7 +124,7 @@ case object SuspendedArguments extends IRPass {
                 } else {
                   method.copy(body =
                     lam.copy(
-                      arguments = args.head :: newArgs,
+                      arguments = newArgs,
                       body      = resolveExpression(body)
                     )
                   )
@@ -138,7 +138,7 @@ case object SuspendedArguments extends IRPass {
                         "unknown"
                       )
                     )
-                  case (self@_) :: first :: _ if first.suspended =>
+                  case first :: _ if first.suspended =>
                     IR.Error.Conversion(
                       method,
                       IR.Error.Conversion.SuspendedSourceArgument(
@@ -162,13 +162,13 @@ case object SuspendedArguments extends IRPass {
             explicit.getMetadata(TypeSignatures) match {
               case Some(Signature(signature)) =>
                 val newArgs = computeSuspensions(
-                  args.drop(1),
+                  args,
                   signature
                 )
 
                 explicit.copy(body =
                   lam.copy(
-                    arguments = args.head :: newArgs,
+                    arguments = newArgs,
                     body      = resolveExpression(lamBody)
                   )
                 )

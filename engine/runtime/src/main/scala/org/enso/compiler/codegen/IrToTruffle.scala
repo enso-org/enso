@@ -532,14 +532,7 @@ class IrToTruffle(
     val body = Truffle.getRuntime.createCallTarget(
       new EnsoProjectNode(language, context, pkg)
     )
-    val schema = new FunctionSchema(
-      new ArgumentDefinition(
-        0,
-        Constants.Names.SELF_ARGUMENT,
-        ArgumentDefinition.ExecutionMode.EXECUTE
-      )
-    )
-    val fun = new RuntimeFunction(body, null, schema)
+    val fun = new RuntimeFunction(body, null, new FunctionSchema())
     moduleScope.registerMethod(moduleScope.getAssociatedType, name, fun)
   }
 
@@ -551,7 +544,7 @@ class IrToTruffle(
         ),
         null,
         new FunctionSchema(
-          new ArgumentDefinition(
+          new ArgumentDefinition( // TODO: safe to remove?
             0,
             Constants.Names.SELF_ARGUMENT,
             ArgumentDefinition.ExecutionMode.EXECUTE
@@ -1092,10 +1085,12 @@ class IrToTruffle(
                     .getPolyglotSymbols
                     .get(symbol.name)
                 )
-              case BindingsMap.ResolvedMethod(_, _) =>
-                throw new CompilerError(
-                  "Impossible here, should be desugared by GlobalNames resolver"
-                )
+              case BindingsMap.ResolvedMethod(module, method) =>
+                val actualModule = module.unsafeAsModule()
+                val fun = actualModule.getScope.getMethods
+                  .get(actualModule.getScope.getAssociatedType)
+                  .get(method.name)
+                ConstantObjectNode.build(fun)
             }
           } else if (nameStr == Constants.Names.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))

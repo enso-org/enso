@@ -5,7 +5,11 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 
@@ -109,7 +113,10 @@ case object GenerateMethodBodies extends IRPass {
     * @param fun the body function
     * @return the body function with the `self` argument
     */
-  def processBodyFunction(fun: IR.Function, name: IR.Name): IR.Expression = {
+  def processBodyFunction(
+    fun: IR.Function,
+    @unused name: IR.Name
+  ): IR.Expression = {
     val selfArgPos = collectChainedFunctionArgs(fun, 0).collect {
       case (arg, idx) if arg.name.isInstanceOf[IR.Name.Self] =>
         (arg, idx)
@@ -135,13 +142,9 @@ case object GenerateMethodBodies extends IRPass {
             )
         }
       case Nil =>
-        // TODO: remove this case once explicit self is implemented
-
         fun match {
-          case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
-            lam.copy(
-              arguments = if (name.name == "main") args else genSelfArgument :: args
-            )
+          case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
+            lam
           case _: IR.Function.Binding =>
             throw new CompilerError(
               "Function definition sugar should not be present during method " +
@@ -158,11 +161,10 @@ case object GenerateMethodBodies extends IRPass {
     */
   def processBodyExpression(
     expr: IR.Expression,
-    name: IR.Name
+    @unused name: IR.Name
   ): IR.Expression = {
-    // TODO: remove once explicit self arg is finished
     IR.Function.Lambda(
-      arguments = if (name.name == "main") Nil else List(genSelfArgument),
+      arguments = Nil,
       body      = expr,
       location  = expr.location
     )
