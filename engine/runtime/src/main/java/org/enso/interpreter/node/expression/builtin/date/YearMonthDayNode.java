@@ -18,10 +18,10 @@ public abstract class YearMonthDayNode extends Node {
     return YearMonthDayNodeGen.create();
   }
 
-  abstract int execute(@MonadicState Object state, Object self, long type, Object date);
+  abstract long execute(@MonadicState Object state, Object self, long type, Object date);
 
   @Specialization(guards = "type == 1")
-  int executeYear(
+  long executeYear(
       Object state,
       Object self,
       long type,
@@ -37,7 +37,7 @@ public abstract class YearMonthDayNode extends Node {
   }
 
   @Specialization(guards = "type == 2")
-  int executeMonth(
+  long executeMonth(
       Object state,
       Object self,
       long type,
@@ -53,7 +53,7 @@ public abstract class YearMonthDayNode extends Node {
   }
 
   @Specialization(guards = "type == 3")
-  int executeDay(
+  long executeDay(
       Object state,
       Object self,
       long type,
