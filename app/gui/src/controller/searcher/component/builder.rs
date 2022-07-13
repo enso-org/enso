@@ -211,6 +211,7 @@ impl List {
         for group in &*self.favorites {
             let group2 = group.clone();
             group2.entries.borrow_mut().retain(component_id_passed_to_extend);
+            group2.matched_items.set(group2.entries.borrow().len());
             let group3 = group2.set_initial_entries_order();
             // *group = group.set_initial_entries_order();
             filtered_groups.push(group3);
