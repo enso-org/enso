@@ -4,7 +4,6 @@ import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.Data.Time.Zone
-import Standard.Base.Data.Time.Date_Internal
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
@@ -21,7 +20,7 @@ polyglot java import org.enso.base.Time_Utils
 
          example_now = Date.now
 now : Date
-now = Date_Internal.date_now 0
+now = @Builtin_Method "Date.now"
 
 ## ALIAS Current Date
 
@@ -68,7 +67,7 @@ new year (month = 1) (day = 1) =
        instead of Enso format. Hopefully this will be fixed with
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
-    Panic.recover Any (Date_Internal.date_new year month day) . catch Any e-> case e of
+    Panic.recover Any (date_new year month day) . catch Any e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
@@ -137,8 +136,8 @@ new year (month = 1) (day = 1) =
 parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
-        Nothing -> Date_Internal.parse text 0
-        Text -> Date_Internal.parse text pattern
+        Nothing -> Date.parse text 0
+        Text -> Date.parse text pattern
         _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
     result . map_error <| case _ of
         Polyglot_Error err -> Time.Time_Error err.getMessage
@@ -166,7 +165,7 @@ type Date
 
              example_year = Date.now.year
     year : Integer
-    year = Date_Internal.date_value 1 self
+    year = self.date_value 1
 
     ## Get the month of year field, as a number from 1 to 12.
 
@@ -177,7 +176,7 @@ type Date
 
              example_month = Date.now.month
     month : Integer
-    month = Date_Internal.date_value 2 self
+    month = self.date_value 2
 
     ## Get the day of month field.
 
@@ -188,7 +187,7 @@ type Date
 
              example_day = Date.now.day
     day : Integer
-    day = Date_Internal.date_value 3 self
+    day = self.date_value 3
 
     ## Returns the number of week of year this date falls into.
 
@@ -342,6 +341,5 @@ type Date
         sign = self.internal_local_date.compareTo that.internal_local_date
         Ordering.from_sign sign
 
-    ## Compares two Dates for equality.
     == : Date -> Boolean
     == that = @Builtin_Method "Date.=="

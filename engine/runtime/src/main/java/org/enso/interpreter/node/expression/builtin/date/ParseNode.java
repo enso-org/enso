@@ -6,11 +6,12 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-    type = "Date_Internal",
+    type = "Date",
     name = "date_parse",
     description = "Constructs a new Date from a year, month, and day")
 public abstract class ParseNode extends Node {
