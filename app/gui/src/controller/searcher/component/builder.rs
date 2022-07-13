@@ -206,9 +206,16 @@ impl List {
     fn retain_favorites_with_ids_passed_to_extend(&mut self) {
         let ids_passed_to_extend = &self.ids_passed_to_extend;
         let component_id_passed_to_extend = |c: &Component| ids_passed_to_extend.contains(&c.id);
+        // TODO: convert to functional style with `map` etc.
+        let mut filtered_groups = Vec::<component::Group>::with_capacity(self.favorites.len());
         for group in &*self.favorites {
-            group.entries.borrow_mut().retain(component_id_passed_to_extend);
+            let group2 = group.clone();
+            group2.entries.borrow_mut().retain(component_id_passed_to_extend);
+            let group3 = group2.set_initial_entries_order();
+            // *group = group.set_initial_entries_order();
+            filtered_groups.push(group3);
         }
+        self.favorites = component::group::List::new(filtered_groups);
         self.all_components.retain(component_id_passed_to_extend);
     }
 }

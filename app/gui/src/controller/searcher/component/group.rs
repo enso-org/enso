@@ -118,6 +118,13 @@ impl Group {
         })
     }
 
+    pub fn set_initial_entries_order(self) -> Self {
+        let old_group_data = (*self.data).clone();
+        let initial_entries_order = old_group_data.entries.borrow().clone();
+        let group_data = Data { initial_entries_order, ..old_group_data };
+        Group { data: Rc::new(group_data) }
+    }
+
     /// Update the group sorting according to the `order` and update information about matched items
     /// count.
     pub fn update_sorting(&self, order: component::Order) {
