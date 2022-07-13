@@ -3,4 +3,4 @@ date_now typ = @Builtin_Method "Date_Internal.date_now"
 date_value = @Builtin_Method "Date_Internal.date_value"
 date_new year month day = @Builtin_Method "Date_Internal.date_new"
 date_parse text pattern = @Builtin_Method "Date_Internal.date_parse"
-
+date_to_enso date = @Builtin_Method "Date_Internal.date_to_enso"

@@ -3,11 +3,14 @@ package org.enso.base;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.Period;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
+import java.time.temporal.WeekFields;
 import java.util.Locale;
 
 /** Utils for standard library operations on Time. */
@@ -63,6 +66,22 @@ public class Time_Utils {
 
   public static String local_date_format(LocalDate date, Object format) {
     return DateTimeFormatter.ofPattern(format.toString()).format(date);
+  }
+
+  public static ZonedDateTime date_with_time(LocalDate date, LocalTime time, ZoneId zone) {
+      return date.atTime(time).atZone(zone);
+  }
+
+  public static LocalDate date_adjust(LocalDate date, long add, Period duration) {
+      return add == 1 ? date.plus(duration) : date.minus(duration);
+  }
+
+  public static long week_of_year(LocalDate date, Locale locale) {
+      return WeekFields.of(locale).weekOfYear().getFrom(date);
+  }
+
+  public static int compare_to(LocalDate self, LocalDate that) {
+      return self.compareTo(that);
   }
 
   /**
