@@ -212,17 +212,17 @@ type Match_Matrix
 
     # Checks if the ith object is matched by any criterion.
     is_object_matched_by_anything : Integer -> Boolean
-    is_object_matched_by_anything i =
+    is_object_matched_by_anything self i =
         self.matrix.at i . any x->x
 
     # Checks if the ith criterion matches any objects.
     does_criterion_match_anything : Integer -> Boolean
-    does_criterion_match_anything i =
+    does_criterion_match_anything self i =
         self.matrix.map (col -> col.at i) . any x->x
 
     ## PRIVATE
        Extracts the list of criteria that did not have any matches.
-    unmatched_criteria =
+    unmatched_criteria self =
         checked_criteria = self.criteria.map_with_index j-> criterion->
             has_matches = self.does_criterion_match_anything j
             Pair has_matches criterion
@@ -231,14 +231,14 @@ type Match_Matrix
     ## PRIVATE
        Returns the list of criteria that match the ith object.
     criteria_matching_object : Integer -> Vector
-    criteria_matching_object i =
+    criteria_matching_object self i =
         self.criteria.filter_with_index j-> _->
             self.matrix . at i . at j
 
     ## PRIVATE
        Returns the list of criteria indices that match the ith object.
     criteria_indices_matching_object : Integer -> Vector
-    criteria_indices_matching_object i =
+    criteria_indices_matching_object self i =
         (0.up_to self.criteria.length).filter j->
             self.matrix . at i . at j
 

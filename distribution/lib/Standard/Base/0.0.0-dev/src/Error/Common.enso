@@ -205,7 +205,7 @@ type Wrapped_Dataflow_Error payload
 
 ## PRIVATE
    Throws the original error.
-Wrapped_Dataflow_Error.unwrap = Error.throw self.payload
+Wrapped_Dataflow_Error.unwrap self = Error.throw self.payload
 
 type Caught_Panic
     ## A wrapper for a caught panic.
@@ -299,7 +299,7 @@ type Panic
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
     get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Runtime.Stack_Trace_Element
-    get_attached_stack_trace self error =
+    get_attached_stack_trace error =
         throwable = case error of
             Caught_Panic _ internal_original_exception -> internal_original_exception
             throwable -> throwable
@@ -320,7 +320,7 @@ type Panic
 
              example_rethrow = Panic.rethrow Examples.throw_error
     rethrow : (Any ! Any) -> Any
-    rethrow self value = value.catch Any Panic.throw
+    rethrow value = value.catch Any Panic.throw
 
     ## Executes the provided action and if a panic matching the provided type was
        thrown, calls the provided callback.
@@ -361,7 +361,7 @@ type Panic
                  Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
                      Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
-    catch self panic_type ~action handler =
+    catch panic_type ~action handler =
         Panic.catch_primitive action caught_panic->
             case Meta.get_polyglot_language panic_type == "java" of
                 False -> case caught_panic.payload.is_a panic_type of
@@ -428,7 +428,7 @@ type Panic
 
              Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
     recover : (Vector.Vector Any | Any) -> Any -> Any
-    recover self expected_types ~action =
+    recover expected_types ~action =
         types_to_check = case expected_types of
             Vector.Vector _ -> expected_types
             _ -> [expected_types]
@@ -444,7 +444,7 @@ type Panic
        Arguments:
        - value: value to return if not an error, or rethrow as a Panic.
     throw_wrapped_if_error : Any -> Any
-    throw_wrapped_if_error self ~value =
+    throw_wrapped_if_error ~value =
         if value.is_error then Panic.throw (Wrapped_Dataflow_Error value.catch) else value
 
     ## Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
@@ -452,7 +452,7 @@ type Panic
        Arguments:
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
     handle_wrapped_dataflow_error : Any -> Any
-    handle_wrapped_dataflow_error self ~action =
+    handle_wrapped_dataflow_error ~action =
         Panic.catch Wrapped_Dataflow_Error action caught_panic->
             Error.throw caught_panic.payload.payload
 
