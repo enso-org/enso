@@ -1206,63 +1206,46 @@ struct EditMetadataGuard {
 impl EditMetadataGuard {
     pub fn new(node_id: ast::Id, graph: controller::ExecutedGraph) -> Self {
         let ret = Self { node_id, graph };
-        ret.save_node_expression_to_metadata();
+        ret.save_node_expression_to_metadata().unwrap_or_else(|e| {
+            tracing::error!("Failed to save the node edit metadata due to error: {}", e)
+        });
         ret
     }
 
     /// Mark the node as edited in its metadata and save the current expression, so it can later be
     /// restored.
-    fn save_node_expression_to_metadata(&self) {
-        let node = self.graph.graph().node(self.node_id);
-        node.map(|node| {
-            let previous_expression = node.info.main_line.expression().to_string();
-            let module = &self.graph.graph().module;
-            module
-                .with_node_metadata(
-                    self.node_id,
-                    Box::new(|m| {
-                        m.edit_status = Some(NodeEditStatus::Edited { previous_expression });
-                    }),
-                )
-                .unwrap_or_else(|e| {
-                    tracing::error!(
-                        "Failed to save the node edit metadata because of an error: {}",
-                        e
-                    )
-                });
-        })
-        .unwrap_or_else(|e| {
-            tracing::error!(
-                "Failed to save the node edit metadata because node could not be retrieved \
-                    due to error: {}",
-                e
-            )
-        });
+    fn save_node_expression_to_metadata(&self) -> FallibleResult {
+        let node = self.graph.graph().node(self.node_id)?;
+        let previous_expression = node.info.main_line.expression().to_string();
+        let module = &self.graph.graph().module;
+        module.with_node_metadata(
+            self.node_id,
+            Box::new(|m| {
+                m.edit_status = Some(NodeEditStatus::Edited { previous_expression });
+            }),
+        )
     }
 
     /// Mark the node as no longer edited and discard the edit metadata.
-    fn clear_node_edit_metadata(&self) {
+    fn clear_node_edit_metadata(&self) -> FallibleResult {
         let module = &self.graph.graph().module;
-        module
-            .with_node_metadata(
-                self.node_id,
-                Box::new(|m| {
-                    m.edit_status = None;
-                }),
-            )
-            .unwrap_or_else(|e| {
-                tracing::error!(
-                    "Failed to clear node edit metadata after editing ended \
-                    because of an error: {}",
-                    e
-                )
-            });
+        module.with_node_metadata(
+            self.node_id,
+            Box::new(|m| {
+                m.edit_status = None;
+            }),
+        )
     }
 }
 
 impl Drop for EditMetadataGuard {
     fn drop(&mut self) {
-        self.clear_node_edit_metadata();
+        self.clear_node_edit_metadata().unwrap_or_else(|e| {
+            tracing::error!(
+                "Failed to clear node edit metadata after editing ended because of an error: {}",
+                e
+            )
+        });
     }
 }
 
