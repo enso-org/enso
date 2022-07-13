@@ -1196,7 +1196,7 @@ fn component_list_builder_with_favorites<'a>(
 
 /// On creation the `EditMetadataGuard` saves the current expression of the node to its metadata in
 /// the `edited` field.
-/// WWhen dropped the metadata is cleared again.
+/// When dropped the metadata is cleared again.
 #[derive(Debug)]
 struct EditMetadataGuard {
     node_id: ast::Id,
