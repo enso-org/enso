@@ -5,7 +5,7 @@ import Standard.Base.System.File.Option
 from Standard.Table.Io.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Match_Columns
 
@@ -17,8 +17,6 @@ polyglot java import org.enso.table.write.ExistingDataMode
 polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.error.InvalidLocationException
-polyglot java import org.enso.table.error.ColumnCountMismatchException
-polyglot java import org.enso.table.error.ColumnNameMismatchException
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IllegalStateException
@@ -283,16 +281,6 @@ handle_writer ~writer =
     throw_existing_data caught_panic = Error.throw (Existing_Data caught_panic.payload.cause.getMessage)
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
-    throw_column_count_mismatch caught_panic =
-        cause = caught_panic.payload.cause
-        Error.throw (Column_Count_Mismatch cause.getExpected cause.getActual)
-    handle_column_count_mismatch = Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
-
-    throw_column_name_mismatch caught_panic =
-        cause = caught_panic.payload.cause
-        Error.throw (Column_Name_Mismatch (Vector.Vector cause.getMissing) (Vector.Vector cause.getExtras) cause.getMessage)
-    handle_column_name_mismatch = Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
-
     ## Illegal argument can occur if appending in an invalid mode
     illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
     handle_illegal_argument = Panic.catch IllegalArgumentException handler=illegal_argument
@@ -301,5 +289,7 @@ handle_writer ~writer =
     throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error caught_panic.payload.cause.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
-    handle_illegal_state <| handle_column_name_mismatch <| handle_column_count_mismatch <| handle_bad_location <|
-        handle_illegal_argument <| handle_range_exceeded <| handle_existing_data <| writer
+    handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|
+        Column_Count_Mismatch.handle_java_exception <| handle_bad_location <|
+            handle_illegal_argument <| handle_range_exceeded <| handle_existing_data <|
+                writer

@@ -14,6 +14,8 @@
 #![warn(missing_debug_implementations)]
 
 use ensogl_core::prelude::ImString;
+use ensogl_text_embedded_fonts::DefaultFamily as DefaultFontFamily;
+use ensogl_text_embedded_fonts::Family;
 
 
 
@@ -218,7 +220,7 @@ define_themes! { [light:0, dark:1]
             component_group {
                 header {
                     text {
-                        font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                        font = DefaultFontFamily::bold(), DefaultFontFamily::bold();
                         size = 12.0, 12.0;
                         color_intensity = 1.0, 1.0;
                     }
@@ -251,7 +253,7 @@ define_themes! { [light:0, dark:1]
                     highlight = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
                     selected_color = Rgba::white(), Rgba::white();
                     text {
-                        font = "DejaVuSans", "DejaVuSans";
+                        font = DefaultFontFamily::regular(), DefaultFontFamily::regular();
                         size = 12.0, 12.0;
                         color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
                         highlight_bold = 0.02, 0.02;
@@ -581,7 +583,7 @@ define_themes! { [light:0, dark:1]
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-                font      = "DejaVuSansMono", "DejaVuSansMono";
+                font      = DefaultFontFamily::mono(), DefaultFontFamily::mono();
                 size      = 12.0, 12.0;
                 highlight_bold = 0.02, 0.02;
             }

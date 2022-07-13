@@ -4,7 +4,7 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 
 import Standard.Table
 import Standard.Table.Data.Column
-from Standard.Table.Error import all
+from Standard.Table.Errors import all
 
 import Standard.Base.Data.Time.Date
 import Standard.Base.Data.Time
