@@ -5,6 +5,7 @@
 
 #![recursion_limit = "1024"]
 // === Features ===
+#![feature(const_trait_impl)]
 #![feature(trait_alias)]
 #![feature(type_ascription)]
 #![feature(option_zip)]

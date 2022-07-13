@@ -1,5 +1,7 @@
 //! Downloader of fonts considered as "embedded" into the application.
 
+#![feature(const_trait_impl)]
+
 use std::env;
 use std::fs;
 use std::io;
@@ -48,6 +50,8 @@ mod deja_vu {
     use crate::FillMapRsFile;
 
     use enso_build_utilities::GithubRelease;
+    use ensogl_text_embedded_fonts_names::DejaVuSans;
+    use ensogl_text_embedded_fonts_names::FontFamily;
     use std::path;
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {
@@ -76,7 +80,7 @@ mod deja_vu {
     }
 
     pub const FONTS_TO_EXTRACT: &[&str] =
-        &["DejaVuSans", "DejaVuSans-Bold", "DejaVuSansMono", "DejaVuSansMono-Bold"];
+        &[DejaVuSans::regular(), DejaVuSans::bold(), DejaVuSans::mono(), DejaVuSans::mono_bold()];
 
     pub fn extract_all_fonts(package_path: &path::Path) {
         for font_name in FONTS_TO_EXTRACT {
