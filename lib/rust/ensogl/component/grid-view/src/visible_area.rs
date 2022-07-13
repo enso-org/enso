@@ -32,14 +32,17 @@ impl VisibleArea {
     pub fn visible_rows(&self, entry_size: Vector2, row_count: usize) -> Range<Row> {
         let right_bottom = self.right_bottom();
         let first_visible_unrestricted = (self.left_top.y / -entry_size.y).floor() as isize;
+        // tracing::warn!("visible_rows first: {first_visible_unrestricted:?}");
         let first_visible = first_visible_unrestricted.clamp(0, row_count as isize) as Row;
+        // tracing::warn!("visible_rows first: {first_visible:?}");
         let first_not_visible = if self.has_size() {
-            let first_not_visible_unrestricted =
-                dbg!((right_bottom.y / -entry_size.y)).ceil() as isize;
+            let first_not_visible_unrestricted = (right_bottom.y / -entry_size.y).ceil() as isize;
+            // tracing::warn!("visible_rows first_invs: {first_not_visible_unrestricted:?}");
             first_not_visible_unrestricted.clamp(0, row_count as isize) as Row
         } else {
             first_visible
         };
+        // tracing::warn!("visible_rows first_invs: {first_not_visible:?}");
         first_visible..first_not_visible
     }
 
@@ -63,6 +66,7 @@ impl VisibleArea {
 // === Tests ===
 // =============
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

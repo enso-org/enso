@@ -25,6 +25,7 @@
 // === Export ===
 // ==============
 
+pub mod basic;
 pub mod entry;
 pub mod visible_area;
 
@@ -45,8 +46,8 @@ use ensogl_core::display;
 use ensogl_core::gui::Widget;
 use ensogl_hardcoded_theme as theme;
 
+use crate::entry::EntryFrp;
 pub use entry::Entry;
-
 
 
 // =================
@@ -109,7 +110,6 @@ impl<P: frp::node::Data> EntryCreationCtx<P> {
                 frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
                     init <- source_();
                     size <- all(init, self.set_entry_size)._1();
-                    trace size;
                     entry_frp.set_size <+ all(init, self.set_entry_size)._1();
                     entry_frp.set_params <+ all(init, self.set_entry_params)._1();
                 }
@@ -259,14 +259,11 @@ impl<E: Entry> GridView<E> {
         };
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
-            trace model.entry_creation_ctx.set_entry_size;
             out.row_count <+ input.reset_entries._0();
             out.column_count <+ input.reset_entries._1();
             out.visible_area <+ input.set_visible_area;
             out.entries_size <+ input.set_entries_size;
-            trace input.set_entries_size;
             let some_other = input.set_entries_size.clone_ref();
-            trace some_other;
             out.entries_params <+ input.set_entries_params;
             prop <- all_with4(
                 &out.row_count, &out.column_count, &out.visible_area, &out.entries_size,
@@ -286,7 +283,7 @@ impl<E: Entry> GridView<E> {
             out.model_for_entry_needed <+ request_models_after_entry_size_change;
             out.model_for_entry_needed <+ request_models_after_reset;
 
-            model_for_entry_and_prop <- all(input.model_for_entry, prop);
+            model_for_entry_and_prop <- input.model_for_entry.map2(&prop, |model, prop| (model.clone(), *prop));
             eval model_for_entry_and_prop
                 ((((row, col, entry_model), prop): &((Row, Col, E::Model), Properties))
                     model.update_entry(*row, *col, entry_model.clone(), prop.entries_size)
@@ -301,5 +298,137 @@ impl<E: Entry> GridView<E> {
 impl<E, M: frp::node::Data, P: frp::node::Data> display::Object for GridViewTemplate<E, M, P> {
     fn display_object(&self) -> &display::object::Instance {
         &self.widget.display_object()
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ensogl_core::display::object::Instance;
+    use ensogl_core::display::object::WeakInstance;
+    use ensogl_core::display::Scene;
+
+    #[derive(Copy, Clone, CloneRef, Debug, Default)]
+    struct TestEntryParams {
+        param: Immutable<usize>,
+    }
+
+    #[derive(Clone, CloneRef, Debug)]
+    struct TestEntry {
+        frp:            entry::EntryFrp<Self>,
+        param_set:      Rc<Cell<usize>>,
+        model_set:      Rc<Cell<usize>>,
+        display_object: display::object::Instance,
+    }
+
+    impl Entry for TestEntry {
+        type Model = Immutable<usize>;
+        type Params = TestEntryParams;
+
+        fn new(app: &Application) -> Self {
+            let frp = entry::EntryFrp::<Self>::new();
+            let network = frp.network();
+            let param_set = Rc::new(Cell::new(0));
+            let model_set = Rc::new(Cell::new(0));
+            let display_object = display::object::Instance::new(Logger::new("TestEntry"));
+            frp::extend! { network
+                eval frp.input.set_model ((model) model_set.set(**model));
+                eval frp.input.set_params ((param) param_set.set(*param.param));
+            }
+            Self { frp, param_set, model_set, display_object }
+        }
+
+        fn frp(&self) -> &EntryFrp<Self> {
+            &self.frp
+        }
+    }
+
+    impl display::Object for TestEntry {
+        fn display_object(&self) -> &display::object::Instance {
+            &self.display_object
+        }
+    }
+
+    #[test]
+    fn initializing_grid_view() {
+        let app = Application::new("root");
+        let grid_view = GridView::<TestEntry>::new(&app);
+        let network = grid_view.network();
+        frp::extend! { network
+            updates_requested <- grid_view.model_for_entry_needed.count().sampler();
+        }
+
+        let vis_area = VisibleArea { left_top: Vector2(0.0, 0.0), size: Vector2(100.0, 100.0) };
+        grid_view.set_entries_size(Vector2(20.0, 20.0));
+        grid_view.reset_entries(100, 100);
+        grid_view.set_visible_area(vis_area);
+        grid_view.set_entries_params(TestEntryParams { param: Immutable(13) });
+
+        assert_eq!(grid_view.model().visible_entries.borrow().len(), 0);
+
+        for i in 0..5 {
+            for j in 0..5 {
+                grid_view.model_for_entry(i as Row, j as Col, Immutable(i * 200 + j));
+            }
+        }
+
+        {
+            let created_entries = grid_view.model().visible_entries.borrow();
+            assert_eq!(created_entries.len(), 25);
+            for ((row, col), entry) in created_entries.iter() {
+                assert_eq!(entry.model_set.get(), row * 200 + col);
+                assert_eq!(entry.param_set.get(), 13);
+            }
+        }
+    }
+
+    #[test]
+    fn updating_entries_after_visible_area_change() {
+        let app = Application::new("root");
+        let grid_view = GridView::<TestEntry>::new(&app);
+        let network = grid_view.network();
+        let initial_vis_area =
+            VisibleArea { left_top: Vector2(0.0, 0.0), size: Vector2(100.0, 100.0) };
+        grid_view.set_entries_size(Vector2(20.0, 20.0));
+        grid_view.reset_entries(100, 100);
+        grid_view.set_visible_area(initial_vis_area);
+        grid_view.set_entries_params(TestEntryParams { param: Immutable(13) });
+
+        for i in 0..5 {
+            for j in 0..5 {
+                grid_view.model_for_entry(i, j, Immutable(i * 200 + j));
+            }
+        }
+
+        frp::extend! { network
+            updates_requested <- grid_view.model_for_entry_needed.count().sampler();
+        }
+
+        let uncovering_new_entries =
+            VisibleArea { left_top: Vector2(5.0, -5.0), size: Vector2(100.0, 100.0) };
+        grid_view.set_visible_area(uncovering_new_entries);
+        assert_eq!(updates_requested.value(), 11);
+        assert_eq!(grid_view.model().visible_entries.borrow().len(), 25);
+
+        for i in 0..6 {
+            grid_view.model_for_entry(5, i, Immutable(200 * 5 + i));
+        }
+        for i in 0..5 {
+            grid_view.model_for_entry(i, 5, Immutable(200 * i + 5));
+        }
+        assert_eq!(grid_view.model().visible_entries.borrow().len(), 36);
+
+        let hiding_old_entries =
+            VisibleArea { left_top: Vector2(20.0, -20.0), size: Vector2(100.0, 100.0) };
+        grid_view.set_visible_area(uncovering_new_entries);
+        assert_eq!(updates_requested.value(), 11); // Count should not change.
+        assert_eq!(grid_view.model().visible_entries.borrow().len(), 25);
+        assert_eq!(grid_view.model().free_entries.borrow().len(), 11);
     }
 }

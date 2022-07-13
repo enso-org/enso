@@ -25,14 +25,12 @@ use rand::Rng;
 use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
-use enso_text::unit::Bytes;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::*;
 use ensogl_grid_view as grid_view;
-use ensogl_grid_view::entry;
 use ensogl_grid_view::VisibleArea;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -64,6 +62,7 @@ mod visible_area {
     use super::*;
 
     ensogl_core::define_shape_system! {
+        above = [grid_view::basic::background];
         (style:Style) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -76,7 +75,7 @@ mod visible_area {
 
     pub fn update(view: &View, data: VisibleArea) {
         view.size.set(data.size);
-        view.set_position_xy((data.left_top + data.right_bottom() / 2.0));
+        view.set_position_xy((data.left_top + data.right_bottom()) / 2.0);
     }
 }
 
@@ -91,7 +90,7 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let grid_view = ensogl_grid_view::GridView::<entry::Label>::new(app);
+    let grid_view = grid_view::basic::BasicGridView::new(app);
     app.display.default_scene.layers.node_searcher.add_exclusive(&grid_view);
     frp::new_network! { network
         requested_entry <- grid_view.model_for_entry_needed.map(|(row, col)| {
@@ -100,9 +99,13 @@ fn init(app: &Application) {
         grid_view.model_for_entry <+ requested_entry;
     }
     grid_view.set_entries_size(Vector2(130.0, 28.0));
+    let params = grid_view::basic::EntryParams {
+        bg_color: color::Rgba(0.8, 0.8, 0.8, 1.0),
+        bg_margin: 1.0,
+        ..default()
+    };
     grid_view.set_entries_params(
-        entry::LabelParams::default()
-            .with_layer(&app.display.default_scene.layers.node_searcher_text),
+        params.with_text_layer(&app.display.default_scene.layers.node_searcher_text),
     );
     grid_view.reset_entries(1000, 1000);
     let mut visible_area =
