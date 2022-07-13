@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.date;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -30,6 +31,7 @@ public abstract class YearMonthDayNode extends Node {
     try {
       return iop.asDate(date).getYear();
     } catch (UnsupportedMessageException ex) {
+      CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);
     }
   }
@@ -45,6 +47,7 @@ public abstract class YearMonthDayNode extends Node {
     try {
       return iop.asDate(date).getMonthValue();
     } catch (UnsupportedMessageException ex) {
+      CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);
     }
   }
@@ -60,6 +63,7 @@ public abstract class YearMonthDayNode extends Node {
     try {
       return iop.asDate(date).getDayOfMonth();
     } catch (UnsupportedMessageException ex) {
+      CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);
     }
   }

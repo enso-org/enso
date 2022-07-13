@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(
     type = "Date_Internal",
-    name = "date_create",
+    name = "date_now",
     description = "Returns current Date")
 public abstract class NowNode extends Node {
   static NowNode build() {
