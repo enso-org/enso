@@ -152,6 +152,7 @@
 - [Added support for custom encodings in `File_Format.Delimited` writing.][3564]
 - [Allow filtering caught error type in `Error.catch`.][3574]
 - [Implemented `Append` mode for `File_Format.Delimited`.][3573]
+- [Added `Vector.write_bytes` function and removed old `File.write_bytes`][3583]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -243,6 +244,7 @@
 [3564]: https://github.com/enso-org/enso/pull/3564
 [3574]: https://github.com/enso-org/enso/pull/3574
 [3573]: https://github.com/enso-org/enso/pull/3573
+[3583]: https://github.com/enso-org/enso/pull/3583
 
 #### Enso Compiler
 
