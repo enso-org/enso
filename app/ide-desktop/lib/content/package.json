@@ -38,7 +38,7 @@
     "esbuild-plugin-time": "^1.0.0",
     "esbuild-plugin-yaml": "^0.0.1",
     "glob": "^8.0.3",
-    "ts-node": "^10.8.2",
+    "ts-node": "^10.9.1",
     "source-map-loader": "^3.0.1",
     "ts-loader": "^9.3.0",
     "typescript": "^4.7.2",

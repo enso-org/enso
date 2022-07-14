@@ -25,7 +25,7 @@ import firebase_config from '../firebase.yaml'
 import * as semver from 'semver'
 import { SemVer, Comparator } from 'semver'
 
-import * as https from "https";
+import * as https from 'https'
 
 const authInfo = 'auth-info'
 
@@ -502,7 +502,7 @@ async function fetchApplicationConfig(url: string) {
     const statusCodeOK = 200
 
     return new Promise((resolve: any, reject: any) => {
-        https.get(url, (res) => {
+        https.get(url, res => {
             const statusCode = res.statusCode
             if (statusCode !== statusCodeOK) {
                 reject(new ErrorDetails('Request failed.', { url, statusCode }))

@@ -2,14 +2,14 @@ import esbuild from 'esbuild'
 import 'esbuild-plugin-yaml'
 import plugin_yaml from 'esbuild-plugin-yaml'
 import NodeModulesPolyfillPlugin from '@esbuild-plugins/node-modules-polyfill'
-import path, {dirname} from 'node:path'
+import path, { dirname } from 'node:path'
 import child_process from 'node:child_process'
-import {fileURLToPath} from 'node:url'
+import { fileURLToPath } from 'node:url'
 import aliasPlugin from 'esbuild-plugin-alias'
 import timePlugin from 'esbuild-plugin-time'
-import {require_env} from '../../utils.mjs'
-import * as BUILD_INFO from '../../build.json' assert {type: 'json'}
-import * as fs from "fs";
+import { require_env } from '../../utils.mjs'
+import * as BUILD_INFO from '../../build.json' assert { type: 'json' }
+import * as fs from 'fs'
 import * as copy_plugin from 'enso-copy-plugin'
 
 export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
@@ -31,12 +31,12 @@ const always_copied_files = [
 ]
 
 async function* files_to_copy_provider() {
-    console.log("Preparing a new generator for files to copy.")
+    console.log('Preparing a new generator for files to copy.')
     yield* always_copied_files
     for (const file of await fs.promises.readdir(assets_path)) {
         yield path.resolve(assets_path, file)
     }
-    console.log("Generator for files to copy finished.")
+    console.log('Generator for files to copy finished.')
 }
 
 const config = {
@@ -49,7 +49,7 @@ const config = {
         NodeModulesPolyfillPlugin.NodeModulesPolyfillPlugin(),
         aliasPlugin({ wasm_rust_glue: js_glue_path }),
         timePlugin(),
-        copy_plugin.create(files_to_copy_provider)
+        copy_plugin.create(files_to_copy_provider),
     ],
     define: {
         GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
@@ -75,5 +75,5 @@ export async function watch() {
 }
 
 export async function bundle() {
-    return esbuild.build({...config, watch: false, incremental: false})
+    return esbuild.build({ ...config, watch: false, incremental: false })
 }

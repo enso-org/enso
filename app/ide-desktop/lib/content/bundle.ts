@@ -3,7 +3,6 @@ import * as bundle from './bundle2.mjs'
 
 await bundle.bundle()
 
-
 // import esbuild from 'esbuild'
 // import 'esbuild-plugin-yaml'
 // import plugin_yaml from 'esbuild-plugin-yaml'

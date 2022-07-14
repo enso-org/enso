@@ -27,7 +27,7 @@ const resources = path.join(root, '..')
 const project_manager_executable = path.join(
     resources,
     project_manager_bundle,
-    PROJECT_MANAGER_IN_BUNDLE_PATH
+    PROJECT_MANAGER_IN_BUNDLE_PATH // This is a define.
 )
 
 // FIXME default options parsed wrong
@@ -468,12 +468,11 @@ let hideInsteadOfQuit = false
 let mainWindow = null
 let origin = null
 
-
 async function main(args) {
     runBackend()
     console.log('Starting the IDE service.')
     if (args.server !== false) {
-// TODO customize port
+        // TODO customize port
         let port = await server.start(root)
         origin = `http://localhost:${port}`
     }
