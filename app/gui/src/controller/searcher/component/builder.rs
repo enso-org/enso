@@ -208,7 +208,7 @@ impl List {
         let component_id_passed_to_extend = |c: &Component| ids_passed_to_extend.contains(&c.id);
         let filtered_fav_groups = std::mem::take(&mut self.favorites)
             .into_iter()
-            .map(|g| g.with_initial_entries_order_filtered(component_id_passed_to_extend))
+            .map(|g| g.with_entries_in_initial_order_and_filtered(component_id_passed_to_extend))
             .collect_vec();
         self.favorites = component::group::List::new(filtered_fav_groups);
         self.all_components.retain(component_id_passed_to_extend);

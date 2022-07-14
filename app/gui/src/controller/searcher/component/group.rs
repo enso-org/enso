@@ -118,7 +118,7 @@ impl Group {
         })
     }
 
-    pub fn with_initial_entries_order_filtered<F>(self, f: F) -> Self
+    pub fn with_entries_in_initial_order_and_filtered<F>(self, f: F) -> Self
     where F: FnMut(&Component) -> bool {
         let mut group_data = Rc::unwrap_or_clone(self.data);
         let mut initial_entries_order = std::mem::take(&mut group_data.initial_entries_order);
