@@ -187,7 +187,11 @@ spec =
             text = File.read_text file encoding=Encoding.ascii
             text.should_equal expected_text
             result . should_equal Nothing
-            Warning.get_all result . map .value . should_equal [Encoding_Error "Encoding issues at characters 7, 8, 15."]
+            sep_length = System.default_line_separator.length
+            positions = [6 + sep_length, 7 + sep_length, 13 + 2*sep_length]
+            msg = "Encoding issues at characters " +
+                positions.map .to_text . join separator=", " suffix="."
+            Warning.get_all result . map .value . should_equal [Encoding_Error msg]
             file.delete
 
         Test.specify "should allow only text columns if no formatter is specified" <|
