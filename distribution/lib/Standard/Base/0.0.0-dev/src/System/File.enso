@@ -368,8 +368,30 @@ type File
        Builtin method that gets this file's last modified time.
        Recommended to use `File.last_modified_time` instead which handles
        potential exceptions.
-    last_modified_time_builtin : File -> ZonedDateTime
+    last_modified_time_builtin : ZonedDateTime
     last_modified_time_builtin = @Builtin_Method "File.last_modified_time_builtin"
+
+    ## Gets the POSIX permissions associated with the file.
+
+       > Example
+         Check if the file is readable by the user's group.
+
+             import Standard.Examples
+
+             example_permissions = Examples.csv.posix_permissions.contains Posix_File_Permission.Group_Read
+    posix_permissions : Vector Posix_File_Permission
+    posix_permissions =
+        java_permissions = Vector.Vector self.posix_permissions_builtin
+        java_permissions.map Posix_File_Permission.from_java
+
+    ## PRIVATE
+
+       Builtin method that gets this file's POSIX permissions.
+       Recommended to use `File.posix_permissions` instead which handles
+       potential exceptions and converts the array of Java enums into an Enso
+       Vector of atoms.
+    posix_permissions_builtin : Array
+    posix_permissions_builtin = @Builtin_Method "File.posix_permissions_builtin"
 
     ## Checks whether the file exists and is a directory.
 
