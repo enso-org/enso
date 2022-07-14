@@ -17,6 +17,7 @@ use crate::background;
 use crate::entry;
 use crate::theme;
 use crate::Colors;
+use crate::SelectionStyle;
 
 use enso_frp as frp;
 use ensogl::application::shortcut::Shortcut;
@@ -123,6 +124,7 @@ ensogl::define_endpoints_2! {
         /// the next non-empty column to the left.
         selection_position_target(Vector2<f32>),
         selection_size(Vector2<f32>),
+        selection_corners_radius(f32),
         entry_count(usize),
         size(Vector2<f32>),
     }
@@ -140,6 +142,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
         let out = &api.output;
         let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
         let padding = style.get_number(theme::entry_list::padding);
+        let column_padding = style.get_number(theme::selection::wide_group_column_padding);
         frp::extend! { network
             init <- source_();
             entry_count <- input.set_entries.map(|p| p.entry_count());
@@ -171,7 +174,20 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             eval size((size) model.background.size.set(*size));
             eval size((size) model.selection_background.size.set(*size));
             out.size <+ size;
-            out.selection_size <+ background_width.map(|&width| Vector2(width / 3.0,list_view::entry::HEIGHT));
+            let selection_style = SelectionStyle::from_style(style, network);
+            out.selection_size <+ background_width.all_with4(
+                &selection_style,
+                &column_padding,
+                &out.focused,
+                |&width,&style,&column_padding,_| {
+                    let width = (width - 2.0 * column_padding) / COLUMNS as f32;
+                    let height = style.height;
+                    Vector2(width, height)
+                }
+            );
+            out.selection_corners_radius <+ all_with(&selection_style, &out.focused,
+                |style,_| style.corners_radius
+            );
 
             // === "No items" label ===
 

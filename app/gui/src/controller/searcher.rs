@@ -1807,7 +1807,9 @@ pub mod test {
         // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
         if let [module_group] = &components.top_modules()[..] {
-            assert_eq!(module_group.name, entry1.module.to_string());
+            let expected_group_name =
+                format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
+            assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
             assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
         } else {

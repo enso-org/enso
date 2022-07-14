@@ -40,14 +40,11 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
-pub mod column_grid;
-
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
+use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
 use ensogl_core::data::bounding_box::BoundingBox;
@@ -59,6 +56,7 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style;
+use ensogl_core::Animation;
 use ensogl_derive_theme::FromTheme;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
@@ -68,8 +66,29 @@ use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
 use ide_view_component_group as component_group;
+use ide_view_component_group::set::Group;
+use ide_view_component_group::set::SectionId;
 use ide_view_component_group::Layers as GroupLayers;
 use searcher_theme::list_panel as list_panel_theme;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod column_grid;
+
+pub use column_grid::LabeledAnyModelProvider;
+pub use component_group::set::GroupId;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The selection animation is faster than the default one because of the increased spring force.
+const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 
 
 
@@ -79,26 +98,29 @@ use searcher_theme::list_panel as list_panel_theme;
 
 #[derive(Debug, Clone, CloneRef)]
 struct Layers {
-    groups:         GroupLayers,
-    base:           Layer,
-    selection:      Layer,
-    selection_mask: Layer,
-    scroll_layer:   Layer,
+    groups:          GroupLayers,
+    base:            Layer,
+    selection:       Layer,
+    selection_mask:  Layer,
+    scroll_layer:    Layer,
+    scrollbar_layer: Layer,
 }
 
 impl Layers {
     fn new(app: &Application, scroll_area: &ScrollArea) -> Self {
-        let main_camera = app.display.default_scene.layers.main.camera();
-        let base = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
-        let selection = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
-        let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
+        let camera = app.display.default_scene.layers.node_searcher.camera();
+        let base = Layer::new_with_cam(app.logger.sub("component_groups"), &camera);
+        let selection = Layer::new_with_cam(app.logger.sub("selection"), &camera);
+        let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &camera);
+        let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &camera);
         selection.set_mask(&selection_mask);
-        app.display.default_scene.layers.main.add_sublayer(&base);
-        app.display.default_scene.layers.main.add_sublayer(&selection);
+        app.display.default_scene.layers.node_searcher.add_sublayer(&base);
+        app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
+        app.display.default_scene.layers.node_searcher.add_sublayer(&scrollbar_layer);
         let content = &scroll_area.content_layer();
         let groups = GroupLayers::new(&app.logger, content, &selection);
         let scroll_layer = scroll_area.content_layer().clone_ref();
-        Self { base, selection, groups, selection_mask, scroll_layer }
+        Self { base, selection, groups, selection_mask, scroll_layer, scrollbar_layer }
     }
 }
 
@@ -186,6 +208,7 @@ mod background {
     use super::*;
 
     ensogl_core::define_shape_system! {
+        below = [component_group::background];
         (style:Style,bg_color:Vector4) {
             let theme_path: style::Path = list_panel_theme::HERE.into();
 
@@ -259,7 +282,9 @@ pub struct Model {
     local_scope_section: WideSection,
     sub_modules_section: ColumnSection,
     layers:              Layers,
+    groups_wrapper:      component_group::set::Wrapper,
     navigator:           Rc<RefCell<Option<Navigator>>>,
+    selection:           component_group::selection_box::View,
 }
 
 impl Model {
@@ -268,20 +293,32 @@ impl Model {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new(&logger);
         let navigator = default();
+        let groups_wrapper = component_group::set::Wrapper::new();
 
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        app.display.default_scene.layers.below_main.add_exclusive(&background);
-
         let favourites_section = Self::init_column_section(&app);
         let local_scope_section = Self::init_wide_section(&app);
         let sub_modules_section = Self::init_column_section(&app);
 
-        let scroll_area = ScrollArea::new(&app);
-        display_object.add_child(&scroll_area);
+        use SectionId::*;
+        favourites_section.content.set_group_wrapper(&(Favorites, groups_wrapper.clone_ref()));
+        let local_scope_id = GroupId::local_scope_group();
+        groups_wrapper.add(local_scope_id, Group::Wide(local_scope_section.content.clone_ref()));
+        sub_modules_section.content.set_group_wrapper(&(SubModules, groups_wrapper.clone_ref()));
 
+        let scroll_area = ScrollArea::new(&app);
+        scroll_area.set_camera(app.display.default_scene.layers.node_searcher.camera());
+        display_object.add_child(&scroll_area);
         let layers = Layers::new(&app, &scroll_area);
         layers.base.add_exclusive(&scroll_area);
+
+        let selection = component_group::selection_box::View::new(&app.logger);
+        display_object.add_child(&selection);
+        layers.selection_mask.add_exclusive(&selection);
+
+        scroll_area.set_scrollbars_layer(&layers.scrollbar_layer);
+        layers.scrollbar_layer.set_mask(scroll_area.mask_layer());
 
         favourites_section.set_parent(scroll_area.content());
         local_scope_section.set_parent(scroll_area.content());
@@ -303,7 +340,9 @@ impl Model {
             sub_modules_section,
             layers,
             logger,
+            groups_wrapper,
             navigator,
+            selection,
         }
     }
 
@@ -392,6 +431,16 @@ impl Model {
         let size = self.background.size().get();
         let viewport = BoundingBox::from_center_and_size(center, size);
         viewport.contains(pos)
+    }
+
+    /// Clamp the Y-coordinate of [`pos`] inside the boundaries of the scroll area.
+    fn clamp_y(&self, pos: Vector2) -> Vector2 {
+        let top_y = self.scroll_area.position().y;
+        let height = self.scroll_area.scroll_area_height.value();
+        let selection_height = self.selection.size.get().y;
+        let half_selection_height = selection_height / 2.0;
+        let y = pos.y.clamp(top_y - height + half_selection_height, top_y - half_selection_height);
+        Vector2(pos.x, y)
     }
 
     fn on_hover(&self) {
@@ -601,13 +650,36 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
 // === FRP ===
 // ===========
 
+/// An identifier of Component Entry in Component List.
+///
+/// The component is identified by its group id and its number on the component list.
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
+pub struct EntryId {
+    pub group:    GroupId,
+    pub entry_id: component_group::entry::Id,
+}
+
+impl EntryId {
+    fn from_wrapper_event(&(group, entry_id): &(GroupId, component_group::entry::Id)) -> Self {
+        Self { group, entry_id }
+    }
+}
+
 define_endpoints_2! {
     Input{
         set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
         set_favourites_section(Vec<LabeledAnyModelProvider>),
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
     }
-    Output{}
+    Output{
+        selected_entry(Option<EntryId>),
+        suggestion_accepted(EntryId),
+        expression_accepted(EntryId),
+        is_header_selected(GroupId, bool),
+        header_accepted(GroupId),
+        size(Vector2),
+    }
 }
 
 impl component::Frp<Model> for Frp {
@@ -620,6 +692,28 @@ impl component::Frp<Model> for Frp {
         let network = &frp_api.network;
         let layout_frp = Style::from_theme(network, style);
         let scene = &app.display.default_scene;
+        let output = &frp_api.output;
+        let groups = &model.groups_wrapper;
+        let selection = &model.selection;
+
+        let selection_animation = Animation::<Vector2>::new(network);
+        let selection_size_animation = Animation::<Vector2>::new(network);
+        let selection_corners_animation = Animation::<f32>::new(network);
+        let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
+        selection_animation.set_spring.emit(spring);
+        fn selection_position(model: &Model, id: GroupId, group_local_pos: Vector2) -> Vector2 {
+            let scroll_area = &model.scroll_area;
+            let scroll_area_pos = scroll_area.position() + scroll_area.content().position();
+            let section_pos = match id.section {
+                SectionId::Favorites => model.favourites_section.content.position(),
+                SectionId::LocalScope => default(),
+                SectionId::SubModules => model.sub_modules_section.content.position(),
+            };
+            let group_pos = model.groups_wrapper.get(&id).map(|g| g.position()).unwrap_or_default();
+            let pos = (scroll_area_pos + section_pos + group_pos).xy() + group_local_pos;
+            model.clamp_y(pos)
+        }
+
         frp::extend! { network
             model.favourites_section.content.set_content <+ frp_api.input.set_favourites_section;
             model.local_scope_section.content.set_entries <+ frp_api.input.set_local_scope_section;
@@ -643,8 +737,28 @@ impl component::Frp<Model> for Frp {
             on_hover_end <- is_hovered.on_false();
             eval_ on_hover ( model.on_hover() );
             eval_ on_hover_end ( model.on_hover_end() );
+
+            output.selected_entry <+ groups.selected_entry.map(|op| op.as_ref().map(EntryId::from_wrapper_event));
+            output.suggestion_accepted <+ groups.suggestion_accepted.map(EntryId::from_wrapper_event);
+            output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
+            output.is_header_selected <+ groups.is_header_selected;
+            output.header_accepted <+ groups.header_accepted;
+
+            output.size <+ layout_frp.update.map(|style| style.size_inner());
+
+            selection_size_animation.target <+ groups.selection_size._1();
+            selection_animation.target <+ groups.selection_position_target.all_with(
+                &model.scroll_area.scroll_position_y,
+                f!([model]((id, pos), _) selection_position(&model,*id, *pos))
+            );
+            selection_corners_animation.target <+ groups.selection_corners_radius._1();
+            eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+            eval selection_size_animation.value ((pos) selection.size.set(*pos));
+            eval selection_corners_animation.value ((r) selection.corners_radius.set(*r));
+            eval_ model.scroll_area.scroll_position_y(selection_animation.skip.emit(()));
         }
-        layout_frp.init.emit(())
+        layout_frp.init.emit(());
+        selection_animation.skip.emit(());
     }
 }
 

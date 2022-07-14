@@ -5,7 +5,7 @@ import Standard.Table.Data.Column
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
 import Standard.Table.Io.File_Format
 import Standard.Test
-import project.Util
+from project.Util import all
 
 spec =
     c_1 = ["a", ["1", "4", "7", "10"]]
@@ -49,7 +49,7 @@ spec =
         Test.specify 'should properly serialize simple tables' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
             res = Text.from varied_column format=(File_Format.Delimited ",")
-            exp = '''
+            exp = normalize_lines <| '''
                 Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
                 2005-02-25,2005-02-25,1,1,1.0,1
                 2005-02-28,2005-02-28,2,2,2.0,2
@@ -58,7 +58,7 @@ spec =
                 ,2005-03-03,5,5,5.0,5
                 2005-03-04,2005-03-04,,6,6.25,6.25
                 2005-03-07,2005-03-07,7,7,7.0,7
-                2005-03-08,2005-03-08,8,8,8.0,osiem\n
+                2005-03-08,2005-03-08,8,8,8.0,osiem
             res.should_equal exp
 
         Test.specify 'should properly handle quoting of records and allow specifying separators' <|
@@ -66,28 +66,28 @@ spec =
             c2 = ['grade', [10, 20, 'hello;world']]
             t = Table.new [c1, c2]
 
-            expected = """
+            expected = normalize_lines <| """
                 name;grade
                 "Robert"");DROP TABLE Students;--";10
                 "This;Name;;Is""""Strange";20
                 Marcin,,;"hello;world"
 
             res = Text.from t format=(File_Format.Delimited ";")
-            res.should_equal expected+'\n'
+            res.should_equal expected
 
         Test.specify 'should allow forced quoting of records'
             c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
             c2 = ['grade', [10, 20, 'hello;world']]
             t = Table.new [c1, c2]
 
-            expected = """
+            expected = normalize_lines <| """
                 "name","grade"
                 "Robert"");DROP TABLE Students;--",10
                 "This;Name;;Is""""Strange",20
                 "Marcin,,","hello;world"
 
             res = Text.from t format=(File_Format.Delimited "," . with_quotes always_quote=True)
-            res.should_equal expected+'\n'
+            res.should_equal expected
 
 
         Test.specify 'should write CSV to a file' <|
@@ -95,7 +95,7 @@ spec =
             out = enso_project.data / 'out.csv'
             out.delete_if_exists
             varied_column.write out
-            exp = '''
+            exp = normalize_lines <| '''
                 Column_1,Column_2,Column_3,Column_4,Column_5,Column_6
                 2005-02-25,2005-02-25,1,1,1.0,1
                 2005-02-28,2005-02-28,2,2,2.0,2
@@ -104,7 +104,7 @@ spec =
                 ,2005-03-03,5,5,5.0,5
                 2005-03-04,2005-03-04,,6,6.25,6.25
                 2005-03-07,2005-03-07,7,7,7.0,7
-                2005-03-08,2005-03-08,8,8,8.0,osiem\n
+                2005-03-08,2005-03-08,8,8,8.0,osiem
             out.read_text.should_equal exp
             out.delete_if_exists
 
