@@ -13,7 +13,6 @@ use crate::wide;
 use crate::View;
 
 use enso_frp as frp;
-use ensogl::data::OptVec;
 
 
 
@@ -144,6 +143,7 @@ propagated_events! {
         header_accepted:           GroupId,
         selection_position_target: (GroupId, Vector2<f32>),
         selection_size:            (GroupId, Vector2<f32>),
+        selection_corners_radius:  (GroupId, f32),
         focused:                   (GroupId, bool),
     }
 }
@@ -153,14 +153,37 @@ propagated_events! {
 // === Wrapper ===
 // ===============
 
-newtype_prim! {
-    /// An index of the component group.
-    GroupId(usize);
+/// A Component Groups List Section identifier.
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
+pub enum SectionId {
+    /// The "Favorite Tools" section.
+    #[default]
+    Favorites,
+    /// The "Local Scope" section.
+    LocalScope,
+    /// The "Sub-Modules" section.
+    SubModules,
+}
+
+/// A Group identifier. If `section` is [`SectionId::LocalScope`], the `index` should be 0, as that
+/// section has always only one group.
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
+pub struct GroupId {
+    pub section: SectionId,
+    pub index:   usize,
+}
+
+impl GroupId {
+    /// Get id of the only group in "Local Scope" section.
+    pub fn local_scope_group() -> Self {
+        GroupId { section: SectionId::LocalScope, index: default() }
+    }
 }
 
 /// The storage for the groups inside Wrapper. We store both a [`Group`] itself to manage its focus
 /// and [`PropagatedEvents`] to propagate its FRP outputs.
-type Groups = Rc<RefCell<OptVec<(Group, PropagatedEvents), GroupId>>>;
+type Groups = Rc<RefCell<HashMap<GroupId, (Group, PropagatedEvents)>>>;
 
 /// A wrapper around the FRP outputs of the several component groups.
 ///
@@ -198,29 +221,40 @@ impl Wrapper {
 
         frp::extend! { network
             eval events.mouse_in_group((group_id) {
-                groups.borrow().iter_enumerate().for_each(|(idx, (g, _))| {
-                    if idx != *group_id { g.defocus(); }
+                groups.borrow().iter().for_each(|(id, (g, _))| {
+                    if id != group_id { g.defocus(); }
                 });
-                if let Some((g, _)) = groups.borrow().safe_index(*group_id) { g.focus(); }
+                if let Some((g, _)) = groups.borrow().get(group_id) { g.focus(); }
             });
         }
 
         Self { groups, events }
     }
 
-    /// Start managing a new group. Returned [`GroupId`] is non-unique, it might be reused by new
-    /// groups if this one removed by calling [`Self::remove`].
-    pub fn add(&self, group: Group) -> GroupId {
+    /// Start managing a new group. If there is already managed group under given id, the old group
+    /// is no longer managed, and it's returned. Returned [`GroupId`] is non-unique, it might be
+    /// reused by new groups if this one removed by calling [`Self::remove`].
+    pub fn add(&self, id: GroupId, group: Group) -> Option<Group> {
         let events = PropagatedEvents::new();
         self.events.attach(&events);
-        let id = self.groups.borrow_mut().insert((group.clone_ref(), events.clone_ref()));
+        let old = self.groups.borrow_mut().insert(id, (group.clone_ref(), events.clone_ref()));
         self.setup_frp_propagation(&group, id, events);
-        id
+        old.map(|(group, _)| group)
+    }
+
+    /// Get a group by a [`GroupId`].
+    pub fn get(&self, id: &GroupId) -> Option<Group> {
+        self.groups.borrow().get(id).map(|(group, _)| group).map(CloneRef::clone_ref)
     }
 
     /// Stop managing of a group. A freed [`GroupId`] might be reused by new groups later.
     pub fn remove(&self, group_id: GroupId) {
-        self.groups.borrow_mut().remove(group_id);
+        self.groups.borrow_mut().remove(&group_id);
+    }
+
+    /// Stop managing all groups of a section.
+    pub fn remove_section(&self, section: SectionId) {
+        self.groups.borrow_mut().retain(|&id, _| id.section != section);
     }
 
     fn setup_frp_propagation(&self, group: &Group, id: GroupId, events: PropagatedEvents) {
@@ -240,6 +274,7 @@ impl Wrapper {
                     (expression_accepted, move |e| (id, *e)),
                     (selection_position_target, move |p| (id, *p)),
                     (selection_size, move |p| (id, *p)),
+                    (selection_corners_radius, move |r| (id, *r)),
                     (is_header_selected, move |h| (id, *h)),
                     (header_accepted, move |_| id)
                 }
@@ -252,7 +287,9 @@ impl Wrapper {
                     (selected_entry, move |e| e.map(|e| (id, e))),
                     (suggestion_accepted, move |e| (id, *e)),
                     (expression_accepted, move |e| (id, *e)),
-                    (selection_position_target, move |p| (id, *p))
+                    (selection_position_target, move |p| (id, *p)),
+                    (selection_size, move |p| (id, *p)),
+                    (selection_corners_radius, move |r| (id, *r))
                 }
             }
         }

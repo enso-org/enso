@@ -8,5 +8,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-prelude = { path = "../../../../lib/rust/prelude" }
 ide-view-component-group = { path = "component-group" }
+ide-view-component-list-panel = { path = "searcher-list-panel" }
 ensogl-text = { path = "../../../../lib/rust/ensogl/component/text" }

@@ -165,6 +165,17 @@ impl Display for QualifiedName {
 }
 
 
+// === Comparison ===
+
+impl PartialEq<module::QualifiedName> for QualifiedName {
+    fn eq(&self, rhs: &module::QualifiedName) -> bool {
+        self.project_name == rhs.project_name
+            && self.module_segments == rhs.id.parent_segments()
+            && self.name == rhs.id.name().as_ref()
+    }
+}
+
+
 
 // =============
 // === Tests ===
