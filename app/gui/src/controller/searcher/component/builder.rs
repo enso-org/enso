@@ -138,8 +138,8 @@ impl List {
     }
 
     /// Set the favorites in the list. Components are looked up by ID in the suggestion database.
-    /// When building a [`component::List`], only [`Component`]s with IDs passed to [`extend`] will
-    /// be retained (see the documentation of the [`build`] method).
+    /// When [`build`]ing a [`component::List`], only [`Component`]s with IDs passed to [`extend`]
+    /// will be retained (see the documentation of the [`build`] method).
     pub fn set_favorites<'a>(
         &mut self,
         db: &model::SuggestionDatabase,
