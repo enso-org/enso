@@ -7,10 +7,9 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.dsl.MonadicState;
 
 @BuiltinMethod(
-    type = "Date_Internal",
+    type = "Date",
     name = "date_value",
     description = "Returns some value for a Date")
 public abstract class YearMonthDayNode extends Node {
@@ -18,17 +17,16 @@ public abstract class YearMonthDayNode extends Node {
     return YearMonthDayNodeGen.create();
   }
 
-  abstract long execute(@MonadicState Object state, Object self, long type, Object date);
+  abstract long execute(Object self, long type);
 
   @Specialization(guards = "type == 1")
   long executeYear(
-      Object state,
       Object self,
       long type,
-      Object date,
-      @CachedLibrary(limit = "3") InteropLibrary iop) {
+      @CachedLibrary(limit="3") InteropLibrary iop
+  ) {
     try {
-      return iop.asDate(date).getYear();
+      return iop.asDate(self).getYear();
     } catch (UnsupportedMessageException ex) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);
@@ -37,13 +35,12 @@ public abstract class YearMonthDayNode extends Node {
 
   @Specialization(guards = "type == 2")
   long executeMonth(
-      Object state,
       Object self,
       long type,
-      Object date,
-      @CachedLibrary(limit = "3") InteropLibrary iop) {
+      @CachedLibrary(limit="3") InteropLibrary iop
+  ) {
     try {
-      return iop.asDate(date).getMonthValue();
+      return iop.asDate(self).getMonthValue();
     } catch (UnsupportedMessageException ex) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);
@@ -52,13 +49,12 @@ public abstract class YearMonthDayNode extends Node {
 
   @Specialization(guards = "type == 3")
   long executeDay(
-      Object state,
       Object self,
       long type,
-      Object date,
-      @CachedLibrary(limit = "3") InteropLibrary iop) {
+      @CachedLibrary(limit="3") InteropLibrary iop
+  ) {
     try {
-      return iop.asDate(date).getDayOfMonth();
+      return iop.asDate(self).getDayOfMonth();
     } catch (UnsupportedMessageException ex) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);

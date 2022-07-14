@@ -7,9 +7,10 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.EnsoDate;
 
 @BuiltinMethod(
-    type = "Date_Internal",
+    type = "Date",
     name = "date_to_enso",
     description = "Converts any format of a Date to Enso Date")
 public abstract class ToEnsoDateNode extends Node {

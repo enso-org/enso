@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.date;
+package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -9,21 +9,55 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+
+import java.io.IOException;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
+import java.time.format.DateTimeParseException;
+
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.BuiltinType;
+import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
+@Builtin(pkg = "date", name = "Date")
 public final class EnsoDate implements TruffleObject {
   private final LocalDate date;
 
   public EnsoDate(LocalDate date) {
     this.date = date;
+  }
+
+  @Builtin.Method(description = "Return current Date")
+  public static EnsoDate now() {
+    return new EnsoDate(LocalDate.now());
+  }
+
+  /**
+   * TODO: This should work but seems that annotation doesn't pick up String conversion correctly
+   *
+  @Builtin.Method(name = "date_parse")
+  @Builtin.Specialize
+  public static EnsoDate parse(Text text, String pattern) {
+    var formatter = DateTimeFormatter.ofPattern(pattern);
+    return new EnsoDate(LocalDate.parse(null, formatter));
+  }
+   */
+
+  @Builtin.Method(name = "date_new", description = "Constructs a new Date from a year, month, and day")
+  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class, propagate = true)
+  public static EnsoDate create(long year, long month, long day) {
+    return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
   }
 
   @ExportMessage
