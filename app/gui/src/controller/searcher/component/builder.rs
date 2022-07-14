@@ -63,11 +63,20 @@ impl ModuleGroups {
 ///
 /// The builder allow extending the list with new entries, and build a list with properly sorted
 /// groups.
+///
+/// To build a [`component::List`] with non-empty [`component::List::favorites`], the following
+/// methods should be called:
+///  - [`set_favorites`] to specify order and grouping of [`Component`]s in favorites;
+///  - [`extend`] to specify IDs of [`Component`]s which should be retained from the initial
+///    [`component::Group`]s specified through [`set_favorites`] (allows filtering of favorites
+///    e.g. by self type);
+///  - [`build`] to get a [`component::group::List`] of favorites constrained by arguments passed
+///    to the methods listed above.
 #[derive(Clone, Debug, Default)]
 pub struct List {
     all_components:       Vec<Component>,
     /// IDs passed as arguments to the [`extend`] method and present in
-    /// [`model::SuggestionDatabase`].
+    /// [`model::SuggestionDatabase`]. Used to filter [`favorites`] in the [`build`] method.
     ids_passed_to_extend: HashSet<component::Id>,
     module_groups:        HashMap<component::Id, ModuleGroups>,
     local_scope:          component::Group,
@@ -129,6 +138,8 @@ impl List {
     }
 
     /// Set the favorites in the list. Components are looked up by ID in the suggestion database.
+    /// When building a [`component::List`], only [`Component`]s with IDs passed to [`extend`] will
+    /// be retained (see the documentation of the [`build`] method).
     pub fn set_favorites<'a>(
         &mut self,
         db: &model::SuggestionDatabase,
