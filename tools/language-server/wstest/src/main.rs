@@ -46,17 +46,26 @@ struct Args {
     #[clap(long, value_name = "FILE", value_hint = ValueHint::FilePath)]
     input: Option<PathBuf>,
 
-    /// Number of times to run the input messages
-    #[clap(long, default_value = "1")]
-    input_repeat_times:             u64,
     /// Input commands expect responses from a binary socket
     #[clap(long)]
     input_expects_binary_responses: bool,
+
+    /// Number of warmup requests to send
+    #[clap(long, default_value = "5")]
+    warmup_iterations: usize,
+
+    /// Number of benchmarked requests to send
+    #[clap(long, default_value = "5")]
+    benchmark_iterations: usize,
 
     /// Time in milliseconds to wait before sending input messages (after the init sequence is
     /// complete)
     #[clap(long, value_name = "MILLISECONDS", default_value = "0")]
     wait_after_init: u64,
+
+    /// Time in milliseconds to wait before starting benchmark (after the warmup is complete)
+    #[clap(long, value_name = "MILLISECONDS", default_value = "0")]
+    wait_after_warmup: u64,
 
     /// Time in milliseconds to wait before sending the next request from the `input` file
     #[clap(long, value_name = "MILLISECONDS", default_value = "0")]
@@ -166,30 +175,56 @@ async fn main() -> Result<()> {
         match args.input {
             Some(path_buf) => {
                 let lines = read_lines(path_buf).await?;
-                let mut input_repeats: u64 = 0;
 
-                'outer: while input_repeats < args.input_repeat_times {
-                    for line in &lines {
-                        let message = Message::text(line.as_str());
+                // send warmup messages
+                let warmup_input = lines.iter().cycle().take(args.warmup_iterations);
+                for line in warmup_input {
+                    let message = Message::text(line.as_str());
 
-                        sink_mut.send(message).await?;
-                        println!("{}", format::bench_request(line.as_str()));
+                    sink_mut.send(message).await?;
+                    println!("{}", format::warmup_request(line.as_str()));
 
-                        // wait for response
-                        if args.input_expects_binary_responses {
-                            if let None = binary_rx.recv().await {
-                                break 'outer;
-                            }
-                        } else {
-                            if let None = text_rx.recv().await {
-                                break 'outer;
-                            }
+                    // wait for response
+                    if args.input_expects_binary_responses {
+                        if let None = binary_rx.recv().await {
+                            break;
                         }
-
-                        tokio::time::sleep(Duration::from_millis(args.wait_after_response)).await;
+                    } else {
+                        if let None = text_rx.recv().await {
+                            break;
+                        }
                     }
 
-                    input_repeats += 1;
+                    tokio::time::sleep(Duration::from_millis(args.wait_after_response)).await;
+                }
+
+                // wait after warmup
+                tokio::time::sleep(Duration::from_millis(args.wait_after_warmup)).await;
+
+                // send benchmark messages
+                let bench_input = lines
+                    .iter()
+                    .cycle()
+                    .take(args.warmup_iterations + args.benchmark_iterations)
+                    .skip(args.warmup_iterations);
+                for line in bench_input {
+                    let message = Message::text(line.as_str());
+
+                    sink_mut.send(message).await?;
+                    println!("{}", format::bench_request(line.as_str()));
+
+                    // wait for response
+                    if args.input_expects_binary_responses {
+                        if let None = binary_rx.recv().await {
+                            break;
+                        }
+                    } else {
+                        if let None = text_rx.recv().await {
+                            break;
+                        }
+                    }
+
+                    tokio::time::sleep(Duration::from_millis(args.wait_after_response)).await;
                 }
             }
             None => {

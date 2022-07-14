@@ -5,6 +5,7 @@ pub static MESSAGE_BINARY: &str = "<binary>";
 
 static INIT_REQUEST_SENT: &str = "wstest sent init request";
 static BENCH_REQUEST_SENT: &str = "wstest sent bench request";
+static WARMUP_REQUEST_SENT: &str = "wstest sent warmup request";
 static RESPONSE_HANDLED: &str = "wstest handled response";
 static RESPONSE_IGNORED: &str = "wstest ignored response";
 
@@ -14,6 +15,11 @@ static FMT_MODULE: &str = "main";
 /// Message for logging the initialization request
 pub fn init_request(message: &str) -> String {
     fmt(format!("{} [{}]", INIT_REQUEST_SENT, message).as_str())
+}
+
+/// Message for logging the warmup request
+pub fn warmup_request(message: &str) -> String {
+    fmt(format!("{} [{}]", WARMUP_REQUEST_SENT, message).as_str())
 }
 
 /// Message for logging the benchmarking request
