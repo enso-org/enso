@@ -23,14 +23,14 @@ type Dialect
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name = Errors.unimplemented "This is an interface only."
+    name self = Errors.unimplemented "This is an interface only."
 
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> Sql.Statement
-    generate_sql = Errors.unimplemented "This is an interface only."
+    generate_sql self = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
        Deduces the result type for an aggregation operation.
@@ -38,7 +38,7 @@ type Dialect
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
-    resolve_target_sql_type = Errors.unimplemented "This is an interface only."
+    resolve_target_sql_type self = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -46,7 +46,7 @@ type Dialect
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
     prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
-    prepare_order_descriptor = Errors.unimplemented "This is an interface only."
+    prepare_order_descriptor self = Errors.unimplemented "This is an interface only."
 
 ## PRIVATE
 

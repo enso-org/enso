@@ -6423,12 +6423,13 @@ object IR {
       * @param paramPosition the reason why the annotation cannot be obeyed
       */
     case class WrongSelfParameterPos(
+      funName: IR.Name,
       ir: IR,
       paramPosition: Int
     ) extends Warning {
       override val location: Option[IdentifiedLocation] = ir.location
       override def message: String =
-        s"Self parameter should be declared as the first parameter. Instead its position is: ${paramPosition + 1}."
+        s"${funName.name}: Self parameter should be declared as the first parameter. Instead its position is: ${paramPosition + 1}."
 
       override def diagnosticKeys(): Array[Any] =
         Array(ir.showCode(), paramPosition)

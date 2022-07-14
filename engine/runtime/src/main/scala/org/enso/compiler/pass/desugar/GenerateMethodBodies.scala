@@ -5,7 +5,11 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.interpreter.epb.EpbParser
@@ -84,14 +88,16 @@ case object GenerateMethodBodies extends IRPass {
       case ir: IR.Module.Scope.Definition.Method.Explicit =>
         ir.copy(
           body = ir.body match {
-            case fun: IR.Function => processBodyFunction(fun, moduleName)
-            case expression       => processBodyExpression(expression, moduleName)
+            case fun: IR.Function =>
+              processBodyFunction(ir.methodName, fun, moduleName)
+            case expression => processBodyExpression(expression, moduleName)
           }
         )
       case ir: Method.Conversion =>
         ir.copy(
           body = ir.body match {
-            case fun: IR.Function => processBodyFunction(fun, moduleName)
+            case fun: IR.Function =>
+              processBodyFunction(ir.methodName, fun, moduleName)
             case _ =>
               throw new CompilerError(
                 "It should not be possible for a conversion method to have " +
@@ -117,6 +123,7 @@ case object GenerateMethodBodies extends IRPass {
     * @return the body function with the `self` argument
     */
   def processBodyFunction(
+    funName: IR.Name,
     fun: IR.Function,
     moduleName: QualifiedName
   ): IR.Expression = {
@@ -135,7 +142,7 @@ case object GenerateMethodBodies extends IRPass {
             lam
           case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
             fun.addDiagnostic(
-              IR.Warning.WrongSelfParameterPos(fun, parameterPosition)
+              IR.Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
             )
             lam
           case _: IR.Function.Binding =>
@@ -205,12 +212,15 @@ case object GenerateMethodBodies extends IRPass {
     *
     * @return the `self` argument
     */
-  def genThisArgument(moduleName: QualifiedName): IR.DefinitionArgument.Specified = {
+  def genThisArgument(
+    moduleName: QualifiedName
+  ): IR.DefinitionArgument.Specified = {
     IR.DefinitionArgument.Specified(
       IR.Name.Self(None),
       None,
-      defaultValue = Some(IR.Name.Literal(moduleName.item, isMethod = false, None)),
-      suspended    = false,
+      defaultValue =
+        Some(IR.Name.Literal(moduleName.item, isMethod = false, None)),
+      suspended = false,
       None
     )
   }

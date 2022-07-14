@@ -62,7 +62,7 @@ type Internal_Column
        Arguments:
        - new_name: The new name for the column.
     rename : Text -> Internal_Column
-    rename new_name = Internal_Column new_name self.sql_type self.expression
+    rename self new_name = Internal_Column new_name self.sql_type self.expression
 
 ## PRIVATE
 
@@ -100,7 +100,7 @@ type Context
        Arguments:
        - new_index: The new index to set in the query.
     set_index : Vector Internal_Column -> Context
-    set_index new_index =
+    set_index self new_index =
         Context self.from_spec self.where_filters self.orders self.groups new_index self.limit
 
     ## PRIVATE
@@ -110,7 +110,7 @@ type Context
        Arguments:
        - new_filters: The new filters to set in the query.
     set_where_filters : Vector Expression -> Context
-    set_where_filters new_filters =
+    set_where_filters self new_filters =
         Context self.from_spec new_filters self.orders self.groups self.meta_index self.limit
 
     ## PRIVATE
@@ -120,7 +120,7 @@ type Context
        Arguments:
        - new_orders: The new ordering clauses to set in the query.
     set_orders : Vector Order_Descriptor -> Context
-    set_orders new_orders =
+    set_orders self new_orders =
         Context self.from_spec self.where_filters new_orders self.groups self.meta_index self.limit
 
     ## PRIVATE
@@ -137,7 +137,7 @@ type Context
        Arguments:
        - new_orders: The new ordering clauses to add to the query.
     add_orders : Vector Order_Descriptor -> Context
-    add_orders new_orders =
+    add_orders self new_orders =
         Context self.from_spec self.where_filters new_orders+self.orders self.groups self.meta_index self.limit
 
     ## PRIVATE
@@ -147,7 +147,7 @@ type Context
        Arguments:
        - new_groups: The new grouping clauses to set in the query.
     set_groups : Vector Expression -> Context
-    set_groups new_groups =
+    set_groups self new_groups =
         Context self.from_spec self.where_filters self.orders new_groups self.meta_index self.limit
 
     ## PRIVATE
@@ -157,7 +157,7 @@ type Context
        Arguments:
        - new_limit: The new limit clauses to set in the query.
     set_limit : (Nothing | Integer) -> Context
-    set_limit new_limit =
+    set_limit self new_limit =
        Context self.from_spec self.where_filters self.orders self.groups self.meta_index new_limit
 
     ## PRIVATE
@@ -176,7 +176,7 @@ type Context
        This is useful as a preprocessing step between combining queries, for example in a join.
     # as_subquery : Text -> Vector (Vector Internal_Column) -> [IR.Sub_Query, Vector (Vector Internal_Column)]
     as_subquery : Text -> Vector Any -> Vector
-    as_subquery alias column_lists =
+    as_subquery self alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
             Internal_Column column.name column.sql_type (IR.Column alias column.name)

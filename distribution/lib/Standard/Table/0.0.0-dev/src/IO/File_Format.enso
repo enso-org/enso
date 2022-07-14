@@ -26,7 +26,7 @@ type Auto
     ## ADVANCED
        Gets the underlying File_Format for the specified file
     materialise : File->File_Format
-    materialise file =
+    materialise self file =
         extension = file.extension
 
         output = Ref.new Nothing
@@ -44,13 +44,13 @@ type Auto
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read file on_problems =
+    read self file on_problems =
         materialised = self.materialise file
         materialised.read file on_problems
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
-    write_table file table on_existing_file match_columns on_problems =
+    write_table self file table on_existing_file match_columns on_problems =
         materialised = self.materialise file
         materialised.write_table file table on_existing_file match_columns on_problems
 
@@ -60,12 +60,12 @@ type Bytes
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read file _ =
+    read self file _ =
         file.read_bytes
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
-    write_table _ _ _ _ _ =
+    write_table self _ _ _ _ _ =
         Error.throw (Illegal_Argument_Error "Saving a Table as Bytes is not supported.")
 
 ## Reads the file to a `Text` with specified encoding.
@@ -74,12 +74,12 @@ type Plain_Text
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read file on_problems =
+    read self file on_problems =
         file.read_text self.encoding on_problems
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
-    write_table _ _ _ _ _ =
+    write_table self _ _ _ _ _ =
         Error.throw (Illegal_Argument_Error "Saving a Table as Plain_Text is not directly supported. You may convert the Table to a Text using `Text.from` and then use `Text.write` to write it.")
 
 ## Read delimited files such as CSVs into a Table.
@@ -124,65 +124,65 @@ type Delimited
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read file on_problems =
+    read self file on_problems =
         Delimited_Reader.read_file self file on_problems
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
-    write_table file table on_existing_file match_columns on_problems =
+    write_table self file table on_existing_file match_columns on_problems =
         Delimited_Writer.write_file table self file on_existing_file match_columns on_problems
 
     ## PRIVATE
      Clone the instance with some properties overridden.
      Note: This function is internal until such time as Atom cloning with modification is built into Enso.
     clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->(Text|Nothing)->(Text|Nothing)->Delimited
-    clone (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
+    clone self (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
         Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 
     ## Create a clone of this with specified quoting settings.
     with_quotes : Text->Text->Boolean->Delimited
-    with_quotes quote='"' quote_escape=quote always_quote=False =
+    with_quotes self quote='"' quote_escape=quote always_quote=False =
         self.clone quote_style=(Quote_Style.With_Quotes always_quote=always_quote quote=quote quote_escape=quote_escape)
 
     ## Create a clone of this with specified quoting settings.
     without_quotes : Delimited
-    without_quotes =
+    without_quotes self =
         self.clone quote_style=Quote_Style.No_Quotes
 
     ## Create a clone of this with first row treated as header.
     with_headers : Delimited
-    with_headers = self.clone headers=True
+    with_headers self = self.clone headers=True
 
     ## Create a clone of this where the first row is treated as data, not a
        header.
     without_headers : Delimited
-    without_headers = self.clone headers=False
+    without_headers self = self.clone headers=False
 
     ## Create a clone of this with value parsing.
 
        A custom `Data_Formatter` can be provided to customize parser options.
     with_parsing : Data_Formatter -> Delimited
-    with_parsing (value_formatter=Data_Formatter) =
+    with_parsing self (value_formatter=Data_Formatter) =
         self.clone value_formatter=value_formatter
 
     ## Create a clone of this without value parsing.
     without_parsing : Delimited
-    without_parsing =
+    without_parsing self =
         self.clone value_formatter=Nothing
 
     ## Creates a clone of this with a changed line ending style.
     with_line_endings : Line_Ending_Style -> Delimited
-    with_line_endings line_endings=Infer =
+    with_line_endings self line_endings=Infer =
         self.clone line_endings=line_endings
 
     ## Creates a clone of this with comment parsing enabled.
     with_comments : Text -> Delimited
-    with_comments comment_character='#' =
+    with_comments self comment_character='#' =
         self.clone comment_character=comment_character
 
     ## Creates a clone of this with comment parsing disabled.
     without_comments : Delimited
-    without_comments =
+    without_comments self =
         self.clone comment_character=Nothing
 
 ## A setting to infer the default behaviour of some option.
@@ -212,13 +212,13 @@ type Excel
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read file on_problems =
+    read self file on_problems =
         format = Excel.is_xls_format self.xls_format file
         Excel_Module.read_excel file self.section self.headers on_problems format
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
-    write_table file table on_existing_file match_columns on_problems =
+    write_table self file table on_existing_file match_columns on_problems =
         format = Excel.is_xls_format self.xls_format file
 
         case self.section of

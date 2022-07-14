@@ -52,7 +52,7 @@ type Unsupported_Name_Error text
 
    Creates a human-readable representation of the unsupported name error.
 Unsupported_Name_Error.to_display_text : Text
-Unsupported_Name_Error.to_display_text =
+Unsupported_Name_Error.to_display_text self =
     "The name " + self.text + " is not currently supported by the Database library."
 
 ## PRIVATE
