@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.enso.interpreter.runtime.data.Array;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
