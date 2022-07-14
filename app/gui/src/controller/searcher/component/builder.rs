@@ -183,7 +183,7 @@ impl List {
     /// [`component::List::favorites`] (only components with IDs passed to [`extend`] are
     /// retained), do not sort them.
     ///
-    /// If a component group in favorites is empty after the filtering, the empty group is
+    /// If a [`component::Group`] in favorites is empty after the filtering, the empty group is
     /// retained. This allows laying out the favorites in [Component
     /// Browser](crate::controller::Searcher) in the same columns regardless of filtering.
     pub fn build(mut self) -> component::List {
