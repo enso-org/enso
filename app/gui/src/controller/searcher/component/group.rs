@@ -118,6 +118,14 @@ impl Group {
         })
     }
 
+    /// Filter the [`Component`] entries stored in [`Group`] 
+    /// Create a new [`Group`] containing only the [`Component`]s from `self` for which `f` returns
+    /// [`true`].
+    /// Create a new [`Group`] with only those [`Component`]s in [`Group::initial_entries_order`]
+    /// retained for which `f` returns [`true`]. The [`Data
+    /// Create a new [`Group`] retaining only those [`Component`]s in the [`initial_entries_order`]
+    /// vector for which `f` returns [`true`]. The [`entries`] are set to a clone of
+    /// [`initial_entries_order`], and [`matched_items`] to the length of the vector.
     pub fn with_entries_in_initial_order_and_filtered<F>(self, f: F) -> Self
     where F: FnMut(&Component) -> bool {
         let mut group_data = Rc::unwrap_or_clone(self.data);
