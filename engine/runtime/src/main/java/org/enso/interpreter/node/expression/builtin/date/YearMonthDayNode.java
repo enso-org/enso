@@ -8,10 +8,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
-@BuiltinMethod(
-    type = "Date",
-    name = "date_value",
-    description = "Returns some value for a Date")
+@BuiltinMethod(type = "Date", name = "date_value", description = "Returns some value for a Date")
 public abstract class YearMonthDayNode extends Node {
   public static YearMonthDayNode build() {
     return YearMonthDayNodeGen.create();
@@ -20,11 +17,7 @@ public abstract class YearMonthDayNode extends Node {
   abstract long execute(Object self, long type);
 
   @Specialization(guards = "type == 1")
-  long executeYear(
-      Object self,
-      long type,
-      @CachedLibrary(limit="3") InteropLibrary iop
-  ) {
+  long executeYear(Object self, long type, @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return iop.asDate(self).getYear();
     } catch (UnsupportedMessageException ex) {
@@ -34,11 +27,7 @@ public abstract class YearMonthDayNode extends Node {
   }
 
   @Specialization(guards = "type == 2")
-  long executeMonth(
-      Object self,
-      long type,
-      @CachedLibrary(limit="3") InteropLibrary iop
-  ) {
+  long executeMonth(Object self, long type, @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return iop.asDate(self).getMonthValue();
     } catch (UnsupportedMessageException ex) {
@@ -48,11 +37,7 @@ public abstract class YearMonthDayNode extends Node {
   }
 
   @Specialization(guards = "type == 3")
-  long executeDay(
-      Object self,
-      long type,
-      @CachedLibrary(limit="3") InteropLibrary iop
-  ) {
+  long executeDay(Object self, long type, @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return iop.asDate(self).getDayOfMonth();
     } catch (UnsupportedMessageException ex) {

@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
 
 import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+import com.oracle.truffle.api.interop.TruffleObject;
 
 /** Container for builtin Error types */
 public class Error {
@@ -133,7 +134,14 @@ public class Error {
    * @return a runtime representation of the polyglot error.
    */
   public Atom makePolyglotError(Object cause) {
-    return polyglotError.newInstance(cause);
+    return polyglotError.newInstance(switch (cause) {
+      case TruffleObject truffle -> truffle;
+      case Throwable any -> any.getMessage();
+      default -> {
+        CompilerDirectives.transferToInterpreter();
+        throw new IllegalStateException("" + cause);
+      }
+    });
   }
 
   /**
