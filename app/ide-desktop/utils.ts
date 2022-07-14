@@ -1,4 +1,5 @@
 import path from 'node:path'
+import {existsSync} from 'node:fs'
 import process from 'node:process'
 
 /**
@@ -8,7 +9,7 @@ import process from 'node:process'
  * @returns {string} The value of the environment variable.
  * @throws {Error} If the environment variable is not set.
  */
-export function require_env(name) {
+export function require_env(name: string) {
     return (
         process.env[name] ??
         (() => {
@@ -24,7 +25,7 @@ export function require_env(name) {
  * @returns {string} The resolved path.
  * @throws {Error} If the environment variable is not set.
  */
-export function require_env_resolved_path(name) {
+export function require_env_resolved_path(name: string) {
     return path.resolve(require_env(name))
 }
 
@@ -35,9 +36,9 @@ export function require_env_resolved_path(name) {
  * @returns {string} The resolved path.
  * @throws {Error} If the environment variable is not set or path does not exist.
  */
-export function require_env_path_exist(name) {
+export function require_env_path_exist(name: string) {
     const value = require_env(name)
-    if (path.existsSync(value)) return value
+    if (existsSync(value)) return value
     else throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
 }
 

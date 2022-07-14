@@ -1,5 +1,5 @@
 // @ts-ignore
-import * as bundle from './bundle2.mjs'
+import * as bundle from './bundle2.ts'
 
 await bundle.bundle()
 

@@ -3,8 +3,8 @@
 import path, { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import esbuild from 'esbuild'
-import NodeModulesPolyfillPlugin from '@esbuild-plugins/node-modules-polyfill'
-import {require_env, require_env_resolved_path} from '../../utils.mjs'
+import {NodeModulesPolyfillPlugin} from '@esbuild-plugins/node-modules-polyfill'
+import {require_env, require_env_resolved_path} from '../../utils.js'
 
 /////////////////////////////////////////////////
 // Constants provided through the environment. //
@@ -25,14 +25,14 @@ const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION'
 // Bundling. //
 ////////////////
 
-const bundlerOptions = {
+const bundlerOptions: esbuild.BuildOptions = {
     bundle: true,
     outdir,
     entryPoints: ['src/index.js', 'src/preload.cjs'],
     outbase: 'src',
     platform: 'node',
     plugins: [
-        NodeModulesPolyfillPlugin.NodeModulesPolyfillPlugin(),
+        NodeModulesPolyfillPlugin(),
     ],
     define: {
         BUNDLED_ENGINE_VERSION: JSON.stringify(bundledEngineVersion),

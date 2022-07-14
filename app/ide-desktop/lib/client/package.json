@@ -35,7 +35,7 @@
   },
   "scripts": {
     "start": "electron ../../../../dist/content -- ",
-    "build": "node bundle.mjs",
+    "build": "ts-node bundle.ts",
     "dist": "node electron-builder-config.mjs && electron-builder --publish never --config electron-builder-config.json"
   }
 }
