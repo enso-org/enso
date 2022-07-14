@@ -184,7 +184,7 @@ impl List {
     /// retained), do not sort them.
     ///
     /// If a component group in favorites is empty after the filtering, the empty group is
-    /// retained. This allows layoing out the favorites in [Component
+    /// retained. This allows laying out the favorites in [Component
     /// Browser](crate::controller::Searcher) in the same columns regardless of filtering.
     pub fn build(mut self) -> component::List {
         let components_order = component::Order::ByNameNonModulesThenModules;
