@@ -7,6 +7,7 @@ use crate::Row;
 use crate::Viewport;
 
 
+
 fn has_size(v: &Viewport) -> bool {
     v.right > v.left + f32::EPSILON && v.top > v.bottom + f32::EPSILON
 }
