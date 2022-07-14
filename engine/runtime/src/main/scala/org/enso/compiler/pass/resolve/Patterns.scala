@@ -80,9 +80,11 @@ object Patterns extends IRPass {
             val resolution = consName match {
               case qual: IR.Name.Qualified =>
                 val parts = qual.parts.map(_.name)
-                Some(bindings.resolveQualifiedName(parts))
+                Some(
+                  bindings.resolveQualifiedName(parts)
+                )
               case lit: IR.Name.Literal =>
-                Some(bindings.resolveUppercaseName(lit.name))
+                Some(bindings.resolveName(lit.name))
               case _ => None
             }
             val resolvedName = resolution

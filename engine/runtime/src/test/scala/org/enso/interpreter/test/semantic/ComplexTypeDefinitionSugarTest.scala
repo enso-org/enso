@@ -88,7 +88,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |foo x =
           |    y -> x + y
           |
-          |main = here.foo 1 2
+          |main = foo 1 2
           |""".stripMargin
 
       eval(code) shouldEqual 3

@@ -108,10 +108,17 @@ case object AliasAnalysis extends IRPass {
       .map { localScope =>
         val scope =
           if (shouldWriteState) localScope.scope
-          else localScope.scope.deepCopy(mutable.Map())
+          else
+            localScope.scope
+              .deepCopy(mutable.Map())
+              .withParent(localScope.scope)
+
         val graph =
           if (shouldWriteState) localScope.aliasingGraph
-          else localScope.aliasingGraph.copy
+          else {
+            val mapping = mutable.Map(localScope.scope -> scope)
+            localScope.aliasingGraph.deepCopy(mapping)
+          }
         val result = analyseExpression(ir, graph, scope)
 
         result
@@ -281,7 +288,13 @@ case object AliasAnalysis extends IRPass {
       case fn: IR.Function =>
         analyseFunction(fn, graph, parentScope, lambdaReuseScope)
       case name: IR.Name =>
-        analyseName(name, isInPatternContext = false, graph, parentScope)
+        analyseName(
+          name,
+          isInPatternContext                = false,
+          isConstructorNameInPatternContext = false,
+          graph,
+          parentScope
+        )
       case cse: IR.Case => analyseCase(cse, graph, parentScope)
       case block @ IR.Expression.Block(
             expressions,
@@ -385,7 +398,8 @@ case object AliasAnalysis extends IRPass {
             value      = analyseExpression(value, graph, valueScope)
           )
           .updateMetadata(this -->> Info.Occurrence(graph, labelId))
-      case x => x.mapExpressions(analyseExpression(_, graph, parentScope))
+      case x =>
+        x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
   }
 
@@ -499,7 +513,6 @@ case object AliasAnalysis extends IRPass {
         case _: IR.Literal => parentScope
         case _             => parentScope.addChild()
       }
-
       arg
         .copy(value = analyseExpression(expr, graph, currentScope))
         .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
@@ -548,6 +561,8 @@ case object AliasAnalysis extends IRPass {
     * @param name the name to analyse
     * @param isInPatternContext whether or not the name is occurring in a
     *                           pattern context
+    * @param isConstructorNameInPatternContext whether or not the name is
+    *                           constructor name occurring in a pattern context
     * @param graph the graph in which the analysis is taking place
     * @param parentScope the scope in which `name` is delcared
     * @return `name`, with alias analysis information attached
@@ -555,12 +570,13 @@ case object AliasAnalysis extends IRPass {
   def analyseName(
     name: IR.Name,
     isInPatternContext: Boolean,
+    isConstructorNameInPatternContext: Boolean,
     graph: Graph,
     parentScope: Scope
   ): IR.Name = {
     val occurrenceId = graph.nextId()
 
-    if (isInPatternContext && name.isVariable) {
+    if (isInPatternContext && !isConstructorNameInPatternContext) {
       val occurrence =
         Occurrence.Def(occurrenceId, name.name, name.getId, name.getExternalId)
       parentScope.add(occurrence)
@@ -568,7 +584,7 @@ case object AliasAnalysis extends IRPass {
       val occurrence =
         Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
       parentScope.add(occurrence)
-      if (name.isVariable) {
+      if (!isConstructorNameInPatternContext && !name.isMethod) {
         graph.resolveLocalUsage(occurrence)
       } else {
         graph.resolveGlobalUsage(occurrence)
@@ -641,16 +657,14 @@ case object AliasAnalysis extends IRPass {
   ): IR.Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
-        if (name.isReferent) {
-          throw new CompilerError(
-            "Nested patterns should be desugared by the point of alias " +
-            "analysis."
-          )
-        }
-
         named.copy(
-          name =
-            analyseName(name, isInPatternContext = true, graph, parentScope)
+          name = analyseName(
+            name,
+            isInPatternContext                = true,
+            isConstructorNameInPatternContext = false,
+            graph,
+            parentScope
+          )
         )
       case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
         if (!cons.isDesugared) {
@@ -663,7 +677,8 @@ case object AliasAnalysis extends IRPass {
         cons.copy(
           constructor = analyseName(
             constructor,
-            isInPatternContext = true,
+            isInPatternContext                = true,
+            isConstructorNameInPatternContext = true,
             graph,
             parentScope
           ),
@@ -1085,6 +1100,18 @@ case object AliasAnalysis extends IRPass {
         */
       def scopesToRoot: Int = {
         parent.flatMap(scope => Some(scope.scopesToRoot + 1)).getOrElse(0)
+      }
+
+      /** Sets the parent of the scope.
+        *
+        * The parent scope must not be redefined.
+        *
+        * @return this scope with parent scope set
+        */
+      def withParent(parentScope: Scope): this.type = {
+        assert(parent.isEmpty)
+        this.parent = Some(parentScope)
+        this
       }
 
       /** Creates a structural copy of this scope, ensuring that replicated

@@ -114,7 +114,7 @@ type Engine
     compile : Text -> Vector Global_Option.Option -> Pattern ! (Regex.Compile_Error | Invalid_Option_Error)
     compile expression options =
         all_options = options + self.engine_opts
-        options_bitmask = here.from_enso_options all_options
+        options_bitmask = from_enso_options all_options
         unicode_regex = UnicodeRegex.new
 
         maybe_java_pattern = Panic.recover Any <|
@@ -632,7 +632,7 @@ type Match
                  match.group "letters"
     group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
     group id =
-        Panic.recover Any (self.internal_match.group id) . map_error (here.handle_error _ id)
+        Panic.recover Any (self.internal_match.group id) . map_error (handle_error _ id)
 
     ## Gets a vector containing the results of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
@@ -719,7 +719,7 @@ type Match
     start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
     start id =
         result = Panic.recover Any (self.internal_match.start id)
-        no_errors = result.map_error (here.handle_error _ id)
+        no_errors = result.map_error (handle_error _ id)
         if no_errors == -1 then Nothing else no_errors
 
     ## Gets the index of the first character after `start` that was not captured
@@ -747,7 +747,7 @@ type Match
     end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
     end id =
         result = Panic.recover Any (self.internal_match.end id)
-        no_errors = result.map_error (here.handle_error _ id)
+        no_errors = result.map_error (handle_error _ id)
         if no_errors == -1 then Nothing else no_errors
 
     ## Returns the span matched by the group with the provided identifier, or

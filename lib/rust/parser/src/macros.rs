@@ -3,22 +3,23 @@
 //! utilities allowing macros management.
 //! Read the docs of the main module of this crate to learn more about the parsing process.
 
-//
-
 use crate::prelude::*;
 
 use crate::syntax;
-use crate::syntax::token::Token;
 
 use enso_data_structures::im_list;
-use pattern::Pattern;
 
 
 // ==============
 // === Export ===
 // ==============
 
+pub mod built_in;
+pub mod expand;
 pub mod pattern;
+pub mod resolver;
+
+pub use pattern::Pattern;
 
 
 
@@ -38,21 +39,13 @@ pub mod pattern;
 #[derivative(Debug)]
 #[allow(missing_docs)]
 pub struct Definition<'a> {
-    /// The pattern in this field will be matched from right to left, unlike patterns in segments.
-    pub rev_prefix_pattern: Option<Pattern>,
-    pub segments:           im_list::NonEmpty<SegmentDefinition<'a>>,
+    pub segments: im_list::NonEmpty<SegmentDefinition<'a>>,
     #[derivative(Debug = "ignore")]
-    pub body:               Rc<Body>,
+    pub body:     Rc<DefinitionBody>,
 }
 
-/// All the tokens matched as prefix of the resolved macro.
-pub type PrefixTokens<'s> = Option<Vec<syntax::Item<'s>>>;
-
-/// All the sections of the resolved macro.
-pub type MatchedSections<'s> = NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>;
-
 /// A function that transforms matched macro tokens into [`syntax::Tree`].
-pub type Body = dyn for<'s> Fn(PrefixTokens<'s>, MatchedSections<'s>) -> syntax::Tree<'s>;
+pub type DefinitionBody = dyn for<'s> Fn(pattern::MatchedSegments<'s>) -> syntax::Tree<'s>;
 
 
 
@@ -93,18 +86,29 @@ impl<'a> SegmentDefinition<'a> {
 /// ```
 #[macro_export]
 macro_rules! macro_definition {
-    ( ($($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
-        $crate::macro_definition!{[None] ($($section, $pattern),*) $body}
+    ($def:tt) => {
+        $crate::macro_definition!{$def $crate::macros::matched_segments_into_multi_segment_app}
     };
-    ( ($prefix:expr, $($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
-        $crate::macro_definition!{[Some($prefix)] ($($section, $pattern),*) $body}
-    };
-    ( [$prefix:expr] ($($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
-        macros::Definition {
-            rev_prefix_pattern: $prefix,
+    (($($section:literal, $pattern:expr),* $(,)?) $body:expr) => {
+        $crate::macros::Definition {
             segments: im_list::NonEmpty::try_from(vec![
-                $(macros::SegmentDefinition::new($section, $pattern)),*]).unwrap(),
+                $($crate::macros::SegmentDefinition::new($section, $pattern)),*]).unwrap(),
             body: Rc::new($body),
         }
     };
+}
+
+
+
+fn matched_segments_into_multi_segment_app(
+    matched_segments: NonEmptyVec<pattern::MatchedSegment<'_>>,
+) -> syntax::Tree<'_> {
+    let segments = matched_segments.mapped(|segment| {
+        let header = segment.header;
+        let tokens = segment.result.tokens();
+        let body = (!tokens.is_empty())
+            .as_some_from(|| syntax::operator::resolve_operator_precedence(tokens));
+        syntax::tree::MultiSegmentAppSegment { header, body }
+    });
+    syntax::Tree::multi_segment_app(segments)
 }

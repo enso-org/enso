@@ -1,0 +1,10 @@
+from Standard.Base import all
+
+type Connection_Options
+    ## Hold a set of key value pairs used to configure the connection.
+    type Connection_Options options:Vector=[]
+
+    ## Merge the base set of options with the overrides in this object.
+    merge :  Vector -> Vector
+    merge base_options =
+        base_options.filter x->(self.options.any (y->y.first==x.first) . not) + self.options

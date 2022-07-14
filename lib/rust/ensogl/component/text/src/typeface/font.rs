@@ -5,7 +5,9 @@ use crate::prelude::*;
 use enso_shapely::shared;
 use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
+use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFonts;
+use ensogl_text_embedded_fonts::Family;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
@@ -25,7 +27,7 @@ pub mod msdf;
 // =================
 
 /// Default font the app will revert to if a desired font could not be loaded.
-pub const DEFAULT_FONT: &str = "DejaVuSans";
+pub const DEFAULT_FONT: &str = embedded_fonts::DefaultFamily::regular();
 
 
 
@@ -346,11 +348,13 @@ impl scene::Extension for Registry {
 mod tests {
     use super::*;
 
+    use ensogl_text_embedded_fonts;
     use ensogl_text_embedded_fonts::EmbeddedFonts;
+    use ensogl_text_embedded_fonts::Family;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
-    const TEST_FONT_NAME: &str = "DejaVuSansMono-Bold";
+    const TEST_FONT_NAME: &str = embedded_fonts::DefaultFamily::mono_bold();
 
     fn create_test_font() -> Font {
         let embedded_fonts = EmbeddedFonts::create_and_fill();

@@ -28,4 +28,8 @@ public class ExcelSheet {
     Row underlyingRow = row < firstRow || row > lastRow ? null : sheet.getRow(row - 1);
     return underlyingRow == null ? null : new ExcelRow(underlyingRow);
   }
+
+  public Sheet getSheet() {
+    return sheet;
+  }
 }

@@ -714,6 +714,14 @@ impl LayerModel {
         }
     }
 
+    /// Create a new sublayer to this layer, with the same camera.
+    pub fn create_sublayer(&self) -> Layer {
+        let logger = self.logger.sub("Sublayer");
+        let layer = Layer::new_with_cam(logger, &self.camera.borrow());
+        self.add_sublayer(&layer);
+        layer
+    }
+
     /// The layer's mask, if any.
     pub fn mask(&self) -> Option<Layer> {
         self.mask.borrow().as_ref().and_then(|t| t.upgrade())

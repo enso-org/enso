@@ -8,8 +8,8 @@ import Standard.Test
 import Standard.Test.Problems
 
 spec =
-    sample_file = Enso_Project.data / "sample.txt"
-    windows_file = Enso_Project.data / "windows.txt"
+    sample_file = enso_project.data / "sample.txt"
+    windows_file = enso_project.data / "windows.txt"
     non_existent_file = File.new "does_not_exist.txt"
 
     Test.group "File Operations" <|
@@ -45,7 +45,7 @@ spec =
             f_2.normalize.should_equal f_1
 
         Test.specify "should allow reading a file byte by byte" <|
-            f = Enso_Project.data / "short.txt"
+            f = enso_project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
             "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
@@ -120,7 +120,7 @@ spec =
             contents_2.should .start_with "Cupcake ipsum dolor sit amet."
 
     Test.group "write operations" <|
-        transient = Enso_Project.data / "transient"
+        transient = enso_project.data / "transient"
         Test.specify "should allow to append to files" <|
             f = transient / "work.txt"
             f.delete_if_exists
@@ -254,26 +254,26 @@ spec =
 
     Test.group "folder operations" <|
         resolve files =
-            base = Enso_Project.data
+            base = enso_project.data
             files.map str->
                 (base / str) . to_text
 
         Test.specify "should check if file is a directory" <|
             sample_file.is_directory.should_be_false
-            Enso_Project.root.is_directory.should_be_true
+            enso_project.root.is_directory.should_be_true
 
         Test.specify "should list files in a directory" <|
-            immediate = Enso_Project.data.list . map .to_text
+            immediate = enso_project.data.list . map .to_text
             immediate.sort.should_equal (resolve ["books.json", "sample.txt", "transient", "tree", "windows.txt"])
 
-            filtered1 = Enso_Project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
+            filtered1 = enso_project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
             filtered1.should_equal (resolve ["sample.txt"])
 
-            filtered2 = File.list Enso_Project.data name_filter="*re*" . map .to_text
+            filtered2 = File.list enso_project.data name_filter="*re*" . map .to_text
             filtered2.should_equal (resolve ["tree"])
 
         Test.specify "should list files in a directory recursively" <|
-            root = Enso_Project.data / "tree"
+            root = enso_project.data / "tree"
             resolve files = files.map str-> (root / str) . to_text
 
             all = root.list recursive=True . map .to_text
@@ -285,4 +285,4 @@ spec =
             filtered2 = root.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

@@ -89,4 +89,4 @@ spec = Test.group "Process" <|
             Platform.Unknown ->
                 Test.fail "Unsupported platform."
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

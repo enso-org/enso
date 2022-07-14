@@ -12,6 +12,7 @@ enso-frp = { path = "../../../../../lib/rust/frp" }
 ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
 ensogl-gui-component = { path = "../../../../../lib/rust/ensogl/component/gui/" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-derive-theme = { path = "../../../../../lib/rust/ensogl/app/theme/derive" }
 ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
 ensogl-scroll-area = { path = "../../../../../lib/rust/ensogl/component/scroll-area" }
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }

@@ -60,4 +60,4 @@ spec = Test.group "Natural Order" <|
 
         ["1.0002", "1.0001", "1.01", "1.1", "1.10", "1.2", "2", "0", "1.20"].sort by=Natural_Order.compare . should_equal ["0", "1.0001", "1.01", "1.1", "1.0002", "1.2", "1.10", "1.20", "2"]
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

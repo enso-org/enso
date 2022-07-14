@@ -94,6 +94,10 @@ object Runtime {
         name  = "editFileNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.SetExpressionValueNotification],
+        name  = "setExpressionValueNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.CloseFileNotification],
         name  = "closeFileNotification"
       ),
@@ -1235,6 +1239,32 @@ object Runtime {
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
         (if (shouldMask) edits.map(_ => STUB) else edits) +
         ",execute=" + execute + ")"
+    }
+
+    /** A notification sent to the server about in-memory file contents being
+      * edited.
+      *
+      * @param path the file being edited
+      * @param edits the diffs to apply to the contents
+      * @param expressionId the expression to update
+      * @param expressionValue the new value of the expression
+      */
+    final case class SetExpressionValueNotification(
+      path: File,
+      edits: Seq[TextEdit],
+      expressionId: ExpressionId,
+      expressionValue: String
+    ) extends ApiRequest
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "SetExpressionValueNotification(" +
+        s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
+        (if (shouldMask) edits.map(_ => STUB) else edits) +
+        s",expressionId=$expressionId,expressionValue=" +
+        (if (shouldMask) STUB else expressionValue) +
+        ")"
     }
 
     /** A notification sent to the server about dropping the file from memory

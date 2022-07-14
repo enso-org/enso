@@ -60,4 +60,4 @@ spec = Test.group "Object Comparator" <|
         (default_comparator 1 True).should_fail_with Vector.Incomparable_Values_Error
         (default_comparator (No_Ord 1) (No_Ord 2)).should_fail_with Vector.Incomparable_Values_Error
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

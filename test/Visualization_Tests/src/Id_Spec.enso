@@ -21,7 +21,7 @@ spec = Test.group "Serializable Visualization Identifiers" <|
         expected p_name v_name =
             lib = Json.from_pairs [["name", p_name]]
             Json.from_pairs [["library", lib], ["name", v_name]]
-        v_1 = Visualization.Id.from_module here "My Vis"
+        v_1 = Visualization.Id.from_module Id_Spec "My Vis"
         v_2 = Visualization.Id.from_module Base "Other Vis"
         v_1.to_json.should_equal (expected "enso_dev.Visualization_Tests" "My Vis")
         v_2.to_json.should_equal (expected "Standard.Base" "Other Vis")

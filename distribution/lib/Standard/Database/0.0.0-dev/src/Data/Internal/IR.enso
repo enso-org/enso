@@ -376,7 +376,7 @@ substitute_origin old_origin new_origin expr = case expr of
         if origin == old_origin then Column new_origin name else expr
     Constant _ _ -> expr
     Operation kind exprs ->
-        Operation kind (exprs.map (here.substitute_origin old_origin new_origin))
+        Operation kind (exprs.map (substitute_origin old_origin new_origin))
 
 ## PRIVATE
 

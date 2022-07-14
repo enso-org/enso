@@ -52,12 +52,12 @@ run_tests connection pending=Nothing =
     materialize = .to_dataframe
 
     Common_Spec.spec prefix connection pending=pending
-    here.redshift_specific_spec connection pending=pending
+    redshift_specific_spec connection pending=pending
     common_selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=True order_by=False
     Common_Table_Spec.spec prefix table_builder test_selection=common_selection pending=pending
 
     selection = Aggregate_Spec.Test_Selection text_concat=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False
-    agg_in_memory_table = (Enso_Project.data / "data.csv") . read
+    agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
@@ -66,21 +66,59 @@ run_tests connection pending=Nothing =
 
     clean_tables tables.to_vector
 
+connect_via_json_config =
+    credentials = enso_project.data / 'redshift_credentials.json'
+    msg = "Redshift connection is not set up. Please create a JSON file containing the credentials in `data/redshift_credentials.json`"
+
+    if credentials.exists.not then msg else
+        creds = Json.parse credentials.read_text . unwrap
+        access_key = creds.get 'access_key_id'
+        secret_key = creds.get 'secret_access_key'
+        uri = uri_parse (creds.get 'db_uri')
+        db_uri = uri.at 0
+        db_port = uri.at 1
+        db_name = uri.at 2
+
+        user = creds.get 'db_user'
+        Redshift db_uri db_port db_name credentials=(AWS_Key user access_key secret_key)
+
+connect_via_aws_environment db_host_port =
+    db_host_port_split = uri_parse db_host_port
+    db_uri = db_host_port_split.at 0
+    db_port = db_host_port_split.at 1
+    db_name = db_host_port_split.at 2
+
+    db_user = Environment.get "ENSO_REDSHIFT_USER"
+    access_key = Environment.get "AWS_ACCESS_KEY_ID"
+    secret_key = Environment.get "AWS_SECRET_ACCESS_KEY"
+
+    credentials = if (access_key.is_nothing || secret_key.is_nothing) then AWS_Profile db_user (Environment.get "AWS_PROFILE" . if_nothing '') else
+        AWS_Key db_user access_key secret_key
+
+    Redshift db_uri db_port db_name credentials=credentials
+
+uri_parse uri =
+    host_db_split = uri.split '/'
+    host_split = host_db_split.at 0 . split ':'
+
+    db_host = host_split.first
+    db_port = if host_split.length == 1 then 5439 else
+        Integer.parse (host_split.at 1)
+
+    db_name = if host_db_split.length == 1 then '' else host_db_split.at 1
+    [db_host, db_port, db_name]
+
 spec =
-    credentials = Enso_Project.data / 'redshift_credentials.json'
-    case credentials.exists of
-        True ->
-            creds = Json.parse credentials.read_text . unwrap
-            access_key = ['AccessKeyID', creds.get 'access_key_id']
-            secret_key = ['SecretAccessKey', creds.get 'secret_access_key']
-            uri = creds.get 'db_uri'
-            user = creds.get 'db_user'
-            props = [access_key, secret_key]
-            connection = Database.connect uri user=user custom_properties=props
-            here.run_tests connection
-        False ->
-            msg = """
-                Redshift connection is not set up. Please create a JSON file containing
-                the credentials in `data/redshift_credentials.json`
-            connection = Error.throw msg
-            here.run_tests connection pending=msg
+    db_host_port = Environment.get "ENSO_REDSHIFT_URI"
+    connection_details = if db_host_port.is_nothing then connect_via_json_config else
+        connect_via_aws_environment db_host_port
+
+    case connection_details of
+        Text ->
+            connection = Error.throw connection_details
+            run_tests connection pending=connection_details
+        _ ->
+            connection = Database.connect connection_details
+            run_tests connection
+
+main = Test.Suite.run_main spec

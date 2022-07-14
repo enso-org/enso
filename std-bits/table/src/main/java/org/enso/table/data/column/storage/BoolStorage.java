@@ -1,11 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
-import java.util.Comparator;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
-import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -220,8 +216,7 @@ public class BoolStorage extends Storage {
 
               @Override
               public Storage runZip(BoolStorage storage, Storage arg) {
-                if (arg instanceof BoolStorage) {
-                  BoolStorage v = (BoolStorage) arg;
+                if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
                   BitSet out = v.values.get(0, storage.size);
@@ -264,8 +259,7 @@ public class BoolStorage extends Storage {
 
               @Override
               public Storage runZip(BoolStorage storage, Storage arg) {
-                if (arg instanceof BoolStorage) {
-                  BoolStorage v = (BoolStorage) arg;
+                if (arg instanceof BoolStorage v) {
                   BitSet missing = v.isMissing.get(0, storage.size);
                   missing.or(storage.isMissing);
                   BitSet out = v.values.get(0, storage.size);
@@ -305,12 +299,6 @@ public class BoolStorage extends Storage {
     return mask;
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public Comparator getDefaultComparator() {
-    return Comparator.naturalOrder();
-  }
-
   @Override
   public BoolStorage slice(int offset, int limit) {
     int newSize = Math.min(size - offset, limit);
@@ -319,10 +307,5 @@ public class BoolStorage extends Storage {
         isMissing.get(offset, offset + limit),
         newSize,
         negated);
-  }
-
-  @Override
-  public void writeSpreadsheetCell(int index, Cell cell, BiConsumer<Object, Cell> writeCell) {
-    cell.setCellValue(getItem(index));
   }
 }

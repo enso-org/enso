@@ -314,9 +314,9 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
 
         let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
         let pos_x = left_border + width * *self.id as f32;
-        let half_height = bg_height / 2.0;
+        let half_height = height / 2.0;
         let background_bottom = -bg_height / 2.0;
-        let pos_y = background_bottom + half_height + padding / 2.0;
+        let pos_y = background_bottom + half_height + padding;
         self.list_view.set_position_x(pos_x);
         self.list_view.set_position_y(pos_y);
     }
