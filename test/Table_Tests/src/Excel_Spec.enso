@@ -2,6 +2,7 @@ from Standard.Base import Nothing, File, Illegal_Argument_Error, True, False
 import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Base.System.File import File_Already_Exists_Error
 import Standard.Base.Data.Time.Date
+from Standard.Base.Error.Problem_Behavior import all
 
 import Standard.Table
 import Standard.Table.Io.File_Read
@@ -84,14 +85,14 @@ spec_write suffix test_sheet_name =
 
         Test.specify 'should write a table to non-existent file as a new sheet with headers' <|
             out.delete_if_exists
-            table.write out
+            table.write out on_problems=Report_Error . should_succeed
             written = out.read
             written.should_equal table
             out.delete_if_exists
 
         Test.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
             out.delete_if_exists
-            table.write out on_existing_file=Existing_File_Behavior.Append
+            table.write out on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read
             written.should_equal table
             out.delete_if_exists
@@ -99,7 +100,7 @@ spec_write suffix test_sheet_name =
         Test.specify 'should write a table to existing file in overwrite mode as a new sheet with headers' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            table.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Overwrite
+            table.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another"))
             written.should_equal table
             out.delete_if_exists
@@ -107,15 +108,15 @@ spec_write suffix test_sheet_name =
         Test.specify 'should write a table to existing file in overwrite mode as a new sheet without headers' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            table.write out (File_Format.Excel (Sheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Overwrite
+            table.write out (File_Format.Excel (Sheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "NoHeaders"))
             written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
             out.delete_if_exists
 
         Test.specify 'should create new sheets at the start if index is 0' <|
             out.delete_if_exists
-            table.write out (File_Format.Excel (Sheet 0))
-            clothes.write out (File_Format.Excel (Sheet 0))
+            table.write out (File_Format.Excel (Sheet 0)) on_problems=Report_Error . should_succeed
+            clothes.write out (File_Format.Excel (Sheet 0)) on_problems=Report_Error . should_succeed
             read_1 = out.read (File_Format.Excel (Sheet "Sheet1"))
             read_1 . should_equal table
             read_2 = out.read (File_Format.Excel (Sheet "Sheet2"))
@@ -127,7 +128,7 @@ spec_write suffix test_sheet_name =
         Test.specify 'should write a table to specific single cell location of an existing sheet' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            table.write out (File_Format.Excel (Cell_Range "Another!G1"))
+            table.write out (File_Format.Excel (Cell_Range "Another!G1")) on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Cell_Range "Another!G1"))
             written.should_equal table
             out.delete_if_exists
@@ -135,7 +136,7 @@ spec_write suffix test_sheet_name =
         Test.specify 'should clear out an existing fixed range and replace' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1:D20"))
+            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1:D20")) on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Cell_Range "Another!A1"))
             written.should_equal sub_clothes
             out.delete_if_exists
@@ -143,7 +144,7 @@ spec_write suffix test_sheet_name =
         Test.specify 'should clear out an existing range and replace' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1"))
+            sub_clothes.write out (File_Format.Excel (Cell_Range "Another!A1")) on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Cell_Range "Another!A1"))
             written.should_equal sub_clothes
             out.delete_if_exists
@@ -183,7 +184,7 @@ spec_write suffix test_sheet_name =
 
         Test.specify 'should write a table to non-existent file as a new sheet without headers' <|
             out.delete_if_exists
-            table.write out (File_Format.Excel (Sheet "Sheet1") headers=False)
+            table.write out (File_Format.Excel (Sheet "Sheet1") headers=False) on_problems=Report_Error . should_succeed
             written = out.read
             written.should_equal (table.rename_columns (Column_Name_Mapping.By_Position ['A', 'B', 'C', 'D', 'E', 'F']))
             out.delete_if_exists
@@ -193,7 +194,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append
+            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -203,7 +204,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -213,7 +214,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append
+            extra_another.write out (File_Format.Excel (Sheet "Another")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -223,7 +224,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append
+            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -233,7 +234,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -243,7 +244,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append
+            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -253,7 +254,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB', [4, 5]], ['CC', [True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a', 'b', 'c', 'd', 'e']], ['BB', [1, 2, 3, 4, 5]], ['CC', [True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append
+            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -263,7 +264,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -273,7 +274,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append
+            extra_another.write out (File_Format.Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Cell_Range "Random!K9")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -283,7 +284,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['AA_1',[True, False]], ['BB_1', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['AA_1',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Random!S3")) on_existing_file=Existing_File_Behavior.Append
+            extra_another.write out (File_Format.Excel (Cell_Range "Random!S3")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Cell_Range "Random!S3")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -293,7 +294,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['A', ['d', 'e']], ['B',[4, 5]], ['C',[True, False]], ['D', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['f', 'g', 'h', 'd', 'e']], ['BB',[1, 2, 3, 4, 5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            extra_another.write out (File_Format.Excel (Cell_Range "Random!K9")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Cell_Range "Random!K9")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
@@ -303,7 +304,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']]]
             expected = Table.new [['AA', ['a','b','c','d', 'e']], ['BB',[1,2,3,4,5]], ['CC',[True, False, False, True, False]]]
-            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append
+            extra_another.write out (File_Format.Excel (Cell_Range "Another!A1:D6")) on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             written = out.read (File_Format.Excel (Sheet "Another")) . select_columns (By_Index [0, 1, 2])
             written.should_equal expected
             out.delete_if_exists
