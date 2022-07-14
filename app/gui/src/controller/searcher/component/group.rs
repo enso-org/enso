@@ -118,34 +118,16 @@ impl Group {
         })
     }
 
-    pub fn with_initial_entries_order_filtered<F>(self, f: F) -> Self 
-    where F: FnMut(&Component) -> bool
-    {
+    pub fn with_initial_entries_order_filtered<F>(self, f: F) -> Self
+    where F: FnMut(&Component) -> bool {
         let mut group_data = Rc::unwrap_or_clone(self.data);
         let mut initial_entries_order = std::mem::take(&mut group_data.initial_entries_order);
-        //&mut group_data.initial_entries_order;
         initial_entries_order.retain(f);
         let entries = RefCell::new(initial_entries_order.clone());
         let matched_items = Cell::new(initial_entries_order.len());
-        let data = Rc::new(Data {
-            initial_entries_order,
-            entries,
-            matched_items,
-            ..group_data
-        });
+        let data = Rc::new(Data { initial_entries_order, entries, matched_items, ..group_data });
         Group { data }
-        // let entries = data.entries.borrow().iter().filter(f).collect_vec();
-        // entries.retain(f);
-        // // let initial_entries_order = original_data.initial_entries_order
-        // // let entries = 
     }
-
-    // pub fn set_initial_entries_order(self) -> Self {
-    //     let old_group_data = (*self.data).clone();
-    //     let initial_entries_order = old_group_data.entries.borrow().clone();
-    //     let group_data = Data { initial_entries_order, ..old_group_data };
-    //     Group { data: Rc::new(group_data) }
-    // }
 
     /// Update the group sorting according to the `order` and update information about matched items
     /// count.
