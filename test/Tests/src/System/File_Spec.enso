@@ -164,7 +164,7 @@ spec =
             f.delete_if_exists
             f.exists.should_be_false
             data.write_bytes f
-            data_2.write_bytes f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            data_2.write_bytes f on_existing_file=Existing_File_Behavior.Append . should_succeed
             f.read_bytes.should_equal (data + data_2)
             f.delete_if_exists
 
