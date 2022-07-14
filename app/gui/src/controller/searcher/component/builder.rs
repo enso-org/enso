@@ -76,7 +76,7 @@ impl ModuleGroups {
 pub struct List {
     all_components:       Vec<Component>,
     /// IDs passed as arguments to the [`extend`] method and present in
-    /// [`model::SuggestionDatabase`]. Used to filter [`favorites`] in the [`build`] method.
+    /// [`model::SuggestionDatabase`]. Used by the [`build`] method to filter [`favorites`].
     ids_passed_to_extend: HashSet<component::Id>,
     module_groups:        HashMap<component::Id, ModuleGroups>,
     local_scope:          component::Group,
