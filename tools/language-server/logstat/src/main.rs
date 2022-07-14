@@ -30,8 +30,8 @@ struct Args {
     wstest_log: Option<PathBuf>,
 
     /// Number of iterations to skip
-    #[clap(long, default_value = "10")]
-    warmup_iterations: usize,
+    #[clap(long, default_value = "0")]
+    skip_iterations: usize,
 
     /// Calculate median instead of mean
     #[clap(long)]
@@ -46,13 +46,13 @@ struct Spec {
 
 /// Timed operation
 #[derive(Debug)]
-struct Timed {
+struct Operation {
     duration:  Duration,
     timestamp: OffsetDateTime,
     line:      String,
 }
 
-impl fmt::Display for Timed {
+impl fmt::Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -67,7 +67,7 @@ impl fmt::Display for Timed {
 /// Single iteration containing multiple sub-operations
 #[derive(Debug)]
 struct Iteration {
-    pub operations: Vec<Timed>,
+    pub operations: Vec<Operation>,
 }
 impl Iteration {
     pub fn total_time(&self) -> Duration {
@@ -158,7 +158,7 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
                             OffsetDateTime::parse(timestamp.as_str(), &Rfc3339).unwrap();
                         let line = message.as_str().to_string();
 
-                        current_operations.push(Timed { duration, timestamp, line });
+                        current_operations.push(Operation { duration, timestamp, line });
 
                         if let Some(m) = matches.next() {
                             current_match = m
@@ -275,7 +275,7 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     let spec = read_specs(&args.spec).await?;
 
-    let log_iterations = read_logfile(&args.log, &spec).await?;
+    let mut log_iterations = read_logfile(&args.log, &spec).await?;
 
     let mut iterations;
     let mut ws_iterations;
@@ -283,9 +283,19 @@ async fn main() -> Result<()> {
     if let Some(path_buf) = args.wstest_log {
         ws_iterations = read_logfile(&path_buf, &WSTEST_SPEC).await?;
 
+        // skip warmup iterations
+        let start_time = &ws_iterations[0].operations[0].timestamp;
+        log_iterations = log_iterations
+            .into_iter()
+            .skip_while(|iteration| {
+                let first_operation = &iteration.operations[0];
+                &first_operation.timestamp < start_time
+            })
+            .collect();
+
         if ws_iterations.len() != log_iterations.len() {
             eprintln!(
-                "[ERR] Unequal number of iterations in log files! [{}] and [{}]",
+                "[ERR] Unequal number of benchmark iterations in log files! [{}] vs. [{}]",
                 ws_iterations.len(),
                 log_iterations.len()
             );
@@ -299,7 +309,7 @@ async fn main() -> Result<()> {
         iterations = log_iterations;
     }
 
-    cleanse_iterations(&mut iterations, args.warmup_iterations);
+    cleanse_iterations(&mut iterations, args.skip_iterations);
     calculate_durations(&mut iterations);
 
     let stats = analyze_iterations(&iterations, args.median);
