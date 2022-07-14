@@ -1,3 +1,5 @@
+from Standard.Base import all
+
 polyglot java import java.nio.file.attribute.PosixFilePermission
 
 ## Enso model of the Java `PosixFilePermission` enum.
@@ -25,11 +27,15 @@ type Posix_File_Permission
         Others_Write -> PosixFilePermission.OTHERS_WRITE
         Others_Execute -> PosixFilePermission.OTHERS_EXECUTE
 
+## PRIVATE
+   Enumerates all possible values of `Posix_File_Permission`.
+possible_values =
+    [Owner_Read, Owner_Write, Owner_Execute, Group_Read, Group_Write, Group_Execute, Others_Read, Others_Write, Others_Execute]
+
 ## Converts the Java `PosixFilePermission` enum to its Enso atom counterpart.
 
    Returns `Nothing` if an invalid value has been provided.
 from_java java_enum =
-    known_values = [Owner_Read, Owner_Write, Owner_Execute, Group_Read, Group_Write, Group_Execute, Others_Read, Others_Write, Others_Execute]
-    found = known_values.find x->
+    found = possible_values.find x->
         x.to_java == java_enum
     found.catch Nothing _->Nothing

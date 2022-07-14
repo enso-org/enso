@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.System.File.Option
 import Standard.Base.System.File.Existing_File_Behavior
+import Standard.Base.System.File.Posix_File_Permission
 import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range

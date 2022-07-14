@@ -85,6 +85,7 @@ public class EnsoFile implements TruffleObject {
 
   @Builtin.Method(name = "posix_permissions_builtin")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.ReturningGuestObject
   public List<PosixFilePermission> getPosixPermissions() throws IOException {
     return new ArrayList<>(truffleFile.getPosixPermissions());
   }
