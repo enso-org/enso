@@ -22,7 +22,8 @@ public abstract class NewNode extends Node {
   @Specialization
   Object doNew(Object self, long year, long month, long day) {
     try {
-      return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
+      return new EnsoDate(
+          LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
     } catch (DateTimeException ex) {
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(ex.getMessage(), this);

@@ -21,10 +21,7 @@ public abstract class ToEnsoDateNode extends Node {
 
   @Specialization
   EnsoDate executeConversion(
-      Object self,
-      Object date,
-      @CachedLibrary(limit="3") InteropLibrary iop
-  ) {
+      Object self, Object date, @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return new EnsoDate(iop.asDate(date));
     } catch (UnsupportedMessageException ex) {

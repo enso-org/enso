@@ -26,8 +26,7 @@ public abstract class YearMonthDayNode extends Node {
       Object self,
       long type,
       Object date,
-      @CachedLibrary(limit="3") InteropLibrary iop
-  ) {
+      @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return iop.asDate(date).getYear();
     } catch (UnsupportedMessageException ex) {
@@ -42,8 +41,7 @@ public abstract class YearMonthDayNode extends Node {
       Object self,
       long type,
       Object date,
-      @CachedLibrary(limit="3") InteropLibrary iop
-  ) {
+      @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return iop.asDate(date).getMonthValue();
     } catch (UnsupportedMessageException ex) {
@@ -58,8 +56,7 @@ public abstract class YearMonthDayNode extends Node {
       Object self,
       long type,
       Object date,
-      @CachedLibrary(limit="3") InteropLibrary iop
-  ) {
+      @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
       return iop.asDate(date).getDayOfMonth();
     } catch (UnsupportedMessageException ex) {

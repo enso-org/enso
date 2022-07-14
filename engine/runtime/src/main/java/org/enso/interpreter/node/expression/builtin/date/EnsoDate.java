@@ -22,7 +22,7 @@ public final class EnsoDate implements TruffleObject {
   public EnsoDate(LocalDate date) {
     this.date = date;
   }
-  
+
   @ExportMessage
   boolean isDate() {
     return true;
@@ -32,7 +32,7 @@ public final class EnsoDate implements TruffleObject {
   LocalDate asDate() {
     return date;
   }
-  
+
   @ExportMessage
   boolean hasFunctionalDispatch() {
     return true;
@@ -47,10 +47,7 @@ public final class EnsoDate implements TruffleObject {
     }
 
     @Specialization(
-        guards = {
-          "cachedSymbol == symbol",
-          "function != null"
-        },
+        guards = {"cachedSymbol == symbol", "function != null"},
         limit = "3")
     static Function resolveCached(
         EnsoDate self,
@@ -63,8 +60,7 @@ public final class EnsoDate implements TruffleObject {
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        EnsoDate self, UnresolvedSymbol symbol, @CachedLibrary("self") InteropLibrary mySelf
-    )
+        EnsoDate self, UnresolvedSymbol symbol, @CachedLibrary("self") InteropLibrary mySelf)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(mySelf, symbol);
       if (function == null) {
@@ -73,5 +69,4 @@ public final class EnsoDate implements TruffleObject {
       return function;
     }
   }
-  
 }

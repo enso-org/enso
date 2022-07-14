@@ -5,10 +5,7 @@ import com.oracle.truffle.api.nodes.Node;
 import java.time.LocalDate;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
-@BuiltinMethod(
-    type = "Date_Internal",
-    name = "date_now",
-    description = "Returns current Date")
+@BuiltinMethod(type = "Date_Internal", name = "date_now", description = "Returns current Date")
 public abstract class NowNode extends Node {
   static NowNode build() {
     return NowNodeGen.create();

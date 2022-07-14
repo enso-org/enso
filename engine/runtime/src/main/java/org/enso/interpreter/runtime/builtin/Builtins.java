@@ -114,7 +114,9 @@ public class Builtins {
     debug = new BuiltinAtomConstructor(this, Debug.class);
     projectDescription = new BuiltinAtomConstructor(this, ProjectDescription.class);
     file = new BuiltinAtomConstructor(this, File.class);
-    date = new BuiltinAtomConstructor(this, org.enso.interpreter.node.expression.builtin.date.Date.class);
+    date =
+        new BuiltinAtomConstructor(
+            this, org.enso.interpreter.node.expression.builtin.date.Date.class);
     special = new Special(language);
     warning = new BuiltinAtomConstructor(this, Warning.class);
   }

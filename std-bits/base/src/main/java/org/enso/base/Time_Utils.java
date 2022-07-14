@@ -69,19 +69,19 @@ public class Time_Utils {
   }
 
   public static ZonedDateTime date_with_time(LocalDate date, LocalTime time, ZoneId zone) {
-      return date.atTime(time).atZone(zone);
+    return date.atTime(time).atZone(zone);
   }
 
   public static LocalDate date_adjust(LocalDate date, long add, Period duration) {
-      return add == 1 ? date.plus(duration) : date.minus(duration);
+    return add == 1 ? date.plus(duration) : date.minus(duration);
   }
 
   public static long week_of_year(LocalDate date, Locale locale) {
-      return WeekFields.of(locale).weekOfYear().getFrom(date);
+    return WeekFields.of(locale).weekOfYear().getFrom(date);
   }
 
   public static int compare_to(LocalDate self, LocalDate that) {
-      return self.compareTo(that);
+    return self.compareTo(that);
   }
 
   /**
