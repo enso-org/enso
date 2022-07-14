@@ -57,8 +57,7 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use crate::navigator::navigator_shadow;
-use crate::navigator::Navigator;
-use crate::navigator::NavigatorStyle;
+use crate::navigator::Navigator as SectionNavigator;
 use crate::navigator::Section;
 pub use column_grid::LabeledAnyModelProvider;
 use component_group::icon;
@@ -160,6 +159,13 @@ struct Style {
     menu_divider_height: f32,
 
     favourites_section_base_color: color::Rgba,
+
+    navigator_width:             f32,
+    navigator_list_view_width:   f32,
+    navigator_icon_strong_color: color::Rgba,
+    navigator_icon_weak_color:   color::Rgba,
+    navigator_top_padding:       f32,
+    navigator_bottom_padding:    f32,
 }
 
 impl Style {
@@ -213,7 +219,7 @@ mod background {
             let menu_divider_color = style.get_color(theme_path.sub("menu_divider_color"));
             let menu_divider_height = style.get_number(theme_path.sub("menu_divider_height"));
             let menu_height = style.get_number(theme_path.sub("menu_height"));
-            let navigator_width = style.get_number(theme_path.sub("navigator").sub("width"));
+            let navigator_width = style.get_number(theme_path.sub("navigator_width"));
 
             let width = content_width + navigator_width;
             let height = content_height + menu_height;
@@ -277,7 +283,7 @@ pub struct Model {
     favourites_section:  ColumnSection,
     local_scope_section: WideSection,
     sub_modules_section: ColumnSection,
-    section_navigator:   Navigator,
+    section_navigator:   SectionNavigator,
     layers:              Layers,
     navigator:           Rc<RefCell<Option<Navigator>>>,
 }
@@ -300,7 +306,7 @@ impl Model {
         let local_scope_section = Self::init_wide_section(&app);
         let sub_modules_section = Self::init_column_section(&app);
 
-        let section_navigator = Navigator::new(&app);
+        let section_navigator = SectionNavigator::new(&app);
         display_object.add_child(&section_navigator);
 
         let scroll_area = ScrollArea::new(&app);
@@ -351,12 +357,12 @@ impl Model {
 
         self.background.bg_color.set(style.content_background_color.into());
         self.background.size.set(style.size());
-        self.background.set_position_x(-style.navigator.size.x / 2.0);
+        self.background.set_position_x(-style.navigator_width / 2.0);
         self.section_navigator.update_layout(style.clone());
 
-        let navigator_shadow_x = -style.content.size.x / 2.0 - style.navigator.size.x / 2.0;
+        let navigator_shadow_x = -style.content_width / 2.0 - style.navigator_width / 2.0;
         self.navigator_shadow.set_position_x(navigator_shadow_x);
-        let section_navigator_shadow_size = Vector2(style.navigator.size.x, style.size_inner().y);
+        let section_navigator_shadow_size = Vector2(style.navigator_width, style.size_inner().y);
         self.navigator_shadow.size.set(section_navigator_shadow_size);
 
         // Sections
@@ -695,14 +701,14 @@ impl component::Frp<Model> for Frp {
             eval_ on_hover_end ( model.on_hover_end() );
 
             chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
-            show_section <- all(&chosen_section, &layout_update);
+            show_section <- all(&chosen_section, &layout_frp.update);
             eval show_section(((section, layout)) model.scroll_to(*section, layout));
 
 
             // === Navigator icons colors ===
 
-            let strong_color = style.get_color(list_panel_theme::navigator::icon_strong_color);
-            let weak_color = style.get_color(list_panel_theme::navigator::icon_weak_color);
+            let strong_color = style.get_color(list_panel_theme::navigator_icon_strong_color);
+            let weak_color = style.get_color(list_panel_theme::navigator_icon_weak_color);
             let params = icon::Params { strong_color, weak_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
         }

@@ -23,21 +23,6 @@ use searcher_theme::list_panel as list_panel_theme;
 
 
 
-// =============
-// === Style ===
-// =============
-
-/// A navigator-specific style parameters.
-#[derive(Clone, Debug, Default)]
-pub struct NavigatorStyle {
-    pub size:            Vector2,
-    pub top_padding:     f32,
-    pub bottom_padding:  f32,
-    pub list_view_width: f32,
-}
-
-
-
 // ==============
 // === Shadow ===
 // ==============
@@ -55,7 +40,7 @@ pub mod navigator_shadow {
             let theme_path: style::Path = list_panel_theme::HERE.into();
             let content_height = style.get_number(theme_path.sub("content_height"));
             let menu_height = style.get_number(theme_path.sub("menu_height"));
-            let navigator_width = style.get_number(theme_path.sub("navigator").sub("width"));
+            let navigator_width = style.get_number(theme_path.sub("navigator_width"));
             let height = content_height + menu_height;
             let width = navigator_width;
             let base_shape = Rect((width.px(), height.px() * 2.0)).translate_x(width.px());
@@ -109,8 +94,8 @@ impl Navigator {
         let display_object = display::object::Instance::new(&app.logger);
         let top_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
         let bottom_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
-        top_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
-        bottom_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
+        top_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
+        bottom_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
         top_buttons.show_background_shadow(false);
         bottom_buttons.show_background_shadow(false);
         display_object.add_child(&top_buttons);
@@ -141,19 +126,20 @@ impl Navigator {
     }
 
     pub(crate) fn update_layout(&self, style: Style) {
-        let list_view_width = style.navigator.list_view_width;
+        let list_view_width = style.navigator_list_view_width;
         let top_buttons_height = list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32;
         let bottom_buttons_height = list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32;
         self.top_buttons.resize(Vector2(list_view_width, top_buttons_height));
         self.bottom_buttons.resize(Vector2(list_view_width, bottom_buttons_height));
 
-        let top = style.navigator.size.y / 2.0;
-        let bottom = -style.navigator.size.y / 2.0;
+        let height = style.content_height + style.menu_height;
+        let top = height / 2.0;
+        let bottom = -height / 2.0;
         let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
         let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        let top_padding = style.navigator.top_padding;
-        let bottom_padding = style.navigator.bottom_padding;
-        let x_pos = -style.content.size.x / 2.0 - style.navigator.size.x / 2.0;
+        let top_padding = style.navigator_top_padding;
+        let bottom_padding = style.navigator_bottom_padding;
+        let x_pos = -style.content_width / 2.0 - style.navigator_width / 2.0;
         let top_buttons_y = top - top_buttons_height / 2.0 - top_padding;
         let bottom_buttons_y = bottom + bottom_buttons_height / 2.0 + bottom_padding;
         self.top_buttons.set_position_xy(Vector2(x_pos, top_buttons_y));
