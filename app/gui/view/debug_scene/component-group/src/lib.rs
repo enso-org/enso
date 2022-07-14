@@ -33,6 +33,8 @@ use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
 use ide_view_component_group::entry;
 use ide_view_component_group::icon;
+use ide_view_component_group::set::GroupId;
+use ide_view_component_group::set::SectionId::Favorites;
 use ide_view_component_group::Entry;
 use list_view::entry::AnyModelProvider;
 
@@ -342,27 +344,31 @@ fn init(app: &Application) {
 
     // === Components groups set ===
 
-    let groups: Rc<Vec<component_group::set::Group>> = Rc::new(vec![
-        first_component_group.clone_ref().into(),
-        second_component_group.clone_ref().into(),
-        wide_component_group.clone_ref().into(),
-    ]);
+    let groups: Rc<HashMap<GroupId, component_group::set::Group>> = Rc::new(
+        [
+            (GroupId { section: Favorites, index: 0 }, first_component_group.clone_ref().into()),
+            (GroupId { section: Favorites, index: 1 }, second_component_group.clone_ref().into()),
+            (GroupId::local_scope_group(), wide_component_group.clone_ref().into()),
+        ]
+        .into_iter()
+        .collect(),
+    );
     let multiview = component_group::set::Wrapper::new();
-    for group in groups.iter() {
-        multiview.add(group.clone_ref());
+    for (id, group) in groups.iter() {
+        multiview.add(*id, group.clone_ref());
     }
 
     frp::extend! { network
         selected_entry <- multiview.selected_entry.on_change();
-        eval selected_entry([](e) if let Some(e) = e {  DEBUG!("Entry {e.1} from group {e.0} selected") });
-        eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g}"));
-        eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g}"));
+        eval selected_entry([](e) if let Some((g, e)) = e {  DEBUG!("Entry {e} from group {g:?} selected") });
+        eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g:?}"));
+        eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g:?}"));
         header_selected <- multiview.is_header_selected.filter_map(|(g, h)| if *h { Some(*g) } else { None });
-        eval header_selected([](g) DEBUG!("Header selected in group {g}"));
-        eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g}"));
+        eval header_selected([](g) DEBUG!("Header selected in group {g:?}"));
+        eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g:?}"));
 
         eval multiview.focused([groups]((g, f)) {
-            match &groups[usize::from(g)] {
+            match &groups[g] {
                 component_group::set::Group::OneColumn(group) => group.set_dimmed(!f),
                 component_group::set::Group::Wide(group) => group.set_dimmed(!f),
             }
@@ -401,7 +407,7 @@ fn init(app: &Application) {
         selection_size_animation.target <+ multiview.selection_size._1();
         selection_position <- multiview.selection_position_target.map(
             f!([groups, scroll_area]((g, p)) {
-                let group = &groups[usize::from(g)];
+                let group = &groups[g];
                 selection_position(*p, group, &scroll_area)
             })
         );

@@ -182,6 +182,10 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 150.0, 150.0;
         }
         component_browser {
+            panels_gap = 3.0, 3.0;
+            documentation {
+                width = 369.0, 369.0;
+            }
             searcher {
                 list_panel {
                     content_width = 400.0, 400.0;
@@ -242,8 +246,11 @@ define_themes! { [light:0, dark:1]
                 }
                 selection {
                     corners_radius = 10.0, 10.0;
-                    horizontal_padding = 10.0, 10.0;
-                    vertical_padding = 3.0, 3.0;
+                    header_corners_radius = 5.0, 5.0;
+                    horizontal_padding = 3.0, 3.0;
+                    height = 30.0, 30.0;
+                    wide_group_column_padding = 18.0, 18.0;
+                    header_height = 21.0, 21.0;
                 }
                 background_color_intensity = 0.2, 0.2;
                 selection_color_intensity = 1.0, 1.0;
@@ -610,6 +617,7 @@ define_themes! { [light:0, dark:1]
             text {
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
+                font   = "DejaVuSans", "DejaVuSans";
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;

@@ -12,6 +12,7 @@ from Standard.Base.Data.Time as Time_Module import Time
 
 export Standard.Base.System.File.Option
 
+polyglot java import org.enso.base.Array_Utils
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
@@ -288,41 +289,6 @@ type File
     read_text (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
         bytes = self.read_bytes
         Text.from_bytes bytes encoding on_problems
-
-    ## Appends a number of bytes at the end of this file.
-
-       Arguments:
-       - contents: A vector of bytes to append to the file.
-
-       > Example
-         Append the bytes of the text "hello" to a file.
-
-             import Standard.Examples
-
-             example_append_bytes = Examples.scratch_file.append_bytes "hello".utf_8
-    append_bytes : Vector.Vector -> Nothing ! File_Error
-    append_bytes contents =
-        opts = [Option.Append, Option.Create]
-        self.with_output_stream opts (_.write_bytes contents)
-
-    ## Writes a number of bytes into this file, replacing any existing contents.
-
-       Arguments:
-       - contents: The vector of bytes to write into the file.
-
-       If the file does not exist, it will be created.
-
-       > Example
-         Write the bytes of the text "hello" to a file.
-
-             import Standard.Examples
-
-             example_write_bytes = Examples.scratch_file.write_bytes "hello".utf_8
-    write_bytes : Vector.Vector -> Nothing ! File_Error
-    write_bytes contents =
-        opts = [Option.Write, Option.Create, Option.Truncate_Existing]
-        self.with_output_stream opts (_.write_bytes contents)
-        Nothing
 
     ## Join two path segments together.
 
@@ -1066,9 +1032,9 @@ get_cwd = @Builtin_Method "File.get_cwd"
 get_file : Text -> File
 get_file path = @Builtin_Method "File.get_file"
 
-## Writes (or appends) the specified bytes to the specified file.
-   The behavior specified in the `existing_file` parameter will be used if the
-   file exists.
+## Writes (or appends) the text to the specified file using the supplied
+   encoding. The behavior specified in the `existing_file` parameter will be
+   used if the file exists.
 
    Arguments:
    - path: The path to the target file.
@@ -1090,3 +1056,40 @@ Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.
     file = new path
     on_existing_file.write file stream->
         stream.write_bytes bytes
+
+## Writes (or appends) the Vector of bytes into the specified file. The behavior
+   specified in the `existing_file` parameter will be used if the file exists.
+
+   Arguments:
+   - path: The path to the target file.
+   - on_existing_file: Specifies how to proceed if the file already exists.
+
+   If the Vector contains any item which is not a `Byte`, an
+   `Illegal_Argument_Error` will be raised. Enso follows the Java convention,
+   that a `Byte` is between -128 and 127.
+   If the path to the parent location cannot be found or the filename is
+   invalid, a `File_Not_Found` is raised.
+   If another error occurs, such as access denied, an `Io_Error` is raised.
+   Otherwise, the file is created with the encoded text written to it.
+
+   > Example
+     Write the UTF-8 bytes of the text "$£§€¢" to a file.
+
+         import Standard.Examples
+
+         [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file
+   > Example
+     Append the UTF-8 bytes of the text "$£§€¢" to a file.
+
+         import Standard.Examples
+
+         [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
+Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
+Vector.Vector.write_bytes path on_existing_file=Existing_File_Behavior.Backup =
+    Panic.catch Unsupported_Argument_Types handler=(Error.throw (Illegal_Argument_Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
+        ## Convert to a byte array before writing - and fail early if there is any problem.
+        byte_array = Array_Utils.ensureByteArray self.to_array
+
+        file = new path
+        on_existing_file.write file stream->
+            stream.write_bytes (Vector.Vector byte_array)

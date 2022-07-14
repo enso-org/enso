@@ -10,13 +10,7 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.source.SourceSection;
-import java.io.File;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-import org.enso.compiler.context.Changeset;
-import org.enso.compiler.context.ChangesetBuilder;
+import org.enso.compiler.context.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.MethodCallsCache;
@@ -36,16 +30,18 @@ import org.enso.interpreter.service.error.ConstructorNotFoundException;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
 import org.enso.interpreter.service.error.ModuleNotFoundException;
-import org.enso.interpreter.service.error.ModuleNotFoundForFileException;
 import org.enso.interpreter.service.error.SourceNotFoundException;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
-import org.enso.text.buffer.Rope;
-import org.enso.text.editing.IndexedSource;
 import org.enso.text.editing.JavaEditorAdapter;
-import org.enso.text.editing.TextEditor;
 import org.enso.text.editing.model;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -288,44 +284,29 @@ public class ExecutionService {
   /**
    * Applies modifications to literal module sources.
    *
-   * @param path the module to edit.
+   * @param module the module to edit.
    * @param edits the edits to apply.
-   * @return an object for computing the changed IR nodes.
    */
-  public Changeset<Rope> modifyModuleSources(
-      File path, scala.collection.immutable.Seq<model.TextEdit> edits) {
-    Optional<Module> moduleMay = context.getModuleForFile(path);
-    if (moduleMay.isEmpty()) {
-      throw new ModuleNotFoundForFileException(path);
-    }
-    Module module = moduleMay.get();
+  public void modifyModuleSources(
+      Module module,
+      scala.collection.immutable.Seq<model.TextEdit> edits,
+      SimpleUpdate simpleUpdate) {
     try {
       module.getSource();
     } catch (IOException e) {
-      throw new SourceNotFoundException(path, e);
+      throw new SourceNotFoundException(module.getName(), e);
     }
-    ChangesetBuilder<Rope> changesetBuilder =
-        new ChangesetBuilder<>(
-            module.getLiteralSource(),
-            module.getIr(),
-            TextEditor.ropeTextEditor(),
-            IndexedSource.RopeIndexedSource());
-
-    Changeset<Rope> result = changesetBuilder.build(edits);
 
     JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
         .fold(
             failure -> {
               throw new FailedToApplyEditsException(
-                  path, edits, failure, module.getLiteralSource());
+                  module.getName(), edits, failure, module.getLiteralSource());
             },
             rope -> {
-              var su = result.simpleUpdate();
-              module.setLiteralSource(rope, su.isDefined() ? su.get() : null);
+              module.setLiteralSource(rope, simpleUpdate);
               return new Object();
             });
-
-    return result;
   }
 
   /**

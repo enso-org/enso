@@ -50,6 +50,10 @@
   node cration.][3186]
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
+- [New Version of the Node Searcher - the Component Browser][3530] The available
+  methods, atoms and functions are presented in nice, categorized view. The most
+  popular tools are available at hand. The The panel is unstable, and thus is
+  available under the `--enable-new-component-browser` flag.
 
 #### EnsoGL (rendering engine)
 
@@ -152,6 +156,9 @@
 - [Added support for custom encodings in `File_Format.Delimited` writing.][3564]
 - [Allow filtering caught error type in `Error.catch`.][3574]
 - [Implemented `Append` mode for `File_Format.Delimited`.][3573]
+- [Added `Vector.write_bytes` function and removed old `File.write_bytes`][3583]
+- [Added `line_endings` and `comment_character` options to
+  `File_Format.Delimited`.][3581]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -235,6 +242,7 @@
 [3519]: https://github.com/enso-org/enso/pull/3519
 [3523]: https://github.com/enso-org/enso/pull/3523
 [3528]: https://github.com/enso-org/enso/pull/3528
+[3530]: https://github.com/enso-org/enso/pull/3530
 [3542]: https://github.com/enso-org/enso/pull/3542
 [3551]: https://github.com/enso-org/enso/pull/3551
 [3552]: https://github.com/enso-org/enso/pull/3552
@@ -243,6 +251,8 @@
 [3564]: https://github.com/enso-org/enso/pull/3564
 [3574]: https://github.com/enso-org/enso/pull/3574
 [3573]: https://github.com/enso-org/enso/pull/3573
+[3583]: https://github.com/enso-org/enso/pull/3583
+[3581]: https://github.com/enso-org/enso/pull/3581
 
 #### Enso Compiler
 
@@ -303,6 +313,7 @@
 [3512]: https://github.com/enso-org/enso/pull/3512
 [3524]: https://github.com/enso-org/enso/pull/3524
 [3531]: https://github.com/enso-org/enso/pull/3531
+[3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

@@ -7,11 +7,12 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that performs edition of a file.
+/** A command that performs expression update.
   *
-  * @param request a request for editing
+  * @param request a request for the update
   */
-class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
+class SetExpressionValueCmd(request: Api.SetExpressionValueNotification)
+    extends Command(None) {
 
   /** Executes a request.
     *
@@ -24,14 +25,18 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     ctx.locking.acquireFileLock(request.path)
     ctx.locking.acquirePendingEditsLock()
     try {
-      val edits =
-        request.edits.map(edit => PendingEdit.ApplyEdit(edit, request.execute))
-      ctx.state.pendingEdits.enqueue(request.path, edits)
+      val pendingApplyEdits =
+        request.edits.map(
+          PendingEdit.SetExpressionValue(
+            _,
+            request.expressionId,
+            request.expressionValue
+          )
+        )
+      ctx.state.pendingEdits.enqueue(request.path, pendingApplyEdits)
       ctx.jobControlPlane.abortAllJobs()
       ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
-      if (request.execute) {
-        executeJobs.foreach(ctx.jobProcessor.run)
-      }
+      executeJobs.foreach(ctx.jobProcessor.run)
       Future.successful(())
     } finally {
       ctx.locking.releasePendingEditsLock()
