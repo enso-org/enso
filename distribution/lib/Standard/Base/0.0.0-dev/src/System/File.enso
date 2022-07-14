@@ -1073,17 +1073,17 @@ Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.
    Otherwise, the file is created with the encoded text written to it.
 
    > Example
-     Write the bytes of the text "hello" to a file.
+     Write the UTF-8 bytes of the text "$£§€¢" to a file.
 
          import Standard.Examples
 
-         example_write_bytes = [32, 63, 95, -120, -43].write_bytes Examples.scratch_file
+         [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file
    > Example
-     Append the bytes of the text "hello" to a file.
+     Append the UTF-8 bytes of the text "$£§€¢" to a file.
 
          import Standard.Examples
 
-         example_append_bytes = [32, 63, 95, -120, -43].write_bytes Examples.scratch_file Existing_File_Behavior.Append
+         [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
 Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
 Vector.Vector.write_bytes path on_existing_file=Existing_File_Behavior.Backup =
     Panic.catch Unsupported_Argument_Types handler=(Error.throw (Illegal_Argument_Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|

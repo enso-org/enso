@@ -2,8 +2,9 @@ package org.enso.base;
 
 public class Array_Utils {
   /**
-   * This function forces the polyglot conversion of an Enso array into a `byte[]`.
-   * This allows for asserting that it is a valid `byte[]`.
+   * This function forces the polyglot conversion of an Enso array into a `byte[]`. This allows for
+   * asserting that it is a valid `byte[]`.
+   *
    * @param input the converted array.
    * @return the `input` unchanged.
    */
