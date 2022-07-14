@@ -3,6 +3,7 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
+use crate::scrollable;
 use crate::EntryFrp;
 
 use ensogl_core::application::command::FrpNetworkProvider;
@@ -212,3 +213,5 @@ impl display::Object for Entry {
 
 /// The Basic version of Grid View, where each entry is just a label with background.
 pub type BasicGridView = crate::GridView<Entry>;
+
+pub type BasicScrollableGridView = scrollable::GridView<Entry>;

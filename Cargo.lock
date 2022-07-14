@@ -2686,6 +2686,7 @@ dependencies = [
  "enso-frp",
  "ensogl-core",
  "ensogl-hardcoded-theme",
+ "ensogl-scroll-area",
  "ensogl-shadow",
  "ensogl-text",
  "itertools 0.10.3",

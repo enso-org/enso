@@ -102,6 +102,10 @@ impl Viewport {
         let right = pos.x + size.x;
         !(top < self.bottom || bottom > self.top || left > self.right || right < self.left)
     }
+
+    pub fn size(&self) -> Vector2 {
+        Vector2(self.right - self.left, self.top - self.bottom)
+    }
 }
 
 
@@ -291,8 +295,8 @@ impl ScrollArea {
             viewport <- viewport.map(|(position,dimension)|{
                 Viewport{
                     top: -position.y,
-                    left: position.x,
-                    right: position.x + dimension.x,
+                    left: -position.x,
+                    right: - position.x + dimension.x,
                     bottom: -position.y - dimension.y,
                 }
             });

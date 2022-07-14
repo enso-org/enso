@@ -4,66 +4,49 @@ use crate::prelude::*;
 
 use crate::Col;
 use crate::Row;
+use crate::Viewport;
 
 
-
-/// Describes the visible are of [`crate::GridView`].
-#[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Default)]
-pub struct VisibleArea {
-    pub left_top: Vector2,
-    pub size:     Vector2,
+fn has_size(v: &Viewport) -> bool {
+    v.right > v.left + f32::EPSILON && v.top > v.bottom + f32::EPSILON
 }
 
-impl VisibleArea {
-    /// Right-bottom corner of the area.
-    pub fn right_bottom(&self) -> Vector2 {
-        self.left_top + Vector2(self.size.x, -self.size.y)
-    }
+/// Returns iterator over all visible locations (row-column pairs).
+pub fn all_visible_locations(
+    v: &Viewport,
+    entry_size: Vector2,
+    row_count: usize,
+    col_count: usize,
+) -> impl Iterator<Item = (Row, Col)> {
+    let visible_rows = visible_rows(v, entry_size, row_count);
+    let visible_cols = visible_columns(v, entry_size, col_count);
+    itertools::iproduct!(visible_rows, visible_cols)
+}
 
-    fn has_size(&self) -> bool {
-        self.size.x > f32::EPSILON && self.size.y > f32::EPSILON
-    }
+/// Return range of visible rows.
+pub fn visible_rows(v: &Viewport, entry_size: Vector2, row_count: usize) -> Range<Row> {
+    let first_visible_unrestricted = (v.top / -entry_size.y).floor() as isize;
+    let first_visible = first_visible_unrestricted.clamp(0, row_count as isize) as Row;
+    let first_not_visible = if has_size(v) {
+        let first_not_visible_unrestricted = (v.bottom / -entry_size.y).ceil() as isize;
+        first_not_visible_unrestricted.clamp(0, row_count as isize) as Row
+    } else {
+        first_visible
+    };
+    first_visible..first_not_visible
+}
 
-    /// Returns iterator over all visible locations (row-column pairs).
-    pub fn all_visible_locations(
-        &self,
-        entry_size: Vector2,
-        row_count: usize,
-        col_count: usize,
-    ) -> impl Iterator<Item = (Row, Col)> {
-        let visible_rows = self.visible_rows(entry_size, row_count);
-        let visible_cols = self.visible_columns(entry_size, col_count);
-        itertools::iproduct!(visible_rows, visible_cols)
-    }
-
-    /// Return range of visible rows.
-    pub fn visible_rows(&self, entry_size: Vector2, row_count: usize) -> Range<Row> {
-        let right_bottom = self.right_bottom();
-        let first_visible_unrestricted = (self.left_top.y / -entry_size.y).floor() as isize;
-        let first_visible = first_visible_unrestricted.clamp(0, row_count as isize) as Row;
-        let first_not_visible = if self.has_size() {
-            let first_not_visible_unrestricted = (right_bottom.y / -entry_size.y).ceil() as isize;
-            first_not_visible_unrestricted.clamp(0, row_count as isize) as Row
-        } else {
-            first_visible
-        };
-        first_visible..first_not_visible
-    }
-
-    /// Return range of visible columns.
-    pub fn visible_columns(&self, entry_size: Vector2, col_count: usize) -> Range<Col> {
-        let right_bottom = self.right_bottom();
-        let first_visible_unrestricted = (self.left_top.x / entry_size.x).floor() as isize;
-        let first_visible = first_visible_unrestricted.clamp(0, col_count as isize) as Col;
-        let first_not_visible = if self.has_size() {
-            let first_not_visible_unrestricted = (right_bottom.x / entry_size.x).ceil() as isize;
-            first_not_visible_unrestricted.clamp(0, col_count as isize) as Col
-        } else {
-            first_visible
-        };
-        first_visible..first_not_visible
-    }
+/// Return range of visible columns.
+pub fn visible_columns(v: &Viewport, entry_size: Vector2, col_count: usize) -> Range<Col> {
+    let first_visible_unrestricted = (v.left / entry_size.x).floor() as isize;
+    let first_visible = first_visible_unrestricted.clamp(0, col_count as isize) as Col;
+    let first_not_visible = if has_size(v) {
+        let first_not_visible_unrestricted = (v.right / entry_size.x).ceil() as isize;
+        first_not_visible_unrestricted.clamp(0, col_count as isize) as Col
+    } else {
+        first_visible
+    };
+    first_visible..first_not_visible
 }
 
 
@@ -84,7 +67,7 @@ mod tests {
 
         #[derive(Clone, Debug)]
         struct Case {
-            area:          VisibleArea,
+            viewport:      Viewport,
             expected_rows: Range<Row>,
             expected_cols: Range<Col>,
         }
@@ -96,19 +79,20 @@ mod tests {
                 expected_rows: Range<Row>,
                 expected_cols: Range<Col>,
             ) -> Self {
-                let area =
-                    VisibleArea { left_top: Vector2(left, top), size: Vector2(size_x, size_y) };
-                Self { area, expected_rows, expected_cols }
+                let right = left + size_x;
+                let bottom = top - size_y;
+                let viewport = Viewport { left, top, right, bottom };
+                Self { viewport, expected_rows, expected_cols }
             }
 
             fn run(&self) {
                 assert_eq!(
-                    self.area.visible_rows(ENTRY_SIZE, ROW_COUNT),
+                    visible_rows(&self.viewport, ENTRY_SIZE, ROW_COUNT),
                     self.expected_rows,
                     "Wrong visible rows in {self:?}"
                 );
                 assert_eq!(
-                    self.area.visible_columns(ENTRY_SIZE, COL_COUNT),
+                    visible_columns(&self.viewport, ENTRY_SIZE, COL_COUNT),
                     self.expected_cols,
                     "Wrong visible cols in {self:?}"
                 );

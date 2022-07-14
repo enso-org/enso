@@ -27,9 +27,10 @@
 
 pub mod basic;
 pub mod entry;
+pub mod scrollable;
 pub mod visible_area;
 
-pub use visible_area::VisibleArea;
+pub use ensogl_scroll_area::Viewport;
 
 
 
@@ -47,8 +48,10 @@ use ensogl_core::display;
 use ensogl_core::gui::Widget;
 
 use crate::entry::EntryFrp;
+use crate::visible_area::all_visible_locations;
+use crate::visible_area::visible_columns;
+use crate::visible_area::visible_rows;
 pub use entry::Entry;
-
 
 
 // ===========
@@ -65,7 +68,7 @@ ensogl_core::define_endpoints_2! {
     Input {
         /// Declare what area of the GridView is visible. The area position is relative to left-top
         /// corner of the Grid View.
-        set_visible_area(VisibleArea),
+        set_viewport(Viewport),
         /// Reset entries, providing number of rows and columns. All currently displayed entries
         /// will be detached and their models re-requested.
         reset_entries(Row, Col),
@@ -81,10 +84,10 @@ ensogl_core::define_endpoints_2! {
     Output {
         row_count(Row),
         column_count(Col),
-        visible_area(VisibleArea),
+        viewport(Viewport),
         entries_size(Vector2),
         entries_params(EntryParams),
-        viewport_size(Vector2),
+        content_size(Vector2),
         /// Event emitted when the Grid View needs model for an uncovered entry.
         model_for_entry_needed(Row, Col),
     }
@@ -142,16 +145,8 @@ fn set_entry_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_s
 struct Properties {
     row_count:    usize,
     col_count:    usize,
-    visible_area: VisibleArea,
+    viewport:     Viewport,
     entries_size: Vector2,
-}
-
-impl Properties {
-    pub fn viewport_size(&self) -> Vector2 {
-        let x = self.col_count as f32 * self.entries_size.x;
-        let y = self.row_count as f32 * self.entries_size.y;
-        Vector2(x, y)
-    }
 }
 
 
@@ -178,11 +173,11 @@ impl<E, P> Model<E, P> {
 
 impl<E: display::Object, P> Model<E, P> {
     fn update_entries_visibility(&self, properties: Properties) -> Vec<(Row, Col)> {
-        let Properties { visible_area, entries_size, row_count, col_count } = properties;
+        let Properties { viewport, entries_size, row_count, col_count } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
-        let visible_rows = visible_area.visible_rows(entries_size, row_count);
-        let visible_cols = visible_area.visible_columns(entries_size, col_count);
+        let visible_rows = visible_rows(&viewport, entries_size, row_count);
+        let visible_cols = visible_columns(&viewport, entries_size, col_count);
         let no_longer_visible = visible_entries.drain_filter(|(row, col), _| {
             !visible_rows.contains(row) || !visible_cols.contains(col)
         });
@@ -191,8 +186,7 @@ impl<E: display::Object, P> Model<E, P> {
             entry
         });
         free_entries.extend(detached);
-        let uncovered = visible_area
-            .all_visible_locations(entries_size, row_count, col_count)
+        let uncovered = all_visible_locations(&viewport, entries_size, row_count, col_count)
             .filter(|loc| !visible_entries.contains_key(loc));
         uncovered.collect_vec()
     }
@@ -206,7 +200,7 @@ impl<E: display::Object, P> Model<E, P> {
     }
 
     fn reset_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
-        let Properties { visible_area, entries_size, row_count, col_count } = properties;
+        let Properties { viewport, entries_size, row_count, col_count } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
         let detached = visible_entries.drain().map(|(_, entry)| {
@@ -214,7 +208,7 @@ impl<E: display::Object, P> Model<E, P> {
             entry
         });
         free_entries.extend(detached);
-        visible_area.all_visible_locations(entries_size, row_count, col_count).collect_vec()
+        all_visible_locations(&viewport, entries_size, row_count, col_count).collect_vec()
     }
 }
 
@@ -260,7 +254,7 @@ pub struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> 
 ///
 /// This Component displays any kind of entry `E` in a grid. To have it working, you need to
 /// * Set entries size ([`Frp::set_entries_size`]),
-/// * Declare (and keep up-to-date) the visible area ([`Frp::set_visible_area`]),
+/// * Declare (and keep up-to-date) the visible area ([`Frp::set_viewport`]),
 /// * Set up logic for providing models (see _Requesting for Models_ section).
 /// * Optionally entries parameters, if given entry does not have sensible default.
 /// * Finally reset the content, providing number of rows and columns ([`Frp::reset_entries`]).
@@ -286,7 +280,7 @@ pub struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> 
 /// **Important**. The [`Frp::model_for_entry_needed`] are emitted once when needed and not repeated
 /// anymore, after adding connections to this FRP node in particular. Therefore make sure, that you
 /// connect providing models logic before emitting any of [`Frp::set_entries_size`] or
-/// [`Frp::set_visible_area`].  
+/// [`Frp::set_viewport`].  
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
 impl<E: Entry> GridView<E> {
@@ -310,19 +304,21 @@ impl<E: Entry> GridView<E> {
         frp::extend! { network
             out.row_count <+ input.reset_entries._0();
             out.column_count <+ input.reset_entries._1();
-            out.visible_area <+ input.set_visible_area;
+            out.viewport <+ input.set_viewport;
             out.entries_size <+ input.set_entries_size;
             out.entries_params <+ input.set_entries_params;
             prop <- all_with4(
-                &out.row_count, &out.column_count, &out.visible_area, &out.entries_size,
-                |&row_count, &col_count, &visible_area, &entries_size| {
-                    Properties { row_count, col_count, visible_area, entries_size }
+                &out.row_count, &out.column_count, &out.viewport, &out.entries_size,
+                |&row_count, &col_count, &viewport, &entries_size| {
+                    Properties { row_count, col_count, viewport, entries_size }
                 }
             );
-            out.viewport_size <+ prop.map(|prop| prop.viewport_size());
+
+            content_size_params <- all(input.reset_entries, input.set_entries_size);
+            out.content_size <+ content_size_params.map(|&((rows, cols), esz)| Self::content_size(rows, cols, esz));
 
             request_models_after_vis_area_change <=
-                input.set_visible_area.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
+                input.set_viewport.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
             request_models_after_entry_size_change <= input.set_entries_size.map2(
                 &prop,
                 f!((_, p) model.update_after_entries_size_change(*p))
@@ -343,6 +339,12 @@ impl<E: Entry> GridView<E> {
         let display_object = model.display_object.clone_ref();
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget }
+    }
+
+    fn content_size(row_count: Row, col_count: Col, entries_size: Vector2) -> Vector2 {
+        let x = col_count as f32 * entries_size.x;
+        let y = row_count as f32 * entries_size.y;
+        Vector2(x, y)
     }
 }
 
@@ -412,10 +414,10 @@ mod tests {
             updates_requested <- grid_view.model_for_entry_needed.count().sampler();
         }
 
-        let vis_area = VisibleArea { left_top: Vector2(0.0, 0.0), size: Vector2(100.0, 100.0) };
+        let vis_area = Viewport { left: 0.0, top: 0.0, right: 100.0, bottom: -100.0 };
         grid_view.set_entries_size(Vector2(20.0, 20.0));
         grid_view.reset_entries(100, 100);
-        grid_view.set_visible_area(vis_area);
+        grid_view.set_viewport(vis_area);
         grid_view.set_entries_params(TestEntryParams { param: Immutable(13) });
 
         assert_eq!(grid_view.model().visible_entries.borrow().len(), 0);
@@ -438,15 +440,14 @@ mod tests {
     }
 
     #[test]
-    fn updating_entries_after_visible_area_change() {
+    fn updating_entries_after_viewport_change() {
         let app = Application::new("root");
         let grid_view = GridView::<TestEntry>::new(&app);
         let network = grid_view.network();
-        let initial_vis_area =
-            VisibleArea { left_top: Vector2(0.0, 0.0), size: Vector2(100.0, 100.0) };
+        let initial_vis_area = Viewport { left: 0.0, top: 0.0, right: 100.0, bottom: -100.0 };
         grid_view.set_entries_size(Vector2(20.0, 20.0));
         grid_view.reset_entries(100, 100);
-        grid_view.set_visible_area(initial_vis_area);
+        grid_view.set_viewport(initial_vis_area);
         grid_view.set_entries_params(TestEntryParams { param: Immutable(13) });
 
         for i in 0..5 {
@@ -460,8 +461,8 @@ mod tests {
         }
 
         let uncovering_new_entries =
-            VisibleArea { left_top: Vector2(5.0, -5.0), size: Vector2(100.0, 100.0) };
-        grid_view.set_visible_area(uncovering_new_entries);
+            Viewport { left: 5.0, top: -5.0, right: 105.0, bottom: -105.0 };
+        grid_view.set_viewport(uncovering_new_entries);
         assert_eq!(updates_requested.value(), 11);
         assert_eq!(grid_view.model().visible_entries.borrow().len(), 25);
 
@@ -474,8 +475,8 @@ mod tests {
         assert_eq!(grid_view.model().visible_entries.borrow().len(), 36);
 
         let hiding_old_entries =
-            VisibleArea { left_top: Vector2(20.0, -20.0), size: Vector2(100.0, 100.0) };
-        grid_view.set_visible_area(hiding_old_entries);
+            Viewport { left: 20.0, top: -20.0, right: 120.0, bottom: -120.0 };
+        grid_view.set_viewport(hiding_old_entries);
         assert_eq!(updates_requested.value(), 11); // Count should not change.
         assert_eq!(grid_view.model().visible_entries.borrow().len(), 25);
         assert_eq!(grid_view.model().free_entries.borrow().len(), 11);

@@ -30,7 +30,6 @@ use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_grid_view as grid_view;
-use ensogl_grid_view::VisibleArea;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf_sys::run_once_initialized;
 use logger::TraceLogger as Logger;
@@ -60,6 +59,7 @@ pub fn main() {
 
 mod visible_area {
     use super::*;
+    use ensogl_grid_view::Viewport;
 
     ensogl_core::define_shape_system! {
         above = [grid_view::basic::entry_background];
@@ -73,9 +73,10 @@ mod visible_area {
         }
     }
 
-    pub fn update(view: &View, data: VisibleArea) {
-        view.size.set(data.size);
-        view.set_position_xy((data.left_top + data.right_bottom()) / 2.0);
+    pub fn update(view: &View, data: Viewport) {
+        view.size.set(data.size());
+        view.set_position_x((data.left + data.right) / 2.0);
+        view.set_position_y((data.top + data.bottom) / 2.0);
     }
 }
 
@@ -90,7 +91,8 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let grid_view = grid_view::basic::BasicGridView::new(app);
+    let grid_view = grid_view::basic::BasicScrollableGridView::new(app);
+    grid_view.scroll_frp().resize(Vector2(400.0, 300.0));
     app.display.default_scene.layers.node_searcher.add_exclusive(&grid_view);
     frp::new_network! { network
         requested_entry <- grid_view.model_for_entry_needed.map(|(row, col)| {
@@ -108,39 +110,36 @@ fn init(app: &Application) {
         params.with_text_layer(&app.display.default_scene.layers.node_searcher_text),
     );
     grid_view.reset_entries(1000, 1000);
-    let mut visible_area =
-        VisibleArea { left_top: Vector2(0.0, 0.0), size: Vector2(400.0, 300.0) };
-    let mut visible_area_change = Vector2(0.2, -0.2);
-    grid_view.set_visible_area(visible_area);
 
     app.display.add_child(&grid_view);
-    let navigator = Navigator::new(
-        &app.display.default_scene,
-        &app.display.default_scene.layers.node_searcher.camera(),
-    );
+    // let navigator = Navigator::new(
+    //     &app.display.default_scene,
+    //     &app.display.default_scene.layers.node_searcher.camera(),
+    // );
 
-    let visible_area_shape = visible_area::View::new(DefaultWarningLogger::new("visible_area"));
-    visible_area::update(&visible_area_shape, visible_area);
-    app.display.add_child(&visible_area_shape);
-    app.display.default_scene.layers.node_searcher.add_exclusive(&visible_area_shape);
+    // let visible_area_shape = visible_area::View::new(DefaultWarningLogger::new("visible_area"));
+    // visible_area::update(&visible_area_shape, visible_area);
+    // app.display.add_child(&visible_area_shape);
+    // app.display.default_scene.layers.node_searcher.add_exclusive(&visible_area_shape);
 
-    let mut rng = rand::thread_rng();
-    app.display
-        .on
-        .after_frame
-        .add(move |_| {
-            visible_area.left_top += visible_area_change;
-            grid_view.set_visible_area(visible_area);
-            visible_area::update(&visible_area_shape, visible_area);
-            if rng.gen_bool(0.0005) {
-                visible_area_change.x *= -1.0;
-            }
-            if rng.gen_bool(0.0005) {
-                visible_area_change.y *= -1.0;
-            }
-        })
-        .forget();
+    // let mut rng = rand::thread_rng();
+    // app.display
+    //     .on
+    //     .after_frame
+    //     .add(move |_| {
+    //         visible_area.left_top += visible_area_change;
+    //         grid_view.set_visible_area(visible_area);
+    //         visible_area::update(&visible_area_shape, visible_area);
+    //         if rng.gen_bool(0.0005) {
+    //             visible_area_change.x *= -1.0;
+    //         }
+    //         if rng.gen_bool(0.0005) {
+    //             visible_area_change.y *= -1.0;
+    //         }
+    //     })
+    //     .forget();
 
+    std::mem::forget(grid_view);
     std::mem::forget(network);
-    std::mem::forget(navigator);
+    // std::mem::forget(navigator);
 }

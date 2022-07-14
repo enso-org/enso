@@ -10,6 +10,7 @@ ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-shadow = { path = "../shadow" }
 ensogl-text = { path = "../text" }
+ensogl-scroll-area = { path = "../scroll-area" }
 itertools = "0.10.3"
 
 [dev-dependencies]
