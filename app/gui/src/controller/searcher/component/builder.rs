@@ -68,10 +68,10 @@ impl ModuleGroups {
 /// methods should be called:
 ///  - [`set_favorites`] to specify order and grouping of [`Component`]s in favorites;
 ///  - [`extend`] to specify IDs of [`Component`]s which should be retained from the initial
-///    [`component::Group`]s specified through [`set_favorites`] (allows filtering of favorites
-///    e.g. by self type);
-///  - [`build`] to get a [`component::group::List`] of favorites constrained by arguments passed
-///    to the methods listed above.
+///    [`component::Group`]s specified through [`set_favorites`] (allows filtering of favorites e.g.
+///    by self type);
+///  - [`build`] to get a [`component::group::List`] of favorites constrained by arguments passed to
+///    the methods listed above.
 #[derive(Clone, Debug, Default)]
 pub struct List {
     all_components:       Vec<Component>,
