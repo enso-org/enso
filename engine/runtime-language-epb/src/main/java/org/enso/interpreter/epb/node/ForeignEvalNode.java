@@ -85,7 +85,11 @@ public class ForeignEvalNode extends RootNode {
     GuardedTruffleContext inner = context.getInnerContext();
     Object p = inner.enter(this);
     try {
-      String args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
+      String args =
+          Arrays.stream(argNames)
+              .filter(arg -> !arg.equals("self"))
+              .collect(Collectors.joining(","));
+      boolean explicitSelf = argNames[0].equals("self");
       String wrappedSrc =
           "var poly_enso_eval=function("
               + args
@@ -98,7 +102,7 @@ public class ForeignEvalNode extends RootNode {
       // call one with the correct semantics.
       CallTarget ct = EpbContext.get(this).getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
-      foreign = insert(JsForeignNode.build(argNames.length, fn));
+      foreign = insert(JsForeignNode.build(fn, argNames.length, explicitSelf));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
         parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
@@ -112,10 +116,7 @@ public class ForeignEvalNode extends RootNode {
 
   private void parsePy() {
     try {
-      String args =
-          Arrays.stream(argNames)
-              .map(arg -> arg.equals("this") ? "self" : arg)
-              .collect(Collectors.joining(","));
+      String args = Arrays.stream(argNames).collect(Collectors.joining(","));
       String head =
           "import polyglot\n"
               + "@polyglot.export_value\n"

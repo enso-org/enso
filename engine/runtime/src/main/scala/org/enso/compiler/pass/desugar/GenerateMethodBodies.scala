@@ -5,13 +5,12 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, TailCall}
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.interpreter.epb.EpbParser
+import org.enso.interpreter.epb.EpbParser.ForeignLanguage
+import org.enso.pkg.QualifiedName
 
 import scala.annotation.unused
 
@@ -63,8 +62,9 @@ case object GenerateMethodBodies extends IRPass {
   ): IR.Module = {
     ir.copy(
       bindings = ir.bindings.map {
-        case m: IR.Module.Scope.Definition.Method => processMethodDef(m)
-        case x                                    => x
+        case m: IR.Module.Scope.Definition.Method =>
+          processMethodDef(m, moduleContext.module.getName)
+        case x => x
       }
     )
   }
@@ -72,24 +72,26 @@ case object GenerateMethodBodies extends IRPass {
   /** Processes a method definition, ensuring that it's in the correct format.
     *
     * @param ir the method definition to process
+    * @param moduleName a name of the module that is being processed
     * @return `ir` potentially with alterations to ensure that it's in the
     *         correct format
     */
   def processMethodDef(
-    ir: IR.Module.Scope.Definition.Method
+    ir: IR.Module.Scope.Definition.Method,
+    moduleName: QualifiedName
   ): IR.Module.Scope.Definition.Method = {
     ir match {
       case ir: IR.Module.Scope.Definition.Method.Explicit =>
         ir.copy(
           body = ir.body match {
-            case fun: IR.Function => processBodyFunction(fun, ir.methodName)
-            case expression       => processBodyExpression(expression, ir.methodName)
+            case fun: IR.Function => processBodyFunction(fun, moduleName)
+            case expression       => processBodyExpression(expression, moduleName)
           }
         )
       case ir: Method.Conversion =>
         ir.copy(
           body = ir.body match {
-            case fun: IR.Function => processBodyFunction(fun, ir.methodName)
+            case fun: IR.Function => processBodyFunction(fun, moduleName)
             case _ =>
               throw new CompilerError(
                 "It should not be possible for a conversion method to have " +
@@ -111,11 +113,12 @@ case object GenerateMethodBodies extends IRPass {
     * of arguments.
     *
     * @param fun the body function
+    * @param moduleName a name of the module that is being processed
     * @return the body function with the `self` argument
     */
   def processBodyFunction(
     fun: IR.Function,
-    @unused name: IR.Name
+    moduleName: QualifiedName
   ): IR.Expression = {
     val selfArgPos = collectChainedFunctionArgs(fun, 0).collect {
       case (arg, idx) if arg.name.isInstanceOf[IR.Name.Self] =>
@@ -143,6 +146,12 @@ case object GenerateMethodBodies extends IRPass {
         }
       case Nil =>
         fun match {
+          case lam @ IR.Function.Lambda(_, body, _, _, _, _)
+              if foreignDefinition(
+                body,
+                lang = Some(ForeignLanguage.JS)
+              ).isDefined =>
+            insertThisLast(lam, moduleName)
           case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
             lam
           case _: IR.Function.Binding =>
@@ -154,6 +163,24 @@ case object GenerateMethodBodies extends IRPass {
     }
   }
 
+  private def insertThisLast(
+    lam: IR.Function.Lambda,
+    moduleName: QualifiedName
+  ): IR.Function.Lambda = {
+    lam.body match {
+      case _: IR.Foreign.Definition =>
+        lam.copy(
+          arguments = lam.arguments ::: List(genThisArgument(moduleName))
+        )
+      case body: IR.Function.Lambda =>
+        lam.copy(
+          body = insertThisLast(body, moduleName)
+        )
+      case _ =>
+        throw new CompilerError("Invalid definition of foreign function")
+    }
+  }
+
   /** Processes the method body if it's an expression.
     *
     * @param expr the body expression
@@ -161,10 +188,14 @@ case object GenerateMethodBodies extends IRPass {
     */
   def processBodyExpression(
     expr: IR.Expression,
-    @unused name: IR.Name
+    moduleName: QualifiedName
   ): IR.Expression = {
+    val args =
+      if (foreignDefinition(expr, lang = Some(ForeignLanguage.JS)).nonEmpty)
+        genThisArgument(moduleName) :: Nil
+      else Nil
     IR.Function.Lambda(
-      arguments = Nil,
+      arguments = args,
       body      = expr,
       location  = expr.location
     )
@@ -174,12 +205,12 @@ case object GenerateMethodBodies extends IRPass {
     *
     * @return the `self` argument
     */
-  def genSelfArgument: IR.DefinitionArgument.Specified = {
+  def genThisArgument(moduleName: QualifiedName): IR.DefinitionArgument.Specified = {
     IR.DefinitionArgument.Specified(
       IR.Name.Self(None),
       None,
-      None,
-      suspended = false,
+      defaultValue = Some(IR.Name.Literal(moduleName.item, isMethod = false, None)),
+      suspended    = false,
       None
     )
   }
@@ -225,5 +256,21 @@ case object GenerateMethodBodies extends IRPass {
     }
 
     argsWithIdx._2 ::: bodyArgs
+  }
+
+  def foreignDefinition(
+    body: IR.Expression,
+    lang: Option[EpbParser.ForeignLanguage] = None
+  ): Option[IR.Foreign.Definition] = {
+    body match {
+      case foreignDef: IR.Foreign.Definition =>
+        lang match {
+          case None    => Some(foreignDef)
+          case Some(l) => Option.when(l == foreignDef.lang)(foreignDef)
+        }
+      case fun: IR.Function.Lambda => foreignDefinition(fun.body, lang)
+      case _                       => None
+    }
+
   }
 }
