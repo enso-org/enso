@@ -6,7 +6,7 @@ use crate::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::display;
-
+use ensogl_core::display::scene::Layer;
 
 
 // ===========
@@ -45,7 +45,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     type Params: Clone + Debug + Default;
 
     /// An Entry constructor.
-    fn new(app: &Application) -> Self;
+    fn new(app: &Application, text_layer: &Option<Layer>) -> Self;
 
     /// FRP endpoints getter.
     fn frp(&self) -> &EntryFrp<Self>;

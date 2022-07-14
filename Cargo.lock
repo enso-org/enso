@@ -2495,8 +2495,6 @@ dependencies = [
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf-sys",
- "getrandom 0.2.7",
- "rand 0.8.5",
  "wasm-bindgen",
 ]
 

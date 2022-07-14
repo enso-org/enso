@@ -103,6 +103,7 @@ impl Viewport {
         !(top < self.bottom || bottom > self.top || left > self.right || right < self.left)
     }
 
+    /// Return Viewport's size.
     pub fn size(&self) -> Vector2 {
         Vector2(self.right - self.left, self.top - self.bottom)
     }
@@ -198,7 +199,7 @@ impl ScrollArea {
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
-        let camera = scene.layers.main.camera();
+        let camera = scene.layers.node_searcher.camera();
         let display_object = display::object::Instance::new(&logger);
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);

@@ -15,5 +15,3 @@ ensogl-grid-view = { path = "../../component/grid-view" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 enso-text = { path = "../../../text" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
-rand = { version = "0.8.5" }
-getrandom = { version = "0.2.7", features = ["js"] }

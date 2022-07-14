@@ -45,6 +45,8 @@ use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::display;
+use ensogl_core::display::scene::layer::WeakLayer;
+use ensogl_core::display::scene::Layer;
 use ensogl_core::gui::Widget;
 
 use crate::entry::EntryFrp;
@@ -79,6 +81,9 @@ ensogl_core::define_endpoints_2! {
         set_entries_size(Vector2),
         /// Set the entries parameters.
         set_entries_params(EntryParams),
+        /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
+        /// constructors. **Performance note**: This will re-instantiate all entries.
+        set_text_layer(Option<WeakLayer>),
     }
 
     Output {
@@ -111,8 +116,8 @@ struct EntryCreationCtx<P> {
 }
 
 impl<P: frp::node::Data> EntryCreationCtx<P> {
-    fn create_entry<E: Entry<Params = P>>(&self) -> E {
-        let entry = E::new(&self.app);
+    fn create_entry<E: Entry<Params = P>>(&self, text_layer: &Option<Layer>) -> E {
+        let entry = E::new(&self.app, text_layer);
         match self.network.upgrade() {
             Some(network) => {
                 let entry_frp = entry.frp();
@@ -210,18 +215,34 @@ impl<E: display::Object, P> Model<E, P> {
         free_entries.extend(detached);
         all_visible_locations(&viewport, entries_size, row_count, col_count).collect_vec()
     }
+
+    fn drop_all_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
+        let to_model_request = self.reset_entries(properties);
+        self.free_entries.borrow_mut().clear();
+        to_model_request
+    }
 }
 
 impl<E: Entry> Model<E, E::Params> {
-    fn update_entry(&self, row: Row, col: Col, model: E::Model, entry_size: Vector2) {
+    fn update_entry(
+        &self,
+        row: Row,
+        col: Col,
+        model: E::Model,
+        entry_size: Vector2,
+        text_layer: &Option<WeakLayer>,
+    ) {
         use std::collections::hash_map::Entry::*;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
+        let create_new_entry = || {
+            let text_layer = text_layer.as_ref().and_then(|l| l.upgrade());
+            self.entry_creation_ctx.create_entry(&text_layer)
+        };
         let entry = match visible_entries.entry((row, col)) {
             Occupied(entry) => entry.into_mut(),
             Vacant(lack_of_entry) => {
-                let new_entry =
-                    free_entries.pop().unwrap_or_else(|| self.entry_creation_ctx.create_entry());
+                let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
                 set_entry_position(&new_entry, row, col, entry_size);
                 self.display_object.add_child(&new_entry);
                 lack_of_entry.insert(new_entry)
@@ -325,15 +346,18 @@ impl<E: Entry> GridView<E> {
             );
             request_models_after_reset <=
                 input.reset_entries.map2(&prop, f!((_, p) model.reset_entries(*p)));
+            request_models_after_text_layer_change <=
+                input.set_text_layer.map2(&prop, f!((_, p) model.drop_all_entries(*p)));
             out.model_for_entry_needed <+ request_models_after_vis_area_change;
             out.model_for_entry_needed <+ request_models_after_entry_size_change;
             out.model_for_entry_needed <+ request_models_after_reset;
+            out.model_for_entry_needed <+ request_models_after_text_layer_change;
 
-            model_for_entry_and_prop <-
-                input.model_for_entry.map2(&prop, |model, prop| (model.clone(), *prop));
-            eval model_for_entry_and_prop
-                ((((row, col, entry_model), prop): &((Row, Col, E::Model), Properties))
-                    model.update_entry(*row, *col, entry_model.clone(), prop.entries_size)
+            model_prop_and_layer <-
+                input.model_for_entry.map3(&prop, &input.set_text_layer, |model, prop, layer| (model.clone(), *prop, layer.clone()));
+            eval model_prop_and_layer
+                ((((row, col, entry_model), prop, layer): &((Row, Col, E::Model), Properties, Option<WeakLayer>))
+                    model.update_entry(*row, *col, entry_model.clone(), prop.entries_size, layer)
                 );
         }
         let display_object = model.display_object.clone_ref();
@@ -381,7 +405,7 @@ mod tests {
         type Model = Immutable<usize>;
         type Params = TestEntryParams;
 
-        fn new(_app: &Application) -> Self {
+        fn new(_app: &Application, _: &Option<Layer>) -> Self {
             let frp = entry::EntryFrp::<Self>::new();
             let network = frp.network();
             let param_set = Rc::new(Cell::new(0));
