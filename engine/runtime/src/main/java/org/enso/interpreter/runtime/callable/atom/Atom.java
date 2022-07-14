@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.callable.atom;
 
-import java.time.LocalDate;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
