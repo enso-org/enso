@@ -50,6 +50,10 @@
   node cration.][3186]
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
+- [New Version of the Node Searcher - the Component Browser][3530] The available
+  methods, atoms and functions are presented in nice, categorized view. The most
+  popular tools are available at hand. The The panel is unstable, and thus is
+  available under the `--enable-new-component-browser` flag.
 
 #### EnsoGL (rendering engine)
 
@@ -147,8 +151,12 @@
 - [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
 - [Adjusted `Database.connect` API to new design.][3542]
 - [Added `File_Format.Excel` support to `Table.write` for new files.][3551]
+- [identity,const,flip,curry,uncurry functions][3554]
 - [Added append support for `File_Format.Excel`.][3558]
 - [Added support for custom encodings in `File_Format.Delimited` writing.][3564]
+- [Allow filtering caught error type in `Error.catch`.][3574]
+- [Implemented `Append` mode for `File_Format.Delimited`.][3573]
+- [Added `Vector.write_bytes` function and removed old `File.write_bytes`][3583]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -232,11 +240,16 @@
 [3519]: https://github.com/enso-org/enso/pull/3519
 [3523]: https://github.com/enso-org/enso/pull/3523
 [3528]: https://github.com/enso-org/enso/pull/3528
+[3530]: https://github.com/enso-org/enso/pull/3530
 [3542]: https://github.com/enso-org/enso/pull/3542
 [3551]: https://github.com/enso-org/enso/pull/3551
 [3552]: https://github.com/enso-org/enso/pull/3552
+[3554]: https://github.com/enso-org/enso/pull/3554
 [3558]: https://github.com/enso-org/enso/pull/3558
 [3564]: https://github.com/enso-org/enso/pull/3564
+[3574]: https://github.com/enso-org/enso/pull/3574
+[3573]: https://github.com/enso-org/enso/pull/3573
+[3583]: https://github.com/enso-org/enso/pull/3583
 
 #### Enso Compiler
 
@@ -265,6 +278,7 @@
 - [Drop Core implementation of IR][3512]
 - [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
+- [Remove `here` and make method name resolution case-sensitive][3531]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -296,6 +310,8 @@
 [3512]: https://github.com/enso-org/enso/pull/3512
 [3524]: https://github.com/enso-org/enso/pull/3524
 [3531]: https://github.com/enso-org/enso/pull/3531
+[3562]: https://github.com/enso-org/enso/pull/3562
+[3538]: https://github.com/enso-org/enso/pull/3538
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

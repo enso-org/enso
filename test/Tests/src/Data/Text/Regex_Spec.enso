@@ -26,4 +26,4 @@ spec =
             pattern = "http://example.com"
             Regex.escape pattern . should_equal "\Qhttp://example.com\E"
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

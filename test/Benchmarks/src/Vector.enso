@@ -20,21 +20,21 @@ make_random_vec n =
 # The Benchmarks ==============================================================
 
 main =
-    random_vec = here.make_random_vec here.vector_size
-    random_vec_2 = here.make_random_vec 100000
+    random_vec = make_random_vec vector_size
+    random_vec_2 = make_random_vec 100000
 
-    Bench.measure (Base.Vector.new here.vector_size i->i) "New Vector" here.iter_size here.num_iterations
-    Bench.measure (random_vec + [1]) "Append Single" here.iter_size here.num_iterations
-    Bench.measure (random_vec + random_vec_2) "Append Large" here.iter_size here.num_iterations
-    Bench.measure (random_vec.sum) "Sum" here.iter_size here.num_iterations
-    Bench.measure ((random_vec.drop_start 20).sum) "Drop First 20 and Sum" here.iter_size here.num_iterations
-    Bench.measure ((random_vec.drop_end 20).sum) "Drop Last 20 and Sum" here.iter_size here.num_iterations
-    Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" here.iter_size here.num_iterations
-    Bench.measure (random_vec.filter_with_index (i->x -> (i+x) % 3 == 1)) "Filter With Index" here.iter_size here.num_iterations
-    Bench.measure (random_vec.partition (x -> x % 3 == 1)) "Partition" here.iter_size here.num_iterations
-    Bench.measure (random_vec.partition_with_index (i->x -> (i+x) % 3 == 1)) "Partition With Index" here.iter_size here.num_iterations
+    Bench.measure (Base.Vector.new vector_size i->i) "New Vector" iter_size num_iterations
+    Bench.measure (random_vec + [1]) "Append Single" iter_size num_iterations
+    Bench.measure (random_vec + random_vec_2) "Append Large" iter_size num_iterations
+    Bench.measure (random_vec.sum) "Sum" iter_size num_iterations
+    Bench.measure ((random_vec.drop_start 20).sum) "Drop First 20 and Sum" iter_size num_iterations
+    Bench.measure ((random_vec.drop_end 20).sum) "Drop Last 20 and Sum" iter_size num_iterations
+    Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" iter_size num_iterations
+    Bench.measure (random_vec.filter_with_index (i->x -> (i+x) % 3 == 1)) "Filter With Index" iter_size num_iterations
+    Bench.measure (random_vec.partition (x -> x % 3 == 1)) "Partition" iter_size num_iterations
+    Bench.measure (random_vec.partition_with_index (i->x -> (i+x) % 3 == 1)) "Partition With Index" iter_size num_iterations
 
     stateful_fun x =
        s = State.get Number
        State.put s+x
-    Bench.measure (State.run Number 0 <| random_vec.each stateful_fun) "Each" here.iter_size here.num_iterations
+    Bench.measure (State.run Number 0 <| random_vec.each stateful_fun) "Each" iter_size num_iterations

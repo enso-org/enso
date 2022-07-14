@@ -72,40 +72,40 @@ spec =
         Can't run Python tests, Python is not installed.
     Test.group "Polyglot Python" pending=pending <|
         Test.specify "should allow declaring module-level methods in Python" <|
-            here.my_method 1 2 . should_equal 3
+            my_method 1 2 . should_equal 3
 
         Test.specify "should allow mutual calling of instance-level methods" <|
             My_Type 3 4 . my_method_3 5 . should_equal 36
 
         Test.specify "should expose methods and fields of Python objects" <|
-            obj = here.make_object
+            obj = make_object
             obj.x . should_equal 10
             obj.y . should_be_false
             obj.compare 5 . should_be_false
             obj.compare 11 . should_be_true
 
         Test.specify "should expose array interfaces for Python arrays" <|
-            vec = Vector.Vector here.make_array
+            vec = Vector.Vector make_array
             vec.map .x . should_equal [10, 20, 30]
 
         Test.specify "should correctly marshall strings" <|
-            str = here.make_str "x" + " baz"
+            str = make_str "x" + " baz"
             str.should_equal "foo x bar baz"
 
         Test.specify "should make Python strings type pattern-matchable" <|
-            str = here.make_str "x"
+            str = make_str "x"
             t = case str of
                 Text -> True
                 _ -> False
             t.should_be_true
 
         Test.specify "should make Python booleans type pattern-matchable" <|
-            bool = here.make_true
+            bool = make_true
             t = case bool of
                 True -> True
                 _ -> False
             t.should_be_true
-            bool_2 = here.make_false
+            bool_2 = make_false
             f = case bool_2 of
                 False -> True
                 _ -> False
@@ -120,23 +120,23 @@ spec =
             c_2.should_be_true
 
         Test.specify "should make Python lists type pattern-matchable as arrays" <|
-            arr = here.make_array
+            arr = make_array
             r = case arr of
                 Array -> True
                 _ -> False
             r.should_be_true
 
         Test.specify "should make Python numbers type pattern-matchable" <|
-            int_match = case here.make_int of
+            int_match = case make_int of
                 Integer -> True
             int_match.should_be_true
-            double_match = case here.make_double of
+            double_match = case make_double of
                 Decimal -> True
             double_match.should_be_true
-            num_int_match = case here.make_int of
+            num_int_match = case make_int of
                 Number -> True
             num_int_match.should_be_true
-            num_double_match = case here.make_double of
+            num_double_match = case make_double of
                 Number -> True
             num_double_match.should_be_true
 
@@ -153,18 +153,18 @@ spec =
             result . should_equal 7
 
         Test.specify "should properly handle parse errors" <|
-            err = Panic.recover Any here.does_not_parse . catch
+            err = Panic.recover Any does_not_parse . catch
             err.cause.args.at 0 . should .contain 'invalid syntax'
 
         Test.specify "should perform maths with mixed numbers" <|
-            py_num = here.make_int
+            py_num = make_int
             enso_num = 10
             (enso_num + py_num) . should_equal 20
             (py_num - enso_num) . should_equal 0
 
         Test.specify "should propagate dataflow errors" <|
             error = Error.throw 42
-            here.my_method error 0 . should_fail_with Integer
+            my_method error 0 . should_fail_with Integer
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec
 

@@ -368,6 +368,18 @@ pub struct IdeMetadata {
     project: Option<ProjectMetadata>,
 }
 
+/// Metadata about a nodes edit status.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq)]
+pub enum NodeEditStatus {
+    /// The node was edited and had a previous expression.
+    Edited {
+        /// Expression of the node before the edit was started.
+        previous_expression: String,
+    },
+    /// The node was created and did not previously exist.
+    Created,
+}
+
 /// Metadata of specific node.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct NodeMetadata {
@@ -392,6 +404,11 @@ pub struct NodeMetadata {
     /// Information about enabled visualization. Exact format is defined by the integration layer.
     #[serde(default)]
     pub visualization:   serde_json::Value,
+    /// Information about the edit status of ths node. If the value is `Some` the node is being
+    /// edited and the value contains the original expression.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    pub edit_status:     Option<NodeEditStatus>,
 }
 
 /// Used for storing node position.

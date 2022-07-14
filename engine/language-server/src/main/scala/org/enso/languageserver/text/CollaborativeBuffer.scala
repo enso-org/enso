@@ -25,6 +25,7 @@ import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
@@ -123,6 +124,25 @@ class CollaborativeBuffer(
     case ApplyEdit(clientId, change, execute) =>
       edit(buffer, clients, lockHolder, clientId, change, execute)
 
+    case ApplyExpressionValue(
+          clientId,
+          expressionId,
+          path,
+          edit,
+          oldVersion,
+          newVersion
+        ) =>
+      val change = FileEdit(path, List(edit), oldVersion, newVersion)
+      editExpressionValue(
+        buffer,
+        clients,
+        lockHolder,
+        clientId,
+        change,
+        expressionId,
+        edit.text
+      )
+
     case SaveFile(clientId, _, clientVersion) =>
       saveFile(
         buffer,
@@ -188,6 +208,37 @@ class CollaborativeBuffer(
       }
     } else {
       sender() ! SaveDenied
+    }
+  }
+
+  private def editExpressionValue(
+    buffer: Buffer,
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
+    clientId: ClientId,
+    change: FileEdit,
+    expressionId: ExpressionId,
+    expressionValue: String
+  ): Unit = {
+    applyEdits(buffer, lockHolder, clientId, change) match {
+      case Left(failure) =>
+        sender() ! failure
+
+      case Right(modifiedBuffer) =>
+        sender() ! ApplyEditSuccess
+        val subscribers = clients.filterNot(_._1 == clientId).values
+        subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
+        runtimeConnector ! Api.Request(
+          Api.SetExpressionValueNotification(
+            buffer.file,
+            change.edits,
+            expressionId,
+            expressionValue
+          )
+        )
+        context.become(
+          collaborativeEditing(modifiedBuffer, clients, lockHolder)
+        )
     }
   }
 

@@ -6,5 +6,5 @@ import Standard.Test
 Table.Table.should_equal expected =
     self_cols = self.columns
     that_cols = expected.columns
-    self_cols.map .name . should_equal (that_cols.map .name)
-    self_cols.map .to_vector . should_equal (that_cols.map .to_vector)
+    self_cols.map .name . should_equal (that_cols.map .name) frames_to_skip=1
+    self_cols.map .to_vector . should_equal (that_cols.map .to_vector) frames_to_skip=1

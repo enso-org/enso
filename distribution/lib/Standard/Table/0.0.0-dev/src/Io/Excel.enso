@@ -5,7 +5,7 @@ import Standard.Base.System.File.Option
 from Standard.Table.Io.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Error as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Match_Columns
 
@@ -17,8 +17,6 @@ polyglot java import org.enso.table.write.ExistingDataMode
 polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.error.InvalidLocationException
-polyglot java import org.enso.table.error.ColumnCountMismatchException
-polyglot java import org.enso.table.error.ColumnNameMismatchException
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IllegalStateException
@@ -125,8 +123,8 @@ type Excel_Range
     for_cell sheet column row =
         col_index = Excel_Range.column_index column
 
-        col_valid = here.validate (Excel_Range.is_valid_column col_index) ("Invalid column for Excel: " + column.to_text + ".")
-        row_valid = here.validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
+        col_valid = validate (Excel_Range.is_valid_column col_index) ("Invalid column for Excel: " + column.to_text + ".")
+        row_valid = validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
 
         col_valid <| row_valid <|
             Excel_Range (Java_Range.new sheet col_index row)
@@ -137,10 +135,10 @@ type Excel_Range
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
-        left_valid = here.validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
-        right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
-        top_valid = here.validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
-        bottom_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
+        left_valid = validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
+        right_valid = validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
+        top_valid = validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
+        bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         left_valid <| right_valid <| top_valid <| bottom_valid <|
             Excel_Range (Java_Range.new sheet left_index top right_index bottom)
@@ -151,8 +149,8 @@ type Excel_Range
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
-        left_valid = here.validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
-        right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
+        left_valid = validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
+        right_valid = validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
 
         left_valid <| right_valid <|
             Excel_Range (Java_Range.forColumns sheet left_index right_index)
@@ -160,8 +158,8 @@ type Excel_Range
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
     for_rows sheet top (bottom=top) =
-        top_valid = here.validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
-        bottom_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
+        top_valid = validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
+        bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         top_valid <| bottom_valid <|
             Excel_Range (Java_Range.forRows sheet top bottom)
@@ -191,15 +189,15 @@ read_excel file section headers on_problems xls_format=False =
         Sheet_Names -> Vector.Vector (ExcelReader.readSheetNames stream xls_format)
         Range_Names -> Vector.Vector (ExcelReader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
-            here.prepare_reader_table on_problems <| case sheet of
-                Integer -> ExcelReader.readSheetByIndex stream sheet (here.make_java_headers headers) skip_rows row_limit xls_format
-                Text -> ExcelReader.readSheetByName stream sheet (here.make_java_headers headers) skip_rows row_limit xls_format
+            prepare_reader_table on_problems <| case sheet of
+                Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
+                Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format
         Cell_Range address skip_rows row_limit ->
-            here.prepare_reader_table on_problems <| case address of
-                Excel_Range _ -> ExcelReader.readRange stream address.java_range (here.make_java_headers headers) skip_rows row_limit xls_format
-                Text -> ExcelReader.readRangeByName stream address (here.make_java_headers headers) skip_rows row_limit xls_format
+            prepare_reader_table on_problems <| case address of
+                Excel_Range _ -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
+                Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
 
-    here.handle_reader file reader
+    handle_reader file reader
 
 ## PRIVATE
    Writes a Table to an Excel file.
@@ -208,12 +206,12 @@ read_excel file section headers on_problems xls_format=False =
 write_excel : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
 write_excel file table on_existing_file section headers match_columns _ xls_format=False =
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
-        here.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
+        handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 
-    existing_data_mode = here.make_java_existing_data_mode on_existing_file match_columns
-    java_headers = here.make_java_headers headers
+    existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
+    java_headers = make_java_headers headers
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-    result = here.handle_writer <| case section of
+    result = handle_writer <| case section of
         Sheet sheet skip_rows row_limit ->
             ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
         Cell_Range address skip_rows row_limit -> case address of
@@ -283,16 +281,6 @@ handle_writer ~writer =
     throw_existing_data caught_panic = Error.throw (Existing_Data caught_panic.payload.cause.getMessage)
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
-    throw_column_count_mismatch caught_panic =
-        cause = caught_panic.payload.cause
-        Error.throw (Column_Count_Mismatch cause.getExpected cause.getActual)
-    handle_column_count_mismatch = Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
-
-    throw_column_name_mismatch caught_panic =
-        cause = caught_panic.payload.cause
-        Error.throw (Column_Name_Mismatch (Vector.Vector cause.getMissing) (Vector.Vector cause.getExtras) cause.getMessage)
-    handle_column_name_mismatch = Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
-
     ## Illegal argument can occur if appending in an invalid mode
     illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
     handle_illegal_argument = Panic.catch IllegalArgumentException handler=illegal_argument
@@ -301,5 +289,7 @@ handle_writer ~writer =
     throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error caught_panic.payload.cause.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
-    handle_illegal_state <| handle_column_name_mismatch <| handle_column_count_mismatch <| handle_bad_location <|
-        handle_illegal_argument <| handle_range_exceeded <| handle_existing_data <| writer
+    handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|
+        Column_Count_Mismatch.handle_java_exception <| handle_bad_location <|
+            handle_illegal_argument <| handle_range_exceeded <| handle_existing_data <|
+                writer

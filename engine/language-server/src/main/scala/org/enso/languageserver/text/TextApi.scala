@@ -3,6 +3,8 @@ package org.enso.languageserver.text
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
+import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
+import org.enso.text.editing.model.TextEdit
 
 /** The text editing JSON RPC API provided by the language server.
   * See [[https://github.com/enso-org/enso/blob/develop/docs/language-server/README.md]]
@@ -41,6 +43,22 @@ object TextApi {
     case class Params(edit: FileEdit, execute: Option[Boolean])
     implicit val hasParams = new HasParams[this.type] {
       type Params = ApplyEdit.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object ApplyExpressionValue extends Method("text/applyExpressionValue") {
+    case class Params(
+      expressionId: ExpressionId,
+      path: Path,
+      edit: TextEdit,
+      oldVersion: TextApi.Version,
+      newVersion: TextApi.Version
+    )
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ApplyExpressionValue.Params
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type

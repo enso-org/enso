@@ -8,7 +8,7 @@ type Book title author
 Text.should_fail_parsing_with expected =
     as_fail = case Json.parse self of
         _ -> Test.Failure "Expected a parse error, but no error reported."
-    result = as_fail.catch e-> case e of
+    result = as_fail.catch Any e-> case e of
         Json.Parse_Error msg ->
             if msg.contains expected then Test.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
@@ -76,7 +76,7 @@ spec =
                 Author "Agatha Christie" 1890
             books = [book_1, book_2, book_3]
 
-            json_string = (Enso_Project.data / "books.json").read_text
+            json_string = (enso_project.data / "books.json").read_text
             parsed = Json.parse json_string
             domain = parsed.into (Vector.Vector (Book title=Text (Author name=Text year_of_birth=Number)))
             domain.should_equal books
@@ -122,4 +122,4 @@ spec =
             object.get "foo" . should_equal (Json.String "bar")
             object.get "bar" . should_fail_with Json.No_Such_Field_Error
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

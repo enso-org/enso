@@ -73,7 +73,7 @@ Error.map_valid _ = self
    Arguments:
    - val: a value that will be evaluated and returned if `self` is an error.
 Any.catch_ : Any -> Any
-Any.catch_ ~val = self.catch (_-> val)
+Any.catch_ ~val = self.catch Any (_-> val)
 
 ## PRIVATE
 
@@ -84,13 +84,13 @@ Any.catch_ ~val = self.catch (_-> val)
    Arguments:
    - val: a value that will be evaluated and returned if `self` is an error.
 Error.catch_ : Any -> Any
-Error.catch_ ~val = self.catch (_-> val)
+Error.catch_ ~val = self.catch Any (_-> val)
 
 ## PRIVATE
 recover_errors : Any -> Any
 recover_errors ~body =
     result = Panic.recover Any body
-    result.catch err->
+    result.catch Any err->
         Json.from_pairs [["error", err.to_display_text]] . to_text
 
 ## PRIVATE

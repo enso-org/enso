@@ -18,8 +18,9 @@ use std::mem::take;
 pub fn to_meta(ty: TypeData) -> (meta::TypeGraph, BTreeMap<TypeId, meta::TypeId>) {
     let mut to_meta = ToMeta::new();
     let root_ = to_meta.run(ty);
-    to_meta.graph.gc(vec![root_]);
-    (to_meta.graph, to_meta.rust_to_meta)
+    let (mut graph, rust_to_meta) = to_meta.finish();
+    graph.gc(vec![root_]);
+    (graph, rust_to_meta)
 }
 
 #[derive(Debug, Default)]
@@ -210,6 +211,11 @@ impl ToMeta {
         self.generate_subtypes(&rust_types);
         meta::transform::flatten(&mut self.graph, &mut self.flatten);
         self.rust_to_meta[&root_rust_id]
+    }
+
+    /// Return results.
+    pub fn finish(self) -> (meta::TypeGraph, BTreeMap<TypeId, meta::TypeId>) {
+        (self.graph, self.rust_to_meta)
     }
 
     fn generate_subtypes(&mut self, rust_types: &BTreeMap<TypeId, TypeData>) {

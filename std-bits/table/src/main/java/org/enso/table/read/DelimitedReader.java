@@ -3,19 +3,12 @@ package org.enso.table.read;
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.string.StringStorageBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.problems.WithProblems;
 import org.enso.table.parsing.DatatypeParser;
 import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
@@ -23,7 +16,12 @@ import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
 import org.enso.table.parsing.problems.NoOpProblemAggregator;
 import org.enso.table.problems.Problem;
+import org.enso.table.problems.WithProblems;
 import org.enso.table.util.NameDeduplicator;
+
+import java.io.Reader;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /** A helper for reading delimited (CSV-like) files. */
 public class DelimitedReader {
@@ -203,13 +201,38 @@ public class DelimitedReader {
   }
 
   /**
-   * Reads the next row and updates the current line accordingly.
+   * Loads a next row from the CSV file.
+   *
+   * <p>This is an internal function that just loads the row but does not update the state nor take
+   * into consideration pending rows. The regular reading process should use {@code readNextRow}
+   * instead.
+   */
+  private Row loadNextRow() {
+    long line = parser.getContext().currentLine() + 1;
+    String[] cells = parser.parseNext();
+    if (cells == null) return null;
+    return new Row(line, cells);
+  }
+
+  private record Row(long lineNumber, String[] cells) {}
+
+  private final Queue<Row> pendingRows = new ArrayDeque<>(2);
+
+  /**
+   * Reads the next row and updates the current line accordingly. It takes into consideration the
+   * pending rows that have already been loaded when inferring the headers but were still not
+   * processed.
    *
    * <p>Will return {@code null} if no more rows are available.
    */
   private String[] readNextRow() {
-    currentLine = parser.getContext().currentLine() + 1;
-    return parser.parseNext();
+    Row row = pendingRows.isEmpty() ? loadNextRow() : pendingRows.remove();
+    if (row == null) {
+      return null;
+    }
+
+    currentLine = row.lineNumber;
+    return row.cells;
   }
 
   private void appendRow(String[] row) {
@@ -280,69 +303,111 @@ public class DelimitedReader {
     return parsed instanceof String;
   }
 
-  /** Reads the input stream and returns a Table. */
-  public WithProblems<Table> read() {
+  /** The column names as defined in the input (if applicable, otherwise null). */
+  private String[] definedColumnNames = null;
+
+  /** The effective column names.
+   *
+   * If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found, this will be populated with automatically generated column names. */
+  private String[] effectiveColumnNames;
+
+  private List<Problem> headerProblems;
+
+  /** Returns the column names that are defined in the input.
+   *
+   * Will return {@code null} if {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers were found inside of the file. */
+  public String[] getDefinedColumnNames() {
+    ensureHeadersDetected();
+    return definedColumnNames;
+  }
+
+  public int getColumnCount() {
+    ensureHeadersDetected();
+    return effectiveColumnNames.length;
+  }
+
+  private void ensureHeadersDetected() {
+    if (effectiveColumnNames == null) {
+      detectHeaders();
+    }
+  }
+
+  private void detectHeaders() {
+    skipFirstRows();
+    Row firstRow = loadNextRow();
+    if (firstRow == null) {
+      effectiveColumnNames = new String[0];
+      headerProblems = Collections.emptyList();
+      return;
+    }
+
+    int expectedColumnCount = firstRow.cells.length;
+    boolean wereHeadersDefined = false;
     WithProblems<List<String>> headerNames;
-    String[] currentRow = readNextRow();
-
-    // Skip the first N rows.
-    for (long i = 0; currentRow != null && i < skipRows; ++i) {
-      currentRow = readNextRow();
-    }
-
-    // If there are no rows to even infer the headers, we return an empty table.
-    if (currentRow == null) {
-      return new WithProblems<>(new Table(new Column[0]), Collections.emptyList());
-    }
-
-    int expectedColumnCount = currentRow.length;
-    initBuilders(expectedColumnCount);
 
     switch (headerBehavior) {
       case INFER -> {
-        String[] firstRow = currentRow;
-        String[] secondRow = readNextRow();
+        Row secondRow = loadNextRow();
         if (secondRow == null) {
-          // If there is only one row in the file, we generate the headers and stop further processing (as nothing more to process).
+          /** If there is only one row in the file, we generate the headers and
+           * stop further processing (as nothing more to process). */
           headerNames = generateDefaultHeaders(expectedColumnCount);
-          appendRowIfLimitPermits(firstRow);
-          currentRow = null;
+          pendingRows.add(firstRow);
         } else {
           assert cellTypeGuesser != null;
-          boolean firstAllText = Arrays.stream(firstRow).allMatch(this::isPlainText);
-          boolean secondAllText = Arrays.stream(secondRow).allMatch(this ::isPlainText);
+          boolean firstAllText = Arrays.stream(firstRow.cells).allMatch(this::isPlainText);
+          boolean secondAllText = Arrays.stream(secondRow.cells).allMatch(this ::isPlainText);
           boolean useFirstRowAsHeader = firstAllText && !secondAllText;
           if (useFirstRowAsHeader) {
-            headerNames = headersFromRow(firstRow);
-            appendRowIfLimitPermits(secondRow);
+            headerNames = headersFromRow(firstRow.cells);
+            wereHeadersDefined = true;
+            pendingRows.add(secondRow);
           } else {
             headerNames = generateDefaultHeaders(expectedColumnCount);
-            appendRowIfLimitPermits(firstRow);
-            appendRowIfLimitPermits(secondRow);
+            pendingRows.add(firstRow);
+            pendingRows.add(secondRow);
           }
-
-          currentRow = readNextRow();
         }
       }
       case USE_FIRST_ROW_AS_HEADERS -> {
-        headerNames = headersFromRow(currentRow);
-        // We have 'used up' the first row, so we load a next one.
-        currentRow = readNextRow();
+        headerNames = headersFromRow(firstRow.cells);
+        wereHeadersDefined = true;
       }
-      case GENERATE_HEADERS -> headerNames = generateDefaultHeaders(expectedColumnCount);
+      case GENERATE_HEADERS -> {
+        headerNames = generateDefaultHeaders(expectedColumnCount);
+        pendingRows.add(firstRow);
+      }
       default -> throw new IllegalStateException("Impossible branch.");
     }
 
-    while (currentRow != null && canFitMoreRows()) {
+    headerProblems = headerNames.problems();
+    effectiveColumnNames = headerNames.value().toArray(new String[0]);
+    if (wereHeadersDefined) {
+      definedColumnNames = effectiveColumnNames;
+    }
+  }
+
+  private void skipFirstRows() {
+    for (long i = 0; i < skipRows; ++i) {
+      loadNextRow();
+    }
+  }
+
+  /** Reads the input stream and returns a Table. */
+  public WithProblems<Table> read() {
+    ensureHeadersDetected();
+    initBuilders(getColumnCount());
+    while (canFitMoreRows()) {
+      var currentRow = readNextRow();
+      if (currentRow == null) break;
       appendRow(currentRow);
-      currentRow = readNextRow();
     }
 
     parser.stopParsing();
 
     Column[] columns = new Column[builders.length];
     for (int i = 0; i < builders.length; i++) {
-      String columnName = headerNames.value().get(i);
+      String columnName = effectiveColumnNames[i];
       StringStorage col = builders[i].seal();
 
       WithProblems<Storage> parseResult = valueParser.parseColumn(columnName, col);
@@ -353,7 +418,7 @@ public class DelimitedReader {
 
       columns[i] = new Column(columnName, new DefaultIndex(storage.size()), storage);
     }
-    return new WithProblems<>(new Table(columns), getReportedProblems(headerNames.problems()));
+    return new WithProblems<>(new Table(columns), getReportedProblems(headerProblems));
   }
 
   private void initBuilders(int count) {

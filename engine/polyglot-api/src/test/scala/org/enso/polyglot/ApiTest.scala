@@ -24,7 +24,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
     val code =
       """
         |foo = x -> x + 1
-        |bar = x -> here.foo x + 1
+        |bar = x -> foo x + 1
         |""".stripMargin
     val module                = executionContext.evalModule(code, "Test")
     val associatedConstructor = module.getAssociatedConstructor
@@ -67,7 +67,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
         |foo = x -> x + 2
         |""".stripMargin
     val module = executionContext.evalModule(code, "Test")
-    val result = module.evalExpression("here.foo 10")
+    val result = module.evalExpression("foo 10")
     result.asLong shouldEqual 12
   }
 }

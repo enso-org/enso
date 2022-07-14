@@ -30,3 +30,6 @@ Cargo.lock
 # TODO [mwu]: Adjust Engine build to not leave them.
 ci-build/
 enso/
+
+# Popular IDEs
+.idea

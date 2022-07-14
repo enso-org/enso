@@ -160,7 +160,7 @@ class ReplTest
           |    Debug.breakpoint
           |    State.get Number
           |
-          |main = State.run Number 0 here.run
+          |main = State.run Number 0 run
           |""".stripMargin
       setSessionManager { executor =>
         executor.evaluate("x = State.get Number")
@@ -289,7 +289,7 @@ class ReplTest
       }
       eval(code)
       val errorMsg =
-        "Compile error: Variable `undefined` is not defined."
+        "Compile error: The name `undefined` could not be found."
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 
