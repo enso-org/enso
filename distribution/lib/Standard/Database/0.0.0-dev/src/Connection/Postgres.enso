@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Base.System.Platform
+
 import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection
 from Standard.Database.Connection.Credentials as Credentials_Module import Credentials
@@ -41,12 +43,13 @@ type Postgres
     ## Provides the properties for the connection.
     jdbc_properties : [Pair Text Text]
     jdbc_properties =
+        # TODO env vars
         credentials = case self.credentials of
-            Nothing -> Postgres.read_pgpass self.host self.port self.database
+            Nothing -> read_pgpass self.host self.port self.database
             Credentials username password ->
                 [Pair 'user' username, Pair 'password' password]
 
-        ssl_properties = Postgres.ssl_mode_to_jdbc_properties self.use_ssl
+        ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl
 
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
@@ -57,31 +60,78 @@ type Postgres
     dialect : Dialect
     dialect = Dialect.postgres
 
-    ## PRIVATE - static
-       Read the .pgpass file from the User's home directory and obtain username
-       and password. https://www.postgresql.org/docs/current/libpq-pgpass.html
+## PRIVATE
+   Read the .pgpass file from the User's home directory and obtain username
+   and password.
 
-       Arguments:
-       - host: The hostname of the database server.
-       - port: The port of the database server.
-       - database: The database to connect to.
-    read_pgpass : Text -> Integer -> Text -> [Pair Text Text]
-    read_pgpass _ _ _ =
-        ## ToDo: Code not part of the design document.
-        ## host port database
-        []
+   See https://www.postgresql.org/docs/current/libpq-pgpass.html
 
-    ## PRIVATE - static
-       Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
-       connection.
-    ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
-    ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
-        Disable -> []
-        Prefer -> [Pair 'sslmode' 'prefer']
-        Require -> [Pair 'sslmode' 'require']
-        Verify_CA cert_file ->
-            if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
-                [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
-        Full_Verification cert_file ->
-            if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
-                [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+   On Windows this file is expected to be located at
+   `%APPDATA%\postgresql\pgpass.conf`.
+   On Linux and macOS this file is expected to be located at `~/.pgpass` and
+   it is should be inaccessible by other users and the group - otherwise it
+   will be ignored. This can be achieved by running `chmod 0600 ~/.pgpass`.
+
+   If `PGPASSFILE` environment variable is set, the provided location is
+   used instead of the default one.
+
+   Arguments:
+   - host: The hostname of the database server.
+   - port: The port of the database server.
+   - database: The database to connect to.
+read_pgpass : Text -> Integer -> Text -> [Pair Text Text]
+read_pgpass host port database =
+    pgpass_file = locate_pgpass
+    if pgpass_file.exists.not then [] else
+        entries = parse_pgpass pgpass_file
+        # TODO possibly? determine username from env
+        found = entries.find entry->
+            entry.matches host port database
+        case found.catch Nothing of
+            Nothing -> []
+            Just entry -> [Pair 'user' entry.username, Pair 'password' entry.password]
+
+type Pgpass_Entry
+    ## PRIVATE
+    type Pgpass_Entry host port database username password
+
+    ## PRIVATE
+    matches : Text -> Integer -> Text -> Text -> Boolean
+    matches host port database username=Nothing =
+        wildcard='*'
+        host_match = self.host==wildcard || self.host==host
+        port_match = self.port==wildcard || self.port==port
+        database_match = self.database==wildcard || self.database==database
+        username_match = username==Nothing || self.username==wildcard || self.username=username
+        host_match && port_match && database_match && username_match
+
+## PRIVATE
+locate_pgpass = case Platform.os of
+    Platform.Windows ->
+        Error.throw "TODO %APPDATA%\postgresql\pgpass.conf"
+    _ ->
+        Error.throw "TODO ~/.pgpass"
+
+## PRIVATE
+parse_pgpass file =
+    parse line =
+        if line.starts_with "#" || line.is_empty then Nothing else
+            # TODO
+            Nothing
+
+    File.read_text file . lines . map parse . filter (x -> x.is_nothing.not)
+
+## PRIVATE
+   Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
+   connection.
+ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
+ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
+    Disable -> []
+    Prefer -> [Pair 'sslmode' 'prefer']
+    Require -> [Pair 'sslmode' 'require']
+    Verify_CA cert_file ->
+        if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
+            [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+    Full_Verification cert_file ->
+        if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
+            [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
