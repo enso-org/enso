@@ -18,12 +18,13 @@ use enso_prelude::*;
 use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 
 
-
-// ===========================
-// === Exports and Aliases ===
-// ===========================
+// ==============
+// === Export ===
+// ==============
 
 pub use embedded_fonts_names::FontFamily as Family;
+
+
 
 /// The default font family used in the app.
 pub type DefaultFamily = embedded_fonts_names::DejaVuSans;

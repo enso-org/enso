@@ -43,6 +43,7 @@
 #![recursion_limit = "512"]
 // === Features ===
 #![feature(option_result_contains)]
+#![feature(derive_default_enum)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -122,14 +123,10 @@ pub mod selection_box {
 
     ensogl::define_shape_system! {
         pointer_events = false;
-        (style:Style) {
+        (style:Style,corners_radius:f32) {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = "input_size.y".into();
-            let corners_radius = style.get_number(theme::selection::corners_radius);
-            let padding_y = style.get_number(theme::selection::vertical_padding);
-            let padding_x = style.get_number(theme::selection::horizontal_padding);
-            let shape = Rect((width - padding_x.px(), height - padding_y.px()));
-            shape.corners_radius(corners_radius.px()).into()
+            Rect((width, height)).corners_radius(corners_radius.px()).into()
         }
     }
 }
@@ -213,6 +210,42 @@ pub mod header_overlay {
             let bg_color = HOVER_COLOR;
             Plane().fill(bg_color).into()
         }
+    }
+}
+
+
+
+// ======================
+// === SelectionStyle ===
+// ======================
+
+#[derive(Debug, Copy, Clone, Default)]
+struct SelectionStyle {
+    padding_x:             f32,
+    height:                f32,
+    header_height:         f32,
+    corners_radius:        f32,
+    header_corners_radius: f32,
+}
+
+impl SelectionStyle {
+    fn from_style(style: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Self> {
+        let padding_x = style.get_number(theme::selection::horizontal_padding);
+        let height = style.get_number(theme::selection::height);
+        let header_height = style.get_number(theme::selection::header_height);
+        let corners_radius = style.get_number(theme::selection::corners_radius);
+        let header_corners_radius = style.get_number(theme::selection::header_corners_radius);
+        frp::extend! { network
+            init <- source_();
+            theme <- all_with6(&init,&height,&header_height,&corners_radius,&header_corners_radius,
+                &padding_x, |_,&height,&header_height,&corners_radius,&header_corners_radius,
+                &padding_x|
+                Self {height,header_height,corners_radius,header_corners_radius,
+                padding_x} );
+            theme_sampler <- theme.sampler();
+        }
+        init.emit(());
+        theme_sampler
     }
 }
 
@@ -378,6 +411,7 @@ ensogl::define_endpoints_2! {
         header_accepted(),
         selection_size(Vector2<f32>),
         selection_position_target(Vector2<f32>),
+        selection_corners_radius(f32),
         size(Vector2<f32>)
     }
 }
@@ -486,11 +520,12 @@ impl component::Frp<Model> for Frp {
             out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
+            let selection_style = SelectionStyle::from_style(style, network);
             out.selection_size <+ all_with3(
-                &header_geometry,
+                &selection_style,
                 &out.is_header_selected,
                 &out.focused,
-                f!((geom, h_sel, _) model.selection_size(geom.height, *h_sel))
+                f!((style, h_sel, _) model.selection_size(*h_sel, *style))
             );
             out.selection_position_target <+ all_with5(
                 &out.is_header_selected,
@@ -501,6 +536,12 @@ impl component::Frp<Model> for Frp {
                 f!((h_sel, h_geom, size, esp, h_pos)
                     model.selection_position(*h_sel, *h_geom, *size, *esp, *h_pos)
                 )
+            );
+            out.selection_corners_radius <+ all_with3(
+                &out.is_header_selected,
+                &selection_style,
+                &out.focused,
+                f!((h_sel, style,_) model.selection_corners_radius(*h_sel, *style))
             );
         }
 
@@ -775,9 +816,18 @@ impl Model {
         }
     }
 
-    fn selection_size(&self, header_height: f32, is_header_selected: bool) -> Vector2 {
-        let height = if is_header_selected { header_height } else { list_view::entry::HEIGHT };
-        Vector2(self.entries.size.value().x, height)
+    fn selection_size(&self, is_header_selected: bool, style: SelectionStyle) -> Vector2 {
+        let width = self.entries.size.value().x - style.padding_x * 2.0;
+        let height = if is_header_selected { style.header_height } else { style.height };
+        Vector2(width, height)
+    }
+
+    fn selection_corners_radius(&self, is_header_selected: bool, style: SelectionStyle) -> f32 {
+        if is_header_selected {
+            style.header_corners_radius
+        } else {
+            style.corners_radius
+        }
     }
 }
 

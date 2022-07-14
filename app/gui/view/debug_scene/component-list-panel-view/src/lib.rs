@@ -46,10 +46,10 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ide_view_component_group as component_group;
+use ide_view_component_list_panel::ComponentBrowserPanel;
+use ide_view_component_list_panel::LabeledAnyModelProvider;
 use js_sys::Math;
 use list_view::entry::AnyModelProvider;
-use searcher_list_panel::ComponentBrowserPanel;
-use searcher_list_panel::LabeledAnyModelProvider;
 
 
 
@@ -134,7 +134,7 @@ fn mock_data() -> Vec<LabeledAnyModelProvider> {
     .enumerate()
     .map(|(index, mock_entries)| LabeledAnyModelProvider {
         content: AnyModelProvider::from(mock_entries.clone_ref()),
-        label:   format!("Header {}", index),
+        label:   format!("Header {}", index).into(),
     })
     .collect_vec()
 }

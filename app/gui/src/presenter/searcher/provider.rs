@@ -5,9 +5,12 @@ use crate::prelude::*;
 use crate::controller::searcher::action::MatchInfo;
 use crate::model::suggestion_database;
 
+use enso_text as text;
 use ensogl_component::list_view;
 use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
+use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
+use ide_view_component_group as component_group_view;
 
 
 
@@ -61,7 +64,12 @@ pub struct Action {
 }
 
 impl Action {
-    fn doc_placeholder_for(suggestion: &controller::searcher::action::Suggestion) -> String {
+    /// Get the documentation for a suggestion in case when this suggestion does not have
+    /// a documentation.
+    ///
+    /// Usually something like "Function foo - no documentation available". The returned string is
+    /// documentation in HTML format.
+    pub fn doc_placeholder_for(suggestion: &controller::searcher::action::Suggestion) -> String {
         use controller::searcher::action::Suggestion;
         let code = match suggestion {
             Suggestion::FromDatabase(suggestion) => {
@@ -147,4 +155,75 @@ impl ide_view::searcher::DocumentationProvider for Action {
             Action::ProjectManagement(_) => None,
         }
     }
+}
+
+/// Component Provider getting entries from a [`controller::searcher::component::Group`].
+#[derive(Clone, CloneRef, Debug)]
+pub struct Component {
+    group: controller::searcher::component::Group,
+}
+
+impl Component {
+    /// Create component provider based of the given group.
+    pub fn new(group: controller::searcher::component::Group) -> Self {
+        Self { group }
+    }
+}
+
+impl list_view::entry::ModelProvider<component_group_view::Entry> for Component {
+    fn entry_count(&self) -> usize {
+        self.group.matched_items.get()
+    }
+
+    fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
+        let component = self.group.get_entry(id)?;
+        let match_info = component.match_info.borrow();
+        let label = component.label();
+        let highlighted = bytes_of_matched_letters(&*match_info, &label);
+        Some(component_group_view::entry::Model {
+            icon:             component_group_view::icon::Id::AddColumn,
+            highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
+        })
+    }
+}
+
+fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
+    if let MatchInfo::Matches { subsequence } = match_info {
+        let mut char_iter = label.char_indices().enumerate();
+        subsequence
+            .indices
+            .iter()
+            .filter_map(|idx| loop {
+                if let Some(char) = char_iter.next() {
+                    let (char_idx, (byte_id, char)) = char;
+                    if char_idx == *idx {
+                        let start = enso_text::unit::Bytes(byte_id as i32);
+                        let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
+                        break Some(enso_text::Range::new(start, end));
+                    }
+                } else {
+                    break None;
+                }
+            })
+            .collect()
+    } else {
+        default()
+    }
+}
+
+/// Get [`LabeledAnyModelProvider`] for given component group.
+pub fn from_component_group(
+    group: &controller::searcher::component::Group,
+) -> LabeledAnyModelProvider {
+    LabeledAnyModelProvider {
+        label:   group.name.clone_ref(),
+        content: Rc::new(Component::new(group.clone_ref())).into(),
+    }
+}
+
+/// Get vector of [`LabeledAnyModelProvider`] for given component group list.
+pub fn from_component_group_list(
+    groups: &impl AsRef<controller::searcher::component::group::List>,
+) -> Vec<LabeledAnyModelProvider> {
+    groups.as_ref().iter().map(from_component_group).collect()
 }
