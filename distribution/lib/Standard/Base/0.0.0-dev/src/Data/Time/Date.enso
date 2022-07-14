@@ -64,7 +64,7 @@ new year (month = 1) (day = 1) =
        instead of Enso format. Hopefully this will be fixed with
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
-    Panic.recover Any (Date.date_new year month day) . catch Any e-> case e of
+    Panic.recover Any (Date.internal_new year month day) . catch Any e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err)
         ex -> Error.throw (Time.Time_Error ex)
 
@@ -133,8 +133,8 @@ new year (month = 1) (day = 1) =
 parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
-        Nothing -> Date.date_parse text 0
-        Text -> Date.date_parse text pattern
+        Nothing -> Date.internal_parse text 0
+        Text -> Date.internal_parse text pattern
         _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
     result . map_error <| case _ of
         Polyglot_Error err -> Time.Time_Error err
@@ -162,7 +162,7 @@ type Date
 
              example_year = Date.now.year
     year : Integer
-    year = self.date_value 1
+    year = self.internal_value 1
 
     ## Get the month of year field, as a number from 1 to 12.
 
@@ -173,7 +173,7 @@ type Date
 
              example_month = Date.now.month
     month : Integer
-    month = self.date_value 2
+    month = self.internal_value 2
 
     ## Get the day of month field.
 
@@ -184,7 +184,7 @@ type Date
 
              example_day = Date.now.day
     day : Integer
-    day = self.date_value 3
+    day = self.internal_value 3
 
     ## Returns the number of week of year this date falls into.
 
@@ -235,7 +235,7 @@ type Date
              example_add = Date.new 2020 + 6.months
     + : Duration -> Date
     + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        Date.date_to_enso (Time_Utils.date_adjust self 1 amount.internal_period)
+        Date.internal_to_enso (Time_Utils.date_adjust self 1 amount.internal_period)
 
     ## Subtract the specified amount of time from this instant to get another
        date.
@@ -252,7 +252,7 @@ type Date
              example_subtract = Date.new 2020 - 7.days
     - : Duration -> Date
     - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        Date.date_to_enso (Time_Utils.date_adjust self -1 amount.internal_period)
+        Date.internal_to_enso (Time_Utils.date_adjust self -1 amount.internal_period)
 
 
     ## A Date to Json conversion.

@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.data.EnsoDate;
 
 @BuiltinMethod(
     type = "Date",
-    name = "date_to_enso",
+    name = "internal_to_enso",
     description = "Converts any format of a Date to Enso Date")
 public abstract class ToEnsoDateNode extends Node {
   public static ToEnsoDateNode build() {
