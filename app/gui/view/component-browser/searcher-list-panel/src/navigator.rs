@@ -19,6 +19,8 @@ use ensogl_hardcoded_theme::application::component_browser::searcher as searcher
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::AnyModelProvider;
 use ensogl_shadow as shadow;
+use num_enum::IntoPrimitive;
+use num_enum::TryFromPrimitive;
 use searcher_theme::list_panel as list_panel_theme;
 
 
@@ -60,12 +62,13 @@ pub mod navigator_shadow {
 
 /// Three sections of the Searcher List Panel. See the
 /// [Component Browser Design Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
+#[repr(usize)]
 pub enum Section {
-    SubModules,
-    LocalScope,
+    SubModules = 0,
+    LocalScope = 1,
     #[default]
-    Favorites,
+    Favorites  = 2,
 }
 
 
@@ -98,6 +101,8 @@ impl Navigator {
         bottom_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
         top_buttons.show_background_shadow(false);
         bottom_buttons.show_background_shadow(false);
+        top_buttons.disable_selecting_entries_with_mouse();
+        bottom_buttons.disable_selecting_entries_with_mouse();
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
         // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
@@ -110,15 +115,17 @@ impl Navigator {
         frp::extend! { network
             chosen_section <- source();
             eval bottom_buttons.chosen_entry([chosen_section](id) match id {
-                Some(0) => chosen_section.emit(Some(Section::SubModules)),
-                Some(1) => chosen_section.emit(Some(Section::LocalScope)),
-                Some(2) => chosen_section.emit(Some(Section::Favorites)),
-                _ => {}
+                Some(id) => chosen_section.emit(Section::try_from(*id).ok()),
+                None => {},
             });
         }
         bottom_buttons.select_entry(Some(2));
 
         Self { display_object, top_buttons, bottom_buttons, network, chosen_section }
+    }
+
+    pub(crate) fn select_section(&self, section: Section) {
+        self.bottom_buttons.select_entry(Some(section.into()));
     }
 
     pub(crate) fn set_bottom_buttons_entry_params(&self, params: icon::Params) {

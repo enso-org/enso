@@ -5796,6 +5796,7 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "ide-view-component-group",
+ "num_enum",
  "ordered-float",
 ]
 

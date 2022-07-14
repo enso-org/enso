@@ -435,6 +435,19 @@ impl Model {
         self.local_scope_section.update_scroll_viewport(&self.scroll_area);
     }
 
+    /// Returns the bottom-most visible section inside the scroll area.
+    fn bottom_most_visible_section(&self) -> Option<Section> {
+        use Section::*;
+        let viewport = self.scroll_area.viewport.value();
+        let sections: &[(&dyn WithinViewport, Section)] = &[
+            (&self.favourites_section, Favorites),
+            (&self.local_scope_section, LocalScope),
+            (&self.sub_modules_section, SubModules),
+        ];
+        let section = sections.iter().find(|(s, _)| s.within_viewport(&viewport));
+        section.map(|(_, name)| *name)
+    }
+
     /// Set the navigator so it can be disabled on hover.
     pub fn set_navigator(&self, navigator: Option<Navigator>) {
         *self.navigator.borrow_mut() = navigator
@@ -557,6 +570,17 @@ impl ColumnSection {
         } else {
             self.content.unset_parent();
         }
+    }
+}
+
+/// Helper trait that exposes `within_viewport` method for all sections.
+trait WithinViewport {
+    fn within_viewport(&self, viewport: &Viewport) -> bool;
+}
+
+impl<T: SectionContent> WithinViewport for LabeledSection<T> {
+    fn within_viewport(&self, viewport: &Viewport) -> bool {
+        self.content.within_viewport(viewport)
     }
 }
 
@@ -701,9 +725,13 @@ impl component::Frp<Model> for Frp {
             eval_ on_hover_end ( model.on_hover_end() );
 
             chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
-            show_section <- all(&chosen_section, &layout_frp.update);
-            eval show_section(((section, layout)) model.scroll_to(*section, layout));
+            scroll_to_section <- all(&chosen_section, &layout_frp.update);
+            eval scroll_to_section(((section, layout)) model.scroll_to(*section, layout));
 
+            visible_section <- model.scroll_area.viewport.filter_map(
+                f_!(model.bottom_most_visible_section())
+            ).on_change();
+            eval visible_section((section) model.section_navigator.select_section(*section));
 
             // === Navigator icons colors ===
 
