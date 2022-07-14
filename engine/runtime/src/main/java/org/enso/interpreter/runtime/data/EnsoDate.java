@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -58,6 +59,15 @@ public final class EnsoDate implements TruffleObject {
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class, propagate = true)
   public static EnsoDate create(long year, long month, long day) {
     return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
+  }
+
+  @Builtin.Method(name = "date_value", description = "Gets a value of year, month, or day")
+  public long valueOf(long type) {
+    return switch ((int)type) {
+      case 1 -> date.getYear();
+      case 2 -> date.getMonthValue();
+      default -> date.getDayOfMonth();
+    };
   }
 
   @ExportMessage
