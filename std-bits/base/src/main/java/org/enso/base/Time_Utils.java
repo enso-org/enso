@@ -56,14 +56,6 @@ public class Time_Utils {
     return DateTimeFormatter.ISO_LOCAL_TIME;
   }
 
-  public static String local_date_to_text(LocalDate date) {
-    return default_date_formatter().format(date);
-  }
-
-  public static String local_date_to_text(Object any) {
-    return any == null ? "No instance of date" : "Instance of date " + any.getClass();
-  }
-
   public static String local_date_format(LocalDate date, Object format) {
     return DateTimeFormatter.ofPattern(format.toString()).format(date);
   }

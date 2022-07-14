@@ -254,16 +254,6 @@ type Date
     - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
         Date_Internal.date_to_enso (Time_Utils.date_adjust self -1 amount.internal_period)
 
-    ## Format this date using the default formatter.
-
-       > Example
-         Convert the current date to text.
-
-             import Standard.Base.Data.Time.Date
-
-             example_to_text = Date.now.to_text
-    to_text : Text
-    to_text = Time_Utils.local_date_to_text self
 
     ## A Date to Json conversion.
 

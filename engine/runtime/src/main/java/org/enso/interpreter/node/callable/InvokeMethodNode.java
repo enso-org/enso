@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -256,9 +257,15 @@ public abstract class InvokeMethodNode extends BaseNode {
     try {
       var hostLocalDate = interop.asDate(self);
       var date = new EnsoDate(hostLocalDate);
-      Function function = dateDispatch.getFunctionalDispatch(date, symbol);
-      return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (UnsupportedMessageException | MethodDispatchLibrary.NoSuchMethodException e) {
+      try {
+        Function function = dateDispatch.getFunctionalDispatch(date, symbol);
+        arguments[0] = date;
+        return invokeFunctionNode.execute(function, frame, state, arguments);
+      } catch (MethodDispatchLibrary.NoSuchMethodException ex) {
+        var value = interop.readMember(date, symbol.getName());
+        return new Stateful(state, value);
+      }
+    } catch (UnsupportedMessageException | UnknownIdentifierException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }
