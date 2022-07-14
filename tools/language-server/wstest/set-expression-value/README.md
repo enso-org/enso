@@ -17,10 +17,10 @@ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso \
   --log-level trace \
   --server \
   --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 \
-  --path tools/language-server/wstest/set-expression-value/Unnamed/ \
+  --path $(pwd)/tools/language-server/wstest/set-expression-value/Unnamed/ \
   --rpc-port 30616 \
   --data-port 30717 \
-  &| tee language-server.log
+  2>&1| tee language-server.log
 ```
 
 Run the test and redirect output to `wstest.log`
@@ -34,9 +34,11 @@ cargo run -p wstest -- \
   --ignore-text-socket-responses tools/language-server/wstest/set-expression-value/ignore_responses.txt \
   --input tools/language-server/wstest/set-expression-value/input.txt \
   --input-expects-binary-responses \
-  --input-repeat-times 20 \
+  --warmup-iterations 100 \
+  --wait-after-warmup 3000 \
+  --benchmark-iterations 100 \
   ws://127.0.0.1:30616 \
-  &| tee wstest.log
+  2>&1| tee wstest.log
 ```
 
 Analyze logs
@@ -44,7 +46,6 @@ Analyze logs
 ```bash
 cargo run -p logstat -- \
   --median
-  --warmup-iterations 50 \
   --spec tools/language-server/logstat/apply-expression-value-spec.txt \
   --wstest_log wstest.log
   language-server.log
