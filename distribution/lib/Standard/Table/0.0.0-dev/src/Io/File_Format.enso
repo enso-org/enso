@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Table
 
 import Standard.Base.Error.Common as Errors
+import Standard.Base.System
 import Standard.Table.Data.Match_Columns
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
@@ -109,7 +110,17 @@ type Delimited
        - keep_invalid_rows: Specifies whether rows that contain less or more
          columns than expected should be kept (setting the missing columns to
          `Nothing` or dropping the excess columns) or dropped.
-    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True)
+       - line_endings: Sets the line ending style to use. Defaults to `Infer` -
+         when reading a file or appending to an existing file, the line endings
+         are detected from file contents; when writing a new file, the OS
+         defaults are used.
+       - comment_character: Sets the character which indicates the start of a
+         comment within a delimited file. Any line that begins with the comment
+         character is skipped. The comment character is treated as any other
+         character if it anywhere else than at the beginning of the line. This
+         option is only applicable for read mode and does not affect writing. It
+         defaults to `Nothing` which means that comments are disabled.
+    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Boolean|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -124,9 +135,9 @@ type Delimited
     ## PRIVATE
      Clone the instance with some properties overridden.
      Note: This function is internal until such time as Atom cloning with modification is built into Enso.
-    clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->Delimited
-    clone (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) =
-        Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows
+    clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->(Text|Nothing)->(Text|Nothing)->Delimited
+    clone (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
+        Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 
     ## Create a clone of this with specified quoting settings.
     with_quotes : Text->Text->Boolean->Delimited
@@ -158,6 +169,21 @@ type Delimited
     without_parsing : Delimited
     without_parsing =
         self.clone value_formatter=Nothing
+
+    ## Creates a clone of this with a changed line ending style.
+    with_line_endings : Line_Ending_Style -> Delimited
+    with_line_endings line_endings=Infer =
+        self.clone line_endings=line_endings
+
+    ## Creates a clone of this with comment parsing enabled.
+    with_comments : Text -> Delimited
+    with_comments comment_character='#' =
+        self.clone comment_character=comment_character
+
+    ## Creates a clone of this with comment parsing disabled.
+    without_comments : Delimited
+    without_comments =
+        self.clone comment_character=Nothing
 
 ## A setting to infer the default behaviour of some option.
 type Infer

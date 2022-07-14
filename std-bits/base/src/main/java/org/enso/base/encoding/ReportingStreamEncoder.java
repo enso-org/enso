@@ -149,13 +149,13 @@ public class ReportingStreamEncoder extends Writer {
       return List.of();
     } else {
       if (encodingIssuePositions.size() == 1) {
-        return List.of("Encoding issues at character " + encodingIssuePositions.get(0) + ".");
+        return List.of("Encoding issues at codepoint " + encodingIssuePositions.get(0) + ".");
       }
 
       String issues =
           encodingIssuePositions.stream()
               .map(String::valueOf)
-              .collect(Collectors.joining(", ", "Encoding issues at characters ", "."));
+              .collect(Collectors.joining(", ", "Encoding issues at codepoints ", "."));
       return List.of(issues);
     }
   }
