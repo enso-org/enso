@@ -31,7 +31,7 @@ public class ModuleScope implements TruffleObject {
    */
   public ModuleScope(Module module) {
     this.module = module;
-    this.associatedType = new Type(module.getName().item(), this);
+    this.associatedType = new Type(module.getName().item(), this, false);
   }
 
   /**
@@ -42,6 +42,11 @@ public class ModuleScope implements TruffleObject {
   public void registerConstructor(AtomConstructor constructor) {
     constructors.put(constructor.getName(), constructor);
   }
+
+  public void registerType(Type type) {
+    types.put(type.getName(), type);
+  }
+
 
   /**
    * @return the associated type of this module.

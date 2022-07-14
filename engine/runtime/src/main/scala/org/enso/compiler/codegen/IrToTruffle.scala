@@ -71,6 +71,7 @@ import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
 import org.enso.compiler.core.IR.Name.Special
+import org.enso.interpreter.runtime.data.Type
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -374,8 +375,8 @@ class IrToTruffle(
       )
 
       val toOpt =
-        getConstructorResolution(methodDef.methodReference.typePointer)
-      val fromOpt = getConstructorResolution(methodDef.sourceTypeName)
+        getTypeResolution(methodDef.methodReference.typePointer)
+      val fromOpt = getTypeResolution(methodDef.sourceTypeName)
       toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
         val expressionProcessor = new ExpressionProcessor(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
@@ -453,18 +454,17 @@ class IrToTruffle(
       .getOrElse(source.createUnavailableSection())
   }
 
-  private def getConstructorResolution(expr: IR): Option[AtomConstructor] =
+  private def getTypeResolution(expr: IR): Option[Type] =
     expr.getMetadata(MethodDefinitions).map { res =>
       res.target match {
-        case _: BindingsMap.ResolvedType => throw new CompilerError("todo")
+        case BindingsMap.ResolvedType(definitionModule, tp) =>
+          definitionModule.unsafeAsModule().getScope.getTypes.get(tp)
         case BindingsMap.ResolvedModule(module) =>
           module.unsafeAsModule().getScope.getAssociatedType
-        case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-          definitionModule
-            .unsafeAsModule()
-            .getScope
-            .getConstructors
-            .get(cons.name)
+        case BindingsMap.ResolvedConstructor(_, _) =>
+          throw new CompilerError(
+            "Impossible here, should be caught by MethodDefinitions pass."
+          )
         case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
           throw new CompilerError(
             "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
@@ -571,15 +571,16 @@ class IrToTruffle(
                 name,
                 fun
               )
-            case BindingsMap.ResolvedModule(module) =>
-              val runtimeCons =
-                module.unsafeAsModule().getScope.getAssociatedType
-              val fun = mkConsGetter(runtimeCons)
-              moduleScope.registerMethod(
-                moduleScope.getAssociatedType,
-                name,
-                fun
-              )
+            case BindingsMap.ResolvedModule( /*module*/ _) =>
+              throw new CompilerError("todo")
+//              val runtimeCons =
+//                module.unsafeAsModule().getScope.getAssociatedType
+//              val fun = mkConsGetter(runtimeCons)
+//              moduleScope.registerMethod(
+//                moduleScope.getAssociatedType,
+//                name,
+//                fun
+//              )
             case BindingsMap.ResolvedMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
               val fun = actualModule.getScope.getMethods
@@ -849,9 +850,12 @@ class IrToTruffle(
                 case None =>
                   Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
                 case Some(
-                      BindingsMap.Resolution(BindingsMap.ResolvedModule(mod))
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedModule(_ /*mod*/ )
+                      )
                     ) =>
-                  Right(mod.unsafeAsModule().getScope.getAssociatedType)
+                  throw new CompilerError("todo")
+                //Right(mod.unsafeAsModule().getScope.getAssociatedType)
                 case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedConstructor(mod, cons)
@@ -915,7 +919,8 @@ class IrToTruffle(
                   branchCodeNode.getCallTarget
                 )
               } else if (atomCons == text) {
-                TextBranchNode.build(text, branchCodeNode.getCallTarget)
+                throw new CompilerError("todo")
+//                TextBranchNode.build(text, branchCodeNode.getCallTarget)
               } else if (atomCons == number.getInteger) {
                 IntegerBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == number.getDecimal) {
@@ -1102,7 +1107,7 @@ class IrToTruffle(
             )
           }
         case IR.Name.Here(_, _, _) =>
-          ConstructorNode.build(moduleScope.getAssociatedType)
+          ConstantObjectNode.build(moduleScope.getAssociatedType)
         case IR.Name.Self(location, passData, _) =>
           processName(
             IR.Name.Literal(

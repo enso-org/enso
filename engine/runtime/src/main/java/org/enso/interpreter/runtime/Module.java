@@ -29,9 +29,11 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -184,7 +186,9 @@ public class Module implements TruffleObject {
     this.compilationStage = CompilationStage.INITIAL;
   }
 
-  /** @return the literal source of this module. */
+  /**
+   * @return the literal source of this module.
+   */
   public Rope getLiteralSource() {
     return sources.rope();
   }
@@ -254,7 +258,9 @@ public class Module implements TruffleObject {
     }
   }
 
-  /** @return the location of this module. */
+  /**
+   * @return the location of this module.
+   */
   public String getPath() {
     return sources.getPath();
   }
@@ -339,12 +345,16 @@ public class Module implements TruffleObject {
     context.getCompiler().run(this);
   }
 
-  /** @return IR defined by this module. */
+  /**
+   * @return IR defined by this module.
+   */
   public IR.Module getIr() {
     return ir;
   }
 
-  /** @return the current compilation stage of this module. */
+  /**
+   * @return the current compilation stage of this module.
+   */
   public CompilationStage getCompilationStage() {
     return compilationStage;
   }
@@ -373,12 +383,16 @@ public class Module implements TruffleObject {
     this.ir = ir;
   }
 
-  /** @return the runtime scope of this module. */
+  /**
+   * @return the runtime scope of this module.
+   */
   public ModuleScope getScope() {
     return scope;
   }
 
-  /** @return the qualified name of this module. */
+  /**
+   * @return the qualified name of this module.
+   */
   public QualifiedName getName() {
     return name;
   }
@@ -396,7 +410,9 @@ public class Module implements TruffleObject {
     this.name = name.renameProject(newName);
   }
 
-  /** @return the indexed flag. */
+  /**
+   * @return the indexed flag.
+   */
   public boolean isIndexed() {
     return isIndexed;
   }
@@ -406,12 +422,16 @@ public class Module implements TruffleObject {
     isIndexed = indexed;
   }
 
-  /** @return the source file of this module. */
+  /**
+   * @return the source file of this module.
+   */
   public TruffleFile getSourceFile() {
     return sources.file();
   }
 
-  /** @return {@code true} if the module is interactive, {@code false} otherwise */
+  /**
+   * @return {@code true} if the module is interactive, {@code false} otherwise
+   */
   public boolean isInteractive() {
     return patchedValues != null;
   }
@@ -426,17 +446,23 @@ public class Module implements TruffleObject {
     compilationStage = CompilationStage.AFTER_CODEGEN;
   }
 
-  /** @return the cache for this module */
+  /**
+   * @return the cache for this module
+   */
   public ModuleCache getCache() {
     return cache;
   }
 
-  /** @return {@code true} if the module was loaded from the cache, {@code false} otherwise */
+  /**
+   * @return {@code true} if the module was loaded from the cache, {@code false} otherwise
+   */
   public boolean wasLoadedFromCache() {
     return wasLoadedFromCache;
   }
 
-  /** @param wasLoadedFromCache whether or not the module was loaded from the cache */
+  /**
+   * @param wasLoadedFromCache whether or not the module was loaded from the cache
+   */
   public void setLoadedFromCache(boolean wasLoadedFromCache) {
     this.wasLoadedFromCache = wasLoadedFromCache;
   }
@@ -449,7 +475,9 @@ public class Module implements TruffleObject {
     return hasCrossModuleLinks;
   }
 
-  /** @param hasCrossModuleLinks whether or not the module has cross-module links restored */
+  /**
+   * @param hasCrossModuleLinks whether or not the module has cross-module links restored
+   */
   public void setHasCrossModuleLinks(boolean hasCrossModuleLinks) {
     this.hasCrossModuleLinks = hasCrossModuleLinks;
   }
@@ -516,8 +544,7 @@ public class Module implements TruffleObject {
       return module;
     }
 
-    private static AtomConstructor getAssociatedConstructor(ModuleScope scope, Object[] args)
-        throws ArityException {
+    private static Type getAssociatedType(ModuleScope scope, Object[] args) throws ArityException {
       Types.extractArguments(args);
       return scope.getAssociatedType();
     }
@@ -533,10 +560,9 @@ public class Module implements TruffleObject {
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
-      Object state = context.getBuiltins().nothing().newInstance();
       return callOptimiserNode
           .executeDispatch(
-              eval, callerInfo, state, new Object[] {builtins.debug(), Text.create(expr)})
+              eval, callerInfo, EmptyMap.create(), new Object[] {builtins.debug(), Text.create(expr)})
           .getValue();
     }
 
@@ -564,7 +590,7 @@ public class Module implements TruffleObject {
         case MethodNames.Module.GET_METHOD:
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
-          return result == null ? context.getBuiltins().nothing().newInstance() : result;
+          return result == null ? context.getBuiltins().nothing() : result;
         case MethodNames.Module.GET_CONSTRUCTOR:
           scope = module.compileScope(context);
           return getConstructor(scope, arguments);
@@ -580,7 +606,7 @@ public class Module implements TruffleObject {
           return setSourceFile(module, arguments, context);
         case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
           scope = module.compileScope(context);
-          return getAssociatedConstructor(scope, arguments);
+          return getAssociatedType(scope, arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
           scope = module.compileScope(context);
           return evalExpression(scope, arguments, context, callOptimiserNode);

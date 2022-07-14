@@ -64,7 +64,7 @@ public class Builtins {
   private final Special special;
 
   // Builtin types
-  private final BuiltinType any;
+  private final Type any;
   private final BuiltinType nothing;
   private final BuiltinType function;
   private final BuiltinType polyglot;
@@ -89,7 +89,8 @@ public class Builtins {
     scope = module.compileScope(context);
 
     builtins = new HashMap<>();
-    List<AtomConstructor> builtinTypes = readBuiltinTypesMetadata(scope);
+    any = new Type("Any", scope, true);
+    var builtinTypes = readBuiltinTypesMetadata(scope);
     builtinMethodNodes = readBuiltinMethodsMetadata(scope);
     registerBuiltinMethods(builtinTypes, scope, language);
 
@@ -99,16 +100,13 @@ public class Builtins {
     number = new Number(this);
     bool = new Bool(this);
 
-    any = new BuiltinType(this, Any.class);
     nothing = new BuiltinType(this, Nothing.class);
     function =
-        new BuiltinType(
-            this, org.enso.interpreter.node.expression.builtin.function.Function.class);
+        new BuiltinType(this, org.enso.interpreter.node.expression.builtin.function.Function.class);
     polyglot = new BuiltinType(this, Polyglot.class);
     text = new BuiltinType(this, Text.class);
     array = new BuiltinType(this, Array.class);
-    dataflowError =
-        new BuiltinType(this, org.enso.interpreter.node.expression.builtin.Error.class);
+    dataflowError = new BuiltinType(this, org.enso.interpreter.node.expression.builtin.Error.class);
     ref = new BuiltinType(this, Ref.class);
     managedResource = new BuiltinType(this, ManagedResource.class);
     debug = new BuiltinType(this, Debug.class);
@@ -127,11 +125,10 @@ public class Builtins {
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
    */
-  private void registerBuiltinMethods(
-      List<AtomConstructor> builtins, ModuleScope scope, Language language) {
-    for (AtomConstructor atom : builtins) {
-      String tpeName = atom.getName();
-      this.builtins.put(tpeName, atom);
+  private void registerBuiltinMethods(List<Type> builtins, ModuleScope scope, Language language) {
+    for (Type type : builtins) {
+      String tpeName = type.getName();
+      this.builtins.put(tpeName, type);
       Map<String, Class<BuiltinRootNode>> methods = builtinMethodNodes.get(tpeName);
       if (methods != null) {
         methods.forEach(
@@ -144,13 +141,15 @@ public class Builtins {
                 e.printStackTrace();
                 fun = Optional.empty();
               }
-              fun.ifPresent(f -> scope.registerMethod(atom, methodName, f));
+              fun.ifPresent(f -> scope.registerMethod(type, methodName, f));
             });
       }
     }
   }
 
-  /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
+  /**
+   * @return {@code true} if the IR has been initialized, otherwise {@code false}
+   */
   public boolean isIrInitialized() {
     return this.module.getIr() != null;
   }
@@ -189,7 +188,7 @@ public class Builtins {
    *
    * @param scope Builtins scope
    */
-  private List<AtomConstructor> readBuiltinTypesMetadata(ModuleScope scope) {
+  private List<Type> readBuiltinTypesMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
     try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
@@ -210,25 +209,25 @@ public class Builtins {
                 throw new CompilerError("Invalid builtin metadata in: " + line);
               }
 
-              AtomConstructor builtin;
-              builtin = new AtomConstructor(builtinMeta[0], scope, true);
-
-              if (builtinMeta.length < 3 || builtinMeta[2].isEmpty()) {
-                builtin = builtin.initializeFields();
-              } else {
-                // there are some type params
-                String[] paramNames = builtinMeta[2].split(",");
-                ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
-                for (int i = 0; i < paramNames.length; i++) {
-                  args[i] =
-                      new ArgumentDefinition(
-                          i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
-                }
-                builtin = builtin.initializeFields(args);
-              }
-              return builtin;
+              return new Type(builtinMeta[0], scope, true);
             })
-        .filter(b -> b != null)
+        //              builtin = new AtomConstructor(builtinMeta[0], scope, true);
+        //
+        //              if (builtinMeta.length < 3 || builtinMeta[2].isEmpty()) {
+        //                builtin = builtin.initializeFields();
+        //              } else {
+        //                // there are some type params
+        //                String[] paramNames = builtinMeta[2].split(",");
+        //                ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
+        //                for (int i = 0; i < paramNames.length; i++) {
+        //                  args[i] =
+        //                      new ArgumentDefinition(
+        //                          i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
+        //                }
+        //                builtin = builtin.initializeFields(args);
+        //              }
+        //              return builtin;
+        //            })
         .collect(Collectors.toList());
   }
 
@@ -305,14 +304,13 @@ public class Builtins {
   /**
    * Returns a builtin method for the provided Atom Constructor and the name, if it exists.
    *
-   * @param atom Atom Constructor owner of the function
+   * @param type Atom Constructor owner of the function
    * @param methodName Name of the method
    * @param language The language the resulting function nodes should be associated with
    * @return A non-empty function under the given name, if it exists. An empty value if no such
    *     builtin method was ever registerd
    */
-  public Optional<Function> getBuiltinFunction(
-      Type type, String methodName, Language language) {
+  public Optional<Function> getBuiltinFunction(Type type, String methodName, Language language) {
     // TODO: move away from String mapping once Builtins is gone
     Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(type.getName());
     if (atomNodes == null) return Optional.empty();
@@ -327,12 +325,12 @@ public class Builtins {
     }
   }
 
-  public AtomConstructor getBuiltinType(Class<? extends Builtin> clazz) {
+  public Type getBuiltinType(Class<? extends Builtin> clazz) {
     String snakeCaseName = clazz.getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
     return getBuiltinType(snakeCaseName);
   }
 
-  public AtomConstructor getBuiltinType(String name) {
+  public Type getBuiltinType(String name) {
     return builtins.get(name);
   }
 
@@ -341,7 +339,7 @@ public class Builtins {
    *
    * @return the {@code Nothing} atom constructor
    */
-  public AtomConstructor nothing() {
+  public Type nothing() {
     return nothing.getType();
   }
 
@@ -350,7 +348,7 @@ public class Builtins {
    *
    * @return the {@code Text} part of builtins.
    */
-  public AtomConstructor text() {
+  public Type text() {
     return text.getType();
   }
 
@@ -359,7 +357,7 @@ public class Builtins {
    *
    * @return the {@code Function} atom constructor
    */
-  public AtomConstructor function() {
+  public Type function() {
     return function.getType();
   }
 
@@ -372,17 +370,23 @@ public class Builtins {
     return number;
   }
 
-  /** @return the container for boolean constructors. */
+  /**
+   * @return the container for boolean constructors.
+   */
   public Bool bool() {
     return bool;
   }
 
-  /** @return the ManagedResource constructor. */
-  public AtomConstructor managedResource() {
+  /**
+   * @return the ManagedResource constructor.
+   */
+  public Type managedResource() {
     return managedResource.getType();
   }
 
-  /** @return the builtin Error types container. */
+  /**
+   * @return the builtin Error types container.
+   */
   public Error error() {
     return error;
   }
@@ -392,8 +396,8 @@ public class Builtins {
    *
    * @return the {@code Any} atom constructor
    */
-  public AtomConstructor any() {
-    return any.getType();
+  public Type any() {
+    return any;
   }
 
   /**
@@ -401,7 +405,7 @@ public class Builtins {
    *
    * @return the {@code Warning} atom constructor
    */
-  public AtomConstructor warning() {
+  public Type warning() {
     return warning.getType();
   }
 
@@ -410,7 +414,7 @@ public class Builtins {
    *
    * @return the {@code File} atom constructor
    */
-  public AtomConstructor file() {
+  public Type file() {
     return file.getType();
   }
 
@@ -420,52 +424,70 @@ public class Builtins {
    *
    * @return the {@code Debug} atom constructor
    */
-  public AtomConstructor debug() {
+  public Type debug() {
     return debug.getType();
   }
 
-  /** @return the {@code Project_Description} atom constructor */
-  public AtomConstructor getProjectDescription() {
+  /**
+   * @return the {@code Project_Description} atom constructor
+   */
+  public Type getProjectDescription() {
     return projectDescription.getType();
   }
 
-  /** @return the {@code System} atom constructor. */
+  /**
+   * @return the {@code System} atom constructor.
+   */
   public System system() {
     return system;
   }
 
-  /** @return the Array constructor. */
-  public AtomConstructor array() {
+  /**
+   * @return the Array constructor.
+   */
+  public Type array() {
     return array.getType();
   }
 
-  /** @return the Ref constructor. */
-  public AtomConstructor ref() {
+  /**
+   * @return the Ref constructor.
+   */
+  public Type ref() {
     return ref.getType();
   }
 
-  /** @return the container for polyglot-related builtins. */
-  public AtomConstructor polyglot() {
+  /**
+   * @return the container for polyglot-related builtins.
+   */
+  public Type polyglot() {
     return polyglot.getType();
   }
 
-  /** @return the {@code Caught_Panic} atom constructor */
+  /**
+   * @return the {@code Caught_Panic} atom constructor
+   */
   public AtomConstructor caughtPanic() {
     return this.error.caughtPanic();
   }
 
-  /** @return the {@code Panic} atom constructor */
+  /**
+   * @return the {@code Panic} atom constructor
+   */
   public AtomConstructor panic() {
     return this.error.panic();
   }
 
-  /** @return the container for ordering-related builtins */
+  /**
+   * @return the container for ordering-related builtins
+   */
   public Ordering ordering() {
     return ordering;
   }
 
-  /** @return the container for the dataflow error-related builtins */
-  public AtomConstructor dataflowError() {
+  /**
+   * @return the container for the dataflow error-related builtins
+   */
+  public Type dataflowError() {
     return dataflowError.getType();
   }
 

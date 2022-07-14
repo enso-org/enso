@@ -21,7 +21,7 @@ public class BuiltinType {
   public Type getType() {
     if (type == null) {
       transferToInterpreterAndInvalidate();
-      type = builtins.getBuiltinType(type);
+      type = builtins.getBuiltinType(clazz);
     }
     return type;
   }

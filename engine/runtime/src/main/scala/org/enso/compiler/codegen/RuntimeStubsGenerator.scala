@@ -29,7 +29,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         if (builtinType == null) {
           throw new CompilerError("Unknown @BuiltinType " + tp.name)
         }
-        scope.registerConstructor(builtinType)
+        scope.registerType(builtinType)
         builtinType.setShadowDefinitions(scope)
       } else {
         val constructor = new AtomConstructor(tp.name, scope)

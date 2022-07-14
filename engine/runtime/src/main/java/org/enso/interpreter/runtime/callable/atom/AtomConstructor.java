@@ -78,23 +78,6 @@ public final class AtomConstructor implements TruffleObject {
     return builtin;
   }
 
-  public void setShadowDefinitions(ModuleScope scope) {
-    if (builtin) {
-      // Ensure that synthetic methods, such as getters for fields are in the scope
-      // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
-      // check.
-      CompilerAsserts.neverPartOfCompilation();
-      Map<String, Function> methods = this.definitionScope.getMethods().get(this);
-      if (methods != null) {
-        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
-      }
-      this.definitionScope = scope;
-    } else {
-      throw new RuntimeException(
-          "Attempting to modify scope of a non-builtin type post-construction is not allowed");
-    }
-  }
-
   /**
    * Generates a constructor function for this {@link AtomConstructor}. Note that such manually
    * constructed argument definitions must not have default arguments.
