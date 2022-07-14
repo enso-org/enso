@@ -80,7 +80,9 @@ public abstract class HostMethodCallNode extends Node {
    */
   public static PolyglotCallType getPolyglotCallType(
       Object self, String methodName, InteropLibrary library) {
-    if (library.isMemberInvocable(self, methodName)) {
+    if (library.isDate(self) && !library.isTime(self)) {
+      return PolyglotCallType.CONVERT_TO_DATE;
+    } else if (library.isMemberInvocable(self, methodName)) {
       return PolyglotCallType.CALL_METHOD;
     } else if (library.isMemberReadable(self, methodName)) {
       return PolyglotCallType.GET_MEMBER;
@@ -92,10 +94,6 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.READ_ARRAY_ELEMENT;
     } else if (library.isString(self)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
-    } else if (library.isDate(self)) {
-      if (!library.isTime(self)) {
-        return PolyglotCallType.CONVERT_TO_DATE;
-      }
     }
     return PolyglotCallType.NOT_SUPPORTED;
   }

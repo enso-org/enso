@@ -147,9 +147,15 @@ jsParse text format=Nothing =
     jsDate d.year d.month d.day
 
 jsDate year month=1 day=1 =
-    Panic.recover Any (jsDateImpl year month day) . catch e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err)
-        x -> x
+    Panic.catch Any (jsDateImpl year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
+
+
+jsArrayDate year month=1 day=1 =
+    arr = Panic.catch Any (jsArrayDateCreate year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
+    arr.at(0)
+
+javaDate year month=1 day=1 =
+    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time.Time_Error <| err.payload.to_display_text.take (Range 16 Nothing)))
 
 foreign js jsDateImpl year month=1 day=1 = """
     if (month > 12) {
@@ -157,20 +163,8 @@ foreign js jsDateImpl year month=1 day=1 = """
     }
     return new Date(year, month - 1, day);
 
-jsArrayDate year month=1 day=1 =
-    arr = Panic.recover Any (jsArrayDateCreate year month day) . catch e-> case e of
-        Polyglot_Error err ->
-            Error.throw (Time.Time_Error err)
-        x -> x
-    arr.at(0)
-
 foreign js jsArrayDateCreate year month day = """
     if (month > 12) {
         throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
     }
     return [ new Date(year, month - 1, day) ];
-
-javaDate year month=1 day=1 =
-    Panic.recover Any (LocalDate.of year month day) . catch e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
-        x -> x
