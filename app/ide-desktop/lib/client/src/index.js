@@ -6,13 +6,12 @@ import buildCfg from '../../../build.json'
 import Electron from 'electron'
 import isDev from 'electron-is-dev'
 import path from 'path'
-// import * as Server from 'enso-studio-common/src/server.js'
 import * as server from 'enso-gui-server'
 import util from 'util'
 import yargs from 'yargs'
 import remoteMain from '@electron/remote/main/index.js'
 
-import { project_manager_bundle } from '../paths.mjs'
+import { project_manager_bundle } from '../paths.js'
 
 import child_process from 'child_process'
 import fss from 'fs'
@@ -472,8 +471,8 @@ async function main(args) {
     runBackend()
     console.log('Starting the IDE service.')
     if (args.server !== false) {
-        // TODO customize port
-        let port = await server.start(root)
+        // The port actually used by the server might be different from what was requested, if it is already used.
+        let port = await server.start({root, port: args.port})
         origin = `http://localhost:${port}`
     }
     if (args.window !== false) {

@@ -10,13 +10,13 @@ import {require_env, require_env_resolved_path} from '../../utils.js'
 // Constants provided through the environment. //
 /////////////////////////////////////////////////
 
-/** @type {string} Output directory for bundled client files. */
+/** Output directory for bundled client files. */
 const outdir = path.join(require_env_resolved_path('ENSO_BUILD_IDE'), 'client')
 
-/** @type {string} Path to the project manager executable relative to the PM bundle root. */
+/** Path to the project manager executable relative to the PM bundle root. */
 const projectManagerInBundlePath = require_env('ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH')
 
-/** @type {string} Version of the Engine (backend) that is bundled along with this client build. */
+/** Version of the Engine (backend) that is bundled along with this client build. */
 const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION')
 
 

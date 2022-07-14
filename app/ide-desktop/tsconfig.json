@@ -6,9 +6,9 @@
     "module": "ESNext",
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
   },
-
   "ts-node": {
     "esm": true
   }

@@ -31,11 +31,12 @@
     "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "crypto-js": "4.1.1",
     "electron-notarize": "1.2.1",
-    "enso-copy-plugin": "^1.0.0"
+    "enso-copy-plugin": "^1.0.0",
+    "ts-node": "^10.9.1"
   },
   "scripts": {
     "start": "electron ../../../../dist/content -- ",
     "build": "ts-node bundle.ts",
-    "dist": "node electron-builder-config.mjs && electron-builder --publish never --config electron-builder-config.json"
+    "dist": "ts-node electron-builder-config.ts && electron-builder --publish never --config electron-builder-config.json"
   }
 }

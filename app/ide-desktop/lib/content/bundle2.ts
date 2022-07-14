@@ -1,19 +1,17 @@
-import esbuild from 'esbuild'
-import 'esbuild-plugin-yaml'
-import plugin_yaml from 'esbuild-plugin-yaml'
-import {NodeModulesPolyfillPlugin} from '@esbuild-plugins/node-modules-polyfill'
+import fs from 'node:fs'
 import path, { dirname } from 'node:path'
 import child_process from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import aliasPlugin from 'esbuild-plugin-alias'
 
+import esbuild from 'esbuild'
+import plugin_yaml from 'esbuild-plugin-yaml'
+import {NodeModulesPolyfillPlugin} from '@esbuild-plugins/node-modules-polyfill'
+import aliasPlugin from 'esbuild-plugin-alias'
 // @ts-ignore
 import timePlugin from 'esbuild-plugin-time'
-// @ts-ignore
-import { require_env } from '../../utils.ts'
-// @ts-ignore
+
+import { require_env } from '../../utils.js'
 import * as BUILD_INFO from '../../build.json' assert { type: 'json' }
-import * as fs from 'fs'
 // @ts-ignore
 import * as copy_plugin from 'enso-copy-plugin'
 
