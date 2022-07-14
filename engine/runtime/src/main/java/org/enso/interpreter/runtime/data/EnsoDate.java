@@ -44,16 +44,21 @@ public final class EnsoDate implements TruffleObject {
     return new EnsoDate(LocalDate.now());
   }
 
-  /**
-   * TODO: This should work but seems that annotation doesn't pick up String conversion correctly
-   *
-  @Builtin.Method(name = "date_parse")
+  @Builtin.Method(name = "date_parse", description = "Constructs a new Date from text with optional pattern")
   @Builtin.Specialize
-  public static EnsoDate parse(Text text, String pattern) {
-    var formatter = DateTimeFormatter.ofPattern(pattern);
-    return new EnsoDate(LocalDate.parse(null, formatter));
+  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class, propagate = true)
+  public static EnsoDate parse(Text text, Object noneOrPattern) {
+    var str = text.getContents().toString();
+    if (noneOrPattern instanceof Text pattern) {
+      noneOrPattern = pattern.getContents().toString();
+    }
+    if (noneOrPattern instanceof String pattern) {
+      var formatter = DateTimeFormatter.ofPattern(pattern);
+      return new EnsoDate(LocalDate.parse(str, formatter));
+    } else {
+      return new EnsoDate(LocalDate.parse(str));
+    }
   }
-   */
 
   @Builtin.Method(name = "date_new", description = "Constructs a new Date from a year, month, and day")
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class, propagate = true)

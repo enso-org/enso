@@ -137,7 +137,7 @@ parse text pattern=Nothing =
         Text -> Date.date_parse text pattern
         _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
     result . map_error <| case _ of
-        Polyglot_Error err -> Time.Time_Error err.getMessage
+        Polyglot_Error err -> Time.Time_Error err
         ex -> Time.Time_Error ex
 
 type Date
