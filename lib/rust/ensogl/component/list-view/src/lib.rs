@@ -328,6 +328,9 @@ ensogl_core::define_endpoints! {
         /// mouse and keyboard will work. Used in cases where the ListView user want to manage the
         /// selection widget (e.g. when the selection is shared between many lists).
         hide_selection(),
+        /// The selection will highlight the currently chosen entry, not currently selected
+        /// one (so that hovering the entry with the mouse will not move the selection).
+        selection_ignores_mouse_hover(),
 
         resize(Vector2<f32>),
         scroll_jump(f32),
@@ -575,7 +578,11 @@ where E::Model: Default
 
             // === Selection Size and Position ===
 
-            selection_y.target <+ frp.selected_entry.filter_map(|id|
+            selection_follows_chosen_entry <- any(...);
+            selection_follows_chosen_entry <+ init.constant(false);
+            selection_follows_chosen_entry <+ frp.selection_ignores_mouse_hover.constant(true);
+            followed_entry <- switch(&selection_follows_chosen_entry, &frp.selected_entry, &frp.chosen_entry);
+            selection_y.target <+ followed_entry.filter_map(|id|
                 id.map(entry::List::<E>::position_y_of_entry)
             );
             selection_height.target <+ all_with(&frp.selected_entry, &style.selection_height, |id, h|

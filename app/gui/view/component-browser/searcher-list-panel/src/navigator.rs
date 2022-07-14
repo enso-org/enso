@@ -98,6 +98,8 @@ impl Navigator {
         bottom_buttons.set_style_prefix(list_panel_theme::navigator_list_view::HERE.str);
         top_buttons.show_background_shadow(false);
         bottom_buttons.show_background_shadow(false);
+        top_buttons.selection_ignores_mouse_hover();
+        bottom_buttons.selection_ignores_mouse_hover();
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
         // Top buttons are disabled until https://www.pivotaltracker.com/story/show/182613789.
