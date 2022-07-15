@@ -169,12 +169,12 @@ impl List {
     pub fn build(self) -> component::List {
         let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
-            group.content.update_sorting_and_visibility(components_order);
+            group.content.update_sorting(components_order);
             if let Some(flattened) = &group.flattened_content {
-                flattened.update_sorting_and_visibility(components_order);
+                flattened.update_sorting(components_order);
             }
         }
-        self.local_scope.update_sorting_and_visibility(components_order);
+        self.local_scope.update_sorting(components_order);
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
@@ -239,12 +239,12 @@ mod tests {
             list.top_modules.iter().map(Into::into).collect();
         let expected = vec![
             ComparableGroupData {
-                name:         "test.Test.TopModule1",
+                name:         "Test.TopModule1",
                 component_id: Some(0),
                 entries:      vec![5, 6, 2, 3],
             },
             ComparableGroupData {
-                name:         "test.Test.TopModule2",
+                name:         "Test.TopModule2",
                 component_id: Some(1),
                 entries:      vec![7],
             },
@@ -255,12 +255,12 @@ mod tests {
             list.top_modules_flattened.iter().map(Into::into).collect();
         let expected = vec![
             ComparableGroupData {
-                name:         "test.Test.TopModule1",
+                name:         "Test.TopModule1",
                 component_id: Some(0),
                 entries:      vec![5, 6, 8, 9, 10, 2, 3, 4],
             },
             ComparableGroupData {
-                name:         "test.Test.TopModule2",
+                name:         "Test.TopModule2",
                 component_id: Some(1),
                 entries:      vec![7],
             },
@@ -274,12 +274,12 @@ mod tests {
             .collect();
         let expected: BTreeMap<component::Id, ComparableGroupData> = [
             (0, ComparableGroupData {
-                name:         "test.Test.TopModule1",
+                name:         "Test.TopModule1",
                 component_id: Some(0),
                 entries:      vec![5, 6, 2, 3],
             }),
             (1, ComparableGroupData {
-                name:         "test.Test.TopModule2",
+                name:         "Test.TopModule2",
                 component_id: Some(1),
                 entries:      vec![7],
             }),

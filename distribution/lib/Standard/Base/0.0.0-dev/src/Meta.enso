@@ -293,7 +293,7 @@ Base.Error.is_a typ = self.is_an typ
    Arguments:
    - typ: The type to check `self` against.
 Base.Error.is_an : Any -> Boolean
-Base.Error.is_an typ = typ == Base.Error
+Base.Error.is_an typ = typ==Any || typ==Base.Error
 
 ## UNSTABLE
    ADVANCED

@@ -15,6 +15,7 @@ import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextProtocol.{
   ApplyEdit,
+  ApplyExpressionValue,
   CloseFile,
   FileNotOpened,
   OpenFile,
@@ -131,6 +132,13 @@ class BufferRegistry(
       }
 
     case msg @ ApplyEdit(_, FileEdit(path, _, _, _), _) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        sender() ! FileNotOpened
+      }
+
+    case msg @ ApplyExpressionValue(_, _, path, _, _, _) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)
       } else {

@@ -38,10 +38,14 @@ spec =
         invalid_ascii_out = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 63]
 
         Test.specify "should dump ASCII bytes to a vector via encoding" <|
-            test.bytes Encoding.ascii . should_equal test_ascii
+            dump = test.bytes Encoding.ascii
+            Test.assert_no_problems dump
+            dump . should_equal test_ascii
 
         Test.specify "should convert an array of bytes to text" <|
-            Text.from_bytes test_ascii Encoding.ascii . should_equal test
+            result = Text.from_bytes test_ascii Encoding.ascii
+            Test.assert_no_problems result
+            result . should_equal test
 
         Test.specify "Invalid ASCII should raise a warning when decoding" <|
             action = Text.from_bytes invalid_ascii Encoding.ascii on_problems=_
@@ -63,16 +67,24 @@ spec =
         invalid_utf_8 = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 32, -62, -94, -62, -93, -62, -91, -62]
 
         Test.specify "should dump utf-8 bytes to a vector via encoding" <|
-            kshi.bytes Encoding.utf_8 . should_equal kshi_utf_8
+            dump = kshi.bytes Encoding.utf_8
+            Test.assert_no_problems dump
+            dump . should_equal kshi_utf_8
 
         Test.specify "should dump utf-8 bytes to a vector" <|
-            kshi.utf_8.should_equal kshi_utf_8
+            dump = kshi.utf_8
+            Test.assert_no_problems dump
+            dump.should_equal kshi_utf_8
 
         Test.specify "should convert an array of bytes to text via encoding" <|
-            Text.from_bytes kshi_utf_8 Encoding.utf_8 . should_equal kshi
+            result = Text.from_bytes kshi_utf_8 Encoding.utf_8
+            Test.assert_no_problems result
+            result . should_equal kshi
 
         Test.specify "should convert an array of bytes to text" <|
-            Text.from_utf_8 kshi_utf_8 . should_equal kshi
+            result = Text.from_utf_8 kshi_utf_8
+            Test.assert_no_problems result
+            result . should_equal kshi
 
         Test.specify "Invalid UTF-8 should raise a warning when decoding via encoding" <|
             action = Text.from_bytes invalid_utf_8 Encoding.utf_8 on_problems=_
@@ -91,20 +103,28 @@ spec =
         kshi_utf_16 = [9, 21, 9, 77, 9, 55, 9, 63]
 
         Test.specify "should dump utf-16 bytes to a vector via encoding" <|
-            kshi.bytes Encoding.utf_16_be . should_equal kshi_utf_16
+            dump = kshi.bytes Encoding.utf_16_be
+            Test.assert_no_problems dump
+            dump . should_equal kshi_utf_16
 
         Test.specify "should convert an array of bytes to text via encoding" <|
-            Text.from_bytes kshi_utf_16 Encoding.utf_16_be . should_equal kshi
+            result = Text.from_bytes kshi_utf_16 Encoding.utf_16_be
+            Test.assert_no_problems result
+            result . should_equal kshi
 
     Test.group "UTF_16 LittleEndian" <|
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_16 = [21, 9, 77, 9, 55, 9, 63, 9]
 
         Test.specify "should dump utf-16 bytes to a vector via encoding" <|
-            kshi.bytes Encoding.utf_16_le . should_equal kshi_utf_16
+            dump = kshi.bytes Encoding.utf_16_le
+            Test.assert_no_problems dump
+            dump . should_equal kshi_utf_16
 
         Test.specify "should convert an array of bytes to text via encoding" <|
-            Text.from_bytes kshi_utf_16 Encoding.utf_16_le . should_equal kshi
+            result = Text.from_bytes kshi_utf_16 Encoding.utf_16_le
+            Test.assert_no_problems result
+            result . should_equal kshi
 
     Test.group "codepoints" <|
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
@@ -125,10 +145,14 @@ spec =
         invalid_windows_out = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 32, -94, -93, -91, 63]
 
         Test.specify "should dump Windows-1252 bytes to a vector via encoding" <|
-            test.bytes Encoding.windows_1252 . should_equal test_windows
+            dump = test.bytes Encoding.windows_1252
+            Test.assert_no_problems dump
+            dump . should_equal test_windows
 
         Test.specify "should convert an array of bytes to text" <|
-            Text.from_bytes test_windows Encoding.windows_1252 . should_equal test
+            result = Text.from_bytes test_windows Encoding.windows_1252
+            Test.assert_no_problems result
+            result . should_equal test
 
         Test.specify "Invalid Windows-1252 should raise a warning when decoding" <|
             action = Text.from_bytes invalid_windows Encoding.windows_1252 on_problems=_

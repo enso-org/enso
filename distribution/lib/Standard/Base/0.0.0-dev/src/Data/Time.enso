@@ -56,9 +56,8 @@ now = Time ZonedDateTime.now
          example_new = Time.new 1986 8 5
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time ! Time_Error
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
-    Panic.recover Any (Time (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) . catch e-> case e of
-        Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
-        x -> x
+    Panic.catch_java Any (Time (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) java_exception->
+        Error.throw (Time_Error java_exception.getMessage)
 
 ## ALIAS Time from Text
 
@@ -122,8 +121,7 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond 
 
          import Standard.Base.Data.Time
 
-         example_parse = Time.parse "2020-10-01" . catch e-> case e of
-             Time.Error _ -> Time.now
+         example_parse = Time.parse "2020-10-01" . catch Time_Error (_->Time.now)
 
    > Example
      Parse "2020-05-06 04:30:20" as Time

@@ -8,7 +8,7 @@ import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 import Standard.Test
 import Standard.Test.Problems
-from Standard.Table.Error as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
 import project.Database.Helpers.Name_Generator
 
 from Standard.Table.Data.Aggregate_Column import all

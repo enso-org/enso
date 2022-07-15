@@ -64,4 +64,11 @@ public class BlockNode extends ExpressionNode {
     }
     return this;
   }
+
+  @Override
+  public boolean hasTag(Class<? extends Tag> tag) {
+    return super.hasTag(tag)
+        || tag == StandardTags.RootBodyTag.class
+        || tag == StandardTags.RootTag.class;
+  }
 }

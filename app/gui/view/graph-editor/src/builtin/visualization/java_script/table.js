@@ -17,7 +17,7 @@ class TableVisualization extends Visualization {
     constructor(data) {
         super(data)
         this.setPreprocessorModule('Standard.Visualization.Table.Visualization')
-        this.setPreprocessorCode(`x -> here.prepare_visualization x 1000`)
+        this.setPreprocessorCode(`x -> prepare_visualization x 1000`)
     }
 
     onDataReceived(data) {
@@ -369,7 +369,7 @@ class TableVisualization extends Visualization {
                 const hiddenCount = allRowsCount - includedRowsCount
                 if (hiddenCount > 0) {
                     let rows = 'rows'
-                    if (hiddenCount == 1) {
+                    if (hiddenCount === 1) {
                         rows = 'row'
                     }
                     suffix =

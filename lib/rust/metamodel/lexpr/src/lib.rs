@@ -34,7 +34,6 @@
 //! assert_eq!(s_expr, Value::cons(field_expr, Value::Null));
 //! ```
 
-// === Features ===
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -51,8 +50,9 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use derivative::Derivative;
 use enso_metamodel::meta::*;
+
+use derivative::Derivative;
 use lexpr::Value;
 use std::collections::BTreeMap;
 

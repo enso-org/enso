@@ -234,7 +234,7 @@ Any.should_fail_with matcher frames_to_skip=0 =
             Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Integer -> Assertion
 Error.should_fail_with matcher frames_to_skip=0 =
-    caught = self.catch x->x
+    caught = self.catch
     if caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
         fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
@@ -261,7 +261,7 @@ expect_panic_with ~action matcher =
             loc = Meta.get_source_location 2
             return_suffix = if res.is_nothing then "" else "and returned ["+res.to_text+"]"
             fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded " + return_suffix + " (at "+loc+").")
-    err = res.catch x->x
+    err = res.catch
     if err.is_a matcher then Nothing else
         fail ("Expected a " + matcher.to_text + ", but " + err.to_text + " was thrown instead.")
 
@@ -357,6 +357,52 @@ Decimal.should_equal that epsilon=0 frames_to_skip=0 =
             loc = Meta.get_source_location 2+frames_to_skip
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
             Panic.throw (Failure msg)
+
+## Asserts that `self` value is not an error.
+
+   It returns the original value, so that it can be inspected further.
+
+   Arguments:
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that a given action did not result in errors or warnings.
+
+         "foobar".write (enso_project.data / "f.txt") . should_succeed
+Any.should_succeed : Boolean -> Integer -> Any
+Any.should_succeed frames_to_skip=0 =
+    _ = frames_to_skip
+    self
+
+## Asserts that `self` value is not an error.
+
+   It returns the original value, so that it can be inspected further.
+
+   Arguments:
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that a given action did not result in errors or warnings.
+
+         "foobar".write (enso_project.data / "f.txt") . should_succeed
+Error.should_succeed : Boolean -> Integer -> Any
+Error.should_succeed frames_to_skip=0 =
+    fail_match_on_unexpected_error self 1+frames_to_skip
+
+## Checks that the provided action returns without any errors or warnings.
+
+   If you just want to check for errors, usage of the `.should_succeed`
+   extension function is preferred.
+assert_no_problems value frames_to_skip=0 =
+    value.catch Any _->
+        fail_match_on_unexpected_error value 2+frames_to_skip
+    warnings = Warning.get_all value . map .value
+    if warnings.not_empty then
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + loc + ")."
+        fail msg
 
 ## Asserts that the given `Boolean` is `True`
 
@@ -572,7 +618,7 @@ type Suite_Config
     should_run_group name =
         regexp = self.only_group_regexp
         case regexp of
-            Text -> name.matches regexp . catch (_->True)
+            Text -> name.matches regexp . catch Any (_->True)
             _ -> True
 
     should_output_junit =
@@ -678,11 +724,12 @@ run_spec : Any -> Assertion
 run_spec ~behavior =
     recovery = Panic.recover Any <|
         result = behavior
-        result.catch err-> Panic.throw (Finished_With_Error err result.get_stack_trace_text)
+        result.catch Any err->
+            Panic.throw (Finished_With_Error err result.get_stack_trace_text)
         Nothing
     maybeExc = case recovery of
         _ -> Success
-    result = maybeExc.catch ex->
+    result = maybeExc.catch Any ex->
         case ex of
             Failure _ -> ex
             Finished_With_Error err stack_trace_text ->
