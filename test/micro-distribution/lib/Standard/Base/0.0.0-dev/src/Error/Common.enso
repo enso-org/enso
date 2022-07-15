@@ -3,8 +3,8 @@ from project.Data.Any import Any
 type Panic
     @Builtin_Type
     type Panic
-    throw self payload = @Builtin_Method "Panic.throw"
-    catch_primitive self ~action handler = @Builtin_Method "Panic.catch_primitive"
+    throw payload = @Builtin_Method "Panic.throw"
+    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
 
 @Builtin_Type
 type Syntax_Error message
@@ -24,7 +24,7 @@ type Arity_Error expected_min expected_max actual
 type Error
     @Builtin_Type
     type Error
-    throw self payload = @Builtin_Method "Error.throw"
+    throw payload = @Builtin_Method "Error.throw"
     catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
     catch self (error_type = Any) (handler = x->x) =
         _ = error_type

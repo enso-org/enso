@@ -208,7 +208,7 @@ Column_Count_Mismatch.handle_java_exception self =
 
 ## Indicates that the existing table has a different set of column names to the
    new table.
-type Column_Name_Mismatch expected actual message
+type Column_Name_Mismatch missing extras message
 
 Column_Name_Mismatch.to_display_text : Text
 Column_Name_Mismatch.to_display_text self = self.message
