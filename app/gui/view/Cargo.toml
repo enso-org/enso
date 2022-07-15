@@ -17,9 +17,11 @@ enso-shapely = { path = "../../../lib/rust/shapely" }
 engine-protocol = { path = "../controller/engine-protocol" }
 ensogl = { path = "../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../lib/rust/ensogl/component" }
+ensogl-gui-component = { path = "../../../lib/rust/ensogl/component/gui" }
 ensogl-text = { path = "../../../lib/rust/ensogl/component/text" }
 ensogl-text-msdf-sys = { path = "../../../lib/rust/ensogl/component/text/msdf-sys" }
 ensogl-hardcoded-theme = { path = "../../../lib/rust/ensogl/app/theme/hardcoded" }
+ide-view-component-browser = { path = "component-browser" }
 ide-view-graph-editor = { path = "graph-editor" }
 parser = { path = "../language/parser" }
 span-tree = { path = "../language/span-tree" }

@@ -19,9 +19,9 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
+  GlobalNames,
   MethodDefinitions,
-  Patterns,
-  UppercaseNames
+  Patterns
 }
 import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -246,7 +246,7 @@ class IrToTruffle(
         .unsafeGetMetadata(
           AliasAnalysis,
           s"Missing scope information for method " +
-          s"`${methodDef.typeName.name}.${methodDef.methodName.name}`."
+          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
@@ -255,28 +255,34 @@ class IrToTruffle(
       )
 
       val consOpt =
-        methodDef.methodReference.typePointer
-          .getMetadata(MethodDefinitions)
-          .map { res =>
-            res.target match {
-              case BindingsMap.ResolvedModule(module) =>
-                module.unsafeAsModule().getScope.getAssociatedType
-              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                definitionModule
-                  .unsafeAsModule()
-                  .getScope
-                  .getConstructors
-                  .get(cons.name)
-              case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-                throw new CompilerError(
-                  "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-                )
-              case _: BindingsMap.ResolvedMethod =>
-                throw new CompilerError(
-                  "Impossible here, should be caught by MethodDefinitions pass."
-                )
-            }
-          }
+        methodDef.methodReference.typePointer match {
+          case None =>
+            Some(moduleScope.getAssociatedType)
+          case Some(tpePointer) =>
+            tpePointer
+              .getMetadata(MethodDefinitions)
+              .map { res =>
+                res.target match {
+                  case BindingsMap.ResolvedModule(module) =>
+                    module.unsafeAsModule().getScope.getAssociatedType
+                  case BindingsMap
+                        .ResolvedConstructor(definitionModule, cons) =>
+                    definitionModule
+                      .unsafeAsModule()
+                      .getScope
+                      .getConstructors
+                      .get(cons.name)
+                  case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                    throw new CompilerError(
+                      "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                    )
+                  case _: BindingsMap.ResolvedMethod =>
+                    throw new CompilerError(
+                      "Impossible here, should be caught by MethodDefinitions pass."
+                    )
+                }
+              }
+        }
 
       consOpt.foreach { cons =>
         val expressionProcessor = new ExpressionProcessor(
@@ -364,7 +370,7 @@ class IrToTruffle(
         .unsafeGetMetadata(
           AliasAnalysis,
           s"Missing scope information for conversion " +
-          s"`${methodDef.typeName.name}.${methodDef.methodName.name}`."
+          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
@@ -373,7 +379,12 @@ class IrToTruffle(
       )
 
       val toOpt =
-        getConstructorResolution(methodDef.methodReference.typePointer)
+        methodDef.methodReference.typePointer match {
+          case Some(tpePointer) =>
+            getConstructorResolution(tpePointer)
+          case None =>
+            Some(moduleScope.getAssociatedType)
+        }
       val fromOpt = getConstructorResolution(methodDef.sourceTypeName)
       toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
         val expressionProcessor = new ExpressionProcessor(
@@ -1045,7 +1056,7 @@ class IrToTruffle(
       */
     def processName(name: IR.Name): RuntimeExpression = {
       val nameExpr = name match {
-        case IR.Name.Literal(nameStr, _, _, _, _, _) =>
+        case IR.Name.Literal(nameStr, _, _, _, _) =>
           val useInfo = name
             .unsafeGetMetadata(
               AliasAnalysis,
@@ -1054,7 +1065,7 @@ class IrToTruffle(
             .unsafeAs[AliasAnalysis.Info.Occurrence]
 
           val slot   = scope.getFramePointer(useInfo.id)
-          val global = name.getMetadata(UppercaseNames)
+          val global = name.getMetadata(GlobalNames)
           if (slot.isDefined) {
             ReadLocalVariableNode.build(slot.get)
           } else if (global.isDefined) {
@@ -1082,24 +1093,21 @@ class IrToTruffle(
                 )
               case BindingsMap.ResolvedMethod(_, _) =>
                 throw new CompilerError(
-                  "Impossible here, should be desugared by UppercaseNames resolver"
+                  "Impossible here, should be desugared by GlobalNames resolver"
                 )
             }
-          } else if (nameStr == "from") {
+          } else if (nameStr == Constants.Names.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
           } else {
             DynamicSymbolNode.build(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
-        case IR.Name.Here(_, _, _) =>
-          ConstructorNode.build(moduleScope.getAssociatedType)
         case IR.Name.Self(location, passData, _) =>
           processName(
             IR.Name.Literal(
               Constants.Names.SELF_ARGUMENT,
-              isReferent = false,
-              isMethod   = false,
+              isMethod = false,
               location,
               passData
             )

@@ -192,6 +192,41 @@ class TailCallTest extends CompilerTest {
     }
   }
 
+  "Tail call analysis on local functions" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val ir =
+      """
+        |adder_two =
+        |    if 0 == 0 then 0 else
+        |        @Tail_Call adder_two
+        |""".stripMargin.preprocessModule.analyse
+
+    val fnBody = ir.bindings.head
+      .asInstanceOf[Method]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+
+    "handle application involving local functions" in {
+      fnBody
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments(2)
+        .value
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Application.Prefix]
+        .function
+        .diagnostics
+        .filter(_.isInstanceOf[IR.Warning.WrongTco])
+        .toList
+        .length shouldEqual 0
+    }
+
+  }
+
   "Tail call analysis on case expressions" should {
     "not mark any portion of the branch functions as tail by default" in {
       implicit val ctx: ModuleContext = mkModuleContext

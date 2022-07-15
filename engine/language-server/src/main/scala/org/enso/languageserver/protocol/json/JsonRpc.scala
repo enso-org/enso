@@ -42,6 +42,7 @@ object JsonRpc {
     .registerRequest(CloseFile)
     .registerRequest(SaveFile)
     .registerRequest(ApplyEdit)
+    .registerRequest(ApplyExpressionValue)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
     .registerRequest(MoveFile)

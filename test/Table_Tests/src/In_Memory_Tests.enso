@@ -25,4 +25,4 @@ in_memory_spec =
     Aggregate_Column_Spec.spec
     Aggregate_Spec.spec
 
-main = Test.Suite.run_main here.in_memory_spec
+main = Test.Suite.run_main in_memory_spec

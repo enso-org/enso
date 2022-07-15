@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from project.Semantic.Names.Definitions import My_Type, Another_Constant
+from project.Semantic.Names.Definitions import another_method, another_constant, method_with_local_vars
 import Standard.Test
 
 Definitions.Foo.my_method = case self of
@@ -25,15 +25,19 @@ spec =
         Test.specify "should allow defining methods on qualified names" <|
             v = Definitions.Foo 2 3 5
             v.my_method.should_equal 30
-        Test.specify "should allow using constructors from value-bound modules" <|
-            v = here.get_foo Definitions 1 2 3
-            v.sum.should_equal 6
-    Test.group "Uppercase Methods" <|
-        Test.specify "should allow calling methods without a target, through uppercase resolution" <|
-            v = Constant
+    Test.group "Lowercase Methods" <|
+        Test.specify "should allow calling methods without a target" <|
+            v = constant
             v.should_equal 1
-        Test.specify "should allow calling methods that use defaulted arguments" <|
-            Add_One.should_equal 1
-            Add_One 100 . should_equal 101
-        Test.specify "should allow calling methods imported from another module" <|
-            Another_Constant.should_equal 10
+        Test.specify "should allow calling this module's methods" <|
+            add_one.should_equal 1
+            add_one 100 . should_equal 101
+        Test.specify "should allow calling methods imported from another module without name mangling" <|
+            another_method 10 . should_equal 10
+            another_constant . should_equal 10
+        Test.specify "should allow calling methods with fully qualified module name" <|
+            (Definitions.another_method 10).should_equal 10
+            v = Definitions.another_method
+            v 10 . should_equal 10
+        Test.specify "should be resolved correctly in the presence of variables with the same name" <|
+            method_with_local_vars 1 . should_equal 13

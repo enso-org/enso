@@ -88,4 +88,4 @@ spec = Test.group "Pattern Matches" <|
             Any -> Nothing
             _ -> Test.fail "Expected the Any constructor to match."
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

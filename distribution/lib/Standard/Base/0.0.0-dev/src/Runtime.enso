@@ -21,7 +21,7 @@ get_stack_trace : Vector.Vector Stack_Trace_Element
 get_stack_trace =
     prim_stack = self.primitive_get_stack_trace
     stack_with_prims = Vector.Vector prim_stack
-    stack = stack_with_prims.map here.wrap_primitive_stack_trace_element
+    stack = stack_with_prims.map wrap_primitive_stack_trace_element
     # drop this frame and the one from `Runtime.primitive_get_stack_trace`
     stack.drop_start 2
 

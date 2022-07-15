@@ -16,12 +16,14 @@ use enso_shapely_macros::tagged_enum;
 // ============
 
 /// The Abstract Syntax Tree of the language.
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq)]
+#[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[deref]
     #[deref_mut]
+    #[reflect(subtype)]
     pub variant: Box<Variant<'s>>,
+    #[reflect(flatten)]
     pub span:    Span<'s>,
 }
 
@@ -57,19 +59,25 @@ impl<'s> AsRef<Span<'s>> for Tree<'s> {
 macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
     /// [`Tree`] variants definition. See its docs to learn more.
     #[tagged_enum]
-    #[derive(Clone, Eq, PartialEq, Visitor)]
+    #[derive(Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+    #[tagged_enum(apply_attributes_to = "variants")]
+    #[reflect(inline)]
     pub enum Variant<'s> {
         /// Invalid [`Tree`] fragment with an attached [`Error`].
         Invalid {
             pub error: Error,
             pub ast: Tree<'s>,
         },
-        Module {
+        Block {
             pub statements: Vec<Tree<'s>>,
         },
         /// A simple identifier, like `foo` or `bar`.
         Ident {
             pub token: token::Ident<'s>,
+        },
+        /// A numeric literal, like `10`.
+        Number {
+            pub token: token::Number<'s>,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -102,12 +110,22 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         MultiSegmentApp {
             pub segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
         },
-
         TypeDef {
             pub keyword: Token<'s>,
             pub name: Tree<'s>,
             pub params: Vec<Tree<'s>>,
-        }
+        },
+        Assignment {
+            pub pattern: Tree<'s>,
+            pub equals: token::Operator<'s>,
+            pub expr: Tree<'s>,
+        },
+        Function {
+            pub name: token::Ident<'s>,
+            pub args: Vec<Tree<'s>>,
+            pub equals: token::Operator<'s>,
+            pub body: Option<Tree<'s>>,
+        },
     }
 }};}
 
@@ -146,9 +164,12 @@ with_ast_definition!(generate_ast_definition());
 // === Invalid ===
 
 /// Error of parsing attached to an [`Tree`] node.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
+#[reflect(transparent)]
+#[serde(from = "crate::serialization::Error")]
 pub struct Error {
+    #[serde(skip_deserializing)]
     pub message: &'static str,
 }
 
@@ -179,7 +200,7 @@ impl<'s> span::Builder<'s> for Error {
 pub type OperatorOrError<'s> = Result<token::Operator<'s>, MultipleOperatorError<'s>>;
 
 /// Error indicating multiple operators found next to each other, like `a + * b`.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultipleOperatorError<'s> {
     pub operators: NonEmptyVec<token::Operator<'s>>,
@@ -195,7 +216,7 @@ impl<'s> span::Builder<'s> for MultipleOperatorError<'s> {
 // === MultiSegmentApp ===
 
 /// A segment of [`MultiSegmentApp`], like `if cond` in the `if cond then ok else fail` expression.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultiSegmentAppSegment<'s> {
     pub header: Token<'s>,
@@ -374,7 +395,10 @@ macro_rules! define_visitor_for_tokens {
     (
         $(#$kind_meta:tt)*
         pub enum $kind:ident {
-            $( $variant:ident $({$($args:tt)*})? ),* $(,)?
+            $(
+              $(#$variant_meta:tt)*
+              $variant:ident $({$($args:tt)*})?
+            ),* $(,)?
         }
     ) => {
         impl<'s, 'a> TreeVisitable<'s, 'a> for token::$kind {}

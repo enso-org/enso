@@ -200,7 +200,7 @@ type Column
        - op_name: The name of the operator to compute.
     compute_aggregate : Text
     compute_aggregate op_name =
-        agg = here.make_aggregate self op_name
+        agg = make_aggregate self op_name
         agg.to_vector . at 0
 
     ## UNSTABLE
@@ -540,7 +540,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     sum : Text -> Column
     sum name_suffix='_sum' =
-        here.make_aggregate self "SUM" name_suffix
+        make_aggregate self "SUM" name_suffix
 
     ## UNSTABLE
 
@@ -551,7 +551,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     max : Text -> Column
     max name_suffix='_max' =
-        here.make_aggregate self "MAX" name_suffix
+        make_aggregate self "MAX" name_suffix
 
     ## UNSTABLE
 
@@ -562,7 +562,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     min : Text -> Column
     min name_suffix='_min' =
-        here.make_aggregate self "MIN" name_suffix
+        make_aggregate self "MIN" name_suffix
 
     ## UNSTABLE
 
@@ -573,7 +573,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     count : Text -> Column
     count name_suffix='_count' =
-        here.make_aggregate self "COUNT" name_suffix new_type=Sql_Type.integer
+        make_aggregate self "COUNT" name_suffix new_type=Sql_Type.integer
 
     ## UNSTABLE
 
@@ -584,7 +584,7 @@ type Aggregate_Column_Builder
          to generate the resulting column name.
     mean : Text -> Column
     mean name_suffix='_mean' =
-        here.make_aggregate self "AVG" name_suffix
+        make_aggregate self "AVG" name_suffix
 
     ## PRIVATE
 
@@ -611,7 +611,7 @@ make_aggregate column operation name_suffix="_agg" new_type=Nothing =
     case Helpers.ensure_name_is_sane name_suffix of
         True ->
             new_name = column.name + name_suffix
-            here.lift_aggregate new_name column.connection actual_new_type expr column.context
+            lift_aggregate new_name column.connection actual_new_type expr column.context
 
 ## PRIVATE
 

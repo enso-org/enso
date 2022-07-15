@@ -1,7 +1,7 @@
 package org.enso.languageserver.runtime
 
 import io.circe.generic.auto._
-import io.circe.{Encoder, Json}
+import io.circe.{Decoder, Encoder, Json}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
@@ -22,6 +22,19 @@ object ExecutionApi {
 
   case object ExecutionContextCreate extends Method("executionContext/create") {
 
+    case class Params(contextId: Option[ContextId])
+    object Params {
+      implicit val paramsDecoder: Decoder[Params] =
+        Decoder.instance[Params] { cursor =>
+          if (cursor.value.isNull) Right(Params(None))
+          else {
+            for {
+              contextId <- cursor.downField("contextId").as[Option[ContextId]]
+            } yield Params(contextId)
+          }
+        }
+    }
+
     case class Result(
       contextId: ContextId,
       canModify: CapabilityRegistration,
@@ -29,7 +42,7 @@ object ExecutionApi {
     )
 
     implicit val hasParams = new HasParams[this.type] {
-      type Params = Unused.type
+      type Params = ExecutionContextCreate.Params
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = ExecutionContextCreate.Result

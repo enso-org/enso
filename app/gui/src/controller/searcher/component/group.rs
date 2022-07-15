@@ -5,10 +5,14 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::controller::searcher::component::MatchInfo;
+use crate::controller::searcher::component::NoSuchComponent;
+use crate::controller::searcher::component::NoSuchGroup;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use ensogl::data::color;
+use std::cmp;
 
 
 
@@ -20,15 +24,17 @@ use ensogl::data::color;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Data {
-    pub name:         ImString,
-    pub color:        Option<color::Rgb>,
+    pub name:                  ImString,
+    pub color:                 Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
     /// contains.
-    pub component_id: Option<component::Id>,
-    pub entries:      RefCell<Vec<Component>>,
-    /// A flag indicating that the group should be displayed in the Component Browser. It may be
-    /// hidden in some scenarios, e.g. when all items are filtered out.
-    pub visible:      Cell<bool>,
+    pub component_id:          Option<component::Id>,
+    /// The entries in the same order as when the group was built. Used to restore it in some cases
+    /// - see [`Self::update_sorting`] and [`component::Order`]. The vector may be empty if the
+    /// group is not meant to have initial order restored.
+    pub initial_entries_order: Vec<Component>,
+    pub entries:               RefCell<Vec<Component>>,
+    pub matched_items:         Cell<usize>,
 }
 
 impl Data {
@@ -37,8 +43,9 @@ impl Data {
             name: name.into(),
             color: None,
             component_id,
+            initial_entries_order: default(),
             entries: default(),
-            visible: default(),
+            matched_items: Cell::new(0),
         }
     }
 }
@@ -74,7 +81,9 @@ impl Group {
     /// Create empty group referring to some module component.
     pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
         let name: String = if entry.module.is_top_module() {
-            (&entry.module).into()
+            let project = &entry.module.project_name.project;
+            let module = entry.module.name();
+            format!("{}.{}", project, module)
         } else {
             entry.module.name().into()
         };
@@ -98,29 +107,83 @@ impl Group {
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
-                name:         group.name.clone(),
-                color:        group.color,
-                component_id: None,
-                visible:      Cell::new(true),
-                entries:      RefCell::new(looked_up_components),
+                name:                  group.name.clone(),
+                color:                 group.color,
+                component_id:          None,
+                matched_items:         Cell::new(looked_up_components.len()),
+                initial_entries_order: looked_up_components.clone(),
+                entries:               RefCell::new(looked_up_components),
             };
             Group { data: Rc::new(group_data) }
         })
     }
 
-    /// Update the group sorting according to the `order` and call [`update_visibility`].
-    pub fn update_sorting_and_visibility(&self, order: component::Order) {
-        // The `sort_by_key` method is not suitable here, because the closure it takes
-        // cannot return reference nor [`Ref`], and we don't want to copy anything here.
-        self.entries.borrow_mut().sort_by(|a, b| order.compare(a, b));
-        self.update_visibility();
+    /// Update the group sorting according to the `order` and update information about matched items
+    /// count.
+    pub fn update_sorting(&self, order: component::Order) {
+        match order {
+            component::Order::Initial => self.restore_initial_order(),
+            component::Order::ByNameNonModulesThenModules =>
+                self.sort_by_name_non_modules_then_modules(),
+            component::Order::ByMatch => self.sort_by_match(),
+        }
+        let entries = self.entries.borrow();
+        let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
+        self.matched_items.set(matched_items);
     }
 
-    /// Sets the [`visible`] flag to [`true`] if at least one of the group's entries is not
-    /// filtered out. Sets the flag to [`false`] otherwise.
-    pub fn update_visibility(&self) {
-        let visible = !self.entries.borrow().iter().all(|c| c.is_filtered_out());
-        self.visible.set(visible);
+    fn restore_initial_order(&self) {
+        let mut entries = self.entries.borrow_mut();
+        if entries.len() != self.initial_entries_order.len() {
+            tracing::error!(
+                "Tried to restore initial order in group where \
+                        `initial_entries_order` is not initialized or up-to-date. Will keep the \
+                        old order."
+            )
+        } else {
+            *entries = self.initial_entries_order.clone()
+        }
+    }
+
+    fn sort_by_name_non_modules_then_modules(&self) {
+        let mut entries = self.entries.borrow_mut();
+        entries.sort_by(|a, b| {
+            let cmp_can_be_entered = a.can_be_entered().cmp(&b.can_be_entered());
+            cmp_can_be_entered.then_with(|| a.label().cmp(&b.label()))
+        })
+    }
+
+    fn sort_by_match(&self) {
+        let mut entries = self.entries.borrow_mut();
+        entries.sort_by(|a, b| {
+            Self::entry_match_ordering(&*a.match_info.borrow(), &*b.match_info.borrow())
+        });
+    }
+
+    /// Return the entry match ordering when sorting by match. See [`component::Order::ByMatch`].
+    fn entry_match_ordering(lhs: &MatchInfo, rhs: &MatchInfo) -> cmp::Ordering {
+        match (lhs, rhs) {
+            (MatchInfo::DoesNotMatch, MatchInfo::DoesNotMatch) => cmp::Ordering::Equal,
+            (MatchInfo::DoesNotMatch, MatchInfo::Matches { .. }) => cmp::Ordering::Greater,
+            (MatchInfo::Matches { .. }, MatchInfo::DoesNotMatch) => cmp::Ordering::Less,
+            (MatchInfo::Matches { subsequence: lhs }, MatchInfo::Matches { subsequence: rhs }) =>
+                lhs.compare_scores(rhs),
+        }
+    }
+
+    /// Get the number of entries.
+    pub fn len(&self) -> usize {
+        self.entries.borrow().len()
+    }
+
+    /// Check if the group is empty.
+    pub fn is_empty(&self) -> bool {
+        self.entries.borrow().is_empty()
+    }
+
+    /// Get cloned-ref entry under the index.
+    pub fn get_entry(&self, index: usize) -> Option<Component> {
+        self.entries.borrow().get(index).map(|e| e.clone_ref())
     }
 }
 
@@ -141,6 +204,24 @@ impl List {
     pub fn new(groups: Vec<Group>) -> Self {
         Self { groups: Rc::new(groups) }
     }
+
+    /// Get entry under given group and entry index.
+    pub fn entry_by_index(
+        &self,
+        section_name: CowString,
+        group_index: usize,
+        entry_index: usize,
+    ) -> FallibleResult<Component> {
+        let error = || NoSuchGroup { section_name, index: group_index };
+        let group = self.groups.get(group_index).ok_or_else(error)?;
+        let error = || NoSuchComponent {
+            group_name: group.name.to_string().into(),
+            index:      entry_index,
+        };
+        let entries = group.entries.borrow();
+        let component = entries.get(entry_index).ok_or_else(error)?;
+        Ok(component.clone_ref())
+    }
 }
 
 impl FromIterator<Group> for List {
@@ -159,6 +240,12 @@ impl Deref for List {
 impl AsRef<[Group]> for List {
     fn as_ref(&self) -> &[Group] {
         self.groups.as_slice()
+    }
+}
+
+impl AsRef<List> for List {
+    fn as_ref(&self) -> &List {
+        self
     }
 }
 

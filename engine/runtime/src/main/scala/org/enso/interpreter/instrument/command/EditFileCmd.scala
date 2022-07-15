@@ -24,7 +24,8 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     ctx.locking.acquireFileLock(request.path)
     ctx.locking.acquirePendingEditsLock()
     try {
-      val edits = request.edits.map(edit => PendingEdit(edit, request.execute))
+      val edits =
+        request.edits.map(edit => PendingEdit.ApplyEdit(edit, request.execute))
       ctx.state.pendingEdits.enqueue(request.path, edits)
       ctx.jobControlPlane.abortAllJobs()
       ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))

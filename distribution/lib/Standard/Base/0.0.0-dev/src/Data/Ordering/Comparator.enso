@@ -30,7 +30,7 @@ for_text_ordering text_ordering =
     case text_ordering.sort_digits_as_numbers of
         True ->
             txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitive . to_sign
-            here.new.withCustomTextComparator txt_cmp
+            new.withCustomTextComparator txt_cmp
         False -> case text_ordering.case_sensitive of
-            Case_Insensitive locale -> here.new.withCaseInsensitivity locale.java_locale
-            _ -> here.new
+            Case_Insensitive locale -> new.withCaseInsensitivity locale.java_locale
+            _ -> new

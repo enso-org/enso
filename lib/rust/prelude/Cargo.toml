@@ -16,6 +16,7 @@ publish = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-reflect = { path = "../reflect" }
 enso-shapely = { version = "^0.2.0", path = "../shapely" }
 anyhow = "1.0.37"
 assert_approx_eq = { version = "1.1.0" }

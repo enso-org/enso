@@ -45,44 +45,44 @@ sum_co_state_body =
     State.put Counter n-1
     State.put Sum     acc+n
     if n == 0 then acc else
-        @Tail_Call here.sum_co_state_body
+        @Tail_Call sum_co_state_body
 
 sum_co_state n =
-    res = State.run Counter n (State.run Sum 0 here.sum_co_state_body)
+    res = State.run Counter n (State.run Sum 0 sum_co_state_body)
     res
 
 sum_state_body n =
     acc = State.get Number
     State.put Number (acc + n)
     if n == 0 then State.get Number else
-        @Tail_Call here.sum_state_body (n - 1)
+        @Tail_Call sum_state_body (n - 1)
 
 sum_state = sum_to ->
-    res = State.run Number 0 (here.sum_state_body sum_to)
+    res = State.run Number 0 (sum_state_body sum_to)
     res
 
-sum_co_1 n acc = if n == 0 then acc else @Tail_Call here.sum_co_2 n-1 acc+n
+sum_co_1 n acc = if n == 0 then acc else @Tail_Call sum_co_2 n-1 acc+n
 
-sum_co_2 n acc = if n == 0 then acc else here.sum_co_1 n-1 acc+n
+sum_co_2 n acc = if n == 0 then acc else sum_co_1 n-1 acc+n
 
 sum_co n =
-    res = here.sum_co_2 n 0
+    res = sum_co_2 n 0
     res
 
 main =
     hundred_mil = 100000000
     IO.println "Measuring Sum TCO Corecursive"
-    Bench.measure (here.sum_co hundred_mil) "sum_tco_corecursive" 100 10
+    Bench.measure (sum_co hundred_mil) "sum_tco_corecursive" 100 10
     IO.println "Measuring Sum TCO Decimal"
-    Bench.measure (here.sum_tco_decimal hundred_mil) "sum_tco_float" 100 10
+    Bench.measure (sum_tco_decimal hundred_mil) "sum_tco_float" 100 10
     IO.println "Measuring SumTCO"
-    Bench.measure (here.sum_tco hundred_mil) "sum_tco" 100 10
+    Bench.measure (sum_tco hundred_mil) "sum_tco" 100 10
     IO.println "Measuring SumTCO Java"
-    Bench.measure (here.sum_tco_java hundred_mil) "sum_tco_java" 100 10
+    Bench.measure (sum_tco_java hundred_mil) "sum_tco_java" 100 10
     IO.println "Measuring SumTCO Eval"
-    Bench.measure (here.sum_tco_eval hundred_mil) "sum_tco_eval" 100 10
+    Bench.measure (sum_tco_eval hundred_mil) "sum_tco_eval" 100 10
     IO.println "Measuring State"
-    Bench.measure (here.sum_state hundred_mil) "sum_state" 100 10
+    Bench.measure (sum_state hundred_mil) "sum_state" 100 10
     IO.println "Measuring Co-State"
-    Bench.measure (here.sum_co_state hundred_mil) "sum_co_state" 100 10
+    Bench.measure (sum_co_state hundred_mil) "sum_co_state" 100 10
     IO.println "Bye."

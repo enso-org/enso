@@ -25,9 +25,8 @@ case object Imports extends IRPass {
   private val mainModuleName =
     IR.Name.Literal(
       "Main",
-      isReferent = true,
-      isMethod   = false,
-      location   = None
+      isMethod = false,
+      location = None
     )
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -129,16 +128,14 @@ case object Imports extends IRPass {
         pkg.map { pkg =>
           val namespace = IR.Name.Literal(
             pkg.namespace,
-            isReferent = true,
-            isMethod   = false,
-            location   = None
+            isMethod = false,
+            location = None
           )
           val pkgName =
             IR.Name.Literal(
               pkg.name,
-              isReferent = true,
-              isMethod   = false,
-              location   = None
+              isMethod = false,
+              location = None
             )
           name.copy(parts = namespace :: pkgName :: name.parts.tail)
         }

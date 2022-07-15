@@ -99,6 +99,9 @@ impl Model {
         display_object.add_child(&label);
 
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
+        if let Some(display::style::Data::Text(font)) = style.get(theme::text::font) {
+            label.set_font(font);
+        }
 
         let model = Model { background, label, display_object, style };
         model.set_layers(&scene.layers.tooltip, &scene.layers.tooltip_text);

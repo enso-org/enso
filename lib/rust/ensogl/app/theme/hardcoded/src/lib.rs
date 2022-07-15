@@ -14,6 +14,8 @@
 #![warn(missing_debug_implementations)]
 
 use ensogl_core::prelude::ImString;
+use ensogl_text_embedded_fonts::DefaultFamily as DefaultFontFamily;
+use ensogl_text_embedded_fonts::Family;
 
 
 
@@ -180,6 +182,10 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 150.0, 150.0;
         }
         component_browser {
+            panels_gap = 3.0, 3.0;
+            documentation {
+                width = 369.0, 369.0;
+            }
             searcher {
                 list_panel {
                     content_width = 400.0, 400.0;
@@ -218,7 +224,7 @@ define_themes! { [light:0, dark:1]
             component_group {
                 header {
                     text {
-                        font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                        font = DefaultFontFamily::bold(), DefaultFontFamily::bold();
                         size = 12.0, 12.0;
                         color_intensity = 1.0, 1.0;
                     }
@@ -240,8 +246,11 @@ define_themes! { [light:0, dark:1]
                 }
                 selection {
                     corners_radius = 10.0, 10.0;
-                    horizontal_padding = 10.0, 10.0;
-                    vertical_padding = 3.0, 3.0;
+                    header_corners_radius = 5.0, 5.0;
+                    horizontal_padding = 3.0, 3.0;
+                    height = 30.0, 30.0;
+                    wide_group_column_padding = 18.0, 18.0;
+                    header_height = 21.0, 21.0;
                 }
                 background_color_intensity = 0.2, 0.2;
                 selection_color_intensity = 1.0, 1.0;
@@ -251,7 +260,7 @@ define_themes! { [light:0, dark:1]
                     highlight = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
                     selected_color = Rgba::white(), Rgba::white();
                     text {
-                        font = "DejaVuSans", "DejaVuSans";
+                        font = DefaultFontFamily::regular(), DefaultFontFamily::regular();
                         size = 12.0, 12.0;
                         color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
                         highlight_bold = 0.02, 0.02;
@@ -434,6 +443,12 @@ define_themes! { [light:0, dark:1]
             to_the_left_of_node  = 25.0  , 25.0;
             to_the_right_of_node = 25.0  , 25.0;
         }
+        screen_margin_when_panning_camera_to_node {
+            top = 40.0, 40.0;
+            bottom = 80.0, 80.0;
+            left = 80.0, 80.0;
+            right = 300.0, 300.0;
+        }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
             // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)
@@ -575,7 +590,7 @@ define_themes! { [light:0, dark:1]
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-                font      = "DejaVuSansMono", "DejaVuSansMono";
+                font      = DefaultFontFamily::mono(), DefaultFontFamily::mono();
                 size      = 12.0, 12.0;
                 highlight_bold = 0.02, 0.02;
             }
@@ -602,6 +617,7 @@ define_themes! { [light:0, dark:1]
             text {
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
+                font   = "DejaVuSans", "DejaVuSans";
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;

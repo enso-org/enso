@@ -5,11 +5,8 @@ import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
 
@@ -17,9 +14,9 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion         = "2.13.7"
-val graalVersion          = "21.3.0"
-val javaVersion           = "11"
+val scalacVersion = "2.13.7"
+val graalVersion = "21.3.0"
+val javaVersion = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
   "ENSO_VERSION",
@@ -209,6 +206,10 @@ ThisBuild / scalacOptions ++= Seq(
   "-Ywarn-unused:params",               // Warn if a value parameter is unused.
   "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
   "-Ywarn-unused:privates"              // Warn if a private member is unused.
+)
+
+ThisBuild / Test / testOptions += Tests.Argument(
+  "-oI"
 )
 
 val jsSettings = Seq(
@@ -1830,11 +1831,12 @@ lazy val `std-database` = project
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
-      "org.xerial"          % "sqlite-jdbc"           % "3.34.0",
-      "org.postgresql"      % "postgresql"            % "42.2.19",
-      "com.amazon.redshift" % "redshift-jdbc42"       % "2.0.0.7",
-      "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.58",
-      "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.58"
+      "org.xerial"          % "sqlite-jdbc"           % "3.36.0.3",
+      "org.postgresql"      % "postgresql"            % "42.3.6",
+      "com.amazon.redshift" % "redshift-jdbc42"       % "2.1.0.1",
+      "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.23",
+      "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.23",
+      "com.amazonaws"       % "aws-java-sdk-sts"      % "1.12.23"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1842,8 +1844,7 @@ lazy val `std-database` = project
         .copyDependencies(
           `database-polyglot-root`,
           Some("std-database.jar"),
-          ignoreScalaLibrary = true,
-          unpackedDeps       = Set("aws-java-sdk-core", "httpclient")
+          ignoreScalaLibrary = true
         )
         .value
       result

@@ -38,8 +38,8 @@ from_pairs contents =
          example_parse = Json.parse '{ "a": 1 }'
 parse : Text -> Json ! Parse_Error
 parse json_text =
-    Panic.catch Polyglot_Error (Internal.parse_helper json_text) caught_panic->
-        Error.throw (Parse_Error caught_panic.payload.cause.getMessage)
+    Panic.catch_java Any (Internal.parse_helper json_text) java_exception->
+        Error.throw (Parse_Error java_exception.getMessage)
 
 ## Represents a JSON structure.
 type Json
