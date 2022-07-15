@@ -11,7 +11,7 @@ type Id
 
     ## Serializes this ID to a JSON format understandable by the graphical
        interface.
-    to_json =
+    to_json self =
         project = case self of
             Builtin _ -> Nothing
             Library project _ ->
