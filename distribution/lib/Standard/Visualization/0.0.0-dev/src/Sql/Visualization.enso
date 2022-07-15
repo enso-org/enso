@@ -24,7 +24,7 @@ prepare_visualization x = Helpers.recover_errors <|
         value = e.first
         actual_type = Meta.get_qualified_type_name value
         expected_sql_type = e.second.name
-        expected_enso_type = here.find_expected_enso_type_for_sql e.second
+        expected_enso_type = find_expected_enso_type_for_sql e.second
         Json.from_pairs [["value", value], ["actual_type", actual_type], ["expected_sql_type", expected_sql_type], ["expected_enso_type", expected_enso_type]]
     dialect = x.connection.dialect.name
     Json.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text

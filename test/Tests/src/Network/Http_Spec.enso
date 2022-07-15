@@ -195,12 +195,12 @@ spec =
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form file" <|
-            test_file = Enso_Project.data / "sample.txt"
+            test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
             res = Http.new.post_form url_post form_parts
             res.code.should_equal Status_Code.ok
         Test.specify "should Post form multipart" <|
-            test_file = Enso_Project.data / "sample.txt"
+            test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
             res = Http.new.post_form url_post form_parts [Header.multipart_form_data]
             res.code.should_equal Status_Code.ok

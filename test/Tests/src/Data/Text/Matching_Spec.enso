@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table.Error as Error_Module import all
+from Standard.Table.Errors as Error_Module import all
 import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Data.Text.Matching
 import Standard.Test
@@ -76,4 +76,4 @@ spec = Test.group 'Matching Helper' <|
         Test.expect_panic_with matcher=No_Such_Method_Error <|
             Text_Matcher.match_criteria ["a"] ["a"] name_mapper=_.nonexistent_function
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

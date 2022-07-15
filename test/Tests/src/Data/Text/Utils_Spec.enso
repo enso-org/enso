@@ -58,4 +58,4 @@ spec =
             Test.expect_panic_with (folded.findGrapheme -1) Polyglot_Error
             Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) Polyglot_Error
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

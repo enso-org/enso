@@ -2,11 +2,13 @@ from Standard.Base import all
 import Standard.Table
 
 import Standard.Base.Error.Common as Errors
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
-from Standard.Table.Error as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Ignore
+from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+import Standard.Table.Io.Quote_Style
+from Standard.Table.Io.Line_Ending_Style import line_separator_sequence
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
@@ -21,6 +23,7 @@ polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream
 polyglot java import java.io.Reader
+polyglot java import java.io.StringReader
 
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
@@ -42,15 +45,19 @@ read_file format file on_problems =
        exceptions), we can catch the exception indicating the limit has been
        reached and restart parsing with an increased limit.
     file.with_input_stream [File.Option.Read] stream->
-        stream.with_java_stream java_stream->
-            here.read_stream format java_stream on_problems related_file=file
+        read_stream format stream on_problems related_file=file
+
+read_text : Text -> Delimited -> Problem_Behavior -> Table
+read_text text format on_problems =
+    java_reader = StringReader.new text
+    read_from_reader format java_reader on_problems
 
 ## PRIVATE
    Reads an input stream according to the provided format.
 
    Arguments:
    - format: The specification of the delimited file format.
-   - java_stream: A Java `InputStream` used as the data source.
+   - stream: An `Input_Stream` to be used as the data source.
    - on_problems: Specifies the behavior when a problem occurs during the
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
@@ -60,17 +67,11 @@ read_file format file on_problems =
      integer.
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
-read_stream : Delimited -> InputStream -> Problem_Behavior -> Integer -> File | Nothing -> Any
-read_stream format java_stream on_problems max_columns=4096 related_file=Nothing =
-    handle_io_exception ~action = Panic.catch IOException action caught_panic->
-        Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
-
-    java_charset = format.encoding.to_java_charset
-    handle_io_exception <|
-        Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
-            result = here.read_from_reader format reporting_stream_decoder on_problems max_columns
-            decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
-            on_problems.attach_problems_after result decoding_problems
+read_stream : Delimited -> Input_Stream -> Problem_Behavior -> Integer -> File | Nothing -> Any
+read_stream format stream on_problems max_columns=default_max_columns related_file=Nothing =
+    handle_io_exception related_file <|
+        stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
+            read_from_reader format reporting_stream_decoder on_problems max_columns
 
 ## PRIVATE
    Reads data from the provided `Reader` according to the provided format.
@@ -88,8 +89,16 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
    - max_columns: Specifies the limit of columns to read. The limit is set to
      avoid `OutOfMemory` errors on malformed files. It must be a positive
      integer.
-read_from_reader : Delimited -> InputStream -> Problem_Behavior -> Integer -> Any
+read_from_reader : Delimited -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
+    handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
+        reader = prepare_delimited_reader java_reader format max_columns on_problems
+        result_with_problems = reader.read
+        parsing_problems = Vector.Vector (result_with_problems.problems) . map translate_reader_problem
+        on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
+
+## PRIVATE
+prepare_delimited_reader java_reader format max_columns on_problems =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> DelimitedReader.HeaderBehavior.INFER
@@ -98,35 +107,22 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         Nothing -> -1
         Integer -> format.row_limit
         _ -> Error.throw (Illegal_Argument_Error "`row_limit` should be Integer or Nothing.")
-
-    translate_illegal_argument caught_panic =
-        Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
-    handle_illegal_arguments = Panic.catch IllegalArgumentException handler=translate_illegal_argument
-
-    translate_parsing_failure caught_panic =
-        Error.throw (here.translate_reader_problem caught_panic.payload.cause.problem)
-    handle_parsing_failure = Panic.catch ParsingFailedException handler=translate_parsing_failure
-
-    translate_parsing_exception caught_panic =
-        cause = caught_panic.payload.cause.getCause
-        if Java.is_instance cause IOException then Panic.throw cause else
-            Error.throw (Parser_Error caught_panic.payload)
-    handle_parsing_exception = Panic.catch TextParsingException handler=translate_parsing_exception
-
-    handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
-        warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-        base_parser = if format.quote.is_nothing then IdentityParser.new else
-            QuoteStrippingParser.new format.quote
-        value_parser = if format.value_formatter.is_nothing then base_parser else
-            wrapped = format.value_formatter.wrap_base_parser base_parser
-            TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
-        cell_type_guesser = if format.headers != Infer then Nothing else
-            formatter = format.value_formatter.if_nothing Data_Formatter
-            TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-        reader = DelimitedReader.new java_reader format.delimiter format.quote format.quote_escape java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
-        result_with_problems = reader.read
-        parsing_problems = Vector.Vector (result_with_problems.problems) . map here.translate_reader_problem
-        on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
+    warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
+    quote_characters = case format.quote_style of
+        Quote_Style.No_Quotes -> Pair Nothing Nothing
+        Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
+    base_parser = case format.quote_style of
+        Quote_Style.No_Quotes -> IdentityParser.new
+        Quote_Style.With_Quotes _ quote _ ->
+            QuoteStrippingParser.new quote
+    value_parser = if format.value_formatter.is_nothing then base_parser else
+        wrapped = format.value_formatter.wrap_base_parser base_parser
+        TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
+    cell_type_guesser = if format.headers != Infer then Nothing else
+        formatter = format.value_formatter.if_nothing Data_Formatter
+        TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
+    newline = line_separator_sequence format.line_endings
+    DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 translate_reader_problem problem =
     invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row))]
@@ -139,3 +135,73 @@ translate_reader_problem problem =
     found = translations.find t-> Java.is_instance problem t.first
     if found.is_error then problem else
         found.second problem
+
+## PRIVATE
+   An internal type representing columns deduced from an existing file.
+type Detected_Headers
+    ## Indicates that the file did not exist or was empty.
+    Nothing
+
+    ## Represents the headers found in the file.
+    type Existing_Headers (column_names : Vector Text)
+
+    ## Indicates that the file exists but no headers have been found, so only positional column matching is possible.
+    type No_Headers (column_count : Integer)
+
+## PRIVATE
+   An internal type representing metadata describing the format of a specific
+   Delimited file.
+type Detected_File_Metadata
+    type Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing)
+
+## PRIVATE
+   Reads the beginning of the file to detect the existing headers and column
+   count.
+detect_metadata : File -> File_Format.Delimited -> Detected_Headers
+detect_metadata file format =
+    on_problems = Ignore
+    result = handle_io_exception file <| handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
+        file.with_input_stream [File.Option.Read] stream->
+            stream.with_stream_decoder format.encoding on_problems java_reader->
+                ## We use the default `max_columns` setting. If we want to be able to
+                   read files with unlimited column limits (risking OutOfMemory
+                   exceptions), we can catch the exception indicating the limit has been
+                   reached and restart parsing with an increased limit.
+                reader = prepare_delimited_reader java_reader format max_columns=default_max_columns on_problems
+                defined_columns = reader.getDefinedColumnNames
+                headers = case defined_columns of
+                    Nothing ->
+                        column_count = reader.getColumnCount
+                        if column_count == 0 then Nothing else
+                            No_Headers column_count
+                    _ -> Existing_Headers (Vector.Vector defined_columns)
+                line_separator = reader.getEffectiveLineSeparator
+                Detected_File_Metadata headers line_separator
+    result.catch File.File_Not_Found (_->(Detected_File_Metadata Nothing Nothing))
+
+## PRIVATE
+handle_illegal_arguments =
+    translate_illegal_argument caught_panic =
+        Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+    Panic.catch IllegalArgumentException handler=translate_illegal_argument
+
+## PRIVATE
+handle_parsing_failure =
+    translate_parsing_failure caught_panic =
+        Error.throw (translate_reader_problem caught_panic.payload.cause.problem)
+    Panic.catch ParsingFailedException handler=translate_parsing_failure
+
+## PRIVATE
+handle_parsing_exception =
+    translate_parsing_exception caught_panic =
+        cause = caught_panic.payload.cause.getCause
+        if Java.is_instance cause IOException then Panic.throw cause else
+            Error.throw (Parser_Error caught_panic.payload)
+    Panic.catch TextParsingException handler=translate_parsing_exception
+
+## PRIVATE
+handle_io_exception related_file ~action = Panic.catch_java IOException action java_exception->
+    Error.throw (File.wrap_io_exception related_file java_exception)
+
+## PRIVATE
+default_max_columns = 4096

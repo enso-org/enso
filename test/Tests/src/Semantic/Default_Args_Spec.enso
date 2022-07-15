@@ -43,4 +43,4 @@ spec =
         Test.specify "apply defaulted arguments that are themselves fully defaulted" <|
             G.should_equal (G 4 (Bar 1 (Foo False) False))
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

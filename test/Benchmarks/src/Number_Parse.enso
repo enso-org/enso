@@ -17,11 +17,11 @@ main =
     faker = Faker.new fixed_random_seed
 
     IO.println <| "Creating decimal strings"
-    decimal_strings = Vector.new here.vector_size _->(faker.decimal -1000000000 1000000000).to_text
+    decimal_strings = Vector.new vector_size _->(faker.decimal -1000000000 1000000000).to_text
     IO.println <| "Benchmarking Decimal.parse"
-    Bench.measure (decimal_strings.map Decimal.parse) "Decimal.parse" here.iter_size here.num_iterations
+    Bench.measure (decimal_strings.map Decimal.parse) "Decimal.parse" iter_size num_iterations
 
     IO.println <| "Creating integer strings"
-    int_strings = Vector.new here.vector_size _->(faker.integer -1000000000 1000000000).to_text
+    int_strings = Vector.new vector_size _->(faker.integer -1000000000 1000000000).to_text
     IO.println <| "Benchmarking Integer.parse"
-    Bench.measure (int_strings.map Integer.parse) "Integer.parse" here.iter_size here.num_iterations
+    Bench.measure (int_strings.map Integer.parse) "Integer.parse" iter_size num_iterations

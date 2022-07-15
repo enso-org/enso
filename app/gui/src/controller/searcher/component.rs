@@ -6,6 +6,9 @@ use crate::prelude::*;
 
 use crate::model::suggestion_database;
 
+use convert_case::Case;
+use convert_case::Casing;
+
 
 // ==============
 // === Export ===
@@ -26,6 +29,56 @@ pub use group::Group;
 pub type Id = suggestion_database::entry::Id;
 /// Information how the component matches the filtering pattern.
 pub type MatchInfo = controller::searcher::action::MatchInfo;
+
+
+
+// ==============
+// === Errors ===
+// ==============
+
+// === NoSuchGroup===
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "No component group with the index {} in section {}.", index, section_name)]
+pub struct NoSuchGroup {
+    section_name: CowString,
+    index:        usize,
+}
+
+
+// === NoSuchComponent ===
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "No component entry with the index {} in {}.", index, group_name)]
+pub struct NoSuchComponent {
+    group_name: CowString,
+    index:      usize,
+}
+
+
+
+// =============
+// === Order ===
+// =============
+
+/// Defines supported sorting orders for [`Component`]s. Used by
+/// [`Group::update_sorting_and_visibility`].
+#[derive(Copy, Clone, Debug)]
+pub enum Order {
+    /// The same order of components as when the group was built.
+    /// Will use the [`Group::initial_entries_order`] field.
+    Initial,
+    /// Order non-modules by name, followed by modules (also by name).
+    ByNameNonModulesThenModules,
+    /// Order [`Component`]s by [`Component::match_info`] score. The matching entries will go
+    /// first, and the _lesser_ score will take precedence. That is due to way of displaying
+    /// components in component browser - the lower (with greater indices) entries are more
+    /// handy.
+    ByMatch,
+}
+
 
 
 // =================
@@ -57,8 +110,8 @@ impl Component {
     }
 
     /// The label which should be displayed in the Component Browser.
-    pub fn label(&self) -> &str {
-        &self.suggestion.name
+    pub fn label(&self) -> String {
+        self.to_string()
     }
 
     /// Checks if component is filtered out.
@@ -79,7 +132,7 @@ impl Component {
     /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&self, pattern: impl Str) {
         let label = self.label();
-        let matches = fuzzly::matches(label, pattern.as_ref());
+        let matches = fuzzly::matches(&label, pattern.as_ref());
         let subsequence = matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
             fuzzly::find_best_subsequence(label, pattern, metric)
@@ -88,6 +141,20 @@ impl Component {
             Some(subsequence) => MatchInfo::Matches { subsequence },
             None => MatchInfo::DoesNotMatch,
         };
+    }
+}
+
+impl Display for Component {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let self_type_not_here =
+            self.suggestion.self_type.as_ref().filter(|t| *t != &self.suggestion.module);
+        if let Some(self_type) = self_type_not_here {
+            let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
+            let name = self.suggestion.name.from_case(Case::Snake).to_case(Case::Lower);
+            write!(f, "{} {}", self_name, name)
+        } else {
+            write!(f, "{}", self.suggestion.name.from_case(Case::Snake).to_case(Case::Lower))
+        }
     }
 }
 
@@ -128,6 +195,9 @@ pub struct List {
     top_modules_flattened: group::AlphabeticalList,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
     filtered:              Rc<Cell<bool>>,
+    /// Components to display in the "Local Scope" section of the [Component
+    /// Browser](crate::controller::Searcher).
+    pub local_scope:       Group,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// [Component Browser](crate::controller::Searcher).
     pub favorites:         group::List,
@@ -157,26 +227,55 @@ impl List {
         self.module_groups.get(&component).map(|mg| &mg.content)
     }
 
+    /// Get the component from Top Modules by index.
+    pub fn top_module_entry_by_index(
+        &self,
+        group_index: usize,
+        entry_index: usize,
+    ) -> FallibleResult<Component> {
+        self.top_modules().entry_by_index("Sub-modules".into(), group_index, entry_index)
+    }
+
+    /// Get the component from Favorites section by index.
+    pub fn favorites_entry_by_index(
+        &self,
+        group_index: usize,
+        entry_index: usize,
+    ) -> FallibleResult<Component> {
+        self.favorites.entry_by_index("Favorites".into(), group_index, entry_index)
+    }
+
+    /// Get the component from Local Scope section by index.
+    pub fn local_scope_entry_by_index(&self, index: usize) -> FallibleResult<Component> {
+        let error =
+            || NoSuchComponent { group_name: self.local_scope.name.to_string().into(), index };
+        self.local_scope.get_entry(index).ok_or_else(error).map_err(|e| e.into())
+    }
+
     /// Update matching info in all components according to the new filtering pattern.
     pub fn update_filtering(&self, pattern: impl AsRef<str>) {
         let pattern = pattern.as_ref();
         for component in &*self.all_components {
             component.update_matching_info(pattern)
         }
+        let pattern_not_empty = !pattern.is_empty();
+        let submodules_order =
+            if pattern_not_empty { Order::ByMatch } else { Order::ByNameNonModulesThenModules };
+        let favorites_order = if pattern_not_empty { Order::ByMatch } else { Order::Initial };
         for group in self.all_groups_not_in_favorites() {
-            group.update_sorting_and_visibility(pattern);
+            group.update_sorting(submodules_order);
         }
         for group in self.favorites.iter() {
-            group.update_visibility();
+            group.update_sorting(favorites_order);
         }
-        self.filtered.set(!pattern.is_empty());
+        self.filtered.set(pattern_not_empty);
     }
 
     /// All groups from [`List`] without the groups found in [`List::favorites`].
     fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
-        normal.chain(flattened)
+        normal.chain(flattened).chain(std::iter::once(&self.local_scope))
     }
 }
 
@@ -281,11 +380,10 @@ pub(crate) mod tests {
             .entries
             .borrow()
             .iter()
-            .filter(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
+            .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
             .map(|c| *c.id)
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
-        assert_eq!(group.visible.get(), !expected_ids.is_empty());
     }
 
     #[test]
@@ -301,30 +399,42 @@ pub(crate) mod tests {
             suggestion_db.put_entry(id, entry.clone())
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
-        let mut builder = builder::List::new();
+        let mut builder = builder::List::new().with_local_scope_module_id(0);
         builder.set_favorites(&suggestion_db, &favorites);
         builder.extend(&suggestion_db, 0..4);
         let list = builder.build();
 
         list.update_filtering("fu");
+        let match_infos = list.top_modules()[0]
+            .entries
+            .borrow()
+            .iter()
+            .map(|c| c.match_info.borrow().clone())
+            .collect_vec();
+        DEBUG!("{match_infos:?}");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
+        assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
         list.update_filtering("x");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("Sub");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[1]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("y");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
+        assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 1]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
+        assert_ids_of_matches_entries(&list.local_scope, &[2]);
     }
 
 
@@ -335,7 +445,7 @@ pub(crate) mod tests {
         // Create a components list with sample data.
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
-        let mut builder = builder::List::new();
+        let mut builder = builder::List::new().with_local_scope_module_id(0);
         builder.extend(&suggestion_db, 0..11);
         let list = builder.build();
 

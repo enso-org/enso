@@ -37,13 +37,16 @@ mod msdfgen_wasm {
     /// Patches downloaded msdfgen_wasm.js file.
     ///
     /// For some reason, for wasm-bindgen test on browsers the function must be explicitly exported.
-    /// Examples works without this perfectly.
+    /// Examples work without this perfectly.
     pub fn patch_for_wasm_bindgen_test() {
         let path = path::Path::new(&PACKAGE.filename);
         let mut open_options = fs::OpenOptions::new();
         open_options.append(true);
         let mut file = open_options.open(path).unwrap();
-        file.write_all(PATCH_LINE.as_bytes()).unwrap();
+        let file_content = fs::read_to_string(path).unwrap();
+        if !file_content.ends_with(PATCH_LINE) {
+            file.write_all(PATCH_LINE.as_bytes()).unwrap();
+        }
     }
 }
 

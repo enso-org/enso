@@ -26,15 +26,15 @@ type Example_Error_Type message
 
 ## The standard library data directory.
 data_dir : File
-data_dir = Enso_Project.data
+data_dir = enso_project.data
 
 ## An example CSV file for experimenting with Table and its APIs.
 csv : File
-csv = Enso_Project.data / "food_shop_inventory.csv"
+csv = enso_project.data / "food_shop_inventory.csv"
 
 ## The path to the CSV.
 csv_path : Text
-csv_path = here.csv.path
+csv_path = csv.path
 
 ## An example XLS file for experimenting with Table and its APIs.
 
@@ -46,7 +46,7 @@ csv_path = here.csv.path
 xls : File
 xls =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
-    file = Enso_Project.data / 'spreadsheet.xls'
+    file = enso_project.data / 'spreadsheet.xls'
     if file.exists.not then
         Http.fetch url . to_file file
     file
@@ -61,7 +61,7 @@ xls =
 xlsx : File
 xlsx =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xlsx"
-    file = Enso_Project.data / 'spreadsheet.xlsx'
+    file = enso_project.data / 'spreadsheet.xlsx'
     if file.exists.not then
         Http.fetch url . to_file file
     file
@@ -69,7 +69,7 @@ xlsx =
 ## A file that is used for writing temporary data as part of tests.
 scratch_file : File
 scratch_file =
-    file = Enso_Project.data / "scratch_file"
+    file = enso_project.data / "scratch_file"
     if file.exists then file.delete else Nothing
     file
 
@@ -106,11 +106,11 @@ json_text = """
 
 ## Example JSON for working with.
 json : Enso_Json.Json
-json = Enso_Json.parse here.json_text
+json = Enso_Json.parse json_text
 
 ## An example JSON object.
 json_object : Enso_Json.Object
-json_object = here.json.items.head
+json_object = json.items.head
 
 ## An example cons-list.
 list : Enso_List.List
@@ -149,7 +149,7 @@ geo_data_url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/Bus_Stop_Be
      Calling this method will cause Enso to make a network request to a data
      endpoint.
 get_response : Http.Response
-get_response = Http.get here.geo_data_url
+get_response = Http.get geo_data_url
 
 ## Gets HTTP data from a network endpoint.
 
@@ -157,7 +157,7 @@ get_response = Http.get here.geo_data_url
      Calling this method will cause Enso to make a network request to a data
      endpoint.
 get_geo_data : Http.Response.Body
-get_geo_data = Http.fetch here.geo_data_url
+get_geo_data = Http.fetch geo_data_url
 
 ## A simple HTTP client for examples.
 http_client : Http
@@ -177,7 +177,7 @@ uri = Enso_Uri.parse "http://user:pass@example.com/foo/bar?key=val"
 image_file : File
 image_file =
     url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
-    file = Enso_Project.data / "image.png"
+    file = enso_project.data / "image.png"
     if file.exists.not then
         Http.fetch url . to_file file
     file
@@ -190,11 +190,11 @@ image_file =
      this to happen, please place the image in the
      `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
 image : Enso_Image.Image
-image = Enso_Image.read here.image_file [Codecs.Read_Alpha_Channel]
+image = Enso_Image.read image_file [Codecs.Read_Alpha_Channel]
 
-## A matrix that corresponds to `here.image`.
+## A matrix that corresponds to `image`.
 matrix : Enso_Matrix.Matrix
-matrix = here.image.to_matrix
+matrix = image.to_matrix
 
 ## A silly little function that adds one to the provided number.
 add_1_to : Number -> Number
@@ -212,7 +212,7 @@ simple_table_json =
     row_3 = Enso_Json.from_pairs [['baz', False], ['foo', 13]]
     [row_1, row_2, row_3].to_json
 
-## The headers for the columns in the JSON table `here.simple_table_json`.
+## The headers for the columns in the JSON table `simple_table_json`.
 simple_table_json_headers : Vector Text
 simple_table_json_headers = ["foo", "bar", "baz"]
 
@@ -259,24 +259,20 @@ text_column_1 = Table.Column.from_vector "Text" ["Hello,", "my", "name", "is", "
 text_column_2 : Table.Column.Column
 text_column_2 = Table.Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
 
-## An aggregate column for the relevant examples.
-aggregate_column : Table.Column.Aggregate_Column
-aggregate_column = here.aggregate_table.at "transaction_id"
-
 ## A simple table that contains basic shop inventory data for the food shop.
 inventory_table : Table.Table
-inventory_table = here.csv.read . set_index "item_id"
+inventory_table = csv.read . set_index "item_id"
 
 ## A simple table that contains basic item popularity data for the food shop.
 popularity_table : Table.Table
 popularity_table =
-    table = (Enso_Project.data / "food_shop_popularity.csv") . read
+    table = (enso_project.data / "food_shop_popularity.csv") . read
     table.set_index "item_id"
 
 ## A simple tablethat contains basic transaction data for the food shop.
 transactions_table : Table.Table
 transactions_table =
-    (Enso_Project.data / "food_shop_transactions.csv") . read
+    (enso_project.data / "food_shop_transactions.csv") . read
 
 ## An example regex match.
 match : Default_Engine.Match

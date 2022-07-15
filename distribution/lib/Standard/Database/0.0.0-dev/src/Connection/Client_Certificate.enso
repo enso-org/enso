@@ -1,0 +1,22 @@
+from Standard.Base import all
+
+type Client_Certificate
+    ## Creates a new Client_Certificate object.
+
+       Arguments:
+       - cert_file: path to the client certificate file.
+       - key_file: path to the client key file.
+       - key_password: password for the client key file.
+    type Client_Certificate cert_file:(File|Text) key_file:(File|Text) (key_password:Text='')
+
+    ## PRIVATE
+       Creates the JDBC properties for the client certificate.
+
+       JDBC Properties:
+       - sslcert: points to the client certificate file.
+       - sslkey: points to the client key file.
+       - sslpass: password for the client key file.
+    properties : Vector
+    properties =
+        base = [Pair 'sslcert' (File.new self.cert_file).absolute.path, Pair 'sslkey' (File.new self.key_file).absolute.path]
+        if self.key_password == "" then base else base + [Pair 'sslpassword' self.key_password]

@@ -12,8 +12,6 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-import scala.annotation.unused
-
 class AliasAnalysisTest extends CompilerTest {
 
   // === Utilities ============================================================
@@ -840,7 +838,7 @@ class AliasAnalysisTest extends CompilerTest {
 
     val conversionMethod =
       """Bar.from (that : Foo) =
-        |    Bar that.get_thing here
+        |    Bar that.get_thing meh
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method.Conversion]
 
@@ -893,7 +891,7 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[Info.Scope.Child]
         .scope
-      @unused val arg2Scope = app
+      val arg2Scope = app
         .arguments(1)
         .getMetadata(AliasAnalysis)
         .get

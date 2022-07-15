@@ -1,7 +1,10 @@
 package org.enso.table.data.column.storage;
 
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
 
 /**
  * Wraps a storage in a list. Used for exposing a polyglot array interface back to Enso. This list
@@ -70,10 +73,9 @@ public class StorageListView implements List<Object> {
   @SuppressWarnings("rawtypes")
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof List)) {
+    if (!(obj instanceof List that)) {
       return false;
     }
-    List that = (List) obj;
     if (that.size() != size()) {
       return false;
     }

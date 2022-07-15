@@ -19,7 +19,7 @@ class ContextRegistryTest extends BaseServerTest {
     "create execution context" in {
       val client = getInitialisedWsClient()
       client.send(json.executionContextCreateRequest(1))
-      val (requestId, contextId) =
+      val (requestId1, contextId1) =
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
             (requestId, contextId)
@@ -27,10 +27,89 @@ class ContextRegistryTest extends BaseServerTest {
             fail(s"Unexpected message: $msg")
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
-        requestId,
-        Api.CreateContextResponse(contextId)
+        requestId1,
+        Api.CreateContextResponse(contextId1)
       )
-      client.expectJson(json.executionContextCreateResponse(1, contextId))
+      client.expectJson(json.executionContextCreateResponse(1, contextId1))
+
+      // check the request with optional parameter
+      client.send(
+        json"""
+            { "jsonrpc": "2.0",
+              "method": "executionContext/create",
+              "id": 2,
+              "params": {
+                "contextId": null
+              }
+            }
+            """
+      )
+      val (requestId2, contextId2) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.CreateContextResponse(contextId2)
+      )
+      client.expectJson(json.executionContextCreateResponse(2, contextId2))
+
+      // check the request with optional parameter
+      val contextId3 = UUID.randomUUID()
+      client.send(
+        json"""
+            { "jsonrpc": "2.0",
+              "method": "executionContext/create",
+              "id": 3,
+              "params": {
+                "contextId": $contextId3
+              }
+            }
+            """
+      )
+      val requestId3 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(`contextId3`)) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId3,
+        Api.CreateContextResponse(contextId3)
+      )
+      client.expectJson(json.executionContextCreateResponse(3, contextId3))
+
+      // check the request with optional parameter
+      client.send(
+        json"""
+            { "jsonrpc": "2.0",
+              "method": "executionContext/create",
+              "id": 4,
+              "params": {}
+            }
+            """
+      )
+      val (requestId4, contextId4) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId4,
+        Api.CreateContextResponse(contextId4)
+      )
+      client.expectJson(json.executionContextCreateResponse(4, contextId4))
+
+      // check idempotence
+      client.send(json.executionContextCreateRequest(5, contextId1))
+      runtimeConnectorProbe.expectNoMessage()
+      client.expectJson(json.executionContextCreateResponse(5, contextId1))
     }
 
     "destroy execution context" in {

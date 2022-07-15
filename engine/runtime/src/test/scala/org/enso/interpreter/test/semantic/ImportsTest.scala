@@ -39,7 +39,7 @@ class ImportsTest extends PackageTest {
     consumeOut
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
-      .head should include("The name X could not be found.")
+      .head should include("The name `X` could not be found.")
   }
 
   "Symbols from imported modules" should "not be visible when hidden" in {
@@ -49,7 +49,7 @@ class ImportsTest extends PackageTest {
     consumeOut
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
-      .head should include("The name X could not be found.")
+      .head should include("The name `X` could not be found.")
   }
 
   "Symbols from imported modules" should "be visible even when others are hidden" in {
@@ -67,7 +67,7 @@ class ImportsTest extends PackageTest {
     consumeOut
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
-      .head should include("The name Atom could not be found.")
+      .head should include("The name `Atom` could not be found.")
 
   }
 

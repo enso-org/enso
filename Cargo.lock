@@ -1311,6 +1311,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cron"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d76219e9243e100d5a37676005f08379297f8addfebc247613299600625c734d"
+dependencies = [
+ "chrono",
+ "nom",
+ "once_cell",
+]
+
+[[package]]
 name = "crossbeam-channel"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1505,7 +1516,8 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
- "searcher-list-panel",
+ "ide-view-component-list-panel",
+ "js-sys",
  "wasm-bindgen",
 ]
 
@@ -1722,7 +1734,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#5a55bf5241f55bd314ba04498b34d048dae93a34"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1786,7 +1798,7 @@ dependencies = [
  "tracing-subscriber",
  "unicase 2.6.0",
  "url 2.2.2",
- "uuid 1.1.0",
+ "uuid 1.1.2",
  "walkdir",
  "which",
  "whoami",
@@ -1796,10 +1808,11 @@ dependencies = [
 [[package]]
 name = "enso-build-cli"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#5a55bf5241f55bd314ba04498b34d048dae93a34"
 dependencies = [
  "anyhow",
  "byte-unit",
+ "chrono",
  "clap 3.1.18",
  "derivative",
  "enso-build",
@@ -1808,6 +1821,9 @@ dependencies = [
  "humantime 2.1.0",
  "ide-ci",
  "octocrab",
+ "serde",
+ "serde_json",
+ "serde_yaml",
  "strum",
  "tempfile",
  "tokio 1.19.2",
@@ -1928,6 +1944,7 @@ dependencies = [
  "ast",
  "bimap",
  "console_error_panic_hook",
+ "convert_case 0.5.0",
  "double-representation",
  "engine-protocol",
  "enso-callback",
@@ -1953,6 +1970,7 @@ dependencies = [
  "futures 0.3.21",
  "fuzzly",
  "ide-view",
+ "ide-view-component-group",
  "itertools 0.10.3",
  "js-sys",
  "json-rpc",
@@ -2011,6 +2029,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-metamodel"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "derivative",
+ "derive_more",
+]
+
+[[package]]
+name = "enso-metamodel-lexpr"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "derivative",
+ "enso-metamodel",
+ "enso-reflect",
+ "lexpr",
+ "serde",
+]
+
+[[package]]
 name = "enso-optics"
 version = "0.2.0"
 dependencies = [
@@ -2021,12 +2060,29 @@ dependencies = [
 name = "enso-parser"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "enso-data-structures",
+ "enso-metamodel",
+ "enso-metamodel-lexpr",
  "enso-parser-syntax-tree-builder",
  "enso-parser-syntax-tree-visitor",
  "enso-prelude",
+ "enso-reflect",
  "enso-shapely-macros",
  "enso-types",
+ "lexpr",
+ "serde",
+]
+
+[[package]]
+name = "enso-parser-generate-java"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "enso-metamodel",
+ "enso-parser",
+ "enso-prelude",
+ "enso-reflect",
 ]
 
 [[package]]
@@ -2062,6 +2118,7 @@ dependencies = [
  "derivative",
  "derive_more",
  "enclose",
+ "enso-reflect",
  "enso-shapely",
  "failure",
  "futures 0.3.21",
@@ -2142,6 +2199,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-reflect"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "enso-metamodel",
+ "enso-reflect-macros",
+]
+
+[[package]]
+name = "enso-reflect-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "enso-shapely"
 version = "0.2.0"
 dependencies = [
@@ -2199,9 +2274,11 @@ dependencies = [
 name = "enso-types"
 version = "0.1.0"
 dependencies = [
+ "enso-reflect",
  "nalgebra 0.26.2",
  "num-traits",
  "paste 1.0.7",
+ "serde",
 ]
 
 [[package]]
@@ -2301,6 +2378,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-derive-theme"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "ensogl-drop-down-menu"
 version = "0.1.0"
 dependencies = [
@@ -2392,6 +2479,7 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "ensogl-text",
+ "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
 ]
@@ -2523,6 +2611,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-text",
+ "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
 ]
@@ -2588,6 +2677,7 @@ name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "ensogl-text-embedded-fonts",
 ]
 
 [[package]]
@@ -2694,8 +2784,13 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
+ "ensogl-text-embedded-fonts-names",
  "zip 0.5.13",
 ]
+
+[[package]]
+name = "ensogl-text-embedded-fonts-names"
+version = "0.1.0"
 
 [[package]]
 name = "ensogl-text-msdf-sys"
@@ -2704,6 +2799,7 @@ dependencies = [
  "enso-build-utilities",
  "enso-prelude",
  "ensogl-text-embedded-fonts",
+ "ensogl-text-embedded-fonts-names",
  "futures 0.3.21",
  "js-sys",
  "nalgebra 0.26.2",
@@ -3590,7 +3686,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#75db499c249c91b55b5c801632ac33291619076c"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#5a55bf5241f55bd314ba04498b34d048dae93a34"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -3603,6 +3699,7 @@ dependencies = [
  "chrono",
  "clap 3.1.18",
  "convert_case 0.5.0",
+ "cron",
  "data-encoding",
  "derivative",
  "derive_more",
@@ -3662,7 +3759,7 @@ dependencies = [
  "tracing-subscriber",
  "unicase 2.6.0",
  "url 2.2.2",
- "uuid 1.1.0",
+ "uuid 1.1.2",
  "walkdir",
  "which",
  "whoami",
@@ -3683,14 +3780,16 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
+ "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
+ "ide-view-component-browser",
  "ide-view-graph-editor",
  "js-sys",
  "multi-map",
  "nalgebra 0.26.2",
- "ordered-float 2.10.0",
+ "ordered-float",
  "parser",
  "serde",
  "serde_json",
@@ -3699,6 +3798,16 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "welcome-screen",
+]
+
+[[package]]
+name = "ide-view-component-browser"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ide-view-component-list-panel",
 ]
 
 [[package]]
@@ -3715,6 +3824,25 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "failure",
+]
+
+[[package]]
+name = "ide-view-component-list-panel"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-derive-theme",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ordered-float",
 ]
 
 [[package]]
@@ -3740,7 +3868,7 @@ dependencies = [
  "failure",
  "js-sys",
  "nalgebra 0.26.2",
- "ordered-float 1.1.1",
+ "ordered-float",
  "serde",
  "serde_json",
  "sourcemap",
@@ -4003,6 +4131,29 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+
+[[package]]
+name = "lexpr"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ceee0b80e0043f17bf81130471e1b0975179af75fe657af45577d80e2698fe3b"
+dependencies = [
+ "itoa 0.4.8",
+ "lexpr-macros",
+ "proc-macro-hack",
+ "ryu",
+]
+
+[[package]]
+name = "lexpr-macros"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd627fb38e19c00d8d068618259205f7a91c91aeade5c15bc35dbca037bb1c35"
+dependencies = [
+ "proc-macro-hack",
+ "proc-macro2",
+ "quote",
+]
 
 [[package]]
 name = "libc"
@@ -4640,24 +4791,6 @@ dependencies = [
 
 [[package]]
 name = "ordered-float"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3305af35278dd29f46fcdd139e0b1fbfae2153f0e5928b39b035542dd31e37b7"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "ordered-float"
-version = "2.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7940cf2ca942593318d07fcf2596cdca60a85c9e7fab408a5e21a4f9dcd40d87"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "ordered-float"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96bcbab4bfea7a59c2c0fe47211a1ac4e3e96bea6eb446d704f310bc5c732ae2"
@@ -5069,9 +5202,9 @@ checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.39"
+version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c54b25569025b7fc9651de43004ae593a75ad88543b17178aa5e1b9c4f15f56f"
+checksum = "dd96a1e8ed2596c337f8eae5f24924ec83f5ad5ab21ea8e455d3566c69fbcaf7"
 dependencies = [
  "unicode-ident",
 ]
@@ -5147,9 +5280,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.18"
+version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1feb54ed693b93a84e14094943b84b7c4eae204c512b7ccb95ab0c66d278ad1"
+checksum = "3bcdf212e9776fbcb2d23ab029360416bb1706b1aea2d1a5ba002727cbcab804"
 dependencies = [
  "proc-macro2",
 ]
@@ -5681,24 +5814,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "searcher-list-panel"
-version = "0.1.0"
-dependencies = [
- "approx 0.5.1",
- "enso-frp",
- "ensogl-core",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-scroll-area",
- "ensogl-selector",
- "ensogl-shadow",
- "ensogl-text",
- "ide-view-component-group",
- "ordered-float 3.0.0",
-]
-
-[[package]]
 name = "secrecy"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6138,9 +6253,9 @@ checksum = "a7973cce6668464ea31f176d85b13c7ab3bba2cb3b77a2ed26abd7801688010a"
 
 [[package]]
 name = "syn"
-version = "1.0.95"
+version = "1.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbaf6116ab8924f39d52792136fb74fd60a80194cf1b1c6ffa6453eef1c3f942"
+checksum = "c50aef8a904de4c23c788f104b7dddc7d6f79c647c7c8ce4cc8f73eb0ca773dd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6899,9 +7014,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.1.0"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93bbc61e655a4833cf400d0d15bf3649313422fa7572886ad6dab16d79886365"
+checksum = "dd6469f4314d5f1ffec476e05f17cc9a78bc7a27a6a857842170bdf8d6f98d2f"
 dependencies = [
  "getrandom 0.2.6",
  "serde",

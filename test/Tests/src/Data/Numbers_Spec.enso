@@ -274,9 +274,9 @@ spec =
             (a^2)^0.5 . should_equal a epsilon=eps
 
         Test.specify "should expose more involved mathematical functions" <|
-            Math.Pi.sin.should_equal 0 epsilon=eps
-            (Math.Pi / 4).sin.should_equal (2 ^ 0.5)/2 epsilon=eps
-            (Math.Pi / 6).cos.should_equal (3.sqrt / 2) epsilon=eps
+            Math.pi.sin.should_equal 0 epsilon=eps
+            (Math.pi / 4).sin.should_equal (2 ^ 0.5)/2 epsilon=eps
+            (Math.pi / 6).cos.should_equal (3.sqrt / 2) epsilon=eps
             (17 ^ 0.13).log base=17 . should_equal 0.13 epsilon=eps
             0.exp.should_equal 1
 
@@ -320,4 +320,4 @@ spec =
             Number.nan . equals Number.nan . should_be_false
             Number.nan . equals 0 . should_be_false
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

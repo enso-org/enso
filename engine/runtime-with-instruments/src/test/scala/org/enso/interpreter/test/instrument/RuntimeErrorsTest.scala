@@ -174,7 +174,7 @@ class RuntimeErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Variable `undefined` is not defined.",
+              "The name `undefined` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 8), model.Position(2, 17))),
               Some(xId)
@@ -186,7 +186,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
       ),
@@ -194,7 +194,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
       ),
@@ -202,7 +202,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
       ),
@@ -215,12 +215,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val mainBodyId = metadata.addItem(28, 12)
+    val mainBodyId = metadata.addItem(28, 7)
 
     val code =
       """foo a b = a + b + x
         |
-        |main = here.foo 1 2
+        |main = foo 1 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -258,7 +258,7 @@ class RuntimeErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Variable `x` is not defined.",
+              "The name `x` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(0, 18), model.Position(0, 19))),
               None
@@ -271,7 +271,7 @@ class RuntimeErrorsTest
         mainBodyId,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `x` is not defined.",
+          "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
         )
       ),
@@ -409,7 +409,7 @@ class RuntimeErrorsTest
               Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
             ),
             Api.ExecutionResult.Diagnostic.error(
-              "Variable `undefined` is not defined.",
+              "The name `undefined` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 8), model.Position(3, 17))),
               Some(xId)
@@ -421,7 +421,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         )
       ),
@@ -581,7 +581,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(5, 8), model.Position(5, 27)),
               "1234567890123456789"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -602,7 +603,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(5, 8), model.Position(5, 27)),
               "1000000000000.div 0"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -633,7 +635,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(5, 8), model.Position(5, 27)),
               "1000000000000.div 2"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -721,7 +724,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(6, 20), model.Position(6, 28)),
               "MyError2"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -737,9 +741,9 @@ class RuntimeErrorsTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val fooThrowId = metadata.addItem(70, 20)
-    val xId        = metadata.addItem(107, 8)
-    val yId        = metadata.addItem(124, 5)
-    val mainResId  = metadata.addItem(134, 12)
+    val xId        = metadata.addItem(107, 3)
+    val yId        = metadata.addItem(119, 5)
+    val mainResId  = metadata.addItem(129, 12)
 
     val code =
       """from Standard.Base import all
@@ -751,7 +755,7 @@ class RuntimeErrorsTest
         |    Error.throw MyError1
         |
         |main =
-        |    x = self.foo
+        |    x = foo
         |    y = x - 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -812,7 +816,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(6, 16), model.Position(6, 24)),
               "MyError2"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -910,7 +915,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(5, 8), model.Position(5, 27)),
               "1234567890123456789"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -977,7 +983,7 @@ class RuntimeErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Variable `foo` is not defined.",
+              "The name `foo` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 12), model.Position(3, 15))),
               None
@@ -989,7 +995,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `foo` is not defined.",
+          "Compile error: The name `foo` could not be found.",
           Seq(xId)
         )
       ),
@@ -997,7 +1003,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `foo` is not defined.",
+          "Compile error: The name `foo` could not be found.",
           Seq(xId)
         )
       ),
@@ -1005,7 +1011,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `foo` is not defined.",
+          "Compile error: The name `foo` could not be found.",
           Seq(xId)
         )
       ),
@@ -1023,7 +1029,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(3, 12), model.Position(3, 15)),
               "101"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1126,7 +1133,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(6, 20), model.Position(6, 28)),
               "MyError2"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1165,9 +1173,9 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(71, 8)
-    val yId        = metadata.addItem(88, 5)
-    val mainResId  = metadata.addItem(98, 12)
+    val xId        = metadata.addItem(71, 3)
+    val yId        = metadata.addItem(83, 5)
+    val mainResId  = metadata.addItem(93, 12)
 
     val code =
       """from Standard.Base import all
@@ -1176,7 +1184,7 @@ class RuntimeErrorsTest
         |    Panic.throw 9
         |
         |main =
-        |    x = self.foo
+        |    x = foo
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1250,7 +1258,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(3, 4), model.Position(3, 17)),
               "10002 - 10000"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1273,9 +1282,9 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(108, 8)
-    val yId        = metadata.addItem(125, 5)
-    val mainResId  = metadata.addItem(135, 12)
+    val xId        = metadata.addItem(108, 3)
+    val yId        = metadata.addItem(120, 5)
+    val mainResId  = metadata.addItem(130, 12)
 
     val code =
       """import Standard.Base.IO
@@ -1285,7 +1294,7 @@ class RuntimeErrorsTest
         |    Error.throw 9
         |
         |main =
-        |    x = self.foo
+        |    x = foo
         |    y = x + 1
         |    IO.println y
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1350,7 +1359,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(4, 4), model.Position(4, 17)),
               "10002 - 10000"
             )
-          )
+          ),
+          execute = true
         )
       )
     )
@@ -1420,7 +1430,7 @@ class RuntimeErrorsTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "The name IO could not be found.",
+              "The name `IO` could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(1, 8), model.Position(1, 10))),
               None
@@ -1432,7 +1442,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name IO could not be found.",
+          "Compile error: The name `IO` could not be found.",
           Seq(xId)
         )
       ),
@@ -1440,7 +1450,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: The name IO could not be found.",
+          "Compile error: The name `IO` could not be found.",
           Seq(xId)
         )
       ),
@@ -1458,7 +1468,8 @@ class RuntimeErrorsTest
               model.Range(model.Position(0, 0), model.Position(0, 0)),
               s"import Standard.Base.IO$newline$newline"
             )
-          )
+          ),
+          execute = true
         )
       )
     )

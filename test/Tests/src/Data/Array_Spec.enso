@@ -38,4 +38,4 @@ spec = Test.group "Arrays" <|
         res = Array.new err
         res . should_fail_with Illegal_State_Error
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

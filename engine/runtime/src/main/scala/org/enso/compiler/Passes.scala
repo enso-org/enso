@@ -39,7 +39,6 @@ class Passes(
   val globalTypingPasses = new PassGroup(
     List(
       MethodDefinitions,
-      ModuleThisToHere,
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,
@@ -56,7 +55,7 @@ class Passes(
     List(
       ExpressionAnnotations,
       AliasAnalysis,
-      UppercaseNames,
+      GlobalNames,
       MethodCalls,
       VectorLiterals,
       FullyAppliedFunctionUses,
@@ -78,7 +77,6 @@ class Passes(
       TailCall,
       Patterns,
       AliasAnalysis,
-      UndefinedVariables,
       DataflowAnalysis,
       CachePreferenceAnalysis,
       UnusedBindings

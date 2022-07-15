@@ -16,7 +16,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       AST.Invalid.Unrecognized("@@"),
       IR.Error.Syntax.UnrecognizedToken
     )
-    val plusOp = IR.Name.Literal("+", isReferent = false, isMethod = true, None)
+    val plusOp = IR.Name.Literal("+", isMethod = true, None)
     val plusApp = IR.Application.Prefix(
       plusOp,
       List(
@@ -29,7 +29,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       List(
         IR.DefinitionArgument
           .Specified(
-            IR.Name.Literal("bar", isReferent = false, isMethod = false, None),
+            IR.Name.Literal("bar", isMethod = false, None),
             None,
             None,
             suspended = false,
@@ -61,23 +61,23 @@ class GatherDiagnosticsTest extends CompilerTest {
       )
 
       val typeName =
-        IR.Name.Literal("Foo", isReferent = false, isMethod = false, None)
+        IR.Name.Literal("Foo", isMethod = false, None)
       val method1Name =
-        IR.Name.Literal("bar", isReferent = false, isMethod = false, None)
+        IR.Name.Literal("bar", isMethod = false, None)
       val method2Name =
-        IR.Name.Literal("baz", isReferent = false, isMethod = false, None)
+        IR.Name.Literal("baz", isMethod = false, None)
       val fooName =
-        IR.Name.Literal("foo", isReferent = false, isMethod = false, None)
+        IR.Name.Literal("foo", isMethod = false, None)
 
       val method1Ref =
         IR.Name.MethodReference(
-          IR.Name.Qualified(List(typeName), None),
+          Some(IR.Name.Qualified(List(typeName), None)),
           method1Name,
           None
         )
       val method2Ref =
         IR.Name.MethodReference(
-          IR.Name.Qualified(List(typeName), None),
+          Some(IR.Name.Qualified(List(typeName), None)),
           method2Name,
           None
         )

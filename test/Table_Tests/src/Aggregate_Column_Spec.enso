@@ -195,4 +195,4 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator percentile_table (Percentile 0.66 0) "66%-ile tests" 70.78
         test_aggregator empty_table (Mode 0 test_name) test_name Nothing
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

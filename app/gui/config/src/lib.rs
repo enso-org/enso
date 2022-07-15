@@ -66,5 +66,6 @@ ensogl::read_args! {
         test_workflow            : String,
         skip_min_version_check   : bool,
         preferred_engine_version : semver::Version,
+        enable_new_component_browser : bool,
     }
 }

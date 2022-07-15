@@ -24,7 +24,7 @@ type Os
 
          example_os = Platform.os
 os : Os
-os = here.from_text System.os
+os = from_text System.os
 
 ## PRIVATE
 

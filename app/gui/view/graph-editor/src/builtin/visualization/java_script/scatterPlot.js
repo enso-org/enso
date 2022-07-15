@@ -49,7 +49,7 @@ class ScatterPlot extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessor('here.process_to_json_text', 'Standard.Visualization.Scatter_Plot')
+        this.setPreprocessor('process_to_json_text', 'Standard.Visualization.Scatter_Plot')
         this.dataPoints = []
         this.axis = {
             x: { scale: LINEAR_SCALE },

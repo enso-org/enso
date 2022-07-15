@@ -13,6 +13,7 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
+use double_representation::module;
 use engine_protocol::language_server::MethodPointer;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
@@ -299,6 +300,15 @@ impl Handle {
     /// Note that the controller returned by this method may change as the nodes are stepped into.
     pub fn graph(&self) -> controller::Graph {
         self.graph.borrow().clone_ref()
+    }
+
+    /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
+    /// module's path and the `project` name.
+    pub fn module_qualified_name(
+        &self,
+        project: &dyn model::project::API,
+    ) -> module::QualifiedName {
+        self.graph().module.path().qualified_module_name(project.qualified_name())
     }
 
     /// Returns information about all the connections between graph's nodes.

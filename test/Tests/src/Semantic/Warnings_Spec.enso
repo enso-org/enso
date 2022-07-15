@@ -23,17 +23,17 @@ unwrap x = Integer.from x
 
 reassign_test x =
     consed = Wrap x
-    reconsed = here.rewrap consed
-    i = here.unwrap reconsed
+    reconsed = rewrap consed
+    i = unwrap reconsed
     rereconsed = Wrap i
-    x1 = here.get_foo rereconsed
+    x1 = get_foo rereconsed
     prim_sum = 1 + x1
-    r = here.poly_sum prim_sum 1
+    r = poly_sum prim_sum 1
     r
 
 baz value = Warning.attach value "I have warned you"
-bar value = here.baz value
-foo value = here.bar value
+bar value = baz value
+foo value = bar value
 
 Integer.from (that:Wrap) = that.foo
 
@@ -49,10 +49,10 @@ odd_warning_mapper payload = case payload of
     _ -> Nothing
 
 map_odd_warnings value =
-    Warning.map_attached_warnings here.odd_warning_mapper value
+    Warning.map_attached_warnings odd_warning_mapper value
 
 map_odd_warnings_and_errors value =
-    Warning.map_warnings_and_errors here.odd_warning_mapper value
+    Warning.map_warnings_and_errors odd_warning_mapper value
 
 throw_a_bar =
     Panic.throw "bar"
@@ -103,14 +103,14 @@ spec = Test.group "Dataflow Warnings" <|
 
     Test.specify "should attach correct stacktraces" <|
         current = Runtime.get_stack_trace
-        warned = here.foo "value"
+        warned = foo "value"
         warning_stack = Warning.get_all warned . head . origin
         relevant = warning_stack . drop_end current.length
         relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
 
     Test.specify "should attach reassignment info in the last-reassigned-first order" <|
         x = Warning.attach "warn!" 1
-        r = here.reassign_test x
+        r = reassign_test x
         warn = Warning.get_all r . head
         reassignments = warn.reassignments.map .name
         reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Warnings_Spec.Wrap', 'Warnings_Spec.unwrap', 'Warnings_Spec.rewrap', 'Warnings_Spec.Wrap']
@@ -124,27 +124,27 @@ spec = Test.group "Dataflow Warnings" <|
         Warning.get_all rewarned . map .value . should_contain_the_same_elements_as [2,4]
 
     Test.specify "should allow to map the warnings, selectively" <|
-        warned = here.attach_four_warnings "foo"
-        mapped = here.map_odd_warnings warned
+        warned = attach_four_warnings "foo"
+        mapped = map_odd_warnings warned
         mapped . should_equal 'foo'
         Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
 
     Test.specify "should allow to map warnings and errors, selectively" <|
-        warned = here.attach_four_warnings "foo"
-        mapped = here.map_odd_warnings_and_errors warned
+        warned = attach_four_warnings "foo"
+        mapped = map_odd_warnings_and_errors warned
         mapped . should_equal 'foo'
         Warning.get_all mapped . map .value . should_contain_the_same_elements_as [11, 2, 13, 4]
         Warning.get_all mapped . map (w-> w.origin.first.name) . should_contain_the_same_elements_as ["Warnings_Spec.map_odd_warnings_and_errors", "Warnings_Spec.attach_four_warnings"]
 
         errored_2 = Error.throw 7
-        mapped_2 = here.map_odd_warnings_and_errors errored_2
+        mapped_2 = map_odd_warnings_and_errors errored_2
         mapped_2.catch . should_equal 17
         Warning.get_all mapped_2 . catch . should_equal 17
 
-        errored_3 = Panic.recover Any here.throw_a_bar
-        mapped_3 = here.map_odd_warnings_and_errors errored_3
+        errored_3 = Panic.recover Any throw_a_bar
+        mapped_3 = map_odd_warnings_and_errors errored_3
         mapped_3.catch . should_equal "bar"
         mapped_3.stack_trace.second.name . should_equal "Warnings_Spec.throw_a_bar"
         Warning.get_all mapped_3 . catch . should_equal "bar"
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

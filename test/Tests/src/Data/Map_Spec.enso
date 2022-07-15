@@ -108,4 +108,4 @@ spec = Test.group "Maps" <|
         m = Map.empty
         m.last . should_equal Nothing
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

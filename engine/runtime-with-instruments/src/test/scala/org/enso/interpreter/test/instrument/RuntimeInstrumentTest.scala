@@ -502,16 +502,16 @@ class RuntimeInstrumentTest
 
     // f expression
     metadata.addItem(7, 5)
-    val xExpr    = metadata.addItem(29, 8)
-    val mainRes  = metadata.addItem(42, 1)
-    val mainExpr = metadata.addItem(20, 23)
+    val xExpr    = metadata.addItem(29, 3)
+    val mainRes  = metadata.addItem(37, 1)
+    val mainExpr = metadata.addItem(20, 18)
 
     val code =
       """
         |f x = x + 1
         |
         |main =
-        |    x = here.f 1
+        |    x = f 1
         |    x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -928,10 +928,10 @@ class RuntimeInstrumentTest
     // first x->x argument
     metadata.addItem(79, 4)
     // second x->x argument
-    metadata.addItem(123, 4)
+    metadata.addItem(108, 4)
     val arg1 = metadata.addItem(65, 2)
     val arg2 = metadata.addItem(76, 2)
-    val arg3 = metadata.addItem(108, 2)
+    val arg3 = metadata.addItem(98, 2)
 
     val code =
       """
@@ -941,9 +941,9 @@ class RuntimeInstrumentTest
         |    id1 x=42 (y = a->a) = y x
         |    id1 42
         |    id1 42 x->x
-        |    here.id
-        |    here.id 42
-        |    here.id x->x
+        |    id
+        |    id 42
+        |    id x->x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
