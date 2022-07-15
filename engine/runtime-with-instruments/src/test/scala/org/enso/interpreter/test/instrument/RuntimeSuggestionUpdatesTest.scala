@@ -571,14 +571,6 @@ class RuntimeSuggestionUpdatesTest
                     "foo",
                     List(
                       Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        ),
-                      Suggestion
                         .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
@@ -642,14 +634,6 @@ class RuntimeSuggestionUpdatesTest
                     "foo",
                     List(
                       Suggestion
-                        .Argument(
-                          "self",
-                          "Enso_Test.Test.Main",
-                          false,
-                          false,
-                          None
-                        ),
-                      Suggestion
                         .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
@@ -663,9 +647,9 @@ class RuntimeSuggestionUpdatesTest
                     Some(
                       List(
                         Api.SuggestionArgumentAction
-                          .Modify(1, Some("a"), None, None, None, None),
+                          .Modify(0, Some("a"), None, None, None, None),
                         Api.SuggestionArgumentAction.Add(
-                          2,
+                          1,
                           Suggestion
                             .Argument("b", ConstantsGen.ANY, false, false, None)
                         )
@@ -706,8 +690,8 @@ class RuntimeSuggestionUpdatesTest
         |    10.overloaded x
         |    Nothing
         |
-        |Text.Text.overloaded arg = arg + 1
-        |Number.overloaded arg = arg + 2
+        |Text.Text.overloaded self arg = arg + 1
+        |Number.overloaded self arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
@@ -875,7 +859,7 @@ class RuntimeSuggestionUpdatesTest
         |type MyType
         |    type MkA a
         |
-        |Integer.fortytwo = 42
+        |Integer.fortytwo self = 42
         |
         |hello = "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1009,15 +993,7 @@ class RuntimeSuggestionUpdatesTest
                     None,
                     "Enso_Test.Test.A",
                     "hello",
-                    List(
-                      Suggestion.Argument(
-                        "self",
-                        "Enso_Test.Test.A",
-                        false,
-                        false,
-                        None
-                      )
-                    ),
+                    List(),
                     "Enso_Test.Test.A",
                     ConstantsGen.ANY,
                     None,

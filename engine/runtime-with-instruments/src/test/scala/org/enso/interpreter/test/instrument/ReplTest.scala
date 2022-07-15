@@ -77,15 +77,15 @@ class ReplTest
           |
           |type Foo a b
           |
-          |Foo.to_text = "{" + self.a.to_text + ": " + self.b + "}"
+          |Foo.to_text self = "{" + self.a.to_text + ": " + self.b + "}"
           |
           |type Bar x
           |
-          |Bar.to_text = 42
+          |Bar.to_text self = 42
           |
           |type Baz x
           |
-          |Baz.to_text a b c = a+b+c
+          |Baz.to_text self a b c = a+b+c
           |
           |main =
           |    x = Debug.breakpoint

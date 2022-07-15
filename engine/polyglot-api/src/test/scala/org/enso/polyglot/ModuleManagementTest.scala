@@ -176,7 +176,7 @@ class ModuleManagementTest
     )
     val mod1AssocCons = mod1.getAssociatedConstructor
     val mod1Main      = mod1.getMethod(mod1AssocCons, "bar").get
-    mod1Main.execute(mod1AssocCons).asLong shouldEqual 124
+    mod1Main.execute().asLong shouldEqual 124
 
     ctx.executionContext.getTopScope.unregisterModule("Enso_Test.Test.Main")
 

@@ -1089,7 +1089,7 @@ class IrToTruffle(
                 val actualModule = module.unsafeAsModule()
                 val fun = actualModule.getScope.getMethods
                   .get(actualModule.getScope.getAssociatedType)
-                  .get(method.name)
+                  .get(method.name.toLowerCase)
                 ConstantObjectNode.build(fun)
             }
           } else if (nameStr == Constants.Names.FROM_MEMBER) {

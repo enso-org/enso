@@ -30,7 +30,6 @@ class ApiTest extends AnyFlatSpec with Matchers {
     val associatedConstructor = module.getAssociatedConstructor
     val barFunction           = module.getMethod(associatedConstructor, "bar").get
     val result = barFunction.execute(
-      associatedConstructor.newInstance(),
       10L.asInstanceOf[AnyRef]
     )
     result.asLong shouldEqual 12
@@ -41,13 +40,13 @@ class ApiTest extends AnyFlatSpec with Matchers {
       """
         |type Vector x y z
         |
-        |Vector.squares = case self of
+        |Vector.squares self = case self of
         |    Vector x y z -> Vector x*x y*y z*z
         |
-        |Vector.sum = case self of
+        |Vector.sum self = case self of
         |    Vector x y z -> x + y + z
         |
-        |Vector.squareNorm = self.squares.sum
+        |Vector.squareNorm self = self.squares.sum
         |""".stripMargin
     val module     = executionContext.evalModule(code, "Test")
     val vectorCons = module.getConstructor("Vector")
