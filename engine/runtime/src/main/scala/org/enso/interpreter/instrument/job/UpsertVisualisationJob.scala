@@ -1,9 +1,12 @@
 package org.enso.interpreter.instrument.job
 
 import java.util.logging.Level
-
 import cats.implicits._
-import org.enso.interpreter.instrument.{InstrumentFrame, Visualisation}
+import org.enso.interpreter.instrument.{
+  InstrumentFrame,
+  RuntimeCache,
+  Visualisation
+}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
   EvalFailure,
@@ -97,6 +100,7 @@ class UpsertVisualisationJob(
     val visualisation = Visualisation(
       visualisationId,
       expressionId,
+      RuntimeCache.visualizationCache(),
       callable
     )
     ctx.contextManager.upsertVisualisation(

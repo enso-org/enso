@@ -330,4 +330,44 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                 onExceptionalCallback,
                 timer));
   }
+
+  @Override
+  public EventBinding<ExecutionEventListener> bindVis(
+      CallTarget entryCallTarget,
+      RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
+      UpdatesSynchronizationState syncState,
+      UUID nextExecutionItem,
+      Consumer<IdExecutionInstrument.ExpressionCall> functionCallCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
+      Consumer<Exception> onExceptionalCallback) {
+    var builder = SourceSectionFilter.newBuilder()
+        .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
+        .tagIs(IdentifiedTag.class)
+        .tagIsNot(AvoidIdInstrumentationTag.class);
+
+//    if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {
+//      final int firstFunctionLine = c.getSourceSection().getStartLine();
+//      final int afterFunctionLine = c.getSourceSection().getEndLine() + 1;
+//      builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
+//    }
+    SourceSectionFilter filter = builder.build();
+
+    return env.getInstrumenter()
+        .attachExecutionEventListener(
+            filter,
+            new IdExecutionEventListener(
+                entryCallTarget,
+                cache,
+                methodCallsCache,
+                syncState,
+                nextExecutionItem,
+                functionCallCallback,
+                onComputedCallback,
+                onCachedCallback,
+                onExceptionalCallback,
+                timer));
+  }
+
 }

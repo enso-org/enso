@@ -1,5 +1,6 @@
 package org.enso.interpreter.service;
 
+import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
@@ -249,6 +250,47 @@ public class ExecutionService {
       return interopLibrary.execute(fn, argument);
     } finally {
       context.getThreadManager().leave(p);
+    }
+  }
+
+  public Object callFunctionWithInstrument(Object function, Object argument, RuntimeCache cache)
+      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+    UUID nextExecutionItem = null;
+    CallTarget entryCallTarget =
+        (function instanceof Function) ? ((Function) function).getCallTarget() : null;
+    var methodCallsCache = new MethodCallsCache();
+    var syncState = new UpdatesSynchronizationState();
+    Consumer<IdExecutionService.ExpressionCall> funCallCallback = (x) -> {
+      context.getLogger().info("!!!! funCallCallback " + x.getExpressionId());
+    };
+    Consumer<IdExecutionService.ExpressionValue> onComputedCallback = (x) -> {
+      context.getLogger().info("!!!! onComputedCallback " + x.getExpressionId());
+    };
+    Consumer<IdExecutionService.ExpressionValue> onCachedCallback = (x) -> {
+      context.getLogger().info("!!!! onCachedCallback " + x.getExpressionId());
+    };
+    Consumer<Exception> onExceptionalCallback = (x) -> {
+      context.getLogger().info("!!!! onExceptionCallback");
+    };
+    Optional<EventBinding<ExecutionEventListener>> listener =
+        idExecutionInstrument.map(
+            service ->
+                service.bindVis(
+                    entryCallTarget,
+                    cache,
+                    methodCallsCache,
+                    syncState,
+                    nextExecutionItem,
+                    funCallCallback,
+                    onComputedCallback,
+                    onCachedCallback,
+                    onExceptionalCallback));
+    Object p = context.getThreadManager().enter();
+    try {
+      return interopLibrary.execute(function, argument);
+    } finally {
+      context.getThreadManager().leave(p);
+      listener.ifPresent(EventBinding::dispose);
     }
   }
 

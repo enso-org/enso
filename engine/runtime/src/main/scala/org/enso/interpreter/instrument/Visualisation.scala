@@ -12,5 +12,6 @@ import org.enso.polyglot.runtime.Runtime.Api.{ExpressionId, VisualisationId}
 case class Visualisation(
   id: VisualisationId,
   expressionId: ExpressionId,
+  cache: RuntimeCache,
   callback: AnyRef
 )
