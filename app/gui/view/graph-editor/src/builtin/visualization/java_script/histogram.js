@@ -44,7 +44,7 @@ class Histogram extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessor('here.process_to_json_text', 'Standard.Visualization.Histogram')
+        this.setPreprocessor('process_to_json_text', 'Standard.Visualization.Histogram')
         this._dataBins = []
     }
 

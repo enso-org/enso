@@ -1516,8 +1516,8 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
+ "ide-view-component-list-panel",
  "js-sys",
- "searcher-list-panel",
  "wasm-bindgen",
 ]
 
@@ -1798,7 +1798,7 @@ dependencies = [
  "tracing-subscriber",
  "unicase 2.6.0",
  "url 2.2.2",
- "uuid 1.1.0",
+ "uuid 1.1.2",
  "walkdir",
  "which",
  "whoami",
@@ -1944,6 +1944,7 @@ dependencies = [
  "ast",
  "bimap",
  "console_error_panic_hook",
+ "convert_case 0.5.0",
  "double-representation",
  "engine-protocol",
  "enso-callback",
@@ -1969,6 +1970,7 @@ dependencies = [
  "futures 0.3.21",
  "fuzzly",
  "ide-view",
+ "ide-view-component-group",
  "itertools 0.10.3",
  "js-sys",
  "json-rpc",
@@ -2477,6 +2479,7 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "ensogl-text",
+ "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
 ]
@@ -2608,6 +2611,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-text",
+ "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen",
 ]
@@ -2673,6 +2677,7 @@ name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "ensogl-text-embedded-fonts",
 ]
 
 [[package]]
@@ -2779,8 +2784,13 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
+ "ensogl-text-embedded-fonts-names",
  "zip 0.5.13",
 ]
+
+[[package]]
+name = "ensogl-text-embedded-fonts-names"
+version = "0.1.0"
 
 [[package]]
 name = "ensogl-text-msdf-sys"
@@ -2789,6 +2799,7 @@ dependencies = [
  "enso-build-utilities",
  "enso-prelude",
  "ensogl-text-embedded-fonts",
+ "ensogl-text-embedded-fonts-names",
  "futures 0.3.21",
  "js-sys",
  "nalgebra 0.26.2",
@@ -3748,7 +3759,7 @@ dependencies = [
  "tracing-subscriber",
  "unicase 2.6.0",
  "url 2.2.2",
- "uuid 1.1.0",
+ "uuid 1.1.2",
  "walkdir",
  "which",
  "whoami",
@@ -3769,9 +3780,11 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
+ "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
+ "ide-view-component-browser",
  "ide-view-graph-editor",
  "js-sys",
  "multi-map",
@@ -3788,6 +3801,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ide-view-component-browser"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ide-view-component-list-panel",
+]
+
+[[package]]
 name = "ide-view-component-group"
 version = "0.1.0"
 dependencies = [
@@ -3801,6 +3824,25 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "failure",
+]
+
+[[package]]
+name = "ide-view-component-list-panel"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-derive-theme",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ordered-float",
 ]
 
 [[package]]
@@ -5783,25 +5825,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "searcher-list-panel"
-version = "0.1.0"
-dependencies = [
- "approx 0.5.1",
- "enso-frp",
- "ensogl-core",
- "ensogl-derive-theme",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-scroll-area",
- "ensogl-selector",
- "ensogl-shadow",
- "ensogl-text",
- "ide-view-component-group",
- "ordered-float",
-]
-
-[[package]]
 name = "secrecy"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7012,9 +7035,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.1.0"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93bbc61e655a4833cf400d0d15bf3649313422fa7572886ad6dab16d79886365"
+checksum = "dd6469f4314d5f1ffec476e05f17cc9a78bc7a27a6a857842170bdf8d6f98d2f"
 dependencies = [
  "getrandom 0.2.6",
  "serde",
