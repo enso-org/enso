@@ -9,6 +9,7 @@ import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
 import Standard.Database.Connection.Client_Certificate
+import Standard.Base.System.File.Posix_File_Permission
 
 polyglot java import org.postgresql.Driver
 
@@ -82,7 +83,7 @@ type Postgres
 read_pgpass : Text -> Integer -> Text -> [Pair Text Text]
 read_pgpass host port database =
     pgpass_file = locate_pgpass
-    if pgpass_file.exists.not then [] else
+    if pgpass_file.is_nothing || (verify_pgpass pgpass_file . not) then [] else
         entries = parse_pgpass pgpass_file
         # TODO possibly? determine username from env
         found = entries.find entry->
@@ -106,11 +107,30 @@ type Pgpass_Entry
         host_match && port_match && database_match && username_match
 
 ## PRIVATE
-locate_pgpass = case Platform.os of
-    Platform.Windows ->
-        Error.throw "TODO %APPDATA%\postgresql\pgpass.conf"
-    _ ->
-        Error.throw "TODO ~/.pgpass"
+   Determines the location of the .pgpass file to use.
+locate_pgpass = case Environment.get "PGPASSFILE" of
+    path -> File.new path
+    Nothing -> case Platform.os of
+        Platform.Windows -> case Environment.get "APPDATA" of
+            Nothing -> Nothing
+            appdata -> File.new appdata / "postgresql" / "pgpass.conf"
+        _ -> case Environment.get "HOME" of
+            Nothing -> Nothing
+            home -> File.new home / ".pgpass"
+
+## PRIVATE
+   Checks if the given .pgpass file can be used.
+
+   The file can be used if it exists and has correct permissions on UNIX systems.
+verify_pgpass file = case Platform.os of
+    Platform.Windows -> file.exists
+    _ -> case file.exists of
+        False -> False
+        True ->
+            permissions = file.posix_permissions
+            owner_only = [Posix_File_Permission.Owner_Read, Posix_File_Permission.Owner_Write, Posix_File_Permission.Owner_Execute]
+            only_owner_can_access = permissions.all owner_only.contains
+            only_owner_can_access
 
 ## PRIVATE
 parse_pgpass file =

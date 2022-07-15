@@ -38,4 +38,4 @@ possible_values =
 from_java java_enum =
     found = possible_values.find x->
         x.to_java == java_enum
-    found.catch Nothing _->Nothing
+    found.catch Nothing
