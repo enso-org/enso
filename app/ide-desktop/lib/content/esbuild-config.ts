@@ -68,7 +68,7 @@ const config: esbuild.BuildOptions = {
     watch: {
         onRebuild(error, result) {
             if (error) console.error('watch build failed:', error)
-            else console.log('watch build succeeded:', result)
+            // else console.log('watch build succeeded:', result)
         },
     },
 }
@@ -80,3 +80,5 @@ export async function watch() {
 export async function bundle() {
     return esbuild.build({ ...config, watch: false, incremental: false })
 }
+
+export default { watch, bundle, output_path }

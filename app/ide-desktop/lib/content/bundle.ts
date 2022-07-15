@@ -1,3 +1,3 @@
-import * as bundle from './bundle2.js'
+import bundler from './esbuild-config.js'
 
-await bundle.bundle()
+await bundler.bundle()
