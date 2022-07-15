@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-type SSL_Mode
+type Ssl_Mode
     ## Do not use SSL for the connection.
     type Disable
 
@@ -12,7 +12,7 @@ type SSL_Mode
 
     ## Will use SSL, validating the certificate but not verifying the hostname.
        If `ca_file` is `Nothing`, the default CA certificate store will be used.
-    type Verify_CA ca_file:Nothing|File|Text=Nothing
+    type Verify_Ca ca_file:Nothing|File|Text=Nothing
 
     ## Will use SSL, validating the certificate and checking the hostname matches.
        If `ca_file` is `Nothing`, the default CA certificate store will be used.

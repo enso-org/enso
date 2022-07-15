@@ -5,8 +5,8 @@ import Standard.Database.Connection.Connection
 import Standard.Database.Connection.Connection_Options
 
 ## Connect to a SQLite DB File or InMemory DB.
-type SQLite
-    type SQLite (location:(InMemory|File|Text))
+type Sqlite
+    type Sqlite (location:(In_Memory|File|Text))
 
     ## Build the Connection resource.
     connect : Connection_Options
@@ -29,5 +29,5 @@ type SQLite
     dialect = Dialect.sqlite
 
 ## Connect to an in-memory SQLite database.
-type InMemory
-    type InMemory
+type In_Memory
+    type In_Memory

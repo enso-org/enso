@@ -125,7 +125,7 @@ spec =
             run_tests connection pending=message
         False ->
             db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
-            connection = Database.connect (PostgreSQL (db_host_port.at 0) db_port db_name (Credentials db_user db_password))
+            connection = Database.connect (Postgres (db_host_port.at 0) db_port db_name (Credentials db_user db_password))
             run_tests connection
 
 main = Test.Suite.run_main spec
