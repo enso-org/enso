@@ -1090,7 +1090,11 @@ class IrToTruffle(
                 val fun = actualModule.getScope.getMethods
                   .get(actualModule.getScope.getAssociatedType)
                   .get(method.name.toLowerCase)
-                ConstantObjectNode.build(fun)
+                if (fun == null) {
+                  throw new CompilerError(
+                    s"Unknown definition of a local method ${method.name}"
+                  )
+                } else ConstantObjectNode.build(fun)
             }
           } else if (nameStr == Constants.Names.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
