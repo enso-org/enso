@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.System.Platform
-
 import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection
 from Standard.Database.Connection.Credentials as Credentials_Module import Credentials
@@ -9,7 +7,7 @@ import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all
 import Standard.Database.Connection.Client_Certificate
-import Standard.Base.System.File.Posix_File_Permission
+import Standard.Database.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
 
@@ -46,7 +44,7 @@ type Postgres
     jdbc_properties =
         # TODO env vars
         credentials = case self.credentials of
-            Nothing -> read_pgpass self.host self.port self.database
+            Nothing -> Pgpass.read self.host self.port self.database
             Credentials username password ->
                 [Pair 'user' username, Pair 'password' password]
 
@@ -60,86 +58,6 @@ type Postgres
     ## Provides the dialect needed for creating SQL statements.
     dialect : Dialect
     dialect = Dialect.postgres
-
-## PRIVATE
-   Read the .pgpass file from the User's home directory and obtain username
-   and password.
-
-   See https://www.postgresql.org/docs/current/libpq-pgpass.html
-
-   On Windows this file is expected to be located at
-   `%APPDATA%\postgresql\pgpass.conf`.
-   On Linux and macOS this file is expected to be located at `~/.pgpass` and
-   it is should be inaccessible by other users and the group - otherwise it
-   will be ignored. This can be achieved by running `chmod 0600 ~/.pgpass`.
-
-   If `PGPASSFILE` environment variable is set, the provided location is
-   used instead of the default one.
-
-   Arguments:
-   - host: The hostname of the database server.
-   - port: The port of the database server.
-   - database: The database to connect to.
-read_pgpass : Text -> Integer -> Text -> [Pair Text Text]
-read_pgpass host port database =
-    pgpass_file = locate_pgpass
-    if pgpass_file.is_nothing || (verify_pgpass pgpass_file . not) then [] else
-        entries = parse_pgpass pgpass_file
-        # TODO possibly? determine username from env
-        found = entries.find entry->
-            entry.matches host port database
-        case found.catch Nothing of
-            Nothing -> []
-            Just entry -> [Pair 'user' entry.username, Pair 'password' entry.password]
-
-type Pgpass_Entry
-    ## PRIVATE
-    type Pgpass_Entry host port database username password
-
-    ## PRIVATE
-    matches : Text -> Integer -> Text -> Text -> Boolean
-    matches host port database username=Nothing =
-        wildcard='*'
-        host_match = self.host==wildcard || self.host==host
-        port_match = self.port==wildcard || self.port==port
-        database_match = self.database==wildcard || self.database==database
-        username_match = username==Nothing || self.username==wildcard || self.username=username
-        host_match && port_match && database_match && username_match
-
-## PRIVATE
-   Determines the location of the .pgpass file to use.
-locate_pgpass = case Environment.get "PGPASSFILE" of
-    path -> File.new path
-    Nothing -> case Platform.os of
-        Platform.Windows -> case Environment.get "APPDATA" of
-            Nothing -> Nothing
-            appdata -> File.new appdata / "postgresql" / "pgpass.conf"
-        _ -> case Environment.get "HOME" of
-            Nothing -> Nothing
-            home -> File.new home / ".pgpass"
-
-## PRIVATE
-   Checks if the given .pgpass file can be used.
-
-   The file can be used if it exists and has correct permissions on UNIX systems.
-verify_pgpass file = case Platform.os of
-    Platform.Windows -> file.exists
-    _ -> case file.exists of
-        False -> False
-        True ->
-            permissions = file.posix_permissions
-            owner_only = [Posix_File_Permission.Owner_Read, Posix_File_Permission.Owner_Write, Posix_File_Permission.Owner_Execute]
-            only_owner_can_access = permissions.all owner_only.contains
-            only_owner_can_access
-
-## PRIVATE
-parse_pgpass file =
-    parse line =
-        if line.starts_with "#" || line.is_empty then Nothing else
-            # TODO
-            Nothing
-
-    File.read_text file . lines . map parse . filter (x -> x.is_nothing.not)
 
 ## PRIVATE
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based

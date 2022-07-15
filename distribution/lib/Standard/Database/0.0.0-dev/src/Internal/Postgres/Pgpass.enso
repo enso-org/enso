@@ -1,0 +1,116 @@
+from Standard.Base import all
+
+import Standard.Base.System.Platform
+import Standard.Base.System.File.Posix_File_Permission
+
+polyglot java import java.lang.StringBuilder as Java_String_Builder
+
+## PRIVATE
+   Read the .pgpass file from the User's home directory and obtain username
+   and password.
+
+   See https://www.postgresql.org/docs/current/libpq-pgpass.html
+
+   On Windows this file is expected to be located at
+   `%APPDATA%\postgresql\pgpass.conf`.
+   On Linux and macOS this file is expected to be located at `~/.pgpass` and
+   it is should be inaccessible by other users and the group - otherwise it
+   will be ignored. This can be achieved by running `chmod 0600 ~/.pgpass`.
+
+   If `PGPASSFILE` environment variable is set, the provided location is
+   used instead of the default one.
+
+   Arguments:
+   - host: The hostname of the database server.
+   - port: The port of the database server.
+   - database: The database to connect to.
+read : Text -> Integer -> Text -> [Pair Text Text]
+read host port database =
+    pgpass_file = locate
+    if pgpass_file.is_nothing || (verify pgpass_file . not) then [] else
+        entries = parse pgpass_file
+        # TODO possibly? determine username from env
+        found = entries.find entry->
+            entry.matches host port database
+        case found.catch Nothing of
+            Nothing -> []
+            Just entry -> [Pair 'user' entry.username, Pair 'password' entry.password]
+
+type Pgpass_Entry
+    ## PRIVATE
+    type Pgpass_Entry host port database username password
+
+    ## PRIVATE
+    matches : Text -> Integer -> Text -> Text -> Boolean
+    matches host port database username=Nothing =
+        wildcard='*'
+        host_match = self.host==wildcard || self.host==host
+        port_match = self.port==wildcard || self.port==port
+        database_match = self.database==wildcard || self.database==database
+        username_match = username==Nothing || self.username==wildcard || self.username=username
+        host_match && port_match && database_match && username_match
+
+## PRIVATE
+   Determines the location of the .pgpass file to use.
+locate = case Environment.get "PGPASSFILE" of
+    path -> File.new path
+    Nothing -> case Platform.os of
+        Platform.Windows -> case Environment.get "APPDATA" of
+            Nothing -> Nothing
+            appdata -> File.new appdata / "postgresql" / "pgpass.conf"
+        _ -> case Environment.get "HOME" of
+            Nothing -> Nothing
+            home -> File.new home / ".pgpass"
+
+## PRIVATE
+   Checks if the given .pgpass file can be used.
+
+   The file can be used if it exists and has correct permissions on UNIX systems.
+verify file = case Platform.os of
+    Platform.Windows -> file.exists
+    _ -> case file.exists of
+        False -> False
+        True ->
+            permissions = file.posix_permissions
+            owner_only = [Posix_File_Permission.Owner_Read, Posix_File_Permission.Owner_Write, Posix_File_Permission.Owner_Execute]
+            only_owner_can_access = permissions.all owner_only.contains
+            only_owner_can_access
+
+## PRIVATE
+parse file =
+    parse line =
+        if line.starts_with "#" || line.is_empty then Nothing else
+            elements = parse_line line
+            if elements.length < 5 then Nothing else
+                Pgpass_Entry (elements.at 0) (elements.at 1) (elements.at 2) (elements.at 3) (elements.at 4)
+
+    File.read_text file . lines . map parse . filter (x -> x.is_nothing.not)
+
+## PRIVATE
+parse_line line =
+    existing_entries = Vector.new_builder
+    current_entry = Java_String_Builder.new
+    next_entry =
+        existing_entries.append current_entry.toString
+        current_entry.setLength 0
+    go ix is_escape = case ix>=line.length of
+        True -> next_entry
+        False ->
+            c = line.charAt ix
+            case c=='\\' of
+                True ->
+                    if is_escape then
+                        current_entry.append '\\'
+                    go (ix+1) is_escape.not
+                False -> case c==':' of
+                    True ->
+                        case is_escape of
+                            True -> current_entry.append ':'
+                            False -> next_entry
+                        go (ix+1) False
+                    False ->
+                        # Any other character is just appended and escape is reset.
+                        current_entry.append c
+                        go (ix+1) False
+    go 0 False
+    existing_entries.to_vector
