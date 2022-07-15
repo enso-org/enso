@@ -17,8 +17,6 @@ const projectManagerInBundlePath = require_env('ENSO_BUILD_PROJECT_MANAGER_IN_BU
 /** Version of the Engine (backend) that is bundled along with this client build. */
 const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION')
 
-
-
 // ================
 // === Bundling ===
 // ================
@@ -36,7 +34,7 @@ const bundlerOptions: esbuild.BuildOptions = {
         PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(projectManagerInBundlePath),
     },
     sourcemap: true,
-    external: ['electron']
+    external: ['electron'],
 }
 
 await esbuild.build(bundlerOptions)
