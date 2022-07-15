@@ -69,6 +69,7 @@ impl fmt::Display for Operation {
 struct Iteration {
     pub operations: Vec<Operation>,
 }
+
 impl Iteration {
     pub fn total_time(&self) -> Duration {
         let mut total: Duration = Duration::ZERO;
@@ -76,14 +77,6 @@ impl Iteration {
             total += operation.duration
         }
         total
-    }
-}
-impl fmt::Display for Iteration {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for op in &self.operations {
-            writeln!(f, "{}", op)?;
-        }
-        Ok(())
     }
 }
 
@@ -95,6 +88,7 @@ struct Stats {
     avg:  Duration,
     line: String,
 }
+
 impl fmt::Display for Stats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -180,7 +174,7 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
 }
 
 
-/// Median of values
+/// Calcualte median of values
 fn median(durations: &mut [Duration]) -> Duration {
     durations.sort();
     let mid = durations.len() / 2;
