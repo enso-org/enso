@@ -27,6 +27,7 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
 pub type EntryFrp<E> = Frp<<E as Entry>::Model, <E as Entry>::Params>;
 
 
+
 // =============
 // === Trait ===
 // =============

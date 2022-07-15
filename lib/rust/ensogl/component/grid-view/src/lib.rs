@@ -1,7 +1,6 @@
-//! ListView EnsoGL Component.
+//! Grid View EnsoGL Component.
 //!
-//! ListView a displayed list of entries with possibility of selecting one and "choosing" by
-//! clicking or pressing enter - similar to the HTML `<select>`.
+//! The main structure is [`GridView`] - see its docs for details.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -21,13 +20,14 @@
 #![warn(unused_qualifications)]
 
 
+
 // ==============
 // === Export ===
 // ==============
 
-pub mod basic;
 pub mod entry;
 pub mod scrollable;
+pub mod simple;
 pub mod visible_area;
 
 pub use ensogl_scroll_area::Viewport;
@@ -56,6 +56,7 @@ use crate::visible_area::visible_rows;
 pub use entry::Entry;
 
 
+
 // ===========
 // === FRP ===
 // ===========
@@ -74,7 +75,7 @@ ensogl_core::define_endpoints_2! {
         /// Reset entries, providing number of rows and columns. All currently displayed entries
         /// will be detached and their models re-requested.
         reset_entries(Row, Col),
-        /// Probide model for specific entry. Should be called only after `model_for_entry_needed`
+        /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
         /// event for given row and column. After that the entry will be visible.
         model_for_entry(Row, Col, EntryModel),
         /// Set the entries size. All entries have the same size.
@@ -106,32 +107,28 @@ ensogl_core::define_endpoints_2! {
 
 // === EntryCreationCtx ===
 
+/// A structure gathering all data required for creating new entry instance.
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
-struct EntryCreationCtx<P> {
+struct EntryCreationCtx<EntryParams> {
     app:              Application,
     network:          frp::WeakNetwork,
     set_entry_size:   frp::Stream<Vector2>,
-    set_entry_params: frp::Stream<P>,
+    set_entry_params: frp::Stream<EntryParams>,
 }
 
-impl<P: frp::node::Data> EntryCreationCtx<P> {
-    fn create_entry<E: Entry<Params = P>>(&self, text_layer: &Option<Layer>) -> E {
+impl<EntryParams: frp::node::Data> EntryCreationCtx<EntryParams> {
+    fn create_entry<E: Entry<Params = EntryParams>>(&self, text_layer: &Option<Layer>) -> E {
         let entry = E::new(&self.app, text_layer);
-        match self.network.upgrade() {
-            Some(network) => {
-                let entry_frp = entry.frp();
-                let entry_network = entry_frp.network();
-                frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
-                    init <- source_();
-                    entry_frp.set_size <+ all(init, self.set_entry_size)._1();
-                    entry_frp.set_params <+ all(init, self.set_entry_params)._1();
-                }
-                init.emit(());
+        if let Some(network) = self.network.upgrade_or_warn() {
+            let entry_frp = entry.frp();
+            let entry_network = entry_frp.network();
+            frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
+                init <- source_();
+                entry_frp.set_size <+ all(init, self.set_entry_size)._1();
+                entry_frp.set_params <+ all(init, self.set_entry_params)._1();
             }
-            None => {
-                tracing::warn!("Tried to connect entry FRP when the GridView network is dropped");
-            }
+            init.emit(());
         }
         entry
     }
@@ -157,17 +154,17 @@ struct Properties {
 
 // === Model ===
 
-/// The Model of Select Component.
+/// The Model of [`GridView`].
 #[derive(Clone, Debug)]
-pub struct Model<E, P> {
+pub struct Model<Entry, EntryParams> {
     display_object:     display::object::Instance,
-    visible_entries:    RefCell<HashMap<(Row, Col), E>>,
-    free_entries:       RefCell<Vec<E>>,
-    entry_creation_ctx: EntryCreationCtx<P>,
+    visible_entries:    RefCell<HashMap<(Row, Col), Entry>>,
+    free_entries:       RefCell<Vec<Entry>>,
+    entry_creation_ctx: EntryCreationCtx<EntryParams>,
 }
 
-impl<E, P> Model<E, P> {
-    fn new(entry_creation_ctx: EntryCreationCtx<P>) -> Self {
+impl<Entry, EntryParams> Model<Entry, EntryParams> {
+    fn new(entry_creation_ctx: EntryCreationCtx<EntryParams>) -> Self {
         let logger = Logger::new("GridView");
         let display_object = display::object::Instance::new(&logger);
         let visible_entries = default();
@@ -176,7 +173,7 @@ impl<E, P> Model<E, P> {
     }
 }
 
-impl<E: display::Object, P> Model<E, P> {
+impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
     fn update_entries_visibility(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { viewport, entries_size, row_count, col_count } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
@@ -262,13 +259,17 @@ impl<E: Entry> Model<E, E::Params> {
 /// arguments.
 ///
 /// It may be useful when using GridView in parametrized structs, where we want to avoid rewriting
-/// `Entry` bound in each place. Otherwise it's better to use [`GridView`].
+/// `Entry` bound in each place. Otherwise, it's better to use [`GridView`].
 ///
-/// Please note that some bounds are still required, as we use [`Widget`] and [`Frp`] nodes.
+/// Note that some bounds are still required, as we use [`Widget`] and [`Frp`] nodes.
 #[derive(CloneRef, Debug, Deref, Derivative)]
 #[derivative(Clone(bound = ""))]
-pub struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> {
-    widget: Widget<Model<E, P>, Frp<M, P>>,
+pub struct GridViewTemplate<
+    Entry: 'static,
+    EntryModel: frp::node::Data,
+    EntryParams: frp::node::Data,
+> {
+    widget: Widget<Model<Entry, EntryParams>, Frp<EntryModel, EntryParams>>,
 }
 
 /// Grid View Component.
@@ -277,13 +278,13 @@ pub struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> 
 /// * Set entries size ([`Frp::set_entries_size`]),
 /// * Declare (and keep up-to-date) the visible area ([`Frp::set_viewport`]),
 /// * Set up logic for providing models (see _Requesting for Models_ section).
-/// * Optionally entries parameters, if given entry does not have sensible default.
-/// * Finally reset the content, providing number of rows and columns ([`Frp::reset_entries`]).
+/// * Optionally: entries parameters, if given entry does not have sensible default.
+/// * Finally, reset the content, providing number of rows and columns ([`Frp::reset_entries`]).
 ///
 /// # Positioning
 ///
 /// Please mark, that this structure has its left-top corner docked to (0, 0) point of parent
-/// display object, as this is more intuitive way with handling grids.
+/// display object, as this is a more intuitive way with handling grids.
 ///
 /// # Entries Instantiation
 ///
@@ -299,7 +300,7 @@ pub struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> 
 /// displayed.
 ///
 /// **Important**. The [`Frp::model_for_entry_needed`] are emitted once when needed and not repeated
-/// anymore, after adding connections to this FRP node in particular. Therefore make sure, that you
+/// anymore, after adding connections to this FRP node in particular. Therefore, be sure, that you
 /// connect providing models logic before emitting any of [`Frp::set_entries_size`] or
 /// [`Frp::set_viewport`].  
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
@@ -372,7 +373,9 @@ impl<E: Entry> GridView<E> {
     }
 }
 
-impl<E, M: frp::node::Data, P: frp::node::Data> display::Object for GridViewTemplate<E, M, P> {
+impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::Object
+    for GridViewTemplate<Entry, EntryModel, EntryParams>
+{
     fn display_object(&self) -> &display::object::Instance {
         self.widget.display_object()
     }

@@ -1,4 +1,4 @@
-//! A module with [`VisibleArea`] structure.
+//! Functions for evaluating which part of [`GridView`] is visible.
 
 use crate::prelude::*;
 
@@ -8,21 +8,14 @@ use crate::Viewport;
 
 
 
+// ==========================================
+// === Ranges of Rows and Columns Visible ===
+// ==========================================
+
 fn has_size(v: &Viewport) -> bool {
     v.right > v.left + f32::EPSILON && v.top > v.bottom + f32::EPSILON
 }
 
-/// Returns iterator over all visible locations (row-column pairs).
-pub fn all_visible_locations(
-    v: &Viewport,
-    entry_size: Vector2,
-    row_count: usize,
-    col_count: usize,
-) -> impl Iterator<Item = (Row, Col)> {
-    let visible_rows = visible_rows(v, entry_size, row_count);
-    let visible_cols = visible_columns(v, entry_size, col_count);
-    itertools::iproduct!(visible_rows, visible_cols)
-}
 
 /// Return range of visible rows.
 pub fn visible_rows(v: &Viewport, entry_size: Vector2, row_count: usize) -> Range<Row> {
@@ -48,6 +41,24 @@ pub fn visible_columns(v: &Viewport, entry_size: Vector2, col_count: usize) -> R
         first_visible
     };
     first_visible..first_not_visible
+}
+
+
+
+// =============================
+// === All Visible Locations ===
+// =============================
+
+/// Return iterator over all visible locations (row-column pairs).
+pub fn all_visible_locations(
+    v: &Viewport,
+    entry_size: Vector2,
+    row_count: usize,
+    col_count: usize,
+) -> impl Iterator<Item = (Row, Col)> {
+    let visible_rows = visible_rows(v, entry_size, row_count);
+    let visible_cols = visible_columns(v, entry_size, col_count);
+    itertools::iproduct!(visible_rows, visible_cols)
 }
 
 

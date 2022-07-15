@@ -1,4 +1,4 @@
-//! A module defining the [`BasicGridView`] with all helper structures.
+//! A module defining the [`SimpleGridView`] with all helper structures.
 
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
@@ -45,7 +45,7 @@ pub mod entry_background {
 // === EntryParams ===
 // ===================
 
-/// The parameters of [`BasicGridView`]`s entries.
+/// The parameters of [`SimpleGridView`]`s entries.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct EntryParams {
@@ -78,8 +78,7 @@ impl Default for EntryParams {
 
 // === EntryData ===
 
-/// An internal structure of [`Entry`], which may be passed to FRP network without risk of memory
-/// leaks.
+/// An internal structure of [`Entry`], which may be passed to FRP network.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct EntryData {
@@ -120,7 +119,7 @@ impl EntryData {
 
 // === Entry ===
 
-/// A [`BasicGridView`] entry - a label with background.
+/// A [`SimpleGridView`] entry - a label with background.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Entry {
     frp:  EntryFrp<Self>,
@@ -138,12 +137,12 @@ impl crate::Entry for Entry {
         let network = frp.network();
 
         enso_frp::extend! { network
-            bg_color <- input.set_params.map(|params| params.bg_color).on_change();
-            bg_margin <- input.set_params.map(|params| params.bg_margin).on_change();
-            font <- input.set_params.map(|params| params.font.clone_ref()).on_change();
-            text_offset <- input.set_params.map(|params| params.text_offset).on_change();
-            text_color <- input.set_params.map(|params| params.text_color).on_change();
-            text_size <- input.set_params.map(|params| params.text_size).on_change();
+            bg_color <- input.set_params.map(|p| p.bg_color).on_change();
+            bg_margin <- input.set_params.map(|p| p.bg_margin).on_change();
+            font <- input.set_params.map(|p| p.font.clone_ref()).on_change();
+            text_offset <- input.set_params.map(|p| p.text_offset).on_change();
+            text_color <- input.set_params.map(|p| p.text_color).on_change();
+            text_size <- input.set_params.map(|p| p.text_size).on_change();
 
             layout <- all(input.set_size, bg_margin, text_size, text_offset);
             eval layout ((&(es, m, ts, to)) data.update_layout(es, m, ts, to));
@@ -171,12 +170,14 @@ impl display::Object for Entry {
     }
 }
 
-// =====================
-// === BasicGridView ===
-// =====================
 
-/// The Basic version of Grid View, where each entry is just a label with background.
-pub type BasicGridView = crate::GridView<Entry>;
 
-/// The Basic version of Scrollable Grid View, where each entry is just a label with background.
-pub type BasicScrollableGridView = scrollable::GridView<Entry>;
+// ======================
+// === SimpleGridView ===
+// ======================
+
+/// The Simple version of Grid View, where each entry is just a label with background.
+pub type SimpleGridView = crate::GridView<Entry>;
+
+/// The Simple version of Scrollable Grid View, where each entry is just a label with background.
+pub type SimpleScrollableGridView = scrollable::GridView<Entry>;

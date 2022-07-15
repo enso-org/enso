@@ -61,7 +61,7 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let grid_view = grid_view::basic::BasicScrollableGridView::new(app);
+    let grid_view = grid_view::simple::SimpleScrollableGridView::new(app);
     grid_view.scroll_frp().resize(Vector2(400.0, 300.0));
     app.display.default_scene.layers.node_searcher.add_exclusive(&grid_view);
     frp::new_network! { network
@@ -71,7 +71,7 @@ fn init(app: &Application) {
         grid_view.model_for_entry <+ requested_entry;
     }
     grid_view.set_entries_size(Vector2(130.0, 28.0));
-    let params = grid_view::basic::EntryParams {
+    let params = grid_view::simple::EntryParams {
         bg_color: color::Rgba(0.8, 0.8, 0.9, 1.0),
         bg_margin: 1.0,
         ..default()
