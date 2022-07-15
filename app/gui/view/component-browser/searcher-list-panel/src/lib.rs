@@ -411,7 +411,7 @@ impl Model {
         self.favourites_section.set_style(style);
 
         self.local_scope_section.content.set_position_x(style.content_width / 2.0);
-        self.local_scope_section.content.set_width(style.size_inner().x);
+        self.local_scope_section.content.set_width(style.content_width);
         self.local_scope_section.content.set_color(style.favourites_section_base_color);
         self.local_scope_section.label.set_content(LOCAL_SCOPE_SECTION_HEADING_LABEL);
 
