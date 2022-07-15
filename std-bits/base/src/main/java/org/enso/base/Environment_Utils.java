@@ -25,7 +25,7 @@ public class Environment_Utils {
     String oldValue = overrides.put(name, value);
     boolean was_set = oldValue != null;
     try {
-      // Giving 0 here as an argument, as using null would lead to incorrect behaviour.
+      // Giving 0 here as an argument, as using null would lead to incorrect behaviour, due to some weird Truffle peculiarity.
       return action.apply(0);
     } finally {
       if (was_set) {

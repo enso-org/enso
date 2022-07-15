@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.System.Environment
 import Standard.Base.Runtime.Ref
+import Standard.Base.System
 
 from Standard.Database import all
 from Standard.Database.Connection.Connection import Sql_Error
@@ -12,6 +13,7 @@ import project.Common_Table_Spec
 import project.Aggregate_Spec
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Internal.Postgres.Pgpass import Pgpass_Entry
 
 postgres_specific_spec connection pending =
     Test.group "[PostgreSQL] Info" pending=pending <|
@@ -134,7 +136,23 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
 
 pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
     Test.specify "should correctly parse the file, including escapes, blank lines and comments" <|
-        Nothing
+        pgpass_file = enso_project.data / "pgpass.conf"
+        result = Pgpass.parse_file pgpass_file
+        result.length . should_equal 12
+        e1 = Pgpass_Entry "localhost" "5432" "postgres" "postgres" "postgres"
+        e2 = Pgpass_Entry "192.168.4.0" "1234" "foo" "bar" "baz"
+        e3 = Pgpass_Entry "host with : semicolons in it? what?" "*" "*" "*" "well yes, that is possible, the :password: can contain those as well"
+        e4 = Pgpass_Entry ":" ":" ":" ":" ":"
+        e5 = Pgpass_Entry "you can escape an escape too: see \\" "*" "*" "*" "yes it is possible"
+        e6 = Pgpass_Entry "other escapes like \n or \? " "*" "*" "*" "are just parsed as-is"
+        e7 = Pgpass_Entry "a trailing escape character" "*" "*" "*" "is treated as a regular slash\"
+        e8 = Pgpass_Entry "passwords should preserve leading space" "*" "*" "*" "   pass"
+        e9 = Pgpass_Entry "\:" "*" "*" "*" "\:"
+        e10 = Pgpass_Entry "::1" "*" "database_name" "user_that_has_no_password" ""
+        e11 = Pgpass_Entry "*" "*" "*" "*" "fallback_password"
+        e12 = Pgpass_Entry "order_matters" "1234" "this" "will_still_match_the_fallback_password" "not_this_one"
+        entries = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12]
+        result.should_equal entries
 
     Test.specify "should correctly match wildcards and use the first matching entry" <|
         Nothing

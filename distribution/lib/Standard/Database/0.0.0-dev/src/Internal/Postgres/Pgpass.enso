@@ -28,13 +28,13 @@ read : Text -> Integer -> Text -> [Pair Text Text]
 read host port database =
     pgpass_file = locate
     if pgpass_file.is_nothing || (verify pgpass_file . not) then [] else
-        entries = parse pgpass_file
+        entries = parse_file pgpass_file
         # TODO possibly? determine username from env
         found = entries.find entry->
             entry.matches host port database
         case found.catch Nothing of
             Nothing -> []
-            Just entry -> [Pair 'user' entry.username, Pair 'password' entry.password]
+            entry -> [Pair 'user' entry.username, Pair 'password' entry.password]
 
 type Pgpass_Entry
     ## PRIVATE
@@ -45,7 +45,7 @@ type Pgpass_Entry
     matches host port database username=Nothing =
         wildcard='*'
         host_match = self.host==wildcard || self.host==host
-        port_match = self.port==wildcard || self.port==port
+        port_match = self.port==wildcard || self.port==port.to_text
         database_match = self.database==wildcard || self.database==database
         username_match = username==Nothing || self.username==wildcard || self.username=username
         host_match && port_match && database_match && username_match
@@ -53,7 +53,6 @@ type Pgpass_Entry
 ## PRIVATE
    Determines the location of the .pgpass file to use.
 locate = case Environment.get "PGPASSFILE" of
-    path -> File.new path
     Nothing -> case Platform.os of
         Platform.Windows -> case Environment.get "APPDATA" of
             Nothing -> Nothing
@@ -61,6 +60,7 @@ locate = case Environment.get "PGPASSFILE" of
         _ -> case Environment.get "HOME" of
             Nothing -> Nothing
             home -> File.new home / ".pgpass"
+    path -> File.new path
 
 ## PRIVATE
    Checks if the given .pgpass file can be used.
@@ -77,11 +77,11 @@ verify file = case Platform.os of
             only_owner_can_access
 
 ## PRIVATE
-parse file =
+parse_file file =
     parse line =
         if line.starts_with "#" || line.is_empty then Nothing else
             elements = parse_line line
-            if elements.length < 5 then Nothing else
+            if elements.length != 5 then Nothing else
                 Pgpass_Entry (elements.at 0) (elements.at 1) (elements.at 2) (elements.at 3) (elements.at 4)
 
     File.read_text file . lines . map parse . filter (x -> x.is_nothing.not)
@@ -93,10 +93,15 @@ parse_line line =
     next_entry =
         existing_entries.append current_entry.toString
         current_entry.setLength 0
+    characters = line.characters
     go ix is_escape = case ix>=line.length of
-        True -> next_entry
+        True ->
+            if is_escape then
+                # Handle the trailing escape character.
+                current_entry.append '\\'
+            next_entry
         False ->
-            c = line.charAt ix
+            c = characters.at ix
             case c=='\\' of
                 True ->
                     if is_escape then
@@ -109,6 +114,9 @@ parse_line line =
                             False -> next_entry
                         go (ix+1) False
                     False ->
+                        if is_escape then
+                            # Handle escape character followed by other characters.
+                            current_entry.append '\\'
                         # Any other character is just appended and escape is reset.
                         current_entry.append c
                         go (ix+1) False
