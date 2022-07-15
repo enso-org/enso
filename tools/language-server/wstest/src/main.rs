@@ -101,7 +101,7 @@ async fn main() -> Result<()> {
 
     // binary socket connection
     let (mut binary_sink, mut binary_stream) = (None, None);
-    if let Some(binary_socket) = args.binary_socket.clone() {
+    if let Some(binary_socket) = args.binary_socket {
         let binary_client = ClientBuilder::from_url(binary_socket).async_connect().await?;
         let (sink, stream) = binary_client.split::<Message>();
         binary_sink = Some(sink);
@@ -243,6 +243,7 @@ async fn main() -> Result<()> {
     // receive text messages
     let text_recv_loop = async {
         let mut stream_mut = text_stream;
+
         loop {
             let (message, stream) = stream_mut.into_future().await;
 
@@ -263,6 +264,7 @@ async fn main() -> Result<()> {
                     }
                 }
             }
+
             stream_mut = stream;
         }
 
