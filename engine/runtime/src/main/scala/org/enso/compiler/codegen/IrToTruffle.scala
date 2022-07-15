@@ -1085,16 +1085,10 @@ class IrToTruffle(
                     .getPolyglotSymbols
                     .get(symbol.name)
                 )
-              case BindingsMap.ResolvedMethod(module, method) =>
-                val actualModule = module.unsafeAsModule()
-                val fun = actualModule.getScope.getMethods
-                  .get(actualModule.getScope.getAssociatedType)
-                  .get(method.name.toLowerCase)
-                if (fun == null) {
-                  throw new CompilerError(
-                    s"Unknown definition of a local method ${method.name}"
-                  )
-                } else ConstantObjectNode.build(fun)
+              case BindingsMap.ResolvedMethod(_, method) =>
+                throw new CompilerError(
+                  s"Impossible here, ${method.name} should be caught when translating application"
+                )
             }
           } else if (nameStr == Constants.Names.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
@@ -1381,37 +1375,57 @@ class IrToTruffle(
       application match {
         case IR.Application.Prefix(fn, Nil, true, _, _, _) =>
           run(fn)
-        case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =>
-          val callArgFactory = new CallArgumentProcessor(scope, scopeName)
+        case app @ IR.Application.Prefix(
+              fn: IR.Name.Literal,
+              args,
+              false,
+              loc,
+              _,
+              _
+            ) =>
+          val global = fn.getMetadata(GlobalNames)
+          global.map(_.target) match {
+            case Some(BindingsMap.ResolvedMethod(module, method)) =>
+              val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 
-          val arguments = args
-          val callArgs  = new ArrayBuffer[CallArgument]()
+              val arguments = args
+              val callArgs  = new ArrayBuffer[CallArgument]()
 
-          for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
-            val arg = callArgFactory.run(unprocessedArg, position)
-            callArgs.append(arg)
-          }
+              for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
+                val arg = callArgFactory.run(unprocessedArg, position)
+                callArgs.append(arg)
+              }
 
-          val defaultsExecutionMode = if (hasDefaultsSuspended) {
-            InvokeCallableNode.DefaultsExecutionMode.IGNORE
-          } else {
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE
-          }
-
-          val appNode = application.getMetadata(ApplicationSaturation) match {
-            case Some(
-                  ApplicationSaturation.CallSaturation.Exact(createOptimised)
-                ) =>
-              createOptimised(moduleScope)(scope)(callArgs.toList)
+              val actualModule = module.unsafeAsModule()
+              val fun = actualModule.getScope.getMethods
+                .get(actualModule.getScope.getAssociatedType)
+                .get(method.name.toLowerCase)
+              val app = if (fun == null) {
+                // Method not yet registered
+                val thisArg =
+                  ConstructorNode.build(actualModule.getScope.getAssociatedType)
+                val callThisArg = new CallArgument(null, thisArg)
+                ApplicationNode.build(
+                  DynamicSymbolNode.build(
+                    UnresolvedSymbol.build(method.name.toLowerCase, moduleScope)
+                  ),
+                  callArgs.prepend(callThisArg).toArray,
+                  InvokeCallableNode.DefaultsExecutionMode.EXECUTE
+                )
+              } else {
+                // optimized
+                ApplicationNode.build(
+                  ConstantObjectNode.build(fun),
+                  callArgs.toArray,
+                  InvokeCallableNode.DefaultsExecutionMode.EXECUTE
+                )
+              }
+              setLocation(app, loc)
             case _ =>
-              ApplicationNode.build(
-                this.run(fn),
-                callArgs.toArray,
-                defaultsExecutionMode
-              )
+              processApplicationWithArgs(app)
           }
-
-          setLocation(appNode, loc)
+        case app: IR.Application.Prefix =>
+          processApplicationWithArgs(app)
         case IR.Application.Force(expr, location, _, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
         case IR.Application.Literal.Sequence(items, location, _, _) =>
@@ -1440,6 +1454,45 @@ class IrToTruffle(
             s"$sec found"
           )
       }
+
+    private def processApplicationWithArgs(
+      application: IR.Application.Prefix
+    ): RuntimeExpression = {
+      val IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =
+        application
+      val callArgFactory = new CallArgumentProcessor(scope, scopeName)
+
+      val arguments = args
+      val callArgs  = new ArrayBuffer[CallArgument]()
+
+      for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
+        val arg = callArgFactory.run(unprocessedArg, position)
+        callArgs.append(arg)
+      }
+
+      val defaultsExecutionMode = if (hasDefaultsSuspended) {
+        InvokeCallableNode.DefaultsExecutionMode.IGNORE
+      } else {
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE
+      }
+
+      val appNode = application.getMetadata(ApplicationSaturation) match {
+        case Some(
+              ApplicationSaturation.CallSaturation.Exact(createOptimised)
+            ) =>
+          createOptimised(moduleScope)(scope)(callArgs.toList)
+        case _ =>
+          ApplicationNode.build(
+            this.run(fn),
+            callArgs.toArray,
+            defaultsExecutionMode
+          )
+      }
+
+      setLocation(appNode, loc)
+
+    }
+
   }
 
   // ==========================================================================

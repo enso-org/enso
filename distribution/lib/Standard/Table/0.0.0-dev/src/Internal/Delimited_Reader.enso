@@ -28,9 +28,6 @@ polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.read.QuoteStrippingParser
 
-## PRIVATE
-default_max_columns = 4096
-
 ## Reads a delimited file according to the provided format.
 
    Arguments:
@@ -237,3 +234,6 @@ handle_parsing_exception =
 ## PRIVATE
 handle_io_exception related_file ~action = Panic.catch_java IOException action java_exception->
     Error.throw (File.wrap_io_exception related_file java_exception)
+
+## PRIVATE
+default_max_columns = 4096
