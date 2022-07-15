@@ -17,18 +17,17 @@
   "description": "Enso Data Processing Environment.",
   "main": "index.cjs",
   "dependencies": {
+    "create-servers": "^3.2.0",
     "enso-gui-server": "^1.0.0",
+    "mime-types": "^2.1.35",
     "@electron/remote": "^2.0.8",
     "electron-is-dev": "^1.2.0",
-    "passport": "^0.3.2",
-    "http-proxy": "^1.13.3",
     "yargs": "^15.3.0"
   },
   "devDependencies": {
     "electron": "17.1.0",
     "electron-builder": "^23.0.6",
     "esbuild": "^0.14.43",
-    "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "crypto-js": "4.1.1",
     "electron-notarize": "1.2.1",
     "enso-copy-plugin": "^1.0.0",

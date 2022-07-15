@@ -1,6 +1,6 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import {Configuration} from 'electron-builder'
+import { Configuration } from 'electron-builder'
 
 import { require_env } from '../../utils.js'
 import { project_manager_bundle } from './paths.js'

@@ -8,7 +8,7 @@ async function findPort(startPort = DEFAULT_PORT) {
     return portfinder.getPortPromise({ startPort, port: startPort })
 }
 
-export async function start({root, assets, port}) {
+export async function start({ root, assets, port }) {
     assets = assets ?? path.join(root, 'assets')
     const parameters = {
         cors: true,

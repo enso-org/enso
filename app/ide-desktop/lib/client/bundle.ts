@@ -1,11 +1,8 @@
 /** Script that bundles JS client code. */
 
-import path, { dirname } from 'node:path'
-import fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 import esbuild from 'esbuild'
-import {NodeModulesPolyfillPlugin} from '@esbuild-plugins/node-modules-polyfill'
-import {require_env, require_env_resolved_path} from '../../utils.js'
+import { require_env, require_env_resolved_path } from '../../utils.js'
 
 // ===================================================
 // === Constants provided through the environment. ===
@@ -21,20 +18,6 @@ const projectManagerInBundlePath = require_env('ENSO_BUILD_PROJECT_MANAGER_IN_BU
 const bundledEngineVersion = require_env('ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION')
 
 
-const copyInjectedHtml: esbuild.Plugin = {
-    async setup(build: esbuild.PluginBuild): Promise<void> {
-        const INJECTED_SOURCE_FILENAME = 'injected.html'
-        build.onStart(async () => {
-            let result = await build.resolve('live-server/injected.html', {resolveDir: "."})
-            let source = result.path
-            let destination = path.join(build.initialOptions.outdir, path.basename(source))
-            console.log(`Copying ${source} to ${destination}`)
-            await fs.promises.copyFile(source, destination)
-        })
-    },
-    name: 'copy-injected-html'
-
-}
 
 // ================
 // === Bundling ===
@@ -45,16 +28,15 @@ const bundlerOptions: esbuild.BuildOptions = {
     outdir,
     entryPoints: ['src/index.js', 'src/preload.cjs'],
     outbase: 'src',
-    format: "cjs",
-    outExtension: {'.js':'.cjs'},
+    format: 'cjs',
+    outExtension: { '.js': '.cjs' },
     platform: 'node',
     define: {
         BUNDLED_ENGINE_VERSION: JSON.stringify(bundledEngineVersion),
         PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(projectManagerInBundlePath),
     },
-    plugins: [copyInjectedHtml],
     sourcemap: true,
-    external: ['electron', 'emitter'], // Conditionally required dependency only for non-node environment by `batch` package.
+    external: ['electron']
 }
 
 await esbuild.build(bundlerOptions)

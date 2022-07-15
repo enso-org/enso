@@ -1,5 +1,5 @@
 import path from 'node:path'
-import {existsSync} from 'node:fs'
+import { existsSync } from 'node:fs'
 import process from 'node:process'
 
 /**
