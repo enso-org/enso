@@ -83,10 +83,11 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
     }
 }
 
-/// Build an AST block from the contents of an `Item::Block`.
+/// Given a sequence of `Item`s belonging to one block, create an AST block node, of a type
+/// determined by the syntax of the lines in the block.
 fn build_block<'s>(items: impl IntoIterator<Item = Item<'s>>) -> Tree<'s> {
     let mut line = vec![];
-    let mut block_builder = tree::BlockBuilder::new();
+    let mut block_builder = tree::block::Builder::new();
     for item in items {
         match item {
             Item::Token(Token { variant: token::Variant::Newline(_), left_offset, code }) => {

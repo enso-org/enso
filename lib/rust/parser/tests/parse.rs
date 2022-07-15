@@ -26,8 +26,8 @@ use lexpr::Value;
 
 /// Parses input as a sequence of S-expressions, and wraps it in a `BodyBlock`.
 macro_rules! block {
-    ( $($statements:tt)? ) => {
-        sexp![(BodyBlock #( $( $statements )? ) )]
+    ( $($statements:tt)* ) => {
+        sexp![(BodyBlock #( $( $statements )* ) )]
     }
 }
 
@@ -109,12 +109,16 @@ fn function_block_simple_args() {
 
 #[test]
 fn code_block_body() {
-    #[rustfmt::skip]
-    let code = [
-        "main =",
-        "    4",
-    ];
+    let code = ["main =", "    4"];
     test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #((Number 4))))]);
+    let code = ["main =", "      ", "    4"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Number 4))))]);
+    let code = ["main =", "    ", "    4"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Number 4))))]);
+    let code = ["main =", "  ", "    4"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Number 4))))]);
+    let code = ["main =", "", "    4"];
+    test(&code.join("\n"), block![(Function main #() "=" (BodyBlock #(() (Number 4))))]);
 
     #[rustfmt::skip]
     let code = [
@@ -173,6 +177,25 @@ fn code_block_argument_list() {
     test(&code.join("\n"), expect);
 }
 
+#[test]
+fn code_block_empty() {
+    // This should parse as a function with no body expression (which is an error). No input would
+    // parse as an empty `ArgumentBlock` or `OperatorBlock`, because those types are distinguished
+    // from a body continuation by the presence of non-empty indented lines.
+    let code = ["foo =", "bar"];
+    test(&code.join("\n"), block![(Function foo #() "=" ()) (Ident bar)]);
+    let code = ["foo =", "    ", "bar"];
+    test(&code.join("\n"), block![(Function foo #() "=" ()) () (Ident bar)]);
+}
+
+#[test]
+fn code_block_bad_indents() {
+    let code = ["main =", "  foo", " bar", "  baz"];
+    test(&code.join("\n"), block![]);
+    let code = ["main =", "  foo", " bar", "baz"];
+    test(&code.join("\n"), block![]);
+}
+
 
 
 // ====================
@@ -224,8 +247,8 @@ where T: serde::Serialize + Reflect {
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
     // TODO: Implement `#[reflect(flag = "enso::concrete")]`, which just attaches user data to the
     //  type info; then filter by flag here instead of hard-coding these simplifications.
-    let line = rust_to_meta[&tree::Line::reflect().id];
-    let operator_line = rust_to_meta[&tree::OperatorBlockLine::reflect().id];
+    let line = rust_to_meta[&tree::block::Line::reflect().id];
+    let operator_line = rust_to_meta[&tree::block::OperatorLine::reflect().id];
     let token_to_str = move |token: Value| {
         let range = token_code_range(&token, base);
         code[range].to_owned().into_boxed_str()

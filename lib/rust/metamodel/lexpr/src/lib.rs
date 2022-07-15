@@ -86,7 +86,10 @@ impl<'g> ToSExpr<'g> {
         self.mappers.insert(id, Box::new(f));
     }
 
-    /// Emit no output for a type.
+    /// Omit a type, specified by ID, from the output, wherever it occurs. If it occurs as a field
+    /// in another struct, that field will be omitted. If the type occurs as a variant of an enum,
+    /// or as the top-level type passed to [`Self::value`], it will be represented as if it had no
+    /// fields.
     pub fn skip(&mut self, id: TypeId) {
         self.skip.insert(id);
     }

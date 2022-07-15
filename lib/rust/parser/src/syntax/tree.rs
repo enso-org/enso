@@ -9,6 +9,8 @@ use crate::span_builder;
 use enso_parser_syntax_tree_visitor::Visitor;
 use enso_shapely_macros::tagged_enum;
 
+pub mod block;
+
 
 
 // ============
@@ -73,7 +75,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// The `Newline` introducing the block.
             pub block_start_newline: token::Newline<'s>,
             /// The lines of the block.
-            pub statements: Vec<Line<'s>>,
+            pub statements: Vec<block::Line<'s>>,
         },
         /// A sequence of lines comprising the arguments of a function call.
         ArgumentBlockApplication {
@@ -82,20 +84,20 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// The `Newline` introducing the block.
             pub block_start_newline: token::Newline<'s>,
             /// The lines of the block.
-            pub arguments: Vec<Line<'s>>,
+            pub arguments: Vec<block::Line<'s>>,
         },
         /// A sequence of lines comprising a tree of operator expressions.
         OperatorBlockApplication {
-            /// The expression preceeding the block; this will be the leftmost-leaf of the binary
+            /// The expression preceding the block; this will be the leftmost-leaf of the binary
             /// tree.
             pub lhs: Option<Tree<'s>>,
             /// The `Newline` introducing the block.
             pub block_start_newline: token::Newline<'s>,
             /// The lines of the block.
-            pub expressions: Vec<OperatorBlockLine<'s>>,
+            pub expressions: Vec<block::OperatorLine<'s>>,
             /// Lines that appear lexically within the block, but are not syntactically consistent
             /// with an operator block.
-            pub excess: Vec<Line<'s>>,
+            pub excess: Vec<block::Line<'s>>,
         },
         /// A simple identifier, like `foo` or `bar`.
         Ident {
@@ -230,139 +232,10 @@ impl<'s> span::Builder<'s> for Error {
 }
 
 
-// == Code Blocks ===
-
-/// A line of code.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
-pub struct Line<'s> {
-    /// The content of the line, if any.
-    pub expression: Option<Tree<'s>>,
-    /// The end-of-line token.
-    pub newline:    token::Newline<'s>,
-}
-
-impl<'s> Line<'s> {
-    /// Transform the content of the line with the provided function, if any is present; return the
-    /// result.
-    pub fn map_expression(self, f: impl FnOnce(Tree<'s>) -> Tree<'s>) -> Self {
-        let Self { newline, expression } = self;
-        let expression = expression.map(f);
-        Self { newline, expression }
-    }
-}
-
-impl<'s> From<token::Newline<'s>> for Line<'s> {
-    fn from(newline: token::Newline<'s>) -> Self {
-        Self { expression: None, newline }
-    }
-}
-
-impl<'s> span::Builder<'s> for Line<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.newline).add(&mut self.expression)
-    }
-}
-
-
-// === BodyBlock ===
-
-/// Build a body block from a sequence of lines; this involves reinterpreting the input expressions
-/// in statement context (i.e. expressions at the top-level of the block that involve the `=`
-/// operator will be reinterpreted as function/variable bindings).
-pub fn body_block_from_lines<'s>(
-    block_start_newline: token::Newline<'s>,
-    expressions: impl IntoIterator<Item = Line<'s>>,
-) -> Tree<'s> {
-    use crate::expression_to_statement;
-    let expressions = expressions.into_iter();
-    let statements = expressions.map(|line| line.map_expression(expression_to_statement));
-    let statements = statements.collect();
-    Tree::body_block(block_start_newline, statements)
-}
-
-
-// === OperatorBlock ===
-
-/// The content of a line in an operator block.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
-pub struct OperatorBlockExpression<'s> {
-    /// The operator at the beginning of the line.
-    pub operator:   OperatorOrError<'s>,
-    /// The rest of the expression.
-    pub expression: Tree<'s>,
-}
-
-/// Interpret the given expression as an `OperatorBlockExpression`, if it fits the correct pattern.
-fn to_operator_block_expression(
-    expression_: Tree<'_>,
-) -> Result<OperatorBlockExpression<'_>, Tree<'_>> {
-    let tree_ = match &*expression_.variant {
-        Variant::OprSectionBoundary(OprSectionBoundary { ast }) => ast,
-        _ => return Err(expression_),
-    };
-    if let Variant::OprApp(OprApp { lhs: None, opr, rhs: Some(expression) }) = &*tree_.variant {
-        if expression.span.left_offset.visible.width_in_spaces < 1 {
-            return Err(expression_);
-        }
-        let mut operator = opr.clone();
-        first_operator_mut(&mut operator).left_offset = expression_.span.left_offset;
-        let expression = expression.clone();
-        Ok(OperatorBlockExpression { operator, expression })
-    } else {
-        Err(expression_)
-    }
-}
-
-impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.operator).add(&mut self.expression)
-    }
-}
-
-/// A line in an operator block.
-#[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
-pub struct OperatorBlockLine<'s> {
-    /// The operator-expression, if any.
-    pub expression: Option<OperatorBlockExpression<'s>>,
-    /// The end-of-line token.
-    pub newline:    token::Newline<'s>,
-}
-
-impl<'s> From<token::Newline<'s>> for OperatorBlockLine<'s> {
-    fn from(newline: token::Newline<'s>) -> Self {
-        Self { expression: None, newline }
-    }
-}
-
-impl<'s> span::Builder<'s> for OperatorBlockLine<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.expression).add(&mut self.newline)
-    }
-}
-
-
 // === OprApp ===
 
 /// Operator or [`MultipleOperatorError`].
 pub type OperatorOrError<'s> = Result<token::Operator<'s>, MultipleOperatorError<'s>>;
-
-/// Return a reference to the first operator, whether that is the only operator, or the first of the
-/// `MultipleOperatorError` sequence.
-pub fn first_operator<'s, 'a>(opr: &'a OperatorOrError<'s>) -> &'a token::Operator<'s> {
-    match opr {
-        Ok(opr) => opr,
-        Err(oprs) => oprs.operators.first(),
-    }
-}
-
-/// Return a mutable reference to the first operator, whether that is the only operator, or the
-/// first of the `MultipleOperatorError` sequence.
-pub fn first_operator_mut<'s, 'a>(opr: &'a mut OperatorOrError<'s>) -> &'a mut token::Operator<'s> {
-    match opr {
-        Ok(opr) => opr,
-        Err(oprs) => oprs.operators.first_mut(),
-    }
-}
 
 /// Error indicating multiple operators found next to each other, like `a + * b`.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
@@ -374,6 +247,29 @@ pub struct MultipleOperatorError<'s> {
 impl<'s> span::Builder<'s> for MultipleOperatorError<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         self.operators.add_to_span(span)
+    }
+}
+
+/// A sequence of one or more operators.
+pub trait NonEmptyOperatorSequence<'s> {
+    /// Return a reference to the first operator.
+    fn first_operator(&self) -> &token::Operator<'s>;
+    /// Return a mutable reference to the first operator.
+    fn first_operator_mut(&mut self) -> &mut token::Operator<'s>;
+}
+
+impl<'s> NonEmptyOperatorSequence<'s> for OperatorOrError<'s> {
+    fn first_operator(&self) -> &token::Operator<'s> {
+        match self {
+            Ok(opr) => opr,
+            Err(oprs) => oprs.operators.first(),
+        }
+    }
+    fn first_operator_mut(&mut self) -> &mut token::Operator<'s> {
+        match self {
+            Ok(opr) => opr,
+            Err(oprs) => oprs.operators.first_mut(),
+        }
     }
 }
 
@@ -391,145 +287,6 @@ pub struct MultiSegmentAppSegment<'s> {
 impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span.add(&mut self.header).add(&mut self.body)
-    }
-}
-
-
-
-// ====================
-// === BlockBuilder ===
-// ====================
-
-/// Builds an AST block type from a sequence of lines.
-///
-/// Note that the block type is not fully determined at this stage: We apply context information
-/// later (see `apply_operator`) to distinguish the two non-operator block types, `BodyBlock` and
-/// `ArgumentBlockApplication`. Here we treat every non-operator block as an argument block,
-/// because creating a body block involves re-interpreting the expressions in statement context.
-///
-/// The implementation is a state machine. The only top-level transitions are:
-/// - `Indeterminate` -> `Operator`
-/// - `Indeterminate` -> `NonOperator`
-///
-/// The `Operator` state has two substates, and one possible transition:
-/// - `body_lines is empty` -> `body_lines is not empty`
-#[derive(Debug)]
-pub enum BlockBuilder<'s> {
-    /// The builder is in an indeterminate state until a non-empty line has been encountered, which
-    /// would distinguish an operator-block from a non-operator block.
-    Indeterminate {
-        /// The `Newline` token introducing the block, and `Newline` tokens for any empty lines
-        /// that have been encountered.
-        empty_lines: Vec<token::Newline<'s>>,
-    },
-    /// Building an operator block. If any line doesn't fit the operator-block syntax, that line
-    /// and all following will be placed in `body_lines`.
-    Operator {
-        /// The `Newline` token introducing the block.
-        block_start_newline: token::Newline<'s>,
-        /// Valid operator-block expressions.
-        operator_lines:      Vec<OperatorBlockLine<'s>>,
-        /// Any lines violating the expected operator-block syntax.
-        body_lines:          Vec<Line<'s>>,
-    },
-    /// Building a non-operator block (either a body block or an argument block).
-    NonOperator {
-        /// The `Newline` token introducing the block.
-        block_start_newline: token::Newline<'s>,
-        /// The block content.
-        body_lines:          Vec<Line<'s>>,
-    },
-}
-
-impl<'s> BlockBuilder<'s> {
-    /// Create a new instance, in initial state.
-    pub fn new() -> Self {
-        Self::Indeterminate { empty_lines: default() }
-    }
-
-    /// Create a new instance, in a state appropriate for the given expression.
-    fn new_with_expression(
-        empty_lines: impl IntoIterator<Item = token::Newline<'s>>,
-        expression: Tree<'s>,
-        newline: token::Newline<'s>,
-    ) -> Self {
-        let mut empty_lines = empty_lines.into_iter();
-        let block_start_newline = empty_lines.next().unwrap_or_else(|| token::newline("", ""));
-        let new_lines = 1;
-        match to_operator_block_expression(expression) {
-            Ok(expression) => {
-                let expression = Some(expression);
-                let mut operator_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
-                operator_lines.extend(empty_lines.map(OperatorBlockLine::from));
-                operator_lines.push(OperatorBlockLine { expression, newline });
-                Self::Operator { operator_lines, block_start_newline, body_lines: default() }
-            }
-            Err(expression) => {
-                let expression = Some(expression);
-                let mut body_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
-                body_lines.extend(empty_lines.map(Line::from));
-                body_lines.push(Line { expression, newline });
-                Self::NonOperator { body_lines, block_start_newline }
-            }
-        }
-    }
-
-    /// Apply a new line to the state.
-    pub fn push(&mut self, expression: Option<Tree<'s>>, newline: token::Newline<'s>) {
-        match self {
-            BlockBuilder::Indeterminate { empty_lines } => match expression {
-                Some(expression) =>
-                    *self = Self::new_with_expression(empty_lines.drain(..), expression, newline),
-                None => empty_lines.push(newline),
-            },
-            BlockBuilder::NonOperator { body_lines, .. } =>
-                body_lines.push(Line { expression, newline }),
-            BlockBuilder::Operator { body_lines, .. } if !body_lines.is_empty() => {
-                body_lines.push(Line { expression, newline });
-            }
-            BlockBuilder::Operator { operator_lines, body_lines, .. }
-            if let Some(expression) = expression => {
-                match to_operator_block_expression(expression) {
-                    Ok(expression) => {
-                        let expression = Some(expression);
-                        operator_lines.push(OperatorBlockLine { expression, newline });
-                    }
-                    Err(expression) => {
-                        let expression = Some(expression);
-                        body_lines.push(Line { expression, newline })
-                    },
-                }
-            }
-            BlockBuilder::Operator { operator_lines, .. } => operator_lines.push(newline.into()),
-        }
-    }
-
-    /// Produce an AST node from the state.
-    pub fn build(self) -> Tree<'s> {
-        match self {
-            BlockBuilder::Indeterminate { empty_lines } => {
-                let mut empty_lines = empty_lines.into_iter();
-                let block_start_newline =
-                    empty_lines.next().unwrap_or_else(|| token::newline("", ""));
-                let lines = empty_lines.map(Line::from).collect();
-                Tree::argument_block_application(None, block_start_newline, lines)
-            }
-            BlockBuilder::Operator { operator_lines, body_lines, block_start_newline } =>
-                Tree::operator_block_application(
-                    None,
-                    block_start_newline,
-                    operator_lines,
-                    body_lines,
-                ),
-            BlockBuilder::NonOperator { body_lines, block_start_newline } =>
-                Tree::argument_block_application(None, block_start_newline, body_lines),
-        }
-    }
-}
-
-impl<'s> Default for BlockBuilder<'s> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -572,7 +329,7 @@ pub fn apply_operator<'s>(
             if block.lhs.is_none() {
                 let ArgumentBlockApplication { lhs: _, block_start_newline, arguments } = block;
                 let arguments = mem::take(arguments);
-                let rhs_ = body_block_from_lines(block_start_newline.clone(), arguments);
+                let rhs_ = block::body_from_lines(block_start_newline.clone(), arguments);
                 rhs = Some(rhs_);
             }
         }

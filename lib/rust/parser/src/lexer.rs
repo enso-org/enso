@@ -886,6 +886,26 @@ mod tests {
     }
 
     #[test]
+    fn test_case_block_bad_indents() {
+        #[rustfmt::skip]
+        test_lexer_many(vec![
+            ("\n  foo\n bar\nbaz", vec![
+                block_start_("", ""), newline_("", "\n"),
+                ident_("  ", "foo"), newline_("", "\n"),
+                ident_(" ", "bar"), newline_("", "\n"),
+                block_end_("", ""),
+                ident_("", "baz"),
+            ]),
+            ("\n  foo\n bar\n  baz", vec![
+                block_start_("", ""), newline_("", "\n"),
+                ident_("  ", "foo"), newline_("", "\n"),
+                ident_(" ", "bar"), newline_("", "\n"),
+                ident_("  ", "baz"), block_end_("", ""),
+            ]),
+        ]);
+    }
+
+    #[test]
     fn test_case_empty() {
         test_lexer("", vec![]);
     }

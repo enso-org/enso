@@ -214,7 +214,7 @@ impl<'s> Resolver<'s> {
         mut self,
         root_macro_map: &SegmentMap<'s>,
         tokens: impl IntoIterator<Item = syntax::Item<'s>>,
-    ) -> Vec<syntax::tree::Line<'s>> {
+    ) -> Vec<syntax::tree::block::Line<'s>> {
         let mut tokens = tokens.into_iter();
         event!(TRACE, "Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
         let mut opt_item: Option<syntax::Item<'s>>;
@@ -244,7 +244,7 @@ impl<'s> Resolver<'s> {
             {
                 let newline = token::newline(left_offset.clone(), code.clone());
                 let expression = line_contains_items.as_some_from(|| self.unwind_stack());
-                lines.push(syntax::tree::Line { expression, newline });
+                lines.push(syntax::tree::block::Line { expression, newline });
                 next_token!();
                 line_contains_items = false;
                 continue;
@@ -256,7 +256,7 @@ impl<'s> Resolver<'s> {
                     let mut tokens = tokens.into_iter();
                     let mut out = vec![];
                     for line in Self::new_root().run(root_macro_map, &mut tokens) {
-                        let syntax::tree::Line { expression, newline } = line;
+                        let syntax::tree::block::Line { expression, newline } = line;
                         if let Some(expression) = expression {
                             out.push(syntax::Item::Tree(expression));
                         }
@@ -285,7 +285,7 @@ impl<'s> Resolver<'s> {
         }
         if line_contains_items {
             let expression = Some(self.unwind_stack());
-            lines.push(syntax::tree::Line { expression, newline: token::newline("", "") });
+            lines.push(syntax::tree::block::Line { expression, newline: token::newline("", "") });
         }
         lines
     }

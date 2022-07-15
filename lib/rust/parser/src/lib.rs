@@ -153,7 +153,7 @@ impl Parser {
         let resolver = macros::resolver::Resolver::new_root();
         let lines = resolver.run(&self.macros, &mut tokens);
         assert_eq!(tokens.next(), None);
-        body_block_from_lines(syntax::token::newline("", ""), lines)
+        block::body_from_lines(syntax::token::newline("", ""), lines)
     }
 }
 
@@ -199,16 +199,27 @@ fn expression_to_binding<'a>(app: &syntax::tree::OprApp<'a>) -> Option<syntax::T
                 args.push(arg.clone());
             }
             args.reverse();
-            if let Some(rhs) = rhs && args.is_empty() && !matches!(&*rhs.variant, Variant::BodyBlock { .. }) {
+            if args.is_empty() && let Some(rhs) = rhs && !is_body_block(rhs) {
+                // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
+                // this is a variable assignment.
                 Some(Tree::assignment(lhs.clone(), opr.clone(), rhs.clone()))
             } else if let Variant::Ident(Ident { token }) = &*lhs.variant {
+                // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
+                // an identifier, this is a function definition.
                 Some(Tree::function(token.clone(), args, opr.clone(), rhs.clone()))
             } else {
+                // If we can't interpret the input as a variable assignment or function declaration,
+                // leave it as an `=` operator application.
                 None
             }
         }
         _ => None,
     }
+}
+
+/// Return whether the expression is a body block.
+fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
+    matches!(&*expression.variant, syntax::tree::Variant::BodyBlock { .. })
 }
 
 

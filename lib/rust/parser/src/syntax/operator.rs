@@ -75,7 +75,7 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
             flattened.push(ast.into());
         }
     };
-    let breaks_group = |item: &syntax::item::Item| {
+    let breaks_no_space_group = |item: &syntax::item::Item| {
         if item.left_visible_offset().width_in_spaces != 0 {
             return true;
         }
@@ -85,7 +85,7 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
         false
     };
     for item in items {
-        if breaks_group(&item) {
+        if breaks_no_space_group(&item) {
             process_no_space_group(&mut flattened, &mut no_space_group);
         }
         no_space_group.push(item);
@@ -94,17 +94,19 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
     resolve_operator_precedence_internal(flattened)
 }
 
-#[derive(PartialEq, Eq)]
-enum TokenType {
-    Ast,
-    Opr,
-}
-
 fn resolve_operator_precedence_internal<'s>(
     items: impl IntoIterator<Item = syntax::Item<'s>>,
 ) -> syntax::Tree<'s> {
     // Reverse-polish notation encoding.
-    use TokenType::*;
+    /// Classify an item as an operator-token, or other data; we track this state information
+    /// because whenever consecutive operators or consecutive non-operators occur, we merge them
+    /// into one node.
+    #[derive(PartialEq, Eq)]
+    enum ItemType {
+        Ast,
+        Opr,
+    }
+    use ItemType::*;
     let mut was_section_used = false;
     let mut output: Vec<syntax::Item> = default();
     let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
