@@ -1,7 +1,7 @@
 package org.enso.base;
 
 import java.util.HashMap;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 public class Environment_Utils {
   /** Gets the environment variable, including any overrides. */
@@ -21,11 +21,12 @@ public class Environment_Utils {
    * <p>This is an internal function that should be used very carefully and only for testing.
    */
   public static <T> T with_environment_variable_override(
-      String name, String value, Supplier<T> action) {
+      String name, String value, Function<Object, T> action) {
     String oldValue = overrides.put(name, value);
     boolean was_set = oldValue != null;
     try {
-      return action.get();
+      // Giving 0 here as an argument, as using null would lead to incorrect behaviour.
+      return action.apply(0);
     } finally {
       if (was_set) {
         overrides.put(name, oldValue);

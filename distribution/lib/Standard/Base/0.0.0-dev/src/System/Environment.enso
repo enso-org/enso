@@ -30,4 +30,4 @@ get key = Environment_Utils.get_environment_variable key
    `System.getenv` Java call remains unchanged.
 unsafe_with_environment_override : Text -> Text -> Any -> Any
 unsafe_with_environment_override key value ~action =
-  Environment_Utils.with_environment_variable_override key value action
+    Environment_Utils.with_environment_variable_override key value (_->action)
