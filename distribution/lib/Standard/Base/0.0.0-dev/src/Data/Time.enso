@@ -300,7 +300,7 @@ type Time
 
              example_date = Time.now.date
     date : Date
-    date = Date.Date self.internal_zoned_date_time.toLocalDate
+    date = self.internal_zoned_date_time.toLocalDate
 
     ## ALIAS Change Time Zone
 
