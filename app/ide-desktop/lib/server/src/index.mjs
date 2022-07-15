@@ -1,3 +1,4 @@
+import path from 'node:path'
 import liveServer from 'live-server'
 import * as portfinder from 'portfinder'
 
@@ -7,7 +8,6 @@ async function findPort(startPort = DEFAULT_PORT) {
     return portfinder.getPortPromise({ startPort, port: startPort })
 }
 
-// TODO customize port
 export async function start({root, assets, port}) {
     assets = assets ?? path.join(root, 'assets')
     const parameters = {
