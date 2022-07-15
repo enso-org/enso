@@ -72,8 +72,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A sequence of lines introduced by a line ending in an operator.
         BodyBlock {
-            /// The `Newline` introducing the block.
-            pub block_start_newline: token::Newline<'s>,
             /// The lines of the block.
             pub statements: Vec<block::Line<'s>>,
         },
@@ -81,8 +79,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         ArgumentBlockApplication {
             /// The expression for the value to which the arguments are to be applied.
             pub lhs: Option<Tree<'s>>,
-            /// The `Newline` introducing the block.
-            pub block_start_newline: token::Newline<'s>,
             /// The lines of the block.
             pub arguments: Vec<block::Line<'s>>,
         },
@@ -91,8 +87,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// The expression preceding the block; this will be the leftmost-leaf of the binary
             /// tree.
             pub lhs: Option<Tree<'s>>,
-            /// The `Newline` introducing the block.
-            pub block_start_newline: token::Newline<'s>,
             /// The lines of the block.
             pub expressions: Vec<block::OperatorLine<'s>>,
             /// Lines that appear lexically within the block, but are not syntactically consistent
@@ -327,9 +321,9 @@ pub fn apply_operator<'s>(
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
-                let ArgumentBlockApplication { lhs: _, block_start_newline, arguments } = block;
+                let ArgumentBlockApplication { lhs: _, arguments } = block;
                 let arguments = mem::take(arguments);
-                let rhs_ = block::body_from_lines(block_start_newline.clone(), arguments);
+                let rhs_ = block::body_from_lines(arguments);
                 rhs = Some(rhs_);
             }
         }

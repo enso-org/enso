@@ -6,13 +6,17 @@ use crate::syntax::tree::*;
 
 
 
+// =============
+// === Lines ===
+// =============
+
 /// A line of code.
 #[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
 pub struct Line<'s> {
+    /// Token ending the previous line, if any.
+    pub newline:    token::Newline<'s>,
     /// The content of the line, if any.
     pub expression: Option<Tree<'s>>,
-    /// The end-of-line token.
-    pub newline:    token::Newline<'s>,
 }
 
 impl<'s> Line<'s> {
@@ -27,35 +31,38 @@ impl<'s> Line<'s> {
 
 impl<'s> From<token::Newline<'s>> for Line<'s> {
     fn from(newline: token::Newline<'s>) -> Self {
-        Self { expression: None, newline }
+        Self { newline, expression: None }
     }
 }
 
 impl<'s> span::Builder<'s> for Line<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.expression).add(&mut self.newline)
+        span.add(&mut self.newline).add(&mut self.expression)
     }
 }
 
 
-// === BodyBlock ===
+
+// ==================
+// === Body Block ===
+// ==================
 
 /// Build a body block from a sequence of lines; this involves reinterpreting the input expressions
 /// in statement context (i.e. expressions at the top-level of the block that involve the `=`
 /// operator will be reinterpreted as function/variable bindings).
-pub fn body_from_lines<'s>(
-    block_start_newline: token::Newline<'s>,
-    expressions: impl IntoIterator<Item = Line<'s>>,
-) -> Tree<'s> {
+pub fn body_from_lines<'s>(expressions: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
     use crate::expression_to_statement;
     let expressions = expressions.into_iter();
     let statements = expressions.map(|line| line.map_expression(expression_to_statement));
     let statements = statements.collect();
-    Tree::body_block(block_start_newline, statements)
+    Tree::body_block(statements)
 }
 
 
-// === OperatorBlock ===
+
+// ======================
+// === Operator Block ===
+// ======================
 
 /// The content of a line in an operator block.
 #[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
@@ -93,24 +100,27 @@ impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
     }
 }
 
+
+// === Operator block lines ====
+
 /// A line in an operator block.
 #[derive(Debug, Clone, PartialEq, Eq, Visitor, Reflect, Serialize, Deserialize)]
 pub struct OperatorLine<'s> {
+    /// Token ending the previous line, if any.
+    pub newline:    token::Newline<'s>,
     /// The operator-expression, if any.
     pub expression: Option<OperatorBlockExpression<'s>>,
-    /// The end-of-line token.
-    pub newline:    token::Newline<'s>,
 }
 
 impl<'s> From<token::Newline<'s>> for OperatorLine<'s> {
     fn from(newline: token::Newline<'s>) -> Self {
-        Self { expression: None, newline }
+        Self { newline, expression: None }
     }
 }
 
 impl<'s> span::Builder<'s> for OperatorLine<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.expression).add(&mut self.newline)
+        span.add(&mut self.newline).add(&mut self.expression)
     }
 }
 
@@ -145,19 +155,15 @@ pub enum Builder<'s> {
     /// Building an operator block. If any line doesn't fit the operator-block syntax, that line
     /// and all following will be placed in `body_lines`.
     Operator {
-        /// The `Newline` token introducing the block.
-        block_start_newline: token::Newline<'s>,
         /// Valid operator-block expressions.
-        operator_lines:      Vec<OperatorLine<'s>>,
+        operator_lines: Vec<OperatorLine<'s>>,
         /// Any lines violating the expected operator-block syntax.
-        body_lines:          Vec<Line<'s>>,
+        body_lines:     Vec<Line<'s>>,
     },
     /// Building a non-operator block (either a body block or an argument block).
     NonOperator {
-        /// The `Newline` token introducing the block.
-        block_start_newline: token::Newline<'s>,
         /// The block content.
-        body_lines:          Vec<Line<'s>>,
+        body_lines: Vec<Line<'s>>,
     },
 }
 
@@ -170,53 +176,52 @@ impl<'s> Builder<'s> {
     /// Create a new instance, in a state appropriate for the given expression.
     fn new_with_expression(
         empty_lines: impl IntoIterator<Item = token::Newline<'s>>,
-        expression: Tree<'s>,
         newline: token::Newline<'s>,
+        expression: Tree<'s>,
     ) -> Self {
-        let mut empty_lines = empty_lines.into_iter();
-        let block_start_newline = empty_lines.next().unwrap_or_else(|| token::newline("", ""));
+        let empty_lines = empty_lines.into_iter();
         let new_lines = 1;
         match to_operator_block_expression(expression) {
             Ok(expression) => {
                 let expression = Some(expression);
                 let mut operator_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
                 operator_lines.extend(empty_lines.map(block::OperatorLine::from));
-                operator_lines.push(OperatorLine { expression, newline });
-                Self::Operator { operator_lines, block_start_newline, body_lines: default() }
+                operator_lines.push(OperatorLine { newline, expression });
+                Self::Operator { operator_lines, body_lines: default() }
             }
             Err(expression) => {
                 let expression = Some(expression);
                 let mut body_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
                 body_lines.extend(empty_lines.map(block::Line::from));
-                body_lines.push(Line { expression, newline });
-                Self::NonOperator { body_lines, block_start_newline }
+                body_lines.push(Line { newline, expression });
+                Self::NonOperator { body_lines }
             }
         }
     }
 
     /// Apply a new line to the state.
-    pub fn push(&mut self, expression: Option<Tree<'s>>, newline: token::Newline<'s>) {
+    pub fn push(&mut self, newline: token::Newline<'s>, expression: Option<Tree<'s>>) {
         match self {
             Builder::Indeterminate { empty_lines } => match expression {
                 Some(expression) =>
-                    *self = Self::new_with_expression(empty_lines.drain(..), expression, newline),
+                    *self = Self::new_with_expression(empty_lines.drain(..), newline, expression),
                 None => empty_lines.push(newline),
             },
             Builder::NonOperator { body_lines, .. } =>
-                body_lines.push(Line { expression, newline }),
+                body_lines.push(Line { newline, expression }),
             Builder::Operator { body_lines, .. } if !body_lines.is_empty() => {
-                body_lines.push(Line { expression, newline });
+                body_lines.push(Line { newline, expression });
             }
             Builder::Operator { operator_lines, body_lines, .. }
             if let Some(expression) = expression => {
                 match to_operator_block_expression(expression) {
                     Ok(expression) => {
                         let expression = Some(expression);
-                        operator_lines.push(OperatorLine { expression, newline });
+                        operator_lines.push(OperatorLine { newline, expression });
                     }
                     Err(expression) => {
                         let expression = Some(expression);
-                        body_lines.push(Line { expression, newline })
+                        body_lines.push(Line { newline, expression })
                     },
                 }
             }
@@ -228,21 +233,14 @@ impl<'s> Builder<'s> {
     pub fn build(self) -> Tree<'s> {
         match self {
             Builder::Indeterminate { empty_lines } => {
-                let mut empty_lines = empty_lines.into_iter();
-                let block_start_newline =
-                    empty_lines.next().unwrap_or_else(|| token::newline("", ""));
+                let empty_lines = empty_lines.into_iter();
                 let lines = empty_lines.map(Line::from).collect();
-                Tree::argument_block_application(None, block_start_newline, lines)
+                Tree::argument_block_application(None, lines)
             }
-            Builder::Operator { operator_lines, body_lines, block_start_newline } =>
-                Tree::operator_block_application(
-                    None,
-                    block_start_newline,
-                    operator_lines,
-                    body_lines,
-                ),
-            Builder::NonOperator { body_lines, block_start_newline } =>
-                Tree::argument_block_application(None, block_start_newline, body_lines),
+            Builder::Operator { operator_lines, body_lines } =>
+                Tree::operator_block_application(None, operator_lines, body_lines),
+            Builder::NonOperator { body_lines } =>
+                Tree::argument_block_application(None, body_lines),
         }
     }
 }

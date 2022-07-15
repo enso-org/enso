@@ -39,7 +39,7 @@ macro_rules! block {
 
 #[test]
 fn nothing() {
-    test("", block![]);
+    test("", block![()]);
 }
 
 #[test]
@@ -64,7 +64,6 @@ fn section_simple() {
 }
 
 #[test]
-#[ignore] // FIXME. This test catches a pre-existing bug.
 fn parentheses_nested() {
     #[rustfmt::skip]
     let expected = block![
@@ -179,21 +178,44 @@ fn code_block_argument_list() {
 
 #[test]
 fn code_block_empty() {
-    // This should parse as a function with no body expression (which is an error). No input would
-    // parse as an empty `ArgumentBlock` or `OperatorBlock`, because those types are distinguished
-    // from a body continuation by the presence of non-empty indented lines.
+    // The first line here should parse as a function with no body expression (which is an error).
+    // No input would parse as an empty `ArgumentBlock` or `OperatorBlock`, because those types are
+    // distinguished from a body continuation by the presence of non-empty indented lines.
     let code = ["foo =", "bar"];
     test(&code.join("\n"), block![(Function foo #() "=" ()) (Ident bar)]);
+    // This parses similarly to above; a line with no non-whitespace content does not create a code
+    // block.
     let code = ["foo =", "    ", "bar"];
     test(&code.join("\n"), block![(Function foo #() "=" ()) () (Ident bar)]);
 }
 
 #[test]
-fn code_block_bad_indents() {
+fn code_block_bad_indents1() {
     let code = ["main =", "  foo", " bar", "  baz"];
-    test(&code.join("\n"), block![]);
+    let expected = block![
+        (Function main #() "=" (BodyBlock #((Ident foo) (Ident bar) (Ident baz))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn code_block_bad_indents2() {
     let code = ["main =", "  foo", " bar", "baz"];
-    test(&code.join("\n"), block![]);
+    let expected = block![
+        (Function main #() "=" (BodyBlock #((Ident foo) (Ident bar))))
+        (Ident baz)
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn code_block_with_following_statement() {
+    let code = ["main =", "    foo", "bar"];
+    let expected = block![
+        (Function main #() "=" (BodyBlock #((Ident foo))))
+        (Ident bar)
+    ];
+    test(&code.join("\n"), expected);
 }
 
 
@@ -219,8 +241,8 @@ use std::collections::HashSet;
 fn test(code: &str, expect: Value) {
     let ast = enso_parser::Parser::new().run(code);
     let ast_s_expr = to_s_expr(&ast, code);
-    assert_eq!(ast_s_expr.to_string(), expect.to_string());
-    assert_eq!(ast.code(), code);
+    assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", &ast);
+    assert_eq!(ast.code(), code, "{:?}", &ast);
 }
 
 

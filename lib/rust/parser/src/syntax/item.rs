@@ -88,22 +88,25 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
 fn build_block<'s>(items: impl IntoIterator<Item = Item<'s>>) -> Tree<'s> {
     let mut line = vec![];
     let mut block_builder = tree::block::Builder::new();
+    let mut newline = None;
     for item in items {
         match item {
             Item::Token(Token { variant: token::Variant::Newline(_), left_offset, code }) => {
-                let newline = token::newline(left_offset, code);
-                let line: Vec<_> = line.drain(..).collect();
-                let expression =
-                    (!line.is_empty()).as_some_from(|| operator::resolve_operator_precedence(line));
-                block_builder.push(expression, newline);
+                let newline = mem::replace(&mut newline, Some(token::newline(left_offset, code)));
+                if let Some(newline) = newline {
+                    let line: Vec<_> = line.drain(..).collect();
+                    let expression = (!line.is_empty())
+                        .as_some_from(|| operator::resolve_operator_precedence(line));
+                    block_builder.push(newline, expression);
+                }
             }
             _ => line.push(item),
         }
     }
-    if !line.is_empty() {
-        let expression = Some(operator::resolve_operator_precedence(line));
-        let newline = token::newline("", "");
-        block_builder.push(expression, newline);
+    if let Some(newline) = newline {
+        let expression =
+            (!line.is_empty()).as_some_from(|| operator::resolve_operator_precedence(line));
+        block_builder.push(newline, expression);
     }
     block_builder.build()
 }

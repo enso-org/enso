@@ -214,6 +214,7 @@ impl<'s> Resolver<'s> {
         mut self,
         root_macro_map: &SegmentMap<'s>,
         tokens: impl IntoIterator<Item = syntax::Item<'s>>,
+        recursed: bool,
     ) -> Vec<syntax::tree::block::Line<'s>> {
         let mut tokens = tokens.into_iter();
         event!(TRACE, "Running macro resolver. Registered macros:\n{:#?}", root_macro_map);
@@ -234,6 +235,10 @@ impl<'s> Resolver<'s> {
         }
         next_token!();
         let mut lines = vec![];
+        let mut newline = match recursed {
+            false => Some(token::newline("", "")),
+            true => None,
+        };
         let mut line_contains_items = false;
         while let Some(token) = opt_item {
             if let syntax::Item::Token(Token {
@@ -242,9 +247,12 @@ impl<'s> Resolver<'s> {
                 code,
             }) = &token
             {
-                let newline = token::newline(left_offset.clone(), code.clone());
-                let expression = line_contains_items.as_some_from(|| self.unwind_stack());
-                lines.push(syntax::tree::block::Line { expression, newline });
+                let new_newline = token::newline(left_offset.clone(), code.clone());
+                let newline = mem::replace(&mut newline, Some(new_newline));
+                if let Some(newline) = newline {
+                    let expression = line_contains_items.as_some_from(|| self.unwind_stack());
+                    lines.push(syntax::tree::block::Line { newline, expression });
+                }
                 next_token!();
                 line_contains_items = false;
                 continue;
@@ -255,12 +263,12 @@ impl<'s> Resolver<'s> {
                 syntax::Item::Block(tokens) => {
                     let mut tokens = tokens.into_iter();
                     let mut out = vec![];
-                    for line in Self::new_root().run(root_macro_map, &mut tokens) {
-                        let syntax::tree::block::Line { expression, newline } = line;
+                    for line in Self::new_root().run(root_macro_map, &mut tokens, true) {
+                        let syntax::tree::block::Line { newline, expression } = line;
+                        out.push(syntax::Item::Token(newline.into()));
                         if let Some(expression) = expression {
                             out.push(syntax::Item::Tree(expression));
                         }
-                        out.push(syntax::Item::Token(newline.into()));
                     }
                     let out = syntax::Item::Block(out);
                     Step::NormalToken(out)
@@ -283,9 +291,9 @@ impl<'s> Resolver<'s> {
                 }
             }
         }
-        if line_contains_items {
-            let expression = Some(self.unwind_stack());
-            lines.push(syntax::tree::block::Line { expression, newline: token::newline("", "") });
+        if let Some(newline) = newline {
+            let expression = line_contains_items.as_some_from(|| self.unwind_stack());
+            lines.push(syntax::tree::block::Line { newline, expression });
         }
         lines
     }

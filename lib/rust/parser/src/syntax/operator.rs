@@ -68,6 +68,7 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
     let process_no_space_group = |flattened: &mut Tokens<'s>, no_space_group: &mut Tokens<'s>| {
         let tokens = no_space_group.drain(..);
         if tokens.len() < 2 {
+            let tokens = tokens.collect_vec();
             flattened.extend(tokens);
         } else {
             let tokens = tokens.map(annotate_tokens_that_need_spacing);
@@ -75,7 +76,7 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
             flattened.push(ast.into());
         }
     };
-    let breaks_no_space_group = |item: &syntax::item::Item| {
+    let starts_new_no_space_group = |item: &syntax::item::Item| {
         if item.left_visible_offset().width_in_spaces != 0 {
             return true;
         }
@@ -84,11 +85,17 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
         }
         false
     };
+    let ends_no_space_group =
+        |item: &syntax::item::Item| matches!(item, syntax::item::Item::Block(_));
     for item in items {
-        if breaks_no_space_group(&item) {
+        if starts_new_no_space_group(&item) {
             process_no_space_group(&mut flattened, &mut no_space_group);
         }
+        let ends_group = ends_no_space_group(&item);
         no_space_group.push(item);
+        if ends_group {
+            process_no_space_group(&mut flattened, &mut no_space_group);
+        }
     }
     process_no_space_group(&mut flattened, &mut no_space_group);
     resolve_operator_precedence_internal(flattened)

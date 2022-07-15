@@ -689,21 +689,20 @@ impl<'s> Lexer<'s> {
                 self.submit_token(block_start);
                 self.start_block(block_indent);
             }
-            self.submit_token(token.with_variant(token::Variant::newline()));
-            line_breaks.drain(..).for_each(|token| self.submit_token(token));
             while block_indent < self.current_block_indent {
-                let err = "Lexer internal error. Inconsistent code block hierarchy.";
-                let parent_block_indent = self.end_block().expect(err);
-                if block_indent > self.current_block_indent {
+                let previous_indent = self.block_indent_stack.last().copied().unwrap_or_default();
+                if block_indent > previous_indent {
                     // The new line indent is smaller than current block but bigger than the
                     // previous one. We are treating the line as belonging to the
                     // block. The warning should be reported by parser.
-                    self.start_block(parent_block_indent);
                     break;
                 }
+                self.end_block();
                 let block_end = self.marker_token(token::Variant::block_end());
                 self.submit_token(block_end);
             }
+            self.submit_token(token.with_variant(token::Variant::newline()));
+            line_breaks.drain(..).for_each(|token| self.submit_token(token));
             self.temporary_tokens.set_storage(line_breaks);
         }
     }
@@ -890,24 +889,30 @@ mod tests {
         #[rustfmt::skip]
         test_lexer_many(vec![
             ("\n  foo\n bar\nbaz", vec![
-                block_start_("", ""), newline_("", "\n"),
-                ident_("  ", "foo"), newline_("", "\n"),
-                ident_(" ", "bar"), newline_("", "\n"),
+                block_start_("", ""),
+                newline_("", "\n"), ident_("  ", "foo"),
+                newline_("", "\n"), ident_(" ", "bar"),
                 block_end_("", ""),
-                ident_("", "baz"),
+                newline_("", "\n"), ident_("", "baz"),
             ]),
             ("\n  foo\n bar\n  baz", vec![
-                block_start_("", ""), newline_("", "\n"),
-                ident_("  ", "foo"), newline_("", "\n"),
-                ident_(" ", "bar"), newline_("", "\n"),
-                ident_("  ", "baz"), block_end_("", ""),
+                block_start_("", ""),
+                newline_("", "\n"), ident_("  ", "foo"),
+                newline_("", "\n"), ident_(" ", "bar"),
+                newline_("", "\n"), ident_("  ", "baz"),
+                block_end_("", ""),
             ]),
         ]);
     }
 
     #[test]
-    fn test_case_empty() {
-        test_lexer("", vec![]);
+    fn test_case_whitespace_only_line() {
+        test_lexer_many(vec![("foo\n    \nbar", vec![
+            ident_("", "foo"),
+            newline_("", "\n"),
+            newline_("    ", "\n"),
+            ident_("", "bar"),
+        ])]);
     }
 
     #[test]
