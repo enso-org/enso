@@ -8,6 +8,6 @@ type Date
     @Builtin_Type
     type Date
     internal_to_enso_date = self
-    year = Polyglot.get_member self "year"
-    month = Polyglot.get_member self "month"
-    day = Polyglot.get_member self "day"
+    year = self.internal_value 1
+    month = self.internal_value 2
+    day = self.internal_value 3

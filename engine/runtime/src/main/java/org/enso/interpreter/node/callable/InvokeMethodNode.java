@@ -252,15 +252,10 @@ public abstract class InvokeMethodNode extends BaseNode {
     try {
       var hostLocalDate = interop.asDate(self);
       var date = new EnsoDate(hostLocalDate);
-      try {
-        Function function = dateDispatch.getFunctionalDispatch(date, symbol);
-        arguments[0] = date;
-        return invokeFunctionNode.execute(function, frame, state, arguments);
-      } catch (MethodDispatchLibrary.NoSuchMethodException ex) {
-        var value = interop.readMember(date, symbol.getName());
-        return new Stateful(state, value);
-      }
-    } catch (UnsupportedMessageException | UnknownIdentifierException e) {
+      Function function = dateDispatch.getFunctionalDispatch(date, symbol);
+      arguments[0] = date;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }

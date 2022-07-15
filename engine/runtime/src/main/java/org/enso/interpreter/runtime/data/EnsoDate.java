@@ -86,36 +86,6 @@ public final class EnsoDate implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasMembers() {
-    return true;
-  }
-
-  @ExportMessage
-  Object getMembers(boolean internal) {
-    return new Array("year", "month", "day");
-  }
-
-  @ExportMessage
-  boolean isMemberReadable(String member) {
-    return switch (member) {
-      case "year" -> true;
-      case "month" -> true;
-      case "day" -> true;
-      default -> false;
-    };
-  }
-
-  @ExportMessage
-  int readMember(String member, @Cached("member") String cachedMember) throws UnknownIdentifierException {
-    return switch (member) {
-      case "year" -> date.getYear();
-      case "month" -> date.getMonthValue();
-      case "day" -> date.getDayOfMonth();
-      default -> throw UnknownIdentifierException.create(cachedMember);
-    };
-  }
-
-  @ExportMessage
   boolean hasFunctionalDispatch() {
     return true;
   }

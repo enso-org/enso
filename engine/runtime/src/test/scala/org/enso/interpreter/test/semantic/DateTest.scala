@@ -1,7 +1,6 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
-import scala.jdk.CollectionConverters._
 
 class DateTest extends InterpreterTest {
   override def subject: String = "LocalDate"
@@ -91,10 +90,7 @@ class DateTest extends InterpreterTest {
            |""".stripMargin
       val ensoDate = eval(code)
       consumeOut shouldEqual List("2022", "4", "1", "2022-04-01")
-      ensoDate.getMember("year") shouldEqual 2022
-      ensoDate.getMember("month") shouldEqual 4
-      ensoDate.getMember("day") shouldEqual 1
-      ensoDate.getMemberKeys() shouldEqual Set("year", "month", "day").asJava
+      ensoDate.getMemberKeys().size() shouldEqual 0
     }
   }
 }
