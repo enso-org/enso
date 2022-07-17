@@ -273,4 +273,44 @@ mod benches {
             parser.run(&str);
         });
     }
+
+    #[bench]
+    fn bench_blocks(bencher: &mut Bencher) {
+        use rand::prelude::*;
+        use rand_chacha::ChaCha8Rng;
+        let lines = 10_000;
+        let mut str = String::new();
+        let mut rng = ChaCha8Rng::seed_from_u64(0);
+        let mut indent = 0u32;
+        for _ in 0..lines {
+            // Indent:
+            // 1/8 chance of increasing.
+            // 1/8 chance of decreasing.
+            // 3/4 chance of leaving unchanged.
+            match rng.gen_range(0..8) {
+                0u32 => indent = indent.saturating_sub(1),
+                1 => indent += 1,
+                _ => (),
+            }
+            for _ in 0..indent {
+                str.push(' ');
+            }
+            // 1/4 chance of operator-block line syntax.
+            if rng.gen_range(0..4) == 0u32 {
+                str.push_str("* ");
+            }
+            str.push('x');
+            // Equal chance of the next line being interpreted as a body block or argument block
+            // line, if it is indented and doesn't match the operator-block syntax.
+            // The `=` operator is chosen to exercise the expression-to-statement conversion path.
+            if rng.gen() {
+                str.push_str(" =");
+            }
+            str.push('\n');
+        }
+        let parser = Parser::new();
+        bencher.iter(move || {
+            parser.run(&str);
+        });
+    }
 }
