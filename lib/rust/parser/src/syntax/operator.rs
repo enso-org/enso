@@ -68,7 +68,6 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
     let process_no_space_group = |flattened: &mut Tokens<'s>, no_space_group: &mut Tokens<'s>| {
         let tokens = no_space_group.drain(..);
         if tokens.len() < 2 {
-            let tokens = tokens.collect_vec();
             flattened.extend(tokens);
         } else {
             let tokens = tokens.map(annotate_tokens_that_need_spacing);

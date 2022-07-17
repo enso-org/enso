@@ -55,6 +55,15 @@ impl<'s> AsRef<Span<'s>> for Tree<'s> {
     }
 }
 
+impl<'s> Default for Tree<'s> {
+    fn default() -> Self {
+        Self {
+            variant: Box::new(Variant::Ident(Ident { token: Default::default() })),
+            span:    Default::default(),
+        }
+    }
+}
+
 /// Macro providing [`Tree`] type definition. It is used to both define the ast [`Variant`], and to
 /// define impls for every token type in other modules.
 #[macro_export]
