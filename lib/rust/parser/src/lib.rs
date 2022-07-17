@@ -147,13 +147,9 @@ impl Parser {
 
     /// Main entry point.
     pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
-        use syntax::tree::*;
         let tokens = lexer::run(code);
-        let mut tokens = tokens.into_iter();
         let resolver = macros::resolver::Resolver::new_root();
-        let lines = resolver.run(&self.macros, &mut tokens, false);
-        assert_eq!(tokens.next(), None);
-        block::body_from_lines(lines)
+        resolver.run(&self.macros, tokens)
     }
 }
 
