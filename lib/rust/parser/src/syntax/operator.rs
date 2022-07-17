@@ -76,6 +76,8 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
             flattened.push(ast.into());
         }
     };
+    // Returns `true` for an item if that item should not follow any other item in a no-space group
+    // (i.e. the item has "space" before it).
     let starts_new_no_space_group = |item: &syntax::item::Item| {
         if item.left_visible_offset().width_in_spaces != 0 {
             return true;
@@ -85,17 +87,11 @@ pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::
         }
         false
     };
-    let ends_no_space_group =
-        |item: &syntax::item::Item| matches!(item, syntax::item::Item::Block(_));
     for item in items {
         if starts_new_no_space_group(&item) {
             process_no_space_group(&mut flattened, &mut no_space_group);
         }
-        let ends_group = ends_no_space_group(&item);
         no_space_group.push(item);
-        if ends_group {
-            process_no_space_group(&mut flattened, &mut no_space_group);
-        }
     }
     process_no_space_group(&mut flattened, &mut no_space_group);
     resolve_operator_precedence_internal(flattened)
@@ -119,13 +115,13 @@ fn resolve_operator_precedence_internal<'s>(
     let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
     let mut prev_type = None;
     for item in items {
-        if let syntax::Item::Token(token) = item.clone()
-        && let token::Variant::Operator(opr) = token.variant {
+        if let syntax::Item::Token(
+                Token { variant: token::Variant::Operator(opr), left_offset, code }) = item {
             // Item is an operator.
             let prev_type = mem::replace(&mut prev_type, Some(Opr));
 
-            let prec = precedence_of(&token.code);
-            let opr = Token(token.left_offset, token.code, opr);
+            let prec = precedence_of(&code);
+            let opr = Token(left_offset, code, opr);
 
             if prev_type == Some(Opr) && let Some(prev_opr) = operator_stack.last_mut() {
                 // Error. Multiple operators next to each other.
