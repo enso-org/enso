@@ -224,15 +224,18 @@ public class Error {
    */
   @ExportLibrary(InteropLibrary.class)
   static final class WrapPlainException extends AbstractTruffleException {
+    private final AbstractTruffleException prototype;
     private final Throwable original;
 
     private WrapPlainException(Throwable cause) {
       super(cause.getMessage(), cause, AbstractTruffleException.UNLIMITED_STACK_TRACE, null);
+      this.prototype = null;
       this.original = cause;
     }
 
     private WrapPlainException(AbstractTruffleException prototype, Throwable original) {
       super(prototype);
+      this.prototype = prototype;
       this.original = original;
     }
 
@@ -274,10 +277,18 @@ public class Error {
     }
 
     @ExportMessage
-    boolean isMemberInvocable(String member) {
-      return
+    boolean isMemberInvocable(String member, @CachedLibrary(limit="1") InteropLibrary delegate) {
+      if (
         "has_type".equals(member) ||
-        "getMessage".equals(member);
+        "getMessage".equals(member)
+      ) {
+        return true;
+      }
+      if (prototype == null) {
+        return false;
+      }
+      boolean del = delegate.isMemberInvocable(prototype, member);
+      return del;
     }
 
     @ExportMessage
@@ -305,7 +316,7 @@ public class Error {
       if ("getMessage".equals(name)) {
         return getExceptionMessage();
       }
-      throw UnknownIdentifierException.create(name);
+      return iop.invokeMember(this.prototype, name, args);
     }
 
     @CompilerDirectives.TruffleBoundary
