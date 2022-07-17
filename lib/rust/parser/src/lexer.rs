@@ -78,11 +78,12 @@ pattern_impl_for_char_slice!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 pub struct Lexer<'s> {
     #[deref]
     #[deref_mut]
-    pub state:            LexerState,
-    pub input:            &'s str,
-    pub iterator:         str::CharIndices<'s>,
-    pub output:           Vec<Token<'s>>,
-    pub temporary_tokens: EmptyVec<Token<'s>>,
+    pub state:         LexerState,
+    pub input:         &'s str,
+    pub iterator:      str::CharIndices<'s>,
+    pub output:        Vec<Token<'s>>,
+    /// Memory for storing tokens, reused as an optimization.
+    pub token_storage: VecAllocation<Token<'s>>,
 }
 
 /// Internal state of the [`Lexer`].
@@ -104,8 +105,8 @@ impl<'s> Lexer<'s> {
         let capacity = input.len() / AVERAGE_TOKEN_LEN;
         let output = Vec::with_capacity(capacity);
         let state = default();
-        let temporary_tokens = default();
-        Self { input, iterator, output, state, temporary_tokens }.init()
+        let token_storage = default();
+        Self { input, iterator, output, state, token_storage }.init()
     }
 
     fn init(mut self) -> Self {
@@ -679,7 +680,7 @@ impl<'s> Lexer<'s> {
 
     fn newline(&mut self) {
         if let Some(token) = self.line_break() {
-            let mut line_breaks = self.temporary_tokens.take_storage();
+            let mut line_breaks = self.token_storage.take();
             while let Some(token) = self.line_break() {
                 line_breaks.push(token.with_variant(token::Variant::newline()));
             }
@@ -703,7 +704,7 @@ impl<'s> Lexer<'s> {
             }
             self.submit_token(token.with_variant(token::Variant::newline()));
             line_breaks.drain(..).for_each(|token| self.submit_token(token));
-            self.temporary_tokens.set_storage(line_breaks);
+            self.token_storage.set_from(line_breaks);
         }
     }
 }
