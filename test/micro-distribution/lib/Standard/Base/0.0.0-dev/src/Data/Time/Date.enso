@@ -1,13 +1,11 @@
 polyglot java import java.time.LocalDate
 import project.Polyglot
 
-new year (month = 1) (day = 1) =
-    (LocalDate.of year month day).internal_to_enso_date
+new year (month = 1) (day = 1) = (LocalDate.of year month day) . internal_local_date
 
 type Date
     @Builtin_Type
     type Date
-    internal_to_enso_date = self
     year = @Builtin_Method "Date.year"
     month = @Builtin_Method "Date.month"
     day = @Builtin_Method "Date.day"

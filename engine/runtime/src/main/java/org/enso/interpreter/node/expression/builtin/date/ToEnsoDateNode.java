@@ -11,20 +11,20 @@ import org.enso.interpreter.runtime.data.EnsoDate;
 
 @BuiltinMethod(
     type = "Date",
-    name = "internal_to_enso",
+    name = "internal_local_date",
     description = "Converts any format of a Date to Enso Date")
 public abstract class ToEnsoDateNode extends Node {
   public static ToEnsoDateNode build() {
     return ToEnsoDateNodeGen.create();
   }
 
-  abstract EnsoDate execute(Object self, Object date);
+  abstract EnsoDate execute(Object self);
 
   @Specialization
   EnsoDate executeConversion(
-      Object self, Object date, @CachedLibrary(limit = "3") InteropLibrary iop) {
+      Object self, @CachedLibrary(limit = "3") InteropLibrary iop) {
     try {
-      return new EnsoDate(iop.asDate(date));
+      return new EnsoDate(iop.asDate(self));
     } catch (UnsupportedMessageException ex) {
       CompilerDirectives.transferToInterpreter();
       throw new IllegalStateException(ex);

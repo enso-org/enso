@@ -235,7 +235,7 @@ type Date
              example_add = Date.new 2020 + 6.months
     + : Duration -> Date
     + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        Date.internal_to_enso (Time_Utils.date_adjust self 1 amount.internal_period)
+        (Time_Utils.date_adjust self 1 amount.internal_period) . internal_local_date
 
     ## Subtract the specified amount of time from this instant to get another
        date.
@@ -252,7 +252,7 @@ type Date
              example_subtract = Date.new 2020 - 7.days
     - : Duration -> Date
     - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        Date.internal_to_enso (Time_Utils.date_adjust self -1 amount.internal_period)
+        (Time_Utils.date_adjust self -1 amount.internal_period) . internal_local_date
 
 
     ## A Date to Json conversion.
