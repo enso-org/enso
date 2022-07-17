@@ -11,11 +11,21 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
 
 import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.runtime.Context;
 
 /** Container for builtin Error types */
 public class Error {
-
+  private final Context context;
   private final BuiltinAtomConstructor syntaxError;
   private final BuiltinAtomConstructor typeError;
   private final BuiltinAtomConstructor compileError;
@@ -43,7 +53,8 @@ public class Error {
   private static final Text divideByZeroMessage = Text.create("Cannot divide by zero.");
 
   /** Creates builders for error Atom Constructors. */
-  public Error(Builtins builtins) {
+  public Error(Builtins builtins, Context context) {
+    this.context = context;
     syntaxError = new BuiltinAtomConstructor(builtins, SyntaxError.class);
     typeError = new BuiltinAtomConstructor(builtins, TypeError.class);
     compileError = new BuiltinAtomConstructor(builtins, CompileError.class);
@@ -133,15 +144,8 @@ public class Error {
    * @param cause the cause of the error.
    * @return a runtime representation of the polyglot error.
    */
-  public Atom makePolyglotError(Object cause) {
-    return polyglotError.newInstance(switch (cause) {
-      case TruffleObject truffle -> truffle;
-      case Throwable any -> any.getMessage();
-      default -> {
-        CompilerDirectives.transferToInterpreter();
-        throw new IllegalStateException("" + cause);
-      }
-    });
+  public Atom makePolyglotError(Throwable cause) {
+    return polyglotError.newInstance(WrapPlainException.wrap(cause, context));
   }
 
   /**
@@ -214,5 +218,113 @@ public class Error {
    */
   public Atom makeNotInvokableError(Object target) {
     return notInvokableError.newInstance(target);
+  }
+
+  /** Represents plain Java exception as a {@link TruffleObject}.
+   */
+  @ExportLibrary(InteropLibrary.class)
+  static final class WrapPlainException extends AbstractTruffleException {
+    private final Throwable original;
+
+    private WrapPlainException(Throwable cause) {
+      super(cause.getMessage(), cause, AbstractTruffleException.UNLIMITED_STACK_TRACE, null);
+      this.original = cause;
+    }
+
+    private WrapPlainException(AbstractTruffleException prototype, Throwable original) {
+      super(prototype);
+      this.original = original;
+    }
+
+    static AbstractTruffleException wrap(Throwable cause, Context ctx) {
+      var env = ctx.getEnvironment();
+      if (env.isHostException(cause)) {
+        var orig = env.asHostException(cause);
+        return new WrapPlainException((AbstractTruffleException) cause, orig);
+      } else if (cause instanceof AbstractTruffleException truffleEx) {
+        return truffleEx;
+      } else {
+        return new WrapPlainException(cause);
+      }
+    }
+
+    @ExportMessage
+    boolean hasExceptionMessage() {
+      return getMessage() != null;
+    }
+
+    @ExportMessage
+    public Object getExceptionMessage() {
+      return Text.create(getMessage());
+    }
+
+    @ExportMessage
+    String toDisplayString(boolean sideEffects) {
+      return original.toString();
+    }
+
+    @ExportMessage
+    Object getMembers(boolean includeInternal) {
+      return Array.empty();
+    }
+
+    @ExportMessage
+    boolean hasMembers() {
+      return true;
+    }
+
+    @ExportMessage
+    boolean isMemberInvocable(String member) {
+      return
+        "has_type".equals(member) ||
+        "getMessage".equals(member);
+    }
+
+    @ExportMessage
+    Object invokeMember(String name, Object[] args, @CachedLibrary(limit="2") InteropLibrary iop) throws ArityException, UnknownIdentifierException, UnsupportedTypeException, UnsupportedMessageException {
+      if ("has_type".equals(name)) {
+        if (args.length != 1) {
+          throw ArityException.create(1,1,  args.length);
+        }
+        Object meta;
+        if (iop.isString(args[0])) {
+          meta = args[0];
+        } else {
+          try {
+            meta = iop.getMetaQualifiedName(args[0]);
+          } catch (UnsupportedMessageException e) {
+            meta = args[0];
+          }
+        }
+        if (!iop.isString(meta)) {
+          throw UnsupportedTypeException.create(args, "Provide class or fully qualified name of class to check");
+        }
+
+        return hasType(iop.asString(meta), original.getClass());
+      }
+      if ("getMessage".equals(name)) {
+        return getExceptionMessage();
+      }
+      throw UnknownIdentifierException.create(name);
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private static boolean hasType(String fqn, Class<?> type) {
+      if (type == null) {
+        return false;
+      }
+      if (type.getName().equals(fqn)) {
+        return true;
+      }
+      if (hasType(fqn, type.getSuperclass())) {
+        return true;
+      }
+      for (Class<?> interfaceType : type.getInterfaces()) {
+        if (hasType(fqn, interfaceType)) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
 }

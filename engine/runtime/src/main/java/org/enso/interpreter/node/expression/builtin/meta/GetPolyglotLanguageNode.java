@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.builtin.Error;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(

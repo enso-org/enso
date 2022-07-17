@@ -93,7 +93,7 @@ public class Builtins {
     builtinMethodNodes = readBuiltinMethodsMetadata(scope);
     registerBuiltinMethods(builtinTypes, scope, language);
 
-    error = new Error(this);
+    error = new Error(this, context);
     ordering = new Ordering(this);
     system = new System(this);
     number = new Number(this);

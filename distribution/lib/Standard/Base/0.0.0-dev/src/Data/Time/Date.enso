@@ -65,8 +65,8 @@ new year (month = 1) (day = 1) =
        https://github.com/enso-org/enso/pull/3559
        Then this should be switched to use `Panic.catch_java`.
     Panic.recover Any (Date.internal_new year month day) . catch Any e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err)
-        ex -> Error.throw (Time.Time_Error ex)
+        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
+        ex -> ex
 
 ## ALIAS Date from Text
 
@@ -137,8 +137,8 @@ parse text pattern=Nothing =
         Text -> Date.internal_parse text pattern
         _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
     result . map_error <| case _ of
-        Polyglot_Error err -> Time.Time_Error err
-        ex -> Time.Time_Error ex
+        Polyglot_Error err -> Time.Time_Error err.getMessage
+        ex -> ex
 
 type Date
 
