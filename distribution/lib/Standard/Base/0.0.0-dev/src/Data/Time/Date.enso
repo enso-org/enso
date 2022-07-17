@@ -162,7 +162,7 @@ type Date
 
              example_year = Date.now.year
     year : Integer
-    year = self.internal_value 1
+    year = @Builtin_Method "Date.year"
 
     ## Get the month of year field, as a number from 1 to 12.
 
@@ -173,7 +173,7 @@ type Date
 
              example_month = Date.now.month
     month : Integer
-    month = self.internal_value 2
+    month = @Builtin_Method "Date.month"
 
     ## Get the day of month field.
 
@@ -184,7 +184,7 @@ type Date
 
              example_day = Date.now.day
     day : Integer
-    day = self.internal_value 3
+    day = @Builtin_Method "Date.day"
 
     ## Returns the number of week of year this date falls into.
 

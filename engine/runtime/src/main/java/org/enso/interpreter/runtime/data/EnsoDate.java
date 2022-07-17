@@ -66,13 +66,19 @@ public final class EnsoDate implements TruffleObject {
     return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
   }
 
-  @Builtin.Method(name = "internal_value", description = "Gets a value of year, month, or day")
-  public long valueOf(long type) {
-    return switch ((int)type) {
-      case 1 -> date.getYear();
-      case 2 -> date.getMonthValue();
-      default -> date.getDayOfMonth();
-    };
+  @Builtin.Method(name = "year", description = "Gets a value of year")
+  public long year() {
+    return date.getYear();
+  }
+
+  @Builtin.Method(name = "month", description = "Gets a value month")
+  public long month() {
+    return date.getMonthValue();
+  }
+
+  @Builtin.Method(name = "day", description = "Gets a value day")
+  public long day() {
+    return date.getDayOfMonth();
   }
 
   @ExportMessage
