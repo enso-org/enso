@@ -287,8 +287,7 @@ public class Error {
       if (prototype == null) {
         return false;
       }
-      boolean del = delegate.isMemberInvocable(prototype, member);
-      return del;
+      return delegate.isMemberInvocable(prototype, member);
     }
 
     @ExportMessage
@@ -317,6 +316,19 @@ public class Error {
         return getExceptionMessage();
       }
       return iop.invokeMember(this.prototype, name, args);
+    }
+
+    @ExportMessage
+    boolean isMemberReadable(String member, @CachedLibrary(limit="1") InteropLibrary delegate) {
+      if (prototype == null) {
+        return false;
+      }
+      return delegate.isMemberReadable(prototype, member);
+    }
+
+    @ExportMessage
+    Object readMember(String name, @CachedLibrary(limit="2") InteropLibrary iop) throws UnsupportedMessageException, UnknownIdentifierException {
+      return iop.readMember(this.prototype, name);
     }
 
     @CompilerDirectives.TruffleBoundary
