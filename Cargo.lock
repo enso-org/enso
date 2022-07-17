@@ -2062,7 +2062,6 @@ dependencies = [
  "enso-data-structures",
  "enso-metamodel",
  "enso-metamodel-lexpr",
- "enso-parser-syntax-tree-builder",
  "enso-parser-syntax-tree-visitor",
  "enso-prelude",
  "enso-reflect",
@@ -2083,16 +2082,6 @@ dependencies = [
  "enso-parser",
  "enso-prelude",
  "enso-reflect",
-]
-
-[[package]]
-name = "enso-parser-syntax-tree-builder"
-version = "0.1.0"
-dependencies = [
- "enso-macro-utils",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

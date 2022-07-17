@@ -206,36 +206,6 @@ fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
 
 
 
-// =============
-// === Tests ===
-// =============
-
-/*
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use enso_parser_syntax_tree_builder::ast_builder;
-
-    macro_rules! test_parse {
-        ($input:tt = {$($def:tt)*}) => {
-            assert_eq!(
-                Parser::new().run($input),
-                ast_builder! { $($def)* }
-            )
-        };
-    }
-
-    #[test]
-    fn test_expressions() {
-        test_parse! {"a" = {a}};
-        test_parse! {"a b" = {a b}};
-        test_parse! {"a b c" = {[a b] c}};
-    }
-}
- */
-
-
-
 // ==================
 // === Benchmarks ===
 // ==================
