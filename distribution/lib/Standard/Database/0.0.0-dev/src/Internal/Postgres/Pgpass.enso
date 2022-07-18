@@ -24,14 +24,13 @@ polyglot java import java.lang.StringBuilder as Java_String_Builder
    - host: The hostname of the database server.
    - port: The port of the database server.
    - database: The database to connect to.
-read : Text -> Integer -> Text -> [Pair Text Text]
-read host port database =
+read : Text -> Integer -> Text -> Text -> [Pair Text Text]
+read host port database username=Nothing =
     pgpass_file = locate
     if pgpass_file.is_nothing || (verify pgpass_file . not) then [] else
         entries = parse_file pgpass_file
-        # TODO possibly? determine username from env
         found = entries.find entry->
-            entry.matches host port database
+            entry.matches host port database username
         case found.catch Nothing of
             Nothing -> []
             entry -> [Pair 'user' entry.username, Pair 'password' entry.password]
@@ -51,7 +50,7 @@ type Pgpass_Entry
                 Text -> port
             self.port==normalized_port
         database_match = self.database==wildcard || self.database==database
-        username_match = username==Nothing || self.username==wildcard || self.username=username
+        username_match = username==Nothing || self.username==wildcard || self.username==username
         host_match && port_match && database_match && username_match
 
 ## PRIVATE
@@ -98,7 +97,7 @@ parse_line line =
         existing_entries.append current_entry.toString
         current_entry.setLength 0
     characters = line.characters
-    go ix is_escape = case ix>=line.length of
+    go ix is_escape = case ix>=characters.length of
         True ->
             if is_escape then
                 # Handle the trailing escape character.
@@ -110,19 +109,19 @@ parse_line line =
                 True ->
                     if is_escape then
                         current_entry.append '\\'
-                    go (ix+1) is_escape.not
+                    @Tail_Call go (ix+1) is_escape.not
                 False -> case c==':' of
                     True ->
                         case is_escape of
                             True -> current_entry.append ':'
                             False -> next_entry
-                        go (ix+1) False
+                        @Tail_Call go (ix+1) False
                     False ->
                         if is_escape then
                             # Handle escape character followed by other characters.
                             current_entry.append '\\'
                         # Any other character is just appended and escape is reset.
                         current_entry.append c
-                        go (ix+1) False
+                        @Tail_Call go (ix+1) False
     go 0 False
     existing_entries.to_vector

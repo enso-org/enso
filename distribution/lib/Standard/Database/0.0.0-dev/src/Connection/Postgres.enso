@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from Standard.Base.Data.Numbers import Parse_Error
+
 import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection
 from Standard.Database.Connection.Credentials as Credentials_Module import Credentials
@@ -21,7 +23,7 @@ type Postgres
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type Postgres (host:Text = Environment.get_or_else "PGHOST" "localhost") (port:Integer = Environment.get_or_else "PGPORT" 5432) (database:Text = Environment.get_or_else "PGDATABASE" "") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    type Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -83,3 +85,16 @@ ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
     Full_Verification cert_file ->
         if cert_file.is_nothing then [Pair 'sslmode' 'verify-full'] else
             [Pair 'sslmode' 'verify-full', Pair 'sslrootcert' (File.new cert_file).absolute.path]
+
+## PRIVATE
+default_postgres_host = Environment.get_or_else "PGHOST" "localhost"
+
+## PRIVATE
+default_postgres_port =
+    hardcoded_port = 5432
+    case Environment.get "PGPORT" of
+        Nothing -> hardcoded_port
+        port -> Integer.parse port . catch Parse_Error (_->hardcoded_port)
+
+## PRIVATE
+default_postgres_database = Environment.get_or_else "PGDATABASE" ""
