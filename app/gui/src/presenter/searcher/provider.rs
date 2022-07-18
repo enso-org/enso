@@ -157,6 +157,12 @@ impl ide_view::searcher::DocumentationProvider for Action {
     }
 }
 
+
+
+// ===========================
+// === provider::Component ===
+// ===========================
+
 /// Component Provider getting entries from a [`controller::searcher::component::Group`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
@@ -186,6 +192,9 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         })
     }
 }
+
+
+// === Component Provider helpers ===
 
 fn icon_from_kind(kind: suggestion_database::entry::Kind) -> component_group_view::icon::Id {
     use component_group_view::icon::Id;
@@ -222,6 +231,12 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
         default()
     }
 }
+
+
+
+// ===========================
+// === Converter functions ===
+// ===========================
 
 /// Get [`LabeledAnyModelProvider`] for given component group.
 pub fn from_component_group(
