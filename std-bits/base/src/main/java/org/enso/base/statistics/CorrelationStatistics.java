@@ -22,6 +22,30 @@ public class CorrelationStatistics {
     totalXY += x * y;
   }
 
+  public long getCount() {
+    return count;
+  }
+
+  public double getTotalX() {
+    return totalX;
+  }
+
+  public double getTotalY() {
+    return totalY;
+  }
+
+  public double getTotalXX() {
+    return totalXX;
+  }
+
+  public double getTotalXY() {
+    return totalXY;
+  }
+
+  public double getTotalYY() {
+    return totalYY;
+  }
+
   public double covariance() {
     if (count < 2) {
       return Double.NaN;
