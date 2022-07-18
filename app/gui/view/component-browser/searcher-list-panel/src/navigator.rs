@@ -1,7 +1,5 @@
-//! The section navigator bar. This is a narrow bar on the left of the Searcher List Panel that
-//! contains two sets of navigation buttons.
-//!
-//! See [`Navigator`] struct.
+//! The [section navigator bar](Navigator). This is a narrow bar on the left of the Searcher List
+//! Panel that contains two sets of navigation buttons.
 //!
 //! See the [Component Browser Design Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
