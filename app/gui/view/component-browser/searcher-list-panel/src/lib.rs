@@ -476,8 +476,19 @@ impl Model {
 
     /// Returns the bottom-most visible section inside the scroll area.
     fn bottom_most_visible_section(&self) -> Option<Section> {
+        // We built a viewport that is similar to `scroll_area.viewport` but which uses
+        // `scroll_position_target_y` instead of `scroll_position_y`. We use it to avoid akward
+        // jumps of the selection box animation when clicking on section navigator buttons.
+        let scroll_y = -self.scroll_area.scroll_position_target_y.value();
+        let viewport = Viewport {
+            top:    scroll_y,
+            bottom: scroll_y - self.scroll_area.scroll_area_height.value(),
+            // We don't care about the left and right edges because the sections are positioned
+            // vertically.
+            left:   0.0,
+            right:  0.0,
+        };
         use Section::*;
-        let viewport = self.scroll_area.viewport.value();
         let sections: &[(&dyn WithinViewport, Section)] = &[
             (&self.favourites_section, Favorites),
             (&self.local_scope_section, LocalScope),
