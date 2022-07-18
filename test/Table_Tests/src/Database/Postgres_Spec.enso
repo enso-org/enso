@@ -132,12 +132,9 @@ table_spec =
             connection = Database.connect (Postgres (db_host_port.at 0) db_port db_name (Credentials db_user db_password))
             run_tests connection
 
-connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
-    Test.specify "TODO" pending="TODO" <|
-        Nothing
+pgpass_file = enso_project.data / "pgpass.conf"
 
 pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
-    pgpass_file = enso_project.data / "pgpass.conf"
     make_pair username password =
         [Pair "user" username, Pair "password" password]
     Test.specify "should correctly parse the file, including escapes, blank lines and comments" <|
@@ -181,9 +178,71 @@ pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
             Pgpass.read "\:" "1234" "blah" . should_equal (make_pair "*" "\:")
             Pgpass.read ":" ":" ":" . should_equal (make_pair ":" ":")
 
+connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
+    Test.specify "should use environment variables as host, port and database defaults and fall back to hardcoded defaults" <|
+        c1 = PostgreSQL "example.com" 12345 "my_db"
+        c2 = PostgreSQL
+        c3 = Environment.unsafe_with_environment_override "PGHOST" "192.168.0.1" <|
+            Environment.unsafe_with_environment_override "PGPORT" "1000" <|
+                Environment.unsafe_with_environment_override "PGDATABASE" "ensoDB" <|
+                    PostgreSQL
+
+        c1.host . should_equal "example.com"
+        c1.port . should_equal 12345
+        c1.database . should_equal "my_db"
+        c1.jdbc_url . should_equal "jdbc:postgresql://example.com:12345/my_db"
+
+        c2.host . should_equal "localhost"
+        c2.port . should_equal 5432
+        c2.database . should_equal ""
+        c2.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
+
+        c3.host . should_equal "192.168.0.1"
+        c3.port . should_equal 1000
+        c3.database . should_equal "ensoDB"
+        c3.jdbc_url . should_equal "jdbc:postgresql://192.168.0.1:1000/ensoDB"
+
+    Test.specify "should use the given credentials" <|
+        c = PostgreSQL credentials=(Credentials "myuser" "mypass")
+        c.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
+        c.jdbc_properties . should_equal [Pair "user" "myuser", Pair "password" "mypass"]
+
+    Test.specify "should fallback to environment variables and fill-out missing information based on the PGPASS file (if available)" <|
+        c1 = PostgreSQL
+        c1.jdbc_url . should_equal "jdbc:postgresql://localhost:5432"
+
+        c1.jdbc_properties . should_equal []
+        Environment.unsafe_with_environment_override "PGPASS" "somepassword" <|
+            c1.jdbc_properties . should_fail_with Illegal_State_Error
+            c1.jdbc_properties.catch.message . should_equal "PGPASSWORD is set, but PGUSER is not."
+
+            Environment.unsafe_with_environment_override "PGUSER" "someuser" <|
+                c1.jdbc_properties . should_equal [Pair "user" "someuser", Pair "password" "somepassword"]
+
+        c2 = PostgreSQL "192.168.4.0" 1234 "foo"
+        c3 = PostgreSQL "::1" 55999 "database_name"
+        c4 = PostgreSQL "::1" 55999 "otherDB"
+        c2.jdbc_properties . should_equal []
+        c3.jdbc_properties . should_equal []
+        c4.jdbc_properties . should_equal []
+
+        Environment.unsafe_with_environment_override "PGPASS" pgpass_file.absolute.path <|
+            c2.jdbc_properties . should_equal [Pair "user" "bar", Pair "password" "baz"]
+            c3.jdbc_properties . should_equal [Pair "user" "user_that_has_no_password", Pair "password" ""]
+            c4.jdbc_properties . should_equal [Pair "user" "*", Pair "password" "fallback_password"]
+
+            Environment.unsafe_with_environment_override "PGUSER" "other user" <|
+                c2.jdbc_properties . should_equal []
+                c3.jdbc_properties . should_equal []
+                c4.jdbc_properties . should_equal [Pair "user" "other user", Pair "password" "fallback_password"]
+
+                Environment.unsafe_with_environment_override "PGPASSWORD" "other password" <|
+                    [c2, c3, c4].each c->
+                        c.jdbc_properties . should_equal [Pair "user" "other user", Pair "password" "other password"]
+
 spec =
     table_spec
-    connection_setup_spec
     pgpass_spec
+    connection_setup_spec
 
 main = Test.Suite.run_main spec

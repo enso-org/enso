@@ -20,6 +20,26 @@ polyglot java import org.enso.base.Environment_Utils
 get : Text -> Text | Nothing
 get key = Environment_Utils.get_environment_variable key
 
+## UNSTABLE
+
+   Returns a value of a specified environment variable or the provided default
+   value if such variable is not defined.
+
+   Arguments:
+   - key: The name of the environment variable to look up.
+   - default: The default fallback value.
+
+   > Example
+     Look up the value of the `FOOBAR` environment variable.
+
+         import Standard.Base.System.Environment
+
+         example_get_or_else = Environment.get_or_else "FOOBAR" "my default"
+get_or_else : Text -> Text -> Text
+get_or_else key ~default = case get key of
+    Nothing -> default
+    value -> value
+
 ## PRIVATE
    ADVANCED
 

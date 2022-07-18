@@ -21,7 +21,7 @@ type Postgres
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type Postgres (host:Text='localhost') (port:Integer=5432) (database:Text='') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    type Postgres (host:Text = Environment.get_or_else "PGHOST" "localhost") (port:Integer = Environment.get_or_else "PGPORT" 5432) (database:Text = Environment.get_or_else "PGDATABASE" "") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -42,9 +42,19 @@ type Postgres
     ## Provides the properties for the connection.
     jdbc_properties : [Pair Text Text]
     jdbc_properties =
-        # TODO env vars
         credentials = case self.credentials of
-            Nothing -> Pgpass.read self.host self.port self.database
+            Nothing ->
+                env_user = Environment.get "PGUSER"
+                env_password = Environment.get "PGPASSWORD"
+                case Pair env_user env_password of
+                    Pair Nothing Nothing ->
+                        Pgpass.read self.host self.port self.database
+                    Pair Nothing _ ->
+                        Error.throw (Illegal_State_Error "PGPASSWORD is set, but PGUSER is not.")
+                    Pair username Nothing ->
+                        Pgpass.read self.host self.port self.database username
+                    Pair username password ->
+                        [Pair 'user' username, Pair 'password' password]
             Credentials username password ->
                 [Pair 'user' username, Pair 'password' password]
 
