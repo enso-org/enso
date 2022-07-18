@@ -769,7 +769,7 @@ Text.bytes self encoding on_problems=Report_Warning =
 
          "Hello".bytes (Encoding.ascii)
 Text.from_bytes : Vector.Vector Byte -> Encoding -> Text
-Text.from_bytes self bytes encoding on_problems=Report_Warning =
+Text.from_bytes bytes encoding on_problems=Report_Warning =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
         on_problems.attach_problems_after result.result [Encoding_Error result.warnings]
@@ -813,7 +813,7 @@ Text.utf_8 self on_problems=Report_Warning =
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector.Vector Byte -> Problem_Behavior -> Text
-Text.from_utf_8 self bytes on_problems=Report_Warning =
+Text.from_utf_8 bytes on_problems=Report_Warning =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
 ## Returns a vector containing the UTF-16 characters that encode the input text.
@@ -836,7 +836,7 @@ Text.char_vector self = Vector.Vector (Text_Utils.get_chars self)
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 Text.from_char_vector : Vector.Vector Integer -> Text
-Text.from_char_vector self chars = Text_Utils.from_chars chars.to_array
+Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
