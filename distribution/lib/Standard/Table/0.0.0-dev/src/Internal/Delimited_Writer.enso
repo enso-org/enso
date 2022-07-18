@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Table
 
 import Standard.Base.Error.Common as Errors
+import Standard.Base.System
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
@@ -10,6 +11,7 @@ from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Data.Storage
 import Standard.Table.Io.Quote_Style
+from Standard.Table.Io.Line_Ending_Style import line_separator_sequence
 from Standard.Table.Internal.Delimited_Reader import Existing_Headers, No_Headers
 import Standard.Table.Data.Match_Columns
 
@@ -48,8 +50,20 @@ write_file table format file on_existing_file match_columns on_problems =
    If the file does not exist or is empty, it acts like a regular overwrite.
 append_to_file : Table -> File_Format.Delimited -> File -> Match_Columns -> Problem_Behavior -> Any
 append_to_file table format file match_columns on_problems =
-    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <|
-        preexisting_headers = Delimited_Reader.detect_headers file format
+    Column_Name_Mismatch.handle_java_exception <| Column_Count_Mismatch.handle_java_exception <| Panic.recover Illegal_Argument_Error <|
+        inferring_format = format.with_line_endings Infer
+        metadata = Delimited_Reader.detect_metadata file inferring_format
+        preexisting_headers = metadata.headers
+        case format.line_endings of
+            Infer -> Nothing
+            other_ending_style ->
+                selected_separator = line_separator_sequence other_ending_style
+                existing_separator = metadata.line_separator
+                if selected_separator != existing_separator then
+                    Panic.throw <| Illegal_Argument_Error <|
+                        # Ensure that these are properly escaped once `to_text` meaning is changed.
+                        "The explicitly provided line endings (" + selected_separator.to_text + ") do not match the line endings in the file (" + existing_separator.to_text + ")."
+        effective_line_separator = metadata.line_separator
         reordered_java_table = case preexisting_headers of
             Nothing -> table.java_table
             Existing_Headers column_names -> case match_columns of
@@ -69,7 +83,7 @@ append_to_file table format file match_columns on_problems =
             True -> format.with_headers
             False -> format.without_headers
         Existing_File_Behavior.Append.write file stream->
-            write_to_stream reordered_table amended_format stream on_problems related_file=file
+            write_to_stream reordered_table amended_format stream on_problems related_file=file separator_override=effective_line_separator
 
 ## PRIVATE
    Returns a Text value representing the table in the delimited format.
@@ -92,14 +106,16 @@ write_text table format =
      If set to `Ignore`, the operation proceeds without errors or warnings.
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
-write_to_stream : Table -> File_Format.Delimited -> Output_Stream -> Problem_Behavior -> File | Nothing -> Any
-write_to_stream table format stream on_problems related_file=Nothing =
+   - separator_override: An optional override for the line separator to use
+     instead of the one from `format`.
+write_to_stream : Table -> File_Format.Delimited -> Output_Stream -> Problem_Behavior -> File | Nothing -> Text | Nothing -> Any
+write_to_stream table format stream on_problems related_file=Nothing separator_override=Nothing =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
 
     handle_io_exception <|
         stream.with_stream_encoder format.encoding on_problems reporting_stream_encoder->
-            write_to_writer table format reporting_stream_encoder
+            write_to_writer table format reporting_stream_encoder separator_override=separator_override
 
 ## PRIVATE
    Writes data to the provided `Writer` according to the provided format.
@@ -111,8 +127,10 @@ write_to_stream table format stream on_problems related_file=Nothing =
    - table: The table to serialize.
    - format: The specification of the delimited file format.
    - java_writer: A Java `Writer` to which characters will be written.
-write_to_writer : Table -> File_Format.Delimited -> Writer -> Any
-write_to_writer table format java_writer =
+   - separator_override: An optional override for the line separator to use
+     instead of the one from `format`.
+write_to_writer : Table -> File_Format.Delimited -> Writer -> Text | Nothing -> Any
+write_to_writer table format java_writer separator_override=Nothing =
     column_formatters = Panic.recover Illegal_Argument_Error <| case format.value_formatter of
         Nothing -> table.columns.map column-> case column.storage_type of
             Storage.Text -> TextFormatter.new
@@ -129,8 +147,10 @@ write_to_writer table format java_writer =
         Quote_Style.No_Quotes -> Pair Nothing Nothing
         Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
     write_headers = should_write_headers format.headers
-    new_line = '\n'
-    writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter new_line quote_characters.first quote_characters.second quote_behavior write_headers
+    newline = separator_override.if_nothing <|
+        separator_from_format = line_separator_sequence format.line_endings
+        separator_from_format.if_nothing System.default_line_separator
+    writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter newline quote_characters.first quote_characters.second quote_behavior write_headers
     writer.write table.java_table
 
 ## PRIVATE

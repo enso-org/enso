@@ -8,6 +8,7 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Io.Quote_Style
+from Standard.Table.Io.Line_Ending_Style import line_separator_sequence
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
@@ -120,7 +121,8 @@ prepare_delimited_reader java_reader format max_columns on_problems =
     cell_type_guesser = if format.headers != Infer then Nothing else
         formatter = format.value_formatter.if_nothing Data_Formatter
         TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-    DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
+    newline = line_separator_sequence format.line_endings
+    DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 translate_reader_problem problem =
     invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row))]
@@ -147,10 +149,16 @@ type Detected_Headers
     type No_Headers (column_count : Integer)
 
 ## PRIVATE
+   An internal type representing metadata describing the format of a specific
+   Delimited file.
+type Detected_File_Metadata
+    type Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing)
+
+## PRIVATE
    Reads the beginning of the file to detect the existing headers and column
    count.
-detect_headers : File -> File_Format.Delimited -> Detected_Headers
-detect_headers file format =
+detect_metadata : File -> File_Format.Delimited -> Detected_Headers
+detect_metadata file format =
     on_problems = Ignore
     result = handle_io_exception file <| handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
         file.with_input_stream [File.Option.Read] stream->
@@ -161,13 +169,15 @@ detect_headers file format =
                    reached and restart parsing with an increased limit.
                 reader = prepare_delimited_reader java_reader format max_columns=default_max_columns on_problems
                 defined_columns = reader.getDefinedColumnNames
-                case defined_columns of
+                headers = case defined_columns of
                     Nothing ->
                         column_count = reader.getColumnCount
                         if column_count == 0 then Nothing else
                             No_Headers column_count
                     _ -> Existing_Headers (Vector.Vector defined_columns)
-    result.catch File.File_Not_Found (_->Nothing)
+                line_separator = reader.getEffectiveLineSeparator
+                Detected_File_Metadata headers line_separator
+    result.catch File.File_Not_Found (_->(Detected_File_Metadata Nothing Nothing))
 
 ## PRIVATE
 handle_illegal_arguments =

@@ -631,7 +631,7 @@ type Vector
          Join the elements of the vector together as a string.
 
              ["foo", "bar", "baz"].join ", "
-    join : Text -> Text
+    join : Text -> Text -> Text -> Text
     join separator="" prefix="" suffix="" =
         if self.is_empty then prefix+suffix else
             if self.length == 1 then prefix + self.unsafe_at 0 + suffix else
