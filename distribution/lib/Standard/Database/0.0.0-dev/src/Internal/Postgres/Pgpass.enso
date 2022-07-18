@@ -41,11 +41,15 @@ type Pgpass_Entry
     type Pgpass_Entry host port database username password
 
     ## PRIVATE
-    matches : Text -> Integer -> Text -> Text -> Boolean
+    matches : Text -> Text|Integer -> Text -> Text -> Boolean
     matches host port database username=Nothing =
         wildcard='*'
         host_match = self.host==wildcard || self.host==host
-        port_match = self.port==wildcard || self.port==port.to_text
+        port_match = self.port==wildcard ||
+            normalized_port = case port of
+                Integer -> port.to_text
+                Text -> port
+            self.port==normalized_port
         database_match = self.database==wildcard || self.database==database
         username_match = username==Nothing || self.username==wildcard || self.username=username
         host_match && port_match && database_match && username_match

@@ -2,6 +2,8 @@ from Standard.Base import all
 import Standard.Base.System.Environment
 import Standard.Base.Runtime.Ref
 import Standard.Base.System
+import Standard.Base.System.Process
+from Standard.Base.System.Process.Exit_Code import Exit_Success
 
 from Standard.Database import all
 from Standard.Database.Connection.Connection import Sql_Error
@@ -135,8 +137,10 @@ connection_setup_spec = Test.group "[PostgreSQL] Connection setup" <|
         Nothing
 
 pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
+    pgpass_file = enso_project.data / "pgpass.conf"
+    make_pair username password =
+        [Pair "user" username, Pair "password" password]
     Test.specify "should correctly parse the file, including escapes, blank lines and comments" <|
-        pgpass_file = enso_project.data / "pgpass.conf"
         result = Pgpass.parse_file pgpass_file
         result.length . should_equal 12
         e1 = Pgpass_Entry "localhost" "5432" "postgres" "postgres" "postgres"
@@ -154,12 +158,28 @@ pgpass_spec = Test.group "[PostgreSQL] .pgpass" <|
         entries = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12]
         result.should_equal entries
 
-    Test.specify "should correctly match wildcards and use the first matching entry" <|
-        Nothing
-
     if System.is_unix then
         Test.specify "should only accept the .pgpass file if it has correct permissions" <|
-            Nothing
+            Process.run "chmod" ["0777", pgpass_file.absolute.path] . should_equal Exit_Success
+            Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
+                Pgpass.verify pgpass_file . should_equal False
+                Pgpass.read "passwords should preserve leading space" "1" "some database name that is really : weird" . should_equal []
+
+            Process.run "chmod" ["0400", pgpass_file.absolute.path] . should_equal Exit_Success
+            Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
+                Pgpass.verify pgpass_file . should_equal True
+                Pgpass.read "passwords should preserve leading space" "1" "some database name that is really : weird" . should_equal (make_pair "*" "   pass")
+
+    Test.specify "should correctly match wildcards and use the first matching entry" <|
+        Environment.unsafe_with_environment_override "PGPASSFILE" (pgpass_file.absolute.path) <|
+            Pgpass.read "localhost" 5432 "postgres" . should_equal (make_pair "postgres" "postgres")
+            Pgpass.read "192.168.4.0" "1234" "foo" . should_equal (make_pair "bar" "baz")
+            Pgpass.read "" "" "" . should_equal (make_pair "*" "fallback_password")
+            Pgpass.read "blah" "5324" "blah" . should_equal (make_pair "*" "fallback_password")
+            Pgpass.read "::1" "55999" "database_name" . should_equal (make_pair "user_that_has_no_password" "")
+            Pgpass.read "order_matters" "1234" "this" . should_equal (make_pair "*" "fallback_password")
+            Pgpass.read "\:" "1234" "blah" . should_equal (make_pair "*" "\:")
+            Pgpass.read ":" ":" ":" . should_equal (make_pair ":" ":")
 
 spec =
     table_spec
