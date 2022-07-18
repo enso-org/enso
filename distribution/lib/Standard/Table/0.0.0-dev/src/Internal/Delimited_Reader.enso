@@ -67,7 +67,7 @@ read_text text format on_problems =
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
 read_stream : Delimited -> Input_Stream -> Problem_Behavior -> Integer -> File | Nothing -> Any
-read_stream format stream on_problems max_columns=4096 related_file=Nothing =
+read_stream format stream on_problems max_columns=default_max_columns related_file=Nothing =
     handle_io_exception related_file <|
         stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
             read_from_reader format reporting_stream_decoder on_problems max_columns

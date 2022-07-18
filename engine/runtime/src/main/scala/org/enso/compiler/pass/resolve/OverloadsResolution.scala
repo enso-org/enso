@@ -102,7 +102,6 @@ case object OverloadsResolution extends IRPass {
         val fromName = m.sourceTypeName.asInstanceOf[IR.Name]
         conversionsForType.get(m.typeName.map(_.name)) match {
           case Some(elems) =>
-            // TODO: make sure this is ok for (self:X) of the same type
             if (elems.contains(fromName.name)) {
               IR.Error.Redefined.Conversion(m.typeName, fromName, m.location)
             } else {

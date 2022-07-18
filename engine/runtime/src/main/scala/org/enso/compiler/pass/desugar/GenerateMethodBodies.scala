@@ -89,7 +89,7 @@ case object GenerateMethodBodies extends IRPass {
         ir.copy(
           body = ir.body match {
             case fun: IR.Function =>
-              processBodyFunction(ir.methodName, fun, moduleName)
+              processBodyFunction(fun, ir.methodName, moduleName)
             case expression => processBodyExpression(expression, moduleName)
           }
         )
@@ -97,7 +97,7 @@ case object GenerateMethodBodies extends IRPass {
         ir.copy(
           body = ir.body match {
             case fun: IR.Function =>
-              processBodyFunction(ir.methodName, fun, moduleName)
+              processBodyFunction(fun, ir.methodName, moduleName)
             case _ =>
               throw new CompilerError(
                 "It should not be possible for a conversion method to have " +
@@ -119,12 +119,13 @@ case object GenerateMethodBodies extends IRPass {
     * of arguments.
     *
     * @param fun the body function
+    * @param funName a name of the function being processed
     * @param moduleName a name of the module that is being processed
     * @return the body function with the `self` argument
     */
   def processBodyFunction(
-    funName: IR.Name,
     fun: IR.Function,
+    funName: IR.Name,
     moduleName: QualifiedName
   ): IR.Expression = {
     val selfArgPos = collectChainedFunctionArgs(fun, 0).collect {
@@ -154,11 +155,17 @@ case object GenerateMethodBodies extends IRPass {
       case Nil =>
         fun match {
           case lam @ IR.Function.Lambda(_, body, _, _, _, _)
-              if foreignDefinition(
+              if hasForeignDefinition(
                 body,
                 lang = Some(ForeignLanguage.JS)
               ).isDefined =>
-            insertThisLast(lam, moduleName)
+            // JS foreign definitions is an exception wrt to this/self in a sense that
+            // it always requires the parameter.
+            // As a way to always provide, without requiring users to do it,
+            // we define it exceptionally last in the parameters' list **with** a default
+            // value. The default argument will always be implicitly applied providing the
+            // necessary context.
+            insertThisInForeignFunctionDefinition(lam, moduleName)
           case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
             lam
           case _: IR.Function.Binding =>
@@ -170,7 +177,7 @@ case object GenerateMethodBodies extends IRPass {
     }
   }
 
-  private def insertThisLast(
+  private def insertThisInForeignFunctionDefinition(
     lam: IR.Function.Lambda,
     moduleName: QualifiedName
   ): IR.Function.Lambda = {
@@ -181,7 +188,7 @@ case object GenerateMethodBodies extends IRPass {
         )
       case body: IR.Function.Lambda =>
         lam.copy(
-          body = insertThisLast(body, moduleName)
+          body = insertThisInForeignFunctionDefinition(body, moduleName)
         )
       case _ =>
         throw new CompilerError("Invalid definition of foreign function")
@@ -191,6 +198,7 @@ case object GenerateMethodBodies extends IRPass {
   /** Processes the method body if it's an expression.
     *
     * @param expr the body expression
+    * @param moduleName a name of the module that is being processed
     * @return `expr` converted to a function taking the `self` argument
     */
   def processBodyExpression(
@@ -198,7 +206,7 @@ case object GenerateMethodBodies extends IRPass {
     moduleName: QualifiedName
   ): IR.Expression = {
     val args =
-      if (foreignDefinition(expr, lang = Some(ForeignLanguage.JS)).nonEmpty)
+      if (hasForeignDefinition(expr, lang = Some(ForeignLanguage.JS)).nonEmpty)
         genThisArgument(moduleName) :: Nil
       else Nil
     IR.Function.Lambda(
@@ -250,9 +258,10 @@ case object GenerateMethodBodies extends IRPass {
   /** Collects the argument list of a chain of function definitions.
     *
     * @param function the function to collect args for
+    * @param idx index of the defined parameter
     * @return the list of arguments for `function`
     */
-  def collectChainedFunctionArgs(
+  private def collectChainedFunctionArgs(
     function: IR.Function,
     idx: Int
   ): List[(IR.DefinitionArgument, Int)] = {
@@ -268,9 +277,9 @@ case object GenerateMethodBodies extends IRPass {
     argsWithIdx._2 ::: bodyArgs
   }
 
-  def foreignDefinition(
+  private def hasForeignDefinition(
     body: IR.Expression,
-    lang: Option[EpbParser.ForeignLanguage] = None
+    lang: Option[EpbParser.ForeignLanguage]
   ): Option[IR.Foreign.Definition] = {
     body match {
       case foreignDef: IR.Foreign.Definition =>
@@ -278,7 +287,7 @@ case object GenerateMethodBodies extends IRPass {
           case None    => Some(foreignDef)
           case Some(l) => Option.when(l == foreignDef.lang)(foreignDef)
         }
-      case fun: IR.Function.Lambda => foreignDefinition(fun.body, lang)
+      case fun: IR.Function.Lambda => hasForeignDefinition(fun.body, lang)
       case _                       => None
     }
 

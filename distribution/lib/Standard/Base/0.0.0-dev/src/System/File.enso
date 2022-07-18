@@ -582,7 +582,7 @@ type File
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
     move_to : File -> Boolean -> Nothing ! File_Error
-    move_to self destination replace_existing=True =
+    move_to self destination replace_existing=False =
         handle_java_exceptions self <| case replace_existing of
             True ->
               copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING

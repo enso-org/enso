@@ -147,7 +147,7 @@ type Engine
                  engine = Default_Engine.new
                  engine.escape literal_string
     escape : Text -> Text
-    escape expression = Java_Pattern.quote expression
+    escape self expression = Java_Pattern.quote expression
 
 ## The default implementation of the `Data.Text.Regex.Engine.Pattern` interface.
 type Pattern

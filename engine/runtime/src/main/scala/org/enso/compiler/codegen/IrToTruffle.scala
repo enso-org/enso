@@ -543,13 +543,7 @@ class IrToTruffle(
           new QualifiedAccessorNode(language, constructor)
         ),
         null,
-        new FunctionSchema(
-          new ArgumentDefinition( // TODO: safe to remove?
-            0,
-            Constants.Names.SELF_ARGUMENT,
-            ArgumentDefinition.ExecutionMode.EXECUTE
-          )
-        )
+        new FunctionSchema()
       )
     }
 

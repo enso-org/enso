@@ -80,8 +80,8 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Stateful execute(
       VirtualFrame frame, Object state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-  private Object[] argumentsForInvocation(Object[] arguments, boolean withSelf) {
-    if (withSelf || arguments.length == 0) {
+  private Object[] argumentsForInvocation(Object[] arguments, boolean declaresExplicitSelf) {
+    if (declaresExplicitSelf || arguments.length == 0) {
       return arguments;
     } else {
       return Arrays.copyOfRange(arguments, 1, arguments.length);
@@ -98,9 +98,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch) {
     try {
       Function function = dispatch.getFunctionalDispatch(self, symbol);
-      boolean withSelf = function.getSchema().hasSelf();
-      Object[] arguments = argumentsForInvocation(arguments0, withSelf);
-      return invokeFunctionNode.execute(function, frame, state, arguments, withSelf);
+      boolean declaresExplicitSelf = function.getSchema().hasSelf();
+      Object[] arguments = argumentsForInvocation(arguments0, declaresExplicitSelf);
+      return invokeFunctionNode.execute(function, frame, state, arguments, declaresExplicitSelf);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
           Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);

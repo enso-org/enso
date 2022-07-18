@@ -108,9 +108,9 @@ public abstract class InvokeConversionNode extends BaseNode {
     try {
       Function function =
           dispatch.getConversionFunction(that, extractConstructor(self), conversion);
-      boolean withSelf = function.getSchema().hasSelf();
-      Object[] arguments1 = argumentsForInvocation(arguments, withSelf);
-      return invokeFunctionNode.execute(function, frame, state, arguments1, withSelf);
+      boolean declaresExplicitSelf = function.getSchema().hasSelf();
+      Object[] arguments1 = argumentsForInvocation(arguments, declaresExplicitSelf);
+      return invokeFunctionNode.execute(function, frame, state, arguments1, declaresExplicitSelf);
     } catch (MethodDispatchLibrary.NoSuchConversionException e) {
       throw new PanicException(
           Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
@@ -118,8 +118,8 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
   }
 
-  private Object[] argumentsForInvocation(Object[] arguments, boolean withSelf) {
-    if (withSelf || arguments.length == 0) {
+  private Object[] argumentsForInvocation(Object[] arguments, boolean declaresExplicitSelf) {
+    if (declaresExplicitSelf || arguments.length == 0) {
       return arguments;
     } else {
       return Arrays.copyOfRange(arguments, 1, arguments.length);

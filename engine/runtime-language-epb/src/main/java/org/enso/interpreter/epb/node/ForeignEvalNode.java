@@ -89,7 +89,7 @@ public class ForeignEvalNode extends RootNode {
           Arrays.stream(argNames)
               .filter(arg -> !arg.equals("self"))
               .collect(Collectors.joining(","));
-      boolean explicitSelf = argNames[0].equals("self");
+      boolean declaresExplicitSelf = argNames[0].equals("self");
       String wrappedSrc =
           "var poly_enso_eval=function("
               + args
@@ -102,7 +102,7 @@ public class ForeignEvalNode extends RootNode {
       // call one with the correct semantics.
       CallTarget ct = EpbContext.get(this).getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
-      foreign = insert(JsForeignNode.build(fn, argNames.length, explicitSelf));
+      foreign = insert(JsForeignNode.build(fn, argNames.length, declaresExplicitSelf));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
         parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);

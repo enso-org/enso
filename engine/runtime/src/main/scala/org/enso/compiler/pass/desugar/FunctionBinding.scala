@@ -175,7 +175,6 @@ case object FunctionBinding extends IRPass {
               IR.Error.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
-            // TODO: remove once explicit self arg is finalized
             val firstArg :: restArgs = args
             val firstArgumentType    = firstArg.ascribedType.get
             val firstArgumentName    = firstArg.name

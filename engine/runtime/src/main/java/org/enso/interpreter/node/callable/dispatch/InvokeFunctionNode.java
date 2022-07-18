@@ -69,7 +69,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
       guards = {
         "!getContext().isInlineCachingDisabled()",
         "function.getSchema() == cachedSchema",
-        "withSelf"
+        "declaresExplicitSelf"
       },
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   Stateful invokeCached(
@@ -77,9 +77,9 @@ public abstract class InvokeFunctionNode extends BaseNode {
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
-      boolean withSelf,
+      boolean declaresExplicitSelf,
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
-      @Cached("generate(cachedSchema, getSchema(), withSelf)")
+      @Cached("generate(cachedSchema, getSchema(), declaresExplicitSelf)")
           CallArgumentInfo.ArgumentMapping argumentMapping,
       @Cached("build(cachedSchema, argumentMapping, getArgumentsExecutionMode())")
           ArgumentSorterNode mappingNode,
@@ -110,7 +110,9 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @param function the function to execute.
    * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
-   * @param arguments the arguments to reorder and supply to the {@code function}.
+   * @param arguments the arguments to reorder and supply to the {@code function}
+   * @param declaresExplicitSelf true, if the function declares {@code self} as the first parameter,
+   *     false otherwise
    * @return the result of calling {@code function} with the supplied {@code arguments}.
    */
   @Specialization(replaces = "invokeCached")
@@ -119,12 +121,12 @@ public abstract class InvokeFunctionNode extends BaseNode {
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
-      boolean withSelf,
+      boolean declaresExplicitSelf,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
     CallArgumentInfo.ArgumentMapping argumentMapping =
         CallArgumentInfo.ArgumentMappingBuilder.generate(
-            function.getSchema(), getSchema(), withSelf);
+            function.getSchema(), getSchema(), declaresExplicitSelf);
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(
@@ -164,6 +166,8 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code function}
+   * @param declaresExplicitSelf true, if the function declares {@code self} as the first parameter,
+   *     false otherwise
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
   public abstract Stateful execute(
@@ -171,7 +175,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
-      boolean withSelf);
+      boolean declaresExplicitSelf);
 
   public CallArgumentInfo[] getSchema() {
     return schema;

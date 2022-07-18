@@ -100,5 +100,3 @@ spec =
 
             meta_from.rename "foo" 123 . should_equal "foo called"
             meta_from.rename "foo" . should_equal .foo
-
-main = Test.Suite.run_main spec

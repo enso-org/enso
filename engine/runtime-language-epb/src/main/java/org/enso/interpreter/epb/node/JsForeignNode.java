@@ -10,14 +10,14 @@ import java.util.Arrays;
 /** A node responsible for performing foreign JS calls. */
 @NodeField(name = "foreignFunction", type = Object.class)
 @NodeField(name = "arity", type = int.class)
-@NodeField(name = "explicitSelf", type = boolean.class)
+@NodeField(name = "explicitSelfDeclared", type = boolean.class)
 public abstract class JsForeignNode extends ForeignFunctionCallNode {
 
   abstract Object getForeignFunction();
 
   abstract int getArity();
 
-  abstract boolean isExplicitSelf();
+  abstract boolean isExplicitSelfDeclared();
 
   /**
    * Creates a new instance of this node.
@@ -27,8 +27,9 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
    *     InteropLibrary#isExecutable(Object)})
    * @return a node able to call the JS function with given arguments
    */
-  public static JsForeignNode build(Object jsFunction, int argumentsCount, boolean explicitSelf) {
-    return JsForeignNodeGen.create(jsFunction, argumentsCount, explicitSelf);
+  public static JsForeignNode build(
+      Object jsFunction, int argumentsCount, boolean declaresExplicitSelf) {
+    return JsForeignNodeGen.create(jsFunction, argumentsCount, declaresExplicitSelf);
   }
 
   @Specialization
@@ -38,7 +39,7 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
     // Implicit self is placed at the end of the parameters' list with a default value.
     // Explicit self "should" be defined as the first parameter.
     // See GenerateMethodBodies for details.
-    int selfIndex = isExplicitSelf() ? 0 : getArity() - 1;
+    int selfIndex = isExplicitSelfDeclared() ? 0 : getArity() - 1;
     System.arraycopy(arguments, selfIndex == 0 ? 1 : 0, positionalArgs, 0, getArity() - 1);
     try {
       return interopLibrary.invokeMember(
