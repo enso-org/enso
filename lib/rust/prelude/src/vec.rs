@@ -117,6 +117,14 @@ impl<T> VecOps<T> for Vec<T> {}
 /// impl NumberAdder {
 ///     /// Add some numbers, with better precision than simply adding `f32` values in a loop.
 ///     /// (For the sake of example, ignore that this is not a fast or accurate approach.)
+///     ///
+///     /// Because we reuse an allocation, if this method is called repeatedly it will only have to
+///     /// allocate enough space to accommodate the largest single input it processes. Thus, rather
+///     /// than performing a number of reallocations that scales linearly in the number of batches
+///     /// of input (assuming batch size has some constant geometric mean), it performs a number of
+///     /// allocations that scales with the log of the size of the largest batch; the worst case of
+///     /// this implementation has the same performance as the best case of an implementation that
+///     /// doesn't reuse its allocation.
 ///     pub fn add_nums(&mut self, inputs: impl IntoIterator<Item = f32>) -> f32 {
 ///         let mut extended_precision = self.temporary_nums.take();
 ///         extended_precision.extend(inputs.into_iter().map(f64::from));
