@@ -12,24 +12,24 @@ from Standard.Database.Error as Database_Errors import Unsupported_Database_Oper
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
-postgresql : Dialect
-postgresql =
-    Postgresql_Dialect make_internal_generator_dialect
+postgres : Dialect
+postgres =
+    Postgres_Dialect make_internal_generator_dialect
 
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
-type Postgresql_Dialect
+type Postgres_Dialect
     ## PRIVATE
 
        The dialect of PostgreSQL databases.
-    type Postgresql_Dialect internal_generator_dialect
+    type Postgres_Dialect internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name = "postgresql"
+    name = "PostgreSQL"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
