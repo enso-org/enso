@@ -114,6 +114,7 @@ const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 struct Layers {
     groups:          GroupLayers,
     base:            Layer,
+    navigator:       Layer,
     selection:       Layer,
     selection_mask:  Layer,
     scroll_layer:    Layer,
@@ -125,16 +126,18 @@ impl Layers {
         let camera = app.display.default_scene.layers.node_searcher.camera();
         let base = Layer::new_with_cam(app.logger.sub("component_groups"), &camera);
         let selection = Layer::new_with_cam(app.logger.sub("selection"), &camera);
+        let navigator = Layer::new_with_cam(app.logger.sub("navigator"), &camera);
         let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &camera);
         let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &camera);
         selection.set_mask(&selection_mask);
         app.display.default_scene.layers.node_searcher.add_sublayer(&base);
         app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
+        app.display.default_scene.layers.node_searcher.add_sublayer(&navigator);
         app.display.default_scene.layers.node_searcher.add_sublayer(&scrollbar_layer);
         let content = &scroll_area.content_layer();
         let groups = GroupLayers::new(&app.logger, content, &selection);
         let scroll_layer = scroll_area.content_layer().clone_ref();
-        Self { base, selection, groups, selection_mask, scroll_layer, scrollbar_layer }
+        Self { base, selection, groups, selection_mask, navigator, scroll_layer, scrollbar_layer }
     }
 }
 
@@ -336,14 +339,15 @@ impl Model {
         groups_wrapper.add(local_scope_id, Group::Wide(local_scope_section.content.clone_ref()));
         sub_modules_section.content.set_group_wrapper(&(SubModules, groups_wrapper.clone_ref()));
 
-        let section_navigator = SectionNavigator::new(&app);
-        display_object.add_child(&section_navigator);
-
         let scroll_area = ScrollArea::new(&app);
         scroll_area.set_camera(app.display.default_scene.layers.node_searcher.camera());
         display_object.add_child(&scroll_area);
         let layers = Layers::new(&app, &scroll_area);
         layers.base.add_exclusive(&scroll_area);
+
+        let section_navigator = SectionNavigator::new(&app);
+        display_object.add_child(&section_navigator);
+        layers.navigator.add_exclusive(&section_navigator);
 
         let selection = component_group::selection_box::View::new(&app.logger);
         display_object.add_child(&selection);
