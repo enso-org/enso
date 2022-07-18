@@ -171,6 +171,7 @@ fn init_local_cope_section(searcher_list_panel: &ComponentBrowserPanel) {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
+    init_tracing(DEBUG);
     ensogl_text_msdf_sys::run_once_initialized(|| {
         let app = &Application::new("root");
         theme::builtin::light::register(&app);
