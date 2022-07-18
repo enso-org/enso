@@ -182,6 +182,7 @@ pub fn main() {
         let navigator = Navigator::new(scene, &camera);
 
         let searcher_list_panel = ComponentBrowserPanel::new(app);
+        app.display.default_scene.layers.node_searcher.add_exclusive(&searcher_list_panel);
         searcher_list_panel.model().set_navigator(Some(navigator.clone()));
 
         init_favourites_section(&searcher_list_panel);
