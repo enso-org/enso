@@ -9,7 +9,7 @@ import Standard.Database.Connection.Ssl_Mode
 import Standard.Database.Connection.Connection_Options
 
 import Standard.Database.Connection.Postgres
-import Standard.Database.Connection.Sqlite
+import Standard.Database.Connection.SQLite
 import Standard.Database.Connection.Redshift
 
 export Standard.Database.Data.Table
@@ -23,5 +23,5 @@ from Standard.Database.Connection.Connection_Options export all
 
 from Standard.Database.Connection.Database export all
 from Standard.Database.Connection.Postgres export all
-from Standard.Database.Connection.Sqlite export all
+from Standard.Database.Connection.SQLite export all
 from Standard.Database.Connection.Redshift export all

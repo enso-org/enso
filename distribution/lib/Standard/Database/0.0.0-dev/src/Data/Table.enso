@@ -913,7 +913,7 @@ type Table
              import Standard.Database
 
              example_to_csv =
-                 connection = Database.connect (Sqlite (File.new "db.sqlite"))
+                 connection = Database.connect (SQLite (File.new "db.sqlite"))
                  table = connection.access_table "Table"
                  table.write (enso_project.data / "example_csv_output.csv")
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
