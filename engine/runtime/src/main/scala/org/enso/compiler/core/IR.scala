@@ -6435,6 +6435,24 @@ object IR {
         Array(ir.showCode(), paramPosition)
     }
 
+    /** A warning raised when a JS function defines a `self` parameter
+      * instead of `this`.
+      *
+      * @param ir the annotated application
+      * @param paramPosition the reason why the annotation cannot be obeyed
+      */
+    case class WrongSelfInJSFunction(
+      funName: IR.Name,
+      ir: IR
+    ) extends Warning {
+      override val location: Option[IdentifiedLocation] = ir.location
+      override def message: String =
+        s"${funName.name}: JS functions use `this` instead of `self`."
+
+      override def diagnosticKeys(): Array[Any] =
+        Array(ir.showCode())
+    }
+
     /** Warnings about shadowing names. */
     sealed trait Shadowed extends Warning {
 

@@ -11,12 +11,12 @@ foreign js debug = """
 type My_Type
     type My_Type a b
 
-    foreign js my_method self = """
+    foreign js my_method this = """
         return this.a + this.b;
 
     my_method_2 self x = self.my_method * x
 
-    foreign js my_method_3 self y = """
+    foreign js my_method_3 this y = """
         var r = this.my_method_2(y)
         return r + 1;
 
@@ -26,7 +26,7 @@ type My_Type
 
     do_throw self = Panic.throw self
 
-    foreign js do_catch self = """
+    foreign js do_catch this = """
         try {
             this.do_throw();
         } catch (e) {

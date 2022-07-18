@@ -140,6 +140,16 @@ case object GenerateMethodBodies extends IRPass {
         fun match {
           case lam @ IR.Function.Lambda(_ :: _, _, _, _, _, _)
               if parameterPosition == 0 =>
+            if (
+              hasForeignDefinition(
+                lam.body,
+                lang = Some(ForeignLanguage.JS)
+              ).isDefined
+            ) {
+              fun.addDiagnostic(
+                IR.Warning.WrongSelfInJSFunction(funName, fun)
+              )
+            }
             lam
           case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
             fun.addDiagnostic(
@@ -165,7 +175,7 @@ case object GenerateMethodBodies extends IRPass {
             // we define it exceptionally last in the parameters' list **with** a default
             // value. The default argument will always be implicitly applied providing the
             // necessary context.
-            insertThisInForeignFunctionDefinition(lam, moduleName)
+            insertOrReplaceSelfInJSFunction(lam, funName, moduleName)
           case lam @ IR.Function.Lambda(_, _, _, _, _, _) =>
             lam
           case _: IR.Function.Binding =>
@@ -177,18 +187,41 @@ case object GenerateMethodBodies extends IRPass {
     }
   }
 
-  private def insertThisInForeignFunctionDefinition(
+  private def insertOrReplaceSelfInJSFunction(
     lam: IR.Function.Lambda,
-    moduleName: QualifiedName
+    funName: IR.Name,
+    moduleName: QualifiedName,
+    argsIdx: Int = 0
   ): IR.Function.Lambda = {
+    val (args, hasSelf) = lam.arguments.zipWithIndex.foldLeft(
+      (Nil: List[IR.DefinitionArgument], false)
+    ) { case ((acc, found), (arg, i)) =>
+      if (arg.name.name == THIS_ARGUMENT) {
+        if (i + argsIdx != 0) {
+          lam.addDiagnostic(
+            IR.Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
+          )
+        }
+        (genSyntheticSelf(moduleName) :: acc, true)
+      } else (arg :: acc, found)
+    }
     lam.body match {
+      case _ if hasSelf =>
+        lam.copy(
+          arguments = args.reverse
+        )
       case _: IR.Foreign.Definition =>
         lam.copy(
-          arguments = lam.arguments ::: List(genThisArgument(moduleName))
+          arguments = lam.arguments ::: List(genSyntheticSelf(moduleName))
         )
       case body: IR.Function.Lambda =>
         lam.copy(
-          body = insertThisInForeignFunctionDefinition(body, moduleName)
+          body = insertOrReplaceSelfInJSFunction(
+            body,
+            funName,
+            moduleName,
+            argsIdx = argsIdx + lam.arguments.length
+          )
         )
       case _ =>
         throw new CompilerError("Invalid definition of foreign function")
@@ -207,7 +240,7 @@ case object GenerateMethodBodies extends IRPass {
   ): IR.Expression = {
     val args =
       if (hasForeignDefinition(expr, lang = Some(ForeignLanguage.JS)).nonEmpty)
-        genThisArgument(moduleName) :: Nil
+        genSyntheticSelf(moduleName) :: Nil
       else Nil
     IR.Function.Lambda(
       arguments = args,
@@ -220,7 +253,7 @@ case object GenerateMethodBodies extends IRPass {
     *
     * @return the `self` argument
     */
-  def genThisArgument(
+  def genSyntheticSelf(
     moduleName: QualifiedName
   ): IR.DefinitionArgument.Specified = {
     IR.DefinitionArgument.Specified(
@@ -290,6 +323,7 @@ case object GenerateMethodBodies extends IRPass {
       case fun: IR.Function.Lambda => hasForeignDefinition(fun.body, lang)
       case _                       => None
     }
-
   }
+
+  final private val THIS_ARGUMENT = "this"
 }
