@@ -680,9 +680,9 @@ impl<'s> Lexer<'s> {
 
     fn newline(&mut self) {
         if let Some(token) = self.line_break() {
-            let mut line_breaks = self.token_storage.take();
+            let mut newlines = self.token_storage.take();
             while let Some(token) = self.line_break() {
-                line_breaks.push(token.with_variant(token::Variant::newline()));
+                newlines.push(token.with_variant(token::Variant::newline()));
             }
             let block_indent = self.last_spaces_visible_offset;
             if block_indent > self.current_block_indent {
@@ -703,8 +703,8 @@ impl<'s> Lexer<'s> {
                 self.submit_token(block_end);
             }
             self.submit_token(token.with_variant(token::Variant::newline()));
-            line_breaks.drain(..).for_each(|token| self.submit_token(token));
-            self.token_storage.set_from(line_breaks);
+            newlines.drain(..).for_each(|token| self.submit_token(token));
+            self.token_storage.set_from(newlines);
         }
     }
 }
