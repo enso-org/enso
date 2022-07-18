@@ -46,9 +46,9 @@ Analyze logs
 
 ```bash
 cargo run -p logstat -- \
-  --median
+  --median \
   --spec tools/language-server/logstat/apply-edit-spec.txt \
-  --wstest_log wstest.log
+  --wstest-log wstest.log
   language-server.log
 ```
 

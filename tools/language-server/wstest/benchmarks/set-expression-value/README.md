@@ -47,15 +47,15 @@ Analyze logs
 
 ```bash
 cargo run -p logstat -- \
-  --median
+  --median \
   --spec tools/language-server/logstat/apply-expression-value-spec.txt \
-  --wstest_log wstest.log
+  --wstest-log wstest.log
   language-server.log
 ```
 
 Example output
 
-````text
+```text
 avg [min..max] (of 150 records)
 0ms [0..0] [main] wstest sent bench request [{ "jsonrpc": "2.0", "method": "text/applyExpre
 0ms [0..2] [org.enso.jsonrpc.JsonRpcServer] Received text message: { "jsonrpc": "2.0", "met
@@ -66,5 +66,5 @@ avg [min..max] (of 150 records)
 1ms [0..9] [enso] Visualisation computed 524dd815-b652-4bbe-b9f2-26b35d17993a.
 0ms [0..1] [org.enso.languageserver.runtime.ContextRegistry] received handled Visualisation
 1ms [0..1] [main] wstest handled response [<binary>]
-8ms [7..22] Total```
-````
+8ms [7..22] Total
+```
