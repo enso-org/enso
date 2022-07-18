@@ -826,6 +826,9 @@ impl component::Frp<Model> for Frp {
 
             output.size <+ layout_frp.update.map(|style| style.size_inner());
 
+
+            // === Selection ===
+
             selection_size_animation.target <+ groups.selection_size._1();
             selection_animation.target <+ groups.selection_position_target.all_with(
                 &model.scroll_area.scroll_position_y,
@@ -837,6 +840,9 @@ impl component::Frp<Model> for Frp {
             eval selection_corners_animation.value ((r) selection.corners_radius.set(*r));
             eval_ model.scroll_area.scroll_position_y(selection_animation.skip.emit(()));
 
+
+            // === Section navigator ===
+
             chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
             scroll_to_section <- all(&chosen_section, &layout_frp.update);
             eval scroll_to_section(((section, layout)) model.scroll_to(*section, layout));
@@ -845,6 +851,7 @@ impl component::Frp<Model> for Frp {
                 f_!(model.bottom_most_visible_section())
             ).on_change();
             eval visible_section((section) model.section_navigator.select_section(*section));
+
 
             // === Navigator icons colors ===
 
