@@ -310,7 +310,7 @@ impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
 
 impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
     /// Query for a variable.
-    pub fn query(&mut self, name: &str) -> Option<&'t Vec<Vec<syntax::Item<'s>>>> {
+    pub fn query(&mut self, name: &str) -> Option<&'t [Vec<syntax::Item<'s>>]> {
         self.tree.and_then(|t| {
             t.map.get(name).map(|entry| {
                 match &self.resolved_validator {
@@ -342,7 +342,7 @@ impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
                         self.resolved_validator = Some(resolved_validator);
                     }
                 }
-                &entry.tokens
+                &entry.tokens[..]
             })
         })
     }

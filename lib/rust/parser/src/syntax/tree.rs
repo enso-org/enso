@@ -141,10 +141,17 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         MultiSegmentApp {
             pub segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
         },
+        /// A type definition; introduced by a line consisting of the keyword `type`, an identifier
+        /// to be used as the name of the type, and zero or more specifications of type parameters.
+        /// The following indented block contains two types of lines:
+        /// - First zero or more type constructors, and their subordinate blocks.
+        /// - Then a block of statements, which may define methods or type methods.
         TypeDef {
             pub keyword: Token<'s>,
             pub name: Tree<'s>,
             pub params: Vec<Tree<'s>>,
+            pub constructors: Vec<TypeConstructorLine<'s>>,
+            pub block: Vec<block::Line<'s>>,
         },
         /// A variable assignment, like `foo = bar 23`.
         Assignment {
@@ -231,6 +238,47 @@ impl<'s> Tree<'s> {
 impl<'s> span::Builder<'s> for Error {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
+    }
+}
+
+
+// === Type Definitions ===
+
+/// A line within a type definition, containing a type constructor definition.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct TypeConstructorLine<'s> {
+    /// The token beginning the line.
+    pub newline:    token::Newline<'s>,
+    /// The type constructor definition, unless this is an empty line.
+    pub expression: Option<TypeConstructorDef<'s>>,
+}
+
+impl<'s> span::Builder<'s> for TypeConstructorLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.newline).add(&mut self.expression)
+    }
+}
+
+impl<'s> From<token::Newline<'s>> for TypeConstructorLine<'s> {
+    fn from(newline: token::Newline<'s>) -> Self {
+        Self { newline, expression: None }
+    }
+}
+
+/// A type constructor definition within a type definition.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct TypeConstructorDef<'s> {
+    /// The identifier naming the type constructor.
+    pub constructor: token::Ident<'s>,
+    /// The arguments the type constructor accepts, specified inline.
+    pub arguments:   Vec<Tree<'s>>,
+    /// The arguments the type constructor accepts, specified on their own lines.
+    pub block:       Vec<block::Line<'s>>,
+}
+
+impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.constructor).add(&mut self.arguments).add(&mut self.block)
     }
 }
 

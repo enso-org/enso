@@ -169,12 +169,19 @@ impl Default for Parser {
 /// interpreted as a variable assignment or method definition.
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    let tree_ = match &mut *tree.variant {
-        Variant::OprSectionBoundary(OprSectionBoundary { ast }) => ast,
+    let mut left_offset = source::span::Offset::default();
+    let tree_ = match &mut tree {
+        Tree { variant: box Variant::OprSectionBoundary(OprSectionBoundary { ast }), span } => {
+            left_offset += &span.left_offset;
+            ast
+        }
         _ => &mut tree,
     };
-    let opr_app = match &mut *tree_.variant {
-        Variant::OprApp(opr_app) => opr_app,
+    let opr_app = match tree_ {
+        Tree { variant: box Variant::OprApp(opr_app), span } => {
+            left_offset += &span.left_offset;
+            opr_app
+        }
         _ => return tree,
     };
     if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.code == "=" {
@@ -188,12 +195,18 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         if args.is_empty() && let Some(rhs) = rhs && !is_body_block(rhs) {
             // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
             // this is a variable assignment.
-            return Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs))
+            let mut result = Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs));
+            left_offset += result.span.left_offset;
+            result.span.left_offset = left_offset;
+            return result;
         }
         if let Variant::Ident(Ident { token }) = &mut *lhs.variant {
             // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
             // an identifier, this is a function definition.
-            return Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs))
+            let mut result = Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs));
+            left_offset += result.span.left_offset;
+            result.span.left_offset = left_offset;
+            return result;
         }
     }
     tree

@@ -349,8 +349,7 @@ impl Pattern {
                     },
             },
             PatternData::Block(body) => match input.pop_front() {
-                Some(syntax::Item::Block(tokens)) =>
-                    body.resolve(tokens.into_iter().rev().map_into().collect()),
+                Some(syntax::Item::Block(tokens)) => body.resolve(tokens.into()),
                 Some(t) => {
                     input.push_front(t);
                     Err(input)
