@@ -1,4 +1,4 @@
-//! A debug scene which shows the Select Component. The chosen entries are logged in console.
+//! A debug scene which shows the Scrollable Grid View component.
 
 #![recursion_limit = "1024"]
 // === Features ===

@@ -34,6 +34,7 @@ pub use ensogl_example_dom_symbols as dom_symbols;
 pub use ensogl_example_drop_manager as drop_manager;
 pub use ensogl_example_easing_animator as easing_animator;
 pub use ensogl_example_glyph_system as glyph_system;
+pub use ensogl_example_grid_view as grid_view;
 pub use ensogl_example_list_view as list_view;
 pub use ensogl_example_mouse_events as mouse_events;
 pub use ensogl_example_profiling_run_graph as profiling_run_graph;
