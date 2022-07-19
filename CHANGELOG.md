@@ -61,6 +61,10 @@
   component][3385]. Use the <code>set_font</code> and
   <code>set_bold_bytes</code> respectively.
 - [Fixed a text rendering issue in nested sublayer][3486].
+- [Added a new component: Grid View.][3588] It's parametrized by Entry object,
+  display them arranged in a Grid. It does not instantiate all entries, only
+  those visible, and re-use created entries during scrolling thus achieving
+  great performance.
 
 #### Enso Standard Library
 
@@ -157,6 +161,8 @@
 - [Allow filtering caught error type in `Error.catch`.][3574]
 - [Implemented `Append` mode for `File_Format.Delimited`.][3573]
 - [Added `Vector.write_bytes` function and removed old `File.write_bytes`][3583]
+- [Added `line_endings` and `comment_character` options to
+  `File_Format.Delimited`.][3581]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -250,6 +256,8 @@
 [3574]: https://github.com/enso-org/enso/pull/3574
 [3573]: https://github.com/enso-org/enso/pull/3573
 [3583]: https://github.com/enso-org/enso/pull/3583
+[3581]: https://github.com/enso-org/enso/pull/3581
+[3588]: https://github.com/enso-org/enso/pull/3588
 
 #### Enso Compiler
 

@@ -1154,7 +1154,7 @@ val distributionEnvironmentOverrides = {
   )
 }
 
-val frgaalSourceLevel = "18"
+val frgaalSourceLevel = "19"
 
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 11
