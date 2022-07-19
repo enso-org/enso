@@ -1516,8 +1516,8 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
+ "ide-view-component-list-panel",
  "js-sys",
- "searcher-list-panel",
  "wasm-bindgen",
 ]
 
@@ -1798,7 +1798,7 @@ dependencies = [
  "tracing-subscriber",
  "unicase 2.6.0",
  "url 2.2.2",
- "uuid 1.1.0",
+ "uuid 1.1.2",
  "walkdir",
  "which",
  "whoami",
@@ -1944,6 +1944,7 @@ dependencies = [
  "ast",
  "bimap",
  "console_error_panic_hook",
+ "convert_case 0.5.0",
  "double-representation",
  "engine-protocol",
  "enso-callback",
@@ -1969,6 +1970,7 @@ dependencies = [
  "futures 0.3.21",
  "fuzzly",
  "ide-view",
+ "ide-view-component-group",
  "itertools 0.10.3",
  "js-sys",
  "json-rpc",
@@ -2314,6 +2316,7 @@ dependencies = [
  "ensogl-drop-manager",
  "ensogl-file-browser",
  "ensogl-flame-graph",
+ "ensogl-grid-view",
  "ensogl-label",
  "ensogl-list-view",
  "ensogl-scroll-area",
@@ -2474,6 +2477,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-grid-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-text",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-list-view"
 version = "0.1.0"
 dependencies = [
@@ -2616,6 +2632,7 @@ dependencies = [
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",
  "ensogl-example-glyph-system",
+ "ensogl-example-grid-view",
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
  "ensogl-example-profiling-run-graph",
@@ -2648,6 +2665,20 @@ dependencies = [
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-grid-view"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-scroll-area",
+ "ensogl-shadow",
+ "ensogl-text",
+ "itertools 0.10.3",
 ]
 
 [[package]]
@@ -3205,14 +3236,14 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9be70c98951c83b8d2f8f60d7065fa6d5146873094452a1008da8c2f1e4205ad"
+checksum = "4eb1a864a501629691edf6c15a593b7a51eebaa1e8468e9ddc623de7c9b58ec6"
 dependencies = [
  "cfg-if 1.0.0",
  "js-sys",
  "libc",
- "wasi 0.10.0+wasi-snapshot-preview1",
+ "wasi 0.11.0+wasi-snapshot-preview1",
  "wasm-bindgen",
 ]
 
@@ -3748,7 +3779,7 @@ dependencies = [
  "tracing-subscriber",
  "unicase 2.6.0",
  "url 2.2.2",
- "uuid 1.1.0",
+ "uuid 1.1.2",
  "walkdir",
  "which",
  "whoami",
@@ -3769,9 +3800,11 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
+ "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
+ "ide-view-component-browser",
  "ide-view-graph-editor",
  "js-sys",
  "multi-map",
@@ -3788,6 +3821,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ide-view-component-browser"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ide-view-component-list-panel",
+]
+
+[[package]]
 name = "ide-view-component-group"
 version = "0.1.0"
 dependencies = [
@@ -3801,6 +3844,25 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "failure",
+]
+
+[[package]]
+name = "ide-view-component-list-panel"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-derive-theme",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ordered-float",
 ]
 
 [[package]]
@@ -4393,7 +4455,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a51313c5820b0b02bd422f4b44776fbf47961755c74ce64afc73bfad10226c3"
 dependencies = [
- "getrandom 0.2.6",
+ "getrandom 0.2.7",
 ]
 
 [[package]]
@@ -5348,7 +5410,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 dependencies = [
- "getrandom 0.2.6",
+ "getrandom 0.2.7",
 ]
 
 [[package]]
@@ -5491,7 +5553,7 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
 dependencies = [
- "getrandom 0.2.6",
+ "getrandom 0.2.7",
  "redox_syscall 0.2.13",
  "thiserror",
 ]
@@ -5769,25 +5831,6 @@ checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
 dependencies = [
  "ring",
  "untrusted",
-]
-
-[[package]]
-name = "searcher-list-panel"
-version = "0.1.0"
-dependencies = [
- "approx 0.5.1",
- "enso-frp",
- "ensogl-core",
- "ensogl-derive-theme",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-scroll-area",
- "ensogl-selector",
- "ensogl-shadow",
- "ensogl-text",
- "ide-view-component-group",
- "ordered-float",
 ]
 
 [[package]]
@@ -6984,18 +7027,18 @@ version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 dependencies = [
- "getrandom 0.2.6",
+ "getrandom 0.2.7",
  "serde",
  "sha1 0.6.1",
 ]
 
 [[package]]
 name = "uuid"
-version = "1.1.0"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93bbc61e655a4833cf400d0d15bf3649313422fa7572886ad6dab16d79886365"
+checksum = "dd6469f4314d5f1ffec476e05f17cc9a78bc7a27a6a857842170bdf8d6f98d2f"
 dependencies = [
- "getrandom 0.2.6",
+ "getrandom 0.2.7",
  "serde",
 ]
 

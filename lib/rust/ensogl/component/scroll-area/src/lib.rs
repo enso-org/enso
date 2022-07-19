@@ -23,6 +23,7 @@ use ensogl_core::application::Application;
 use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::layer;
 use ensogl_core::display::shape;
@@ -100,6 +101,11 @@ impl Viewport {
         let left = pos.x;
         let right = pos.x + size.x;
         !(top < self.bottom || bottom > self.top || left > self.right || right < self.left)
+    }
+
+    /// Return Viewport's size.
+    pub fn size(&self) -> Vector2 {
+        Vector2(self.right - self.left, self.top - self.bottom)
     }
 }
 
@@ -193,7 +199,7 @@ impl ScrollArea {
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
-        let camera = scene.layers.main.camera();
+        let camera = scene.layers.node_searcher.camera();
         let display_object = display::object::Instance::new(&logger);
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
@@ -290,8 +296,8 @@ impl ScrollArea {
             viewport <- viewport.map(|(position,dimension)|{
                 Viewport{
                     top: -position.y,
-                    left: position.x,
-                    right: position.x + dimension.x,
+                    left: -position.x,
+                    right: - position.x + dimension.x,
                     bottom: -position.y - dimension.y,
                 }
             });
@@ -335,6 +341,25 @@ impl ScrollArea {
     /// A scene layer containing the content of the ScrollArea.
     pub fn content_layer(&self) -> &layer::Layer {
         &self.model.content_layer
+    }
+
+    /// Set a scene layer for scrollbars.
+    pub fn set_scrollbars_layer(&self, layer: &layer::Layer) {
+        layer.add_exclusive(&self.model.scrollbars);
+    }
+
+    /// A scene layer used as a mask for the content.
+    pub fn mask_layer(&self) -> &layer::Layer {
+        &self.model.display_object.layer.mask_layer
+    }
+
+    /// Set camera in the every layer handled by this Scroll Area.
+    pub fn set_camera(&self, camera: impl Into<Camera2d>) {
+        let camera = camera.into();
+        self.model.display_object.layer.masked_layer.set_camera(camera.clone_ref());
+        self.model.display_object.layer.mask_layer.set_camera(camera.clone_ref());
+        self.model.ui_layer.set_camera(camera.clone_ref());
+        self.model.content_layer.set_camera(camera.clone_ref());
     }
 
 
