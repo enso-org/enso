@@ -5,12 +5,12 @@ import Standard.Base.Data.Time.Date
 from Standard.Base.Error.Problem_Behavior import all
 
 import Standard.Table
-import Standard.Table.Io.File_Read
-import Standard.Table.Io.File_Format
+import Standard.Table.IO.File_Read
+import Standard.Table.IO.File_Format
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Match_Columns
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
-from Standard.Table.Io.Excel import Excel_Range, Sheet_Names, Range_Names, Sheet, Cell_Range
+from Standard.Table.IO.Excel import Excel_Range, Sheet_Names, Range_Names, Sheet, Cell_Range
 from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 
@@ -579,8 +579,8 @@ spec =
             bad_file.read (File_Format.Excel (Cell_Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
-            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File.Io_Error
-            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File.Io_Error
+            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File.IO_Error
+            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File.IO_Error
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 
