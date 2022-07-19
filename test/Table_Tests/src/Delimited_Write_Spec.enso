@@ -31,7 +31,6 @@ type My_Type
 
 spec =
     line_ending_pairs = [[Line_Ending_Style.Unix, '\n'], [Line_Ending_Style.Windows, '\r\n'], [Line_Ending_Style.Mac_Legacy, '\r']]
-    system_separator = if System.os == "windows" then '\r\n' else '\n'
     Test.group "Delimited File Writing" <|
         Test.specify "should correctly write a simple table" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type 10]]]
@@ -188,7 +187,7 @@ spec =
             text.should_equal expected_text
             result . should_equal Nothing
             sep_length = System.default_line_separator.codepoints.length
-            positions = [6 + sep_length, 7 + sep_length, 13 + 2*sep_length]
+            positions = [7, 8, 15]
             msg = "Encoding issues at codepoints " +
                 positions.map .to_text . join separator=", " suffix="."
             Warning.get_all result . map .value . should_equal [Encoding_Error msg]
@@ -358,7 +357,7 @@ spec =
                 text.should_equal (expected_lines.join separator suffix=separator)
                 file.delete
 
-        Test.specify "should use the system default line ending style when appending to an empty or nonexistent file" <|
+        Test.specify "should use Unix line ending style when appending to an empty or nonexistent file" <|
             empty_file = (enso_project.data / "transient" / "empty.csv")
             "".write empty_file
             nonexistent_file = (enso_project.data / "transient" / "nonexistent.csv")
@@ -369,7 +368,7 @@ spec =
             table_to_append.write empty_file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
 
             expected_lines = ["a,d", "x,z", "y,w"]
-            expected_text = (expected_lines.join system_separator suffix=system_separator)
+            expected_text = (expected_lines.join '\n' suffix='\n')
             File.read_text empty_file . should_equal expected_text
             File.read_text nonexistent_file . should_equal expected_text
 
