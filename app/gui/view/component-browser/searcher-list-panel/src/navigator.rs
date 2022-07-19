@@ -144,7 +144,7 @@ impl Navigator {
         let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
         let top_padding = style.navigator_top_padding;
         let bottom_padding = style.navigator_bottom_padding;
-        let x_pos = -style.content_width / 2.0 - style.navigator_width / 2.0;
+        let x_pos = -style.content_width / 2.0;
         let top_buttons_y = top - top_buttons_height / 2.0 - top_padding;
         let bottom_buttons_y = bottom + bottom_buttons_height / 2.0 + bottom_padding;
         self.top_buttons.set_position_xy(Vector2(x_pos, top_buttons_y));

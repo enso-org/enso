@@ -400,10 +400,9 @@ impl Model {
 
         self.background.bg_color.set(style.content_background_color.into());
         self.background.size.set(style.size());
-        self.background.set_position_x(-style.navigator_width / 2.0);
         self.section_navigator.update_layout(style.clone());
 
-        let navigator_shadow_x = -style.content_width / 2.0 - style.navigator_width / 2.0;
+        let navigator_shadow_x = -style.content_width / 2.0;
         self.navigator_shadow.set_position_x(navigator_shadow_x);
         let section_navigator_shadow_size = Vector2(style.navigator_width, style.size_inner().y);
         self.navigator_shadow.size.set(section_navigator_shadow_size);
@@ -432,7 +431,7 @@ impl Model {
             style.content_height - style.content_padding,
         ));
         self.scroll_area.set_position_xy(Vector2::new(
-            -style.content_width / 2.0 + style.content_padding,
+            -style.content_width / 2.0 + style.content_padding + style.navigator_width / 2.0,
             style.content_height / 2.0 - style.menu_height / 2.0,
         ));
         self.scroll_area.set_corner_radius_bottom_right(style.content_corner_radius);
@@ -766,6 +765,8 @@ define_endpoints_2! {
         set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
         set_favourites_section(Vec<LabeledAnyModelProvider>),
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
+        /// The component browser is displayed on screen.
+        shown(),
     }
     Output{
         selected_entry(Option<EntryId>),
@@ -857,6 +858,8 @@ impl component::Frp<Model> for Frp {
 
 
             // === Section navigator ===
+
+            eval_ frp_api.input.shown(model.section_navigator.select_section(Section::Favorites));
 
             chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
             scroll_to_section <- all(&chosen_section, &layout_frp.update);
