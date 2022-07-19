@@ -56,15 +56,15 @@ spec =
         Test.specify "should be able to convert booleans" <|
             Foo.from True . foo . should_be_true
             Foo.from False . foo . should_be_false
-            NotFoo.from True . notfoo . should_be_true
-            NotFoo.from False . notfoo . should_be_true
+            Not_Foo.from True . notfoo . should_be_true
+            Not_Foo.from False . notfoo . should_be_true
         Test.specify "should be able to convert arrays" <|
             Foo.from [1,2,3].to_array . foo . should_equal 3
         Test.specify "should be able to convert Any" <|
-            NotFoo.from that=Quaffle . notfoo . should_equal "ANY!!!"
-            NotFoo.from 4 . notfoo . should_equal "ANY!!!"
-            NotFoo.from (e -> e) . notfoo . should_equal "ANY!!!"
-            NotFoo.from [1,2,3].to_array . notfoo . should_equal "ANY!!!"
+            Not_Foo.from that=Quaffle . notfoo . should_equal "ANY!!!"
+            Not_Foo.from 4 . notfoo . should_equal "ANY!!!"
+            Not_Foo.from (e -> e) . notfoo . should_equal "ANY!!!"
+            Not_Foo.from [1,2,3].to_array . notfoo . should_equal "ANY!!!"
         Test.specify "should call intrinsic object conversions for unimported constructors" <|
             Vector.from Methods.get_foo . should_equal ["foo"]
         Test.specify "should call extension conversions" <|
