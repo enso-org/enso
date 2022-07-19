@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.Platform
-import Standard.Base.System.File.Posix_File_Permission
+import Standard.Base.System.File.File_Permissions
 
 polyglot java import java.lang.StringBuilder as Java_String_Builder
 
@@ -75,9 +75,8 @@ verify file = case Platform.os of
         False -> False
         True ->
             permissions = file.posix_permissions
-            owner_only = [Posix_File_Permission.Owner_Read, Posix_File_Permission.Owner_Write, Posix_File_Permission.Owner_Execute]
-            only_owner_can_access = permissions.all owner_only.contains
-            only_owner_can_access
+            can_others_access = permissions.group.not_empty || permissions.others.not_empty
+            can_others_access.not
 
 ## PRIVATE
 parse_file file =

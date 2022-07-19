@@ -6,7 +6,7 @@ from Standard.Base.System.File import File_Already_Exists_Error
 from Standard.Base.Error.Problem_Behavior import all
 import Standard.Base.System
 import Standard.Base.System.Process
-import Standard.Base.System.File.Posix_File_Permission
+from Standard.Base.System.File.File_Permissions as File_Permissions_Module import all
 from Standard.Base.System.Process.Exit_Code import Exit_Success
 
 import Standard.Test
@@ -73,12 +73,13 @@ spec =
                 "foobar".write f
 
                 Process.run "chmod" ["0777", f.absolute.path] . should_equal Exit_Success
-                f.posix_permissions . should_contain_the_same_elements_as <|
-                    Posix_File_Permission.possible_values
+                rwx = [Read, Write, Execute]
+                f.posix_permissions . should_equal <|
+                    File_Permissions rwx rwx rwx
 
                 Process.run "chmod" ["0421", f.absolute.path] . should_equal Exit_Success
-                f.posix_permissions . should_contain_the_same_elements_as <|
-                    [Posix_File_Permission.Owner_Read, Posix_File_Permission.Group_Write, Posix_File_Permission.Others_Execute]
+                f.posix_permissions . should_equal <|
+                    File_Permissions [Read] [Write] [Execute]
 
                 f.delete
 
