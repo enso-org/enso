@@ -4,7 +4,7 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Base.System.File import File_Already_Exists_Error
 from Standard.Base.Error.Problem_Behavior import all
-import Standard.Base.System
+import Standard.Base.System.Platform
 import Standard.Base.System.Process
 from Standard.Base.System.File.File_Permissions as File_Permissions_Module import all
 from Standard.Base.System.Process.Exit_Code import Exit_Success
@@ -66,7 +66,7 @@ spec =
             file = File.new "does_not_exist.txt"
             file.delete . should_fail_with File.File_Not_Found
 
-        if System.is_unix then
+        if Platform.is_unix then
             Test.specify "should allow to check file permissions" <|
                 f = enso_project.data / "transient" / "permissions.txt"
                 f.delete_if_exists
