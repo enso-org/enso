@@ -79,7 +79,7 @@ type Postgres
         Disable -> []
         Prefer -> [Pair 'sslmode' 'prefer']
         Require -> [Pair 'sslmode' 'require']
-        Verify_Ca cert_file ->
+        Verify_CA cert_file ->
             if cert_file.is_nothing then [Pair 'sslmode' 'verify-ca'] else
                 [Pair 'sslmode' 'verify-ca', Pair 'sslrootcert' (File.new cert_file).absolute.path]
         Full_Verification cert_file ->

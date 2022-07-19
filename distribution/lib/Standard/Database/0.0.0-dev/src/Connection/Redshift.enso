@@ -24,7 +24,7 @@ type Redshift
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Require`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Profile|AWS_Key|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_Ca|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
+    type Redshift (host:Text) (port:Integer=5439) (schema:Text='') (credentials:Credentials|AWS_Profile|AWS_Key|Nothing=Nothing) (use_ssl:(Disable|Require|Verify_CA|Full_Verification)=Require) (client_cert:Client_Certificate|Nothing=Nothing)
 
     ## Build the Connection resource.
 
