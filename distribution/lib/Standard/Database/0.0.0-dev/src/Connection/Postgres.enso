@@ -10,7 +10,7 @@ import Standard.Database.Connection.Client_Certificate
 
 polyglot java import org.postgresql.Driver
 
-type
+type Postgres
     ## Connect to a PostgreSQL database.
 
        Arguments:
