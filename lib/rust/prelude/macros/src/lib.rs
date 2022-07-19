@@ -31,10 +31,33 @@ use syn::Token;
 // === ForEachVariant ===
 // ======================
 
-/// Implements the `ForEachVariant` derive macro. Deriving `ForEachVariant` for an enum emits a
-/// helper macro which allows iterating over each variant of the enum.
+/// Implements the `ForEachVariant` derive macro which creates a helper for iterating over each
+/// variant of an enum at compile time. The derive panics if used on non-enum types.
 ///
-/// Der
+/// The derive creates a macro (hereafter called loop-macro) named `for_each_NAME_variant` where
+/// `NAME` is replaced with the name of the enum converted to snake case. The loop-macro takes a
+/// name of another macro (hereafter called iterator-macro) as an argument followed by a
+/// parenthesized list of extra arguments. The loop-macro expands to a call of the iterator-macro
+/// with a list of comma-separated names of the enum variants wrapped in square brackets, followed
+/// by the extra arguments defined above.
+///
+/// For example, the following code:
+/// ```no_compile
+/// #[derive(ForEachVariant)]
+/// enum FooBar {
+///     Foo,
+///     Bar,
+/// }
+/// ```
+/// results in the following macro being defined:
+/// ```
+/// #[macro_export]
+/// macro_rules! for_each_foo_bar_variant {
+///     ( $f:ident($( $args:tt )*) ) => { $f!([Foo, Bar] $($args)*) }
+/// }
+///
+/// pub(crate) use for_each_foo_bar_variant;
+/// ```
 #[proc_macro_derive(ForEachVariant)]
 pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl = syn::parse_macro_input!(input as syn::DeriveInput);
@@ -53,7 +76,7 @@ fn derive_for_each_variant_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnu
     quote! {
         #[macro_export]
         macro_rules! #macro_name {
-            ($f:ident($($args:tt)*)) => { $f!([ #variant_names ] $($args)*) }
+            ( $f:ident($( $args:tt )*) ) => { $f!([ #variant_names ] $($args)*) }
         }
 
         pub(crate) use #macro_name;
