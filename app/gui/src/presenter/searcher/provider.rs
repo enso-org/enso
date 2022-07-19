@@ -176,18 +176,30 @@ impl Component {
     }
 }
 
+macro_rules! kind_to_icon {
+    ([ $( $variant:ident ),* ] $kind:ident) => {
+        match $kind {
+            $( Kind::$variant => Id::$variant, )*
+        }
+    }
+}
+
 impl list_view::entry::ModelProvider<component_group_view::Entry> for Component {
     fn entry_count(&self) -> usize {
         self.group.matched_items.get()
     }
 
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
+        use component_group_view::icon::Id;
+        use suggestion_database::entry::Kind;
+        use suggestion_database::entry::for_each_kind_variant;
         let component = self.group.get_entry(id)?;
         let match_info = component.match_info.borrow();
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
+        let kind = component.suggestion.kind;
         Some(component_group_view::entry::Model {
-            icon:             icon_from_kind(component.suggestion.kind),
+            icon:             for_each_kind_variant!(kind_to_icon(kind)),
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
         })
     }
@@ -195,37 +207,6 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
 
 
 // === Component Provider helpers ===
-
-macro_rules! kind_to_icon {
-    ([ $( $variant:ident ),* ] $kind:ident) => {
-        match $kind {
-            $(
-                Kind::$variant => Id::$variant,
-            )*
-        }
-    }
-}
-
-fn icon_from_kind(kind: suggestion_database::entry::Kind) -> component_group_view::icon::Id {
-    use component_group_view::icon::Id;
-    use suggestion_database::entry::Kind;
-    use suggestion_database::entry::for_each_kind_variant;
-
-    for_each_kind_variant!(kind_to_icon(kind))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_icon_from_kind() {
-        use component_group_view::icon::Id;
-        use suggestion_database::entry::Kind;
-        assert_eq!(icon_from_kind(Kind::Atom), Id::Atom);
-        assert_eq!(icon_from_kind(Kind::Function), Id::Function);
-    }
-}
 
 fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
     if let MatchInfo::Matches { subsequence } = match_info {
