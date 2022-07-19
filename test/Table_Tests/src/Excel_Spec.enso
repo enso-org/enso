@@ -579,8 +579,8 @@ spec =
             bad_file.read (File_Format.Excel (Cell_Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
 
         Test.specify "should handle wrong xls_format gracefully" <|
-            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File.Io_Error
-            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File.Io_Error
+            xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=True) . should_fail_with File.IO_Error
+            xls_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C") xls_format=False) . should_fail_with File.IO_Error
 
     spec_fmt 'XLSX reading' Examples.xlsx .read
 

@@ -957,8 +957,8 @@ handle_java_exceptions file ~action =
 wrap_io_exception file io_exception =
     if Java.is_instance io_exception NoSuchFileException then Error.throw (File_Not_Found file) else
         if Java.is_instance io_exception FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
-            if Java.is_instance io_exception AccessDeniedException then Error.throw (Io_Error file "You do not have permission to access the file") else
-                Error.throw (Io_Error file "An IO error has occurred: "+io_exception.getMessage)
+            if Java.is_instance io_exception AccessDeniedException then Error.throw (IO_Error file "You do not have permission to access the file") else
+                Error.throw (IO_Error file "An IO error has occurred: "+io_exception.getMessage)
 
 ## PRIVATE
 
@@ -985,7 +985,7 @@ type File_Error
        Arguments:
        - file: The file that couldn't be read.
        - message: The message for the error.
-    type Io_Error file message
+    type IO_Error file message
 
     ## UNSTABLE
 
@@ -993,7 +993,7 @@ type File_Error
     to_display_text : Text
     to_display_text = case self of
         File_Not_Found  file -> "The file at " + file.path + " does not exist."
-        Io_Error file msg -> msg.to_text + " (" + file.path + ")."
+        IO_Error file msg -> msg.to_text + " (" + file.path + ")."
         File_Already_Exists_Error file -> "The file at "+file.path+" already exists."
 
 
@@ -1048,9 +1048,9 @@ get_file path = @Builtin_Method "File.get_file"
    Otherwise, the process is aborted.
    If the path to the parent location cannot be found or the filename is
    invalid, a `File_Not_Found` is raised.
-   If another error occurs, such as access denied, an `Io_Error` is raised.
+   If another error occurs, such as access denied, an `IO_Error` is raised.
    Otherwise, the file is created with the encoded text written to it.
-Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
+Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
 Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
     bytes = self.bytes encoding on_problems
     file = new path
@@ -1069,7 +1069,7 @@ Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.
    that a `Byte` is between -128 and 127.
    If the path to the parent location cannot be found or the filename is
    invalid, a `File_Not_Found` is raised.
-   If another error occurs, such as access denied, an `Io_Error` is raised.
+   If another error occurs, such as access denied, an `IO_Error` is raised.
    Otherwise, the file is created with the encoded text written to it.
 
    > Example
@@ -1084,7 +1084,7 @@ Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.
          import Standard.Examples
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
-Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | Io_Error | File_Already_Exists_Error
+Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
 Vector.Vector.write_bytes path on_existing_file=Existing_File_Behavior.Backup =
     Panic.catch Unsupported_Argument_Types handler=(Error.throw (Illegal_Argument_Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.

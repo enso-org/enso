@@ -259,7 +259,7 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
    Handle and map the Java errors when reading an Excel file
 handle_reader : File -> (Input_Stream -> (Table | Vector)) -> (Table | Vector)
 handle_reader file reader =
-    bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
+    bad_format caught_panic = Error.throw (File.IO_Error file caught_panic.payload.cause.getMessage)
     handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
 
     bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
