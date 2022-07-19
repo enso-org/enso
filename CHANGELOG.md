@@ -159,6 +159,7 @@
 - [Added `Vector.write_bytes` function and removed old `File.write_bytes`][3583]
 - [Added `line_endings` and `comment_character` options to
   `File_Format.Delimited`.][3581]
+- [Fixed the case of various type names and library paths][3590]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -253,6 +254,7 @@
 [3573]: https://github.com/enso-org/enso/pull/3573
 [3583]: https://github.com/enso-org/enso/pull/3583
 [3581]: https://github.com/enso-org/enso/pull/3581
+[3590]: https://github.com/enso-org/enso/pull/3590
 
 #### Enso Compiler
 
