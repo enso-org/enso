@@ -225,6 +225,19 @@ fn icon_from_kind(kind: suggestion_database::entry::Kind) -> component_group_vie
     // }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_icon_from_kind() {
+        use component_group_view::icon::Id;
+        use suggestion_database::entry::Kind;
+        assert_eq!(icon_from_kind(Kind::Atom), Id::Atom);
+        assert_eq!(icon_from_kind(Kind::Function), Id::Function);
+    }
+}
+
 fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
     if let MatchInfo::Matches { subsequence } = match_info {
         let mut char_iter = label.char_indices().enumerate();
