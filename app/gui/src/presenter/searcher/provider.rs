@@ -199,6 +199,8 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
 fn icon_from_kind(kind: suggestion_database::entry::Kind) -> component_group_view::icon::Id {
     use component_group_view::icon::Id;
     use suggestion_database::entry::Kind;
+    let zzz = suggestion_database::entry::answer();
+    DEBUG!("zzz=" zzz;?);
     match kind {
         Kind::Atom => Id::Atom,
         Kind::Function => Id::Function,

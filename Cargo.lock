@@ -1956,6 +1956,7 @@ dependencies = [
  "enso-logger",
  "enso-prelude",
  "enso-profiler",
+ "enso-reflect-macros",
  "enso-shapely",
  "enso-text",
  "enso-web",

@@ -265,3 +265,8 @@ fn subtype_field_type(data: &Data) -> Option<syn::Type> {
         _ => None,
     }
 }
+
+#[proc_macro_derive(ForEachVariant)]
+pub fn derive_for_each_variant(_item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    "pub fn answer() -> u32 { 42 }".parse().unwrap()
+}

@@ -13,6 +13,7 @@ use engine_protocol::language_server::SuggestionsDatabaseModification;
 use enso_text::Location;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
+use enso_reflect_macros::ForEachVariant;
 
 
 // ==============
@@ -132,7 +133,7 @@ impl<'a> IntoIterator for &'a QualifiedName {
 // =============
 
 /// A type of suggestion entry.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant)]
 #[allow(missing_docs)]
 pub enum Kind {
     Atom,
