@@ -86,4 +86,3 @@ fn derive_for_each_variant_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnu
         pub(crate) use #macro_name;
     }
 }
-
