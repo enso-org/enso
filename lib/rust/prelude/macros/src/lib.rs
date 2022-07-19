@@ -44,7 +44,7 @@ use syn::Token;
 /// For example, the following code:
 /// ```no_compile
 /// #[derive(ForEachVariant)]
-/// enum FooBar {
+/// pub enum FooBar {
 ///     Foo,
 ///     Bar,
 /// }
