@@ -114,7 +114,7 @@ public abstract class ThunkExecutorNode extends Node {
       BaseNode.TailStatus isTail,
       @Cached("isTail") BaseNode.TailStatus cachedIsTail,
       @Cached("buildInvokeFunctionNode(cachedIsTail)") InvokeFunctionNode invokeFunctionNode) {
-    return invokeFunctionNode.execute(fn, null, state, new Object[0], true);
+    return invokeFunctionNode.execute(fn, null, state, new Object[0]);
   }
 
   @Specialization(

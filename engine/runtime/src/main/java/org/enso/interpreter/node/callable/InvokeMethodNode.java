@@ -63,7 +63,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       int thisArgumentPosition) {
     this.invokeFunctionNode =
-        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode, false);
     this.argumentCount = schema.length;
     this.thisArgumentPosition = thisArgumentPosition;
   }
@@ -80,27 +80,17 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Stateful execute(
       VirtualFrame frame, Object state, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
-  private Object[] argumentsForInvocation(Object[] arguments, boolean declaresExplicitSelf) {
-    if (declaresExplicitSelf || arguments.length == 0) {
-      return arguments;
-    } else {
-      return Arrays.copyOfRange(arguments, 1, arguments.length);
-    }
-  }
-
   @Specialization(guards = "dispatch.hasFunctionalDispatch(self)")
   Stateful doFunctionalDispatch(
       VirtualFrame frame,
       Object state,
       UnresolvedSymbol symbol,
       Object self,
-      Object[] arguments0,
+      Object[] arguments,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch) {
     try {
       Function function = dispatch.getFunctionalDispatch(self, symbol);
-      boolean declaresExplicitSelf = function.getSchema().hasSelf();
-      Object[] arguments = argumentsForInvocation(arguments0, declaresExplicitSelf);
-      return invokeFunctionNode.execute(function, frame, state, arguments, declaresExplicitSelf);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
           Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
@@ -113,15 +103,13 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object state,
       UnresolvedSymbol symbol,
       DataflowError self,
-      Object[] arguments0,
+      Object[] arguments,
       @Cached DataflowErrorResolverNode dataflowErrorResolverNode) {
     Function function = dataflowErrorResolverNode.execute(symbol, self);
     if (errorReceiverProfile.profile(function == null)) {
       return new Stateful(state, self);
     } else {
-      boolean withSelf = function.getSchema().hasSelf();
-      Object[] arguments = argumentsForInvocation(arguments0, withSelf);
-      return invokeFunctionNode.execute(function, frame, state, arguments, withSelf);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     }
   }
 
@@ -238,7 +226,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Text txt = Text.create(str);
       Function function = textDispatch.getFunctionalDispatch(txt, symbol);
       arguments[0] = txt;
-      return invokeFunctionNode.execute(function, frame, state, arguments, true);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, self is guaranteed to be a string.");
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
@@ -268,7 +256,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       var date = new EnsoDate(hostLocalDate);
       Function function = dateDispatch.getFunctionalDispatch(date, symbol);
       arguments[0] = date;
-      return invokeFunctionNode.execute(function, frame, state, arguments, true);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
@@ -290,7 +278,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Cached AnyResolverNode anyResolverNode) {
     Function function = anyResolverNode.execute(symbol, self);
-    return invokeFunctionNode.execute(function, frame, state, arguments, true);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Override

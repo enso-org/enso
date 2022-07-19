@@ -57,6 +57,8 @@ map_odd_warnings_and_errors value =
 throw_a_bar =
     Panic.throw "bar"
 
+Any.is_static_nothing x = x.is_nothing
+
 spec = Test.group "Dataflow Warnings" <|
     Test.specify "should allow to attach multiple warnings and read them back" <|
         x = 1233
@@ -146,5 +148,10 @@ spec = Test.group "Dataflow Warnings" <|
         mapped_3.catch . should_equal "bar"
         mapped_3.stack_trace.second.name . should_equal "Warnings_Spec.throw_a_bar"
         Warning.get_all mapped_3 . catch . should_equal "bar"
+
+    Test.specify "should allow to map the warnings, selectively" <|
+        x = Warning.attach "foo" 1
+        result = x.is_static_nothing x
+        result . should_equal False
 
 main = Test.Suite.run_main spec

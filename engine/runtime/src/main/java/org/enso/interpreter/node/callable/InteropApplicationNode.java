@@ -54,7 +54,8 @@ public abstract class InteropApplicationNode extends Node {
     return InvokeFunctionNode.build(
         args,
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
+        true);
   }
 
   Context getContext() {
@@ -75,7 +76,7 @@ public abstract class InteropApplicationNode extends Node {
     for (int i = 0; i < cachedArgsLength; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    return sorterNode.execute(function, null, state, args, true).getValue();
+    return sorterNode.execute(function, null, state, args).getValue();
   }
 
   @Specialization(replaces = "callCached")
