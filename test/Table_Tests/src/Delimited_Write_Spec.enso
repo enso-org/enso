@@ -186,7 +186,6 @@ spec =
             text = File.read_text file encoding=Encoding.ascii
             text.should_equal expected_text
             result . should_equal Nothing
-            sep_length = System.default_line_separator.codepoints.length
             positions = [7, 8, 15]
             msg = "Encoding issues at codepoints " +
                 positions.map .to_text . join separator=", " suffix="."
