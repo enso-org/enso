@@ -74,6 +74,10 @@ fn derive_for_each_variant_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnu
     let macro_name = quote::format_ident!("for_each_{}_variant", enum_snake_name);
     let variant_names: Punctuated<_, Token![,]> = data.variants.iter().map(|v| &v.ident).collect();
     quote! {
+        /// Calls `f!` passing to it a comma-separated list of names of variants of [`#enum_name`]
+        /// enclosed in square brackets. The extra `args` are passed to `f!` verbatim after the
+        /// closing square bracket. For more details, see the documentation of the
+        /// [`ForEachVariant`] derive macro.
         #[macro_export]
         macro_rules! #macro_name {
             ( $f:ident($( $args:tt )*) ) => { $f!([ #variant_names ] $($args)*) }
