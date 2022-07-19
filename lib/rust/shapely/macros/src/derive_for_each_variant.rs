@@ -42,4 +42,3 @@ fn derive_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream
         pub(crate) use #macro_name;
     }
 }
-
