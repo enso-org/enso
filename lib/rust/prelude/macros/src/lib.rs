@@ -36,7 +36,11 @@ pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::To
 fn derive_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream {
     let ret = quote! {
         #[macro_export]
-        macro_rules! for_each_foobarx { () => {} }
+        macro_rules! for_each_kind_variant {
+            ($f:ident($($args:tt)*)) => { $f!([Atom, Function, Local, Method, Module] $($args)*) }
+        }
+
+        pub(crate) use for_each_kind_variant;
     };
     ret
 }
