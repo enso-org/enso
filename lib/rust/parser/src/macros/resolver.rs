@@ -1,4 +1,26 @@
 //! Macro resolver implementation. Refer to the docs of the main parser module to learn more.
+//!
+//! # Blocks
+//!
+//! Macro resolution is informed by block structure.
+//!
+//! Macros can explicitly manipulate blocks: A macro can use [`pattern`]s to match depending on the
+//! contents of a child block, and a macro can create any arbitrary block structure in its output.
+//!
+//! However, there is one rule that makes block structure more primitive than macros: Each of a
+//! macro's segments must begin in the top level of the same block.
+//!
+//! For some invalid inputs, this rule affects how errors are reported. For example:
+//! ```Enso
+//! if foo
+//!     then bar
+//! ```
+//! This will be parsed as an `if` macro whose condition is an argument block application applying
+//! `foo` to `then bar`; the reported error will be an incomplete application of the `if` macro.
+//!
+//! This is implemented by starting a new macro resolution [`Scope`] at the beginning of every
+//! block; the new scope is initialized with only the root macro. Within a scope the state of all
+//! macros defined in parent scopes will never be advanced.
 
 use crate::prelude::*;
 
@@ -95,7 +117,7 @@ impl<'a> PartiallyMatchedMacro<'a> {
             body:     Rc::new(|v| {
                 // Taking the first segment, hardcoded above.
                 let body = v.pop().0.result;
-                syntax::operator::resolve_operator_precedence(body.tokens())
+                syntax::operator::resolve_operator_precedence_if_non_empty(body.tokens()).unwrap()
             }),
         }));
         Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
@@ -197,6 +219,8 @@ enum Step<'s> {
 
 /// Information about macro resolution state that is stored while processing a deeper indentation
 /// level.
+///
+/// See the module docs ([`self`]) for about the interaction between blocks and macros.
 #[derive(Debug)]
 struct Scope<'s> {
     parent_tokens: std::vec::IntoIter<syntax::Item<'s>>,
@@ -224,6 +248,9 @@ impl<'s> Resolver<'s> {
         self.current_macro.push(child_macro);
     }
 
+    /// Returns the index of the first element in `self.macro_stack` that is active in the current
+    /// scope. Any macros before that index are active in some block that contains the current
+    /// block, so they will not match tokens within this block.
     fn macro_scope_start(&self) -> usize {
         self.scopes.last().map(|scope| scope.macros_start).unwrap_or_default()
     }
@@ -265,8 +292,8 @@ impl<'s> Resolver<'s> {
                     let expression = self.line_contains_items.as_some_from(|| self.unwind_stack());
                     self.lines.push(syntax::tree::block::Line { newline, expression });
                 }
-                if let Some(scope) = self.scopes.pop() {
-                    tokens = self.exit_scope(scope);
+                if let Some(parent_tokens) = self.exit_current_scope() {
+                    tokens = parent_tokens;
                     next_token!();
                     continue;
                 }
@@ -335,7 +362,16 @@ impl<'s> Resolver<'s> {
         syntax::tree::block::body_from_lines(self.lines)
     }
 
-    fn exit_scope(&mut self, scope: Scope<'s>) -> std::vec::IntoIter<syntax::Item<'s>> {
+    /// Finish processing the current block and close its macro scope, unless this is the top-level
+    /// block, which is indicated by returning `None`.
+    ///
+    /// This builds a [`syntax::Item::Block`] from the outputs of the current scope, restores the
+    /// state to resume processing the parent scope, and submits the built block as a token to the
+    /// newly-current macro (which would have been the macro active when the block began).
+    ///
+    /// Returns the remaining tokens of the parent block.
+    fn exit_current_scope(&mut self) -> Option<std::vec::IntoIter<syntax::Item<'s>>> {
+        let scope = self.scopes.pop()?;
         let Scope { parent_tokens, macros_start, outputs_start, prev_newline, prev_macro } = scope;
         debug_assert_eq!(macros_start, self.macro_stack.len());
         self.current_macro = prev_macro;
@@ -355,7 +391,7 @@ impl<'s> Resolver<'s> {
         self.current_macro.push(block);
         self.line_contains_items = true;
         self.newline = prev_newline;
-        parent_tokens
+        Some(parent_tokens)
     }
 
     fn unwind_stack(&mut self) -> syntax::Tree<'s> {

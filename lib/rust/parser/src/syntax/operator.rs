@@ -54,14 +54,23 @@ fn annotate_tokens_that_need_spacing(item: syntax::Item) -> syntax::Item {
     })
 }
 
+/// If the input sequence is non-empty, return the result of applying
+/// [`resolve_operator_precedence`] to it.
+pub fn resolve_operator_precedence_if_non_empty(
+    items: Vec<syntax::Item<'_>>,
+) -> Option<syntax::Tree<'_>> {
+    match NonEmptyVec::try_from(items) {
+        Ok(items) => Some(resolve_operator_precedence(items)),
+        _ => None,
+    }
+}
+
 /// Take [`Item`] stream, resolve operator precedence and return the final AST.
 ///
 /// The precedence resolution algorithm is based on the Shunting yard algorithm[1], extended to
 /// handle operator sections.
 /// [1]: https://en.wikipedia.org/wiki/Shunting_yard_algorithm
-pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree<'s> {
-    // If `items` is empty, opt_rhs.unwrap() will panic below. Let's panic now with a clear error.
-    assert!(!items.is_empty());
+pub fn resolve_operator_precedence<'s>(items: NonEmptyVec<syntax::Item<'s>>) -> syntax::Tree<'s> {
     type Tokens<'s> = Vec<syntax::Item<'s>>;
     let mut flattened: Tokens<'s> = default();
     let mut no_space_group: Tokens<'s> = default();
@@ -169,7 +178,9 @@ fn resolve_operator_precedence_internal<'s>(
         panic!("Internal error. Not all tokens were consumed while constructing the expression.");
     }
 
-    // FIXME
+    // This unwrap is safe because:
+    // - resolve_operator_precedence only calls this function with non-empty sequences as inputs.
+    // - Given a non-empty input, we will always have at least one output.
     let out = opt_rhs.unwrap();
     if was_section_used {
         syntax::Tree::opr_section_boundary(out)

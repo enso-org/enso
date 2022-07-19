@@ -83,7 +83,7 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
     }
 }
 
-/// Given a sequence of `Item`s belonging to one block, create an AST block node, of a type
+/// Given a sequence of [`Item`]s belonging to one block, create an AST block node, of a type
 /// determined by the syntax of the lines in the block.
 fn build_block<'s>(items: impl IntoIterator<Item = Item<'s>>) -> Tree<'s> {
     let mut line = vec![];
@@ -95,8 +95,7 @@ fn build_block<'s>(items: impl IntoIterator<Item = Item<'s>>) -> Tree<'s> {
                 let newline = mem::replace(&mut newline, Some(token::newline(left_offset, code)));
                 if let Some(newline) = newline {
                     let line: Vec<_> = line.drain(..).collect();
-                    let expression = (!line.is_empty())
-                        .as_some_from(|| operator::resolve_operator_precedence(line));
+                    let expression = operator::resolve_operator_precedence_if_non_empty(line);
                     block_builder.push(newline, expression);
                 }
             }
@@ -104,8 +103,7 @@ fn build_block<'s>(items: impl IntoIterator<Item = Item<'s>>) -> Tree<'s> {
         }
     }
     if let Some(newline) = newline {
-        let expression =
-            (!line.is_empty()).as_some_from(|| operator::resolve_operator_precedence(line));
+        let expression = operator::resolve_operator_precedence_if_non_empty(line);
         block_builder.push(newline, expression);
     }
     block_builder.build()
