@@ -13,7 +13,6 @@ use engine_protocol::language_server::SuggestionsDatabaseModification;
 use enso_text::Location;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
-use enso_prelude_macros::ForEachVariant;
 
 
 // ==============
