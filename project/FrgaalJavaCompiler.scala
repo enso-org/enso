@@ -23,7 +23,7 @@ import scala.sys.process.Process
 
 object FrgaalJavaCompiler {
 
-  val frgaal = "org.frgaal" % "compiler" % "18.0.0" % "provided"
+  val frgaal = "org.frgaal" % "compiler" % "19.0.0-RC1" % "provided"
 
   def compilers(classpath: sbt.Keys.Classpath, sbtCompilers: xsbti.compile.Compilers, javaVersion: String) = {
     // Enable Java 11+ features by invoking Frgaal instead of regular javac
@@ -69,7 +69,7 @@ object FrgaalJavaCompiler {
     withArgumentFile(allArguments) { argsFile =>
       // Need to disable standard compiler tools that come with used jdk and replace them
       // with the ones provided with Frgaal.
-      val forkArgs = (jArgs ++ Seq("--limit-modules", "java.base,jdk.zipfs", "-jar", compilerJar.toString)) :+
+      val forkArgs = (jArgs ++ Seq("--limit-modules", "java.base,jdk.zipfs,jdk.internal.vm.compiler.management", "-jar", compilerJar.toString)) :+
          s"@${normalizeSlash(argsFile.getAbsolutePath)}"
       val exe = getJavaExecutable(javaHome, "java")
       val cwd = new File(new File(".").getAbsolutePath).getCanonicalFile
