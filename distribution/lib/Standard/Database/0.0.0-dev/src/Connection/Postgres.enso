@@ -4,8 +4,8 @@ import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection
 from Standard.Database.Connection.Credentials as Credentials_Module import Credentials
 import Standard.Database.Connection.Connection_Options
-import Standard.Database.Connection.Ssl_Mode
-from Standard.Database.Connection.Ssl_Mode import all
+import Standard.Database.Connection.SSL_Mode
+from Standard.Database.Connection.SSL_Mode import all
 import Standard.Database.Connection.Client_Certificate
 
 polyglot java import org.postgresql.Driver
@@ -20,7 +20,7 @@ type
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type Postgres (host:Text='localhost') (port:Integer=5432) (database:Text='') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:Ssl_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    type Postgres (host:Text='localhost') (port:Integer=5432) (database:Text='') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -72,9 +72,9 @@ type
         []
 
     ## PRIVATE - static
-       Given an `Ssl_Mode`, create the JDBC properties to secure a Postgres-based
+       Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
        connection.
-    ssl_mode_to_jdbc_properties : Ssl_Mode -> [Pair Text Text]
+    ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
     ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
         Disable -> []
         Prefer -> [Pair 'sslmode' 'prefer']

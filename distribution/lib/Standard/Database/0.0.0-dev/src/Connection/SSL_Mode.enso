@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-type Ssl_Mode
+type SSL_Mode
     ## Do not use SSL for the connection.
     type Disable
 
