@@ -132,10 +132,12 @@ impl<'a> IntoIterator for &'a QualifiedName {
 // === Entry ===
 // =============
 
+/*
 #[macro_export]
 macro_rules! for_each_foobary {
     () => {}
 }
+*/
 
 /// A type of suggestion entry.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant)]

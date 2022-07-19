@@ -196,19 +196,33 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
 
 // === Component Provider helpers ===
 
+macro_rules! kind_to_icon {
+    ([ $( $variant:ident ),* ] $kind:ident) => {
+        match $kind {
+            $(
+                Kind::$variant => Id::$variant,
+            )*
+        }
+    }
+}
+
 fn icon_from_kind(kind: suggestion_database::entry::Kind) -> component_group_view::icon::Id {
     use component_group_view::icon::Id;
     use suggestion_database::entry::Kind;
+
+    kind_to_icon!([Atom, Function, Local, Method, Module] kind)
+
+    // for_each_kind_variant!(kind_to_ic
     // let zzz = suggestion_database::entry::for_each_foobary!();
-    let zzz = crate::for_each_foobarx!();
-    DEBUG!("zzz=" zzz;?);
-    match kind {
-        Kind::Atom => Id::Atom,
-        Kind::Function => Id::Function,
-        Kind::Local => Id::Local,
-        Kind::Method => Id::Method,
-        Kind::Module => Id::Module,
-    }
+    // let zzz = crate::for_each_foobarx!();
+    // DEBUG!("zzz=" zzz;?);
+    // match kind {
+    //     Kind::Atom => Id::Atom,
+    //     Kind::Function => Id::Function,
+    //     Kind::Local => Id::Local,
+    //     Kind::Method => Id::Method,
+    //     Kind::Module => Id::Module,
+    // }
 }
 
 fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
