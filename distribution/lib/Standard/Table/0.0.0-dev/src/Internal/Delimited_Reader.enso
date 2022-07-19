@@ -5,10 +5,10 @@ import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Ignore
 from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-from Standard.Table.Io.File_Format import Infer
+from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Table.Io.Quote_Style
-from Standard.Table.Io.Line_Ending_Style import line_separator_sequence
+import Standard.Table.IO.Quote_Style
+from Standard.Table.IO.Line_Ending_Style import line_separator_sequence
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException

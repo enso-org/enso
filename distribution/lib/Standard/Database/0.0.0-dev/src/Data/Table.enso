@@ -9,7 +9,7 @@ import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
-import Standard.Table.Io.File_Format
+import Standard.Table.IO.File_Format
 import Standard.Base.System.File.Existing_File_Behavior
 
 import Standard.Table.Data.Aggregate_Column
