@@ -43,10 +43,7 @@ public final class EnsoDate implements TruffleObject {
   public static EnsoDate parse(Text text, Object noneOrPattern) {
     var str = text.getContents().toString();
     if (noneOrPattern instanceof Text pattern) {
-      noneOrPattern = pattern.getContents().toString();
-    }
-    if (noneOrPattern instanceof String pattern) {
-      var formatter = DateTimeFormatter.ofPattern(pattern);
+      var formatter = DateTimeFormatter.ofPattern(pattern.getContents().toString());
       return new EnsoDate(LocalDate.parse(str, formatter));
     } else {
       return new EnsoDate(LocalDate.parse(str));
