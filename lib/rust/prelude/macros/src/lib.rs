@@ -31,6 +31,10 @@ use syn::Token;
 // === ForEachVariant ===
 // ======================
 
+/// Implements the `ForEachVariant` derive macro. Deriving `ForEachVariant` for an enum emits a
+/// helper macro which allows iterating over each variant of the enum.
+///
+/// Der
 #[proc_macro_derive(ForEachVariant)]
 pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl = syn::parse_macro_input!(input as syn::DeriveInput);
