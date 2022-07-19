@@ -17,7 +17,7 @@ from Standard.Database.Data.Sql import Sql_Type
 from Standard.Database.Internal.Postgres.Pgpass import Pgpass_Entry
 
 import Standard.Test
-import Standard.Test.Environment as Test_Environment
+import Standard.Test.Test_Environment
 
 postgres_specific_spec connection pending =
     Test.group "[PostgreSQL] Info" pending=pending <|

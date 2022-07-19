@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.System.Environment
 import Standard.Test
-import Standard.Test.Environment as Test_Environment
+import Standard.Test.Test_Environment
 
 spec = Test.group "Environment" <|
     Test.specify "should allow to internally override environment variables for testing purposes" <|
