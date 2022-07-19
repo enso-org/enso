@@ -12,8 +12,8 @@ import Standard.Table.Internal.Delimited_Writer
 from Standard.Table.Errors as Table_Errors import Unsupported_File_Type
 
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Table.Io.Excel as Excel_Module
-import Standard.Table.Io.Quote_Style
+import Standard.Table.IO.Excel as Excel_Module
+import Standard.Table.IO.Quote_Style
 
 ## This type needs to be here to allow for the usage of Standard.Table
    functions. Ideally, it would be an interface within Standard.Base and
