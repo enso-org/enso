@@ -1,3 +1,6 @@
+//! This module contains the [`derive`] function (implementing the [`crate::ForEachVariant`] derive
+//! macro) as well as its helper functions.
+
 use inflector::cases::snakecase::to_snake_case;
 use proc_macro2::TokenStream;
 use quote::quote;
