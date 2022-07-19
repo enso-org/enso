@@ -1,6 +1,6 @@
 # Options intended to be common for all developers.
 
-wasm-size-limit: 5.06 MiB
+wasm-size-limit: 5.13 MiB
 
 required-versions:
   cargo-watch: ^8.1.1

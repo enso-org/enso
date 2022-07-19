@@ -840,7 +840,7 @@ macro_rules! define_endpoints_2 {
         )?
     ) => {
         $crate::define_endpoints_2_normalized! {{
-            [<$($($param $(:$($constraints)*)?),*)?>] [<$($($param),*)?>]
+            [<$($($param $(:$($constraints)*)?),*)?>] [<$($($param),*)?>] [<($($($param),*)?)>]
 
             Input { [$($($global_opts)*)? $($($($input_opts)*)?)?]
                 /// Focus the element. Focused elements are meant to receive shortcut events.
@@ -938,7 +938,7 @@ macro_rules! define_endpoints_2 {
 #[macro_export]
 macro_rules! generate_rc_structs_and_impls {
     (
-        [$($ctx:tt)*] [$($param:tt)*]
+        [$($ctx:tt)*] [$($param:tt)*] [$($phantom:tt)*]
         pub struct $name:tt $data_name:tt {
             $(
                 $(#$field_attr:tt)*
@@ -970,7 +970,7 @@ macro_rules! generate_rc_structs_and_impls {
         #[allow(unused_parens)]
         #[derive(Debug)]
         pub struct $data_name $($ctx)* {
-            _phantom_type_args: PhantomData0 $($param)*,
+            _phantom_type_args: PhantomData0 $($phantom)*,
             $(
                 $(#$field_attr)*
                 pub $field : $field_type
@@ -1006,7 +1006,7 @@ macro_rules! generate_rc_structs_and_impls {
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_public {
     ({
-        [$($ctx:tt)*] [$($param:tt)*]
+        [$($ctx:tt)*] [$($param:tt)*] [$($phantom:tt)*]
 
         Input { $input_opts:tt
             $(
@@ -1067,7 +1067,7 @@ macro_rules! define_endpoints_2_normalized_public {
             // === Input ===
 
             $crate::generate_rc_structs_and_impls! {
-                [$($ctx)*] [$($param)*]
+                [$($ctx)*] [$($param)*] [$($phantom)*]
                 pub struct Input InputData {
                     $(
                         $(#$in_field_attr)*
@@ -1092,7 +1092,7 @@ macro_rules! define_endpoints_2_normalized_public {
             // === Output ===
 
             $crate::generate_rc_structs_and_impls! {
-                [$($ctx)*] [$($param)*]
+                [$($ctx)*] [$($param)*] [$($phantom)*]
                 pub struct Output OutputData {
                     status_map: (Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>),
                     command_map: (Rc<RefCell<HashMap<String,$crate::application::command::Command>>>)
@@ -1135,7 +1135,7 @@ macro_rules! define_endpoints_2_normalized_public {
             // === Combined ===
 
             $crate::generate_rc_structs_and_impls! {
-                [$($ctx)*] [$($param)*]
+                [$($ctx)*] [$($param)*] [$($phantom)*]
                 pub struct Combined CombinedData {
                     $(
                         $(#$in_field_attr)*
@@ -1168,7 +1168,7 @@ macro_rules! define_endpoints_2_normalized_public {
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_private {
     ({
-        [$($ctx:tt)*] [$($param:tt)*]
+        [$($ctx:tt)*] [$($param:tt)*] [$($phantom:tt)*]
 
         Input { $input_opts:tt
             $(
@@ -1209,7 +1209,7 @@ macro_rules! define_endpoints_2_normalized_private {
             // === Input ===
 
             $crate::generate_rc_structs_and_impls! {
-                   [$($ctx)*] [$($param)*]
+                   [$($ctx)*] [$($param)*] [$($phantom)*]
                     pub struct Input InputData {
                     $(
                         $(#$in_field_attr)*
@@ -1233,7 +1233,7 @@ macro_rules! define_endpoints_2_normalized_private {
             // === Output ===
 
             $crate::generate_rc_structs_and_impls! {
-                [$($ctx)*] [$($param)*]
+                [$($ctx)*] [$($param)*] [$($phantom)*]
                 pub struct Output OutputData {
                     $(
                         $(#$out_field_attr)*
@@ -1256,7 +1256,7 @@ macro_rules! define_endpoints_2_normalized_private {
 #[macro_export]
 macro_rules! define_endpoints_2_normalized_glue {
     ({
-        [$($ctx:tt)*] [$($param:tt)*]
+        [$($ctx:tt)*] [$($param:tt)*] [$($phantom:tt)*]
 
         Input { $input_opts:tt
             $(
@@ -1456,7 +1456,7 @@ mod tests {
     #[test]
     fn test_generate_rc_structs_and_impls() {
         generate_rc_structs_and_impls! {
-            [] []
+            [] [] []
             pub struct Output OutputData {
                 foo: f32,
             }

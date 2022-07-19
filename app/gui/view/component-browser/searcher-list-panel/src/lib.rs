@@ -447,7 +447,7 @@ impl Model {
         if let Some(navigator) = self.navigator.borrow().as_ref() {
             navigator.disable()
         } else {
-            tracing::log::warn!(
+            tracing::warn!(
                 "Navigator was not initialised on ComponentBrowserPanel. \
             Scroll events will not be handled correctly."
             )
