@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Table
 import Standard.Table.Data.Column
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
-import Standard.Table.Io.File_Format
+import Standard.Table.IO.File_Format
 import Standard.Test
 from project.Util import all
 

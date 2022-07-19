@@ -7,7 +7,7 @@ type Os
     type Linux
 
     ## The macOS operating system.
-    type MacOS
+    type Mac_OS
 
     ## The Windows operating system.
     type Windows
@@ -32,5 +32,5 @@ os = from_text System.os
 from_text : Text -> Os
 from_text os =
     if os == "linux" then Linux else
-        if os == "macos" then MacOS else
+        if os == "macos" then Mac_OS else
             if os == "windows" then Windows else Unknown
