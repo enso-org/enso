@@ -16,6 +16,7 @@ publish = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-prelude-macros = { path = "macros" }
 enso-reflect = { path = "../reflect" }
 enso-shapely = { version = "^0.2.0", path = "../shapely" }
 anyhow = "1.0.37"

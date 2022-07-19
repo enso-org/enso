@@ -8,7 +8,6 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude-macros = { path = "../../lib/rust/prelude/macros" }
 analytics = { version = "0.1.0", path = "analytics" }
 double-representation = { version = "0.1.0", path = "controller/double-representation" }
 enso-config = { path = "config" }

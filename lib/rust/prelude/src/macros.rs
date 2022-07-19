@@ -1,5 +1,7 @@
 //! This macro defines set of common macros which are useful across different projects.
 
+pub use enso_prelude_macros::*;
+
 
 
 /// Allows for nicer definition of impls, similar to what Haskell or Scala does. Reduces the needed
