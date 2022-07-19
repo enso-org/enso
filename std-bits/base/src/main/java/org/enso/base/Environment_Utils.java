@@ -15,8 +15,11 @@ public class Environment_Utils {
   }
 
   /**
-   * Overrides the System environment variable with a new value. The override is only visible from
-   * within Enso.
+   * Calls `action` with the provided environment variable.
+   *
+   * <p>The override is not persisted (its only visible from within the action called by this
+   * method) and it is only visible by the Enso `Environment.get` method (backed by {@code
+   * get_environment_variable}).
    *
    * <p>This is an internal function that should be used very carefully and only for testing.
    */
