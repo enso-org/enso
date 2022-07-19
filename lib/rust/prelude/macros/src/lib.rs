@@ -29,7 +29,7 @@ pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::To
     let decl = syn::parse_macro_input!(input as syn::DeriveInput);
     let ret = match decl.data {
         syn::Data::Enum(ref e) => derive_for_enum(&decl, e),
-        _ => quote! {},
+        _ => panic!("The `ForEachVariant` derive macro only works on enums."),
     };
     proc_macro::TokenStream::from(ret)
 }
