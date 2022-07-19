@@ -278,16 +278,8 @@ public class Error {
 
     @ExportMessage
     boolean isMemberInvocable(String member, @CachedLibrary(limit="1") InteropLibrary delegate) {
-      if (
-        "has_type".equals(member) ||
-        "getMessage".equals(member)
-      ) {
-        return true;
-      }
-      if (prototype == null) {
-        return false;
-      }
-      return delegate.isMemberInvocable(prototype, member);
+      boolean knownMembers = "has_type".equals(member) || "getMessage".equals(member);
+      return knownMembers || (prototype != null && delegate.isMemberInvocable(prototype, member));
     }
 
     @ExportMessage
