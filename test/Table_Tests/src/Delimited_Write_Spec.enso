@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import all
 import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Time.Date
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.System
@@ -13,7 +14,6 @@ import Standard.Table.IO.File_Read
 from Standard.Table.IO.File_Format import Delimited
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.IO.Quote_Style
-from Standard.Table.IO.Line_Ending_Style import all
 import Standard.Table.Data.Match_Columns
 import Standard.Table.Data.Column_Name_Mapping
 from Standard.Table.Errors as Table_Errors import Column_Count_Mismatch, Column_Name_Mismatch
@@ -30,7 +30,7 @@ type My_Type
     to_text = "[[[My Type :: " + self.x.to_text + "]]]"
 
 spec =
-    line_ending_pairs = [[Unix_Line_Endings, '\n'], [Windows_Line_Endings, '\r\n'], [Classic_Mac_Line_Endings, '\r']]
+    line_ending_pairs = [[Line_Ending_Style.Unix, '\n'], [Line_Ending_Style.Windows, '\r\n'], [Line_Ending_Style.Mac_Legacy, '\r']]
     system_separator = if System.os == "windows" then '\r\n' else '\n'
     Test.group "Delimited File Writing" <|
         Test.specify "should correctly write a simple table" <|
@@ -394,8 +394,8 @@ spec =
             table_to_append = Table.new [["a", ["x", "y"]]]
             file = (enso_project.data / "transient" / "endings_mismatch.csv")
             file.delete_if_exists
-            initial_table.write file (File_Format.Delimited ',' line_endings=Classic_Mac_Line_Endings)
-            result = table_to_append.write file (File_Format.Delimited ',' line_endings=Unix_Line_Endings) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            initial_table.write file (File_Format.Delimited ',' line_endings=Line_Ending_Style.Mac_Legacy)
+            result = table_to_append.write file (File_Format.Delimited ',' line_endings=Line_Ending_Style.Unix) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
             result . should_fail_with Illegal_Argument_Error
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete

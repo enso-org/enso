@@ -11,7 +11,7 @@ from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Data.Storage
 import Standard.Table.IO.Quote_Style
-from Standard.Table.IO.Line_Ending_Style import line_separator_sequence
+import Standard.Base.Data.Text.Line_Ending_Style
 from Standard.Table.Internal.Delimited_Reader import Existing_Headers, No_Headers
 import Standard.Table.Data.Match_Columns
 
@@ -57,7 +57,7 @@ append_to_file table format file match_columns on_problems =
         case format.line_endings of
             Infer -> Nothing
             other_ending_style ->
-                selected_separator = line_separator_sequence other_ending_style
+                selected_separator = other_ending_style.to_text
                 existing_separator = metadata.line_separator
                 if selected_separator != existing_separator then
                     Panic.throw <| Illegal_Argument_Error <|
@@ -148,8 +148,9 @@ write_to_writer table format java_writer separator_override=Nothing =
         Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
     write_headers = should_write_headers format.headers
     newline = separator_override.if_nothing <|
-        separator_from_format = line_separator_sequence format.line_endings
-        separator_from_format.if_nothing System.default_line_separator
+        case format.line_endings of
+            Infer -> default_line_separator_for_writing.to_text
+            endings -> endings.to_text
     writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter newline quote_characters.first quote_characters.second quote_behavior write_headers
     writer.write table.java_table
 
@@ -158,3 +159,8 @@ should_write_headers headers = case headers of
     True -> True
     Infer -> True
     False -> False
+
+## PRIVATE
+   The default line separator used for newly written delimited files, if no
+   specific separator has been set.
+default_line_separator_for_writing = Line_Ending_Style.Unix

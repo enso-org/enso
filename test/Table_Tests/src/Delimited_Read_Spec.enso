@@ -9,7 +9,7 @@ import Standard.Table.IO.File_Read
 from Standard.Table.IO.File_Format import Delimited
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.IO.Quote_Style
-from Standard.Table.IO.Line_Ending_Style import all
+import Standard.Base.Data.Text.Line_Ending_Style
 
 import Standard.Test
 import Standard.Test.Problems
@@ -144,17 +144,17 @@ spec =
                 ['a', 'b', 'c\nd', 'e', 'f\n1', 2, 3].map_with_index i-> v->
                     ["Column_" + (i+1).to_text, [v]]
             File.read file format . should_equal reference_table
-            File.read file (format.with_line_endings Unix_Line_Endings) . should_equal reference_table
-            File.read file (format.with_line_endings Classic_Mac_Line_Endings) . should_equal collapsed_table
-            File.read file (format.with_line_endings Windows_Line_Endings) . should_equal collapsed_table
+            File.read file (format.with_line_endings Line_Ending_Style.Unix) . should_equal reference_table
+            File.read file (format.with_line_endings Line_Ending_Style.Mac_Legacy) . should_equal collapsed_table
+            File.read file (format.with_line_endings Line_Ending_Style.Windows) . should_equal collapsed_table
             file.delete
 
             file_2 = enso_project.data / "transient" / "crlf.csv"
             lines.join '\r\n' . write file_2
-            File.read file_2 (format.with_line_endings Windows_Line_Endings) . should_equal reference_table
+            File.read file_2 (format.with_line_endings Line_Ending_Style.Windows) . should_equal reference_table
 
             # For some reason loading the CRLF file in Unix mode trims the CR characters. We may want to revisit this at some point.
-            table = File.read file_2 (format.with_line_endings Unix_Line_Endings)
+            table = File.read file_2 (format.with_line_endings Line_Ending_Style.Unix)
             table . should_equal reference_table
             file_2.delete
 
@@ -399,6 +399,6 @@ spec =
             Delimited ',' . with_comments . should_equal (Delimited ',' comment_character='#')
             Delimited ',' . with_comments ';' . should_equal (Delimited ',' comment_character=';')
             Delimited ',' comment_character='#' . without_comments . should_equal (Delimited ',' comment_character=Nothing)
-            Delimited ',' . with_line_endings Unix_Line_Endings . should_equal (Delimited ',' line_endings=Unix_Line_Endings)
+            Delimited ',' . with_line_endings Line_Ending_Style.Unix . should_equal (Delimited ',' line_endings=Line_Ending_Style.Unix)
 
 main = Test.Suite.run_main spec
