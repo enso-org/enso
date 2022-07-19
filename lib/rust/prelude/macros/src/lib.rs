@@ -37,23 +37,15 @@ pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::To
 fn derive_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream {
     let enum_name = &decl.ident;
     let enum_snake_name = to_snake_case(&enum_name.to_string());
-    let variant_names: Vec<_> = data.variants.iter().map(|v| &v.ident).collect();
-    let variant_names_punct: Punctuated<_, Token![,]> = variant_names.iter().collect();
     let macro_name = quote::format_ident!("for_each_{}_variant", enum_snake_name);
-    // let variant_names: Punctuated<_, _> = data.variants.pairs().map(|(v, p)| (
-
-    // for variant in &data.variants {
-    // }
-
-    // ($f:ident($($args:tt)*)) => { $f!([Atom, Function, Local, Method, Module] $($args)*) }
-    let ret = quote! {
+    let variant_names: Punctuated<_, Token![,]> = data.variants.iter().map(|v| &v.ident).collect();
+    quote! {
         #[macro_export]
         macro_rules! #macro_name {
-            ($f:ident($($args:tt)*)) => { $f!([ #variant_names_punct ] $($args)*) }
+            ($f:ident($($args:tt)*)) => { $f!([ #variant_names ] $($args)*) }
         }
 
         pub(crate) use #macro_name;
-    };
-    ret
+    }
 }
 
