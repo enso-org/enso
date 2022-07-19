@@ -15,6 +15,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use inflector::cases::snakecase::to_snake_case;
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
@@ -34,13 +35,16 @@ pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::To
 }
 
 fn derive_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream {
+    let enum_name = &decl.ident;
+    let enum_snake_name = to_snake_case(&enum_name.to_string());
+    let macro_name = quote::format_ident!("for_each_{}_variant", enum_snake_name);
     let ret = quote! {
         #[macro_export]
-        macro_rules! for_each_kind_variant {
+        macro_rules! #macro_name {
             ($f:ident($($args:tt)*)) => { $f!([Atom, Function, Local, Method, Module] $($args)*) }
         }
 
-        pub(crate) use for_each_kind_variant;
+        pub(crate) use #macro_name;
     };
     ret
 }
