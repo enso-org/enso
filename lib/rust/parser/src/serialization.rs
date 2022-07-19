@@ -11,6 +11,13 @@ use crate::prelude::*;
 // === Tree ===
 // ============
 
+/// Serialize a `Tree` to its binary representation.
+pub fn serialize_tree(data: &crate::syntax::tree::Tree) -> Result<Vec<u8>, bincode::Error> {
+    use bincode::Options;
+    let options = bincode::DefaultOptions::new().with_fixint_encoding();
+    options.serialize(data)
+}
+
 /// Deserialize a `Tree` from its binary representation.
 pub fn deserialize_tree(data: &[u8]) -> Result<crate::syntax::tree::Tree, bincode::Error> {
     use bincode::Options;

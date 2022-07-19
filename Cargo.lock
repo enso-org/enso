@@ -990,6 +990,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "cbindgen"
+version = "0.24.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6358dedf60f4d9b8db43ad187391afe959746101346fe51bb978126bec61dfb"
+dependencies = [
+ "clap 3.1.18",
+ "heck 0.4.0",
+ "indexmap",
+ "log 0.4.17",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn",
+ "tempfile",
+ "toml",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2071,6 +2090,16 @@ dependencies = [
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "serde",
+]
+
+[[package]]
+name = "enso-parser-cdylib"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "cbindgen",
+ "enso-parser",
+ "enso-prelude",
 ]
 
 [[package]]
@@ -3662,7 +3691,7 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.11.0",
+ "base64 0.13.0",
  "bytes 1.1.0",
  "http",
  "httpdate 1.0.2",
