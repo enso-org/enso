@@ -206,30 +206,12 @@ macro_rules! kind_to_icon {
     }
 }
 
-// macro_rules! for_each_kind_variant {
-//     ($f:ident($($args:tt)*)) => { $f!([Atom, Function, Local, Method, Module] $($args)*) }
-// }
-
 fn icon_from_kind(kind: suggestion_database::entry::Kind) -> component_group_view::icon::Id {
     use component_group_view::icon::Id;
     use suggestion_database::entry::Kind;
     use suggestion_database::entry::for_each_kind_variant;
-    // use for_each_kind_variant;
 
     for_each_kind_variant!(kind_to_icon(kind))
-    // kind_to_icon!([Atom, Function, Local, Method, Module] kind)
-
-    // for_each_kind_variant!(kind_to_ic
-    // let zzz = suggestion_database::entry::for_each_foobary!();
-    // let zzz = crate::for_each_foobarx!();
-    // DEBUG!("zzz=" zzz;?);
-    // match kind {
-    //     Kind::Atom => Id::Atom,
-    //     Kind::Function => Id::Function,
-    //     Kind::Local => Id::Local,
-    //     Kind::Method => Id::Method,
-    //     Kind::Module => Id::Module,
-    // }
 }
 
 #[cfg(test)]

@@ -18,7 +18,6 @@
 use inflector::cases::snakecase::to_snake_case;
 use proc_macro2::TokenStream;
 use quote::quote;
-use quote::ToTokens;
 use syn::punctuated::Punctuated;
 use syn::Token;
 
