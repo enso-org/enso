@@ -1,3 +1,7 @@
+//! This module defines a set of procedural macros which are useful across different projects.
+//!
+//! Procedural macros must be defined in a separate crate, which can only export procedural macros.
+//! If not for that, macros defined in this crate would be defined in the [`enso-prelude`] crate.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -23,17 +27,21 @@ use syn::Token;
 
 
 
+// ======================
+// === ForEachVariant ===
+// ======================
+
 #[proc_macro_derive(ForEachVariant)]
 pub fn derive_for_each_variant(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl = syn::parse_macro_input!(input as syn::DeriveInput);
     let ret = match decl.data {
-        syn::Data::Enum(ref e) => derive_for_enum(&decl, e),
+        syn::Data::Enum(ref e) => derive_for_each_variant_for_enum(&decl, e),
         _ => panic!("The `ForEachVariant` derive macro only works on enums."),
     };
     proc_macro::TokenStream::from(ret)
 }
 
-fn derive_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream {
+fn derive_for_each_variant_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream {
     let enum_name = &decl.ident;
     let enum_snake_name = to_snake_case(&enum_name.to_string());
     let macro_name = quote::format_ident!("for_each_{}_variant", enum_snake_name);

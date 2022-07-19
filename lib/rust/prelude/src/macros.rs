@@ -1,4 +1,4 @@
-//! This macro defines set of common macros which are useful across different projects.
+//! This module defines set of common macros which are useful across different projects.
 
 pub use enso_prelude_macros::*;
 
