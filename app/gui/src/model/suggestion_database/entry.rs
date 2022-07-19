@@ -13,7 +13,7 @@ use engine_protocol::language_server::SuggestionsDatabaseModification;
 use enso_text::Location;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
-use enso_reflect_macros::ForEachVariant;
+use enso_prelude_macros::ForEachVariant;
 
 
 // ==============
@@ -131,6 +131,11 @@ impl<'a> IntoIterator for &'a QualifiedName {
 // =============
 // === Entry ===
 // =============
+
+#[macro_export]
+macro_rules! for_each_foobary {
+    () => {}
+}
 
 /// A type of suggestion entry.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant)]

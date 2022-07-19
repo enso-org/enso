@@ -1955,8 +1955,8 @@ dependencies = [
  "enso-frp",
  "enso-logger",
  "enso-prelude",
+ "enso-prelude-macros",
  "enso-profiler",
- "enso-reflect-macros",
  "enso-shapely",
  "enso-text",
  "enso-web",
@@ -2141,6 +2141,15 @@ dependencies = [
  "wasm-bindgen-test",
  "weak-table",
  "web-sys",
+]
+
+[[package]]
+name = "enso-prelude-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
