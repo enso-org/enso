@@ -2118,7 +2118,6 @@ dependencies = [
  "derivative",
  "derive_more",
  "enclose",
- "enso-prelude-macros",
  "enso-reflect",
  "enso-shapely",
  "failure",
@@ -2141,16 +2140,6 @@ dependencies = [
  "wasm-bindgen-test",
  "weak-table",
  "web-sys",
-]
-
-[[package]]
-name = "enso-prelude-macros"
-version = "0.1.0"
-dependencies = [
- "Inflector",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
