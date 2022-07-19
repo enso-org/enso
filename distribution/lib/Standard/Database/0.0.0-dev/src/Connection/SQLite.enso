@@ -17,7 +17,7 @@ type SQLite
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url = case self.location of
-        InMemory -> "jdbc:sqlite::memory:"
+        In_Memory -> "jdbc:sqlite::memory:"
         _ -> "jdbc:sqlite:" + ((File.new self.location).absolute.path.replace '\\' '/')
 
     ## Provides the properties for the connection.
