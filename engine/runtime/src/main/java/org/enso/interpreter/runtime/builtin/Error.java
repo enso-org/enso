@@ -278,13 +278,13 @@ public class Error {
 
     @ExportMessage
     boolean isMemberInvocable(String member, @CachedLibrary(limit="1") InteropLibrary delegate) {
-      boolean knownMembers = "has_type".equals(member) || "getMessage".equals(member);
+      boolean knownMembers = "is_a".equals(member) || "getMessage".equals(member);
       return knownMembers || (prototype != null && delegate.isMemberInvocable(prototype, member));
     }
 
     @ExportMessage
     Object invokeMember(String name, Object[] args, @CachedLibrary(limit="2") InteropLibrary iop) throws ArityException, UnknownIdentifierException, UnsupportedTypeException, UnsupportedMessageException {
-      if ("has_type".equals(name)) {
+      if ("is_a".equals(name)) {
         if (args.length != 1) {
           throw ArityException.create(1,1,  args.length);
         }
