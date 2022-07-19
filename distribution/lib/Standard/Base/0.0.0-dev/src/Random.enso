@@ -1,0 +1,10 @@
+from Standard.Base import all
+
+import Standard.Base.System
+
+## UNSTABLE
+   Returns a default seed to use for random number generation.
+
+   The returned seed may differ between each call to this method.
+get_default_seed : Integer
+get_default_seed = System.nano_time

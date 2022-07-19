@@ -1,0 +1,26 @@
+from Standard.Base import all
+
+import Standard.Base.Random
+
+type Index_Sub_Range
+    ## Select the first `count` items.
+       Selects no items if `count` is less than or equal to 0.
+       Selects all items  if `count` is greater than the length of the input.
+    type First (count : Integer = 1)
+
+    ## Select the last `count` characters.
+       Selects no items if `count` is less than or equal to 0.
+       Selects all items  if `count` is greater than the length of the input.
+    type Last (count : Integer = 1)
+
+    ## Select elements while the predicate returns `True`.
+    type While (predicate : (Any -> Boolean))
+
+    ## Selects specific row indexes (starting from 0) either as an Integer or a Range
+    type By_Index (indexes : (Integer | Range | [Integer | Range]) = [0])
+
+    ## Gets a random sample of entries.
+    type Sample (count:Integer) (seed:Integer=Random.get_default_seed)
+
+    ## Gets every Nth entry.
+    type Every (n:Integer)
