@@ -7,7 +7,16 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::geometry::compound::sprite;
 use ensogl_core::display::scene::Layer;
+use ensogl_core::display::Attribute;
+
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct Contour {
+    pub size:          Vector2,
+    pub corner_radius: f32,
+}
 
 
 
@@ -17,18 +26,17 @@ use ensogl_core::display::scene::Layer;
 
 ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node::Data)>
     Input {
-        set_active(bool),
-        set_hover(bool),
+        set_selected(bool),
+        set_hovered(bool),
         set_model(Model),
         set_size(Vector2),
         set_params(Params),
     }
     Output {
-        is_activable(bool),
-        is_hoverable(bool),
-        highlight_shape(HighlightShape),
-        active_highlight_style(color::Rgba),
-        hovered_highlight_style(color::Rgba)
+        disabled(bool),
+        contour(Contour),
+        selection_highlight_color(color::Rgba),
+        hover_highlight_color(color::Rgba)
     }
 }
 
@@ -56,8 +64,76 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     type Params: Clone + Debug + Default;
 
     /// An Entry constructor.
-    fn new(app: &Application, text_layer: &Option<Layer>) -> Self;
+    fn new(app: &Application, text_layer: Option<&Layer>) -> Self;
 
     /// FRP endpoints getter.
     fn frp(&self) -> &EntryFrp<Self>;
+}
+
+pub trait ShapeWithEntryContour {
+    const PADDING_PX: f32 = 5.0;
+
+    fn size(&self) -> &DynamicParam<sprite::Size>;
+
+    fn corner_radius(&self) -> &DynamicParam<Attribute<f32>>;
+
+    fn set_contour(&self, contour: Contour) {
+        let padding = Vector2(Self::PADDING_PX, Self::PADDING_PX) * 2.0;
+        self.size().set(contour.size + padding);
+        self.corner_radius().set(contour.corner_radius);
+    }
+}
+
+macro_rules! implement_shape_with_entry_contour {
+    () => {
+        impl ShapeWithEntryContour for View {
+            fn size(&self) -> &DynamicParam<sprite::Size> {
+                &self.size
+            }
+
+            fn corner_radius(&self) -> &DynamicParam<Attribute<f32>> {
+                &self.corner_radius
+            }
+        }
+    };
+}
+
+pub mod overlay {
+    use super::*;
+
+    /// A padding added to the background rectangle to avoid antialiasing glitches.
+    pub const PADDING_PX: f32 = 5.0;
+
+    ensogl_core::define_shape_system! {
+        (style:Style, corner_radius: f32) {
+            let shape_width  : Var<Pixels> = "input_size.x".into();
+            let shape_height : Var<Pixels> = "input_size.y".into();
+            let width = shape_width - 2.0.px() * View::PADDING_PX;
+            let height = shape_height - 2.0.px() * View::PADDING_PX;
+            Rect((width, height)).corners_radius(corner_radius.px()).fill(HOVER_COLOR).into()
+        }
+    }
+
+    implement_shape_with_entry_contour!();
+}
+
+
+pub mod shape {
+    use super::*;
+
+    /// A padding added to the background rectangle to avoid antialiasing glitches.
+    pub const PADDING_PX: f32 = 5.0;
+
+    ensogl_core::define_shape_system! {
+        below = [overlay];
+        (style:Style, corner_radius: f32, color: Vector4) {
+            let shape_width  : Var<Pixels> = "input_size.x".into();
+            let shape_height : Var<Pixels> = "input_size.y".into();
+            let width = shape_width - 2.0.px() * View::PADDING_PX;
+            let height = shape_height - 2.0.px() * View::PADDING_PX;
+            Rect((width, height)).corners_radius(corner_radius.px()).fill(color).into()
+        }
+    }
+
+    implement_shape_with_entry_contour!();
 }

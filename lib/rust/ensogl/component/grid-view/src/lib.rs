@@ -25,6 +25,7 @@
 // ==============
 
 pub mod entry;
+pub mod highlight;
 pub mod scrollable;
 pub mod selectable;
 pub mod simple;
@@ -36,9 +37,13 @@ pub use ensogl_scroll_area::Viewport;
 
 /// Commonly used types and functions.
 pub mod prelude {
+    pub use ensogl_core::display::shape::*;
+    pub use ensogl_core::prelude::*;
+
+    pub use crate::entry::ShapeWithEntryContour;
+
     pub use enso_frp as frp;
     pub use ensogl_core::application::command::FrpNetworkProvider;
-    pub use ensogl_core::prelude::*;
 }
 
 use crate::prelude::*;
@@ -49,7 +54,6 @@ use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
-use ensogl_core::display::shape::HOVER_COLOR;
 use ensogl_core::gui::Widget;
 
 use crate::entry::EntryFrp;
@@ -57,7 +61,6 @@ use crate::visible_area::all_visible_locations;
 use crate::visible_area::visible_columns;
 use crate::visible_area::visible_rows;
 pub use entry::Entry;
-
 
 
 // ===========
@@ -99,6 +102,10 @@ ensogl_core::define_endpoints_2! {
         content_size(Vector2),
         /// Event emitted when the Grid View needs model for an uncovered entry.
         model_for_entry_needed(Row, Col),
+
+        entry_hovered(Row, Col),
+        entry_selected(Row, Col),
+        entry_accepted(Row, Col),
     }
 }
 
@@ -115,7 +122,7 @@ struct HighlightLayers {
 }
 
 impl HighlightLayers {
-    fn create(parent: Layer) -> SElf {
+    fn create(parent: Layer) -> Self {
         let entries = parent.create_sublayer();
         let text = parent.create_sublayer();
         let mask =
@@ -126,49 +133,16 @@ impl HighlightLayers {
     }
 }
 
+#[derive(Clone, CloneRef, Debug)]
+#[clone_ref(bound = "Entry: CloneRef")]
 struct VisibleEntry<Entry> {
     entry:   Entry,
-    hovered: RefCell<Option<Entry>>,
-    active:  RefCell<Option<Entry>>,
-    overlay: selectable::highlight::View,
+    overlay: entry::overlay::View,
 }
 
-impl<E: Entry> VisibleEntry<E> {
-    fn new(ctx: EntryCreationCtx<E::Params>, text_layer: &Option<Layer>) -> Self {
-        let entry = ctx.create_entry(text_layer.as_ref());
-        let hovered = default();
-        let active = default();
-        let overlay = selectable::highlight::View::new(Logger::new("EntryOverlay"));
-        entry.add_child(&overlay);
-        overlay.color.set(HOVER_COLOR.into());
-        Self { entry, hovered, active, overlay }
-    }
-
-    fn entry_in_highlighted_layers(ctx: EntryCreationCtx<E::Params>, layers: HighlightLayers) -> E {
-        let entry = ctx.create_entry(Some(&layers.text));
-        layers.entries.add_exclusive(&entry);
-        entry
-    }
-
-    fn new_highlighted_layer(
-        &self,
-        entry: &mut Option<E>,
-        ctx: EntryCreationCtx<E::Params>,
-        layers: Option<HighlightLayers>,
-    ) {
-        let new_entry = layers.map(|l| Self::entry_in_highlighted_layers(ctx, l));
-        *entry = new_entry;
-        if let Some(layer) = layers.map(|l| &l.entries) {
-            layer.add(&self.overlay)
-        }
-    }
-
-    fn set_hovered_layer(&self, ctx: EntryCreationCtx<E::Params>, layers: Option<HighlightLayers>) {
-        self.new_highlighted_layer(&mut *self.hovered.borrow_mut(), ctx, layers)
-    }
-
-    fn set_active_layer(&self, ctx: EntryCreationCtx<E::Params>, layers: Option<HighlightLayers>) {
-        self.new_highlighted_layer(&mut *self.active.borrow_mut(), ctx, layers)
+impl<E: display::Object> display::Object for VisibleEntry<E> {
+    fn display_object(&self) -> &display::object::Instance {
+        self.entry.display_object()
     }
 }
 
@@ -188,11 +162,21 @@ struct EntryCreationCtx<EntryParams> {
     network:          frp::WeakNetwork,
     set_entry_size:   frp::Stream<Vector2>,
     set_entry_params: frp::Stream<EntryParams>,
+    entry_hovered:    frp::Any<(Row, Col)>,
+    entry_selected:   frp::Any<(Row, Col)>,
+    entry_accepted:   frp::Any<(Row, Col)>,
 }
 
 impl<EntryParams: frp::node::Data> EntryCreationCtx<EntryParams> {
-    fn create_entry<E: Entry<Params = EntryParams>>(&self, text_layer: Option<&Layer>) -> E {
+    fn create_entry<E: Entry<Params = EntryParams>>(
+        &self,
+        row: Row,
+        col: Col,
+        text_layer: Option<&Layer>,
+    ) -> VisibleEntry<E> {
         let entry = E::new(&self.app, text_layer);
+        let overlay = entry::overlay::View::new(Logger::new("EntryOverlay"));
+        entry.add_child(&overlay);
         if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();
             let entry_network = entry_frp.network();
@@ -200,10 +184,20 @@ impl<EntryParams: frp::node::Data> EntryCreationCtx<EntryParams> {
                 init <- source_();
                 entry_frp.set_size <+ all(init, self.set_entry_size)._1();
                 entry_frp.set_params <+ all(init, self.set_entry_params)._1();
+
+                contour <- all(init, entry_frp.contour)._1();
+                eval contour ((c) overlay.set_contour(*c));
+
+                let events = &overlay.events;
+                let disabled = &entry_frp.disabled;
+                let loc = (row, col);
+                self.entry_hovered <+ events.mouse_over.gate_not(disabled).constant(loc);
+                self.entry_selected <+ events.mouse_down.gate_not(disabled).constant(loc);
+                self.entry_accepted <+ events.mouse_down_primary.gate_not(disabled).constant(loc);
             }
             init.emit(());
         }
-        entry
+        VisibleEntry { entry, overlay }
     }
 }
 
@@ -230,12 +224,10 @@ struct Properties {
 /// The Model of [`GridView`].
 #[derive(Clone, Debug)]
 pub struct Model<Entry, EntryParams> {
-    display_object:         display::object::Instance,
-    active_entries_layers:  Option<HighlightLayers>,
-    hovered_entries_layers: Option<HighlightLayers>,
-    visible_entries:        RefCell<HashMap<(Row, Col), Entry>>,
-    free_entries:           RefCell<Vec<Entry>>,
-    entry_creation_ctx:     EntryCreationCtx<EntryParams>,
+    display_object:     display::object::Instance,
+    visible_entries:    RefCell<HashMap<(Row, Col), VisibleEntry<Entry>>>,
+    free_entries:       RefCell<Vec<VisibleEntry<Entry>>>,
+    entry_creation_ctx: EntryCreationCtx<EntryParams>,
 }
 
 impl<Entry, EntryParams> Model<Entry, EntryParams> {
@@ -309,7 +301,7 @@ impl<E: Entry> Model<E, E::Params> {
         let mut free_entries = self.free_entries.borrow_mut();
         let create_new_entry = || {
             let text_layer = text_layer.as_ref().and_then(|l| l.upgrade());
-            self.entry_creation_ctx.create_entry(&text_layer)
+            self.entry_creation_ctx.create_entry(row, col, text_layer.as_ref())
         };
         let entry = match visible_entries.entry((row, col)) {
             Occupied(entry) => entry.into_mut(),
@@ -320,7 +312,7 @@ impl<E: Entry> Model<E, E::Params> {
                 lack_of_entry.insert(new_entry)
             }
         };
-        entry.frp().set_model(model);
+        entry.entry.frp().set_model(model);
     }
 }
 
@@ -396,6 +388,9 @@ impl<E: Entry> GridView<E> {
             network:          network.downgrade(),
             set_entry_size:   set_entry_size.into(),
             set_entry_params: set_entry_params.into(),
+            entry_hovered:    out.entry_hovered.clone_ref(),
+            entry_selected:   out.entry_selected.clone_ref(),
+            entry_accepted:   out.entry_accepted.clone_ref(),
         };
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
@@ -483,7 +478,7 @@ mod tests {
         type Model = Immutable<usize>;
         type Params = TestEntryParams;
 
-        fn new(_app: &Application, _: &Option<Layer>) -> Self {
+        fn new(_app: &Application, _: Option<&Layer>) -> Self {
             let frp = entry::EntryFrp::<Self>::new();
             let network = frp.network();
             let param_set = Rc::new(Cell::new(0));
@@ -535,8 +530,8 @@ mod tests {
             let created_entries = grid_view.model().visible_entries.borrow();
             assert_eq!(created_entries.len(), 25);
             for ((row, col), entry) in created_entries.iter() {
-                assert_eq!(entry.model_set.get(), row * 200 + col);
-                assert_eq!(entry.param_set.get(), 13);
+                assert_eq!(entry.entry.model_set.get(), row * 200 + col);
+                assert_eq!(entry.entry.param_set.get(), 13);
             }
         }
     }

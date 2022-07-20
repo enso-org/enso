@@ -66,9 +66,17 @@ fn init(app: &Application) {
     app.display.default_scene.layers.node_searcher.add_exclusive(&grid_view);
     frp::new_network! { network
         requested_entry <- grid_view.model_for_entry_needed.map(|(row, col)| {
-            (*row, *col, ImString::from(format!("Entry ({row}, {col})")))
+            let model = grid_view::simple::EntryModel {
+                text:     format!("Entry ({row}, {col})").into(),
+                disabled: Immutable(row == col),
+            };
+            (*row, *col, model)
         });
         grid_view.model_for_entry <+ requested_entry;
+
+        eval grid_view.entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
+        eval grid_view.entry_selected ([]((row, col)) tracing::debug!("Selected entry ({row}, {col})."));
+        eval grid_view.entry_accepted ([]((row, col)) tracing::debug!("ACCEPTED entry ({row}, {col})."));
     }
     grid_view.set_entries_size(Vector2(130.0, 28.0));
     let params = grid_view::simple::EntryParams {
