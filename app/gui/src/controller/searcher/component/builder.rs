@@ -151,9 +151,6 @@ impl List {
             .into_iter()
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
-        for group in &*self.favorites_structure {
-            self.all_components.extend(group.entries.borrow().iter().cloned());
-        }
     }
 
     fn lookup_module_group(
@@ -225,7 +222,9 @@ impl List {
             .map(|g| g.with_entries_in_initial_order_and_filtered(id_in_favs_to_enable))
             .collect_vec();
         self.favorites_structure = component::group::List::new(filtered_fav_groups);
-        self.all_components.retain(id_in_favs_to_enable);
+        for group in &*self.favorites_structure {
+            self.all_components.extend(group.entries.borrow().iter().cloned());
+        }
     }
 }
 
