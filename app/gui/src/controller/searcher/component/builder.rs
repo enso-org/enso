@@ -90,13 +90,12 @@ impl ModuleGroups {
 #[derive(Clone, Debug, Default)]
 pub struct List {
     all_components:                  Vec<Component>,
-    /// IDs passed as arguments to the [`extend_list_and_enable_favorites_with_ids`] method and
-    /// present in [`model::SuggestionDatabase`]. Used by the [`build`] method to filter
-    /// [`grouping_and_order_of_favorites`].
-    favorites_to_enable:             HashSet<component::Id>,
     module_groups:                   HashMap<component::Id, ModuleGroups>,
     local_scope:                     component::Group,
     grouping_and_order_of_favorites: component::group::List,
+    /// IDs of [`Component`]s that should be added to [`component::List::favorites`] if they are
+    /// present in [`grouping_and_order_of_favorites`].
+    favorites_to_enable:             HashSet<component::Id>,
 }
 
 impl List {
