@@ -78,10 +78,12 @@ pattern_impl_for_char_slice!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 pub struct Lexer<'s> {
     #[deref]
     #[deref_mut]
-    pub state:    LexerState,
-    pub input:    &'s str,
-    pub iterator: str::CharIndices<'s>,
-    pub output:   Vec<Token<'s>>,
+    pub state:         LexerState,
+    pub input:         &'s str,
+    pub iterator:      str::CharIndices<'s>,
+    pub output:        Vec<Token<'s>>,
+    /// Memory for storing tokens, reused as an optimization.
+    pub token_storage: VecAllocation<Token<'s>>,
 }
 
 /// Internal state of the [`Lexer`].
@@ -101,9 +103,10 @@ impl<'s> Lexer<'s> {
     pub fn new(input: &'s str) -> Self {
         let iterator = input.char_indices();
         let capacity = input.len() / AVERAGE_TOKEN_LEN;
-        let output = Vec::with_capacity(capacity * mem::size_of::<Token<'s>>());
+        let output = Vec::with_capacity(capacity);
         let state = default();
-        Self { input, iterator, output, state }.init()
+        let token_storage = default();
+        Self { input, iterator, output, state, token_storage }.init()
     }
 
     fn init(mut self) -> Self {
@@ -677,35 +680,31 @@ impl<'s> Lexer<'s> {
 
     fn newline(&mut self) {
         if let Some(token) = self.line_break() {
-            let mut newlines = vec![token.with_variant(token::Variant::newline())];
+            let mut newlines = self.token_storage.take();
             while let Some(token) = self.line_break() {
                 newlines.push(token.with_variant(token::Variant::newline()));
             }
             let block_indent = self.last_spaces_visible_offset;
-
             if block_indent > self.current_block_indent {
                 let block_start = self.marker_token(token::Variant::block_start());
                 self.submit_token(block_start);
                 self.start_block(block_indent);
-            } else {
-                while block_indent < self.current_block_indent {
-                    let err = "Lexer internal error. Inconsistent code block hierarchy.";
-                    let parent_block_indent = self.end_block().expect(err);
-                    if block_indent > self.current_block_indent {
-                        // The new line indent is smaller than current block but bigger than the
-                        // // previous one. We are treating the line as belonging to the
-                        // block. The warning should be reported by parser.
-                        self.start_block(parent_block_indent);
-                        break;
-                    } else {
-                        let block_end = self.marker_token(token::Variant::block_end());
-                        self.submit_token(block_end);
-                    }
+            }
+            while block_indent < self.current_block_indent {
+                let previous_indent = self.block_indent_stack.last().copied().unwrap_or_default();
+                if block_indent > previous_indent {
+                    // The new line indent is smaller than current block but bigger than the
+                    // previous one. We are treating the line as belonging to the
+                    // block. The warning should be reported by parser.
+                    break;
                 }
+                self.end_block();
+                let block_end = self.marker_token(token::Variant::block_end());
+                self.submit_token(block_end);
             }
-            for newline in newlines {
-                self.submit_token(newline);
-            }
+            self.submit_token(token.with_variant(token::Variant::newline()));
+            newlines.drain(..).for_each(|token| self.submit_token(token));
+            self.token_storage.set_from(newlines);
         }
     }
 }
@@ -876,12 +875,45 @@ mod tests {
                 ident_("  ", "bar"),
                 block_end_("", ""),
             ]),
+            ("foo\n    +", vec![
+                ident_("", "foo"),
+                block_start_("", ""),
+                newline_("", "\n"),
+                operator_("    ", "+"),
+                block_end_("", ""),
+            ]),
         ]);
     }
 
     #[test]
-    fn test_case_empty() {
-        test_lexer("", vec![]);
+    fn test_case_block_bad_indents() {
+        #[rustfmt::skip]
+        test_lexer_many(vec![
+            ("\n  foo\n bar\nbaz", vec![
+                block_start_("", ""),
+                newline_("", "\n"), ident_("  ", "foo"),
+                newline_("", "\n"), ident_(" ", "bar"),
+                block_end_("", ""),
+                newline_("", "\n"), ident_("", "baz"),
+            ]),
+            ("\n  foo\n bar\n  baz", vec![
+                block_start_("", ""),
+                newline_("", "\n"), ident_("  ", "foo"),
+                newline_("", "\n"), ident_(" ", "bar"),
+                newline_("", "\n"), ident_("  ", "baz"),
+                block_end_("", ""),
+            ]),
+        ]);
+    }
+
+    #[test]
+    fn test_case_whitespace_only_line() {
+        test_lexer_many(vec![("foo\n    \nbar", vec![
+            ident_("", "foo"),
+            newline_("", "\n"),
+            newline_("    ", "\n"),
+            ident_("", "bar"),
+        ])]);
     }
 
     #[test]
