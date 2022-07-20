@@ -200,31 +200,32 @@ impl List {
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
-        self.retain_enabled_favorites();
+        let favorites = self.build_favorites_and_add_to_all_components();
         component::List {
-            all_components:        Rc::new(self.all_components),
-            top_modules:           top_mdl_bld.build(),
+            all_components: Rc::new(self.all_components),
+            top_modules: top_mdl_bld.build(),
             top_modules_flattened: top_mdl_flat_bld.build(),
-            module_groups:         Rc::new(
+            module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            local_scope:           self.local_scope,
-            filtered:              default(),
-            favorites:             self.favorites_structure,
+            local_scope: self.local_scope,
+            filtered: default(),
+            favorites,
         }
     }
 
-    fn retain_enabled_favorites(&mut self) {
+    fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
         let favorites_to_enable = &self.favorites_to_enable;
         let id_in_favs_to_enable = |c: &Component| favorites_to_enable.contains(&c.id);
         let filtered_fav_groups = std::mem::take(&mut self.favorites_structure)
             .into_iter()
             .map(|g| g.with_entries_in_initial_order_and_filtered(id_in_favs_to_enable))
             .collect_vec();
-        self.favorites_structure = component::group::List::new(filtered_fav_groups);
-        for group in &*self.favorites_structure {
+        let favorites = component::group::List::new(filtered_fav_groups);
+        for group in &*favorites {
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
+        favorites
     }
 }
 
