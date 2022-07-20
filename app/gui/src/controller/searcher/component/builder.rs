@@ -9,8 +9,8 @@
 //!
 //! When using the methods of the [`List`] type to build a [`component::List`]:
 //!  - The components and groups are sorted once.
-//!  - The [`component::List::favorites`] contain only components with IDs that were passed
-//!    both to [`List::set_grouping_and_order_of_favorites`] and to
+//!  - The [`component::List::favorites`] contain only components with IDs that were passed both to
+//!    [`List::set_grouping_and_order_of_favorites`] and to
 //!    [`List::extend_list_and_allow_favorites_with_ids`].
 //!  - Empty component groups are allowed in favorites. (This simplifies distributing groups of
 //!    favorites over columns in [Component Browser](crate::controller::Searcher) consistently.
@@ -216,7 +216,10 @@ impl List {
         let id_in_allowed_favs = |c: &Component| allowed_favorites.contains(&c.id);
         let favorites_groups = std::mem::take(&mut self.grouping_and_order_of_favorites)
             .into_iter()
-            .map(|mut g| { g.retain_entries(id_in_allowed_favs); g })
+            .map(|mut g| {
+                g.retain_entries(id_in_allowed_favs);
+                g
+            })
             .collect_vec();
         let favorites = component::group::List::new(favorites_groups);
         for group in &*favorites {
