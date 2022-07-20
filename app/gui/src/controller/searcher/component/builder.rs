@@ -12,7 +12,7 @@
 //!  - the components and groups are sorted once;
 //!  - [`component::List::favorites`] will contain only [`Component`]s with IDs that were passed
 //!    both to [`List::set_grouping_and_order_of_favorites`] and
-//!    [`List::extend_list_and_enable_favorites_with_ids`].
+//!    [`List::extend_list_and_allow_favorites_with_ids`].
 
 use crate::prelude::*;
 
@@ -82,7 +82,7 @@ impl ModuleGroups {
 /// methods should be called:
 ///  - [`set_grouping_and_order_of_favorites`] to specify order and grouping of [`Component`]s in
 ///    favorites;
-///  - [`extend_list_and_enable_favorites_with_ids`] to specify IDs of [`Component`]s which should
+///  - [`extend_list_and_allow_favorites_with_ids`] to specify IDs of [`Component`]s which should
 ///    be retained from the initial [`component::Group`]s specified through
 ///    [`set_grouping_and_order_of_favorites`] (allows filtering of favorites e.g. by self type);
 ///  - [`build`] to get a [`component::group::List`] of favorites constrained by arguments passed to
@@ -105,7 +105,7 @@ impl List {
     }
 
     /// Return [`List`] with a new [`local_scope`] with its [`Group::component_id`] field set to
-    /// `module_id`. When the [`extend_list_and_enable_favorites_with_ids`] method is called on the
+    /// `module_id`. When the [`extend_list_and_allow_favorites_with_ids`] method is called on the
     /// returned object, components passed to the method which have their parent module ID equal
     /// to `module_id` will be cloned into [`component::List::local_scope`].
     pub fn with_local_scope_module_id(self, module_id: component::Id) -> Self {
@@ -116,7 +116,7 @@ impl List {
     }
 
     /// Extend the list with new entries looked up by ID in suggestion database.
-    pub fn extend_list_and_enable_favorites_with_ids(
+    pub fn extend_list_and_allow_favorites_with_ids(
         &mut self,
         db: &model::SuggestionDatabase,
         entries: impl IntoIterator<Item = component::Id>,
@@ -154,7 +154,7 @@ impl List {
 
     /// Set the favorites in the list. Components are looked up by ID in the suggestion database.
     /// When [`build`]ing a [`component::List`], only [`Component`]s with IDs passed to
-    /// [`extend_list_and_enable_favorites_with_ids`]
+    /// [`extend_list_and_allow_favorites_with_ids`]
     /// will be retained (see the documentation of the [`build`] method).
     pub fn set_grouping_and_order_of_favorites<'a>(
         &mut self,
@@ -194,7 +194,7 @@ impl List {
 
     /// Build the list, sorting all group lists and groups' contents appropriately. Filter the
     /// [`component::List::grouping_and_order_of_favorites`] (only components with IDs passed to
-    /// [`extend_list_and_enable_favorites_with_ids`] are
+    /// [`extend_list_and_allow_favorites_with_ids`] are
     /// retained), do not sort them.
     ///
     /// If a [`component::Group`] in favorites is empty after the filtering, the empty group is
@@ -280,8 +280,8 @@ mod tests {
         let mut builder = List::new().with_local_scope_module_id(0);
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
-        builder.extend_list_and_enable_favorites_with_ids(&suggestion_db, first_part);
-        builder.extend_list_and_enable_favorites_with_ids(&suggestion_db, second_part);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, first_part);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, second_part);
         let list = builder.build();
 
         let top_modules: Vec<ComparableGroupData> =
@@ -414,7 +414,7 @@ mod tests {
             },
         ];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        builder.extend_list_and_enable_favorites_with_ids(&db, [0, 1, 2].into_iter());
+        builder.extend_list_and_allow_favorites_with_ids(&db, [0, 1, 2].into_iter());
         let list = builder.build();
         let favorites: Vec<ComparableGroupData> = list.favorites.iter().map(Into::into).collect();
         let expected = vec![

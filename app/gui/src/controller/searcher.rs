@@ -1043,7 +1043,7 @@ impl Searcher {
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
-        builder.extend_list_and_enable_favorites_with_ids(&self.database, entry_ids);
+        builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
 
