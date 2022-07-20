@@ -217,11 +217,11 @@ impl List {
     fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
         let favorites_to_enable = &self.favorites_to_enable;
         let id_in_favs_to_enable = |c: &Component| favorites_to_enable.contains(&c.id);
-        let filtered_fav_groups = std::mem::take(&mut self.favorites_structure)
+        let favorites_groups = std::mem::take(&mut self.favorites_structure)
             .into_iter()
             .map(|g| g.with_entries_in_initial_order_and_filtered(id_in_favs_to_enable))
             .collect_vec();
-        let favorites = component::group::List::new(filtered_fav_groups);
+        let favorites = component::group::List::new(favorites_groups);
         for group in &*favorites {
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
