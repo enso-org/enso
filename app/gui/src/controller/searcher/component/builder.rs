@@ -1,11 +1,19 @@
 //! A module with entities used for building proper [`component::List`].
 //!
 //! The [`List`] type builds a [`component::List`] with contents sorted as described below:
+//!
 //!  - [`component::Group`]s are sorted alphabetically by name;
 //!  - [`Component`]s in each [`component::Group`] are ordered: non-modules sorted alphabetically,
 //!    followed by modules sorted alphabetically;
 //!  - [`Component`]s and [`component::Group`]s in [`component::List::favorites`] keep the grouping
 //!    and order set with [`List::set_grouping_and_order_of_favorites`].
+//!
+//! When using the [`List`] type to build a [`component::List`], the components and groups are
+//! sorted once and [`component::List::favorites`] will contain only [`Component`]s with IDs passed
+//! to [`List::extend_list_and_enable_favorites_with_ids`].
+//!
+//!
+//! Using the [`List`] type instead of iteratively extending a [`component::List`] 
 
 use crate::prelude::*;
 
