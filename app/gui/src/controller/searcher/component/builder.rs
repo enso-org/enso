@@ -106,8 +106,8 @@ impl List {
     }
 
     /// Extend the list with new entries looked up by ID in suggestion database. Allow those
-    /// entries to be present in [`component::List::favorites`] if also passed to the
-    /// [`set_grouping_and_order_of_favorites`] method.
+    /// entries to be present in [`component::List::favorites`]. See the module documentation for
+    /// more details.
     pub fn extend_list_and_allow_favorites_with_ids(
         &mut self,
         db: &model::SuggestionDatabase,
@@ -144,10 +144,8 @@ impl List {
         }
     }
 
-    /// Set the grouping and order of [`Components`] in [`component::List::favorites`]. A
-    /// [`Component`] with ID passed to the method will be added to favorites only if it is also
-    /// passed to [`extend_list_and_allow_favorites_with_ids`] and present in the suggestion
-    /// database.
+    /// Set the grouping and order of [`Components`] in [`component::List::favorites`]. Skips
+    /// components not present in the suggestion database and skips empty groups.
     pub fn set_grouping_and_order_of_favorites<'a>(
         &mut self,
         db: &model::SuggestionDatabase,
