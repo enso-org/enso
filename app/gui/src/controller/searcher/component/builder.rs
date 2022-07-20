@@ -218,7 +218,7 @@ impl List {
         let id_in_allowed_favs = |c: &Component| allowed_favorites.contains(&c.id);
         let favorites_groups = std::mem::take(&mut self.grouping_and_order_of_favorites)
             .into_iter()
-            .map(|g| g.with_entries_in_initial_order_and_filtered(id_in_allowed_favs))
+            .map(|mut g| { g.retain_entries(id_in_allowed_favs); g })
             .collect_vec();
         let favorites = component::group::List::new(favorites_groups);
         for group in &*favorites {

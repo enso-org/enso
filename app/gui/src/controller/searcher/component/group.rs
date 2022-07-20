@@ -48,6 +48,12 @@ impl Data {
             matched_items: Cell::new(0),
         }
     }
+
+    fn update_matched_items(&self) {
+        let entries = self.entries.borrow();
+        let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
+        self.matched_items.set(matched_items);
+    }
 }
 
 
@@ -118,18 +124,20 @@ impl Group {
         })
     }
 
-    /// Create a new [`Group`] retaining only those [`Component`]s in the [`initial_entries_order`]
-    /// vector for which `f` returns [`true`]. The [`entries`] are set to a clone of the vector,
-    /// and [`matched_items`] are set to the length of the vector.
-    pub fn with_entries_in_initial_order_and_filtered<F>(self, f: F) -> Self
+    /// Modify a [`Group`] keeping only the [`Component`]s for which `f` returns [`true`].
+    pub fn retain_entries<F>(&mut self, f: F)
     where F: FnMut(&Component) -> bool {
         let mut group_data = Rc::unwrap_or_clone(self.data);
-        let mut initial_entries_order = std::mem::take(&mut group_data.initial_entries_order);
-        initial_entries_order.retain(f);
-        let entries = RefCell::new(initial_entries_order.clone());
-        let matched_items = Cell::new(initial_entries_order.len());
-        let data = Rc::new(Data { initial_entries_order, entries, matched_items, ..group_data });
-        Group { data }
+        group_data.entries.borrow_mut().retain(f);
+        group_data.initial_entries_order.retain(f);
+        group_data.update_matched_items();
+        self.data = Rc::new(group_data);
+        // let mut initial_entries_order = std::mem::take(&mut group_data.initial_entries_order);
+        // initial_entries_order.retain(f);
+        // let entries = RefCell::new(initial_entries_order.clone());
+        // let matched_items = Cell::new(initial_entries_order.len());
+        // let data = Rc::new(Data { initial_entries_order, entries, matched_items, ..group_data });
+        // Group { data }
     }
 
     /// Update the group sorting according to the `order` and update information about matched items
@@ -141,9 +149,7 @@ impl Group {
                 self.sort_by_name_non_modules_then_modules(),
             component::Order::ByMatch => self.sort_by_match(),
         }
-        let entries = self.entries.borrow();
-        let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
-        self.matched_items.set(matched_items);
+        self.update_matched_items();
     }
 
     fn restore_initial_order(&self) {
