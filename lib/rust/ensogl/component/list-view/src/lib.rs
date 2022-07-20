@@ -328,6 +328,9 @@ ensogl_core::define_endpoints! {
         /// mouse and keyboard will work. Used in cases where the ListView user want to manage the
         /// selection widget (e.g. when the selection is shared between many lists).
         hide_selection(),
+        /// Disable selecting entries when hovering the list view with the mouse. Choosing
+        /// entries when clicking on them is still possible.
+        disable_selecting_entries_with_mouse(),
 
         resize(Vector2<f32>),
         scroll_jump(f32),
@@ -506,7 +509,7 @@ where E::Model: Default
             mouse_pointed_entry <- mouse_y_in_scroll.map(f!([model](y)
                 entry::List::<E>::entry_at_y_position(*y,model.entries.entry_count()).entry()
             ));
-            mouse_selected_entry <- mouse_pointed_entry.sample(&can_select);
+            mouse_selected_entry <- mouse_pointed_entry.sample(&can_select).filter(|e| e.is_some());
 
 
             // === Selected Entry ===
@@ -551,8 +554,11 @@ where E::Model: Default
             selected_entry_after_move <-
                 any(&selected_entry_after_move_up,&selected_entry_after_move_down);
 
+            mouse_hover_selects_entries <- any(...);
+            mouse_hover_selects_entries <+ init.constant(true);
+            mouse_hover_selects_entries <+ frp.disable_selecting_entries_with_mouse.constant(false);
             frp.source.selected_entry <+ selected_entry_after_move;
-            frp.source.selected_entry <+ mouse_selected_entry;
+            frp.source.selected_entry <+ mouse_selected_entry.gate(&mouse_hover_selects_entries);
             frp.source.selected_entry <+ frp.deselect_entries.constant(None);
             frp.source.selected_entry <+ frp.set_entries.constant(None);
             jump_target <- any(jump_up_target, jump_down_target);
