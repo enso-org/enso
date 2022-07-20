@@ -74,14 +74,14 @@ impl ModuleGroups {
 ///    the methods listed above.
 #[derive(Clone, Debug, Default)]
 pub struct List {
-    all_components:       Vec<Component>,
+    all_components:      Vec<Component>,
     /// IDs passed as arguments to the [`extend_list_and_enable_matching_favorites`] method and
     /// present in [`model::SuggestionDatabase`]. Used by the [`build`] method to filter
-    /// [`favorites`].
-    ids_passed_to_extend: HashSet<component::Id>,
-    module_groups:        HashMap<component::Id, ModuleGroups>,
-    local_scope:          component::Group,
-    favorites:            component::group::List,
+    /// [`favorites_structure`].
+    favorites_to_enable: HashSet<component::Id>,
+    module_groups:       HashMap<component::Id, ModuleGroups>,
+    local_scope:         component::Group,
+    favorites_structure: component::group::List,
 }
 
 impl List {
@@ -112,7 +112,7 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
-            self.ids_passed_to_extend.insert(*component.id);
+            self.favorites_to_enable.insert(*component.id);
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
@@ -147,11 +147,11 @@ impl List {
         db: &model::SuggestionDatabase,
         component_groups: impl IntoIterator<Item = &'a execution_context::ComponentGroup>,
     ) {
-        self.favorites = component_groups
+        self.favorites_structure = component_groups
             .into_iter()
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
-        for group in &*self.favorites {
+        for group in &*self.favorites_structure {
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
     }
@@ -182,7 +182,7 @@ impl List {
     }
 
     /// Build the list, sorting all group lists and groups' contents appropriately. Filter the
-    /// [`component::List::favorites`] (only components with IDs passed to
+    /// [`component::List::favorites_structure`] (only components with IDs passed to
     /// [`extend_list_and_enable_matching_favorites`] are
     /// retained), do not sort them.
     ///
@@ -203,7 +203,7 @@ impl List {
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
-        self.retain_favorites_with_ids_passed_to_extend();
+        self.retain_enabled_favorites();
         component::List {
             all_components:        Rc::new(self.all_components),
             top_modules:           top_mdl_bld.build(),
@@ -213,19 +213,19 @@ impl List {
             ),
             local_scope:           self.local_scope,
             filtered:              default(),
-            favorites:             self.favorites,
+            favorites:             self.favorites_structure,
         }
     }
 
-    fn retain_favorites_with_ids_passed_to_extend(&mut self) {
-        let ids_passed_to_extend = &self.ids_passed_to_extend;
-        let component_id_passed_to_extend = |c: &Component| ids_passed_to_extend.contains(&c.id);
-        let filtered_fav_groups = std::mem::take(&mut self.favorites)
+    fn retain_enabled_favorites(&mut self) {
+        let favorites_to_enable = &self.favorites_to_enable;
+        let id_in_favs_to_enable = |c: &Component| favorites_to_enable.contains(&c.id);
+        let filtered_fav_groups = std::mem::take(&mut self.favorites_structure)
             .into_iter()
-            .map(|g| g.with_entries_in_initial_order_and_filtered(component_id_passed_to_extend))
+            .map(|g| g.with_entries_in_initial_order_and_filtered(id_in_favs_to_enable))
             .collect_vec();
-        self.favorites = component::group::List::new(filtered_fav_groups);
-        self.all_components.retain(component_id_passed_to_extend);
+        self.favorites_structure = component::group::List::new(filtered_fav_groups);
+        self.all_components.retain(id_in_favs_to_enable);
     }
 }
 
