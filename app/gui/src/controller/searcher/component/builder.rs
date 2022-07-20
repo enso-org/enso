@@ -8,9 +8,9 @@
 //!  - [`Component`]s and [`component::Group`]s in [`component::List::favorites`] keep the grouping
 //!    and order set with [`List::set_grouping_and_order_of_favorites`].
 //!
-//! When using the [`List`] type to build a [`component::List`]:
+//! When using the methods of the [`List`] type to build a [`component::List`]:
 //!  - the components and groups are sorted once;
-//!  - [`component::List::favorites`] will contain only [`Component`]s with IDs that were passed
+//!  - [`component::List::favorites`] contains only [`Component`]s with IDs that were passed
 //!    both to [`List::set_grouping_and_order_of_favorites`] and
 //!    [`List::extend_list_and_allow_favorites_with_ids`].
 
@@ -73,20 +73,7 @@ impl ModuleGroups {
 // === List ===
 // ============
 
-/// A [`component::List`] builder.
-///
-/// The builder allow extending the list with new entries, and build a list with properly sorted
-/// groups.
-///
-/// To build a [`component::List`] with non-empty [`component::List::favorites`], the following
-/// methods should be called:
-///  - [`set_grouping_and_order_of_favorites`] to specify order and grouping of [`Component`]s in
-///    favorites;
-///  - [`extend_list_and_allow_favorites_with_ids`] to specify IDs of [`Component`]s which should
-///    be retained from the initial [`component::Group`]s specified through
-///    [`set_grouping_and_order_of_favorites`] (allows filtering of favorites e.g. by self type);
-///  - [`build`] to get a [`component::group::List`] of favorites constrained by arguments passed to
-///    the methods listed above.
+/// A [`component::List`] builder. See the documentation of the module for more details.
 #[derive(Clone, Debug, Default)]
 pub struct List {
     all_components:                  Vec<Component>,
@@ -115,7 +102,9 @@ impl List {
         Self { local_scope, ..self }
     }
 
-    /// Extend the list with new entries looked up by ID in suggestion database.
+    /// Extend the list with new entries looked up by ID in suggestion database. Allow those
+    /// entries to be present in [`component::List::favorites`] if also passed to the
+    /// [`set_grouping_and_order_of_favorites`] method.
     pub fn extend_list_and_allow_favorites_with_ids(
         &mut self,
         db: &model::SuggestionDatabase,
