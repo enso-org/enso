@@ -1187,7 +1187,7 @@ fn component_list_builder_with_favorites<'a>(
     if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
         builder = builder.with_local_scope_module_id(id);
     }
-    builder.set_favorites(suggestion_db, groups);
+    builder.set_structure_of_favorites(suggestion_db, groups);
     builder
 }
 

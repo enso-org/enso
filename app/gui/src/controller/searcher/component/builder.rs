@@ -66,10 +66,10 @@ impl ModuleGroups {
 ///
 /// To build a [`component::List`] with non-empty [`component::List::favorites`], the following
 /// methods should be called:
-///  - [`set_favorites`] to specify order and grouping of [`Component`]s in favorites;
+///  - [`set_structure_of_favorites`] to specify order and grouping of [`Component`]s in favorites;
 ///  - [`extend`] to specify IDs of [`Component`]s which should be retained from the initial
-///    [`component::Group`]s specified through [`set_favorites`] (allows filtering of favorites e.g.
-///    by self type);
+///    [`component::Group`]s specified through [`set_structure_of_favorites`] (allows filtering of
+///    favorites e.g. by self type);
 ///  - [`build`] to get a [`component::group::List`] of favorites constrained by arguments passed to
 ///    the methods listed above.
 #[derive(Clone, Debug, Default)]
@@ -140,7 +140,7 @@ impl List {
     /// Set the favorites in the list. Components are looked up by ID in the suggestion database.
     /// When [`build`]ing a [`component::List`], only [`Component`]s with IDs passed to [`extend`]
     /// will be retained (see the documentation of the [`build`] method).
-    pub fn set_favorites<'a>(
+    pub fn set_structure_of_favorites<'a>(
         &mut self,
         db: &model::SuggestionDatabase,
         component_groups: impl IntoIterator<Item = &'a execution_context::ComponentGroup>,
@@ -396,7 +396,7 @@ mod tests {
                 ],
             },
         ];
-        builder.set_favorites(&db, &groups);
+        builder.set_structure_of_favorites(&db, &groups);
         builder.extend(&db, [0, 1, 2].into_iter());
         let list = builder.build();
         let favorites: Vec<ComparableGroupData> = list.favorites.iter().map(Into::into).collect();
