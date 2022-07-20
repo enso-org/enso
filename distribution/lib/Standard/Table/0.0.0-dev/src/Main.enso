@@ -1,19 +1,37 @@
 from Standard.Base import all
 
-import Standard.Geo.Geo_Json
-import Standard.Table.IO.File_Read
-import Standard.Table.IO.File_Format
-import Standard.Table.IO.Excel
 import Standard.Table.Data.Table
 import Standard.Table.Data.Column
+import Standard.Table.Data.Column_Selector
+import Standard.Table.Data.Match_Columns
+import Standard.Table.Data.Column_Name_Mapping
+import Standard.Table.Data.Sort_Column
+import Standard.Table.Data.Sort_Column_Selector
 
-from Standard.Table.IO.Excel export Excel_Section, Excel_Range
+import Standard.Table.IO.File_Read
+import Standard.Table.IO.File_Format
+import Standard.Table.Data.Data_Formatter
+import Standard.Table.IO.Quote_Style
+import Standard.Table.IO.Excel
+
+import Standard.Geo.Geo_Json
 
 export Standard.Table.Data.Column
+
+export Standard.Table.Data.Column_Selector
+export Standard.Table.Data.Match_Columns
+export Standard.Table.Data.Column_Name_Mapping
+export Standard.Table.Data.Sort_Column
+export Standard.Table.Data.Sort_Column_Selector
+
+export Standard.Table.IO.Excel
 export Standard.Table.IO.File_Read
 export Standard.Table.IO.File_Format
+export Standard.Table.IO.Quote_Style
 
 from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Column_Error, Table
+
+from Standard.Table.Data.Data_Formatter export all
 
 ## ALIAS To Table
 
