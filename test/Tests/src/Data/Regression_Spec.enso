@@ -1,0 +1,17 @@
+from Standard.Base import Nothing, Vector, Number, Decimal, True, Illegal_Argument_Error, False, Statistics, Rank_Method
+
+import Standard.Test
+
+spec =
+    double_error = 0.000001
+
+    vector_compare values expected =
+        values.each_with_index i->v->
+            case v of
+                Decimal -> v.should_equal (expected.at i) epsilon=double_error
+                _ -> v.should_equal (expected.at i)
+
+    Test.group "Regression" <|
+
+
+main = Test.Suite.run_main spec
