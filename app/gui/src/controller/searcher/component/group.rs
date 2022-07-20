@@ -124,20 +124,13 @@ impl Group {
         })
     }
 
-    /// Modify a [`Group`] keeping only the [`Component`]s for which `f` returns [`true`].
-    pub fn retain_entries<F>(&mut self, f: F)
+    /// Modify the group keeping only the [`Component`]s for which `f` returns [`true`].
+    pub fn retain_entries<F>(&mut self, mut f: F)
     where F: FnMut(&Component) -> bool {
-        let mut group_data = Rc::unwrap_or_clone(self.data);
-        group_data.entries.borrow_mut().retain(f);
+        let group_data = Rc::make_mut(&mut self.data);
+        group_data.entries.borrow_mut().retain(&mut f);
         group_data.initial_entries_order.retain(f);
         group_data.update_matched_items();
-        self.data = Rc::new(group_data);
-        // let mut initial_entries_order = std::mem::take(&mut group_data.initial_entries_order);
-        // initial_entries_order.retain(f);
-        // let entries = RefCell::new(initial_entries_order.clone());
-        // let matched_items = Cell::new(initial_entries_order.len());
-        // let data = Rc::new(Data { initial_entries_order, entries, matched_items, ..group_data });
-        // Group { data }
     }
 
     /// Update the group sorting according to the `order` and update information about matched items
