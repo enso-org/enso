@@ -103,7 +103,7 @@ use enso_shapely_macros::tagged_enum;
 // =============
 
 /// The lexical token definition. See the module docs to learn more about its usage scenarios.
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Token<'s, T = Variant> {
     #[deref]
@@ -248,6 +248,8 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
     #[allow(missing_docs)]
     #[tagged_enum(apply_attributes_to = "variants")]
     #[reflect(inline)]
+    #[tagged_enum(apply_attributes_to = "variant-types")]
+    #[derive(Default)]
     pub enum Variant {
         Newline,
         Symbol,
@@ -271,6 +273,12 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         TextEscape,
     }
 }}}
+
+impl Default for Variant {
+    fn default() -> Self {
+        Self::Newline(variant::Newline {})
+    }
+}
 
 macro_rules! generate_token_aliases {
     (
