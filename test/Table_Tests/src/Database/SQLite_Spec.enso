@@ -82,6 +82,6 @@ spec =
     sqlite_spec (Database.connect (SQLite file)) "[SQLite] "
     file.delete
 
-    sqlite_spec (Database.connect (SQLite InMemory)) "[SQLite Memory] "
+    sqlite_spec (Database.connect (SQLite In_Memory)) "[SQLite Memory] "
 
 main = Test.Suite.run_main spec

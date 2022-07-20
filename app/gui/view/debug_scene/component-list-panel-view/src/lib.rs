@@ -46,10 +46,10 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ide_view_component_group as component_group;
+use ide_view_component_list_panel::ComponentBrowserPanel;
+use ide_view_component_list_panel::LabeledAnyModelProvider;
 use js_sys::Math;
 use list_view::entry::AnyModelProvider;
-use searcher_list_panel::ComponentBrowserPanel;
-use searcher_list_panel::LabeledAnyModelProvider;
 
 
 
@@ -134,7 +134,7 @@ fn mock_data() -> Vec<LabeledAnyModelProvider> {
     .enumerate()
     .map(|(index, mock_entries)| LabeledAnyModelProvider {
         content: AnyModelProvider::from(mock_entries.clone_ref()),
-        label:   format!("Header {}", index),
+        label:   format!("Header {}", index).into(),
     })
     .collect_vec()
 }
@@ -171,6 +171,7 @@ fn init_local_cope_section(searcher_list_panel: &ComponentBrowserPanel) {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
+    init_tracing(WARN);
     ensogl_text_msdf_sys::run_once_initialized(|| {
         let app = &Application::new("root");
         theme::builtin::light::register(&app);
@@ -182,6 +183,7 @@ pub fn main() {
         let navigator = Navigator::new(scene, &camera);
 
         let searcher_list_panel = ComponentBrowserPanel::new(app);
+        app.display.default_scene.layers.node_searcher.add_exclusive(&searcher_list_panel);
         searcher_list_panel.model().set_navigator(Some(navigator.clone()));
 
         init_favourites_section(&searcher_list_panel);

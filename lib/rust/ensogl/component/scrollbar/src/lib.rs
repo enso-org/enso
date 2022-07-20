@@ -81,6 +81,8 @@ ensogl_core::define_endpoints! {
     Output {
         /// Scroll position in scroll units.
         thumb_position (f32),
+        /// The target of the scroll position animation in scroll units.
+        thumb_position_target (f32),
     }
 }
 
@@ -133,6 +135,7 @@ impl Frp {
             thumb_position.target     <+ all_with3(&unbounded_target_position,&frp.set_thumb_size,
                 &frp.set_max,|target,&size,&max| target.min(max-size).max(0.0));
             thumb_position.skip       <+ frp.jump_to.constant(());
+            frp.source.thumb_position_target <+ thumb_position.target;
             frp.source.thumb_position <+ thumb_position.value;
 
 

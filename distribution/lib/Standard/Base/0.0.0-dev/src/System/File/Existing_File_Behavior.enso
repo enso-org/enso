@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.System.File.Option
 import Standard.Base.Error.Common
-from Standard.Base.System.File import File_Already_Exists_Error, Io_Error, File_Not_Found
+from Standard.Base.System.File import File_Already_Exists_Error, IO_Error, File_Not_Found
 
 ## Specifies the behavior of a write operation when the destination file
    already exists.
@@ -38,13 +38,13 @@ type Existing_File_Behavior
 
        The `action` may not be run at all in case the `Error` behavior is
        selected.
-    write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | Io_Error | File_Already_Exists_Error
+    write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | IO_Error | File_Already_Exists_Error
     write file action =
         case self of
             Overwrite -> file.with_output_stream [Option.Write, Option.Create, Option.Truncate_Existing] action
             Append -> file.with_output_stream [Option.Write, Option.Create, Option.Append] action
             Error -> file.with_output_stream [Option.Write, Option.Create_New] action
-            Backup -> Panic.recover [Io_Error, File_Not_Found] <|
+            Backup -> Panic.recover [IO_Error, File_Not_Found] <|
                 handle_existing_file _ =
                     write_file_backing_up_old_one file action
                 handle_write_failure_dataflow caught_panic =
@@ -61,8 +61,8 @@ type Existing_File_Behavior
                             Panic.throw (Internal_Write_Operation_Errored dataflow_error)
 
 ## PRIVATE
-write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | Io_Error | File_Already_Exists_Error
-write_file_backing_up_old_one file action = Panic.recover [Io_Error, File_Not_Found] <|
+write_file_backing_up_old_one : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | IO_Error | File_Already_Exists_Error
+write_file_backing_up_old_one file action = Panic.recover [IO_Error, File_Not_Found] <|
     parent = file.parent
     bak_file = parent / file.name+".bak"
     go i =

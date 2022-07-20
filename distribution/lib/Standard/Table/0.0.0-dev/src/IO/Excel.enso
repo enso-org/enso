@@ -2,7 +2,7 @@ from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.System.File.Option
-from Standard.Table.Io.File_Format import Infer
+from Standard.Table.IO.File_Format import Infer
 
 import Standard.Table.Data.Table
 from Standard.Table.Errors as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
@@ -259,7 +259,7 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
    Handle and map the Java errors when reading an Excel file
 handle_reader : File -> (Input_Stream -> (Table | Vector)) -> (Table | Vector)
 handle_reader file reader =
-    bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
+    bad_format caught_panic = Error.throw (File.IO_Error file caught_panic.payload.cause.getMessage)
     handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
 
     bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
