@@ -400,7 +400,7 @@ pub(crate) mod tests {
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
         let mut builder = builder::List::new().with_local_scope_module_id(0);
-        builder.set_structure_of_favorites(&suggestion_db, &favorites);
+        builder.set_grouping_and_order_of_favorites(&suggestion_db, &favorites);
         builder.extend_list_and_enable_matching_favorites(&suggestion_db, 0..4);
         let list = builder.build();
 
