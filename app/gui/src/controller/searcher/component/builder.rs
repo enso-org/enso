@@ -212,20 +212,43 @@ impl List {
     }
 
     fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
+        let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
+        let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
         let allowed_favorites = &self.allowed_favorites;
         let id_in_allowed_favs = |c: &Component| allowed_favorites.contains(&c.id);
-        let favorites_groups = std::mem::take(&mut self.grouping_and_order_of_favorites)
-            .into_iter()
-            .map(|mut g| {
-                g.retain_entries(id_in_allowed_favs);
-                g
-            })
-            .collect_vec();
-        let favorites = component::group::List::new(favorites_groups);
-        for group in &*favorites {
+        for group in favorites_groups.iter_mut() {
+            group.retain_entries(id_in_allowed_favs);
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
-        favorites
+        component::group::List::new(favorites_groups)
+
+//         let favorites_groups = std::mem::take(&mut self.grouping_and_order_of_favorites).into_iter().collect_vec();
+
+//         let retain_allowed_entries_in_group = |mut group| {
+//             g.retain_entries(id_in_allowed_favs);
+//             g
+//         };
+//         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
+//         let favorites: component::Group::List = grouping_and_order
+//             .into_iter()
+//             .map(|mut g|
+//         // let group_retaining_entries_allowed_in_favs = |group| 
+//         // let favorites_groups = std::mem::take(&mut self.grouping_and_order_of_favorites)
+//         let favorites_groups = std::mem::take(&mut self.grouping_and_order_of_favorites).into_iter().collect_vec();
+//         for g in favorites {
+//             g.retain_entries(id_in_allowed_favs);
+//         }
+//             // .into_iter()
+//             // .map(|mut g| {
+//             //     g.retain_entries(id_in_allowed_favs);
+//             //     g
+//             // })
+//             // .collect_vec();
+//         // let favorites = component::group::List::new(favorites_groups);
+//         for group in &*favorites {
+//             self.all_components.extend(group.entries.borrow().iter().cloned());
+//         }
+//         favorites
     }
 }
 
