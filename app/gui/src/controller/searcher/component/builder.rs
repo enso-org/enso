@@ -1,7 +1,7 @@
 //! A module with entities used for building proper [`component::List`].
 //!
 //! The [`List`] type builds a [`component::List`] with contents sorted as described below:
-//!  - [`component::Group`]s are sorted alphabetically by module name;
+//!  - [`component::Group`]s are sorted alphabetically by name;
 //!  - [`Component`]s in each [`component::Group`] are ordered by non-modules sorted alphabetically
 //!    followed by modules sorted alphabetically;
 //!  - [`Component`]s and [`component::Group`]s in [`component::List::favorites`] keep the grouping
