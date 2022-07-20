@@ -93,9 +93,9 @@ pub struct List {
     module_groups:                   HashMap<component::Id, ModuleGroups>,
     local_scope:                     component::Group,
     grouping_and_order_of_favorites: component::group::List,
-    /// IDs of [`Component`]s that should be added to [`component::List::favorites`] if they are
-    /// present in [`grouping_and_order_of_favorites`].
-    favorites_to_enable:             HashSet<component::Id>,
+    /// IDs of [`Component`]s allowed in [`component::List::favorites`] if they are also present in
+    /// [`grouping_and_order_of_favorites`].
+    allowed_favorites:               HashSet<component::Id>,
 }
 
 impl List {
@@ -126,7 +126,7 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
-            self.favorites_to_enable.insert(*component.id);
+            self.allowed_favorites.insert(*component.id);
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
@@ -229,11 +229,11 @@ impl List {
     }
 
     fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
-        let favorites_to_enable = &self.favorites_to_enable;
-        let id_in_favs_to_enable = |c: &Component| favorites_to_enable.contains(&c.id);
+        let allowed_favorites = &self.allowed_favorites;
+        let id_in_allowed_favs = |c: &Component| allowed_favorites.contains(&c.id);
         let favorites_groups = std::mem::take(&mut self.grouping_and_order_of_favorites)
             .into_iter()
-            .map(|g| g.with_entries_in_initial_order_and_filtered(id_in_favs_to_enable))
+            .map(|g| g.with_entries_in_initial_order_and_filtered(id_in_allowed_favs))
             .collect_vec();
         let favorites = component::group::List::new(favorites_groups);
         for group in &*favorites {
