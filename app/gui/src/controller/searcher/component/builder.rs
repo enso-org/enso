@@ -11,9 +11,6 @@
 //! When using the [`List`] type to build a [`component::List`], the components and groups are
 //! sorted once and [`component::List::favorites`] will contain only [`Component`]s with IDs passed
 //! to [`List::extend_list_and_enable_favorites_with_ids`].
-//!
-//!
-//! Using the [`List`] type instead of iteratively extending a [`component::List`] 
 
 use crate::prelude::*;
 
