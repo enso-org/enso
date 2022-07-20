@@ -68,6 +68,10 @@ ensogl_core::define_endpoints! {
         scroll_position_x (f32),
         /// The content's y coordinate at the top edge of the area.
         scroll_position_y (f32),
+        /// The target of the content's x coordinate animation.
+        scroll_position_target_x (f32),
+        /// The target of the content's y coordinate animation.
+        scroll_position_target_y (f32),
         /// The visible content's height in px.
         scroll_area_height (f32),
         /// Position of the scroll viewport.
@@ -283,6 +287,8 @@ impl ScrollArea {
 
             frp.source.scroll_position_x <+ model.h_scrollbar.thumb_position.map(|x| -x);
             frp.source.scroll_position_y <+ model.v_scrollbar.thumb_position;
+            frp.source.scroll_position_target_x <+ model.h_scrollbar.thumb_position_target.map(|x| -x);
+            frp.source.scroll_position_target_y <+ model.v_scrollbar.thumb_position_target;
 
             eval frp.scroll_position_x((&pos) model.content.set_position_x(pos));
             eval frp.scroll_position_y((&pos) model.content.set_position_y(pos));
