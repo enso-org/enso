@@ -8,9 +8,11 @@
 //!  - [`Component`]s and [`component::Group`]s in [`component::List::favorites`] keep the grouping
 //!    and order set with [`List::set_grouping_and_order_of_favorites`].
 //!
-//! When using the [`List`] type to build a [`component::List`], the components and groups are
-//! sorted once and [`component::List::favorites`] will contain only [`Component`]s with IDs passed
-//! to [`List::extend_list_and_enable_favorites_with_ids`].
+//! When using the [`List`] type to build a [`component::List`]:
+//!  - the components and groups are sorted once;
+//!  - [`component::List::favorites`] will contain only [`Component`]s with IDs that were passed
+//!    both to [`List::set_grouping_and_order_of_favorites`] and
+//!    [`List::extend_list_and_enable_favorites_with_ids`].
 
 use crate::prelude::*;
 
