@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Base.System.File import File_Already_Exists_Error
 from Standard.Base.Error.Problem_Behavior import all
 import Standard.Base.System.Platform

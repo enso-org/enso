@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Json
 import Standard.Base.Data.Time.Duration
+
 import Standard.Base.Network.Http
 import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
@@ -12,7 +12,7 @@ import Standard.Base.Network.Http.Status_Code
 import Standard.Base.Network.Http.Version
 import Standard.Base.Network.Proxy
 import Standard.Base.Network.Uri
-import Standard.Base.System.File
+
 import Standard.Test
 
 polyglot java import java.lang.System
@@ -44,7 +44,7 @@ spec =
             http = Http.new (version = version_setting)
             http.version.should_equal version_setting
         Test.specify "should throw error when requesting invalid Uri" <|
-            Http.new.get "not a uri" . should_fail_with Uri.Syntax_Error
+            Http.new.get "not a uri" . should_fail_with Syntax_Error
 
         Test.specify "should send Get request" <|
             expected_response = Json.parse <| '''
