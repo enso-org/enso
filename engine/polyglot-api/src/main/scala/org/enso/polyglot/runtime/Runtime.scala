@@ -477,24 +477,58 @@ object Runtime {
       expressionId: ExpressionId
     )
 
+    /** A visualization expression. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[VisualisationExpression.Text],
+          name  = "visualisationExpressionText"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[VisualisationExpression.ModuleMethod],
+          name  = "visualisationExpressionModuleMethod"
+        )
+      )
+    )
+    sealed trait VisualisationExpression {
+      def module: String
+    }
+    object VisualisationExpression {
+
+      /** Visualization expression represented as a text.
+        *
+        * @param module a qualified module name containing the expression
+        * @param expression an expression that creates a visualization
+        */
+      case class Text(module: String, expression: String)
+          extends VisualisationExpression
+
+      /** Visualization expression represented as a module method.
+        *
+        * @param methodPointer a pointer to a method definition
+        */
+      case class ModuleMethod(methodPointer: MethodPointer)
+          extends VisualisationExpression {
+        override val module: String = methodPointer.module
+      }
+    }
+
     /** A configuration object for properties of the visualisation.
       *
       * @param executionContextId an execution context of the visualisation
-      * @param visualisationModule a qualified name of the module containing
-      *                            the expression which creates visualisation
       * @param expression the expression that creates a visualisation
       */
     case class VisualisationConfiguration(
       executionContextId: ContextId,
-      visualisationModule: String,
-      expression: String
+      expression: VisualisationExpression
     ) extends ToLogString {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         s"VisualisationConfiguration(" +
         s"executionContextId=$executionContextId," +
-        s"visualisationModule=$visualisationModule,expression=" +
+        s"expression=" +
         (if (shouldMask) STUB else expression) +
         ")"
     }

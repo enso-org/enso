@@ -324,8 +324,10 @@ class RuntimeVisualisationsTest
           idMainRes,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> encode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> encode x"
+            )
           )
         )
       )
@@ -436,8 +438,10 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> encode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> encode x"
+            )
           )
         )
       )
@@ -565,8 +569,10 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> encode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> encode x"
+            )
           )
         )
       )
@@ -688,8 +694,10 @@ class RuntimeVisualisationsTest
           context.Main.idMainZ,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "encode"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "encode"
+            )
           )
         )
       )
@@ -809,8 +817,10 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> encode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> encode x"
+            )
           )
         )
       )
@@ -845,8 +855,10 @@ class RuntimeVisualisationsTest
           visualisationId,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> incAndEncode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> incAndEncode x"
+            )
           )
         )
       )
@@ -912,8 +924,10 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> encode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> encode x"
+            )
           )
         )
       )
@@ -1065,8 +1079,10 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "encode"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "encode"
+            )
           )
         )
       )
@@ -1170,8 +1186,10 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> encode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> encode x"
+            )
           )
         )
       )
@@ -1206,8 +1224,10 @@ class RuntimeVisualisationsTest
           visualisationId,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> incAndEncode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> incAndEncode x"
+            )
           )
         )
       )
@@ -1295,8 +1315,10 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Undefined",
-            "x -> x"
+            Api.VisualisationExpression.Text(
+              "Test.Undefined",
+              "x -> x"
+            )
           )
         )
       )
@@ -1355,8 +1377,10 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            "Standard.Visualization.Id",
-            "x -> x.default_visualization.to_text"
+            Api.VisualisationExpression.Text(
+              "Standard.Visualization.Id",
+              "x -> x.default_visualization.to_text"
+            )
           )
         )
       )
@@ -1442,8 +1466,10 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Main",
-            "Main.does_not_exist"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Main",
+              "Main.does_not_exist"
+            )
           )
         )
       )
@@ -1516,8 +1542,10 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            moduleName,
-            "x -> x.visualise_me"
+            Api.VisualisationExpression.Text(
+              moduleName,
+              "x -> x.visualise_me"
+            )
           )
         )
       )
@@ -1621,8 +1649,10 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "inc_and_encode"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "inc_and_encode"
+            )
           )
         )
       )
@@ -1733,8 +1763,10 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            moduleName,
-            "x -> x.catch_primitive _.to_text"
+            Api.VisualisationExpression.Text(
+              moduleName,
+              "x -> x.catch_primitive _.to_text"
+            )
           )
         )
       )
@@ -1819,8 +1851,10 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            moduleName,
-            "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text"
+            Api.VisualisationExpression.Text(
+              moduleName,
+              "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text"
+            )
           )
         )
       )
@@ -1933,8 +1967,10 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            visualisationModule,
-            visualisationCode
+            Api.VisualisationExpression.Text(
+              visualisationModule,
+              visualisationCode
+            )
           )
         )
       )
@@ -1960,6 +1996,124 @@ class RuntimeVisualisationsTest
     }
     val stringified = new String(data)
     stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty."}"""
+  }
+
+  it should "attach method pointer visualisation" in {
+    val idMainRes = context.Main.metadata.addItem(99, 1)
+    val contents  = context.Main.code
+    val mainFile  = context.writeMain(context.Main.code)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code
+        )
+      )
+    )
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      TestMessages.update(contextId, idMainRes, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMainRes,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.ModuleMethod(
+              Api.MethodPointer(
+                "Enso_Test.Test.Visualisation",
+                "Enso_Test.Test.Visualisation",
+                "incAndEncode"
+              )
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses = context.receiveN(3)
+    attachVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMainRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    data.sameElements("51".getBytes) shouldBe true
+
+    // recompute
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+
+    val recomputeResponses = context.receiveN(3)
+    recomputeResponses should contain allOf (
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    val Some(data2) = recomputeResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMainRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    data2.sameElements("51".getBytes) shouldBe true
   }
 
   it should "cache intermediate visualization expressions" in {
@@ -2022,8 +2176,10 @@ class RuntimeVisualisationsTest
           idMainRes,
           Api.VisualisationConfiguration(
             contextId,
-            "Enso_Test.Test.Visualisation",
-            "x -> incAndEncode x"
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> incAndEncode x"
+            )
           )
         )
       )

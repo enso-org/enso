@@ -35,6 +35,7 @@ import org.enso.interpreter.service.error.SourceNotFoundException;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
+import org.enso.polyglot.runtime.Runtime;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
 
@@ -87,7 +88,7 @@ public class ExecutionService {
     return logger;
   }
 
-  private FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
+  public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
       Module module, String consName, String methodName)
       throws ConstructorNotFoundException, MethodNotFoundException {
     ModuleScope scope = module.compileScope(context);
@@ -260,18 +261,22 @@ public class ExecutionService {
         (function instanceof Function) ? ((Function) function).getCallTarget() : null;
     var methodCallsCache = new MethodCallsCache();
     var syncState = new UpdatesSynchronizationState();
-    Consumer<IdExecutionService.ExpressionCall> funCallCallback = (x) -> {
-      context.getLogger().info("!!!! funCallCallback " + x.getExpressionId());
-    };
-    Consumer<IdExecutionService.ExpressionValue> onComputedCallback = (x) -> {
-      context.getLogger().info("!!!! onComputedCallback " + x.getExpressionId());
-    };
-    Consumer<IdExecutionService.ExpressionValue> onCachedCallback = (x) -> {
-      context.getLogger().info("!!!! onCachedCallback " + x.getExpressionId());
-    };
-    Consumer<Exception> onExceptionalCallback = (x) -> {
-      context.getLogger().info("!!!! onExceptionCallback");
-    };
+    Consumer<IdExecutionService.ExpressionCall> funCallCallback =
+        (x) -> {
+          context.getLogger().info("!!!! funCallCallback " + x.getExpressionId());
+        };
+    Consumer<IdExecutionService.ExpressionValue> onComputedCallback =
+        (x) -> {
+          context.getLogger().info("!!!! onComputedCallback " + x.getExpressionId());
+        };
+    Consumer<IdExecutionService.ExpressionValue> onCachedCallback =
+        (x) -> {
+          context.getLogger().info("!!!! onCachedCallback " + x.getExpressionId());
+        };
+    Consumer<Exception> onExceptionalCallback =
+        (x) -> {
+          context.getLogger().info("!!!! onExceptionCallback");
+        };
     Optional<EventBinding<ExecutionEventListener>> listener =
         idExecutionInstrument.map(
             service ->

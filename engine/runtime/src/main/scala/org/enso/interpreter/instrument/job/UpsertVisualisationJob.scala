@@ -16,6 +16,7 @@ import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExpressionId,
   RequestId,
@@ -49,11 +50,11 @@ class UpsertVisualisationJob(
     ctx.locking.acquireWriteCompilationLock()
     try {
       val maybeCallable =
-        evaluateExpression(config.visualisationModule, config.expression)
+        evaluateVisualisationExpression(config.expression)
 
       maybeCallable match {
         case Left(ModuleNotFound) =>
-          replyWithModuleNotFoundError()
+          replyWithModuleNotFoundError(config.expression.module)
           None
 
         case Left(EvaluationFailed(message, result)) =>
@@ -122,14 +123,11 @@ class UpsertVisualisationJob(
     )
   }
 
-  private def replyWithModuleNotFoundError()(implicit
+  private def replyWithModuleNotFoundError(module: String)(implicit
     ctx: RuntimeContext
   ): Unit = {
     ctx.endpoint.sendToClient(
-      Api.Response(
-        requestId,
-        Api.ModuleNotFound(config.visualisationModule)
-      )
+      Api.Response(requestId, Api.ModuleNotFound(module))
     )
   }
 
@@ -147,14 +145,25 @@ class UpsertVisualisationJob(
 
   private def evaluateModuleExpression(
     module: Module,
-    expression: String,
+    expression: Api.VisualisationExpression,
     retryCount: Int = 0
   )(implicit
     ctx: RuntimeContext
   ): Either[EvalFailure, AnyRef] =
     Either
       .catchNonFatal {
-        ctx.executionService.evaluateExpression(module, expression)
+        expression match {
+          case Api.VisualisationExpression.Text(_, expression) =>
+            ctx.executionService.evaluateExpression(module, expression)
+          case Api.VisualisationExpression.ModuleMethod(
+                Api.MethodPointer(_, definedOnType, name)
+              ) =>
+            ctx.executionService.prepareFunctionCall(
+              module,
+              QualifiedName.fromString(definedOnType).item,
+              name
+            )
+        }
       }
       .leftFlatMap {
         case _: ThreadInterruptedException
@@ -197,15 +206,14 @@ class UpsertVisualisationJob(
           )
       }
 
-  private def evaluateExpression(
-    moduleName: String,
-    expression: String
-  )(implicit ctx: RuntimeContext): Either[EvalFailure, AnyRef] =
+  private def evaluateVisualisationExpression(
+    expression: Api.VisualisationExpression
+  )(implicit ctx: RuntimeContext): Either[EvalFailure, AnyRef] = {
     for {
-      module     <- findModule(moduleName)
+      module     <- findModule(expression.module)
       expression <- evaluateModuleExpression(module, expression)
     } yield expression
-
+  }
 }
 
 object UpsertVisualisationJob {
