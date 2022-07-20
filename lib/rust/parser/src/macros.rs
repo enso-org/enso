@@ -106,8 +106,7 @@ fn matched_segments_into_multi_segment_app(
     let segments = matched_segments.mapped(|segment| {
         let header = segment.header;
         let tokens = segment.result.tokens();
-        let body = (!tokens.is_empty())
-            .as_some_from(|| syntax::operator::resolve_operator_precedence(tokens));
+        let body = syntax::operator::resolve_operator_precedence_if_non_empty(tokens);
         syntax::tree::MultiSegmentAppSegment { header, body }
     });
     syntax::Tree::multi_segment_app(segments)

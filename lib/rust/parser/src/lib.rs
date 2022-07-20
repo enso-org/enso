@@ -79,10 +79,12 @@
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(allocator_api)]
+#![feature(exact_size_is_empty)]
 #![feature(test)]
 #![feature(specialization)]
 #![feature(let_chains)]
 #![feature(if_let_guard)]
+#![feature(box_patterns)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -147,15 +149,8 @@ impl Parser {
     /// Main entry point.
     pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
         let tokens = lexer::run(code);
-        let mut statements = vec![];
-        let mut tokens = tokens.into_iter().peekable();
-        while tokens.peek().is_some() {
-            let resolver = macros::resolver::Resolver::new_root();
-            let tree = resolver.run(&self.macros, &mut tokens);
-            let tree = expression_to_statement(tree);
-            statements.push(tree);
-        }
-        syntax::Tree::block(statements)
+        let resolver = macros::resolver::Resolver::new_root();
+        resolver.run(&self.macros, tokens)
     }
 }
 
@@ -172,73 +167,41 @@ impl Default for Parser {
 ///
 /// In statement context, an expression that has an assignment operator at its top level is
 /// interpreted as a variable assignment or method definition.
-fn expression_to_statement(tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
+fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    let tree_ = match &*tree.variant {
+    let tree_ = match &mut *tree.variant {
         Variant::OprSectionBoundary(OprSectionBoundary { ast }) => ast,
-        _ => &tree,
+        _ => &mut tree,
     };
-    let mut replacement = None;
-    if let Variant::OprApp(opr_app) = &*tree_.variant {
-        replacement = expression_to_binding(opr_app);
-    }
-    match replacement {
-        Some(modified) => modified,
-        None => tree,
-    }
-}
-
-/// If the input is an "=" expression, try to interpret it as either a variable assignment or method
-/// definition.
-fn expression_to_binding<'a>(app: &syntax::tree::OprApp<'a>) -> Option<syntax::Tree<'a>> {
-    use syntax::tree::*;
-    match app {
-        OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } if opr.code == "=" => {
-            let mut lhs = lhs;
-            let mut args = vec![];
-            while let Variant::App(App { func, arg }) = &*lhs.variant {
-                lhs = func;
-                args.push(arg.clone());
-            }
-            args.reverse();
-            if let Some(rhs) = rhs && args.is_empty() {
-                Some(Tree::assignment(lhs.clone(), opr.clone(), rhs.clone()))
-            } else if let Variant::Ident(Ident { token }) = &*lhs.variant {
-                Some(Tree::function(token.clone(), args, opr.clone(), rhs.clone()))
-            } else {
-                None
-            }
+    let opr_app = match &mut *tree_.variant {
+        Variant::OprApp(opr_app) => opr_app,
+        _ => return tree,
+    };
+    if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.code == "=" {
+        let mut args = vec![];
+        let mut lhs = lhs;
+        while let Tree { variant: box Variant::App(App { func, arg }), .. } = lhs {
+            lhs = func;
+            args.push(arg.clone());
         }
-        _ => None,
+        args.reverse();
+        if args.is_empty() && let Some(rhs) = rhs && !is_body_block(rhs) {
+            // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
+            // this is a variable assignment.
+            return Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs))
+        }
+        if let Variant::Ident(Ident { token }) = &mut *lhs.variant {
+            // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
+            // an identifier, this is a function definition.
+            return Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs))
+        }
     }
+    tree
 }
 
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use enso_parser_syntax_tree_builder::ast_builder;
-
-    macro_rules! test_parse {
-        ($input:tt = {$($def:tt)*}) => {
-            assert_eq!(
-                Parser::new().run($input),
-                ast_builder! { $($def)* }
-            )
-        };
-    }
-
-    #[test]
-    fn test_expressions() {
-        test_parse! {"a" = {a}};
-        test_parse! {"a b" = {a b}};
-        test_parse! {"a b c" = {[a b] c}};
-    }
+/// Return whether the expression is a body block.
+fn is_body_block(expression: &syntax::tree::Tree<'_>) -> bool {
+    matches!(&*expression.variant, syntax::tree::Variant::BodyBlock { .. })
 }
 
 
@@ -257,6 +220,46 @@ mod benches {
     fn bench_parsing_type_defs(bencher: &mut Bencher) {
         let reps = 1_000;
         let str = "type Option a b c\n".repeat(reps);
+        let parser = Parser::new();
+        bencher.iter(move || {
+            parser.run(&str);
+        });
+    }
+
+    #[bench]
+    fn bench_blocks(bencher: &mut Bencher) {
+        use rand::prelude::*;
+        use rand_chacha::ChaCha8Rng;
+        let lines = 10_000;
+        let mut str = String::new();
+        let mut rng = ChaCha8Rng::seed_from_u64(0);
+        let mut indent = 0u32;
+        for _ in 0..lines {
+            // Indent:
+            // 1/8 chance of increasing.
+            // 1/8 chance of decreasing.
+            // 3/4 chance of leaving unchanged.
+            match rng.gen_range(0..8) {
+                0u32 => indent = indent.saturating_sub(1),
+                1 => indent += 1,
+                _ => (),
+            }
+            for _ in 0..indent {
+                str.push(' ');
+            }
+            // 1/4 chance of operator-block line syntax.
+            if rng.gen_range(0..4) == 0u32 {
+                str.push_str("* ");
+            }
+            str.push('x');
+            // Equal chance of the next line being interpreted as a body block or argument block
+            // line, if it is indented and doesn't match the operator-block syntax.
+            // The `=` operator is chosen to exercise the expression-to-statement conversion path.
+            if rng.gen() {
+                str.push_str(" =");
+            }
+            str.push('\n');
+        }
         let parser = Parser::new();
         bencher.iter(move || {
             parser.run(&str);
