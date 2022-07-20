@@ -9,11 +9,11 @@ import Standard.Base.System
 import Standard.Table
 import Standard.Table.Data.Column
 from Standard.Table.Errors import all
-import Standard.Table.Io.File_Read
-from Standard.Table.Io.File_Format import Delimited
+import Standard.Table.IO.File_Read
+from Standard.Table.IO.File_Format import Delimited
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Table.Io.Quote_Style
-from Standard.Table.Io.Line_Ending_Style import all
+import Standard.Table.IO.Quote_Style
+from Standard.Table.IO.Line_Ending_Style import all
 import Standard.Table.Data.Match_Columns
 import Standard.Table.Data.Column_Name_Mapping
 from Standard.Table.Errors as Table_Errors import Column_Count_Mismatch, Column_Name_Mismatch

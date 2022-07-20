@@ -1,5 +1,5 @@
 from Standard.Base import Nothing
-from Standard.Table.Io.File_Format import Infer
+from Standard.Table.IO.File_Format import Infer
 
 ## Specifies what line endings to use in a file format.
 type Line_Ending_Style

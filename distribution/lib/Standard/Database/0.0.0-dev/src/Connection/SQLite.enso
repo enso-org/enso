@@ -6,7 +6,7 @@ import Standard.Database.Connection.Connection_Options
 
 ## Connect to a SQLite DB File or InMemory DB.
 type SQLite
-    type SQLite (location:(InMemory|File|Text))
+    type SQLite (location:(In_Memory|File|Text))
 
     ## Build the Connection resource.
     connect : Connection_Options
@@ -17,7 +17,7 @@ type SQLite
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url = case self.location of
-        InMemory -> "jdbc:sqlite::memory:"
+        In_Memory -> "jdbc:sqlite::memory:"
         _ -> "jdbc:sqlite:" + ((File.new self.location).absolute.path.replace '\\' '/')
 
     ## Provides the properties for the connection.
@@ -29,5 +29,5 @@ type SQLite
     dialect = Dialect.sqlite
 
 ## Connect to an in-memory SQLite database.
-type InMemory
-    type InMemory
+type In_Memory
+    type In_Memory
