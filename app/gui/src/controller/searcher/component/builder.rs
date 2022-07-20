@@ -1,7 +1,6 @@
 //! A module with entities used for building proper [`component::List`].
 //!
 //! The [`List`] type builds a [`component::List`] with contents sorted as described below:
-//!
 //!  - [`component::Group`]s are sorted alphabetically by name;
 //!  - [`Component`]s in each [`component::Group`] are ordered: non-modules sorted alphabetically,
 //!    followed by modules sorted alphabetically;
@@ -9,10 +8,14 @@
 //!    and order set with [`List::set_grouping_and_order_of_favorites`].
 //!
 //! When using the methods of the [`List`] type to build a [`component::List`]:
-//!  - the components and groups are sorted once;
-//!  - [`component::List::favorites`] contains only [`Component`]s with IDs that were passed
-//!    both to [`List::set_grouping_and_order_of_favorites`] and
+//!  - The components and groups are sorted once.
+//!  - The [`component::List::favorites`] contain only components with IDs that were passed
+//!    both to [`List::set_grouping_and_order_of_favorites`] and to
 //!    [`List::extend_list_and_allow_favorites_with_ids`].
+//!  - Empty component groups are allowed in favorites. (This simplifies distributing groups of
+//!    favorites over columns in [Component Browser](crate::controller::Searcher) consistently.
+//!    That's because for the same input to [`List::set_grouping_and_order_of_favorites`], the same
+//!    number of groups will be always present in favorites.)
 
 use crate::prelude::*;
 
@@ -141,10 +144,10 @@ impl List {
         }
     }
 
-    /// Set the favorites in the list. Components are looked up by ID in the suggestion database.
-    /// When [`build`]ing a [`component::List`], only [`Component`]s with IDs passed to
-    /// [`extend_list_and_allow_favorites_with_ids`]
-    /// will be retained (see the documentation of the [`build`] method).
+    /// Set the grouping and order of [`Components`] in [`component::List::favorites`]. A
+    /// [`Component`] with ID passed to the method will be added to favorites only if it is also
+    /// passed to [`extend_list_and_allow_favorites_with_ids`] and present in the suggestion
+    /// database.
     pub fn set_grouping_and_order_of_favorites<'a>(
         &mut self,
         db: &model::SuggestionDatabase,
@@ -181,14 +184,7 @@ impl List {
         }
     }
 
-    /// Build the list, sorting all group lists and groups' contents appropriately. Filter the
-    /// [`component::List::grouping_and_order_of_favorites`] (only components with IDs passed to
-    /// [`extend_list_and_allow_favorites_with_ids`] are
-    /// retained), do not sort them.
-    ///
-    /// If a [`component::Group`] in favorites is empty after the filtering, the empty group is
-    /// retained. This allows laying out the favorites in [Component
-    /// Browser](crate::controller::Searcher) in the same columns regardless of filtering.
+    /// Build the list as described in the module's documentation.
     pub fn build(mut self) -> component::List {
         let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
