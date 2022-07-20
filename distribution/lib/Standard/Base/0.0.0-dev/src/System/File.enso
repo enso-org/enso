@@ -382,7 +382,7 @@ type File
              example_permissions = Examples.csv.posix_permissions.group_read
     posix_permissions : File_Permissions
     posix_permissions =
-        File_Permissions.from_java_set self.posix_permissions_builtin
+        File_Permissions.from_java_array self.posix_permissions_builtin
 
     ## PRIVATE
 

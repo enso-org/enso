@@ -76,28 +76,22 @@ type File_Permissions
     others_execute : Boolean
     others_execute = self.others.contains Execute
 
-## Converts a Java `Set` of Java `PosixFilePermission` to `File_Permissions`.
-from_java_set java_set =
+## Converts an Array of Java `PosixFilePermission` to `File_Permissions`.
+from_java_array java_array =
     owner = Vector.new_builder
     group = Vector.new_builder
     others = Vector.new_builder
 
-    if java_set.contains PosixFilePermission.OWNER_READ then
-        owner.append Read
-    if java_set.contains PosixFilePermission.OWNER_WRITE then
-        owner.append Write
-    if java_set.contains PosixFilePermission.OWNER_EXECUTE then
-        owner.append Execute
-    if java_set.contains PosixFilePermission.GROUP_READ then
-        group.append Read
-    if java_set.contains PosixFilePermission.GROUP_WRITE then
-        group.append Write
-    if java_set.contains PosixFilePermission.GROUP_EXECUTE then
-        group.append Execute
-    if java_set.contains PosixFilePermission.OTHERS_READ then
-        others.append Read
-    if java_set.contains PosixFilePermission.OTHERS_WRITE then
-        others.append Write
-    if java_set.contains PosixFilePermission.OTHERS_EXECUTE then
-        others.append Execute
+    0.up_to java_array.length . each i->
+        permission = java_array.get i
+        if permission == PosixFilePermission.OWNER_READ then owner.append Read
+        if permission == PosixFilePermission.OWNER_WRITE then owner.append Write
+        if permission == PosixFilePermission.OWNER_EXECUTE then owner.append Execute
+        if permission == PosixFilePermission.GROUP_READ then group.append Read
+        if permission == PosixFilePermission.GROUP_WRITE then group.append Write
+        if permission == PosixFilePermission.GROUP_EXECUTE then group.append Execute
+        if permission == PosixFilePermission.OTHERS_READ then others.append Read
+        if permission == PosixFilePermission.OTHERS_WRITE then others.append Write
+        if permission == PosixFilePermission.OTHERS_EXECUTE then others.append Execute
+
     File_Permissions owner.to_vector group.to_vector others.to_vector

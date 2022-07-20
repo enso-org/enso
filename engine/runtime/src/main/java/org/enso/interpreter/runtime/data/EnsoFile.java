@@ -19,10 +19,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.CopyOption;
 import java.nio.file.OpenOption;
-import java.nio.file.attribute.PosixFilePermission;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.Set;
 
 /**
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
@@ -84,9 +82,8 @@ public class EnsoFile implements TruffleObject {
 
   @Builtin.Method(name = "posix_permissions_builtin")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
-  @Builtin.ReturningGuestObject
-  public Set<PosixFilePermission> getPosixPermissions() throws IOException {
-    return truffleFile.getPosixPermissions();
+  public Array getPosixPermissions() throws IOException {
+    return new Array(truffleFile.getPosixPermissions().toArray());
   }
 
   @Builtin.Method(name = "parent")
