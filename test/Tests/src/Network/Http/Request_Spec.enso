@@ -6,6 +6,7 @@ import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request
 import Standard.Base.Network.Http.Request.Body as Request_Body
 import Standard.Base.Network.Uri
+
 import Standard.Test
 
 spec =
@@ -13,7 +14,7 @@ spec =
     test_headers = [Header.application_json, Header.new "X-Foo-Id" "0123456789"]
     Test.group "Request" <|
         Test.specify "should return error when creating request from invalid Uri" <|
-            Request.new Method.Post "invalid uri" . should_fail_with Uri.Syntax_Error
+            Request.new Method.Post "invalid uri" . should_fail_with Syntax_Error
         Test.specify "should get method" <|
             req = Request.new Method.Post test_uri
             req.method.should_equal Method.Post

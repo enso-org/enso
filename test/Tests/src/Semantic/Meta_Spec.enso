@@ -1,11 +1,12 @@
 from Standard.Base import all
+
 from Standard.Base.Data.Text.Text_Sub_Range import Last
 import Standard.Base.System.Platform
 
-import Standard.Test
-
 polyglot java import java.util.Random
 polyglot java import java.util.Locale as JavaLocale
+
+import Standard.Test
 
 type My_Type foo bar baz
 

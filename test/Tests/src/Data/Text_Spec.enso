@@ -2,11 +2,9 @@ from Standard.Base import all
 
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Locale
-from Standard.Base.Data.Text.Span as Span_Module import Span
+
 from Standard.Base.Data.Text.Text_Sub_Range import all
-import Standard.Base.Data.Text.Regex.Mode
-import Standard.Base.Data.Text.Matching_Mode
+
 import Standard.Test
 
 type Auto a
@@ -1001,7 +999,7 @@ spec =
             hello.location_of "world" . should_equal Nothing
             hello.location_of "world" matcher=case_insensitive . should_equal (Span (Range 6 11) hello)
 
-            hello.location_of "o" mode=Mode.First matcher=case_insensitive . should_equal (Span (Range 4 5) hello)
+            hello.location_of "o" mode=Regex_Mode.First matcher=case_insensitive . should_equal (Span (Range 4 5) hello)
             hello.location_of "o" mode=Matching_Mode.Last matcher=case_insensitive . should_equal (Span (Range 7 8) hello)
 
             accents = 'A\u{301}E\u{301}O\u{301}'
@@ -1054,14 +1052,14 @@ spec =
             hello.location_of ".o" Matching_Mode.Last matcher=regex . should_equal (Span (Range 6 8) hello)
             hello.location_of_all ".o" matcher=regex . map .start . should_equal [3, 6]
 
-            "foobar".location_of "BAR" Mode.First matcher=regex_insensitive . should_equal (Span (Range 3 6) "foobar")
+            "foobar".location_of "BAR" Regex_Mode.First matcher=regex_insensitive . should_equal (Span (Range 3 6) "foobar")
 
             ## Regex matching does not do case folding
-            "Strasse".location_of "ß" Mode.First matcher=regex_insensitive . should_equal Nothing
+            "Strasse".location_of "ß" Regex_Mode.First matcher=regex_insensitive . should_equal Nothing
 
             ## But it should handle the Unicode normalization
             accents = 'a\u{301}e\u{301}o\u{301}'
-            accents.location_of accent_1 Mode.First matcher=regex . should_equal (Span (Range 1 2) accents)
+            accents.location_of accent_1 Regex_Mode.First matcher=regex . should_equal (Span (Range 1 2) accents)
         Test.specify "should correctly handle regex edge cases in location_of" pending="Figure out how to make Regex correctly handle empty patterns." <|
             regex = Regex_Matcher
             "".location_of "foo" matcher=regex . should_equal Nothing
@@ -1249,7 +1247,7 @@ spec =
             'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 
         Test.specify "should correctly handle empty-string edge cases" <|
-            [Mode.All, Matching_Mode.First, Matching_Mode.Last] . each mode->
+            [Regex_Mode.All, Matching_Mode.First, Matching_Mode.Last] . each mode->
                 'aaa'.replace '' 'foo' mode=mode . should_equal 'aaa'
                 ''.replace '' '' mode=mode . should_equal ''
                 'a'.replace 'a' '' mode=mode . should_equal ''

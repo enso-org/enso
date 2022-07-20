@@ -131,20 +131,3 @@ No_Such_Group_Error.to_display_text : Text
 No_Such_Group_Error.to_display_text = case self.id of
     Integer -> "No group exists with the index " + self.id.to_text + "."
     Text -> "No group exists with the name " + self.id + "."
-
-## PRIVATE
-
-   An error that is emitted when the regex could not be compiled due to
-   syntactic errors
-
-   Arguments:
-   - message: A description of the syntactic error.
-type Syntax_Error (message : Text)
-
-## PRIVATE
-
-   Converts the compile error to a human-readable representation.
-Syntax_Error.to_display_text : Text
-Syntax_Error.to_display_text =
-    "The regex could not be compiled: " + self.message
-

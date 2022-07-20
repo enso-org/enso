@@ -23,7 +23,7 @@ polyglot java import java.util.Optional
 parse : Text -> Uri ! Syntax_Error
 parse text =
     Panic.catch_java Any (Uri (Java_URI.create text)) java_exception->
-        Error.throw (Syntax_Error java_exception.getMessage)
+        Error.throw (Syntax_Error ("Uri syntax error: " + java_exception.getMessage))
 
 ## Convert Text to a Uri.
 
@@ -213,18 +213,3 @@ type Uri
              example_eq = "https://example.com".to_uri == "http://example.org".to_uri
     == : Uri -> Boolean
     == that = self.internal_uri.equals that.internal_uri
-
-## UNSTABLE
-
-   Syntax error when parsing a Uri.
-
-   Arguments:
-   - message: The error message for the URI syntax error.
-type Syntax_Error message
-
-## UNSTABLE
-
-   Converts the URI syntax error to a human-readable form.
-Syntax_Error.to_display_text =
-    "Uri syntax error: " + self.message
-
