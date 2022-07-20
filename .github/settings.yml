@@ -217,7 +217,6 @@ branches:
           - "Engine (linux)"
           - "Engine (windows)"
           # The macOS job is intentionally omitted.
-          - "Docs Check"
           - "Verify Notice Package"
           - "Test Formatting"
           - "license/cla"
@@ -258,7 +257,6 @@ branches:
           - "Build and Test (macOS-latest)"
           - "Build and Test (ubuntu-18.04)"
           - "Build and Test (windows-latest)"
-          - "Docs Check"
           - "Build Engine"
           - "Rust Check"
           - "Rust Lint"

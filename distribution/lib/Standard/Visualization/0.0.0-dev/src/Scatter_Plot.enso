@@ -25,10 +25,10 @@ label_field = 'label'
 ## PRIVATE
 
    Represents a recognized point data field for a scatter plot visualization.
-type PointData
+type Point_Data
 
     ## PRIVATE
-    type PointData
+    type Point_Data
 
     ## PRIVATE
     type X
@@ -107,7 +107,7 @@ No_Fallback_Column.to_display_text =
 Table.Table.point_data : Table -> Object
 Table.Table.point_data =
     get_point_data field = field.lookup_in self . rename field.name
-    columns = PointData.all_fields.filter_map get_point_data
+    columns = Point_Data.all_fields.filter_map get_point_data
     (0.up_to self.row_count).to_vector.map <| row_n->
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing

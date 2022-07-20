@@ -9,7 +9,7 @@ import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
-import Standard.Table.Io.File_Format
+import Standard.Table.IO.File_Format
 import Standard.Base.System.File.Existing_File_Behavior
 
 import Standard.Table.Data.Aggregate_Column
@@ -887,7 +887,7 @@ type Table
          `Illegal_Argument_Error` is raised.
        - If the path to the parent location cannot be found or the filename is
          invalid, a `File_Not_Found` is raised.
-       - If another IO error occurs, such as access denied, an `Io_Error` is
+       - If another IO error occurs, such as access denied, an `IO_Error` is
          raised.
        - If appending and the columns do not match, a `Column_Mismatch` is
          raised.
@@ -916,7 +916,7 @@ type Table
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
                  table = connection.access_table "Table"
                  table.write (enso_project.data / "example_csv_output.csv")
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.to_dataframe.write path format on_existing_file match_columns on_problems

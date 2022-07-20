@@ -59,7 +59,7 @@ pub fn entry_point_searcher_icons() {
     // === Grid ===
 
     let grid_div = web::document.create_div_or_panic();
-    grid_div.set_style_or_warn("width", "1000px");
+    grid_div.set_style_or_warn("width", "2000px");
     grid_div.set_style_or_warn("height", "16px");
     grid_div.set_style_or_warn("background-size", "1.0px 1.0px");
     grid_div.set_style_or_warn(

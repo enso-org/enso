@@ -10,7 +10,7 @@ import Standard.Database.Connection.Client_Certificate
 
 polyglot java import org.postgresql.Driver
 
-type PostgreSQL
+type Postgres
     ## Connect to a PostgreSQL database.
 
        Arguments:
@@ -20,7 +20,7 @@ type PostgreSQL
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type PostgreSQL (host:Text='localhost') (port:Integer=5432) (database:Text='') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+    type Postgres (host:Text='localhost') (port:Integer=5432) (database:Text='') (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -42,11 +42,11 @@ type PostgreSQL
     jdbc_properties : [Pair Text Text]
     jdbc_properties =
         credentials = case self.credentials of
-            Nothing -> PostgreSQL.read_pgpass self.host self.port self.database
+            Nothing -> Postgres.read_pgpass self.host self.port self.database
             Credentials username password ->
                 [Pair 'user' username, Pair 'password' password]
 
-        ssl_properties = PostgreSQL.ssl_mode_to_jdbc_properties self.use_ssl
+        ssl_properties = Postgres.ssl_mode_to_jdbc_properties self.use_ssl
 
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
@@ -72,7 +72,7 @@ type PostgreSQL
         []
 
     ## PRIVATE - static
-       Given an SSL_Mode, create the JDBC properties to secure a Postgres-based
+       Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based
        connection.
     ssl_mode_to_jdbc_properties : SSL_Mode -> [Pair Text Text]
     ssl_mode_to_jdbc_properties use_ssl = case use_ssl of

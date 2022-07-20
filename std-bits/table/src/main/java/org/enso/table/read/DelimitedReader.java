@@ -41,6 +41,7 @@ public class DelimitedReader {
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
+  private final String newlineSetting;
   private final boolean warningsAsErrors;
   private final NoOpProblemAggregator noOpProblemAggregator = new NoOpProblemAggregator();
   private long invalidRowsCount = 0;
@@ -71,6 +72,8 @@ public class DelimitedReader {
    * @param cellTypeGuesser a helper used to guess cell types, used for the purpose of inferring the
    *     headers, it must not be null if {@code headerBehavior} is set to {@code INFER}.
    * @param keepInvalidRows specifies whether to keep rows that had an unexpected number of columns
+   * @param newline specifies what newline character to assume; if set to null, the newline character is autodetected
+   * @param commentCharacter specifies what character indicates start of comments; if set to null, comments are disabled
    * @param warningsAsErrors specifies if the first warning should be immediately raised as an error
    *     (used as a fast-path for the error-reporting mode to avoid computing a value that is going
    *     to be discarded anyway)
@@ -87,6 +90,8 @@ public class DelimitedReader {
       DatatypeParser valueParser,
       TypeInferringParser cellTypeGuesser,
       boolean keepInvalidRows,
+      String newline,
+      String commentCharacter,
       boolean warningsAsErrors) {
     if (delimiter.isEmpty()) {
       throw new IllegalArgumentException("Empty delimiters are not supported.");
@@ -140,23 +145,45 @@ public class DelimitedReader {
 
     this.valueParser = valueParser;
     this.cellTypeGuesser = cellTypeGuesser;
-    parser = setupCsvParser(input);
+    this.newlineSetting = newline;
+    parser = setupCsvParser(input, commentCharacter);
   }
 
   /** Creates a {@code CsvParser} according to the settings specified at construction. */
-  private CsvParser setupCsvParser(Reader input) {
+  private CsvParser setupCsvParser(Reader input, String commentCharacter) {
     CsvParserSettings settings = new CsvParserSettings();
     settings.setHeaderExtractionEnabled(false);
     CsvFormat format = new CsvFormat();
     format.setDelimiter(delimiter);
     format.setQuote(quoteCharacter);
     format.setQuoteEscape(quoteEscapeCharacter);
-    settings.setFormat(format);
     settings.setMaxCharsPerColumn(-1);
     settings.setMaxColumns(maxColumns);
     settings.setSkipEmptyLines(false);
     settings.setKeepQuotes(true);
-    settings.setLineSeparatorDetectionEnabled(true);
+
+    if (newlineSetting == null) {
+      settings.setLineSeparatorDetectionEnabled(true);
+    } else {
+      if (newlineSetting.length() > 2 || newlineSetting.isEmpty()) {
+        throw new IllegalArgumentException("The newline sequence should consist of at least 1 and at most 2 characters (codepoints).");
+      }
+      settings.setLineSeparatorDetectionEnabled(false);
+      format.setLineSeparator(newlineSetting);
+    }
+
+    if (commentCharacter == null) {
+      format.setComment('\0');
+    } else {
+      if (commentCharacter.length() != 1) {
+        throw new IllegalArgumentException("The comment character should be set to Nothing or consist of exactly one character (codepoint).");
+      }
+
+      format.setComment(commentCharacter.charAt(0));
+    }
+
+    settings.setFormat(format);
+    settings.setNumberOfRowsToSkip(skipRows);
     CsvParser parser = new CsvParser(settings);
     parser.beginParsing(input);
     return parser;
@@ -326,6 +353,20 @@ public class DelimitedReader {
     return effectiveColumnNames.length;
   }
 
+  /** Returns the line separator used in the file.
+   *
+   * If a specific separator is set at construction, it is just returned. If it
+   * was set to null, the separator inferred from the file contents is returned.
+   */
+  public String getEffectiveLineSeparator() {
+    if (newlineSetting != null) {
+      return newlineSetting;
+    } else {
+      ensureHeadersDetected();
+      return parser.getDetectedFormat().getLineSeparatorString();
+    }
+  }
+
   private void ensureHeadersDetected() {
     if (effectiveColumnNames == null) {
       detectHeaders();
@@ -333,7 +374,6 @@ public class DelimitedReader {
   }
 
   private void detectHeaders() {
-    skipFirstRows();
     Row firstRow = loadNextRow();
     if (firstRow == null) {
       effectiveColumnNames = new String[0];
@@ -384,12 +424,6 @@ public class DelimitedReader {
     effectiveColumnNames = headerNames.value().toArray(new String[0]);
     if (wereHeadersDefined) {
       definedColumnNames = effectiveColumnNames;
-    }
-  }
-
-  private void skipFirstRows() {
-    for (long i = 0; i < skipRows; ++i) {
-      loadNextRow();
     }
   }
 

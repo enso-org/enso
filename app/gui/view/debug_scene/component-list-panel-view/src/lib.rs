@@ -171,6 +171,7 @@ fn init_local_cope_section(searcher_list_panel: &ComponentBrowserPanel) {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
+    init_tracing(WARN);
     ensogl_text_msdf_sys::run_once_initialized(|| {
         let app = &Application::new("root");
         theme::builtin::light::register(&app);
@@ -182,6 +183,7 @@ pub fn main() {
         let navigator = Navigator::new(scene, &camera);
 
         let searcher_list_panel = ComponentBrowserPanel::new(app);
+        app.display.default_scene.layers.node_searcher.add_exclusive(&searcher_list_panel);
         searcher_list_panel.model().set_navigator(Some(navigator.clone()));
 
         init_favourites_section(&searcher_list_panel);

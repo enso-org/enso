@@ -1,5 +1,9 @@
 ## Functionality for interacting with the host system.
 
+from Standard.Base import all
+
+polyglot java import java.lang.System as Java_System
+
 ## PRIVATE
 
    Create a system process, returning the exit code, and the outputs to both
@@ -45,6 +49,12 @@ nano_time = @Builtin_Method "System.nano_time"
    Get the name of the current platform upon which the program is running.
 os : Text
 os = @Builtin_Method "System.os"
+
+## PRIVATE
+   Returns the default line separator for the platform that the program is
+   currently running on.
+default_line_separator : Text
+default_line_separator = Java_System.lineSeparator
 
 ## PRIVATE
 
