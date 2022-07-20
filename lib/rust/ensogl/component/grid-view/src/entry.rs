@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 
@@ -16,11 +17,19 @@ use ensogl_core::display::scene::Layer;
 
 ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node::Data)>
     Input {
+        set_active(bool),
+        set_hover(bool),
         set_model(Model),
         set_size(Vector2),
         set_params(Params),
     }
-    Output {}
+    Output {
+        is_activable(bool),
+        is_hoverable(bool),
+        highlight_shape(HighlightShape),
+        active_highlight_style(color::Rgba),
+        hovered_highlight_style(color::Rgba)
+    }
 }
 
 /// FRP Api of a specific Entry.

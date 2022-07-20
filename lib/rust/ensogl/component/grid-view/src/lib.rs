@@ -26,6 +26,7 @@
 
 pub mod entry;
 pub mod scrollable;
+pub mod selectable;
 pub mod simple;
 pub mod visible_area;
 
@@ -35,6 +36,8 @@ pub use ensogl_scroll_area::Viewport;
 
 /// Commonly used types and functions.
 pub mod prelude {
+    pub use enso_frp as frp;
+    pub use ensogl_core::application::command::FrpNetworkProvider;
     pub use ensogl_core::prelude::*;
 }
 
@@ -46,6 +49,7 @@ use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
+use ensogl_core::display::shape::HOVER_COLOR;
 use ensogl_core::gui::Widget;
 
 use crate::entry::EntryFrp;
@@ -100,6 +104,76 @@ ensogl_core::define_endpoints_2! {
 
 
 
+// ====================
+// === VisibleEntry ===
+// ====================
+
+struct HighlightLayers {
+    entries: Layer,
+    text:    Layer,
+    mask:    Layer,
+}
+
+impl HighlightLayers {
+    fn create(parent: Layer) -> SElf {
+        let entries = parent.create_sublayer();
+        let text = parent.create_sublayer();
+        let mask =
+            Layer::new_with_cam(Logger::new("grid_view::HighlightLayers::mask"), &parent.camera());
+        entries.set_mask(&mask);
+        text.set_mask(&mask);
+        Self { entries, text, mask }
+    }
+}
+
+struct VisibleEntry<Entry> {
+    entry:   Entry,
+    hovered: RefCell<Option<Entry>>,
+    active:  RefCell<Option<Entry>>,
+    overlay: selectable::highlight::View,
+}
+
+impl<E: Entry> VisibleEntry<E> {
+    fn new(ctx: EntryCreationCtx<E::Params>, text_layer: &Option<Layer>) -> Self {
+        let entry = ctx.create_entry(text_layer.as_ref());
+        let hovered = default();
+        let active = default();
+        let overlay = selectable::highlight::View::new(Logger::new("EntryOverlay"));
+        entry.add_child(&overlay);
+        overlay.color.set(HOVER_COLOR.into());
+        Self { entry, hovered, active, overlay }
+    }
+
+    fn entry_in_highlighted_layers(ctx: EntryCreationCtx<E::Params>, layers: HighlightLayers) -> E {
+        let entry = ctx.create_entry(Some(&layers.text));
+        layers.entries.add_exclusive(&entry);
+        entry
+    }
+
+    fn new_highlighted_layer(
+        &self,
+        entry: &mut Option<E>,
+        ctx: EntryCreationCtx<E::Params>,
+        layers: Option<HighlightLayers>,
+    ) {
+        let new_entry = layers.map(|l| Self::entry_in_highlighted_layers(ctx, l));
+        *entry = new_entry;
+        if let Some(layer) = layers.map(|l| &l.entries) {
+            layer.add(&self.overlay)
+        }
+    }
+
+    fn set_hovered_layer(&self, ctx: EntryCreationCtx<E::Params>, layers: Option<HighlightLayers>) {
+        self.new_highlighted_layer(&mut *self.hovered.borrow_mut(), ctx, layers)
+    }
+
+    fn set_active_layer(&self, ctx: EntryCreationCtx<E::Params>, layers: Option<HighlightLayers>) {
+        self.new_highlighted_layer(&mut *self.active.borrow_mut(), ctx, layers)
+    }
+}
+
+
+
 // =============
 // === Model ===
 // =============
@@ -117,7 +191,7 @@ struct EntryCreationCtx<EntryParams> {
 }
 
 impl<EntryParams: frp::node::Data> EntryCreationCtx<EntryParams> {
-    fn create_entry<E: Entry<Params = EntryParams>>(&self, text_layer: &Option<Layer>) -> E {
+    fn create_entry<E: Entry<Params = EntryParams>>(&self, text_layer: Option<&Layer>) -> E {
         let entry = E::new(&self.app, text_layer);
         if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();
@@ -156,10 +230,12 @@ struct Properties {
 /// The Model of [`GridView`].
 #[derive(Clone, Debug)]
 pub struct Model<Entry, EntryParams> {
-    display_object:     display::object::Instance,
-    visible_entries:    RefCell<HashMap<(Row, Col), Entry>>,
-    free_entries:       RefCell<Vec<Entry>>,
-    entry_creation_ctx: EntryCreationCtx<EntryParams>,
+    display_object:         display::object::Instance,
+    active_entries_layers:  Option<HighlightLayers>,
+    hovered_entries_layers: Option<HighlightLayers>,
+    visible_entries:        RefCell<HashMap<(Row, Col), Entry>>,
+    free_entries:           RefCell<Vec<Entry>>,
+    entry_creation_ctx:     EntryCreationCtx<EntryParams>,
 }
 
 impl<Entry, EntryParams> Model<Entry, EntryParams> {

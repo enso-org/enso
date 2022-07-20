@@ -21,10 +21,14 @@ use ensogl_scroll_area::ScrollArea;
 /// arguments, similar to [`crate::GridViewTemplate`] - see its docs for details.
 #[derive(CloneRef, Debug, Deref, Derivative)]
 #[derivative(Clone(bound = ""))]
-pub struct GridViewTemplate<E: 'static, M: frp::node::Data, P: frp::node::Data> {
+pub struct GridViewTemplate<
+    Entry: 'static,
+    EntryModel: frp::node::Data,
+    EntryParams: frp::node::Data,
+> {
     area:       ScrollArea,
     #[deref]
-    grid:       crate::GridViewTemplate<E, M, P>,
+    grid:       crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
     text_layer: Layer,
 }
 
