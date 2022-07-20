@@ -82,14 +82,14 @@ impl ModuleGroups {
 ///    the methods listed above.
 #[derive(Clone, Debug, Default)]
 pub struct List {
-    all_components:      Vec<Component>,
+    all_components:                  Vec<Component>,
     /// IDs passed as arguments to the [`extend_list_and_enable_matching_favorites`] method and
     /// present in [`model::SuggestionDatabase`]. Used by the [`build`] method to filter
-    /// [`favorites_structure`].
-    favorites_to_enable: HashSet<component::Id>,
-    module_groups:       HashMap<component::Id, ModuleGroups>,
-    local_scope:         component::Group,
-    favorites_structure: component::group::List,
+    /// [`grouping_and_order_of_favorites`].
+    favorites_to_enable:             HashSet<component::Id>,
+    module_groups:                   HashMap<component::Id, ModuleGroups>,
+    local_scope:                     component::Group,
+    grouping_and_order_of_favorites: component::group::List,
 }
 
 impl List {
@@ -155,7 +155,7 @@ impl List {
         db: &model::SuggestionDatabase,
         component_groups: impl IntoIterator<Item = &'a execution_context::ComponentGroup>,
     ) {
-        self.favorites_structure = component_groups
+        self.grouping_and_order_of_favorites = component_groups
             .into_iter()
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
@@ -187,7 +187,7 @@ impl List {
     }
 
     /// Build the list, sorting all group lists and groups' contents appropriately. Filter the
-    /// [`component::List::favorites_structure`] (only components with IDs passed to
+    /// [`component::List::grouping_and_order_of_favorites`] (only components with IDs passed to
     /// [`extend_list_and_enable_matching_favorites`] are
     /// retained), do not sort them.
     ///
@@ -225,7 +225,7 @@ impl List {
     fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
         let favorites_to_enable = &self.favorites_to_enable;
         let id_in_favs_to_enable = |c: &Component| favorites_to_enable.contains(&c.id);
-        let favorites_groups = std::mem::take(&mut self.favorites_structure)
+        let favorites_groups = std::mem::take(&mut self.grouping_and_order_of_favorites)
             .into_iter()
             .map(|g| g.with_entries_in_initial_order_and_filtered(id_in_favs_to_enable))
             .collect_vec();
