@@ -794,8 +794,8 @@ pub enum DocSection {
     Tag {
         /// The tag name.
         name: String,
-        /// The tag text.
-        text: HtmlString,
+        // /// The tag text.
+        // text: HtmlString,
     },
     /// The paragraph of the text.
     #[serde(rename_all = "camelCase")]
@@ -899,8 +899,7 @@ pub enum SuggestionEntry {
         return_type:            String,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
-        #[serde(default)]
-        documentation_sections: Vec<DocSection>,
+        documentation_sections: Option<Vec<DocSection>>,
     },
     #[serde(rename_all = "camelCase")]
     Method {
@@ -912,8 +911,7 @@ pub enum SuggestionEntry {
         return_type:            String,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
-        #[serde(default)]
-        documentation_sections: Vec<DocSection>,
+        documentation_sections: Option<Vec<DocSection>>,
     },
     #[serde(rename_all = "camelCase")]
     Function {
@@ -938,8 +936,8 @@ pub enum SuggestionEntry {
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         reexport:               Option<String>,
-        #[serde(default)]
-        documentation_sections: Vec<DocSection>,
+        // TODO[MC]: use serde_with::DefaultOnNull?
+        documentation_sections: Option<Vec<DocSection>>,
     },
 }
 
