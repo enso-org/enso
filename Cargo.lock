@@ -7531,6 +7531,7 @@ dependencies = [
  "regex",
  "time 0.3.9",
  "tokio 1.19.2",
+ "tokio-stream",
  "url 2.2.2",
  "websocket-lite",
 ]

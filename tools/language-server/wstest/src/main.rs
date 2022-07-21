@@ -16,6 +16,7 @@ use futures::StreamExt;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::BufReader;
 use tokio::sync::mpsc;
+use tokio_stream::wrappers::LinesStream;
 use url::Url;
 use websocket_lite::ClientBuilder;
 use websocket_lite::Message;
@@ -85,16 +86,11 @@ enum SyncMessage {
 }
 
 /// Read file line by line
-async fn read_lines(path_buf: PathBuf) -> Result<Vec<String>> {
+async fn read_lines(path_buf: PathBuf) -> std::io::Result<Vec<String>> {
     let file = tokio::fs::File::open(path_buf.as_path()).await?;
-    let mut lines = BufReader::new(file).lines();
-
-    let mut res = vec![];
-    while let Some(line) = lines.next_line().await? {
-        res.push(line);
-    }
-
-    Ok(res)
+    let lines_reader = BufReader::new(file).lines();
+    let lines_stream = LinesStream::new(lines_reader);
+    tokio_stream::StreamExt::collect(lines_stream).await
 }
 
 #[tokio::main]
