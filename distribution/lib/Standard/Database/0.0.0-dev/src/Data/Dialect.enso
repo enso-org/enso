@@ -6,7 +6,7 @@ import Standard.Database.Data.Sql
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Dialect.Postgres as Postgres_Module
 import Standard.Database.Data.Dialect.Redshift as Redshift_Module
-import Standard.Database.Data.Dialect.Sqlite as Sqlite_Module
+import Standard.Database.Data.Dialect.SQLite as SQLite_Module
 
 ## PRIVATE
 
@@ -52,13 +52,13 @@ type Dialect
 
    The dialect of SQLite databases.
 sqlite : Dialect
-sqlite = Sqlite_Module.sqlite
+sqlite = SQLite_Module.sqlite
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
 postgres : Dialect
-postgres = Postgres_Module.postgresql
+postgres = Postgres_Module.postgres
 
 ## PRIVATE
 

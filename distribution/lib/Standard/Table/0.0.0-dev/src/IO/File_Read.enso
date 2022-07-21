@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 
-import Standard.Table.Io.File_Format
+import Standard.Table.IO.File_Format
 
 ## ALIAS Read Text File, Read File
 
@@ -40,7 +40,7 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
      Read the first sheet of an XLSX from disk and convert it into a table.
 
          import Standard.Table
-         import Standard.Table.Io.File_Read
+         import Standard.Table.IO.File_Read
          import Standard.Examples
 
          example_xlsx_to_table = Examples.xlsx.read
@@ -49,9 +49,9 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
          import Standard.Table
-         import Standard.Table.Io.File_Read
-         from Standard.Table.Io.File_Format import Excel
-         from Standard.Table.Io.Excel import Excel_Section
+         import Standard.Table.IO.File_Read
+         from Standard.Table.IO.File_Format import Excel
+         from Standard.Table.IO.Excel import Excel_Section
          import Standard.Examples
 
          example_xls_to_table = Examples.xls.read (Excel (Sheet 'Dates'))

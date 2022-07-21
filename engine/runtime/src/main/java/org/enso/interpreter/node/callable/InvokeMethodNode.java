@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
@@ -246,15 +247,15 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
+    var ctx = Context.get(this);
     try {
-      var dateConstructor = Context.get(this).getDateConstructor();
-      Object date = dateConstructor.isPresent() ? dateConstructor.get().newInstance(self) : self;
+      var hostLocalDate = interop.asDate(self);
+      var date = new EnsoDate(hostLocalDate);
       Function function = dateDispatch.getFunctionalDispatch(date, symbol);
       arguments[0] = date;
       return invokeFunctionNode.execute(function, frame, state, arguments);
-    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
-      throw new PanicException(
-          Context.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
     }
   }
 

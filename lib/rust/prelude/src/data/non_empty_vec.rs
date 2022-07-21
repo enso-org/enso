@@ -33,7 +33,8 @@ impl<T> NonEmptyVec<T> {
     /// let mut vec: NonEmptyVec<usize> = NonEmptyVec::new(0, vec![]);
     /// ```
     pub fn new(first: T, rest: Vec<T>) -> NonEmptyVec<T> {
-        let mut elems = vec![first];
+        let mut elems = Vec::with_capacity(1 + rest.len());
+        elems.push(first);
         elems.extend(rest);
         NonEmptyVec { elems }
     }

@@ -41,7 +41,7 @@ jobs:
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -83,7 +83,7 @@ jobs:
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -127,7 +127,7 @@ jobs:
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
