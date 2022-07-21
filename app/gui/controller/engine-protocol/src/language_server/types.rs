@@ -776,6 +776,54 @@ pub enum RegisterOptions {
 }
 
 
+
+// ===================
+// === Doc Section ===
+// ===================
+
+pub type HtmlString = String;
+
+/// A single section of the documentation.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+#[serde(tag = "type")]
+#[serde(rename_all = "camelCase")]
+pub enum DocSection {
+    /// The documentation tag.
+    #[serde(rename_all = "camelCase")]
+    Tag {
+        /// The tag name.
+        name: String,
+        /// The tag text.
+        text: HtmlString,
+    },
+    /// The paragraph of the text.
+    #[serde(rename_all = "camelCase")]
+    Paragraph {
+        /// The elements that make up this paragraph.
+        body: HtmlString,
+    },
+    /// The section that starts with the key followed by the colon and the body.
+    #[serde(rename_all = "camelCase")]
+    Keyed {
+        /// The section key.
+        key:  String,
+        /// The elements that make up the body of the section.
+        body: HtmlString,
+    },
+    /// The section that starts with the mark followed by the header and the body.
+    #[serde(rename_all = "camelCase")]
+    Marked {
+        /// The section mark.
+        // FIXME[MC]: see if enum can be used here
+        mark:   String,
+        /// The section header.
+        header: Option<String>,
+        /// The elements that make up the body of the section.
+        body:   HtmlString,
+    },
+}
+
 // ===========================
 // === Suggestion Database ===
 // ===========================
