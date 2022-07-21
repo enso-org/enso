@@ -42,7 +42,7 @@ public class Regression {
   }
 
   private static double slopeWithIntercept(CorrelationStatistics stats, double intercept) {
-    return (intercept * stats.getTotalX() - stats.getTotalXY()) / stats.getTotalXX();
+    return (-intercept * stats.getTotalX() + stats.getTotalXY()) / stats.getTotalXX();
   }
 
   private static double intercept(CorrelationStatistics stats, double slope) {

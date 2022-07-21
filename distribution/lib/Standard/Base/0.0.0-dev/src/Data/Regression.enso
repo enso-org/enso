@@ -32,30 +32,36 @@ fit_least_squares known_xs known_ys model=Linear_Model =
             log_ys = ln_series known_ys "Y-values"
             fitted = if intercept.is_nothing then Regression.fit_linear known_xs.to_array log_ys.to_array else
                 Regression.fit_linear known_xs.to_array log_ys.to_array intercept.ln
-            Fitted_Exponential_Model fitted.slope fitted.intercept fitted.rSquared
+            model = Fitted_Exponential_Model fitted.intercept.exp fitted.slope
+            r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
+            Fitted_Exponential_Model fitted.intercept.exp fitted.slope r_squared
         Logarithmic_Model ->
             log_xs = ln_series known_xs "X-values"
             fitted = Regression.fit_linear log_xs.to_array known_ys.to_array
-            Fitted_Logarithmic_Model fitted.slope fitted.intercept fitted.rSquared
+            model = Fitted_Logarithmic_Model fitted.slope fitted.intercept
+            r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
+            Fitted_Logarithmic_Model fitted.slope fitted.intercept r_squared
         Power_Model ->
             log_xs = ln_series known_xs "X-values"
             log_ys = ln_series known_ys "Y-values"
             fitted = Regression.fit_linear log_xs.to_array log_ys.to_array
-            Fitted_Power_Model fitted.slope fitted.intercept fitted.rSquared
+            model = Fitted_Power_Model fitted.slope fitted.intercept
+            r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
+            Fitted_Power_Model fitted.slope fitted.intercept r_squared
         _ -> Error.throw (Illegal_Argument_Error "Unsupported model")
 
 type Fitted_Model
     ## Fitted line (y = slope x + intercept).
-    type Fitted_Linear_Model slope:Number intercept:Number r_squared:Number
+    type Fitted_Linear_Model slope:Number intercept:Number r_squared:Number=0.0
 
-    ## Fitted exponential line (y = A exp(B x)).
-    type Fitted_Exponential_Model a:Number b:Number r_squared:Number
+    ## Fitted exponential line (y = a exp(b x)).
+    type Fitted_Exponential_Model a:Number b:Number r_squared:Number=0.0
 
-    ## Fitted logarithmic line (y = A log x + B).
-    type Fitted_Logarithmic_Model a:Number b:Number r_squared:Number
+    ## Fitted logarithmic line (y = a log x + b).
+    type Fitted_Logarithmic_Model a:Number b:Number r_squared:Number=0.0
 
-    ## Fitted power series (y = A x ^ B).
-    type Fitted_Power_Model a:Number b:Number r_squared:Number
+    ## Fitted power series (y = a x ^ b).
+    type Fitted_Power_Model a:Number b:Number r_squared:Number=0.0
 
     ## Display the fitted line.
     to_text : Text
