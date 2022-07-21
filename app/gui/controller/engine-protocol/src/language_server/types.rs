@@ -892,24 +892,28 @@ pub enum SuggestionEntryType {
 pub enum SuggestionEntry {
     #[serde(rename_all = "camelCase")]
     Atom {
-        external_id:        Option<Uuid>,
-        name:               String,
-        module:             String,
-        arguments:          Vec<SuggestionEntryArgument>,
-        return_type:        String,
-        documentation:      Option<String>,
-        documentation_html: Option<String>,
+        external_id:            Option<Uuid>,
+        name:                   String,
+        module:                 String,
+        arguments:              Vec<SuggestionEntryArgument>,
+        return_type:            String,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        #[serde(default)]
+        documentation_sections: Vec<DocSection>,
     },
     #[serde(rename_all = "camelCase")]
     Method {
-        external_id:        Option<Uuid>,
-        name:               String,
-        module:             String,
-        arguments:          Vec<SuggestionEntryArgument>,
-        self_type:          String,
-        return_type:        String,
-        documentation:      Option<String>,
-        documentation_html: Option<String>,
+        external_id:            Option<Uuid>,
+        name:                   String,
+        module:                 String,
+        arguments:              Vec<SuggestionEntryArgument>,
+        self_type:              String,
+        return_type:            String,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        #[serde(default)]
+        documentation_sections: Vec<DocSection>,
     },
     #[serde(rename_all = "camelCase")]
     Function {
@@ -930,10 +934,12 @@ pub enum SuggestionEntry {
     },
     #[serde(rename_all = "camelCase")]
     Module {
-        module:             String,
-        documentation:      Option<String>,
-        documentation_html: Option<String>,
-        reexport:           Option<String>,
+        module:                 String,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        reexport:               Option<String>,
+        #[serde(default)]
+        documentation_sections: Vec<DocSection>,
     },
 }
 
