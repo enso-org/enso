@@ -1,18 +1,23 @@
-use std::fmt;
-use std::io::Result;
-use std::path::PathBuf;
-use std::process;
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use clap::Parser;
 use clap::ValueHint;
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::fmt;
+use std::io::Result;
+use std::path::PathBuf;
+use std::process;
 use time::format_description::well_known::Rfc3339;
 use time::Duration;
 use time::OffsetDateTime;
 use tokio::fs::File;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::BufReader;
+
+
 
 #[derive(Parser, Debug)]
 #[clap(version, about)]
