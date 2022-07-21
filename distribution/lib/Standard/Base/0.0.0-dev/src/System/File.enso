@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.System.File.Option
 import Standard.Base.System.File.Existing_File_Behavior
+import Standard.Base.System.File.File_Permissions
 import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
@@ -368,8 +369,29 @@ type File
        Builtin method that gets this file's last modified time.
        Recommended to use `File.last_modified_time` instead which handles
        potential exceptions.
-    last_modified_time_builtin : File -> ZonedDateTime
+    last_modified_time_builtin : ZonedDateTime
     last_modified_time_builtin = @Builtin_Method "File.last_modified_time_builtin"
+
+    ## Gets the POSIX permissions associated with the file.
+
+       > Example
+         Check if the file is readable by the user's group.
+
+             import Standard.Examples
+
+             example_permissions = Examples.csv.posix_permissions.group_read
+    posix_permissions : File_Permissions
+    posix_permissions =
+        File_Permissions.from_java_set self.posix_permissions_builtin
+
+    ## PRIVATE
+
+       Builtin method that gets this file's POSIX permissions as a Java Set.
+       Recommended to use `File.posix_permissions` instead which handles
+       potential exceptions and converts an Enso representation of the
+       permissions.
+    posix_permissions_builtin : Set
+    posix_permissions_builtin = @Builtin_Method "File.posix_permissions_builtin"
 
     ## Checks whether the file exists and is a directory.
 
