@@ -28,22 +28,16 @@ fit_least_squares known_xs known_ys model=Linear_Model =
             log_ys = ln_series known_ys "Y-values"
             fitted = if intercept.is_nothing then Regression.fit_linear known_xs.to_array log_ys.to_array else
                 Regression.fit_linear known_xs.to_array log_ys.to_array intercept.ln
-            model = Fitted_Exponential_Model fitted.intercept.exp fitted.slope
-            r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
-            Fitted_Exponential_Model fitted.intercept.exp fitted.slope r_squared
+            fitted_model_with_r_squared Fitted_Exponential_Model fitted.intercept.exp fitted.slope known_xs known_ys
         Logarithmic_Model ->
             log_xs = ln_series known_xs "X-values"
             fitted = Regression.fit_linear log_xs.to_array known_ys.to_array
-            model = Fitted_Logarithmic_Model fitted.slope fitted.intercept
-            r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
-            Fitted_Logarithmic_Model fitted.slope fitted.intercept r_squared
+            fitted_model_with_r_squared Fitted_Logarithmic_Model fitted.slope fitted.intercept known_xs known_ys
         Power_Model ->
             log_xs = ln_series known_xs "X-values"
             log_ys = ln_series known_ys "Y-values"
             fitted = Regression.fit_linear log_xs.to_array log_ys.to_array
-            model = Fitted_Power_Model fitted.intercept.exp fitted.slope
-            r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
-            Fitted_Power_Model fitted.intercept.exp fitted.slope r_squared
+            fitted_model_with_r_squared Fitted_Power_Model fitted.intercept.exp fitted.slope known_xs known_ys
         _ -> Error.throw (Illegal_Argument_Error "Unsupported model.")
 
 type Fitted_Model
@@ -77,6 +71,14 @@ type Fitted_Model
         Fitted_Logarithmic_Model a b _ -> a * x.ln + b
         Fitted_Power_Model a b _ -> a * (x ^ b)
         _ -> Error.throw (Illegal_Argument_Error "Unsupported model.")
+
+## PRIVATE
+   Computes the R Squared value for a model and returns a new instance.
+fitted_model_with_r_squared : Any -> Number -> Number -> Vector -> Vector -> Fitted_Model
+fitted_model_with_r_squared constructor a b known_xs known_ys =
+    model = constructor a b
+    r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
+    constructor a b r_squared
 
 ## PRIVATE
 
