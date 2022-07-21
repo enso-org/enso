@@ -22,8 +22,8 @@
 use enso_prelude::*;
 
 use jni::JNIEnv;
-use jni::objects::{JClass, JString};
-use jni::sys::jstring;
+use jni::objects::{JClass, JString, JByteBuffer};
+use jni::sys::{jstring, jobject};
 
 // ==============
 // === Parser ===
@@ -98,23 +98,39 @@ impl Parser {
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_parser_LoadParser_hello(env: JNIEnv,
                                              class: JClass,
-                                             input: JString) -> jstring {
-    let input: String = env
-        .get_string(input)
-        .expect("Couldn't get java string!")
-        .into();
+                                             buf: JByteBuffer) -> jobject {
+    unsafe {
+        println!("{}", "in");
+        let p: *mut Parser = parser_new();
+        let r: *mut ParseResult = parse_result_alloc();
 
-    let mut msg: String = "Hello ".to_owned();
-    msg.push_str(&input);
-    msg.push_str(" from Rust");
+        println!("{}", "in2");
+        let addr = env.get_direct_buffer_address(buf).ok().map(|b| {
+            println!("{}", "in3");
+            env.get_direct_buffer_capacity(buf).map(|c| {
 
-    println!("{}", msg);
+                println!("{}", "in4");
+                parser_run(p, b.as_mut_ptr(), c as usize, r);
+                println!("{}", "in5");
+            });
+        });
+        let mut msg: String = "Hello ".to_owned();
+        msg.push_str(" from Rust");
+        println!("{}", msg);
+        let length: usize = parse_result_get_output_len(r);
+        let data = parse_result_get_output_data_mut(r);
 
-    let output = env.new_string(format!("Hello, {}!", input))
-        .expect("Couldn't create java string!");
+        let mut s2: &mut[u8] = std::slice::from_raw_parts_mut(data, length);
 
-    // Finally, extract the raw pointer to return.
-    output.into_inner()
+
+        let result = env.new_direct_byte_buffer(s2);
+
+        parse_result_free(r);
+        parser_free(p);
+
+        // Finally, extract the raw pointer to return.
+        result.ok().unwrap().into_inner()
+    }
 }
 
 
@@ -224,6 +240,11 @@ pub unsafe extern "C" fn parse_result_get_input_len(result: *mut ParseResult) ->
 pub unsafe extern "C" fn parse_result_get_output_data(result: *mut ParseResult) -> *const u8 {
     let result = &*result;
     result.tree.as_ptr()
+}
+
+unsafe extern "C" fn parse_result_get_output_data_mut(result: *mut ParseResult) -> *mut u8 {
+    let result : &mut ParseResult = &mut *result;
+    result.tree.as_mut_ptr()
 }
 
 /// Return the length of the data obtained by [`parse_result_get_output_data`].
