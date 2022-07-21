@@ -196,10 +196,7 @@ type Illegal_Argument_Error
     ## PRIVATE
        Capture a Java IllegalArgumentException and rethrow
     handle_java_exception =
-        throw_error caught_panic =
-            cause = caught_panic.payload.cause
-            Error.throw (Illegal_Argument_Error cause.getMessage cause)
-        Panic.catch IllegalArgumentException handler=throw_error
+        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error cause.getMessage cause))
 
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
