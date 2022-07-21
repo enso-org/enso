@@ -122,6 +122,11 @@ pub extern "system" fn Java_org_enso_syntax2_LoadParser_hello(env: JNIEnv,
 
         let mut s2: &mut[u8] = std::slice::from_raw_parts_mut(data, length);
 
+        let mut i = 0;
+        while i < s2.len() {
+            print!("{} ", s2[i]);
+            i = i + 1;
+        }
 
         let result = env.new_direct_byte_buffer(s2);
 
