@@ -1,11 +1,11 @@
 polyglot java import java.time.LocalDate
-polyglot java import java.time.format.DateTimeFormatter
+import project.Polyglot
 
-new year (month = 1) (day = 1) = LocalDate.of year month day
+new year (month = 1) (day = 1) = (LocalDate.of year month day) . internal_local_date
 
 type Date
-    type Date internal_local_date
-    year = self . internal_local_date . getYear
-    month = self . internal_local_date . getMonthValue
-    day = self . internal_local_date . getDayOfMonth
-    to_text = DateTimeFormatter.ISO_LOCAL_DATE.format self.internal_local_date
+    @Builtin_Type
+    type Date
+    year = @Builtin_Method "Date.year"
+    month = @Builtin_Method "Date.month"
+    day = @Builtin_Method "Date.day"
