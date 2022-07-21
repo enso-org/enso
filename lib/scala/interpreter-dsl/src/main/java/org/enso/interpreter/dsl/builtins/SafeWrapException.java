@@ -35,7 +35,7 @@ public record SafeWrapException(Attribute.Class from, Attribute.Class to, Boolea
                 return List.of(
                         "  } catch (" + from + " e) {",
                         "    Builtins builtins = Context.get(this).getBuiltins();",
-                        "    throw new PanicException(e, this);"
+                        "    throw new PanicException(e.getMessage(), this);"
                 );
             } else {
                 return List.of(

@@ -1,0 +1,17 @@
+[package]
+name = "ensogl-example-grid-view"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-grid-view = { path = "../../component/grid-view" }
+ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+enso-text = { path = "../../../text" }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

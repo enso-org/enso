@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-import Standard.Table.Io.File_Read
-import Standard.Table.Io.File_Format
+import Standard.Table.IO.File_Read
+import Standard.Table.IO.File_Format
 from Standard.Table.Errors import Unsupported_File_Type
 
 import Standard.Test

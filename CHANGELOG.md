@@ -61,6 +61,10 @@
   component][3385]. Use the <code>set_font</code> and
   <code>set_bold_bytes</code> respectively.
 - [Fixed a text rendering issue in nested sublayer][3486].
+- [Added a new component: Grid View.][3588] It's parametrized by Entry object,
+  display them arranged in a Grid. It does not instantiate all entries, only
+  those visible, and re-use created entries during scrolling thus achieving
+  great performance.
 
 #### Enso Standard Library
 
@@ -159,6 +163,7 @@
 - [Added `Vector.write_bytes` function and removed old `File.write_bytes`][3583]
 - [Added `line_endings` and `comment_character` options to
   `File_Format.Delimited`.][3581]
+- [Fixed the case of various type names and library paths][3590]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -253,6 +258,8 @@
 [3573]: https://github.com/enso-org/enso/pull/3573
 [3583]: https://github.com/enso-org/enso/pull/3583
 [3581]: https://github.com/enso-org/enso/pull/3581
+[3588]: https://github.com/enso-org/enso/pull/3588
+[3590]: https://github.com/enso-org/enso/pull/3590
 
 #### Enso Compiler
 
@@ -262,7 +269,7 @@
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
-- [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Converting Enso Date to java.time.LocalDate and back][3559]
 - [Incremental Reparsing of a Simple Edits][3508]
 - [Functions with all-defaulted arguments now execute automatically][3414]
 - [Provide `tagValues` for function arguments in the language server][3422]
@@ -290,7 +297,7 @@
 [3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
-[3374]: https://github.com/enso-org/enso/pull/3374
+[3559]: https://github.com/enso-org/enso/pull/3559
 [3508]: https://github.com/enso-org/enso/pull/3508
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414

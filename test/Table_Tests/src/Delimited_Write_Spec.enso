@@ -9,11 +9,11 @@ import Standard.Base.System
 import Standard.Table
 import Standard.Table.Data.Column
 from Standard.Table.Errors import all
-import Standard.Table.Io.File_Read
-from Standard.Table.Io.File_Format import Delimited
+import Standard.Table.IO.File_Read
+from Standard.Table.IO.File_Format import Delimited
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Table.Io.Quote_Style
-from Standard.Table.Io.Line_Ending_Style import all
+import Standard.Table.IO.Quote_Style
+from Standard.Table.IO.Line_Ending_Style import all
 import Standard.Table.Data.Match_Columns
 import Standard.Table.Data.Column_Name_Mapping
 from Standard.Table.Errors as Table_Errors import Column_Count_Mismatch, Column_Name_Mismatch
@@ -149,7 +149,7 @@ spec =
 
         Test.specify 'should allow to always quote text and custom values, but for non-text primitves only if absolutely necessary' <|
             format = File_Format.Delimited "," value_formatter=(Data_Formatter thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
-            table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type 44, (Date.new 2022 06 21 . internal_local_date), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55 . internal_local_time), Nothing, Nothing]]]
+            table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type 44, (Date.new 2022 06 21), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55 . internal_local_time), Nothing, Nothing]]]
             file = (enso_project.data / "transient" / "quote_always.csv")
             file.delete_if_exists
             table.write file format on_problems=Report_Error . should_succeed
