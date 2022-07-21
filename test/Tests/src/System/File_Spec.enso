@@ -93,6 +93,16 @@ spec =
             contents = File.read_bytes full_path
             contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
 
+        Test.specify "should allow to read last n bytes from a file" <|
+            sample_file.read_last_bytes 0 . should_equal []
+            sample_file.read_last_bytes 1 . should_equal [10]
+            sample_file.read_last_bytes 2 . should_equal [46, 10]
+            sample_file.read_last_bytes 5 . should_equal [98, 101, 115, 46, 10]
+
+            contents = sample_file.read_bytes
+            (contents.length < 1000).should_be_true
+            sample_file.read_last_bytes 1000 . should_equal contents
+
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
             File.read_bytes "does_not_exist.txt" . should_fail_with File.File_Not_Found
