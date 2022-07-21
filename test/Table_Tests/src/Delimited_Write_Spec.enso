@@ -387,6 +387,37 @@ spec =
                 text.should_equal expected_text
                 file.delete
 
+        Test.specify "should use the existing line ending style when appending to a file consisting of only comments missing last EOL" pending="Needs fix for missing EOL when appending." <|
+            initial_lines = ["# comment 1", "# comment 2"]
+            table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
+            expected_lines = initial_lines + ["a,b", "x,z", "y,w"]
+            file = (enso_project.data / "transient" / "endings_comments_only.csv")
+            line_ending_pairs.each setting->
+                separator=setting.second
+                file.delete_if_exists
+                (initial_lines.join separator).write file
+                format = File_Format.Delimited ',' . with_comments
+                table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+                text = File.read_text file
+                expected_text = expected_lines.join separator suffix=separator
+                text.should_equal expected_text
+                file.delete
+
+        Test.specify "should use the Unix line ending style when appending to a file consisting of only one comment and missing last EOL" <|
+            initial_lines = ["# comment 1"]
+            table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
+            expected_lines = initial_lines + ["a,b", "x,z", "y,w"]
+            file = (enso_project.data / "transient" / "endings_comments_only.csv")
+            separator='\n'
+            file.delete_if_exists
+            (initial_lines.join separator).write file
+            format = File_Format.Delimited ',' . with_comments
+            table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            text = File.read_text file
+            expected_text = expected_lines.join separator suffix=separator
+            text.should_equal expected_text
+            file.delete
+
         Test.specify "should fail if explicitly provided line endings do not match line endings in the file when appending" <|
             initial_table = Table.new [["a", [1, 2]]]
             table_to_append = Table.new [["a", ["x", "y"]]]
