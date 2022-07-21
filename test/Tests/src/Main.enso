@@ -57,6 +57,7 @@ import project.Resource.Bracket_Spec
 import project.Runtime.Stack_Traces_Spec
 import project.Runtime.Lazy_Generator_Spec
 
+import project.System.Environment_Spec
 import project.System.File_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
@@ -72,6 +73,7 @@ main = Test.Suite.run_main <|
     Conversion_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec
+    Environment_Spec.spec
     File_Spec.spec
     Reporting_Stream_Decoder_Spec.spec
     Reporting_Stream_Encoder_Spec.spec

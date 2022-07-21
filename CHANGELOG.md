@@ -164,6 +164,8 @@
 - [Added `line_endings` and `comment_character` options to
   `File_Format.Delimited`.][3581]
 - [Fixed the case of various type names and library paths][3590]
+- [Added support for parsing `.pgpass` file and `PG*` environment variables for
+  the Postgres connection][3593]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -260,6 +262,7 @@
 [3581]: https://github.com/enso-org/enso/pull/3581
 [3588]: https://github.com/enso-org/enso/pull/3588
 [3590]: https://github.com/enso-org/enso/pull/3590
+[3593]: https://github.com/enso-org/enso/pull/3593
 
 #### Enso Compiler
 
@@ -269,7 +272,7 @@
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
-- [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Converting Enso Date to java.time.LocalDate and back][3559]
 - [Incremental Reparsing of a Simple Edits][3508]
 - [Functions with all-defaulted arguments now execute automatically][3414]
 - [Provide `tagValues` for function arguments in the language server][3422]
@@ -297,7 +300,7 @@
 [3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
-[3374]: https://github.com/enso-org/enso/pull/3374
+[3559]: https://github.com/enso-org/enso/pull/3559
 [3508]: https://github.com/enso-org/enso/pull/3508
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414
