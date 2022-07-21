@@ -50,6 +50,10 @@ nano_time = @Builtin_Method "System.nano_time"
 os : Text
 os = @Builtin_Method "System.os"
 
+## Check if the operating system is UNIX.
+is_unix : Boolean
+is_unix = @Builtin_Method "System.is_unix"
+
 ## PRIVATE
    Returns the default line separator for the platform that the program is
    currently running on.
