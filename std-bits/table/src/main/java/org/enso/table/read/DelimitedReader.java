@@ -41,7 +41,7 @@ public class DelimitedReader {
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
-  private final String newlineSetting;
+  private String newlineSetting;
   private final boolean warningsAsErrors;
   private final NoOpProblemAggregator noOpProblemAggregator = new NoOpProblemAggregator();
   private long invalidRowsCount = 0;
@@ -180,6 +180,7 @@ public class DelimitedReader {
       }
 
       format.setComment(commentCharacter.charAt(0));
+      settings.setCommentCollectionEnabled(true);
     }
 
     settings.setFormat(format);
@@ -363,7 +364,7 @@ public class DelimitedReader {
       return newlineSetting;
     } else {
       ensureHeadersDetected();
-      return parser.getDetectedFormat().getLineSeparatorString();
+      return newlineSetting;
     }
   }
 
@@ -375,6 +376,19 @@ public class DelimitedReader {
 
   private void detectHeaders() {
     Row firstRow = loadNextRow();
+
+    // Resolve the newline separator:
+    if (newlineSetting == null) {
+      newlineSetting = parser.getDetectedFormat().getLineSeparatorString();
+
+      String content = parser.getContext().currentParsedContent();
+      if (content == null || !content.endsWith(newlineSetting)) {
+        if (parser.getContext().lastComment() == null) {
+          newlineSetting = "\n";
+        }
+      }
+    }
+
     if (firstRow == null) {
       effectiveColumnNames = new String[0];
       headerProblems = Collections.emptyList();
@@ -389,7 +403,7 @@ public class DelimitedReader {
       case INFER -> {
         Row secondRow = loadNextRow();
         if (secondRow == null) {
-          /** If there is only one row in the file, we generate the headers and
+          /* If there is only one row in the file, we generate the headers and
            * stop further processing (as nothing more to process). */
           headerNames = generateDefaultHeaders(expectedColumnCount);
           pendingRows.add(firstRow);
