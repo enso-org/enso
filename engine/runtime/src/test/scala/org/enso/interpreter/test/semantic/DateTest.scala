@@ -86,9 +86,11 @@ class DateTest extends InterpreterTest {
            |    IO.println ensomonth
            |    IO.println ensoday
            |    IO.println ensotext
+           |    ensodate
            |""".stripMargin
-      eval(code)
+      val ensoDate = eval(code)
       consumeOut shouldEqual List("2022", "4", "1", "2022-04-01")
+      ensoDate.getMemberKeys().size() shouldEqual 0
     }
   }
 }

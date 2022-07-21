@@ -1,19 +1,19 @@
 from Standard.Base import all
 
 import Standard.Geo.Geo_Json
-import Standard.Table.Io.File_Read
-import Standard.Table.Io.File_Format
-import Standard.Table.Io.Excel
+import Standard.Table.IO.File_Read
+import Standard.Table.IO.File_Format
+import Standard.Table.IO.Excel
 import Standard.Table.Data.Table
 import Standard.Table.Data.Column
 import Standard.Table.Model
 
-from Standard.Table.Io.Excel export Excel_Section, Excel_Range
+from Standard.Table.IO.Excel export Excel_Section, Excel_Range
 
 export Standard.Table.Data.Column
 export Standard.Table.Model
-export Standard.Table.Io.File_Read
-export Standard.Table.Io.File_Format
+export Standard.Table.IO.File_Read
+export Standard.Table.IO.File_Format
 
 from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Column_Error, Table
 

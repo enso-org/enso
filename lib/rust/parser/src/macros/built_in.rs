@@ -67,7 +67,7 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
 
     let mut v = match_tree.view();
     let name = &v.query("name").unwrap()[0];
-    let name = operator::resolve_operator_precedence(name.clone());
+    let name = operator::resolve_operator_precedence_if_non_empty(name.clone()).unwrap();
     // println!("{:#?}", name);
     // println!("\n\n------------- 2");
 
@@ -78,7 +78,7 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
 
     let params = params
         .iter()
-        .map(|tokens| operator::resolve_operator_precedence(tokens.clone()))
+        .map(|tokens| operator::resolve_operator_precedence_if_non_empty(tokens.clone()).unwrap())
         .collect_vec();
     // println!("{:#?}", params);
     syntax::Tree::type_def(segment.header, name, params)

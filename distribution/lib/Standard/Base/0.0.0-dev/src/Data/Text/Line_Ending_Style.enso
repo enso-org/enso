@@ -5,8 +5,10 @@ type Line_Ending_Style
     ## Unix-style endings. Used, among others, on Linux and modern MacOS.
        The text equivalent is `'\n'`.
     type Unix
+
     ## Windows-style endings. The text equivalent is `'\r\n'`.
     type Windows
+
     ## Legacy MacOS endings. Only used on very old Mac systems.
        The text equivalent is `'\r\n'`.
     type Mac_Legacy

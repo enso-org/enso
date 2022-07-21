@@ -13,21 +13,21 @@ from Standard.Database.Error as Database_Errors import Unsupported_Database_Oper
    The dialect of SQLite databases.
 sqlite : Dialect
 sqlite =
-    Sqlite_Dialect make_internal_generator_dialect
+    SQLite_Dialect make_internal_generator_dialect
 
 ## PRIVATE
 
    The dialect of SQLite databases.
-type Sqlite_Dialect
+type SQLite_Dialect
     ## PRIVATE
 
        The dialect of SQLite databases.
-    type Sqlite_Dialect internal_generator_dialect
+    type SQLite_Dialect internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name = "sqlite"
+    name = "SQLite"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation

@@ -68,6 +68,10 @@ ensogl_core::define_endpoints! {
         scroll_position_x (f32),
         /// The content's y coordinate at the top edge of the area.
         scroll_position_y (f32),
+        /// The target of the content's x coordinate animation.
+        scroll_position_target_x (f32),
+        /// The target of the content's y coordinate animation.
+        scroll_position_target_y (f32),
         /// The visible content's height in px.
         scroll_area_height (f32),
         /// Position of the scroll viewport.
@@ -101,6 +105,11 @@ impl Viewport {
         let left = pos.x;
         let right = pos.x + size.x;
         !(top < self.bottom || bottom > self.top || left > self.right || right < self.left)
+    }
+
+    /// Return Viewport's size.
+    pub fn size(&self) -> Vector2 {
+        Vector2(self.right - self.left, self.top - self.bottom)
     }
 }
 
@@ -194,7 +203,7 @@ impl ScrollArea {
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
-        let camera = scene.layers.main.camera();
+        let camera = scene.layers.node_searcher.camera();
         let display_object = display::object::Instance::new(&logger);
         let masked_layer = layer::Masked::new(&logger, &camera);
         let display_object = display::object::InstanceWithLayer::new(display_object, masked_layer);
@@ -278,6 +287,8 @@ impl ScrollArea {
 
             frp.source.scroll_position_x <+ model.h_scrollbar.thumb_position.map(|x| -x);
             frp.source.scroll_position_y <+ model.v_scrollbar.thumb_position;
+            frp.source.scroll_position_target_x <+ model.h_scrollbar.thumb_position_target.map(|x| -x);
+            frp.source.scroll_position_target_y <+ model.v_scrollbar.thumb_position_target;
 
             eval frp.scroll_position_x((&pos) model.content.set_position_x(pos));
             eval frp.scroll_position_y((&pos) model.content.set_position_y(pos));
@@ -291,8 +302,8 @@ impl ScrollArea {
             viewport <- viewport.map(|(position,dimension)|{
                 Viewport{
                     top: -position.y,
-                    left: position.x,
-                    right: position.x + dimension.x,
+                    left: -position.x,
+                    right: - position.x + dimension.x,
                     bottom: -position.y - dimension.y,
                 }
             });

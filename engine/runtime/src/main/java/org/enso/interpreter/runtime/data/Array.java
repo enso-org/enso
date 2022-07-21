@@ -144,6 +144,11 @@ public class Array implements TruffleObject {
     return false;
   }
 
+  @ExportMessage
+  String toDisplayString(boolean b) {
+    return toString();
+  }
+
   @Override
   public String toString() {
     return Arrays.toString(items);

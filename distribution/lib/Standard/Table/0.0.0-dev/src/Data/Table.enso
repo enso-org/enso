@@ -4,7 +4,7 @@ import Standard.Base.System.Platform
 import Standard.Table.Data.Column
 import Standard.Visualization
 from Standard.Base.Data.Time.Date as Date_Module import Date
-import Standard.Table.Io.File_Format
+import Standard.Table.IO.File_Format
 import Standard.Base.System.File
 import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.Error.Common as Errors
@@ -1076,7 +1076,7 @@ type Table
          `Illegal_Argument_Error` is raised.
        - If the path to the parent location cannot be found or the filename is
          invalid, a `File_Not_Found` is raised.
-       - If another IO error occurs, such as access denied, an `Io_Error` is
+       - If another IO error occurs, such as access denied, an `IO_Error` is
          raised.
        - If appending and the columns do not match, a `Column_Mismatch` is
          raised.
@@ -1110,7 +1110,7 @@ type Table
              import Standard.Table
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") File_Format.Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | Io_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
     write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         format.write_table (File.new path) self on_existing_file match_columns on_problems
 

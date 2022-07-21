@@ -72,7 +72,7 @@ spec =
                             _ -> @Tail_Call read_rest Nothing
                     read_rest Nothing
             Text.from_codepoints all_codepoints.to_vector . should_equal contents
-            result . should_equal Nothing
+            result.should_succeed
             f.delete
 
         Test.specify "should allow reading a UTF-8 file" <|
@@ -111,7 +111,7 @@ spec =
         Test.specify "should work correctly if no data is read from it" <|
             result = windows_file.with_input_stream [File.Option.Read] stream->
                 stream.with_stream_decoder Encoding.ascii Problem_Behavior.Report_Error _->Nothing
-            result.should_equal Nothing
+            result.should_succeed
 
 read_file_one_by_one file encoding expected_size on_problems=Problem_Behavior.Report_Error =
     file.with_input_stream [File.Option.Read] stream->

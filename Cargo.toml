@@ -10,7 +10,6 @@ members = [
   "build/rust-scripts",
   "lib/rust/*",
   "lib/rust/parser/src/syntax/tree/visitor",
-  "lib/rust/parser/src/syntax/tree/builder",
   "lib/rust/parser/generate-java",
   "lib/rust/profiler/data",
   "integration-test"

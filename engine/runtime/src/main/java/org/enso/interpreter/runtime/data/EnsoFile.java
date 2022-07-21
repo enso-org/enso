@@ -19,8 +19,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.CopyOption;
 import java.nio.file.OpenOption;
-import java.time.ZonedDateTime;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Set;
 
 /**
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
@@ -78,6 +80,13 @@ public class EnsoFile implements TruffleObject {
   @Builtin.ReturningGuestObject
   public ZonedDateTime getLastModifiedTime() throws IOException {
     return ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC);
+  }
+
+  @Builtin.Method(name = "posix_permissions_builtin")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.ReturningGuestObject
+  public Set<PosixFilePermission> getPosixPermissions() throws IOException {
+    return truffleFile.getPosixPermissions();
   }
 
   @Builtin.Method(name = "parent")
