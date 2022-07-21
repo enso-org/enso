@@ -195,6 +195,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
 
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
         use suggestion_database::entry::for_each_kind_variant;
+        use component_group_view::icon;
         let component = self.group.get_entry(id)?;
         let match_info = component.match_info.borrow();
         let label = component.label();
@@ -203,8 +204,10 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         if let Some(ico) = &component.suggestion.icon {
             DEBUG!("MCDBG in CB, got non-empty icon: [" ico;? "]");
         }
+        let icon = component.suggestion.icon.as_ref().and_then(|name| icon::Id::from_str(name.as_str()).ok()).unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)));
         Some(component_group_view::entry::Model {
-            icon:             for_each_kind_variant!(kind_to_icon(kind)),
+            icon,
+            // icon:             for_each_kind_variant!(kind_to_icon(kind)),
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
         })
     }
