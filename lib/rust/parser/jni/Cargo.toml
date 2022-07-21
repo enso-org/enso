@@ -1,9 +1,9 @@
 [package]
-name = "enso-parser-cdylib"
+name = "enso-parser-jni"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
-description = "Enso Parser dynamic library."
+description = "Enso Parser JNI dynamic library."
 readme = "README.md"
 homepage = "https://github.com/enso-org/enso"
 repository = "https://github.com/enso-org/enso"

@@ -2092,16 +2092,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-parser-cdylib"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "enso-parser",
- "enso-prelude",
- "jni",
-]
-
-[[package]]
 name = "enso-parser-generate-java"
 version = "0.1.0"
 dependencies = [
@@ -2110,6 +2100,16 @@ dependencies = [
  "enso-parser",
  "enso-prelude",
  "enso-reflect",
+]
+
+[[package]]
+name = "enso-parser-jni"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "enso-parser",
+ "enso-prelude",
+ "jni",
 ]
 
 [[package]]
