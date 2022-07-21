@@ -15,7 +15,7 @@ class LoadParser {
     public static void main(String[] args) {
         System.out.println("loaded: " + LoadParser.class.getName());
         ByteBuffer buf = ByteBuffer.allocateDirect(256);
-        buf.asCharBuffer().put("fac x = if (x <= 1) then 1 else x * fac(x - 1)");
+        buf.asCharBuffer().put("add x y = x + y");
         var r = hello(buf);
         System.out.println("Native method said: " + r);
     }
