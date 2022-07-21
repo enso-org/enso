@@ -16,6 +16,8 @@ use time::OffsetDateTime;
 use tokio::fs::File;
 use tokio::io::AsyncBufReadExt;
 use tokio::io::BufReader;
+use tokio_stream::wrappers::LinesStream;
+use tokio_stream::StreamExt;
 
 
 
@@ -43,7 +45,7 @@ struct Args {
     median: bool,
 }
 
-/// Specification contains lines to lookup in the log file
+/// A specification containing lines to lookup in the log file
 #[derive(Debug)]
 struct Spec {
     matches: Vec<String>,
@@ -59,13 +61,11 @@ struct Operation {
 
 impl fmt::Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}ms [{}] {}...",
-            self.duration.whole_milliseconds(),
-            self.timestamp.format(&Rfc3339).unwrap(),
-            self.line.chars().take(80).collect::<String>()
-        )
+        let duration_millis = self.duration.whole_milliseconds();
+        let timestamp = self.timestamp.format(&Rfc3339).unwrap();
+        let truncated_line = self.line.chars().take(80).collect::<String>();
+
+        write!(f, "{}ms [{}] {}...", duration_millis, timestamp, truncated_line)
     }
 }
 
@@ -96,19 +96,33 @@ struct Stats {
 
 impl fmt::Display for Stats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let avg_millis = self.avg.whole_milliseconds();
+        let min_millis = self.min.whole_milliseconds();
+        let max_millis = self.max.whole_milliseconds();
+        let truncated_line = self.line.chars().take(80).collect::<String>();
+
         write!(
             f,
             "{avg}ms [{min}..{max}] {line}",
-            avg = self.avg.whole_milliseconds(),
-            min = self.min.whole_milliseconds(),
-            max = self.max.whole_milliseconds(),
-            line = self.line.chars().take(80).collect::<String>()
+            avg = avg_millis,
+            min = min_millis,
+            max = max_millis,
+            line = truncated_line
         )
     }
 }
 
+/// Capture group containing the timestamp part of the log line
+static RE_LOGLINE_TIMESTAMP_CAPTURE_GROUP: usize = 2;
+
+/// Capture group containing the message part of the log line
+static RE_LOGLINE_MESSAGE_CAPTURE_GROUP: usize = 3;
+
 lazy_static! {
-    static ref RE_LOG: Regex = Regex::new(r"\[([\w]+)\] \[([\w\d:.-]+)\] (.*)").unwrap();
+    /// Regex for parsing the log line
+    static ref RE_LOGLINE: Regex = Regex::new(r"\[([\w]+)\] \[([\w\d:.-]+)\] (.*)").unwrap();
+
+    /// Specification for the log file produced by the wstest tool
     static ref WSTEST_SPEC: Spec = Spec {
         matches: vec![
             "wstest sent bench request".to_string(),
@@ -120,12 +134,9 @@ lazy_static! {
 /// Read the file with specification
 async fn read_specs(path: &PathBuf) -> Result<Spec> {
     let file = File::open(path).await?;
-    let mut lines = BufReader::new(file).lines();
-    let mut matches = Vec::new();
-
-    while let Some(line) = lines.next_line().await? {
-        matches.push(line);
-    }
+    let lines_reader = BufReader::new(file).lines();
+    let lines = LinesStream::new(lines_reader).collect::<Vec<Result<_>>>().await;
+    let matches = lines.into_iter().collect::<Result<_>>()?;
 
     Ok(Spec { matches })
 }
@@ -138,17 +149,14 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
     let mut iterations = vec![];
     let mut current_operations = vec![];
     let mut matches = spec.matches.iter();
-
-    let mut current_match = if let Some(m) = matches.next() {
-        m
-    } else {
-        matches = spec.matches.iter();
-        matches.next().expect("Empty spec!")
-    };
+    let mut current_match = matches.next().expect("Empty spec!");
 
     while let Some(line) = lines.next_line().await? {
-        if let Some(cap) = RE_LOG.captures(line.as_str()) {
-            let groups = (cap.get(2), cap.get(3));
+        if let Some(cap) = RE_LOGLINE.captures(line.as_str()) {
+            let groups = (
+                cap.get(RE_LOGLINE_TIMESTAMP_CAPTURE_GROUP),
+                cap.get(RE_LOGLINE_MESSAGE_CAPTURE_GROUP),
+            );
             match groups {
                 (Some(timestamp), Some(message)) =>
                     if message.as_str().contains(current_match) {
@@ -178,10 +186,12 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
     Ok(iterations)
 }
 
-
 /// Calcualte median of values
-fn median(durations: &mut [Duration]) -> Duration {
+fn median<I>(durations_iter: I) -> Duration
+where I: Iterator<Item = Duration> {
+    let mut durations = durations_iter.collect::<Vec<_>>();
     durations.sort();
+
     let mid = durations.len() / 2;
     if durations.len() % 2 == 0 {
         (durations[mid - 1] + durations[mid]) / 2
@@ -221,33 +231,26 @@ fn calculate_durations(iterations: &mut Vec<Iteration>) {
 fn analyze_iterations(iterations: &[Iteration], use_median: bool) -> Vec<Stats> {
     let mut stats = vec![];
 
-    let ops_len = iterations.len();
-    let splits_len = iterations.first().unwrap().operations.len();
+    let iterations_len = iterations.len();
+    let operations_len = iterations.first().unwrap().operations.len();
 
-    let mut i = 0;
-    while i < splits_len {
-        let mut min = Duration::MAX;
-        let mut max = Duration::ZERO;
-        let mut sum = Duration::ZERO;
-        let mut durations = vec![];
+    let mut operation_index = 0;
+    while operation_index < operations_len {
+        let current_line = &iterations[0].operations[operation_index].line;
+        let durations = iterations.iter().map(|it| it.operations[operation_index].duration);
 
-        let current_line = &iterations[0].operations[i].line;
-
-        for iteration in iterations {
-            let timed = &iteration.operations[i];
-
-            durations.push(timed.duration);
-            min = timed.duration.min(min);
-            max = timed.duration.max(max);
-            sum += timed.duration;
-        }
-
-        let avg = if use_median { median(&mut durations) } else { sum / ops_len as u32 };
+        let min = durations.clone().min().unwrap_or(Duration::ZERO);
+        let max = durations.clone().max().unwrap_or(Duration::ZERO);
+        let avg = if use_median {
+            median(durations)
+        } else {
+            durations.sum::<Duration>() / iterations_len as u32
+        };
         let line = current_line.to_string();
 
         stats.push(Stats { min, max, avg, line });
 
-        i += 1;
+        operation_index += 1;
     }
 
     let overall_stats = iterations_average(iterations, &stats);
@@ -258,12 +261,12 @@ fn analyze_iterations(iterations: &[Iteration], use_median: bool) -> Vec<Stats> 
 
 /// Calculate the average of all iterations
 fn iterations_average(ops: &[Iteration], stats: &[Stats]) -> Stats {
-    let min_opt = ops.into_iter().map(|o| o.total_time()).min();
-    let max_opt = ops.into_iter().map(|o| o.total_time()).max();
+    let min_opt = ops.iter().map(|o| o.total_time()).min();
+    let max_opt = ops.iter().map(|o| o.total_time()).max();
 
     let min = min_opt.unwrap_or(Duration::ZERO);
     let max = max_opt.unwrap_or(Duration::ZERO);
-    let avg = stats.into_iter().map(|s| s.avg).sum();
+    let avg = stats.iter().map(|s| s.avg).sum();
     let line = String::from("Total");
 
     Stats { min, max, avg, line }
@@ -275,11 +278,9 @@ async fn main() -> Result<()> {
     let spec = read_specs(&args.spec).await?;
 
     let mut log_iterations = read_logfile(&args.log, &spec).await?;
-
-    let mut iterations;
     let mut ws_iterations;
 
-    if let Some(path_buf) = args.wstest_log {
+    let mut iterations = if let Some(path_buf) = args.wstest_log {
         ws_iterations = read_logfile(&path_buf, &WSTEST_SPEC).await?;
 
         // skip warmup iterations
@@ -303,10 +304,10 @@ async fn main() -> Result<()> {
 
         merge_iterations(&mut ws_iterations, log_iterations);
 
-        iterations = ws_iterations;
+        ws_iterations
     } else {
-        iterations = log_iterations;
-    }
+        log_iterations
+    };
 
     cleanse_iterations(&mut iterations, args.skip_iterations);
     calculate_durations(&mut iterations);

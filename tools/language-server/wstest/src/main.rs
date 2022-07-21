@@ -106,13 +106,13 @@ async fn main() -> Result<()> {
     let (text_sink, text_stream) = text_socket_client.split();
 
     // binary socket connection
-    let (mut binary_sink, mut binary_stream) = (None, None);
-    if let Some(binary_socket) = args.binary_socket {
+    let (binary_sink, binary_stream) = if let Some(binary_socket) = args.binary_socket {
         let binary_client = ClientBuilder::from_url(binary_socket).async_connect().await?;
         let (sink, stream) = binary_client.split::<Message>();
-        binary_sink = Some(sink);
-        binary_stream = Some(stream);
-    }
+        (Some(sink), Some(stream))
+    } else {
+        (None, None)
+    };
 
     // ignored responses
     let mut ignored_text_responses = regex::RegexSet::empty();
