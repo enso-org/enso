@@ -1,0 +1,54 @@
+from Standard.Base import all
+import Standard.Base.Data.Time.Date
+
+import Standard.Table
+import Standard.Table.Data.Column
+import Standard.Table.Io.File_Format
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+from Standard.Table.Io.Line_Ending_Style import Unix_Line_Endings
+
+import Standard.Test
+import project.Util
+
+spec =
+    c_number = ["Number", [71, 72, 73, 74, 75, 76, 77]]
+    c_party = ["Party", ["Conservative", "Conservative", "Labour", "Labour", "Conservative", "Conservative", "Conservative"]]
+    c_name = ["Title", ["Margaret Thatcher", "John Major", "Tony Blair", "Gordon Brown", "David Cameron", "Theresa May", "Boris Johnson"]]
+    c_from = ["From", [Date.new 1979 05 04, Date.new 1990 11 28, Date.new 1997 05 02, Date.new 2007 06 27, Date.new 2010 05 11, Date.new 2016 07 13, Date.new 2019 07 24]]
+    c_to = ["To", [Date.new 1990 11 28, Date.new 1997 05 02, Date.new 2007 06 27, Date.new 2010 05 11, Date.new 2016 07 13, Date.new 2019 07 24, Date.new 2022 07 07]]
+    expected = Table.new [c_number, c_party, c_name, c_from, c_to]
+
+    Test.group "File.read (Delimited) should work with Dates" <|
+        table = (enso_project.data / "prime_ministers.csv").read
+        Test.specify "should be able to read in a table with dates" <|
+            table.columns.length.should_equal 5
+            table.columns.map (.name) . should_equal ['Number','Party', 'Title', 'From', 'To']
+            table.row_count.should_equal 7
+
+        Test.specify "should be able to treat a single value as a Date" <|
+            from_column = table.at 'From'
+            from_column.at 6 . year . should_equal 2019
+            from_column.at 6 . should_equal (Date.new 2019 7 24)
+
+        Test.specify "should be able to compare columns and table" <|
+            table.at 'Number' . should_equal (Column.from_vector c_number.first c_number.second)
+            table.at 'Party' . should_equal (Column.from_vector c_party.first c_party.second)
+            table.at 'Title' . should_equal (Column.from_vector c_name.first c_name.second)
+            table.at 'From' . should_equal (Column.from_vector c_from.first c_from.second)
+            table.at 'To' . should_equal (Column.from_vector c_to.first c_to.second)
+            table.should_equal expected
+
+    Test.group "Should be able to serialise a table with Dates to Text" <|
+        Test.specify "should serialise back to input" <|
+            expected_text = (enso_project.data / "prime_ministers.csv").read_text
+            delimited = Text.from expected format=(File_Format.Delimited "," line_endings=Unix_Line_Endings)
+            delimited.should_equal expected_text
+
+        Test.specify "should serialise dates with format" <|
+            test_table = Table.new [c_from]
+            expected_text = 'From\n04.05.1979\n28.11.1990\n02.05.1997\n27.06.2007\n11.05.2010\n13.07.2016\n24.07.2019\n'
+            data_formatter = Data_Formatter . with_datetime_formats date_formats=["dd.MM.yyyy"]
+            delimited = Text.from test_table format=(File_Format.Delimited "," value_formatter=data_formatter line_endings=Unix_Line_Endings)
+            delimited.should_equal expected_text
+
+main = Test.Suite.run_main spec
