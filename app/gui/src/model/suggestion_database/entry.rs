@@ -188,6 +188,7 @@ pub struct Entry {
     pub self_type:          Option<tp::QualifiedName>,
     /// A scope where this suggestion is visible.
     pub scope:              Scope,
+    pub icon:               Option<String>,
 }
 
 impl Entry {
@@ -351,6 +352,7 @@ impl Entry {
                 return_type,
                 documentation,
                 documentation_html,
+                documentation_sections,
                 ..
             } => Self {
                 name,
@@ -361,6 +363,7 @@ impl Entry {
                 self_type: None,
                 kind: Kind::Atom,
                 scope: Scope::Everywhere,
+                icon: find_icon_name(documentation_sections),
             },
             #[allow(unused)]
             Method {
@@ -371,6 +374,7 @@ impl Entry {
                 return_type,
                 documentation,
                 documentation_html,
+                documentation_sections,
                 ..
             } => Self {
                 name,
@@ -381,6 +385,7 @@ impl Entry {
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
                 scope: Scope::Everywhere,
+                icon: find_icon_name(documentation_sections),
             },
             Function { name, module, arguments, return_type, scope, .. } => Self {
                 name,
@@ -391,6 +396,7 @@ impl Entry {
                 documentation_html: default(),
                 kind: Kind::Function,
                 scope: Scope::InModule { range: scope.into() },
+                icon: None,
             },
             Local { name, module, return_type, scope, .. } => Self {
                 name,
@@ -401,8 +407,11 @@ impl Entry {
                 documentation_html: default(),
                 kind: Kind::Local,
                 scope: Scope::InModule { range: scope.into() },
+                icon: None,
             },
-            Module { module, documentation, documentation_html, .. } => {
+            Module {
+                module, documentation, documentation_html, documentation_sections, ..
+            } => {
                 let module_name: module::QualifiedName = module.clone().try_into()?;
                 Self {
                     documentation_html: Self::make_html_docs(documentation, documentation_html),
@@ -413,6 +422,7 @@ impl Entry {
                     kind:               Kind::Module,
                     scope:              Scope::Everywhere,
                     return_type:        module,
+                    icon:               find_icon_name(documentation_sections),
                 }
             }
         };
@@ -627,6 +637,19 @@ fn chain_iter_and_entry_name<'a>(
     entry: &'a Entry,
 ) -> impl Iterator<Item = &'a str> {
     iter.into_iter().chain(iter::once(entry.name.as_str()))
+}
+
+// TODO[MC]: try returning Option<&str>
+fn find_icon_name<I>(docs: I) -> Option<String>
+where I: IntoIterator<Item = language_server::types::DocSection> {
+    docs.into_iter().find_map(|section| {
+        use language_server::types::DocSection;
+        match section {
+            // FIXME[MC]: case insensitive comparison
+            DocSection::Keyed { key, body } if key.as_str() == "Icon" => Some(body.clone()),
+            _ => None,
+        }
+    })
 }
 
 
