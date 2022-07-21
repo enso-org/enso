@@ -3,6 +3,9 @@
 
 use crate::prelude::*;
 
+use crate::Col;
+use crate::Row;
+
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -12,7 +15,7 @@ use ensogl_core::display::scene::Layer;
 use ensogl_core::display::Attribute;
 
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct Contour {
     pub size:          Vector2,
     pub corner_radius: f32,
@@ -26,11 +29,12 @@ pub struct Contour {
 
 ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node::Data)>
     Input {
-        set_selected(bool),
-        set_hovered(bool),
         set_model(Model),
         set_size(Vector2),
         set_params(Params),
+        set_location((Row, Col)),
+        set_selected(bool),
+        set_hovered(bool),
     }
     Output {
         disabled(bool),

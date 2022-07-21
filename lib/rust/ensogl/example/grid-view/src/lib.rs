@@ -73,9 +73,10 @@ fn init(app: &Application) {
             (*row, *col, model)
         });
         grid_view.model_for_entry <+ requested_entry;
-
-        eval grid_view.entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
-        eval grid_view.entry_selected ([]((row, col)) tracing::debug!("Selected entry ({row}, {col})."));
+        entry_hovered <- grid_view.entry_hovered.filter_map(|l| *l);
+        entry_selected <- grid_view.entry_selected.filter_map(|l| *l);
+        eval entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
+        eval entry_selected ([]((row, col)) tracing::debug!("Selected entry ({row}, {col})."));
         eval grid_view.entry_accepted ([]((row, col)) tracing::debug!("ACCEPTED entry ({row}, {col})."));
     }
     grid_view.set_entries_size(Vector2(130.0, 28.0));

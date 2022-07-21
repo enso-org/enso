@@ -51,6 +51,7 @@ use crate::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
@@ -91,6 +92,8 @@ ensogl_core::define_endpoints_2! {
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
         /// constructors. **Performance note**: This will re-instantiate all entries.
         set_text_layer(Option<WeakLayer>),
+        select_entry(Option<(Row, Col)>),
+        accept_entry(Row, Col),
     }
 
     Output {
@@ -102,9 +105,9 @@ ensogl_core::define_endpoints_2! {
         content_size(Vector2),
         /// Event emitted when the Grid View needs model for an uncovered entry.
         model_for_entry_needed(Row, Col),
-
-        entry_hovered(Row, Col),
-        entry_selected(Row, Col),
+        entry_shown(Row, Col),
+        entry_hovered(Option<(Row, Col)>),
+        entry_selected(Option<(Row, Col)>),
         entry_accepted(Row, Col),
     }
 }
@@ -114,24 +117,6 @@ ensogl_core::define_endpoints_2! {
 // ====================
 // === VisibleEntry ===
 // ====================
-
-struct HighlightLayers {
-    entries: Layer,
-    text:    Layer,
-    mask:    Layer,
-}
-
-impl HighlightLayers {
-    fn create(parent: Layer) -> Self {
-        let entries = parent.create_sublayer();
-        let text = parent.create_sublayer();
-        let mask =
-            Layer::new_with_cam(Logger::new("grid_view::HighlightLayers::mask"), &parent.camera());
-        entries.set_mask(&mask);
-        text.set_mask(&mask);
-        Self { entries, text, mask }
-    }
-}
 
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "Entry: CloneRef")]
@@ -162,16 +147,16 @@ struct EntryCreationCtx<EntryParams> {
     network:          frp::WeakNetwork,
     set_entry_size:   frp::Stream<Vector2>,
     set_entry_params: frp::Stream<EntryParams>,
-    entry_hovered:    frp::Any<(Row, Col)>,
-    entry_selected:   frp::Any<(Row, Col)>,
+    entry_hovered:    frp::Any<Option<(Row, Col)>>,
+    entry_selected:   frp::Any<Option<(Row, Col)>>,
     entry_accepted:   frp::Any<(Row, Col)>,
 }
 
-impl<EntryParams: frp::node::Data> EntryCreationCtx<EntryParams> {
+impl<EntryParams> EntryCreationCtx<EntryParams>
+where EntryParams: frp::node::Data
+{
     fn create_entry<E: Entry<Params = EntryParams>>(
         &self,
-        row: Row,
-        col: Col,
         text_layer: Option<&Layer>,
     ) -> VisibleEntry<E> {
         let entry = E::new(&self.app, text_layer);
@@ -184,16 +169,18 @@ impl<EntryParams: frp::node::Data> EntryCreationCtx<EntryParams> {
                 init <- source_();
                 entry_frp.set_size <+ all(init, self.set_entry_size)._1();
                 entry_frp.set_params <+ all(init, self.set_entry_params)._1();
-
                 contour <- all(init, entry_frp.contour)._1();
                 eval contour ((c) overlay.set_contour(*c));
 
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
-                let loc = (row, col);
-                self.entry_hovered <+ events.mouse_over.gate_not(disabled).constant(loc);
-                self.entry_selected <+ events.mouse_down.gate_not(disabled).constant(loc);
-                self.entry_accepted <+ events.mouse_down_primary.gate_not(disabled).constant(loc);
+                let location = entry_frp.set_location.clone_ref();
+                hovered <- events.mouse_over.gate_not(disabled);
+                selected <- events.mouse_down.gate_not(disabled);
+                accepted <- events.mouse_down_primary.gate_not(disabled);
+                self.entry_hovered <+ location.sample(&hovered).map(|l| Some(*l));
+                self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
+                self.entry_accepted <+ location.sample(&accepted);
             }
             init.emit(());
         }
@@ -201,10 +188,14 @@ impl<EntryParams: frp::node::Data> EntryCreationCtx<EntryParams> {
     }
 }
 
-fn set_entry_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_size: Vector2) {
+fn entry_position(row: Row, col: Col, entry_size: Vector2) -> Vector2 {
     let x = (col as f32 + 0.5) * entry_size.x;
     let y = (row as f32 + 0.5) * -entry_size.y;
-    entry.set_position_xy(Vector2(x, y));
+    Vector2(x, y)
+}
+
+fn set_entry_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_size: Vector2) {
+    entry.set_position_xy(entry_position(row, col, entry_size));
 }
 
 
@@ -301,13 +292,14 @@ impl<E: Entry> Model<E, E::Params> {
         let mut free_entries = self.free_entries.borrow_mut();
         let create_new_entry = || {
             let text_layer = text_layer.as_ref().and_then(|l| l.upgrade());
-            self.entry_creation_ctx.create_entry(row, col, text_layer.as_ref())
+            self.entry_creation_ctx.create_entry(text_layer.as_ref())
         };
         let entry = match visible_entries.entry((row, col)) {
             Occupied(entry) => entry.into_mut(),
             Vacant(lack_of_entry) => {
                 let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
                 set_entry_position(&new_entry, row, col, entry_size);
+                new_entry.entry.frp().set_location((row, col));
                 self.display_object.add_child(&new_entry);
                 lack_of_entry.insert(new_entry)
             }
@@ -424,12 +416,19 @@ impl<E: Entry> GridView<E> {
             out.model_for_entry_needed <+ request_models_after_reset;
             out.model_for_entry_needed <+ request_models_after_text_layer_change;
 
+            out.entry_selected <+ input.select_entry;
+            out.entry_accepted <+ input.accept_entry;
+
+            // The ordering here is important: we want to first call [`update_entry`] and only then
+            // inform everyone that the entry is visible. They may want to immediately get the entry
+            // with [`get_entry`] method.
             model_prop_and_layer <-
                 input.model_for_entry.map3(&prop, &input.set_text_layer, |model, prop, layer| (model.clone(), *prop, layer.clone()));
             eval model_prop_and_layer
                 ((((row, col, entry_model), prop, layer): &((Row, Col, E::Model), Properties, Option<WeakLayer>))
                     model.update_entry(*row, *col, entry_model.clone(), prop.entries_size, layer)
                 );
+            out.entry_shown <+ input.model_for_entry.map(|(row, col, _)| (*row, *col));
         }
         let display_object = model.display_object.clone_ref();
         let widget = Widget::new(app, frp, model, display_object);
@@ -440,6 +439,19 @@ impl<E: Entry> GridView<E> {
         let x = col_count as f32 * entries_size.x;
         let y = row_count as f32 * entries_size.y;
         Vector2(x, y)
+    }
+}
+
+impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>
+where
+    Entry: CloneRef,
+    EntryModel: frp::node::Data,
+    EntryParams: frp::node::Data,
+{
+    fn get_entry(&self, row: Row, column: Col) -> Option<Entry> {
+        let entries = self.widget.model().visible_entries.borrow();
+        let entry = entries.get(&(row, column));
+        entry.map(|e| e.entry.clone_ref())
     }
 }
 
