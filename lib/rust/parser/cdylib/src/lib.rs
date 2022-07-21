@@ -51,12 +51,10 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     let input = if cfg!(debug_assertions) {
         std::str::from_utf8(input).unwrap()
     } else {
-        unsafe {
-            std::str::from_utf8_unchecked(input)
-        }
+        unsafe { std::str::from_utf8_unchecked(input) }
     };
     state.base = str::as_ptr(input) as usize as u64;
-    let tree = enso_parser::Parser::new().run(&input);
+    let tree = enso_parser::Parser::new().run(input);
     state.output = match enso_parser::serialization::serialize_tree(&tree) {
         Ok(tree) => tree,
         // `Tree` does not contain any types with fallible `serialize` implementations, so this
