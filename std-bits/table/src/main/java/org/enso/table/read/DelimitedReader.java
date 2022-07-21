@@ -354,18 +354,16 @@ public class DelimitedReader {
     return effectiveColumnNames.length;
   }
 
-  /** Returns the line separator used in the file.
-   *
-   * If a specific separator is set at construction, it is just returned. If it
-   * was set to null, the separator inferred from the file contents is returned.
+  /** Returns the line separator detected from the file.
    */
-  public String getEffectiveLineSeparator() {
-    if (newlineSetting != null) {
-      return newlineSetting;
-    } else {
+  public String getDetectedLineSeparator() {
       ensureHeadersDetected();
-      return newlineSetting;
-    }
+      return parser.getDetectedFormat().getLineSeparatorString();
+  }
+
+  public long getVisitedLinesCount() {
+    ensureHeadersDetected();
+    return parser.getContext().currentLine();
   }
 
   private void ensureHeadersDetected() {

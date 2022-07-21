@@ -236,6 +236,10 @@ spec =
             got_table.should_equal table
             file.delete
 
+        Test.specify "should correctly append to a with a missing newline at EOF" <|
+            # TODO
+            Nothing
+
         Test.specify "should append to a file, matching columns by name (headers=Infer)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]
             appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
