@@ -50,4 +50,8 @@ public final class Message {
             tmp += 0x0000000100000000L;
         return (int)tmp;
     }
+
+    final String getLocation() {
+        return "Message[buffer=" + buffer.position() + "]";
+    }
 }

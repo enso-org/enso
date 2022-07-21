@@ -2,6 +2,9 @@ package org.enso.syntax2.serialization;
 
 public class FormatException
   extends RuntimeException {
+    public FormatException(Message m, String errorMessage) {
+        this("At " + m.getLocation() + ":" + errorMessage);
+    }
     public FormatException(String errorMessage, Throwable err) {
         super(errorMessage, err);
     }
