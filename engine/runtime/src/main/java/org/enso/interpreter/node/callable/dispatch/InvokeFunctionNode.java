@@ -20,7 +20,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 
-import java.util.Arrays;
 import java.util.UUID;
 
 /**
@@ -37,26 +36,14 @@ public abstract class InvokeFunctionNode extends BaseNode {
   private @Child CaptureCallerInfoNode captureCallerInfoNode = CaptureCallerInfoNode.build();
   private @Child FunctionCallInstrumentationNode functionCallInstrumentationNode =
       FunctionCallInstrumentationNode.build();
-  private final boolean ignoreSelfCheck;
 
   InvokeFunctionNode(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      boolean ignoreSelfCheck) {
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     this.schema = schema;
     this.defaultsExecutionMode = defaultsExecutionMode;
     this.argumentsExecutionMode = argumentsExecutionMode;
-    this.ignoreSelfCheck = ignoreSelfCheck;
-  }
-
-  public static InvokeFunctionNode build(
-      CallArgumentInfo[] schema,
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
-      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      boolean ignoreSelfCheck) {
-    return InvokeFunctionNodeGen.create(
-        schema, defaultsExecutionMode, argumentsExecutionMode, ignoreSelfCheck);
   }
 
   /**
@@ -71,8 +58,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
-    return InvokeFunctionNodeGen.create(
-        schema, defaultsExecutionMode, argumentsExecutionMode, true);
+    return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   Context getContext() {
@@ -80,28 +66,21 @@ public abstract class InvokeFunctionNode extends BaseNode {
   }
 
   @Specialization(
-      guards = {
-        "!getContext().isInlineCachingDisabled()",
-        "function.getSchema() == cachedSchema",
-        "selfArgIncluded(function.getSchema()) == cachedDeclaresExplicitSelf"
-      },
+      guards = {"!getContext().isInlineCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   Stateful invokeCached(
       Function function,
       VirtualFrame callerFrame,
       Object state,
-      Object[] arguments0,
-      @Cached("selfArgIncluded(function.getSchema())") boolean cachedDeclaresExplicitSelf,
+      Object[] arguments,
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
-      @Cached("generate(cachedSchema, getSchema(), cachedDeclaresExplicitSelf)")
+      @Cached("generate(cachedSchema, getSchema())")
           CallArgumentInfo.ArgumentMapping argumentMapping,
       @Cached("build(cachedSchema, argumentMapping, getArgumentsExecutionMode())")
           ArgumentSorterNode mappingNode,
       @Cached(
               "build(argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(), getTailStatus())")
           CurryNode curryNode) {
-
-    Object[] arguments = argumentsForInvocation(arguments0, cachedDeclaresExplicitSelf);
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(function, state, arguments);
     CallerInfo callerInfo = null;
@@ -119,14 +98,6 @@ public abstract class InvokeFunctionNode extends BaseNode {
         mappedArguments.getOversaturatedArguments());
   }
 
-  private Object[] argumentsForInvocation(Object[] arguments, boolean declaresExplicitSelf) {
-    if (declaresExplicitSelf || arguments.length == 0) {
-      return arguments;
-    } else {
-      return Arrays.copyOfRange(arguments, 1, arguments.length);
-    }
-  }
-
   /**
    * Generates an argument mapping and executes a function with properly ordered arguments. Does not
    * perform any caching and is thus a slow-path operation.
@@ -135,8 +106,6 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to reorder and supply to the {@code function}
-   * @param declaresExplicitSelf true, if the function declares {@code self} as the first parameter,
-   *     false otherwise
    * @return the result of calling {@code function} with the supplied {@code arguments}.
    */
   @Specialization(replaces = "invokeCached")
@@ -144,15 +113,11 @@ public abstract class InvokeFunctionNode extends BaseNode {
       Function function,
       VirtualFrame callerFrame,
       Object state,
-      Object[] arguments0,
+      Object[] arguments,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
-    boolean declaresExplicitSelf = selfArgIncluded(function.getSchema());
     CallArgumentInfo.ArgumentMapping argumentMapping =
-        CallArgumentInfo.ArgumentMappingBuilder.generate(
-            function.getSchema(), getSchema(), declaresExplicitSelf);
-
-    Object[] arguments = argumentsForInvocation(arguments0, declaresExplicitSelf);
+        CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), getSchema());
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(
@@ -207,10 +172,6 @@ public abstract class InvokeFunctionNode extends BaseNode {
 
   public InvokeCallableNode.ArgumentsExecutionMode getArgumentsExecutionMode() {
     return argumentsExecutionMode;
-  }
-
-  public boolean selfArgIncluded(FunctionSchema functionSchema) {
-    return this.ignoreSelfCheck || functionSchema.hasSelf();
   }
 
   /** @return the source section for this node. */

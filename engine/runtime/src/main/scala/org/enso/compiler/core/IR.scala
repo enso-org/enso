@@ -2793,6 +2793,7 @@ object IR {
       */
     sealed case class Self(
       override val location: Option[IdentifiedLocation],
+      synthetic: Boolean                          = false,
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name {
@@ -2809,11 +2810,12 @@ object IR {
         */
       def copy(
         location: Option[IdentifiedLocation] = location,
+        synthetic: Boolean                   = synthetic,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Self = {
-        val res = Self(location, passData, diagnostics)
+        val res = Self(location, synthetic, passData, diagnostics)
         res.id = id
         res
       }
@@ -2846,6 +2848,7 @@ object IR {
         s"""
         |IR.Name.Self(
         |location = $location,
+        |synthetic = $synthetic,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
         |id = $id
@@ -6474,7 +6477,7 @@ object IR {
         override val location: Option[IdentifiedLocation]
       ) extends Shadowed {
         override def message: String =
-          s"The argument $shadowedName is shadowed by $shadower."
+          s"The argument $shadowedName is shadowed by $shadower"
 
         override def diagnosticKeys(): Array[Any] =
           Array(shadowedName, shadower)

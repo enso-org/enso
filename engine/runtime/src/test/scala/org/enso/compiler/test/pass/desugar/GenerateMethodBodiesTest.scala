@@ -54,15 +54,18 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irResult       = ir.desugar
     val irResultMethod = irResult.bindings.head.asInstanceOf[Method]
 
-    "not have the `self` argument prepended to the argument list" in {
+    "still have the `self` argument prepended to the argument list" in {
       val resultArgs =
         irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
 
-      resultArgs.head
+      val firstArg :: restArgs = resultArgs
+      val self = firstArg
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name should not be a[IR.Name.Self]
+        .name
+      self shouldBe a[IR.Name.Self]
+      self.asInstanceOf[IR.Name.Self].synthetic shouldBe true
 
-      resultArgs shouldEqual irMethod.body
+      restArgs shouldEqual irMethod.body
         .asInstanceOf[IR.Function.Lambda]
         .arguments
     }
@@ -93,7 +96,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val bodyArgs =
         irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
 
-      bodyArgs.length shouldEqual 0
+      bodyArgs.length shouldEqual 1
     }
 
     "have the body of the function be equivalent to the expression" in {
@@ -126,9 +129,11 @@ class GenerateMethodBodiesTest extends CompilerTest {
         irResultMethod.body.asInstanceOf[IR.Function.Lambda].arguments
 
       bodyArgs.length shouldEqual 1
-      bodyArgs.head
+      val self = bodyArgs.head
         .asInstanceOf[IR.DefinitionArgument.Specified]
-        .name shouldBe a[IR.Name.Self]
+        .name
+      self shouldBe a[IR.Name.Self]
+      self.asInstanceOf[IR.Name.Self].synthetic shouldBe false
     }
 
     "have the body of the function be equivalent to the expression" in {
@@ -187,7 +192,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
-      selfArg shouldEqual IR.Name.Self(location = irMethodSelfArg.name.location)
+      selfArg shouldEqual IR.Name.Self(
+        location  = irMethodSelfArg.name.location,
+        synthetic = false
+      )
     }
 
     "generate a warning about self parameter not being in the first position" in {
@@ -303,8 +311,8 @@ class GenerateMethodBodiesTest extends CompilerTest {
         ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
       conversion.body shouldBe an[IR.Function.Lambda]
       val body = conversion.body.asInstanceOf[IR.Function.Lambda]
-      body.arguments.length shouldEqual 1
-      body.arguments.head.name should not be a[IR.Name.Self]
+      body.arguments.length shouldEqual 2
+      body.arguments.head.name shouldBe a[IR.Name.Self]
     }
 
     // FIXME: This should probably be prohibited

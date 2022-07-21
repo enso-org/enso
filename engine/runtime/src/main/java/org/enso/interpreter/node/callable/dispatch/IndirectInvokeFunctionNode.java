@@ -62,7 +62,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
       @Cached IndirectCurryNode curryNode,
       @Cached CaptureCallerInfoNode captureCallerInfoNode) {
     CallArgumentInfo.ArgumentMapping argumentMapping =
-        CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), schema, true);
+        CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), schema);
 
     ArgumentSorterNode.MappedArguments mappedArguments =
         mappingNode.execute(

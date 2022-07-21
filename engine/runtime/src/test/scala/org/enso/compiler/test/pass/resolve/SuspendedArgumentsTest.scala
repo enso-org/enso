@@ -88,7 +88,7 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       val ir =
         """
-          |Any.id : Any -> Suspended -> a
+          |Any.id : Suspended -> a
           |Any.id self a = a
           |""".stripMargin.preprocessModule.resolve.bindings.head
           .asInstanceOf[Method]
@@ -98,7 +98,7 @@ class SuspendedArgumentsTest extends CompilerTest {
       bodyLam.arguments.length shouldEqual 2
       assert(
         !bodyLam.arguments.head.suspended,
-        "the `this` argument is suspended"
+        "the `self` argument is suspended"
       )
       assert(
         bodyLam.arguments(1).suspended,
@@ -145,10 +145,10 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
 
-      bodyLam.arguments.length shouldEqual 2
+      bodyLam.arguments.length shouldEqual 3
 
-      assert(!bodyLam.arguments(0).suspended, "open_options was suspended")
-      assert(!bodyLam.arguments(1).suspended, "action was suspended")
+      assert(!bodyLam.arguments(1).suspended, "open_options was suspended")
+      assert(!bodyLam.arguments(2).suspended, "action was suspended")
     }
 
     "work for conversion methods" in {
@@ -163,9 +163,9 @@ class SuspendedArgumentsTest extends CompilerTest {
       val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
       val args    = bodyLam.arguments
 
-      args.length shouldEqual 2
-      assert(!args(0).suspended, "the source argument was suspended")
-      assert(args(1).suspended, "the config argument was not suspended")
+      args.length shouldEqual 3
+      assert(!args(1).suspended, "the source argument was suspended")
+      assert(args(2).suspended, "the config argument was not suspended")
     }
 
     "raise an error if a conversion method marks its source argument as suspended" in {

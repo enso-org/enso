@@ -58,7 +58,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       int thatArgumentPosition) {
     this.invokeFunctionNode =
-        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode, false);
+        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.thatArgumentPosition = thatArgumentPosition;
   }
 
@@ -113,14 +113,6 @@ public abstract class InvokeConversionNode extends BaseNode {
       throw new PanicException(
           Context.get(this).getBuiltins().error().makeNoSuchConversionError(self, that, conversion),
           this);
-    }
-  }
-
-  private Object[] argumentsForInvocation(Object[] arguments, boolean declaresExplicitSelf) {
-    if (declaresExplicitSelf || arguments.length == 0) {
-      return arguments;
-    } else {
-      return Arrays.copyOfRange(arguments, 1, arguments.length);
     }
   }
 

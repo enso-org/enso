@@ -117,7 +117,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
       inside(ir.bindings.head) {
         case definition: IR.Module.Scope.Definition.Method.Explicit =>
           inside(definition.body) { case f: IR.Function.Lambda =>
-            val lintMeta = f.arguments(0).diagnostics.collect {
+            val lintMeta = f.arguments(1).diagnostics.collect {
               case u: IR.Warning.Unused.FunctionArgument => u
             }
 

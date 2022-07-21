@@ -30,6 +30,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
     val associatedConstructor = module.getAssociatedConstructor
     val barFunction           = module.getMethod(associatedConstructor, "bar").get
     val result = barFunction.execute(
+      associatedConstructor.newInstance(),
       10L.asInstanceOf[AnyRef]
     )
     result.asLong shouldEqual 12

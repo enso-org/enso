@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime.callable.function;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -99,17 +98,6 @@ public final class FunctionSchema {
    */
   public FunctionSchema(ArgumentDefinition... argumentInfos) {
     this(CallerFrameAccess.NONE, argumentInfos);
-  }
-
-  /**
-   * Checks if the function schema has a {@code self} parameter and it is first in the parameter
-   * list
-   *
-   * @return true, if {@code self} is present and in the right position, false otherwise
-   */
-  public boolean hasSelf() {
-    return argumentInfos.length > 0
-        && argumentInfos[0].getName().equals(Constants.Names.SELF_ARGUMENT);
   }
 
   /**

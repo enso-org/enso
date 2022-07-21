@@ -78,8 +78,6 @@ spec = Test.group "Polyglot JS" <|
         my_method 1 2 . should_equal 3
         m = my_method 1
         m 2 . should_equal 3
-        # Reveals the implementation detail and should not be used directly, in general
-        my_method 1 2 Js_Interop_Spec . should_equal 3
 
     Test.specify "should allow mutual calling of instance-level methods" <|
         My_Type 3 4 . my_method_3 5 . should_equal 36

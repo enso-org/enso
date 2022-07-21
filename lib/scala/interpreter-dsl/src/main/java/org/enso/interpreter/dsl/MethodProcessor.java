@@ -237,7 +237,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           generateWarningsCheck(out, methodDefinition.getArguments(), "arguments");
       for (MethodDefinition.ArgumentDefinition argumentDefinition :
           methodDefinition.getArguments()) {
-        if (argumentDefinition.isState()) {
+        if (argumentDefinition.isImplicit()) {
+        } else if (argumentDefinition.isState()) {
           callArgNames.add("state");
         } else if (argumentDefinition.isFrame()) {
           callArgNames.add("frame");

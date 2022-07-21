@@ -4,7 +4,11 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.ResolvedConstructor
+import org.enso.compiler.data.BindingsMap.{
+  Resolution,
+  ResolvedConstructor,
+  ResolvedMethod
+}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
@@ -123,21 +127,26 @@ case object GlobalNames extends IRPass {
                 lit,
                 IR.Error.Resolution.ResolverError(error)
               )
-            case Right(r @ BindingsMap.ResolvedMethod(_, method)) =>
+            case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
               if (isInsideApplication) {
                 lit.updateMetadata(this -->> BindingsMap.Resolution(r))
               } else {
+                val self = freshNameSupply
+                  .newName()
+                  .updateMetadata(
+                    this -->> BindingsMap.Resolution(
+                      BindingsMap.ResolvedModule(mod)
+                    )
+                  )
                 // The synthetic applications gets the location so that instrumentation
                 // identifies the node correctly
-                val fun = lit
-                  .copy(
-                    name     = method.name,
-                    location = None
-                  )
-                  .updateMetadata(this -->> BindingsMap.Resolution(r))
+                val fun = lit.copy(
+                  name     = method.name,
+                  location = None
+                )
                 val app = IR.Application.Prefix(
                   fun,
-                  Nil,
+                  List(IR.CallArgument.Specified(None, self, None)),
                   hasDefaultsSuspended = false,
                   lit.location
                 )
@@ -162,7 +171,7 @@ case object GlobalNames extends IRPass {
         app.function match {
           case lit: IR.Name.Literal =>
             if (!lit.isMethod)
-              resolveReferantApplication(app, bindings, freshNameSupply)
+              resolveReferantApplication(app, lit, bindings, freshNameSupply)
             else resolveLocalApplication(app, bindings, freshNameSupply)
           case _ =>
             app.mapExpressions(processExpression(_, bindings, freshNameSupply))
@@ -173,6 +182,7 @@ case object GlobalNames extends IRPass {
 
   private def resolveReferantApplication(
     app: IR.Application.Prefix,
+    fun: IR.Name.Literal,
     bindingsMap: BindingsMap,
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
@@ -185,7 +195,21 @@ case object GlobalNames extends IRPass {
     val processedArgs = app.arguments.map(
       _.mapExpressions(processExpression(_, bindingsMap, freshNameSupply))
     )
-    app.copy(function = processedFun, arguments = processedArgs)
+    processedFun.getMetadata(this) match {
+      case Some(Resolution(ResolvedMethod(mod, _))) if !isLocalVar(fun) =>
+        val self = freshNameSupply
+          .newName()
+          .updateMetadata(
+            this -->> BindingsMap.Resolution(
+              BindingsMap.ResolvedModule(mod)
+            )
+          )
+        val selfArg = IR.CallArgument.Specified(None, self, None)
+        processedFun.passData.remove(this) // Necessary for IrToTruffle
+        app.copy(function = processedFun, arguments = selfArg :: processedArgs)
+      case _ =>
+        app.copy(function = processedFun, arguments = processedArgs)
+    }
   }
 
   private def resolveLocalApplication(

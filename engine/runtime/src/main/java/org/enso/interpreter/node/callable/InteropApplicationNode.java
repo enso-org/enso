@@ -54,8 +54,7 @@ public abstract class InteropApplicationNode extends Node {
     return InvokeFunctionNode.build(
         args,
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED,
-        true);
+        InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
   Context getContext() {

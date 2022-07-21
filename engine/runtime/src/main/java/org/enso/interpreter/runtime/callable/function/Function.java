@@ -131,11 +131,6 @@ public final class Function implements TruffleObject {
     return getCallTarget().getRootNode().getSourceSection();
   }
 
-  /** @return true if function schema has an explicit self parameter, false otherwise */
-  public boolean hasSelf() {
-    return schema.hasSelf();
-  }
-
   /**
    * Gets the function's scope.
    *

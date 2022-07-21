@@ -166,7 +166,7 @@ public final class AtomConstructor implements TruffleObject {
             null,
             false);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    return new Function(callTarget, null, new FunctionSchema(args), null, null);
+    return new Function(callTarget, null, new FunctionSchema(args));
   }
 
   private void generateMethods(ArgumentDefinition[] args) {

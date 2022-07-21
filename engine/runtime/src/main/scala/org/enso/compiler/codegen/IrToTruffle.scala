@@ -532,7 +532,14 @@ class IrToTruffle(
     val body = Truffle.getRuntime.createCallTarget(
       new EnsoProjectNode(language, context, pkg)
     )
-    val fun = new RuntimeFunction(body, null, new FunctionSchema())
+    val schema = new FunctionSchema(
+      new ArgumentDefinition(
+        0,
+        Constants.Names.SELF_ARGUMENT,
+        ArgumentDefinition.ExecutionMode.EXECUTE
+      )
+    )
+    val fun = new RuntimeFunction(body, null, schema)
     moduleScope.registerMethod(moduleScope.getAssociatedType, name, fun)
   }
 
@@ -543,7 +550,13 @@ class IrToTruffle(
           new QualifiedAccessorNode(language, constructor)
         ),
         null,
-        new FunctionSchema()
+        new FunctionSchema(
+          new ArgumentDefinition(
+            0,
+            Constants.Names.SELF_ARGUMENT,
+            ArgumentDefinition.ExecutionMode.EXECUTE
+          )
+        )
       )
     }
 
@@ -1091,7 +1104,7 @@ class IrToTruffle(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
-        case IR.Name.Self(location, passData, _) =>
+        case IR.Name.Self(location, _, passData, _) =>
           processName(
             IR.Name.Literal(
               Constants.Names.SELF_ARGUMENT,
@@ -1369,55 +1382,6 @@ class IrToTruffle(
       application match {
         case IR.Application.Prefix(fn, Nil, true, _, _, _) =>
           run(fn)
-        case app @ IR.Application.Prefix(
-              fn: IR.Name.Literal,
-              args,
-              false,
-              loc,
-              _,
-              _
-            ) =>
-          val global = fn.getMetadata(GlobalNames)
-          global.map(_.target) match {
-            case Some(BindingsMap.ResolvedMethod(module, method)) =>
-              val callArgFactory = new CallArgumentProcessor(scope, scopeName)
-
-              val arguments = args
-              val callArgs  = new ArrayBuffer[CallArgument]()
-
-              for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
-                val arg = callArgFactory.run(unprocessedArg, position)
-                callArgs.append(arg)
-              }
-
-              val actualModule = module.unsafeAsModule()
-              val fun = actualModule.getScope.getMethods
-                .get(actualModule.getScope.getAssociatedType)
-                .get(method.name.toLowerCase)
-              val app = if (fun == null) {
-                // Method not yet registered
-                val thisArg =
-                  ConstructorNode.build(actualModule.getScope.getAssociatedType)
-                val callThisArg = new CallArgument(null, thisArg)
-                ApplicationNode.build(
-                  DynamicSymbolNode.build(
-                    UnresolvedSymbol.build(method.name.toLowerCase, moduleScope)
-                  ),
-                  callArgs.prepend(callThisArg).toArray,
-                  InvokeCallableNode.DefaultsExecutionMode.EXECUTE
-                )
-              } else {
-                // optimized
-                ApplicationNode.build(
-                  ConstantObjectNode.build(fun),
-                  callArgs.toArray,
-                  InvokeCallableNode.DefaultsExecutionMode.EXECUTE
-                )
-              }
-              setLocation(app, loc)
-            case _ =>
-              processApplicationWithArgs(app)
-          }
         case app: IR.Application.Prefix =>
           processApplicationWithArgs(app)
         case IR.Application.Force(expr, location, _, _) =>
@@ -1484,7 +1448,6 @@ class IrToTruffle(
       }
 
       setLocation(appNode, loc)
-
     }
 
   }

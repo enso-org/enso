@@ -42,3 +42,11 @@ spec =
             v 10 . should_equal 10
         Test.specify "should be resolved correctly in the presence of variables with the same name" <|
             method_with_local_vars 1 . should_equal 13
+    Test.group "Methods" <|
+        Test.specify "should be correctly resolved on instances" <|
+            b = Bar 1
+            b.meh 2 . should_equal 3
+# pending
+#        Test.specify "should be allowed to be called statically" <|
+#            b = Bar 1
+#            Bar.meh b 2 . should_equal 3

@@ -242,7 +242,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     Builtin.Specialize specializeAnnotation =
         methodInfo.origin.getAnnotation(Builtin.Specialize.class);
     String targetAnnotation = specializeAnnotation.fallback() ? "@Fallback" : "@Specialization";
-    String selfParamDecl = includeSelf ? owner + " self" : "";
+    String selfParamDecl = includeSelf ? thisParamTpe + " self" : "";
     String methodSig =
         targetReturnType(returnTpe) + " do" + suffix + "(" + selfParamDecl + paramsDef + ")";
     String paramsApplied;

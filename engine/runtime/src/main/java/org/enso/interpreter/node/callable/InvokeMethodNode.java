@@ -12,7 +12,6 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 
-import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
@@ -23,7 +22,6 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
@@ -63,7 +61,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       int thisArgumentPosition) {
     this.invokeFunctionNode =
-        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode, false);
+        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.argumentCount = schema.length;
     this.thisArgumentPosition = thisArgumentPosition;
   }
