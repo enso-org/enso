@@ -21,7 +21,9 @@
 
 use enso_prelude::*;
 
-
+use jni::JNIEnv;
+use jni::objects::{JClass, JString};
+use jni::sys::jstring;
 
 // ==============
 // === Parser ===
@@ -87,6 +89,32 @@ impl Parser {
         };
         ParseResult { input, tree }
     }
+}
+
+// === Java Interface ===
+
+// This keeps Rust from "mangling" the name and making it unique for this
+// crate.
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_parser_LoadParser_hello(env: JNIEnv,
+                                             class: JClass,
+                                             input: JString) -> jstring {
+    let input: String = env
+        .get_string(input)
+        .expect("Couldn't get java string!")
+        .into();
+
+    let mut msg: String = "Hello ".to_owned();
+    msg.push_str(&input);
+    msg.push_str(" from Rust");
+
+    println!("{}", msg);
+
+    let output = env.new_string(format!("Hello, {}!", input))
+        .expect("Couldn't create java string!");
+
+    // Finally, extract the raw pointer to return.
+    output.into_inner()
 }
 
 
