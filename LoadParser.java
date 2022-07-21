@@ -3,6 +3,7 @@ package org.enso.syntax2;
 import org.enso.syntax2.serialization.Message;
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 class LoadParser {
     static {
@@ -31,7 +32,7 @@ class LoadParser {
             System.out.print(txt.substring(txt.length() - 2));
         }
         System.out.print("\n");
-        Message message = new Message(r, buf, 0);
+        Message message = new Message(r.order(ByteOrder.LITTLE_ENDIAN), buf, 0);
         Tree tree = Tree.deserialize(message);
         System.out.println("Native method said: " + tree);
     }

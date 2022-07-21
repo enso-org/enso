@@ -130,8 +130,8 @@ pub extern "system" fn Java_org_enso_syntax2_LoadParser_hello(env: JNIEnv,
 
         let result = env.new_direct_byte_buffer(s2);
 
-        parse_result_free(r);
-        parser_free(p);
+      //  parse_result_free(r);
+      //        parser_free(p);
 
         // Finally, extract the raw pointer to return.
         result.ok().unwrap().into_inner()
