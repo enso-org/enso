@@ -135,8 +135,7 @@ lazy_static! {
 async fn read_specs(path: &PathBuf) -> Result<Spec> {
     let file = File::open(path).await?;
     let lines_reader = BufReader::new(file).lines();
-    let lines = LinesStream::new(lines_reader).collect::<Vec<Result<_>>>().await;
-    let matches = lines.into_iter().collect::<Result<_>>()?;
+    let matches = LinesStream::new(lines_reader).collect::<Result<Vec<_>>>().await?;
 
     Ok(Spec { matches })
 }
