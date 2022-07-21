@@ -200,6 +200,9 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
         let kind = component.suggestion.kind;
+        if let Some(ico) = &component.suggestion.icon {
+            DEBUG!("MCDBG in CB, got non-empty icon: [" ico;? "]");
+        }
         Some(component_group_view::entry::Model {
             icon:             for_each_kind_variant!(kind_to_icon(kind)),
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
