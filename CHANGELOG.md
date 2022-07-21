@@ -269,7 +269,7 @@
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
-- [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Converting Enso Date to java.time.LocalDate and back][3559]
 - [Incremental Reparsing of a Simple Edits][3508]
 - [Functions with all-defaulted arguments now execute automatically][3414]
 - [Provide `tagValues` for function arguments in the language server][3422]
@@ -297,7 +297,7 @@
 [3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
-[3374]: https://github.com/enso-org/enso/pull/3374
+[3559]: https://github.com/enso-org/enso/pull/3559
 [3508]: https://github.com/enso-org/enso/pull/3508
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414

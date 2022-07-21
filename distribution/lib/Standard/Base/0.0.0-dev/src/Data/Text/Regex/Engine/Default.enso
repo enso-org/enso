@@ -122,7 +122,7 @@ type Engine
 
         internal_pattern = maybe_java_pattern.map_error case _ of
             Polyglot_Error err ->
-                if Java.is_instance err PatternSyntaxException . not then err else
+                if err.is_a PatternSyntaxException . not then err else
                     Regex.Syntax_Error err.getMessage
             other -> other
 
@@ -823,8 +823,8 @@ type Match
 handle_error : Any -> (Text | Integer) -> Any
 handle_error error id = case error of
     Polyglot_Error err ->
-        is_ioob = Java.is_instance err IndexOutOfBoundsException
-        is_iae = Java.is_instance err IllegalArgumentException
+        is_ioob = err.is_a IndexOutOfBoundsException
+        is_iae = err.is_a IllegalArgumentException
         maps_to_no_such_group = is_ioob || is_iae
 
         if maps_to_no_such_group.not then err else

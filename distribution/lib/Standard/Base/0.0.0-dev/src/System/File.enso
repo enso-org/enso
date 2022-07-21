@@ -955,10 +955,10 @@ handle_java_exceptions file ~action =
 
    Converts a Java `IOException` into its Enso counterpart.
 wrap_io_exception file io_exception =
-    if Java.is_instance io_exception NoSuchFileException then Error.throw (File_Not_Found file) else
-        if Java.is_instance io_exception FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
-            if Java.is_instance io_exception AccessDeniedException then Error.throw (IO_Error file "You do not have permission to access the file") else
-                Error.throw (IO_Error file "An IO error has occurred: "+io_exception.getMessage)
+    if io_exception.is_a NoSuchFileException then Error.throw (File_Not_Found file) else
+        if io_exception.is_a FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
+            if io_exception.is_a AccessDeniedException then Error.throw (IO_Error file "You do not have permission to access the file") else
+                Error.throw (IO_Error file "An IO error has occurred: "+io_exception.to_text)
 
 ## PRIVATE
 

@@ -208,7 +208,7 @@ type Time_Of_Day
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_time : Date -> Zone -> Time
     to_time date (zone = Zone.system) =
-        Time.Time (self . internal_local_time . atDate date.internal_local_date . atZone zone.internal_zone_id)
+        Time.Time (self . internal_local_time . atDate date . atZone zone.internal_zone_id)
 
     ## Add the specified amount of time to this instant to get a new instant.
 
@@ -332,3 +332,9 @@ type Time_Of_Day
     compare_to that =
         sign = self.internal_local_time.compareTo that.internal_local_time
         Ordering.from_sign sign
+
+    ## Compares two Time_Of_Day for equality.
+    == : Date -> Boolean
+    == that = case that of
+        Time_Of_Day _ -> self.internal_local_time.equals that.internal_local_time
+        _ -> False

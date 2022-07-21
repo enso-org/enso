@@ -143,13 +143,13 @@ spec =
 
         Test.specify "should format dates" <|
             formatter = Data_Formatter
-            formatter.format (Date.new 2022 . internal_local_date) . should_equal "2022-01-01"
+            formatter.format (Date.new 2022) . should_equal "2022-01-01"
             formatter.format (Time.new 1999 . internal_zoned_date_time) . should_equal "1999-01-01 00:00:00"
             formatter.format (Time_Of_Day.new . internal_local_time) . should_equal "00:00:00"
 
         Test.specify "should allow custom date formats" <|
             formatter = Data_Formatter date_formats=["E, d MMM y", "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm"] time_formats=["h:mma"] datetime_locale=Locale.uk
-            formatter.format (Date.new 2022 06 21 . internal_local_date) . should_equal "Tue, 21 Jun 2022"
+            formatter.format (Date.new 2022 06 21) . should_equal "Tue, 21 Jun 2022"
             formatter.format (Time.new 1999 02 03 04 56 11 . internal_zoned_date_time) . should_equal "03/02/1999 04:56"
             formatter.format (Time_Of_Day.new 13 55 . internal_local_time) . should_equal "1:55pm"
 
