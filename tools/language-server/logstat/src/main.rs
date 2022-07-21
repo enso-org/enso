@@ -205,8 +205,8 @@ fn cleanse_iterations(ops: &mut Vec<Iteration>, skip: usize) {
 }
 
 /// Merge iterations from two log files
-fn merge_iterations(ws_iterations: &mut Vec<Iteration>, log_iterations: Vec<Iteration>) {
-    for (log_iter, ws_iter) in log_iterations.into_iter().zip(ws_iterations.into_iter()) {
+fn merge_iterations(ws_iterations: &mut [Iteration], log_iterations: Vec<Iteration>) {
+    for (log_iter, ws_iter) in log_iterations.into_iter().zip(ws_iterations.iter_mut()) {
         ws_iter.operations.splice(1..1, log_iter.operations);
     }
 }

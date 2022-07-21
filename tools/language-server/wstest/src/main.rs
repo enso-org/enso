@@ -138,7 +138,8 @@ async fn main() -> Result<()> {
                     println!("{}", format::init_request(format::MESSAGE_BINARY));
 
                     // wait for response
-                    if let None = binary_rx.recv().await {
+                    let binary_response = binary_rx.recv().await;
+                    if binary_response.is_none() {
                         break;
                     }
                 }
@@ -159,11 +160,13 @@ async fn main() -> Result<()> {
 
                 // wait for response
                 if prefix == EXPECT_TEXT_RESPONSE {
-                    if let None = text_rx.recv().await {
+                    let text_response = text_rx.recv().await;
+                    if text_response.is_none() {
                         break;
                     }
                 } else if prefix == EXPECT_BINARY_RESPONSE {
-                    if let None = binary_rx.recv().await {
+                    let binary_response = binary_rx.recv().await;
+                    if binary_response.is_none() {
                         break;
                     }
                 }
@@ -188,11 +191,13 @@ async fn main() -> Result<()> {
 
                     // wait for response
                     if args.input_expects_binary_responses {
-                        if let None = binary_rx.recv().await {
+                        let binary_response = binary_rx.recv().await;
+                        if binary_response.is_none() {
                             break;
                         }
                     } else {
-                        if let None = text_rx.recv().await {
+                        let text_response = text_rx.recv().await;
+                        if text_response.is_none() {
                             break;
                         }
                     }
@@ -217,11 +222,13 @@ async fn main() -> Result<()> {
 
                     // wait for response
                     if args.input_expects_binary_responses {
-                        if let None = binary_rx.recv().await {
+                        let binary_response = binary_rx.recv().await;
+                        if binary_response.is_none() {
                             break;
                         }
                     } else {
-                        if let None = text_rx.recv().await {
+                        let text_response = text_rx.recv().await;
+                        if text_response.is_none() {
                             break;
                         }
                     }
@@ -274,7 +281,7 @@ async fn main() -> Result<()> {
     };
 
     // receive binary messages
-    let mut binary_recv = either::Left(futures::future::pending());
+    let mut binary_recv = either::Left(futures::future::pending::<()>());
     if let Some(mut stream_mut) = binary_stream {
         let binary_recv_loop = async {
             loop {
@@ -299,7 +306,10 @@ async fn main() -> Result<()> {
     }
     let binary_recv_loop = async {
         match binary_recv {
-            either::Left(l) => Ok(l.await),
+            either::Left(l) => {
+                l.await;
+                Ok(())
+            }
             either::Right(r) => r.await,
         }
     };
