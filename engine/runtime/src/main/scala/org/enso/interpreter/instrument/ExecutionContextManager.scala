@@ -7,7 +7,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   VisualisationId
 }
 
-import scala.collection.mutable.Stack
+import scala.collection.mutable
 
 /** Storage for active execution contexts.
   */
@@ -50,7 +50,7 @@ class ExecutionContextManager {
     * @param id the context id.
     * @return the stack.
     */
-  def getStack(id: ContextId): Stack[InstrumentFrame] =
+  def getStack(id: ContextId): mutable.Stack[InstrumentFrame] =
     synchronized {
       contexts(id).stack
     }
@@ -59,7 +59,7 @@ class ExecutionContextManager {
     *
     * @return all currently available execution contexsts.
     */
-  def getAll: collection.MapView[ContextId, Stack[InstrumentFrame]] =
+  def getAll: collection.MapView[ContextId, mutable.Stack[InstrumentFrame]] =
     synchronized {
       contexts.view.mapValues(_.stack)
     }
@@ -112,6 +112,12 @@ class ExecutionContextManager {
     synchronized {
       val state = contexts(contextId)
       state.visualisations.upsert(visualisation)
+    }
+
+  /** Get visualizations of all execution contexts. */
+  def getAllVisualisations: Iterable[Visualisation] =
+    synchronized {
+      contexts.values.flatMap(_.visualisations.getAll)
     }
 
   /** Returns a visualisation with the provided id.

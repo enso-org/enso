@@ -2,15 +2,18 @@ package org.enso.interpreter.instrument.job
 
 import java.util.logging.Level
 import cats.implicits._
+import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.interpreter.instrument.{
+  CacheInvalidation,
   InstrumentFrame,
   RuntimeCache,
   Visualisation
 }
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
-  EvalFailure,
   EvaluationFailed,
+  EvaluationFailure,
+  EvaluationResult,
   MaxEvaluationRetryCount,
   ModuleNotFound
 }
@@ -61,8 +64,8 @@ class UpsertVisualisationJob(
           replyWithExpressionFailedError(message, result)
           None
 
-        case Right(callable) =>
-          val visualisation = updateVisualisation(callable)
+        case Right(EvaluationResult(module, callable)) =>
+          val visualisation = updateVisualisation(module, callable)
           ctx.endpoint.sendToClient(Api.Response(requestId, response))
           val stack = ctx.contextManager.getStack(config.executionContextId)
           val cachedValue = stack.headOption
@@ -96,19 +99,32 @@ class UpsertVisualisationJob(
   }
 
   private def updateVisualisation(
+    module: Module,
     callable: AnyRef
   )(implicit ctx: RuntimeContext): Visualisation = {
     val visualisation = Visualisation(
       visualisationId,
       expressionId,
-      RuntimeCache.visualizationCache(),
+      new RuntimeCache(),
+      module,
       callable
     )
+    setCacheWeights(visualisation)
     ctx.contextManager.upsertVisualisation(
       config.executionContextId,
       visualisation
     )
     visualisation
+  }
+
+  private def setCacheWeights(visualisation: Visualisation): Unit = {
+    visualisation.module.getIr.getMetadata(CachePreferenceAnalysis).foreach {
+      metadata =>
+        CacheInvalidation.runVisualisations(
+          Seq(visualisation),
+          CacheInvalidation.Command.SetMetadata(metadata)
+        )
+    }
   }
 
   private def replyWithExpressionFailedError(
@@ -133,7 +149,7 @@ class UpsertVisualisationJob(
 
   private def findModule(
     moduleName: String
-  )(implicit ctx: RuntimeContext): Either[EvalFailure, Module] = {
+  )(implicit ctx: RuntimeContext): Either[EvaluationFailure, Module] = {
     val context = ctx.executionService.getContext
     // TODO [RW] more specific error when the module cannot be installed (#1861)
     context.ensureModuleIsLoaded(moduleName)
@@ -149,10 +165,10 @@ class UpsertVisualisationJob(
     retryCount: Int = 0
   )(implicit
     ctx: RuntimeContext
-  ): Either[EvalFailure, AnyRef] =
+  ): Either[EvaluationFailure, EvaluationResult] =
     Either
       .catchNonFatal {
-        expression match {
+        val callback = expression match {
           case Api.VisualisationExpression.Text(_, expression) =>
             ctx.executionService.evaluateExpression(module, expression)
           case Api.VisualisationExpression.ModuleMethod(
@@ -164,6 +180,7 @@ class UpsertVisualisationJob(
               name
             )
         }
+        EvaluationResult(module, callback)
       }
       .leftFlatMap {
         case _: ThreadInterruptedException
@@ -208,7 +225,9 @@ class UpsertVisualisationJob(
 
   private def evaluateVisualisationExpression(
     expression: Api.VisualisationExpression
-  )(implicit ctx: RuntimeContext): Either[EvalFailure, AnyRef] = {
+  )(implicit
+    ctx: RuntimeContext
+  ): Either[EvaluationFailure, EvaluationResult] = {
     for {
       module     <- findModule(expression.module)
       expression <- evaluateModuleExpression(module, expression)
@@ -223,11 +242,11 @@ object UpsertVisualisationJob {
 
   /** Base trait for evaluation failures.
     */
-  sealed trait EvalFailure
+  sealed trait EvaluationFailure
 
   /** Signals that a module cannot be found.
     */
-  case object ModuleNotFound extends EvalFailure
+  case object ModuleNotFound extends EvaluationFailure
 
   /** Signals that an evaluation of an expression failed.
     *
@@ -237,6 +256,8 @@ object UpsertVisualisationJob {
   case class EvaluationFailed(
     message: String,
     failure: Option[Api.ExecutionResult.Diagnostic]
-  ) extends EvalFailure
+  ) extends EvaluationFailure
+
+  case class EvaluationResult(module: Module, callback: AnyRef)
 
 }

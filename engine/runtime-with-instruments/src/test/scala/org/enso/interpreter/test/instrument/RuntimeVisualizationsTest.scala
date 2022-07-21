@@ -23,7 +23,7 @@ import java.util.UUID
 import scala.io.Source
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
-class RuntimeVisualisationsTest
+class RuntimeVisualizationsTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
@@ -2176,9 +2176,12 @@ class RuntimeVisualisationsTest
           idMainRes,
           Api.VisualisationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
-              "x -> incAndEncode x"
+            Api.VisualisationExpression.ModuleMethod(
+              Api.MethodPointer(
+                "Enso_Test.Test.Visualisation",
+                "Enso_Test.Test.Visualisation",
+                "incAndEncode"
+              )
             )
           )
         )

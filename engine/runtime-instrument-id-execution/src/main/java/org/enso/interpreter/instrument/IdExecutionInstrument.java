@@ -347,11 +347,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         .tagIs(IdentifiedTag.class)
         .tagIsNot(AvoidIdInstrumentationTag.class);
 
-//    if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {
-//      final int firstFunctionLine = c.getSourceSection().getStartLine();
-//      final int afterFunctionLine = c.getSourceSection().getEndLine() + 1;
-//      builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
-//    }
+    if (entryCallTarget instanceof RootCallTarget r && r.getRootNode() instanceof ClosureRootNode c && c.getSourceSection() != null) {
+      final int firstFunctionLine = c.getSourceSection().getStartLine();
+      final int afterFunctionLine = c.getSourceSection().getEndLine() + 1;
+      builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
+    }
     SourceSectionFilter filter = builder.build();
 
     return env.getInstrumenter()

@@ -50,6 +50,8 @@ class VisualisationHolder() {
   def getById(visualisationId: VisualisationId): Option[Visualisation] =
     visualisationMap.values.flatten.find(_.id == visualisationId)
 
+  def getAll: Iterable[Visualisation] =
+    visualisationMap.values.flatten
 }
 
 object VisualisationHolder {

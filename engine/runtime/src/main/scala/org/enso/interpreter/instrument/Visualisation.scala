@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument
 
+import org.enso.interpreter.runtime.Module
 import org.enso.polyglot.runtime.Runtime.Api.{ExpressionId, VisualisationId}
 
 /** An object containing visualisation data.
@@ -13,5 +14,6 @@ case class Visualisation(
   id: VisualisationId,
   expressionId: ExpressionId,
   cache: RuntimeCache,
+  module: Module,
   callback: AnyRef
 )

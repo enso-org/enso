@@ -12,7 +12,11 @@ import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
 }
-import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
+import org.enso.interpreter.instrument.{
+  CacheInvalidation,
+  InstrumentFrame,
+  Visualisation
+}
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.polyglot.runtime.Runtime.Api
@@ -39,17 +43,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
 
     try {
       val compilationResult = ensureCompiledFiles(files)
-      ctx.contextManager.getAll.values.foreach { stack =>
-        getCacheMetadata(stack).foreach { metadata =>
-          CacheInvalidation.run(
-            stack,
-            CacheInvalidation(
-              CacheInvalidation.StackSelector.Top,
-              CacheInvalidation.Command.SetMetadata(metadata)
-            )
-          )
-        }
-      }
+      setCacheWeights()
       compilationResult
     } finally {
       ctx.locking.releaseWriteCompilationLock()
@@ -313,6 +307,21 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
           CacheInvalidation.runAll(stack, invalidationCommands)
         }
       }
+    val visualisationInvalidationCommands =
+      invalidationCommands.filter {
+        case CacheInvalidation(
+              _,
+              _: CacheInvalidation.Command.InvalidateStale,
+              _
+            ) =>
+          false
+        case _ =>
+          true
+      }
+    CacheInvalidation.runAllVisualisations(
+      ctx.contextManager.getAllVisualisations,
+      visualisationInvalidationCommands
+    )
   }
 
   /** Send notification about the compilation status.
@@ -354,6 +363,27 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     else
       CompilationStatus.Success
 
+  private def setCacheWeights()(implicit ctx: RuntimeContext): Unit = {
+    ctx.contextManager.getAll.values.foreach { stack =>
+      getCacheMetadata(stack).foreach { metadata =>
+        CacheInvalidation.run(
+          stack,
+          CacheInvalidation(
+            CacheInvalidation.StackSelector.Top,
+            CacheInvalidation.Command.SetMetadata(metadata)
+          )
+        )
+      }
+    }
+    val visualisations = ctx.contextManager.getAllVisualisations
+    visualisations.flatMap(getCacheMetadata).foreach { metadata =>
+      CacheInvalidation.runVisualisations(
+        visualisations,
+        CacheInvalidation.Command.SetMetadata(metadata)
+      )
+    }
+  }
+
   private def getCacheMetadata(
     stack: Iterable[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
@@ -369,6 +399,13 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         }
       case _ => None
     }
+
+  private def getCacheMetadata(
+    visualisation: Visualisation
+  ): Option[CachePreferenceAnalysis.Metadata] = {
+    val module = visualisation.module
+    module.getIr.getMetadata(CachePreferenceAnalysis)
+  }
 
   /** Get all modules in the current compiler scope. */
   private def getModulesInScope(implicit

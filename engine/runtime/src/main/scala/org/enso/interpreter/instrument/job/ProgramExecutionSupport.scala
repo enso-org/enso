@@ -432,10 +432,10 @@ object ProgramExecutionSupport {
             Level.FINE,
             s"Executing visualisation ${visualisation.expressionId}"
           )
-          ctx.executionService.callFunction(
+          ctx.executionService.callFunctionWithInstrument(
             visualisation.callback,
-            expressionValue
-            //visualisation.cache
+            expressionValue,
+            visualisation.cache
           )
         }
         .flatMap {
