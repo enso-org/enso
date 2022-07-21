@@ -70,4 +70,36 @@ spec =
             fitted.b . should_equal 0.127482464 epsilon=double_error
             fitted.r_squared . should_equal 0.9566066546 epsilon=double_error
 
+        Test.specify "compute the logarithmic trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.12128, 0.29057, 0.35933, 0.45949, 0.49113, 0.48285, 0.58132, 0.63144, 0.5916, 0.69158]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Logarithmic_Model
+            fitted.a . should_equal 0.232702284 epsilon=double_error
+            fitted.b . should_equal 0.11857587 epsilon=double_error
+            fitted.r_squared . should_equal 0.9730840179 epsilon=double_error
+
+        Test.specify "predict values on a logarithmic trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.12128, 0.29057, 0.35933, 0.45949, 0.49113, 0.48285, 0.58132, 0.63144, 0.5916, 0.69158]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Logarithmic_Model
+            test_xs = [0.1, 11, 12, 15]
+            expected_ys = [-0.417241, 0.676572, 0.696819, 0.748745]
+            vector_compare (test_xs.map fitted.predict) expected_ys
+
+        Test.specify "compute the power trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.26128, 0.28144, 0.26353, 0.30247, 0.28677, 0.23992, 0.30586, 0.32785, 0.26324, 0.3411]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Power_Model
+            fitted.a . should_equal 0.258838019 epsilon=double_error
+            fitted.b . should_equal 0.065513849 epsilon=double_error
+            fitted.r_squared . should_equal 0.2099579581 epsilon=double_error
+
+        Test.specify "predict values on a power trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.26128, 0.28144, 0.26353, 0.30247, 0.28677, 0.23992, 0.30586, 0.32785, 0.26324, 0.3411]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Power_Model
+            test_xs = [0.1, 11, 12, 15]
+            expected_ys = [0.222594, 0.302868, 0.3046, 0.309085]
+            vector_compare (test_xs.map fitted.predict) expected_ys
+
 main = Test.Suite.run_main spec
