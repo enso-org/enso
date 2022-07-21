@@ -96,7 +96,7 @@ impl Parser {
 // This keeps Rust from "mangling" the name and making it unique for this
 // crate.
 #[no_mangle]
-pub extern "system" fn Java_org_enso_syntax2_parser_LoadParser_hello(env: JNIEnv,
+pub extern "system" fn Java_org_enso_syntax2_LoadParser_hello(env: JNIEnv,
                                              class: JClass,
                                              buf: JByteBuffer) -> jobject {
     unsafe {
