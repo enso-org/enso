@@ -45,14 +45,15 @@ pub(crate) struct Code {
 pub(crate) fn serialize_cow<S>(cow: &Cow<'_, str>, ser: S) -> Result<S::Ok, S::Error>
 where S: serde::Serializer {
     let s = match cow {
-        Cow::Borrowed(s) => *s,
-        Cow::Owned(s) if s.is_empty() => "",
+        Cow::Borrowed(s) => {
+            let begin = str::as_ptr(s) as u32;
+            let len = s.len() as u32;
+            Code { begin, len }
+        }
+        Cow::Owned(s) if s.is_empty() => Code { begin: 0, len: 0 },
         Cow::Owned(_) => panic!(),
     };
-    let begin = s.as_ptr() as u32;
-    let len = s.len() as u32;
-    let serializable = Code { begin, len };
-    serializable.serialize(ser)
+    s.serialize(ser)
 }
 
 pub(crate) fn deserialize_cow<'c, 'de, D>(deserializer: D) -> Result<Cow<'c, str>, D::Error>

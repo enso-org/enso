@@ -1,9 +1,6 @@
-//! C interface to [`enso_parser`].
-//!
-//! See [`Parser`] documentation for a usage example.
+//! Java interface to [`enso_parser`].
 
 // === Features ===
-#![feature(core_ffi_c)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 // === Non-Standard Linter Configuration ===
@@ -21,204 +18,111 @@
 
 use enso_prelude::*;
 
+use jni::objects::JByteBuffer;
+use jni::objects::JClass;
+use jni::sys::jobject;
+use jni::JNIEnv;
 
 
-// ==============
-// === Parser ===
-// ==============
 
-/// Parses Enso source code. This type is logically stateless--for any given input, any instance of
-/// this type will produce the same output. However it may own resources, so that subsequent usage
-/// of the same [`Parser`] can be expected to be more efficient than creating a new [`Parser`] for
-/// each input.
+// ======================
+// === Java Interface ===
+// ======================
+
+/// Parse the input. Returns a serialized representation of the parse tree. The caller is
+/// responsible for freeing the memory associated with the returned buffer.
 ///
-/// # Usage
+/// # Safety
 ///
-/// ```C
-/// include <enso_parser.h>
-///
-/// void parse_input(const char *const input, const uintptr_t input_len) {
-///     // Allocate a new parser. If parsing more than one input, it would be more efficient to
-///     // allocate it once and reuse it.
-///     Parser *const parser = parser_new();
-///     // Allocate a parse result. If parsing more than one input, there are two efficient
-///     // approaches, depending on use pattern:
-///     // - Finish with each result before parsing the next (by using the resulting data, or
-///     //   copying it to memory used elsewhere); reuse one `ParseResult` for each input parsed.
-///     // - Keep `ParseResult`s to avoid needing to copy their contents; allocate new instances
-///     //   to store results of parsing additional inputs.
-///     ParseResult *const result = parse_result_alloc();
-///     // Parse the data.
-///     parser_run(input, input_len, result);
-///     // Gather the results.
-///     char *const sanitized_input = parse_result_get_input_data(result);
-///     const uint8_t *const output = parse_result_get_output_data(result);
-///     const uintptr_t output_len = parse_result_get_output_data_len(result);
-///     // Do something with the results.
-///     handle_parse_result(sanitized_input || input, output, output_len);
-///     // Free resources.
-///     parse_result_free(result);
-///     parser_free(parser);
-/// }
-/// ```
-#[derive(Debug, Default)]
-#[allow(missing_copy_implementations)] // Expected to contain non-Copy data in the future.
-pub struct Parser {
-    // The implementation doesn't currently support reusing parser resources, but when we add that
-    // optimization, the API supports it.
+/// The state MUST be a value returned by `allocState` that has not been passed to `freeState`.
+/// The input buffer contents MUST be valid UTF-8.
+/// The contents of the returned buffer MUST not be accessed after another call to `parseInput`, or
+/// a call to `freeState`.
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
+    env: JNIEnv,
+    _class: JClass,
+    state: u64,
+    input: JByteBuffer,
+) -> jobject {
+    let state = unsafe { &mut *(state as usize as *mut State) };
+    let direct_allocated = "Internal Error: ByteBuffer must be direct-allocated.";
+    let input = env.get_direct_buffer_address(input).expect(direct_allocated);
+    let input = if cfg!(debug_assertions) {
+        std::str::from_utf8(input).unwrap()
+    } else {
+        unsafe {
+            std::str::from_utf8_unchecked(input)
+        }
+    };
+    state.base = str::as_ptr(input) as usize as u64;
+    let tree = enso_parser::Parser::new().run(&input);
+    state.output = match enso_parser::serialization::serialize_tree(&tree) {
+        Ok(tree) => tree,
+        // `Tree` does not contain any types with fallible `serialize` implementations, so this
+        // cannot fail.
+        Err(_) => {
+            debug_assert!(false);
+            default()
+        }
+    };
+    let result = env.new_direct_byte_buffer(&mut state.output);
+    result.unwrap().into_inner()
 }
 
+/// Return the `base` parameter to pass to the `Message` class along with the other output of the
+/// most recent call to `parseInput`.
+///
+/// # Safety
+///
+/// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
+/// `freeState`.
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_getLastInputBase(
+    _env: JNIEnv,
+    _class: JClass,
+    state: u64,
+) -> u64 {
+    let state = unsafe { &mut *(state as usize as *mut State) };
+    state.base
+}
 
-// === Implementation ===
+/// Allocate a new parser state object. The returned value should be passed to `freeState` when no
+/// longer needed.
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_allocState(
+    _env: JNIEnv,
+    _class: JClass,
+) -> u64 {
+    Box::into_raw(Box::new(State::default())) as _
+}
 
-impl Parser {
-    fn run(&mut self, input: &[u8]) -> ParseResult {
-        let input = String::from_utf8_lossy(input);
-        let tree = enso_parser::Parser::new().run(&input);
-        let tree = match enso_parser::serialization::serialize_tree(&tree) {
-            Ok(tree) => tree,
-            // `Tree` does not contain any types with fallible `serialize` implementations, so this
-            // cannot fail.
-            Err(_) => default(),
-        };
-        let input = match input {
-            Cow::Owned(input) => Some(input),
-            _ => None,
-        };
-        ParseResult { input, tree }
+/// Free the resources owned by the state object.
+///
+/// # Safety
+///
+/// The input MUST have been returned by `allocState`, and MUST NOT have previously been passed to
+/// `freeState`.
+#[no_mangle]
+pub extern "system" fn Java_org_enso_syntax2_Parser_freeState(
+    _env: JNIEnv,
+    _class: JClass,
+    state: u64,
+) {
+    if state != 0 {
+        let state = unsafe { Box::from_raw(state as usize as *mut State) };
+        drop(state);
     }
 }
 
 
-// === C Interface ===
 
-/// Create a new parser. This operation is infallible; the result will never be NULL.
-#[no_mangle]
-pub extern "C" fn parser_new() -> *mut Parser {
-    Box::into_raw(default())
-}
+// ====================
+// === Parser state ===
+// ====================
 
-/// Parse the given source code, provided in the input parameters. The result will be written to the
-/// object provided in the output parameter; any previous state of the output object will be
-/// overwritten.
-///
-/// # Safety
-///
-/// The `parser` argument must be a value returned by `parser_new` that has never been passed to
-/// `parser_free`.
-/// The `input` argument must be a non-NULL pointer to a sequence of at least `input_len` readable
-/// bytes.
-/// The `output` argument must be a value returned by `parse_result_alloc` that has never been
-/// passed to `parse_result_free`.
-#[no_mangle]
-pub unsafe extern "C" fn parser_run(
-    parser: *mut Parser,
-    input: *const u8,
-    input_len: usize,
-    output: *mut ParseResult,
-) {
-    let parser = &mut *parser;
-    let input = slice::from_raw_parts(input, input_len);
-    let output = &mut *output;
-    *output = parser.run(input);
-}
-
-/// Release the parser's resources.
-///
-/// # Safety
-///
-/// The `parser` argument must be a value returned by `parser_new` that has never been passed to
-/// `parser_free`.
-#[no_mangle]
-pub unsafe extern "C" fn parser_free(parser: *mut Parser) {
-    let parser = Box::from_raw(parser);
-    drop(parser);
-}
-
-
-
-// ===================
-// === ParseResult ===
-// ===================
-
-/// The result of parsing. Contains the source code, if the parser modified it, and the serialized
-/// AST.
-#[derive(Debug, Default)]
-pub struct ParseResult {
-    input: Option<String>,
-    tree:  Vec<u8>,
-}
-
-
-// === C Interface ===
-
-/// Allocate a new parse result; its initial state is unspecified. This operation is infallible; the
-/// result will never be NULL.
-#[no_mangle]
-pub extern "C" fn parse_result_alloc() -> *mut ParseResult {
-    Box::into_raw(default())
-}
-
-/// If the input provided was valid utf-8, this will return NULL. If it was not, this will return
-/// the beginning of a copy of the input that has been modified to contain only valid utf-8. If this
-/// returns non-NULL, all source code in the serialized AST data will be relative to this pointer,
-/// not the original input.
-///
-/// # Safety
-///
-/// The `result` argument must be a value returned by `parse_result_alloc` that has never been
-/// passed to `parse_result_free`.
-#[no_mangle]
-pub unsafe extern "C" fn parse_result_get_input_data(result: *mut ParseResult) -> *const u8 {
-    let result = &*result;
-    result.input.as_ref().map(|s| s.as_ptr()).unwrap_or(0 as _)
-}
-
-/// Return the length of the data obtained by [`parse_result_get_input_data`].
-///
-/// # Safety
-///
-/// The `result` argument must be a value returned by `parse_result_alloc` that has never been
-/// passed to `parse_result_free`.
-#[no_mangle]
-pub unsafe extern "C" fn parse_result_get_input_len(result: *mut ParseResult) -> usize {
-    let result = &*result;
-    result.input.as_ref().map(|s| s.len()).unwrap_or(0)
-}
-
-/// Return a pointer to the start of the serialized AST data.
-///
-/// # Safety
-///
-/// The `result` argument must be a value returned by `parse_result_alloc` that has never been
-/// passed to `parse_result_free`.
-#[no_mangle]
-pub unsafe extern "C" fn parse_result_get_output_data(result: *mut ParseResult) -> *const u8 {
-    let result = &*result;
-    result.tree.as_ptr()
-}
-
-/// Return the length of the data obtained by [`parse_result_get_output_data`].
-///
-/// # Safety
-///
-/// The `result` argument must be a value returned by `parse_result_alloc` that has never been
-/// passed to `parse_result_free`.
-#[no_mangle]
-pub unsafe extern "C" fn parse_result_get_output_len(result: *mut ParseResult) -> usize {
-    let result = &*result;
-    result.tree.len()
-}
-
-/// Free the memory allocated for these parse results; any pointers obtained from this instance
-/// will no longer be valid.
-///
-/// # Safety
-///
-/// The `result` argument must be a value returned by `parse_result_alloc` that has never been
-/// passed to `parse_result_free`.
-#[no_mangle]
-pub unsafe extern "C" fn parse_result_free(ast: *mut ParseResult) {
-    let ast = Box::from_raw(ast);
-    drop(ast);
+#[derive(Default, Debug)]
+struct State {
+    base:   u64,
+    output: Vec<u8>,
 }
