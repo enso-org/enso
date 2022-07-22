@@ -21,6 +21,7 @@ import project.Data.Text.Matching
 import project.Data.Text.Matching_Mode
 import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
+import project.Data.Time.Date
 import project.Data.Vector
 import project.Error.Common
 import project.Error.Problem_Behavior
@@ -51,6 +52,7 @@ export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Sort_Direction
 export project.Data.Text.Regex.Mode as Regex_Mode
 export project.Data.Text.Matching_Mode
+export project.Data.Time.Date
 export project.Data.Vector
 export project.Error.Problem_Behavior
 export project.IO

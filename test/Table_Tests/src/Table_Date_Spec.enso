@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Data.Time.Date
 
 import Standard.Table
 import Standard.Table.Data.Column
@@ -8,6 +7,7 @@ from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_For
 from Standard.Table.Io.Line_Ending_Style import Unix_Line_Endings
 
 import Standard.Test
+
 import project.Util
 
 spec =

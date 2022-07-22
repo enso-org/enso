@@ -1,11 +1,11 @@
 from Standard.Base import all
 
-import Standard.Test.Bench
-import Standard.Test.Faker
-
 import Standard.Table.Data.Table
 import Standard.Table.Data.Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
+
+import Standard.Test.Bench
+import Standard.Test.Faker
 
 ## Bench Utilities ============================================================
 
