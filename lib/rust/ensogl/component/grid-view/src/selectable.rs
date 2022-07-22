@@ -40,8 +40,8 @@ impl<E: Entry> GridView<E> {
     pub fn new(app: &Application) -> Self {
         let grid = crate::GridView::<E>::new(app);
         let highlights = highlight::shape::View::new(Logger::new("highlights"));
-        let selection_handler = highlight::Handler::new_for_selection_connected(&grid);
-        let hover_handler = highlight::Handler::new_for_hover_connected(&grid);
+        let selection_handler = highlight::Handler::new_for_selection_connected(app, &grid);
+        let hover_handler = highlight::Handler::new_for_hover_connected(app, &grid);
         grid.add_child(&highlights);
         selection_handler.connect_with_shape::<highlight::shape::SelectionAttrSetter>(&highlights);
         hover_handler.connect_with_shape::<highlight::shape::HoverAttrSetter>(&highlights);
@@ -60,11 +60,11 @@ where
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
 {
-    pub fn selection_highlight_frp(&self) -> &highlight::Frp {
+    pub fn selection_highlight_frp(&self) -> &highlight::Frp<EntryParams> {
         &self.selection_handler.frp
     }
 
-    pub fn hover_highlight_frp(&self) -> &highlight::Frp {
+    pub fn hover_highlight_frp(&self) -> &highlight::Frp<EntryParams> {
         &self.hover_handler.frp
     }
 }

@@ -64,7 +64,10 @@ fn init(app: &Application) {
 
     let grid_view = grid_view::simple::SimpleSelectableGridView::new(app);
     app.display.default_scene.layers.node_searcher.add_exclusive(&grid_view);
-    grid_view.set_text_layer(Some(app.display.default_scene.layers.node_searcher_text.downgrade()));
+    let text_layer = app.display.default_scene.layers.node_searcher.create_sublayer();
+    let selection_layer = app.display.default_scene.layers.node_searcher.create_sublayer();
+    grid_view.set_text_layer(Some(text_layer.downgrade()));
+    grid_view.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
     frp::new_network! { network
         requested_entry <- grid_view.model_for_entry_needed.map(|(row, col)| {
             let model = grid_view::simple::EntryModel {
@@ -86,7 +89,13 @@ fn init(app: &Application) {
         bg_margin: 1.0,
         ..default()
     };
+    let selected_params = grid_view::simple::EntryParams {
+        bg_color: color::Rgba(0.3, 0.3, 0.3, 1.0),
+        text_color: color::Rgba::white(),
+        ..params.clone()
+    };
     grid_view.set_entries_params(params);
+    grid_view.selection_highlight_frp().set_entries_params(selected_params);
     grid_view.reset_entries(1000, 1000);
     // grid_view.scroll_frp().resize(Vector2(400.0, 300.0));
     grid_view.set_viewport(Viewport { left: 0.0, right: 400.0, top: 0.0, bottom: -400.0 });
@@ -99,6 +108,8 @@ fn init(app: &Application) {
     navigator.disable_wheel_panning();
 
     std::mem::forget(grid_view);
+    std::mem::forget(text_layer);
+    std::mem::forget(selection_layer);
     std::mem::forget(network);
     std::mem::forget(navigator);
 }

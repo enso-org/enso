@@ -25,7 +25,6 @@
 // ==============
 
 pub mod entry;
-pub mod highlight;
 pub mod scrollable;
 pub mod selectable;
 pub mod simple;
@@ -41,6 +40,7 @@ pub mod prelude {
     pub use ensogl_core::prelude::*;
 
     pub use crate::entry::ShapeWithEntryContour;
+    pub use crate::selectable::highlight::shape::AttrSetter as TRAIT_AttrSetter;
 
     pub use enso_frp as frp;
     pub use ensogl_core::application::command::FrpNetworkProvider;

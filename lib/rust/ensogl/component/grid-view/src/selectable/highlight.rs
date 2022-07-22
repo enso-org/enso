@@ -1,8 +1,15 @@
+pub mod layer;
+pub mod shape;
+
 use crate::prelude::*;
+use ensogl_core::application::Application;
 use ensogl_core::data::color;
+use ensogl_core::display::scene::layer::WeakLayer;
 
 use crate::entry;
 use crate::entry_position;
+use crate::selectable::highlight::shape::HoverAttrSetter;
+use crate::selectable::highlight::shape::SelectionAttrSetter;
 use crate::Col;
 use crate::Entry;
 use crate::Row;
@@ -13,11 +20,14 @@ use ensogl_scroll_area::Viewport;
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints_2! {
+ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
     Input {
         entry_highlighted(Option<(Row, Col)>),
+        setup_masked_layer(Option<WeakLayer>),
+        set_entries_params(EntryParams),
     }
     Output {
+        entries_params(EntryParams),
         position(Vector2),
         contour(entry::Contour),
         color(color::Rgba),
@@ -45,11 +55,11 @@ struct ConnectedEntryGuard {
 }
 
 impl ConnectedEntryGuard {
-    fn new_for_entry(
+    fn new_for_entry<EntryParams: frp::node::Data>(
         entry_frp: EntryEndpoints,
         row: Row,
         col: Col,
-        frp: &api::private::Output,
+        frp: &api::private::Output<EntryParams>,
     ) -> Self {
         let network = frp::Network::new("HighlightedEntryGuard");
         frp::extend! { network
@@ -86,12 +96,14 @@ pub type EntryEndpointsGetter<Entry> = fn(&Entry) -> EntryEndpoints;
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Model<Entry: 'static, EntryModel: frp::node::Data, EntryParams: frp::node::Data> {
+    app:                    Application,
     grid:                   crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
     connected_entry:        Cell<Option<(Row, Col)>>,
     guard:                  RefCell<Option<ConnectedEntryGuard>>,
-    output:                 api::private::Output,
+    output:                 api::private::Output<EntryParams>,
     #[derivative(Debug = "ignore")]
     entry_endpoints_getter: EntryEndpointsGetter<Entry>,
+    layers:                 RefCell<Option<layer::Layers<Entry, EntryModel, EntryParams>>>,
 }
 
 impl<Entry, EntryModel, EntryParams> Model<Entry, EntryModel, EntryParams>
@@ -100,16 +112,19 @@ where
     EntryParams: frp::node::Data,
 {
     fn new(
+        app: &Application,
         grid: &crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
-        output: &api::private::Output,
+        output: &api::private::Output<EntryParams>,
         entry_endpoints_getter: EntryEndpointsGetter<Entry>,
     ) -> Self {
         Self {
+            app: app.clone_ref(),
             grid: grid.clone_ref(),
             connected_entry: default(),
             guard: default(),
             output: output.clone_ref(),
             entry_endpoints_getter,
+            layers: default(),
         }
     }
 
@@ -148,20 +163,50 @@ impl<E: Entry> Model<E, E::Model, E::Params> {
             }
         }
     }
+
+    fn setup_masked_layer(&self, layer: Option<&WeakLayer>) {
+        self.layers.take();
+        let new_layers = layer.and_then(|l| l.upgrade()).map(|layer| {
+            let layers = layer::Layers::new(&self.app, &layer, &self.grid);
+            let shape = &layers.shape;
+            let network = layers.grid.network();
+            let grid_frp = self.grid.frp();
+            let highlight_grid_frp = layers.grid.frp();
+            let frp = &self.output;
+            frp::extend! { network
+                highlight_grid_frp.set_entries_params <+ frp.entries_params;
+
+                pos_and_viewport <- all(frp.position, grid_frp.viewport);
+                eval pos_and_viewport ([shape](&(pos, vp)) shape::HoverAttrSetter::set_position(&shape, pos, vp));
+                eval frp.contour ([shape](&contour) {
+                    shape::HoverAttrSetter::set_size(&shape, contour.size);
+                    shape::HoverAttrSetter::set_corners_radius(&shape, contour.corners_radius);
+                });
+            }
+            HoverAttrSetter::set_color(&shape, color::Rgba::black());
+            SelectionAttrSetter::set_size(&shape, default());
+            layers
+        });
+        *self.layers.borrow_mut() = new_layers;
+    }
 }
 
 #[derive(CloneRef, Debug, Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 pub struct Handler<Entry: 'static, EntryModel: frp::node::Data, EntryParams: frp::node::Data> {
     #[deref]
-    pub frp: Frp,
+    pub frp: Frp<EntryParams>,
     model:   Rc<Model<Entry, EntryModel, EntryParams>>,
 }
 
 impl<E: Entry> Handler<E, E::Model, E::Params> {
-    pub fn new(grid: &crate::GridView<E>, entry_endpoints_getter: EntryEndpointsGetter<E>) -> Self {
+    pub fn new(
+        app: &Application,
+        grid: &crate::GridView<E>,
+        entry_endpoints_getter: EntryEndpointsGetter<E>,
+    ) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(Model::new(grid, &frp.private.output, entry_endpoints_getter));
+        let model = Rc::new(Model::new(app, grid, &frp.private.output, entry_endpoints_getter));
 
         let network = frp.network();
         let grid_frp = grid.frp();
@@ -176,13 +221,16 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             out.position <+ became_highlighted.all_with(&grid_frp.entries_size, |&(row, col), &es| entry_position(row, col, es));
             none_highlightd <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
             out.contour <+ none_highlightd.constant(default());
+
+            out.entries_params <+ frp.set_entries_params;
+            eval frp.setup_masked_layer ((layer) model.setup_masked_layer(layer.as_ref()));
         }
 
         Self { frp, model }
     }
 
-    pub fn new_for_selection_connected(grid: &crate::GridView<E>) -> Self {
-        let this = Self::new(grid, Self::selection_endpoints_getter);
+    pub fn new_for_selection_connected(app: &Application, grid: &crate::GridView<E>) -> Self {
+        let this = Self::new(app, grid, Self::selection_endpoints_getter);
         let network = this.network();
         frp::extend! { network
             this.entry_highlighted <+ grid.entry_selected;
@@ -190,8 +238,8 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         this
     }
 
-    pub fn new_for_hover_connected(grid: &crate::GridView<E>) -> Self {
-        let this = Self::new(grid, Self::hover_endpoints_getter);
+    pub fn new_for_hover_connected(app: &Application, grid: &crate::GridView<E>) -> Self {
+        let this = Self::new(app, grid, Self::hover_endpoints_getter);
         let network = this.network();
         frp::extend! { network
             this.entry_highlighted <+ grid.entry_hovered;
@@ -231,115 +279,6 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
                 Setter::set_corners_radius(&shape, contour.corners_radius);
             });
             eval frp.color ([shape](&color) Setter::set_color(&shape, color));
-        }
-    }
-}
-
-
-pub mod shape {
-    use super::*;
-    use crate::entry::Contour;
-    use ensogl_core::data::color;
-    use ensogl_core::data::color::Rgba;
-
-    ensogl_core::define_shape_system! {
-        pointer_events = false;
-        (
-            style: Style,
-            // Corners radii of viewport (x), hover highlight (y) and selection highlight (z).
-            corners_radii: Vector3,
-            // Positions of highlights: hover (xy) and selection (zw).
-            highlights_pos: Vector4,
-            // Sizes of highlights: hover (xy) and selection (zw).
-            highlights_sizes: Vector4,
-            hover_color: Vector4,
-            selection_color: Vector4,
-        ) {
-            let viewport_width = Var::<Pixels>::from("input_size.x");
-            let viewport_height = Var::<Pixels>::from("input_size.y");
-            let viewport = Rect((viewport_width, viewport_height));
-            let viewport = viewport.corners_radius(corners_radii.x().px());
-            let hover = Rect(highlights_sizes.xy().px()).corners_radius(corners_radii.y().px());
-            let hover_trans = highlights_pos.xy().px();
-            let hover = hover.translate(&hover_trans);
-            let hover = (&hover * &viewport).fill(hover_color);
-            let selection = Rect(highlights_sizes.zw().px()).corners_radius(corners_radii.z().px());
-            let selection = hover.translate(highlights_pos.zw().px() - hover_trans);
-            let selection = (&selection * &viewport).fill(selection_color);
-            let highlights = &hover + &selection;
-            highlights.into()
-        }
-    }
-
-    pub fn set_viewport(shape: &View, viewport: Viewport) {
-        shape.size.set(viewport.size());
-        shape.set_position_xy(viewport.center_point());
-    }
-
-    pub trait AttrSetter {
-        fn set_position(shape: &View, position: Vector2, viewport: Viewport);
-        fn set_size(shape: &View, size: Vector2);
-        fn set_corners_radius(shape: &View, radius: f32);
-        fn set_color(shape: &View, color: color::Rgba);
-    }
-
-    pub struct HoverAttrSetter;
-
-    impl AttrSetter for HoverAttrSetter {
-        fn set_position(shape: &View, position: Vector2, viewport: Viewport) {
-            let viewport_position = viewport.center_point();
-            let relative_pos = position - viewport_position;
-            let mut attr = shape.highlights_pos.get();
-            attr.x = relative_pos.x;
-            attr.y = relative_pos.y;
-            shape.highlights_pos.set(attr);
-        }
-
-        fn set_size(shape: &View, size: Vector2) {
-            let mut attr = shape.highlights_sizes.get();
-            attr.x = size.x;
-            attr.y = size.y;
-            shape.highlights_sizes.set(attr)
-        }
-
-        fn set_corners_radius(shape: &View, radius: f32) {
-            let mut old_radii = shape.corners_radii.get();
-            old_radii.y = radius;
-            shape.corners_radii.set(old_radii);
-        }
-
-        fn set_color(shape: &View, color: color::Rgba) {
-            shape.hover_color.set(color.into())
-        }
-    }
-
-    pub struct SelectionAttrSetter;
-
-    impl AttrSetter for SelectionAttrSetter {
-        fn set_position(shape: &View, position: Vector2, viewport: Viewport) {
-            let viewport_position = viewport.center_point();
-            let relative_pos = position - viewport_position;
-            let mut attr = shape.highlights_pos.get();
-            attr.z = relative_pos.x;
-            attr.w = relative_pos.y;
-            shape.highlights_pos.set(attr);
-        }
-
-        fn set_size(shape: &View, size: Vector2) {
-            let mut attr = shape.highlights_sizes.get();
-            attr.z = size.x;
-            attr.w = size.y;
-            shape.highlights_sizes.set(attr)
-        }
-
-        fn set_corners_radius(shape: &View, radius: f32) {
-            let mut old_radii = shape.corners_radii.get();
-            old_radii.z = radius;
-            shape.corners_radii.set(old_radii);
-        }
-
-        fn set_color(shape: &View, color: color::Rgba) {
-            shape.selection_color.set(color.into())
         }
     }
 }
