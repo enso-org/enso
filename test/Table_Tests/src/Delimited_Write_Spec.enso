@@ -16,6 +16,7 @@ from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_For
 import Standard.Table.IO.Quote_Style
 import Standard.Table.Data.Match_Columns
 import Standard.Table.Data.Column_Name_Mapping
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
 from Standard.Table.Errors as Table_Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 import Standard.Test
@@ -130,6 +131,28 @@ spec =
             text.should_equal expected_text
             file.delete
 
+        Test.specify "should quote values containing the comment symbol if comments are enabled" <|
+            table = Table.new [["#", ['b', 'x', '#']], ["B", [Nothing,"#","abc"]]]
+            file = (enso_project.data / "transient" / "comments.csv")
+            file.delete_if_exists
+            table.write file on_problems=Report_Error . should_succeed
+            expected_text =
+                ['#,B','b,', 'x,#', '#,abc'].join '\n' suffix='\n'
+            text = File.read_text file
+            text.should_equal expected_text
+            file.delete
+
+            format = File_Format.Delimited ',' . with_comments
+            table.write file format on_problems=Report_Error . should_succeed
+            expected_text_2 = normalize_lines <| """
+                "#",B
+                b,
+                x,"#"
+                "#",abc
+            text_2 = File.read_text file
+            text_2.should_equal expected_text_2
+            file.delete
+
         Test.specify 'should not quote values if quoting is disabled' <|
             format = File_Format.Delimited "," value_formatter=(Data_Formatter decimal_point=",") . without_quotes
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
@@ -236,9 +259,16 @@ spec =
             got_table.should_equal table
             file.delete
 
-        Test.specify "should correctly append to a with a missing newline at EOF" <|
-            # TODO
-            Nothing
+        Test.specify "should correctly append to a file with a missing newline at EOF" <|
+            table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
+            file = (enso_project.data / "transient" / "append_missing_newline.csv")
+            file.delete_if_exists
+            'A,B,C\r0,0,0'.write file
+            table.write file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            text = File.read_text file
+            expected_lines = ["A,B,C", "0,0,0", "1,1.0,x", "2,1.5,y", "3,2.2,z"]
+            text.should_equal (expected_lines.join '\r' suffix='\r')
+            file.delete
 
         Test.specify "should append to a file, matching columns by name (headers=Infer)" <|
             existing_table = Table.new [["A", [1,2]], ["B", [1.0,1.5]], ["C", ["x","y"]]]

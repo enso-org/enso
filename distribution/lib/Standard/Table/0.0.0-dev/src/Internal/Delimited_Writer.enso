@@ -156,7 +156,7 @@ write_to_writer table format java_writer separator_override=Nothing needs_leadin
             endings -> endings.to_text
     if needs_leading_newline then
         java_writer.write newline
-    writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter newline quote_characters.first quote_characters.second quote_behavior write_headers
+    writer = DelimitedWriter.new java_writer column_formatters.to_array format.delimiter newline quote_characters.first quote_characters.second format.comment_character quote_behavior write_headers
     writer.write table.java_table
 
 ## PRIVATE
