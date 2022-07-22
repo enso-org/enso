@@ -121,9 +121,9 @@ pub trait HasComponents {
 }
 
 
-// ============
-// === Dim1 ===
-// ============
+// ==================
+// === Dimensions ===
+// ==================
 
 /// Describes types that have the first dimension component.
 pub trait Dim1: HasComponents {
@@ -141,6 +141,19 @@ pub trait Dim2: Dim1 {
 pub trait Dim3: Dim2 {
     /// Z-axis component getter.
     fn z(&self) -> Self::Component;
+}
+
+/// Describes types that have the fourth dimension component.
+pub trait Dim4: Dim3 {
+    /// fourth value getter.
+    fn w(&self) -> Self::Component;
+}
+
+pub trait HasDim2Version: Dim4 {
+    type Dim2Version;
+
+    fn xy(&self) -> Self::Dim2Version;
+    fn zw(&self) -> Self::Dim2Version;
 }
 
 

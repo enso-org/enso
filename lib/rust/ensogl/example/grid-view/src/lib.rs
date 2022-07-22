@@ -29,6 +29,7 @@ use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_grid_view as grid_view;
+use ensogl_grid_view::Viewport;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf_sys::run_once_initialized;
 
@@ -61,9 +62,9 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let grid_view = grid_view::simple::SimpleScrollableGridView::new(app);
-    grid_view.scroll_frp().resize(Vector2(400.0, 300.0));
+    let grid_view = grid_view::simple::SimpleSelectableGridView::new(app);
     app.display.default_scene.layers.node_searcher.add_exclusive(&grid_view);
+    grid_view.set_text_layer(Some(app.display.default_scene.layers.node_searcher_text.downgrade()));
     frp::new_network! { network
         requested_entry <- grid_view.model_for_entry_needed.map(|(row, col)| {
             let model = grid_view::simple::EntryModel {
@@ -87,6 +88,8 @@ fn init(app: &Application) {
     };
     grid_view.set_entries_params(params);
     grid_view.reset_entries(1000, 1000);
+    // grid_view.scroll_frp().resize(Vector2(400.0, 300.0));
+    grid_view.set_viewport(Viewport { left: 0.0, right: 400.0, top: 0.0, bottom: -400.0 });
 
     app.display.add_child(&grid_view);
     let navigator = Navigator::new(

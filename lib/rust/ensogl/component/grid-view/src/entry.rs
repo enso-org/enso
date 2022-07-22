@@ -3,6 +3,7 @@
 
 use crate::prelude::*;
 
+use crate::selectable::highlight;
 use crate::Col;
 use crate::Row;
 
@@ -17,8 +18,8 @@ use ensogl_core::display::Attribute;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct Contour {
-    pub size:          Vector2,
-    pub corner_radius: f32,
+    pub size:           Vector2,
+    pub corners_radius: f32,
 }
 
 
@@ -84,7 +85,7 @@ pub trait ShapeWithEntryContour {
     fn set_contour(&self, contour: Contour) {
         let padding = Vector2(Self::PADDING_PX, Self::PADDING_PX) * 2.0;
         self.size().set(contour.size + padding);
-        self.corner_radius().set(contour.corner_radius);
+        self.corner_radius().set(contour.corners_radius);
     }
 }
 
@@ -129,7 +130,7 @@ pub mod shape {
     pub const PADDING_PX: f32 = 5.0;
 
     ensogl_core::define_shape_system! {
-        below = [overlay];
+        below = [overlay, highlight::shape];
         (style:Style, corner_radius: f32, color: Vector4) {
             let shape_width  : Var<Pixels> = "input_size.x".into();
             let shape_height : Var<Pixels> = "input_size.y".into();

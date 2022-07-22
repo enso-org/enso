@@ -5,6 +5,7 @@ use ensogl_core::display::shape::*;
 
 use crate::entry;
 use crate::scrollable;
+use crate::selectable;
 use crate::EntryFrp;
 
 use ensogl_core::application::command::FrpNetworkProvider;
@@ -140,7 +141,7 @@ impl crate::Entry for Entry {
 
             contour <- all_with(&size, &bg_margin, |size, margin| entry::Contour {
                 size: *size - Vector2(*margin, *margin) * 2.0,
-                corner_radius: 0.0,
+                corners_radius: 4.0,
             });
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
@@ -156,7 +157,11 @@ impl crate::Entry for Entry {
             data.label.set_content_truncated <+ all(&content, &max_width_px);
             out.disabled <+ input.set_model.map(|m| *m.disabled);
 
+            init <- source_();
+            out.hover_highlight_color <+ init.constant(color::Rgba(0.0, 1.0, 0.0, 1.0));
+            out.selection_highlight_color <+ init.constant(color::Rgba(0.0, 0.0, 1.0, 1.0));
         }
+        init.emit(());
         Self { frp, data }
     }
 
@@ -182,3 +187,6 @@ pub type SimpleGridView = crate::GridView<Entry>;
 
 /// The Simple version of Scrollable Grid View, where each entry is just a label with background.
 pub type SimpleScrollableGridView = scrollable::GridView<Entry>;
+
+/// The Simple version of Selectable Grid View, where each entry is just a label with background.
+pub type SimpleSelectableGridView = selectable::GridView<Entry>;
