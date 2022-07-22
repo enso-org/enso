@@ -1,13 +1,3 @@
-// === Non-Standard Linter Configuration ===
-#![warn(unsafe_code)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
