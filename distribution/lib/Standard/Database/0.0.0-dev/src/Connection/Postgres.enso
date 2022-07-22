@@ -60,7 +60,7 @@ type Postgres
             Credentials username password ->
                 [Pair 'user' username, Pair 'password' password]
 
-        ssl_properties = Postgres.ssl_mode_to_jdbc_properties self.use_ssl
+        ssl_properties = ssl_mode_to_jdbc_properties self.use_ssl
 
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
