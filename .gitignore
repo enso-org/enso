@@ -147,3 +147,4 @@ test-results
 
 *.ir
 *.meta
+.enso/

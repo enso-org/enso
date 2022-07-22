@@ -1,0 +1,7 @@
+[org.enso.jsonrpc.JsonRpcServer] Received text message: { "jsonrpc": "2.0", "method": "text/applyEdit"
+[org.enso.languageserver.protocol.json.JsonConnectionController] received handled Request(ApplyEdit
+[org.enso.languageserver.runtime.RuntimeConnector] received handled Request(None,EditFileNotification
+[enso] Executing command: EditFileCmd...
+[enso] Job EnsureCompiledJob finished
+[enso] Visualisation computed
+[org.enso.languageserver.runtime.ContextRegistry] received handled VisualisationUpdate
