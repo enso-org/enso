@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
-import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
