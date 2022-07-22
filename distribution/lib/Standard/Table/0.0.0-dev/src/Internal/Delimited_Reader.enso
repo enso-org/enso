@@ -97,7 +97,7 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
 
 ## PRIVATE
-prepare_delimited_reader java_reader format max_columns on_problems =
+prepare_delimited_reader java_reader format max_columns on_problems newline_override=Nothing =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> DelimitedReader.HeaderBehavior.INFER
@@ -120,7 +120,7 @@ prepare_delimited_reader java_reader format max_columns on_problems =
     cell_type_guesser = if format.headers != Infer then Nothing else
         formatter = format.value_formatter.if_nothing Data_Formatter
         TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-    newline = case format.line_endings of
+    newline = newline_override.if_nothing <| case format.line_endings of
         Infer -> Nothing
         endings -> endings.to_text
     DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
@@ -157,7 +157,8 @@ type Detected_File_Metadata
        Arguments:
        - headers: headers present in the file.
        - line_separator: line separator detected from file contents, if any.
-       - ends_with_newline: specifies if the last line ends with the line separator.
+       - ends_with_newline: specifies if the last line ends with a line
+         separator that is consistent with the detected one.
        - has_any_content: specifies if the file contains any content.
     type Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
 
@@ -168,16 +169,15 @@ detect_metadata : File -> File_Format.Delimited -> Detected_Headers
 detect_metadata file format =
     on_problems = Ignore
     result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
-        trailing_newline = newline_at_eof file format.encoding
-        has_trailing_newline = newline_at_eof file . is_nothing . not
+        trailing_line_separator = newline_at_eof file format.encoding
+        has_trailing_line_separator = trailing_line_separator.is_nothing.not
         file.with_input_stream [File.Option.Read] stream->
-            ## TODO move line separator detector up to here maybe?
             stream.with_stream_decoder format.encoding on_problems java_reader->
                 ## We use the default `max_columns` setting. If we want to be able to
                    read files with unlimited column limits (risking OutOfMemory
                    exceptions), we can catch the exception indicating the limit has been
                    reached and restart parsing with an increased limit.
-                reader = prepare_delimited_reader java_reader format max_columns=default_max_columns on_problems
+                reader = prepare_delimited_reader java_reader format max_columns=default_max_columns on_problems newline_override=trailing_line_separator
                 defined_columns = reader.getDefinedColumnNames
                 headers = case defined_columns of
                     Nothing ->
@@ -185,17 +185,9 @@ detect_metadata file format =
                         if column_count == 0 then Nothing else
                             No_Headers column_count
                     _ -> Existing_Headers (Vector.Vector defined_columns)
-                detected_line_separator = reader.getDetectedLineSeparator
-                visited_lines = reader.getVisitedLinesCount
-                ## TODO verify this condition is correct
-                is_detected_line_separator_relevant = (visited_lines > 2) || has_trailing_newline
-                effective_separator = case is_detected_line_separator_relevant of
-                    True -> detected_line_separator
-                    False -> Nothing
-                is_trailing_newline_acceptable = has_trailing_newline &&
-                    ((effective_separator == Nothing) || (effective_separator == trailing_newline))
+                effective_line_separator = reader.getEffectiveLineSeparator
                 has_any_content = reader.getVisitedCharactersCount > 0
-                Detected_File_Metadata headers effective_separator is_trailing_newline_acceptable has_any_content
+                Detected_File_Metadata headers effective_line_separator has_trailing_line_separator has_any_content
     result.catch File.File_Not_Found (_->(Detected_File_Metadata Nothing Nothing False False))
 
 ## PRIVATE

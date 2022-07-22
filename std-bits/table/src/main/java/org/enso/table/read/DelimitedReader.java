@@ -163,6 +163,7 @@ public class DelimitedReader {
     settings.setKeepQuotes(true);
 
     if (newlineSetting == null) {
+      System.out.println("Autodetecting newline character");
       settings.setLineSeparatorDetectionEnabled(true);
     } else {
       if (newlineSetting.length() > 2 || newlineSetting.isEmpty()) {
@@ -170,6 +171,7 @@ public class DelimitedReader {
       }
       settings.setLineSeparatorDetectionEnabled(false);
       format.setLineSeparator(newlineSetting);
+      System.out.println("Using predefined newline!");
     }
 
     if (commentCharacter == null) {
@@ -354,16 +356,11 @@ public class DelimitedReader {
     return effectiveColumnNames.length;
   }
 
-  /** Returns the line separator detected from the file.
+  /** Returns the line separator.
    */
-  public String getDetectedLineSeparator() {
+  public String getEffectiveLineSeparator() {
       ensureHeadersDetected();
       return parser.getDetectedFormat().getLineSeparatorString();
-  }
-
-  public long getVisitedLinesCount() {
-    ensureHeadersDetected();
-    return parser.getContext().currentLine();
   }
 
   public long getVisitedCharactersCount() {
