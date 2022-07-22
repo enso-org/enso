@@ -366,6 +366,11 @@ public class DelimitedReader {
     return parser.getContext().currentLine();
   }
 
+  public long getVisitedCharactersCount() {
+    ensureHeadersDetected();
+    return parser.getContext().currentChar();
+  }
+
   private void ensureHeadersDetected() {
     if (effectiveColumnNames == null) {
       detectHeaders();

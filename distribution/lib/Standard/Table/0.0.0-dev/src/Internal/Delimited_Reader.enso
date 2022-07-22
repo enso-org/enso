@@ -158,7 +158,8 @@ type Detected_File_Metadata
        - headers: headers present in the file.
        - line_separator: line separator detected from file contents, if any.
        - ends_with_newline: specifies if the last line ends with the line separator.
-    type Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean)
+       - has_any_content: specifies if the file contains any content.
+    type Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
 
 ## PRIVATE
    Reads the beginning of the file to detect the existing headers and column
@@ -167,7 +168,7 @@ detect_metadata : File -> File_Format.Delimited -> Detected_Headers
 detect_metadata file format =
     on_problems = Ignore
     result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
-        trailing_newline = newline_at_eof file
+        trailing_newline = newline_at_eof file format.encoding
         has_trailing_newline = newline_at_eof file . is_nothing . not
         file.with_input_stream [File.Option.Read] stream->
             ## TODO move line separator detector up to here maybe?
@@ -188,13 +189,14 @@ detect_metadata file format =
                 visited_lines = reader.getVisitedLinesCount
                 ## TODO verify this condition is correct
                 is_detected_line_separator_relevant = (visited_lines > 2) || has_trailing_newline
-                is_trailing_newline_acceptable = has_trailing_newline &&
-                    ((detected_line_separator == Nothing) || (detected_line_separator == trailing_newline))
                 effective_separator = case is_detected_line_separator_relevant of
                     True -> detected_line_separator
                     False -> Nothing
-                Detected_File_Metadata headers effective_separator is_trailing_newline_acceptable
-    result.catch File.File_Not_Found (_->(Detected_File_Metadata Nothing Nothing False))
+                is_trailing_newline_acceptable = has_trailing_newline &&
+                    ((effective_separator == Nothing) || (effective_separator == trailing_newline))
+                has_any_content = reader.getVisitedCharactersCount > 0
+                Detected_File_Metadata headers effective_separator is_trailing_newline_acceptable has_any_content
+    result.catch File.File_Not_Found (_->(Detected_File_Metadata Nothing Nothing False False))
 
 ## PRIVATE
    Checks if the file has a newline at the end.

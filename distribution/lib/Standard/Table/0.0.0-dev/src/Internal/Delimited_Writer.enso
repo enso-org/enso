@@ -83,8 +83,10 @@ append_to_file table format file match_columns on_problems =
         amended_format = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers
             False -> format.without_headers
+        needs_leading_newline =
+            metadata.has_any_content && metadata.ends_with_newline.not
         Existing_File_Behavior.Append.write file stream->
-            write_to_stream reordered_table amended_format stream on_problems related_file=file separator_override=effective_line_separator needs_leading_newline=metadata.ends_with_newline.not
+            write_to_stream reordered_table amended_format stream on_problems related_file=file separator_override=effective_line_separator needs_leading_newline=needs_leading_newline
 
 ## PRIVATE
    Returns a Text value representing the table in the delimited format.
