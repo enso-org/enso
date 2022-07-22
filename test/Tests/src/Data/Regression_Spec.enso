@@ -3,13 +3,16 @@ from Standard.Base import Nothing, Vector, Number, Decimal, True, Illegal_Argume
 import Standard.Test
 
 spec =
+    ## Regression test data produced using an Excel spreadsheet.
+       https://github.com/enso-org/enso/files/9160145/Regression.tests.xlsx
+
     double_error = 0.000001
 
     vector_compare values expected =
-        values.each_with_index i->v->
+        values.zip expected v->e->
             case v of
-                Decimal -> v.should_equal (expected.at i) epsilon=double_error
-                _ -> v.should_equal (expected.at i)
+                Decimal -> v.should_equal e epsilon=double_error
+                _ -> v.should_equal e
 
     Test.group "Regression" <|
         Test.specify "return an error if the vector lengths do not match" <|

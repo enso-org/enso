@@ -40,7 +40,7 @@ public class Regression {
   }
 
   private static double denominator(CorrelationStatistics stats) {
-    return stats.getTotalXX() - Math.pow(stats.getTotalX(), 2.0) / stats.getCount();
+    return stats.getTotalXX() - stats.getTotalX() * stats.getTotalX() / stats.getCount();
   }
 
   private static double slope(CorrelationStatistics stats, double denominator) {
