@@ -139,10 +139,10 @@ impl crate::Entry for Entry {
             text_color <- input.set_params.map(|p| p.text_color).on_change();
             text_size <- input.set_params.map(|p| p.text_size).on_change();
 
-            contour <- all_with(&size, &bg_margin, |size, margin| entry::Contour {
+            contour <- all_with3(&size, &bg_margin, &frp.set_location, |size, margin, &loc| if loc != (5, 1) { entry::Contour {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 4.0,
-            });
+            }} else { entry::Contour {size: Vector2(100.0, 12.0), corners_radius: 0.0 }});
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
             out.contour <+ contour;

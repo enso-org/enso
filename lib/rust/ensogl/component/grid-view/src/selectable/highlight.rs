@@ -5,6 +5,7 @@ use crate::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::scene::layer::WeakLayer;
+use ensogl_core::Animation;
 
 use crate::entry;
 use crate::entry_position;
@@ -41,6 +42,39 @@ pub struct EntryEndpoints {
     color:    frp::Stream<color::Rgba>,
 }
 
+#[derive(Clone, CloneRef, Debug)]
+pub struct Animations {
+    position:       Animation<Vector2>,
+    size:           Animation<Vector2>,
+    corners_radius: Animation<f32>,
+    color:          Animation<color::Rgba>,
+}
+
+impl Animations {
+    fn new<EntryParams: frp::node::Data>(frp: &Frp<EntryParams>) -> Self {
+        let network = frp.network();
+        let position = Animation::<Vector2>::new(network);
+        let size = Animation::<Vector2>::new(network);
+        let corners_radius = Animation::<f32>::new(network);
+        let color = Animation::<color::Rgba>::new(network);
+
+        frp::extend! { network
+            init <- source_();
+            position.target <+ frp.position;
+            size.target <+ frp.contour.map(|&c| c.size);
+            corners_radius.target <+ frp.contour.map(|&c| c.corners_radius);
+            color.target <+ frp.color;
+
+            size_val <- all(init, size.value)._1();
+            not_visible <- size_val.map(|sz| sz.x < f32::EPSILON || sz.y < f32::EPSILON);
+            corners_radius.skip <+ frp.color.gate(&not_visible).constant(());
+            position.skip <+ frp.position.gate(&not_visible).constant(());
+            color.skip <+ frp.color.gate(&not_visible).constant(());
+        }
+        init.emit(());
+        Self { position, size, corners_radius, color }
+    }
+}
 
 
 // ======================
@@ -101,6 +135,7 @@ pub struct Model<Entry: 'static, EntryModel: frp::node::Data, EntryParams: frp::
     connected_entry:        Cell<Option<(Row, Col)>>,
     guard:                  RefCell<Option<ConnectedEntryGuard>>,
     output:                 api::private::Output<EntryParams>,
+    animations:             Animations,
     #[derivative(Debug = "ignore")]
     entry_endpoints_getter: EntryEndpointsGetter<Entry>,
     layers:                 RefCell<Option<layer::Layers<Entry, EntryModel, EntryParams>>>,
@@ -115,6 +150,7 @@ where
         app: &Application,
         grid: &crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
         output: &api::private::Output<EntryParams>,
+        animations: Animations,
         entry_endpoints_getter: EntryEndpointsGetter<Entry>,
     ) -> Self {
         Self {
@@ -123,6 +159,7 @@ where
             connected_entry: default(),
             guard: default(),
             output: output.clone_ref(),
+            animations,
             entry_endpoints_getter,
             layers: default(),
         }
@@ -170,24 +207,37 @@ impl<E: Entry> Model<E, E::Model, E::Params> {
             let layers = layer::Layers::new(&self.app, &layer, &self.grid);
             let shape = &layers.shape;
             let network = layers.grid.network();
-            let grid_frp = self.grid.frp();
             let highlight_grid_frp = layers.grid.frp();
             let frp = &self.output;
+            self.connect_with_shape::<HoverAttrSetter>(network, shape);
             frp::extend! { network
                 highlight_grid_frp.set_entries_params <+ frp.entries_params;
-
-                pos_and_viewport <- all(frp.position, grid_frp.viewport);
-                eval pos_and_viewport ([shape](&(pos, vp)) shape::HoverAttrSetter::set_position(&shape, pos, vp));
-                eval frp.contour ([shape](&contour) {
-                    shape::HoverAttrSetter::set_size(&shape, contour.size);
-                    shape::HoverAttrSetter::set_corners_radius(&shape, contour.corners_radius);
-                });
             }
             HoverAttrSetter::set_color(&shape, color::Rgba::black());
             SelectionAttrSetter::set_size(&shape, default());
             layers
         });
         *self.layers.borrow_mut() = new_layers;
+    }
+
+    fn connect_with_shape<Setter: shape::AttrSetter>(
+        &self,
+        network: &frp::Network,
+        shape: &shape::View,
+    ) {
+        let grid_frp = self.grid.frp();
+        frp::extend! { network
+            init <- source_();
+            position <- all(init, self.animations.position.value)._1();
+            size <- all(init, self.animations.size.value)._1();
+            corners_radius <- all(init, self.animations.corners_radius.value)._1();
+
+            pos_and_viewport <- all(position, grid_frp.viewport);
+            eval pos_and_viewport ([shape](&(pos, vp)) Setter::set_position(&shape, pos, vp));
+            eval size ([shape](&size) Setter::set_size(&shape, size));
+            eval corners_radius ([shape](&r) Setter::set_corners_radius(&shape, r));
+        }
+        init.emit(())
     }
 }
 
@@ -206,11 +256,11 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         entry_endpoints_getter: EntryEndpointsGetter<E>,
     ) -> Self {
         let frp = Frp::new();
-        let model = Rc::new(Model::new(app, grid, &frp.private.output, entry_endpoints_getter));
-
+        let animations = Animations::new(&frp);
+        let out = &frp.private.output;
+        let model = Rc::new(Model::new(app, grid, out, animations, entry_endpoints_getter));
         let network = frp.network();
         let grid_frp = grid.frp();
-        let out = &frp.private.output;
         frp::extend! {network
             shown_with_highlighted <- grid_frp.entry_shown.map2(&frp.entry_highlighted, |a, b| (*a, *b));
             highlighted_is_shown <- shown_with_highlighted.map(|(sh, hlt)| hlt.contains(sh).and_option(*hlt));
@@ -269,16 +319,12 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
 
     pub fn connect_with_shape<Setter: shape::AttrSetter>(&self, shape: &shape::View) {
         let network = self.frp.network();
-        let frp = &self.frp.public.output;
-        let grid_frp = self.model.grid.widget.frp();
+        self.model.connect_with_shape::<Setter>(network, shape);
         frp::extend! { network
-            pos_and_viewport <- all(frp.position, grid_frp.viewport);
-            eval pos_and_viewport ([shape](&(pos, vp)) Setter::set_position(&shape, pos, vp));
-            eval frp.contour ([shape](&contour) {
-                Setter::set_size(&shape, contour.size);
-                Setter::set_corners_radius(&shape, contour.corners_radius);
-            });
-            eval frp.color ([shape](&color) Setter::set_color(&shape, color));
+            init <- source_();
+            color <- all(init, self.model.animations.color.value)._1();
+            eval color ([shape](&color) Setter::set_color(&shape, color));
         }
+        init.emit(());
     }
 }
