@@ -17,13 +17,11 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_text::Bytes;
-use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::frp;
-use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
@@ -45,8 +43,6 @@ use list_view::entry::AnyModelProvider;
 // =================
 
 const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
-/// The selection animation is faster than the default one because of the increased spring force.
-const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 const COMPONENT_GROUP_WIDTH: f32 = 150.0;
 const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
 const SCROLL_AREA_WIDTH: f32 = COMPONENT_GROUP_WIDTH * 4.0 + 20.0;
@@ -252,8 +248,6 @@ fn init(app: &Application) {
     let main_camera = app.display.default_scene.layers.main.camera();
     let selection_layer = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
     let groups_layer = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
-    let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &main_camera);
-    selection_layer.set_mask(&selection_mask);
     app.display.default_scene.layers.main.add_sublayer(&groups_layer);
     app.display.default_scene.layers.main.add_sublayer(&selection_layer);
 
@@ -375,58 +369,12 @@ fn init(app: &Application) {
         });
     }
 
-
-    // === Selection box ===
-
-    let selection = component_group::selection_box::View::new(&app.logger);
-    selection_mask.add_exclusive(&selection);
-    app.display.add_child(&selection);
-
-    let selection_animation = Animation::<Vector2>::new(&network);
-    let selection_size_animation = Animation::<Vector2>::new(&network);
-    let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
-    selection_animation.set_spring.emit(spring);
-    /// This is an example code to position the selection box on the scene.
-    /// We transform the group-local position from [`multiview.selection_position_target`] to
-    /// global position. After that we restrict the Y-coordinate so that the selection box won't
-    /// go below the scroll area bottom border.
-    fn selection_position(
-        group_local_pos: Vector2,
-        group: &component_group::set::Group,
-        scroll_area: &ScrollArea,
-    ) -> Vector2 {
-        let scroll_area_pos = scroll_area.position() + scroll_area.content().position();
-        let group_pos = scroll_area_pos + group.position();
-        let mut pos = group_pos.xy() + group_local_pos;
-        let scroll_area_bottom = scroll_area.position().y - SCROLL_AREA_HEIGHT;
-        let lower_bound = scroll_area_bottom + list_view::entry::HEIGHT / 2.0;
-        pos.y = pos.y.max(lower_bound);
-        pos
-    }
-    frp::extend! { network
-        selection_size_animation.target <+ multiview.selection_size._1();
-        selection_position <- multiview.selection_position_target.map(
-            f!([groups, scroll_area]((g, p)) {
-                let group = &groups[g];
-                selection_position(*p, group, &scroll_area)
-            })
-        );
-        selection_animation.target <+ selection_position;
-        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
-        eval selection_size_animation.value ((pos) selection.size.set(*pos));
-    }
-    selection_animation.target.emit(first_component_group.selection_position_target.value());
-    selection_size_animation.target.emit(Vector2(150.0, list_view::entry::HEIGHT));
-    selection_animation.skip.emit(());
-    selection_size_animation.skip.emit(());
-
     // === Forget ===
 
     std::mem::forget(red_slider);
     std::mem::forget(green_slider);
     std::mem::forget(blue_slider);
     std::mem::forget(scroll_area);
-    std::mem::forget(selection);
     std::mem::forget(network);
     std::mem::forget(multiview);
     std::mem::forget(first_component_group);
@@ -434,6 +382,4 @@ fn init(app: &Application) {
     std::mem::forget(wide_component_group);
     std::mem::forget(layers);
     std::mem::forget(groups_layer);
-    std::mem::forget(selection_layer);
-    std::mem::forget(selection_mask);
 }

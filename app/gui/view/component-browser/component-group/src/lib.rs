@@ -114,23 +114,6 @@ const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 // === Shapes Definitions ===
 // ==========================
 
-// === Selection ===
-
-/// A shape of a selection box. It is used as a mask to show only specific parts of the selection
-/// layers. See module-level documentation to learn more.
-pub mod selection_box {
-    use super::*;
-
-    ensogl::define_shape_system! {
-        pointer_events = false;
-        (style:Style,corners_radius:f32) {
-            let width: Var<Pixels> = "input_size.x".into();
-            let height: Var<Pixels> = "input_size.y".into();
-            Rect((width, height)).corners_radius(corners_radius.px()).into()
-        }
-    }
-}
-
 
 // === Background ===
 
@@ -807,12 +790,16 @@ impl Model {
         header_pos: f32,
     ) -> Vector2 {
         if is_header_selected {
-            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0 - header_pos)
+            // The following equations are similar to equations in the `resize` method.
+            // We make sure that selection position is
+            // - in the same place as the header position,
+            // - is not outside the component group.
+            let half_header_height = header_geometry.height / 2.0;
+            let header_y = size.y / 2.0 - half_header_height - header_pos;
+            let header_y = header_y.max(-size.y / 2.0 + half_header_height);
+            Vector2(0.0, header_y)
         } else {
-            let max_selection_pos_y = size.y / 2.0 - list_view::entry::HEIGHT - header_pos;
-            let selection_pos_y = entries_selection_position.y.min(max_selection_pos_y);
-            let selection_pos = Vector2(entries_selection_position.x, selection_pos_y);
-            self.entries.position().xy() + selection_pos
+            self.entries.position().xy() + entries_selection_position
         }
     }
 
