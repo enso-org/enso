@@ -4237,6 +4237,7 @@ name = "logstat"
 version = "0.1.0"
 dependencies = [
  "clap 3.1.18",
+ "enso-prelude",
  "lazy_static",
  "regex",
  "time 0.3.9",
@@ -7526,6 +7527,7 @@ dependencies = [
  "base64 0.13.0",
  "clap 3.1.18",
  "either",
+ "enso-prelude",
  "futures 0.3.21",
  "regex",
  "time 0.3.9",

@@ -1,10 +1,22 @@
+//! The crate provides an executable for benchmarking the language server.
+
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
 
 
 mod format;
+
+use enso_prelude::*;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -23,75 +35,105 @@ use websocket_lite::Message;
 use websocket_lite::Opcode;
 use websocket_lite::Result;
 
+
+
+// =================
+// === Constants ===
+// =================
+
 static EXPECT_TEXT_RESPONSE: &str = "t|";
 static EXPECT_BINARY_RESPONSE: &str = "b|";
+
+
+
+// =====================
+// === CLI Arguments ===
+// =====================
 
 #[derive(Parser, Debug)]
 #[clap(version, about)]
 struct Args {
-    /// Text websocket to connect to
+    /// Text websocket to connect to.
     #[clap(value_name = "URL", value_hint = ValueHint::Url)]
     text_socket: Url,
 
-    /// File containing messages to initialize the main socket
+    /// File containing messages to initialize the main socket.
     #[clap(long, value_hint = ValueHint::FilePath)]
     init_text_socket: Option<PathBuf>,
 
-    /// File containing responses to ignore
+    /// File containing responses to ignore.
     #[clap(long, value_hint = ValueHint::FilePath)]
     ignore_text_socket_responses: Option<PathBuf>,
 
-    /// Binary socket to connect to
+    /// Binary socket to connect to.
     #[clap(long, value_name = "URL", value_hint = ValueHint::Url)]
     binary_socket: Option<Url>,
 
-    /// File containing messsages to initialize the binary socket
+    /// File containing messages to initialize the binary socket.
     #[clap(long, value_hint = ValueHint::FilePath)]
     init_binary_socket: Option<PathBuf>,
 
-    /// Path to a file with commands to send
+    /// Path to a file with commands to send.
     #[clap(long, value_name = "FILE", value_hint = ValueHint::FilePath)]
     input: Option<PathBuf>,
 
-    /// Input commands expect responses from a binary socket
+    /// Input commands expect responses from a binary socket.
     #[clap(long)]
     input_expects_binary_responses: bool,
 
-    /// Number of warmup requests to send
+    /// Number of warmup requests to send.
     #[clap(long, default_value = "5")]
     warmup_iterations: usize,
 
-    /// Number of benchmarked requests to send
+    /// Number of benchmarked requests to send.
     #[clap(long, default_value = "5")]
     benchmark_iterations: usize,
 
     /// Time in milliseconds to wait before sending input messages (after the init sequence is
-    /// complete)
+    /// complete).
     #[clap(long, value_name = "MILLISECONDS", default_value = "0")]
     wait_after_init: u64,
 
-    /// Time in milliseconds to wait before starting benchmark (after the warmup is complete)
+    /// Time in milliseconds to wait before starting benchmark (after the warmup is complete).
     #[clap(long, value_name = "MILLISECONDS", default_value = "0")]
     wait_after_warmup: u64,
 
-    /// Time in milliseconds to wait before sending the next request from the `input` file
+    /// Time in milliseconds to wait before sending the next request from the `input` file.
     #[clap(long, value_name = "MILLISECONDS", default_value = "0")]
     wait_after_response: u64,
 }
 
-/// Synchronization messages used for establishing order between requests and responses
+
+
+// =====================
+// === Sync Messages ===
+// =====================
+
+/// Synchronization messages used for establishing order between requests and responses.
 #[derive(Debug)]
 enum SyncMessage {
     ResponseReceived,
 }
 
-/// Read file line by line
+
+
+// =============
+// === Utils ===
+// ==============
+
+/// Read file line by line.
 async fn read_lines(path_buf: PathBuf) -> std::io::Result<Vec<String>> {
     let file = tokio::fs::File::open(path_buf.as_path()).await?;
     let lines_reader = BufReader::new(file).lines();
     let lines_stream = LinesStream::new(lines_reader);
     tokio_stream::StreamExt::collect(lines_stream).await
 }
+
+
+
+// ============
+// === Main ===
+// ============
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -246,7 +288,7 @@ async fn main() -> Result<()> {
             }
         }
 
-        Ok(()) as Result<()>
+        Ok::<_, websocket_lite::Error>(())
     };
 
     // receive text messages
@@ -277,7 +319,7 @@ async fn main() -> Result<()> {
             stream_mut = stream;
         }
 
-        Ok(()) as Result<()>
+        Ok::<_, websocket_lite::Error>(())
     };
 
     // receive binary messages
@@ -300,7 +342,7 @@ async fn main() -> Result<()> {
 
                 stream_mut = stream;
             }
-            Ok(()) as Result<()>
+            Ok::<_, websocket_lite::Error>(())
         };
         binary_recv = either::Right(binary_recv_loop);
     }

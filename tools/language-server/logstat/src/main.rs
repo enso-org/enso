@@ -1,6 +1,19 @@
+//! The crate provides an executable for collecting the performance statistics by analyzing the
+//! log files.
+
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+
+use enso_prelude::*;
 
 use clap::Parser;
 use clap::ValueHint;
@@ -21,37 +34,53 @@ use tokio_stream::StreamExt;
 
 
 
+// =====================
+// === CLI Arguments ===
+// =====================
+
 #[derive(Parser, Debug)]
 #[clap(version, about)]
 struct Args {
-    /// Logfile to analyze
+    /// Logfile to analyze.
     #[clap(value_name = "FILE", value_hint = ValueHint::FilePath)]
     log: PathBuf,
 
-    /// Specification file
+    /// Specification file.
     #[clap(long, value_name = "FILE", value_hint = ValueHint::FilePath)]
     spec: PathBuf,
 
-    /// Wstest log file
+    /// Wstest log file.
     #[clap(long, value_name = "FILE", value_hint = ValueHint::FilePath)]
     wstest_log: Option<PathBuf>,
 
-    /// Number of iterations to skip
+    /// Number of iterations to skip.
     #[clap(long, default_value = "0")]
     skip_iterations: usize,
 
-    /// Calculate median instead of mean
+    /// Calculate median instead of mean.
     #[clap(long)]
     median: bool,
 }
 
-/// A specification containing lines to lookup in the log file
+
+
+// =========================
+// === Log Specification ===
+// =========================
+
+/// A specification containing lines to lookup in the log file.
 #[derive(Debug)]
 struct Spec {
     matches: Vec<String>,
 }
 
-/// Timed operation
+
+
+// =================
+// === Operation ===
+// =================
+
+/// Timed operation.
 #[derive(Debug)]
 struct Operation {
     duration:  Duration,
@@ -59,7 +88,7 @@ struct Operation {
     line:      String,
 }
 
-impl fmt::Display for Operation {
+impl Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let duration_millis = self.duration.whole_milliseconds();
         let timestamp = self.timestamp.format(&Rfc3339).unwrap();
@@ -69,7 +98,13 @@ impl fmt::Display for Operation {
     }
 }
 
-/// Single iteration containing multiple sub-operations
+
+
+// =================
+// === Iteration ===
+// =================
+
+/// Single iteration containing multiple sub-operations.
 #[derive(Debug)]
 struct Iteration {
     pub operations: Vec<Operation>,
@@ -85,7 +120,13 @@ impl Iteration {
     }
 }
 
-/// Final statistics about benchmarked operation
+
+
+// ==================
+// === Statistics ===
+// ==================
+
+/// Final statistics about benchmarked operation.
 #[derive(Debug)]
 struct Stats {
     min:  Duration,
@@ -94,35 +135,37 @@ struct Stats {
     line: String,
 }
 
-impl fmt::Display for Stats {
+impl Display for Stats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let avg_millis = self.avg.whole_milliseconds();
         let min_millis = self.min.whole_milliseconds();
         let max_millis = self.max.whole_milliseconds();
         let truncated_line = self.line.chars().take(80).collect::<String>();
 
-        write!(
-            f,
-            "{avg}ms [{min}..{max}] {line}",
-            avg = avg_millis,
-            min = min_millis,
-            max = max_millis,
-            line = truncated_line
-        )
+        write!(f, "{avg_millis}ms [{min_millis}..{max_millis}] {truncated_line}")
     }
 }
 
-/// Capture group containing the timestamp part of the log line
+
+
+// =================
+// === Constants ===
+// =================
+
+/// First operation of Wstest sequence of operations.
+static WSTEST_FIRST_OPERATION: usize = 1;
+
+/// Capture group containing the timestamp part of the log line.
 static RE_LOGLINE_TIMESTAMP_CAPTURE_GROUP: usize = 2;
 
 /// Capture group containing the message part of the log line
 static RE_LOGLINE_MESSAGE_CAPTURE_GROUP: usize = 3;
 
 lazy_static! {
-    /// Regex for parsing the log line
+    /// Regex for parsing the log line.
     static ref RE_LOGLINE: Regex = Regex::new(r"\[([\w]+)\] \[([\w\d:.-]+)\] (.*)").unwrap();
 
-    /// Specification for the log file produced by the wstest tool
+    /// Specification for the log file produced by the wstest tool.
     static ref WSTEST_SPEC: Spec = Spec {
         matches: vec![
             "wstest sent bench request".to_string(),
@@ -131,7 +174,13 @@ lazy_static! {
     };
 }
 
-/// Read the file with specification
+
+
+// =================
+// === Utilities ===
+// =================
+
+/// Read the file with specification.
 async fn read_specs(path: &PathBuf) -> Result<Spec> {
     let file = File::open(path).await?;
     let lines_reader = BufReader::new(file).lines();
@@ -140,7 +189,7 @@ async fn read_specs(path: &PathBuf) -> Result<Spec> {
     Ok(Spec { matches })
 }
 
-/// Extract the iterations information from logfile according to the provided spec
+/// Extract the iterations information from logfile according to the provided spec.
 async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
     let file = File::open(path).await?;
     let mut lines = BufReader::new(file).lines();
@@ -185,7 +234,7 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
     Ok(iterations)
 }
 
-/// Calcualte median of values
+/// Calcualte median of values.
 fn median<I>(durations_iter: I) -> Duration
 where I: Iterator<Item = Duration> {
     let mut durations = durations_iter.collect::<Vec<_>>();
@@ -199,19 +248,18 @@ where I: Iterator<Item = Duration> {
     }
 }
 
-/// Cleanup iterations info before analyzing
-fn cleanse_iterations(ops: &mut Vec<Iteration>, skip: usize) {
-    ops.drain(..skip);
-}
-
-/// Merge iterations from two log files
+/// Merge iterations from two log files.
+///
+/// Function insert operations from logfile after the first operation of wstest tool.
 fn merge_iterations(ws_iterations: &mut [Iteration], log_iterations: Vec<Iteration>) {
-    for (log_iter, ws_iter) in log_iterations.into_iter().zip(ws_iterations.iter_mut()) {
-        ws_iter.operations.splice(1..1, log_iter.operations);
-    }
+    log_iterations.into_iter().zip(ws_iterations.iter_mut()).for_each(|(log_iter, ws_iter)| {
+        ws_iter
+            .operations
+            .splice(WSTEST_FIRST_OPERATION..WSTEST_FIRST_OPERATION, log_iter.operations);
+    });
 }
 
-/// Calculate operation durations for each benchmark iteration
+/// Calculate operation durations for each benchmark iteration.
 fn calculate_durations(iterations: &mut Vec<Iteration>) {
     for iteration in iterations {
         let mut timestamp = OffsetDateTime::UNIX_EPOCH;
@@ -226,31 +274,28 @@ fn calculate_durations(iterations: &mut Vec<Iteration>) {
     }
 }
 
-/// Analyze benchmark results
+/// Analyze benchmark results.
 fn analyze_iterations(iterations: &[Iteration], use_median: bool) -> Vec<Stats> {
-    let mut stats = vec![];
-
     let iterations_len = iterations.len();
     let operations_len = iterations.first().unwrap().operations.len();
 
-    let mut operation_index = 0;
-    while operation_index < operations_len {
-        let current_line = &iterations[0].operations[operation_index].line;
-        let durations = iterations.iter().map(|it| it.operations[operation_index].duration);
+    let mut stats = (0..operations_len)
+        .map(|operation_index| {
+            let current_line = &iterations[0].operations[operation_index].line;
+            let durations = iterations.iter().map(|it| it.operations[operation_index].duration);
 
-        let min = durations.clone().min().unwrap_or(Duration::ZERO);
-        let max = durations.clone().max().unwrap_or(Duration::ZERO);
-        let avg = if use_median {
-            median(durations)
-        } else {
-            durations.sum::<Duration>() / iterations_len as u32
-        };
-        let line = current_line.to_string();
+            let min = durations.clone().min().unwrap_or(Duration::ZERO);
+            let max = durations.clone().max().unwrap_or(Duration::ZERO);
+            let avg = if use_median {
+                median(durations)
+            } else {
+                durations.sum::<Duration>() / iterations_len as u32
+            };
+            let line = current_line.to_string();
 
-        stats.push(Stats { min, max, avg, line });
-
-        operation_index += 1;
-    }
+            Stats { min, max, avg, line }
+        })
+        .collect_vec();
 
     let overall_stats = iterations_average(iterations, &stats);
     stats.push(overall_stats);
@@ -258,7 +303,7 @@ fn analyze_iterations(iterations: &[Iteration], use_median: bool) -> Vec<Stats> 
     stats
 }
 
-/// Calculate the average of all iterations
+/// Calculate the average of all iterations.
 fn iterations_average(ops: &[Iteration], stats: &[Stats]) -> Stats {
     let min_opt = ops.iter().map(|o| o.total_time()).min();
     let max_opt = ops.iter().map(|o| o.total_time()).max();
@@ -271,44 +316,50 @@ fn iterations_average(ops: &[Iteration], stats: &[Stats]) -> Stats {
     Stats { min, max, avg, line }
 }
 
+
+
+// ============
+// === Main ===
+// ============
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
     let spec = read_specs(&args.spec).await?;
 
-    let mut log_iterations = read_logfile(&args.log, &spec).await?;
-    let mut ws_iterations;
+    let log_iterations = read_logfile(&args.log, &spec).await?;
 
     let mut iterations = if let Some(path_buf) = args.wstest_log {
-        ws_iterations = read_logfile(&path_buf, &WSTEST_SPEC).await?;
+        let mut ws_iterations = read_logfile(&path_buf, &WSTEST_SPEC).await?;
 
         // skip warmup iterations
         let start_time = &ws_iterations[0].operations[0].timestamp;
-        log_iterations = log_iterations
+        let log_iterations_without_warmup = log_iterations
             .into_iter()
             .skip_while(|iteration| {
                 let first_operation = &iteration.operations[0];
                 &first_operation.timestamp < start_time
             })
-            .collect();
+            .collect_vec();
 
-        if ws_iterations.len() != log_iterations.len() {
+        if ws_iterations.len() != log_iterations_without_warmup.len() {
             eprintln!(
                 "[ERR] Unequal number of benchmark iterations in log files! [{}] vs. [{}]",
                 ws_iterations.len(),
-                log_iterations.len()
+                log_iterations_without_warmup.len()
             );
             process::exit(1);
         }
 
-        merge_iterations(&mut ws_iterations, log_iterations);
+        merge_iterations(&mut ws_iterations, log_iterations_without_warmup);
 
         ws_iterations
     } else {
         log_iterations
     };
 
-    cleanse_iterations(&mut iterations, args.skip_iterations);
+    // cleanup iterations info before analyzing
+    iterations.drain(..args.skip_iterations);
     calculate_durations(&mut iterations);
 
     let stats = analyze_iterations(&iterations, args.median);

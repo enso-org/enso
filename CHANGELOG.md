@@ -289,6 +289,7 @@
 - [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
 - [Remove `here` and make method name resolution case-sensitive][3531]
+- [Added benchmarking tool for the language server][3578]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
