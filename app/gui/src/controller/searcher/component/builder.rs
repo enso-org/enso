@@ -1,4 +1,21 @@
 //! A module with entities used for building proper [`component::List`].
+//!
+//! The [`List`] type builds a [`component::List`] with contents sorted as described below:
+//!  - [`component::Group`]s are sorted alphabetically by name;
+//!  - [`Component`]s in each [`component::Group`] are ordered: non-modules sorted alphabetically,
+//!    followed by modules sorted alphabetically;
+//!  - [`Component`]s and [`component::Group`]s in [`component::List::favorites`] keep the grouping
+//!    and order set with [`List::set_grouping_and_order_of_favorites`].
+//!
+//! When using the methods of the [`List`] type to build a [`component::List`]:
+//!  - The components and groups are sorted once.
+//!  - The [`component::List::favorites`] contain only components with IDs that were passed both to
+//!    [`List::set_grouping_and_order_of_favorites`] and to
+//!    [`List::extend_list_and_allow_favorites_with_ids`].
+//!  - Empty component groups are allowed in favorites. (This simplifies distributing groups of
+//!    favorites over columns in [Component Browser](crate::controller::Searcher) consistently.
+//!    That's because for the same input to [`List::set_grouping_and_order_of_favorites`], the same
+//!    number of groups will be always present in favorites.)
 
 use crate::prelude::*;
 
@@ -59,16 +76,16 @@ impl ModuleGroups {
 // === List ===
 // ============
 
-/// A [`component::List`] builder.
-///
-/// The builder allow extending the list with new entries, and build a list with properly sorted
-/// groups.
+/// A [`component::List`] builder. See the documentation of the module for more details.
 #[derive(Clone, Debug, Default)]
 pub struct List {
-    all_components: Vec<Component>,
-    module_groups:  HashMap<component::Id, ModuleGroups>,
-    local_scope:    component::Group,
-    favorites:      component::group::List,
+    all_components:                  Vec<Component>,
+    module_groups:                   HashMap<component::Id, ModuleGroups>,
+    local_scope:                     component::Group,
+    grouping_and_order_of_favorites: component::group::List,
+    /// IDs of [`Component`]s allowed in [`component::List::favorites`] if they are also present in
+    /// [`grouping_and_order_of_favorites`].
+    allowed_favorites:               HashSet<component::Id>,
 }
 
 impl List {
@@ -78,9 +95,9 @@ impl List {
     }
 
     /// Return [`List`] with a new [`local_scope`] with its [`Group::component_id`] field set to
-    /// `module_id`. When the [`extend`] method is called on the returned object, components passed
-    /// to the method which have their parent module ID equal to `module_id` will be cloned into
-    /// [`component::List::local_scope`].
+    /// `module_id`. When the [`extend_list_and_allow_favorites_with_ids`] method is called on the
+    /// returned object, components passed to the method which have their parent module ID equal
+    /// to `module_id` will be cloned into [`component::List::local_scope`].
     pub fn with_local_scope_module_id(self, module_id: component::Id) -> Self {
         const LOCAL_SCOPE_GROUP_NAME: &str = "Local Scope";
         let id = Some(module_id);
@@ -88,8 +105,10 @@ impl List {
         Self { local_scope, ..self }
     }
 
-    /// Extend the list with new entries looked up by ID in suggestion database.
-    pub fn extend(
+    /// Extend the list with new entries looked up by ID in suggestion database. Allow those
+    /// entries to be present in [`component::List::favorites`]. See the module documentation for
+    /// more details.
+    pub fn extend_list_and_allow_favorites_with_ids(
         &mut self,
         db: &model::SuggestionDatabase,
         entries: impl IntoIterator<Item = component::Id>,
@@ -99,6 +118,7 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
+            self.allowed_favorites.insert(*component.id);
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
@@ -124,19 +144,17 @@ impl List {
         }
     }
 
-    /// Set the favorites in the list. Components are looked up by ID in the suggestion database.
-    pub fn set_favorites<'a>(
+    /// Set the grouping and order of [`Components`] in [`component::List::favorites`]. Skips
+    /// components not present in the suggestion database and skips empty groups.
+    pub fn set_grouping_and_order_of_favorites<'a>(
         &mut self,
         db: &model::SuggestionDatabase,
         component_groups: impl IntoIterator<Item = &'a execution_context::ComponentGroup>,
     ) {
-        self.favorites = component_groups
+        self.grouping_and_order_of_favorites = component_groups
             .into_iter()
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
-        for group in &*self.favorites {
-            self.all_components.extend(group.entries.borrow().iter().cloned());
-        }
     }
 
     fn lookup_module_group(
@@ -164,9 +182,8 @@ impl List {
         }
     }
 
-    /// Build the list, sorting all group lists and groups' contents appropriately. (Does not sort
-    /// the [`component::List::favorites`].)
-    pub fn build(self) -> component::List {
+    /// Build the list as described in the module's documentation.
+    pub fn build(mut self) -> component::List {
         let components_order = component::Order::ByNameNonModulesThenModules;
         for group in self.module_groups.values() {
             group.content.update_sorting(components_order);
@@ -180,17 +197,28 @@ impl List {
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
+        let favorites = self.build_favorites_and_add_to_all_components();
         component::List {
-            all_components:        Rc::new(self.all_components),
-            top_modules:           top_mdl_bld.build(),
+            all_components: Rc::new(self.all_components),
+            top_modules: top_mdl_bld.build(),
             top_modules_flattened: top_mdl_flat_bld.build(),
-            module_groups:         Rc::new(
+            module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            local_scope:           self.local_scope,
-            filtered:              default(),
-            favorites:             self.favorites,
+            local_scope: self.local_scope,
+            filtered: default(),
+            favorites,
         }
+    }
+
+    fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
+        let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
+        let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
+        for group in favorites_groups.iter_mut() {
+            group.retain_entries(|e| self.allowed_favorites.contains(&e.id));
+            self.all_components.extend(group.entries.borrow().iter().cloned());
+        }
+        component::group::List::new(favorites_groups)
     }
 }
 
@@ -231,8 +259,8 @@ mod tests {
         let mut builder = List::new().with_local_scope_module_id(0);
         let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
-        builder.extend(&suggestion_db, first_part);
-        builder.extend(&suggestion_db, second_part);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, first_part);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, second_part);
         let list = builder.build();
 
         let top_modules: Vec<ComparableGroupData> =
@@ -325,5 +353,61 @@ mod tests {
         let local_scope_ids = local_scope_entries.borrow().iter().map(|e| *e.id).collect_vec();
         let expected_ids = vec![5, 6];
         assert_eq!(local_scope_ids, expected_ids);
+    }
+
+    /// Test building a component list with non-empty favorites. Verify that the favorites are
+    /// processed as described in the docs of the [`List::build`] method.
+    #[test]
+    fn building_component_list_with_favorites() {
+        let logger = Logger::new("tests::building_component_list_with_favorites");
+        let db = mock_suggestion_db(logger);
+        let mut builder = List::new();
+        let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let qn_of_db_entry_1 = db.lookup(1).unwrap().qualified_name();
+        let qn_of_db_entry_3 = db.lookup(3).unwrap().qualified_name();
+        const QN_NOT_IN_DB: &str = "test.Test.NameNotInSuggestionDb";
+        assert_eq!(db.lookup_by_qualified_name_str(QN_NOT_IN_DB), None);
+        let groups = [
+            execution_context::ComponentGroup {
+                name:       "Group 1".into(),
+                color:      None,
+                components: vec![
+                    qn_of_db_entry_0.clone(),
+                    qn_of_db_entry_3.clone(),
+                    QN_NOT_IN_DB.into(),
+                    qn_of_db_entry_3.clone(),
+                    QN_NOT_IN_DB.into(),
+                    qn_of_db_entry_1,
+                    qn_of_db_entry_0,
+                ],
+            },
+            execution_context::ComponentGroup {
+                name:       "Group 2".into(),
+                color:      None,
+                components: vec![
+                    qn_of_db_entry_3.clone(),
+                    QN_NOT_IN_DB.into(),
+                    qn_of_db_entry_3,
+                    QN_NOT_IN_DB.into(),
+                ],
+            },
+        ];
+        builder.set_grouping_and_order_of_favorites(&db, &groups);
+        builder.extend_list_and_allow_favorites_with_ids(&db, [0, 1, 2].into_iter());
+        let list = builder.build();
+        let favorites: Vec<ComparableGroupData> = list.favorites.iter().map(Into::into).collect();
+        let expected = vec![
+            ComparableGroupData {
+                name:         "Group 1",
+                component_id: None,
+                entries:      vec![0, 1, 0],
+            },
+            ComparableGroupData {
+                name:         "Group 2",
+                component_id: None,
+                entries:      vec![],
+            },
+        ];
+        assert_eq!(favorites, expected);
     }
 }

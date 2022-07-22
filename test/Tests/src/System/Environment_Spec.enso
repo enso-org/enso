@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+import Standard.Base.System.Environment
+import Standard.Test
+import Standard.Test.Test_Environment
+
+spec = Test.group "Environment" <|
+    Test.specify "should allow to internally override environment variables for testing purposes" <|
+        old = Environment.get "foobar"
+
+        result_0 = Test_Environment.unsafe_with_environment_override "foobar" "value1" 23
+        result_0 . should_equal 23
+
+        result_1 = Test_Environment.unsafe_with_environment_override "foobar" "value1" <|
+            Environment.get "foobar" . should_equal "value1"
+            42
+        result_2 = Test_Environment.unsafe_with_environment_override "foobar" "other interesting value" <|
+            Environment.get "foobar"
+
+        result_1 . should_equal 42
+        result_2 . should_equal "other interesting value"
+        Environment.get "foobar" . should_equal old
+
+        result_3 = Test_Environment.unsafe_with_environment_override "foo" "1" <|
+            Environment.get "foo" . should_equal "1"
+            x = Test_Environment.unsafe_with_environment_override "foo" "2" <|
+                Environment.get "foo" . should_equal "2"
+                Test_Environment.unsafe_with_environment_override "bar" "3" <|
+                    Test_Environment.unsafe_with_environment_override "baz" "4" <|
+                        [Environment.get "foo", Environment.get "bar", Environment.get "baz"]
+            Environment.get "foo" . should_equal "1"
+            x
+        result_3 . should_equal ["2", "3", "4"]
+
+main = Test.Suite.run_main spec
