@@ -11,7 +11,6 @@ polyglot java import org.enso.base.statistics.CountMinMax
 polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
 
-polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.NullPointerException
 
@@ -185,10 +184,7 @@ wrap_java_call ~function =
     report_unsupported _ = Error.throw (Illegal_Argument_Error ("Can only compute correlations on numerical data sets."))
     handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
 
-    report_illegal caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
-    handle_illegal = Panic.catch IllegalArgumentException handler=report_illegal
-
-    handle_unsupported <| handle_illegal <| function
+    handle_unsupported <| Illegal_Argument_Error.handle_java_exception <| function
 
 
 ## PRIVATE

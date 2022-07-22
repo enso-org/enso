@@ -18,7 +18,6 @@ polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.error.InvalidLocationException
 
-polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IllegalStateException
 polyglot java import java.io.IOException
 polyglot java import org.apache.poi.UnsupportedFileFormatException
@@ -114,8 +113,7 @@ type Excel_Range
     ## Creates a Range from an address.
     from_address : Text -> Excel_Range
     from_address address =
-        illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
-        Panic.catch IllegalArgumentException handler=illegal_argument <|
+        Illegal_Argument_Error.handle_java_exception <|
             Excel_Range (Java_Range.new address)
 
     ## Create a Range for a single cell.
@@ -281,15 +279,11 @@ handle_writer ~writer =
     throw_existing_data caught_panic = Error.throw (Existing_Data caught_panic.payload.cause.getMessage)
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
-    ## Illegal argument can occur if appending in an invalid mode
-    illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
-    handle_illegal_argument = Panic.catch IllegalArgumentException handler=illegal_argument
-
     ## Should be impossible - occurs if no fallback serializer is provided.
     throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error caught_panic.payload.cause.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
     handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|
         Column_Count_Mismatch.handle_java_exception <| handle_bad_location <|
-            handle_illegal_argument <| handle_range_exceeded <| handle_existing_data <|
+            Illegal_Argument_Error.handle_java_exception <| handle_range_exceeded <| handle_existing_data <|
                 writer

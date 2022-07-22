@@ -40,6 +40,7 @@ import project.Data.Text_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
 import project.Data.Statistics_Spec
+import project.Data.Regression_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Utils_Spec
 import project.Data.Text.Default_Regex_Engine_Spec
@@ -118,5 +119,6 @@ main = Test.Suite.run_main <|
     Uri_Spec.spec
     Vector_Spec.spec
     Statistics_Spec.spec
+    Regression_Spec.spec
     Warnings_Spec.spec
     System_Spec.spec

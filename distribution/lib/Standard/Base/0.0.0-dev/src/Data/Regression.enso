@@ -1,0 +1,108 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.statistics.Regression
+polyglot java import org.enso.base.statistics.FitError
+
+type Model
+    ## Fit a line (y = A x + B) to the data with an optional fixed intercept.
+    type Linear_Model (intercept:Number|Nothing=Nothing)
+
+    ## Fit a exponential line (y = A exp(B x)) to the data with an optional fixed intercept.
+    type Exponential_Model (intercept:Number|Nothing=Nothing)
+
+    ## Fit a logarithmic line (y = A log x + B) to the data.
+    type Logarithmic_Model
+
+    ## Fit a power series (y = A x ^ B) to the data.
+    type Power_Model
+
+## Use Least Squares to fit a line to the data.
+fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument_Error | Fit_Error
+fit_least_squares known_xs known_ys model=Linear_Model =
+    Illegal_Argument_Error.handle_java_exception <| Fit_Error.handle_java_exception <| case model of
+        Linear_Model intercept ->
+            fitted = if intercept.is_nothing then Regression.fit_linear known_xs.to_array known_ys.to_array else
+                Regression.fit_linear known_xs.to_array known_ys.to_array intercept
+            Fitted_Linear_Model fitted.slope fitted.intercept fitted.rSquared
+        Exponential_Model intercept ->
+            log_ys = ln_series known_ys "Y-values"
+            fitted = if intercept.is_nothing then Regression.fit_linear known_xs.to_array log_ys.to_array else
+                Regression.fit_linear known_xs.to_array log_ys.to_array intercept.ln
+            fitted_model_with_r_squared Fitted_Exponential_Model fitted.intercept.exp fitted.slope known_xs known_ys
+        Logarithmic_Model ->
+            log_xs = ln_series known_xs "X-values"
+            fitted = Regression.fit_linear log_xs.to_array known_ys.to_array
+            fitted_model_with_r_squared Fitted_Logarithmic_Model fitted.slope fitted.intercept known_xs known_ys
+        Power_Model ->
+            log_xs = ln_series known_xs "X-values"
+            log_ys = ln_series known_ys "Y-values"
+            fitted = Regression.fit_linear log_xs.to_array log_ys.to_array
+            fitted_model_with_r_squared Fitted_Power_Model fitted.intercept.exp fitted.slope known_xs known_ys
+        _ -> Error.throw (Illegal_Argument_Error "Unsupported model.")
+
+type Fitted_Model
+    ## Fitted line (y = slope x + intercept).
+    type Fitted_Linear_Model slope:Number intercept:Number r_squared:Number=0.0
+
+    ## Fitted exponential line (y = a exp(b x)).
+    type Fitted_Exponential_Model a:Number b:Number r_squared:Number=0.0
+
+    ## Fitted logarithmic line (y = a log x + b).
+    type Fitted_Logarithmic_Model a:Number b:Number r_squared:Number=0.0
+
+    ## Fitted power series (y = a x ^ b).
+    type Fitted_Power_Model a:Number b:Number r_squared:Number=0.0
+
+    ## Display the fitted line.
+    to_text : Text
+    to_text =
+        equation = case self of
+            Fitted_Linear_Model slope intercept _ -> slope.to_text + " * X + " + intercept.to_text
+            Fitted_Exponential_Model a b _ -> a.to_text + " * (" + b.to_text + " * X).exp"
+            Fitted_Logarithmic_Model a b _ -> a.to_text + " * X.ln + " + b.to_text
+            Fitted_Power_Model a b _ -> a.to_text + " * X ^ " + b.to_text
+       "Fitted_Model(" + equation + ")"
+
+    ## Use the model to predict a value.
+    predict : Number -> Number
+    predict x = case self of
+        Fitted_Linear_Model slope intercept _ -> slope * x + intercept
+        Fitted_Exponential_Model a b _ -> a * (b * x).exp
+        Fitted_Logarithmic_Model a b _ -> a * x.ln + b
+        Fitted_Power_Model a b _ -> a * (x ^ b)
+        _ -> Error.throw (Illegal_Argument_Error "Unsupported model.")
+
+## PRIVATE
+   Computes the R Squared value for a model and returns a new instance.
+fitted_model_with_r_squared : Any -> Number -> Number -> Vector -> Vector -> Fitted_Model
+fitted_model_with_r_squared constructor a b known_xs known_ys =
+    model = constructor a b
+    r_squared = known_ys.compute (Statistics.R_Squared (known_xs.map model.predict))
+    constructor a b r_squared
+
+## PRIVATE
+
+   Computes the natural log series as long as all values are positive.
+ln_series : Vector -> Vector ! Illegal_Argument_Error
+ln_series xs series_name="Values" =
+    ln_with_panic x = if x.is_nothing then Nothing else
+        if x <= 0 then Panic.throw (Illegal_Argument_Error (series_name + " must be positive.")) else x.ln
+    Panic.recover Illegal_Argument_Error <| xs.map ln_with_panic
+
+## PRIVATE
+
+   An error thrown when the linear regression cannot be computed.
+
+   Arguments:
+   - message: The error message.
+type Fit_Error message
+
+## PRIVATE
+
+   Converts the `Fit_Error` to a human-readable representation.
+Fit_Error.to_display_text : Text
+Fit_Error.to_display_text = "Could not fit the model: " + self.message.to_text
+
+## PRIVATE
+Fit_Error.handle_java_exception =
+    Panic.catch_java FitError handler=(java_exception-> Error.throw (Fit_Error java_exception.getMessage))

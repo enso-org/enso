@@ -166,6 +166,8 @@
 - [Fixed the case of various type names and library paths][3590]
 - [Added support for parsing `.pgpass` file and `PG*` environment variables for
   the Postgres connection][3593]
+- [Added `Regression` to the `Standard.Base` library and removed legacy `Model`
+  type from `Standard.Table`.][3601]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -263,6 +265,7 @@
 [3588]: https://github.com/enso-org/enso/pull/3588
 [3590]: https://github.com/enso-org/enso/pull/3590
 [3593]: https://github.com/enso-org/enso/pull/3593
+[3601]: https://github.com/enso-org/enso/pull/3601
 
 #### Enso Compiler
 
