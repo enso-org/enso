@@ -10,4 +10,4 @@ lazy_static = "1.4.0"
 regex = "1.6.0"
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["full"] }
-tokio-stream = { version = "0.1.9", features = ["io-util", "tokio-util", "sync"] }
+tokio-stream = { version = "0.1.9", features = ["io-util"] }
