@@ -643,10 +643,10 @@ fn chain_iter_and_entry_name<'a>(
 }
 
 // TODO[MC]: try returning Option<&str>
-fn find_icon_name<I>(docs: I) -> Option<String>
+fn find_icon_name<I>(doc_sections: I) -> Option<String>
 where I: IntoIterator<Item = language_server::types::DocSection> {
-    docs.into_iter().find_map(|section| {
-        use language_server::types::DocSection;
+    use language_server::types::DocSection;
+    doc_sections.into_iter().find_map(|section| {
         match section {
             // FIXME[MC]: case insensitive comparison
             DocSection::Keyed { key, body } if key.as_str() == "Icon" => Some(body.clone()),
