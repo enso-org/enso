@@ -57,7 +57,8 @@ public class EnsoFile implements TruffleObject {
   @Builtin.Method(name = "read_last_bytes_builtin")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   public Array readLastBytes(long n) throws IOException {
-    try (SeekableByteChannel channel = this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
+    try (SeekableByteChannel channel =
+        this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
       int bytesToRead = Math.toIntExact(Math.min(channel.size(), n));
       channel.position(channel.size() - bytesToRead);
       ByteBuffer buffer = ByteBuffer.allocate(bytesToRead);
