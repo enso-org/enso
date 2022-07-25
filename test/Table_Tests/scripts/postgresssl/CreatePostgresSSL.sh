@@ -53,4 +53,7 @@ EOF
 
 docker build --build-arg host_name=${pghostname} -t postgres-ssl .
 docker run -d --name postgres-ssl -p 5432:5432 -e POSTGRES_PASSWORD=$pgpassword postgres-ssl
-docker cp postgres-ssl:/openssl/rootCA.crt .
+docker cp postgres-ssl:/openssl/rootCA.crt ../../data/transient/rootCA.crt
+
+rm csr.conf
+rm cert.conf
