@@ -204,8 +204,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
         let kind = component.suggestion.kind;
         let icon_name = component.suggestion.icon.as_ref();
-        let icon: Option<icon::Id> =
-            icon_name.and_then(|name| name.from_case(Case::Kebab).try_into().ok());
+        let icon = icon_name.and_then(|name| name.from_case(Case::Kebab).try_into().ok());
         Some(component_group_view::entry::Model {
             icon:             icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind))),
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
