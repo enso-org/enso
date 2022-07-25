@@ -207,7 +207,11 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         } else {
             false
         };
-        let icon = component.suggestion.icon.as_ref().and_then(|name| icon::Id::from_str(name.as_str()).ok());
+        let icon_name_if_kebab_case = component.suggestion.icon.as_ref().filter(cases::kebabcase::is_kebab_case);
+        DEBUG!("MCDBG kebab-case is some? " icon_name_if_kebab_case.is_some());
+        let icon_name_pascal_case = icon_name_if_kebab_case.map(cases::pascalcase::to_pascal_case);
+        DEBUG!("MCDBG pascal case: " icon_name_pascal_case;?);
+        let icon = icon_name_pascal_case.as_ref().and_then(|name| icon::Id::from_str(name.as_str()).ok());
         let icon = if let Some(ico) = icon {
             if someico {
                 DEBUG!("got some ico");
