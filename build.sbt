@@ -250,6 +250,7 @@ lazy val enso = (project in file("."))
     `polyglot-api`,
     `project-manager`,
     `syntax-definition`.jvm,
+    `syntax-rust-definition`,
     `text-buffer`,
     flexer.jvm,
     graph,
@@ -652,6 +653,24 @@ lazy val `text-buffer` = project
       "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
       "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
     )
+  )
+
+val generateRustParser = TaskKey[Unit]("generateRustParser", "Generates parser sources")
+val generateRustParserSettings = generateRustParser := {
+    import sys.process._
+    Seq("cargo", "run", "-p", "enso-parser-generate-java", "--bin", "enso-parser-generate-java", "lib/rust/parser/generate-java/java/org/enso/syntax2/") !
+}
+
+lazy val `syntax-rust-definition` = project
+  .in(file("lib/rust/parser"))
+  .configs(Test)
+  .settings(
+    compile := ((Compile / compile) dependsOn generateRustParser).value,
+    Compile / javaSource := baseDirectory.value / "generate-java" / "java",
+    frgaalJavaCompilerSetting,
+    generateRustParserSettings,
+    libraryDependencies ++= Seq(
+    ),
   )
 
 lazy val graph = (project in file("lib/scala/graph/"))
@@ -1323,6 +1342,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(syntax.jvm)
+  .dependsOn(`syntax-rust-definition`)
   .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 
