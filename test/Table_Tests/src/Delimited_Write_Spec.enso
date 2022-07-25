@@ -467,26 +467,28 @@ spec =
                     text.should_equal expected_text
                     file.delete
 
-            expected_lines_2 = ["A", "B", "1", "2"]
-            # 2 lines without trailing newline
-            line_ending_pairs.each setting->
-                separator=setting.second
-                ("A"+separator+"B").write file
-                table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-                text = File.read_text file
-                expected_text = expected_lines_2.join separator suffix=separator
-                text.should_equal expected_text
-                file.delete
+            ["B", "#"].each middle_line->
+                expected_lines_2 = ["A", middle_line, "1", "2"]
+                [format.with_comments, format].each format->
+                    # 2 lines without trailing newline
+                    line_ending_pairs.each setting->
+                        separator=setting.second
+                        ("A"+separator+middle_line).write file
+                        table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+                        text = File.read_text file
+                        expected_text = expected_lines_2.join separator suffix=separator
+                        text.should_equal expected_text
+                        file.delete
 
-            # 2 lines with trailing newline
-            line_ending_pairs.each setting->
-                separator=setting.second
-                ("A"+separator+"B"+separator).write file
-                table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-                text = File.read_text file
-                expected_text = expected_lines_2.join separator suffix=separator
-                text.should_equal expected_text
-                file.delete
+                    # 2 lines with trailing newline
+                    line_ending_pairs.each setting->
+                        separator=setting.second
+                        ("A"+separator+middle_line+separator).write file
+                        table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+                        text = File.read_text file
+                        expected_text = expected_lines_2.join separator suffix=separator
+                        text.should_equal expected_text
+                        file.delete
 
         Test.specify "should use the existing line ending style when appending to a file consisting of only one comment with EOL" <|
             initial_line = "# comment 1 with EOL"
