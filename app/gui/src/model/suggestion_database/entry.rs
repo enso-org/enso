@@ -427,9 +427,6 @@ impl Entry {
                 }
             }
         };
-        if this.icon.is_some() {
-            DEBUG!("MCDBG icon non-empty in: " this;?);
-        }
         Ok(this)
     }
 
