@@ -1,18 +1,5 @@
 #!/bin/sh
 
-# aws s3 cp ..\CreatePostgresSSL.sh s3://jdunkerley/postgresssl/CreatePostgresSSL.sh && aws s3 cp ..\PosgresqlSSL.dockerfile s3://jdunkerley/postgresssl/PosgresqlSSL.dockerfile
-
-# yum install docker
-# usermod -a -G docker ec2-user
-# systemctl enable docker.service
-# systemctl start docker.service
-
-# cd repos
-# mkdir docker
-# aws s3 cp s3://jdunkerley/postgresssl/CreatePostgresSSL.sh ./CreatePostgresSSL.sh && aws s3 cp s3://jdunkerley/postgresssl/PosgresqlSSL.dockerfile Dockerfile && chmod a+x CreatePostgresSSL.sh
-#
-
-pgpassword=Nj8yLUpzJYKT
 pghostname=postgrestest.enso.org
 pgipaddress=127.0.0.1
 
@@ -52,7 +39,7 @@ DNS.2 = $pgipaddress
 EOF
 
 docker build --build-arg host_name=${pghostname} -t postgres-ssl .
-docker run -d --name postgres-ssl -p 5432:5432 -e POSTGRES_PASSWORD=$pgpassword postgres-ssl
+docker run -d --name postgres-ssl -p 5432:5432 -e POSTGRES_PASSWORD=$ENSO_DATABASE_TEST_DB_PASSWORD postgres-ssl
 docker cp postgres-ssl:/openssl/rootCA.crt ../../data/transient/rootCA.crt
 
 rm csr.conf
