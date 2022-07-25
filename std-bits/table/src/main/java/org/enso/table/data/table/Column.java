@@ -13,6 +13,7 @@ import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.error.UnexpectedColumnTypeException;
+import org.graalvm.polyglot.Value;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public class Column {
@@ -116,10 +117,10 @@ public class Column {
    * @param items the items contained in the column
    * @return a column with given name and items
    */
-  public static Column fromItems(String name, List<Object> items) {
+  public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
-    for (Object item : items) {
-      builder.appendNoGrow(item);
+    for (var item : items) {
+      builder.appendNoGrow(item.isDate() ? item.asDate() : item.as(Object.class));
     }
     return new Column(name, new DefaultIndex(items.size()), builder.seal());
   }

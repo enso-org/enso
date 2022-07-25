@@ -34,6 +34,9 @@ import project.System.Environment
 import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
+import project.Data.Statistics
+import project.Data.Statistics.Rank_Method
+import project.Data.Regression
 
 export project.Data.Interval
 export project.Data.Json
@@ -42,6 +45,9 @@ export project.Data.Map
 export project.Data.Maybe
 export project.Data.Ordering
 export project.Data.Ordering.Sort_Direction
+export project.Data.Regression
+export project.Data.Statistics
+export project.Data.Statistics.Rank_Method
 export project.Data.Vector
 export project.IO
 export project.Math

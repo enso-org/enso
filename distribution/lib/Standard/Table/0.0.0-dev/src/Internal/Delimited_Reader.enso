@@ -5,10 +5,10 @@ import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Ignore
 from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-from Standard.Table.Io.File_Format import Infer
+from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Table.Io.Quote_Style
-from Standard.Table.Io.Line_Ending_Style import line_separator_sequence
+import Standard.Table.IO.Quote_Style
+from Standard.Table.IO.Line_Ending_Style import line_separator_sequence
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
@@ -17,7 +17,6 @@ polyglot java import org.enso.table.parsing.problems.MismatchedQuote
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
-polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import org.enso.base.Encoding_Utils
@@ -91,7 +90,7 @@ read_stream format stream on_problems max_columns=default_max_columns related_fi
      integer.
 read_from_reader : Delimited -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
-    handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
+    Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
         reader = prepare_delimited_reader java_reader format max_columns on_problems
         result_with_problems = reader.read
         parsing_problems = Vector.Vector (result_with_problems.problems) . map translate_reader_problem
@@ -160,7 +159,7 @@ type Detected_File_Metadata
 detect_metadata : File -> File_Format.Delimited -> Detected_Headers
 detect_metadata file format =
     on_problems = Ignore
-    result = handle_io_exception file <| handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
+    result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
         file.with_input_stream [File.Option.Read] stream->
             stream.with_stream_decoder format.encoding on_problems java_reader->
                 ## We use the default `max_columns` setting. If we want to be able to
@@ -178,12 +177,6 @@ detect_metadata file format =
                 line_separator = reader.getEffectiveLineSeparator
                 Detected_File_Metadata headers line_separator
     result.catch File.File_Not_Found (_->(Detected_File_Metadata Nothing Nothing))
-
-## PRIVATE
-handle_illegal_arguments =
-    translate_illegal_argument caught_panic =
-        Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
-    Panic.catch IllegalArgumentException handler=translate_illegal_argument
 
 ## PRIVATE
 handle_parsing_failure =

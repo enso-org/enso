@@ -22,6 +22,51 @@ public class CorrelationStatistics {
     totalXY += x * y;
   }
 
+  /*
+   * Count of non-null pairs of values.
+   */
+  public long getCount() {
+    return count;
+  }
+
+  /*
+   * Sum of X values.
+   */
+  public double getTotalX() {
+    return totalX;
+  }
+
+  /*
+   * Sum of Y values.
+   */
+  public double getTotalY() {
+    return totalY;
+  }
+
+  /*
+   * Sum of X^2 values.
+   */
+  public double getTotalXX() {
+    return totalXX;
+  }
+
+  /*
+   * Sum of X * Y values.
+   */
+  public double getTotalXY() {
+    return totalXY;
+  }
+
+  /*
+   * Sum of Y^2 values.
+   */
+  public double getTotalYY() {
+    return totalYY;
+  }
+
+  /*
+   * Compute the covariance of X and Y.
+   */
   public double covariance() {
     if (count < 2) {
       return Double.NaN;
@@ -30,6 +75,9 @@ public class CorrelationStatistics {
     return (totalXY - totalX * totalY / count) / count;
   }
 
+  /*
+   * Compute the Pearson correlation between X and Y.
+   */
   public double pearsonCorrelation() {
     if (count < 2) {
       return Double.NaN;
@@ -40,6 +88,9 @@ public class CorrelationStatistics {
     return (count * totalXY - totalX * totalY) / (n_stdev_x * n_stdev_y);
   }
 
+  /*
+   * Compute the R-Squared between X and Y (which equals the Pearson correlation ^ 2).
+   */
   public double rSquared() {
     double correl = this.pearsonCorrelation();
     return correl * correl;

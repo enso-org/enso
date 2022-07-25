@@ -9,9 +9,9 @@ type Bar bar
 type Baz baz
 type Quux quux
 type Quaffle
-type MyError err
+type My_Error err
 
-type NotFoo notfoo
+type Not_Foo notfoo
 
 Foo.from (that:Bar) = Foo that.bar
 Foo.from (that:Baz) = Foo that.baz
@@ -21,9 +21,9 @@ Foo.from (that:Function) = Foo (that 5)
 Foo.from (that:Boolean) = Foo that
 Foo.from (that:Array) = Foo that.length
 
-NotFoo.from (that:True) = NotFoo that
-NotFoo.from (_:False) = NotFoo True
-NotFoo.from (_:Any) = NotFoo "ANY!!!"
+Not_Foo.from (that:True) = Not_Foo that
+Not_Foo.from (_:False) = Not_Foo True
+Not_Foo.from (_:Any) = Not_Foo "ANY!!!"
 
 Foo.from (_:Quaffle) = Foo "quaffle"
 Foo.from (_:Error) = Foo "oops"
@@ -50,21 +50,21 @@ spec =
             Foo.from (10^100) . should_equal (Foo [10^100, 0, 0, 0])
             Foo.from 4.5 . should_equal (Foo [4.5, 0, 0, 0])
         Test.specify "should be able to convert dataflow errors" <|
-            Foo.from (Error.throw <| MyError "i was bad") . should_equal (Foo "oops")
+            Foo.from (Error.throw <| My_Error "i was bad") . should_equal (Foo "oops")
         Test.specify "should be able to convert functions" <|
             Foo.from (e -> e) . foo . should_equal 5
         Test.specify "should be able to convert booleans" <|
             Foo.from True . foo . should_be_true
             Foo.from False . foo . should_be_false
-            NotFoo.from True . notfoo . should_be_true
-            NotFoo.from False . notfoo . should_be_true
+            Not_Foo.from True . notfoo . should_be_true
+            Not_Foo.from False . notfoo . should_be_true
         Test.specify "should be able to convert arrays" <|
             Foo.from [1,2,3].to_array . foo . should_equal 3
         Test.specify "should be able to convert Any" <|
-            NotFoo.from that=Quaffle . notfoo . should_equal "ANY!!!"
-            NotFoo.from 4 . notfoo . should_equal "ANY!!!"
-            NotFoo.from (e -> e) . notfoo . should_equal "ANY!!!"
-            NotFoo.from [1,2,3].to_array . notfoo . should_equal "ANY!!!"
+            Not_Foo.from that=Quaffle . notfoo . should_equal "ANY!!!"
+            Not_Foo.from 4 . notfoo . should_equal "ANY!!!"
+            Not_Foo.from (e -> e) . notfoo . should_equal "ANY!!!"
+            Not_Foo.from [1,2,3].to_array . notfoo . should_equal "ANY!!!"
         Test.specify "should call intrinsic object conversions for unimported constructors" <|
             Vector.from Methods.get_foo . should_equal ["foo"]
         Test.specify "should call extension conversions" <|

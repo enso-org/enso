@@ -2,6 +2,8 @@ from Standard.Base import all
 import Standard.Base.Data.Json
 import Standard.Base.Runtime
 
+polyglot java import java.lang.IllegalArgumentException
+
 ## Dataflow errors.
 type Error
 
@@ -191,6 +193,11 @@ type Illegal_Argument_Error
        - cause: (optional) another error that is the cause of this one.
     type Illegal_Argument_Error message cause=Nothing
 
+    ## PRIVATE
+       Capture a Java IllegalArgumentException and rethrow
+    handle_java_exception =
+        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error cause.getMessage cause))
+
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
    from other panics.
@@ -362,7 +369,7 @@ type Panic
                     False -> Panic.throw caught_panic
                 True -> case caught_panic.payload of
                     Polyglot_Error java_exception ->
-                        case Java.is_instance java_exception panic_type of
+                        case java_exception.is_a panic_type of
                             True -> handler caught_panic
                             False -> Panic.throw caught_panic
                     _ -> Panic.throw caught_panic
@@ -392,7 +399,7 @@ type Panic
     catch_java panic_type ~action handler =
         Panic.catch_primitive action caught_panic-> case caught_panic.payload of
             Polyglot_Error java_exception ->
-                case (panic_type == Any) || (Java.is_instance java_exception panic_type) of
+                case (panic_type == Any) || (java_exception.is_a panic_type) of
                     True -> handler java_exception
                     False -> Panic.throw caught_panic
             _ -> Panic.throw caught_panic

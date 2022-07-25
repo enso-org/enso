@@ -103,6 +103,7 @@ impl component::Frp<Model> for Frp {
             eval list_position_x ((x) model.list.set_position_x(*x));
             eval doc_position_x ((x) model.documentation.set_position_x(*x));
 
+            model.list.input.shown <+ any(&input.show, &init);
             out.is_visible <+ bool(&input.hide, &input.show);
             out.size <+ size;
             out.expression_input_position <+ all_with4(
@@ -120,7 +121,7 @@ impl component::Frp<Model> for Frp {
 }
 
 /// Component Browser View.
-///  
+///
 /// The Component Browser is a panel where user searches for types, variables and methods which can
 /// be used to construct new nodes. The components are arranged in sections and groups, and
 /// displayed in Component List Panel. The Component Browser View contains also Documentation Panel,

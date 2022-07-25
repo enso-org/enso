@@ -5,11 +5,11 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 import Standard.Table
 import Standard.Table.Data.Column
 from Standard.Table.Errors import all
-import Standard.Table.Io.File_Read
-from Standard.Table.Io.File_Format import Delimited
+import Standard.Table.IO.File_Read
+from Standard.Table.IO.File_Format import Delimited
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Table.Io.Quote_Style
-from Standard.Table.Io.Line_Ending_Style import all
+import Standard.Table.IO.Quote_Style
+from Standard.Table.IO.Line_Ending_Style import all
 
 import Standard.Test
 import Standard.Test.Problems
@@ -102,7 +102,7 @@ spec =
 
             directory = enso_project.data
             r2 = File.read directory (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error
-            r2.should_fail_with File.Io_Error
+            r2.should_fail_with File.IO_Error
 
         Test.specify "should work with all kinds of line endings" <|
             path name = enso_project.data / 'transient' / name
