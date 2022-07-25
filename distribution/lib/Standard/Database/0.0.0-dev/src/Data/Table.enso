@@ -141,7 +141,7 @@ type Table
 
              table.select_columns (By_Column [column1, column2])
 
-       Icon: select_column
+       Icon: SelectColumn
     select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.internal_columns selector=columns reorder=reorder on_problems=on_problems

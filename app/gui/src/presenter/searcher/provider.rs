@@ -201,10 +201,25 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
         let kind = component.suggestion.kind;
-        if let Some(ico) = &component.suggestion.icon {
+        let someico = if let Some(ico) = &component.suggestion.icon {
             DEBUG!("MCDBG in CB, got non-empty icon: [" ico;? "]");
-        }
-        let icon = component.suggestion.icon.as_ref().and_then(|name| icon::Id::from_str(name.as_str()).ok()).unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)));
+            true
+        } else {
+            false
+        };
+        let icon = component.suggestion.icon.as_ref().and_then(|name| icon::Id::from_str(name.as_str()).ok());
+        let icon = if let Some(ico) = icon {
+            if someico {
+                DEBUG!("got some ico");
+            }
+            ico
+        } else {
+            if someico {
+                DEBUG!("no ico for you");
+            }
+            for_each_kind_variant!(kind_to_icon(kind))
+        };
+        // if let Some(ico) = icon {.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)));
         Some(component_group_view::entry::Model {
             icon,
             // icon:             for_each_kind_variant!(kind_to_icon(kind)),
