@@ -23,8 +23,10 @@ import org.enso.pkg.{
   ExtendedComponentGroup,
   Package,
   PackageManager,
-  QualifiedName
+  QualifiedName,
+  SourceFile
 }
+import org.enso.text.buffer.Rope
 
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
@@ -277,11 +279,27 @@ object PackageRepository {
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
-      pkg.listSources
-        .map { srcFile =>
-          new Module(srcFile.qualifiedName, pkg, srcFile.file)
+      val (regular, virtual) = pkg.listSources
+        .map(srcFile =>
+          (
+            new Module(srcFile.qualifiedName, pkg, srcFile.file),
+            inferModulesFromSrcFile(srcFile)
+          )
+        )
+        .unzip
+
+      regular.foreach(registerModule)
+
+      virtual.flatten
+        .groupMap(_._1)(_._2)
+        .map { case (qName, modules) =>
+          Module.virtual(
+            qName,
+            pkg,
+            Rope(modules.foldLeft("")(_ ++ "\n" ++ _))
+          )
         }
-        .foreach(registerModule)
+        .foreach(registerModule(_))
 
       if (isLibrary) {
         val root = Path.of(pkg.root.toString)
@@ -289,6 +307,55 @@ object PackageRepository {
       }
 
       loadedPackages.put(libraryName, Some(pkg))
+    }
+
+    private def inferModulesFromSrcFile(
+      srcFile: SourceFile[TruffleFile]
+    ): List[(QualifiedName, String)] = {
+      srcFile.qualifiedName.path match {
+        case namespace :: name :: rest =>
+          listAllIntermediateModules(
+            namespace,
+            name,
+            srcFile.qualifiedName.item,
+            rest
+          )
+        case _ =>
+          Nil
+      }
+    }
+
+    private def listAllIntermediateModules(
+      namespace: String,
+      name: String,
+      exportItem: String,
+      elements: List[String]
+    ): List[(QualifiedName, String)] = {
+      def listAllIntermediateModules0(
+        elements0: List[String],
+        exportItem0: String
+      ): List[(QualifiedName, String)] = {
+        val importsExports =
+          s"""|import ${namespace}.$name.${elements0.reverse
+            .mkString(".")}.$exportItem0
+              |export ${namespace}.$name.${elements0.reverse
+            .mkString(".")}.$exportItem0
+              |""".stripMargin
+        elements0 match {
+          case Nil => Nil
+          case last :: Nil =>
+            (
+              QualifiedName(namespace :: name :: Nil, last),
+              importsExports
+            ) :: Nil
+          case modName :: parts =>
+            (
+              QualifiedName(namespace :: name :: parts, modName),
+              importsExports
+            ) :: listAllIntermediateModules0(parts, modName)
+        }
+      }
+      listAllIntermediateModules0(elements.reverse, exportItem)
     }
 
     /** This package modifies the [[loadedPackages]], so it should be only
@@ -457,8 +524,16 @@ object PackageRepository {
     override def registerModuleCreatedInRuntime(module: Module): Unit =
       registerModule(module)
 
-    private def registerModule(module: Module): Unit =
-      loadedModules.put(module.getName.toString, module)
+    private def registerModule(module: Module): Unit = {
+      if (!loadedModules.contains(module.getName.toString)) {
+        loadedModules.put(module.getName.toString, module)
+      } else {
+        val loaded = loadedModules(module.getName.toString)
+        if (loaded.isVirtual && !module.isVirtual) {
+          loadedModules.put(module.getName.toString, module)
+        }
+      }
+    }
 
     override def deregisterModule(qualifiedName: String): Unit =
       loadedModules.remove(qualifiedName)

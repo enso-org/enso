@@ -16,6 +16,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
@@ -93,6 +94,7 @@ public class Module implements TruffleObject {
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
+  private boolean virtual;
 
   /**
    * Creates a new module.
@@ -109,6 +111,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
+    this.virtual = false;
   }
 
   /**
@@ -127,6 +130,7 @@ public class Module implements TruffleObject {
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
+    this.virtual = false;
   }
 
   /**
@@ -145,6 +149,7 @@ public class Module implements TruffleObject {
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
+    this.virtual = false;
   }
 
   /**
@@ -154,15 +159,18 @@ public class Module implements TruffleObject {
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
    */
-  private Module(QualifiedName name, Package<TruffleFile> pkg) {
-    this.sources = ModuleSources.NONE;
+  private Module(
+      QualifiedName name, Package<TruffleFile> pkg, boolean virtual, Optional<Rope> literalSource) {
+    this.sources =
+        literalSource.map(s -> ModuleSources.NONE.newWith(s)).orElseGet(() -> ModuleSources.NONE);
     this.name = name;
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
-    this.compilationStage = CompilationStage.AFTER_CODEGEN;
+    this.compilationStage = virtual ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
+    this.virtual = virtual;
   }
 
   /**
@@ -174,7 +182,11 @@ public class Module implements TruffleObject {
    * @return the module with empty scope.
    */
   public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
-    return new Module(name, pkg);
+    return new Module(name, pkg, false, Optional.empty());
+  }
+
+  public static Module virtual(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
+    return new Module(name, pkg, true, Optional.of(source));
   }
 
   /** Clears any literal source set for this module. */
@@ -187,6 +199,10 @@ public class Module implements TruffleObject {
   /** @return the literal source of this module. */
   public Rope getLiteralSource() {
     return sources.rope();
+  }
+
+  public boolean isVirtual() {
+    return virtual;
   }
 
   /**
