@@ -40,6 +40,7 @@ public record TypeWithKind(String baseType, TypeKind kind) {
             List.of(
                     "org.enso.interpreter.runtime.callable.atom.Atom",
                     "org.enso.interpreter.runtime.data.Array",
+                    "org.enso.interpreter.runtime.data.ArrayOverBuffer",
                     "org.enso.interpreter.runtime.data.EnsoFile",
                     "org.enso.interpreter.runtime.data.EnsoDate",
                     "org.enso.interpreter.runtime.data.ManagedResource",
