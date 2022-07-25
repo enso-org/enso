@@ -794,8 +794,8 @@ pub enum DocSection {
     Tag {
         /// The tag name.
         name: String,
-        // /// The tag text.
-        // text: HtmlString,
+        /// The tag text.
+        body: HtmlString,
     },
     /// The paragraph of the text.
     #[serde(rename_all = "camelCase")]
