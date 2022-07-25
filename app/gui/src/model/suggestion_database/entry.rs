@@ -363,7 +363,7 @@ impl Entry {
                 self_type: None,
                 kind: Kind::Atom,
                 scope: Scope::Everywhere,
-                icon: find_icon_name(&documentation_sections.unwrap_or_default()),
+                icon: find_icon_name(&documentation_sections.unwrap_or_default()).map(String::from),
             },
             #[allow(unused)]
             Method {
@@ -385,7 +385,7 @@ impl Entry {
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
                 scope: Scope::Everywhere,
-                icon: find_icon_name(&documentation_sections.unwrap_or_default()),
+                icon: find_icon_name(&documentation_sections.unwrap_or_default()).map(String::from),
             },
             Function { name, module, arguments, return_type, scope, .. } => Self {
                 name,
@@ -413,6 +413,7 @@ impl Entry {
                 module, documentation, documentation_html, documentation_sections, ..
             } => {
                 let module_name: module::QualifiedName = module.clone().try_into()?;
+                let doc_sections = documentation_sections.unwrap_or_default();
                 Self {
                     documentation_html: Self::make_html_docs(documentation, documentation_html),
                     name:               module_name.id().name().into(),
@@ -422,7 +423,7 @@ impl Entry {
                     kind:               Kind::Module,
                     scope:              Scope::Everywhere,
                     return_type:        module,
-                    icon:               find_icon_name(&documentation_sections.unwrap_or_default()),
+                    icon:               find_icon_name(&doc_sections).map(String::from),
                 }
             }
         };
@@ -642,14 +643,13 @@ fn chain_iter_and_entry_name<'a>(
     iter.into_iter().chain(iter::once(entry.name.as_str()))
 }
 
-// TODO[MC]: try returning Option<&str>
-fn find_icon_name<'a, I>(doc_sections: I) -> Option<String>
+fn find_icon_name<'a, I>(doc_sections: I) -> Option<&'a str>
 where I: IntoIterator<Item = &'a language_server::types::DocSection> {
     use language_server::types::DocSection;
     doc_sections.into_iter().find_map(|section| {
         match section {
             // FIXME[MC]: case insensitive comparison
-            DocSection::Keyed { key, body } if key == "Icon" => Some(body.to_string()),
+            DocSection::Keyed { key, body } if key == "Icon" => Some(body.as_str()),
             _ => None,
         }
     })
