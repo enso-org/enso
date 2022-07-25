@@ -457,19 +457,13 @@ spec =
 
             expected_lines = ["#", "1", "2"]
             # 1 character with trailing newline
-            line_ending_pairs.reverse.each setting->
-            #[].each setting->
+            line_ending_pairs.each setting->
                 [format.with_comments, format].each format->
                     separator=setting.second
                     ("#"+separator).write file
-                    IO.println "Doing 1char+trailing, sep="+separator.to_text+", has_comments="+(format.comment_character.is_nothing.not).to_text
-                    IO.println "Starting with = "+(File.read_text file).to_text
                     table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
                     text = File.read_text file
                     expected_text = expected_lines.join separator suffix=separator
-                    IO.println "Got:"
-                    IO.println text.to_text
-                    IO.println ""
                     text.should_equal expected_text
                     file.delete
 
@@ -478,14 +472,9 @@ spec =
             line_ending_pairs.each setting->
                 separator=setting.second
                 ("A"+separator+"B").write file
-                IO.println "Doing 2lines, no trailing, sep="+separator.to_text+", has_comments="+(format.comment_character.is_nothing.not).to_text
-                IO.println "Starting with = "+(File.read_text file).to_text
                 table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
                 text = File.read_text file
                 expected_text = expected_lines_2.join separator suffix=separator
-                IO.println "Got:"
-                IO.println text.to_text
-                IO.println ""
                 text.should_equal expected_text
                 file.delete
 
@@ -493,14 +482,9 @@ spec =
             line_ending_pairs.each setting->
                 separator=setting.second
                 ("A"+separator+"B"+separator).write file
-                IO.println "Doing 2lines, +trailing, sep="+separator.to_text+", has_comments="+(format.comment_character.is_nothing.not).to_text
-                IO.println "Starting with = "+(File.read_text file).to_text
                 table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
                 text = File.read_text file
                 expected_text = expected_lines_2.join separator suffix=separator
-                IO.println "Got:"
-                IO.println text.to_text
-                IO.println ""
                 text.should_equal expected_text
                 file.delete
 

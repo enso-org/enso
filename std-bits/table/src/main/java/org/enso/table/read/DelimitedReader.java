@@ -163,7 +163,6 @@ public class DelimitedReader {
     settings.setKeepQuotes(true);
 
     if (newlineSetting == null) {
-      System.out.println("Autodetecting newline character");
       settings.setLineSeparatorDetectionEnabled(true);
     } else {
       if (newlineSetting.length() > 2 || newlineSetting.isEmpty()) {
@@ -171,7 +170,6 @@ public class DelimitedReader {
       }
       settings.setLineSeparatorDetectionEnabled(false);
       format.setLineSeparator(newlineSetting);
-      System.out.println("Using predefined newline!");
     }
 
     if (commentCharacter == null) {
@@ -357,10 +355,14 @@ public class DelimitedReader {
   }
 
   /** Returns the line separator.
+   *
+   * If it was provided explicitly at construction, the selected separator is used.
+   * If the initial separator was set to {@code null}, the reader tries to detect
+   * the separator from file contents.
    */
   public String getEffectiveLineSeparator() {
-      ensureHeadersDetected();
-      return parser.getDetectedFormat().getLineSeparatorString();
+    ensureHeadersDetected();
+    return newlineSetting;
   }
 
   public long getVisitedCharactersCount() {
@@ -380,13 +382,6 @@ public class DelimitedReader {
     // Resolve the newline separator:
     if (newlineSetting == null) {
       newlineSetting = parser.getDetectedFormat().getLineSeparatorString();
-
-      String content = parser.getContext().currentParsedContent();
-      if (content == null || !content.endsWith(newlineSetting)) {
-        if (parser.getContext().lastComment() == null) {
-          newlineSetting = "\n";
-        }
-      }
     }
 
     if (firstRow == null) {
