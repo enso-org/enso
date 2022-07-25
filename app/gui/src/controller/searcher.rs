@@ -1553,7 +1553,7 @@ pub mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
-            icon: None,
+            icon:               None,
         };
         let entry9 = model::suggestion_database::Entry {
             name: "testFunction2".to_string(),

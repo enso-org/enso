@@ -691,7 +691,7 @@ mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
-            icon: None,
+            icon:               None,
         };
         let method = Entry {
             name: "method".to_string(),
@@ -794,7 +794,7 @@ mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
-            icon: None,
+            icon:               None,
         };
         let method = Entry {
             name: "method".to_string(),
@@ -823,34 +823,34 @@ mod test {
             assert_eq!(entry_qualified_name, expected_qualified_name);
         }
         let atom = language_server::SuggestionEntry::Atom {
-            name:               "TextAtom".to_string(),
-            module:             "TestProject.TestModule".to_string(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_string(),
-            documentation:      None,
-            documentation_html: None,
+            name:                   "TextAtom".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_string(),
+            documentation:          None,
+            documentation_html:     None,
             documentation_sections: None,
-            external_id:        None,
+            external_id:            None,
         };
         expect(atom, "TestProject.TestModule.TextAtom");
         let method = language_server::SuggestionEntry::Method {
-            name:               "create_process".to_string(),
-            module:             "Standard.Builtins.Main".to_string(),
-            self_type:          "Standard.Builtins.Main.System".to_string(),
-            arguments:          vec![],
-            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
-            documentation:      None,
-            documentation_html: None,
+            name:                   "create_process".to_string(),
+            module:                 "Standard.Builtins.Main".to_string(),
+            self_type:              "Standard.Builtins.Main.System".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:          None,
+            documentation_html:     None,
             documentation_sections: None,
-            external_id:        None,
+            external_id:            None,
         };
         expect(method, "Standard.Builtins.Main.System.create_process");
         let module = language_server::SuggestionEntry::Module {
-            module:             "local.Unnamed_6.Main".to_string(),
-            documentation:      None,
-            documentation_html: None,
+            module:                 "local.Unnamed_6.Main".to_string(),
+            documentation:          None,
+            documentation_html:     None,
             documentation_sections: None,
-            reexport:           None,
+            reexport:               None,
         };
         expect(module, "local.Unnamed_6.Main");
         let local = language_server::SuggestionEntry::Local {

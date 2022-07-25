@@ -196,8 +196,8 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
     }
 
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
-        use suggestion_database::entry::for_each_kind_variant;
         use component_group_view::icon;
+        use suggestion_database::entry::for_each_kind_variant;
         let component = self.group.get_entry(id)?;
         let match_info = component.match_info.borrow();
         let label = component.label();
@@ -209,8 +209,9 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         } else {
             false
         };
-        let icon = component.suggestion.icon.as_ref().and_then(
-            |name| icon::Id::from_str(name.from_case(Case::Kebab).to_case(Case::Pascal).as_str()).ok());
+        let icon = component.suggestion.icon.as_ref().and_then(|name| {
+            icon::Id::from_str(name.from_case(Case::Kebab).to_case(Case::Pascal).as_str()).ok()
+        });
         let icon = if let Some(ico) = icon {
             if someico {
                 DEBUG!("got some ico");
