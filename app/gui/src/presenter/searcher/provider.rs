@@ -203,30 +203,11 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
         let kind = component.suggestion.kind;
-        let someico = if let Some(ico) = &component.suggestion.icon {
-            DEBUG!("MCDBG in CB, got non-empty icon: [" ico;? "]");
-            true
-        } else {
-            false
-        };
         let icon_name = component.suggestion.icon.as_ref();
         let icon: Option<icon::Id> =
             icon_name.and_then(|name| name.from_case(Case::Kebab).try_into().ok());
-        let icon = if let Some(ico) = icon {
-            if someico {
-                DEBUG!("got some ico");
-            }
-            ico
-        } else {
-            if someico {
-                DEBUG!("no ico for you");
-            }
-            for_each_kind_variant!(kind_to_icon(kind))
-        };
-        // if let Some(ico) = icon {.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)));
         Some(component_group_view::entry::Model {
-            icon,
-            // icon:             for_each_kind_variant!(kind_to_icon(kind)),
+            icon:             icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind))),
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
         })
     }
