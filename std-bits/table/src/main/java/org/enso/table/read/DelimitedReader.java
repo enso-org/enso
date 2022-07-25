@@ -180,7 +180,6 @@ public class DelimitedReader {
       }
 
       format.setComment(commentCharacter.charAt(0));
-      settings.setCommentCollectionEnabled(true);
     }
 
     settings.setFormat(format);
@@ -361,7 +360,9 @@ public class DelimitedReader {
    * the separator from file contents.
    */
   public String getEffectiveLineSeparator() {
-    ensureHeadersDetected();
+    if (newlineSetting == null) {
+      ensureHeadersDetected();
+    }
     return newlineSetting;
   }
 
