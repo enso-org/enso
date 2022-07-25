@@ -1075,3 +1075,9 @@ impl Default for Id {
         Self::Star
     }
 }
+
+impl TryFrom<&convert_case::StateConverter> for Id {
+    fn try_from(case_converter: &convert_case::StateConverter) -> Option<Id> {
+        case_converter.to_case(Case::Pascal).parse().ok()
+    }
+}
