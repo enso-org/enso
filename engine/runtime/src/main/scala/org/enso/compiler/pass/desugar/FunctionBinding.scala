@@ -180,13 +180,16 @@ case object FunctionBinding extends IRPass {
             val firstArgumentName    = firstArg.name
             val newFirstArgument =
               if (firstArgumentName.isInstanceOf[IR.Name.Blank]) {
-                val newName = IR.Name
-                  .Literal(
-                    if (restArgs.isEmpty) Constants.Names.THAT_ARGUMENT
-                    else Constants.Names.SELF_ARGUMENT,
-                    firstArgumentName.isMethod,
-                    firstArgumentName.location
-                  )
+                val newName =
+                  if (restArgs.nonEmpty)
+                    IR.Name.Self(firstArgumentName.location, synthetic = true)
+                  else
+                    IR.Name
+                      .Literal(
+                        Constants.Names.THAT_ARGUMENT,
+                        firstArgumentName.isMethod,
+                        firstArgumentName.location
+                      )
                 firstArg
                   .withName(newName)
                   .updateMetadata(

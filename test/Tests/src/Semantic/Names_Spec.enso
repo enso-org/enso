@@ -46,7 +46,6 @@ spec =
         Test.specify "should be correctly resolved on instances" <|
             b = Bar 1
             b.meh 2 . should_equal 3
-# pending
-#        Test.specify "should be allowed to be called statically" <|
-#            b = Bar 1
-#            Bar.meh b 2 . should_equal 3
+        Test.specify "should be allowed to be called statically" pending="Needs changes to method dispatch logic" <|
+            b = Bar 1
+            Bar.meh b 2 . should_equal 3

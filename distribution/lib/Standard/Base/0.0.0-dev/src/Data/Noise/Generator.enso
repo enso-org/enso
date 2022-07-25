@@ -29,7 +29,7 @@ type Generator
 
        The return type may be chosen freely by the generator implementation, as
        it usually depends on the generator and its intended use.
-    step : Generator -> Number -> Interval -> Any
+    step : Number -> Interval -> Any
     step self _ _ = unimplemented "Only intended to demonstrate an interface."
 
 ## A noise generator that implements a seeded deterministic random peterbation
