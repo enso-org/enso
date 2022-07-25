@@ -1666,9 +1666,9 @@ checksum = "4bb454f0228b18c7f4c3b0ebbee346ed9c52e7443b0999cd543ff3571205701d"
 
 [[package]]
 name = "either"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+checksum = "3f107b87b6afc2a64fd13cac55fe06d6c8859f12d4b14cbcdd2c67d0976781be"
 
 [[package]]
 name = "enclose"
@@ -3693,7 +3693,7 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.11.0",
+ "base64 0.13.0",
  "bytes 1.1.0",
  "http",
  "httpdate 1.0.2",
@@ -4230,6 +4230,19 @@ checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if 1.0.0",
  "value-bag",
+]
+
+[[package]]
+name = "logstat"
+version = "0.1.0"
+dependencies = [
+ "clap 3.1.18",
+ "enso-prelude",
+ "lazy_static",
+ "regex",
+ "time 0.3.9",
+ "tokio 1.19.2",
+ "tokio-stream",
 ]
 
 [[package]]
@@ -5561,9 +5574,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.5.6"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d83f127d94bdbcda4c8cc2e50f6f84f4b611f69c902699ca385a39c3a75f9ff1"
+checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -5581,9 +5594,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.26"
+version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
+checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
 
 [[package]]
 name = "remove_dir_all"
@@ -6573,6 +6586,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-native-tls"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7d995660bd2b7f8c1568414c1126076c13fbb725c40112dc0120b78eb9b717b"
+dependencies = [
+ "native-tls",
+ "tokio 1.19.2",
+]
+
+[[package]]
 name = "tokio-reactor"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6615,9 +6638,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50145484efff8818b5ccd256697f36863f587da82cf8b409c53adf1e840798e3"
+checksum = "df54d54117d6fdc4e4fea40fe1e4e566b3505700e148a6827e59b34b0d2600d9"
 dependencies = [
  "futures-core",
  "pin-project-lite 0.2.9",
@@ -7290,6 +7313,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "websocket-codec"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72154d7f42457a99b2832ff093a22a6b303d88c6fe87ca975515cc6c7bc8d21d"
+dependencies = [
+ "base64 0.13.0",
+ "byteorder",
+ "bytes 1.1.0",
+ "httparse",
+ "rand 0.8.5",
+ "sha1 0.6.1",
+ "tokio-util 0.7.2",
+]
+
+[[package]]
+name = "websocket-lite"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44a2fea74fd5c7e2720dfd619bf029b46acef012cc619793d6d76d29c0ba8c14"
+dependencies = [
+ "base64 0.13.0",
+ "bytes 1.1.0",
+ "futures 0.3.21",
+ "native-tls",
+ "rand 0.8.5",
+ "tokio 1.19.2",
+ "tokio-native-tls",
+ "tokio-util 0.7.2",
+ "url 2.2.2",
+ "websocket-codec",
+]
+
+[[package]]
 name = "welcome-screen"
 version = "0.1.0"
 dependencies = [
@@ -7462,6 +7518,23 @@ checksum = "d59cefebd0c892fa2dd6de581e937301d8552cb44489cdff035c6187cb63fa5e"
 dependencies = [
  "winapi 0.2.8",
  "winapi-build",
+]
+
+[[package]]
+name = "wstest"
+version = "0.1.0"
+dependencies = [
+ "base64 0.13.0",
+ "clap 3.1.18",
+ "either",
+ "enso-prelude",
+ "futures 0.3.21",
+ "regex",
+ "time 0.3.9",
+ "tokio 1.19.2",
+ "tokio-stream",
+ "url 2.2.2",
+ "websocket-lite",
 ]
 
 [[package]]

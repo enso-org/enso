@@ -166,6 +166,8 @@
 - [Fixed the case of various type names and library paths][3590]
 - [Added support for parsing `.pgpass` file and `PG*` environment variables for
   the Postgres connection][3593]
+- [Added `Regression` to the `Standard.Base` library and removed legacy `Model`
+  type from `Standard.Table`.][3601]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -263,6 +265,7 @@
 [3588]: https://github.com/enso-org/enso/pull/3588
 [3590]: https://github.com/enso-org/enso/pull/3590
 [3593]: https://github.com/enso-org/enso/pull/3593
+[3601]: https://github.com/enso-org/enso/pull/3601
 
 #### Enso Compiler
 
@@ -292,6 +295,7 @@
 - [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
 - [Remove `here` and make method name resolution case-sensitive][3531]
+- [Added benchmarking tool for the language server][3578]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -325,6 +329,7 @@
 [3531]: https://github.com/enso-org/enso/pull/3531
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
+[3578]: https://github.com/enso-org/enso/pull/3578
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

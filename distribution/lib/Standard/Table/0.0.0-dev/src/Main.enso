@@ -6,12 +6,10 @@ import Standard.Table.IO.File_Format
 import Standard.Table.IO.Excel
 import Standard.Table.Data.Table
 import Standard.Table.Data.Column
-import Standard.Table.Model
 
 from Standard.Table.IO.Excel export Excel_Section, Excel_Range
 
 export Standard.Table.Data.Column
-export Standard.Table.Model
 export Standard.Table.IO.File_Read
 export Standard.Table.IO.File_Format
 

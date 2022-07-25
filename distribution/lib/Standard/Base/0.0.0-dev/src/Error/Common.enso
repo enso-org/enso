@@ -2,6 +2,8 @@ from Standard.Base import all
 import Standard.Base.Data.Json
 import Standard.Base.Runtime
 
+polyglot java import java.lang.IllegalArgumentException
+
 ## Dataflow errors.
 type Error
 
@@ -190,6 +192,11 @@ type Illegal_Argument_Error
        - message: the error message explaining why the argument is illegal.
        - cause: (optional) another error that is the cause of this one.
     type Illegal_Argument_Error message cause=Nothing
+
+    ## PRIVATE
+       Capture a Java IllegalArgumentException and rethrow
+    handle_java_exception =
+        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error cause.getMessage cause))
 
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it

@@ -400,8 +400,8 @@ pub(crate) mod tests {
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
         let mut builder = builder::List::new().with_local_scope_module_id(0);
-        builder.set_favorites(&suggestion_db, &favorites);
-        builder.extend(&suggestion_db, 0..4);
+        builder.set_grouping_and_order_of_favorites(&suggestion_db, &favorites);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..4);
         let list = builder.build();
 
         list.update_filtering("fu");
@@ -446,7 +446,7 @@ pub(crate) mod tests {
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
         let mut builder = builder::List::new().with_local_scope_module_id(0);
-        builder.extend(&suggestion_db, 0..11);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..11);
         let list = builder.build();
 
         // Verify that we can read all top-level modules from the component list.
