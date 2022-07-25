@@ -2,6 +2,7 @@
 
 
 
+use crate::syntax::token;
 use crate::syntax::tree::*;
 
 
@@ -248,5 +249,74 @@ impl<'s> Builder<'s> {
 impl<'s> Default for Builder<'s> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+
+
+// =============
+// === Lines ===
+// =============
+
+/// Given an iterable of [`Item`]s, return an iterator of the [`Line`]s produced by dividing the
+/// input at newline tokens, and parsing the expressions with
+/// [`operator::resolve_operator_precedence`].
+pub fn lines<'s, I, J>(items: I) -> Lines<'s, J>
+where
+    I: IntoIterator<IntoIter = J>,
+    J: Iterator<Item = Item<'s>>, {
+    let items = items.into_iter();
+    let newline = default();
+    let line = default();
+    let finished = default();
+    Lines { items, newline, line, finished }
+}
+
+/// An iterator of [`Line`]s.
+#[derive(Debug)]
+pub struct Lines<'s, I> {
+    items:    I,
+    newline:  token::Newline<'s>,
+    line:     Vec<Item<'s>>,
+    finished: bool,
+}
+
+impl<'s, I> Lines<'s, I> {
+    fn parse_current_line(&mut self, newline: token::Newline<'s>) -> Line<'s> {
+        let line = self.line.drain(..);
+        let expression = operator::resolve_operator_precedence_if_non_empty(line);
+        Line { newline, expression }
+    }
+}
+
+impl<'s, I> Iterator for Lines<'s, I>
+where I: Iterator<Item = Item<'s>>
+{
+    type Item = Line<'s>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.finished {
+            return None;
+        }
+        while let Some(item) = self.items.next() {
+            match item {
+                Item::Token(Token { variant: token::Variant::Newline(_), left_offset, code }) => {
+                    let token = token::newline(left_offset, code);
+                    let newline = mem::replace(&mut self.newline, token);
+                    if newline.code.is_empty() && self.line.is_empty() {
+                        // The block started with a real newline; ignore the implicit newline.
+                        continue;
+                    }
+                    return self.parse_current_line(newline).into();
+                }
+                _ => {
+                    self.line.push(item);
+                    continue;
+                }
+            }
+        }
+        self.finished = true;
+        let newline = mem::take(&mut self.newline);
+        self.parse_current_line(newline).into()
     }
 }

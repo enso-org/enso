@@ -12,16 +12,31 @@ use crate::syntax::token::Token;
 // === Precedence ===
 // ==================
 
-// FIXME: The current implementation hard-codes precedence values and does not support precedence
-//  computations for any operator (according to the spec)
-fn precedence_of(operator: &str) -> usize {
-    match operator {
+// FIXME: Compute precedences according to spec. Issue: #182497344
+fn precedence_of(operator: &str) -> WipResult<usize> {
+    Ok(match operator {
+        // "There are a few operators with the lowest precedence possible."
         "=" => 1,
-        "+" => 3,
-        "-" => 3,
-        "*" => 7,
-        _ => panic!("Operator not supported: {}", operator),
-    }
+        ":" => 2,
+        "->" => 3,
+        "|" | "\\\\" | "&" => 4,
+        ">>" | "<<" => 5,
+        "|>" | "|>>" | "<|" | "<<|" => 6,
+        // "The precedence of all other operators is determined by the operator's Precedence
+        // Character:"
+        "!" => 10,
+        "||" => 11,
+        "^" => 12,
+        "&&" => 13,
+        "+" | "++" | "-" => 14,
+        "*" | "/" | "%" => 15,
+        // FIXME: Not sure about these:
+        "==" => 1,
+        "," => 1,
+        "@" => 20,
+        "." => 21,
+        _ => return Err(format!("precedence_of({:?})", operator)),
+    })
 }
 
 /// An item with an assigned precedence.
@@ -54,23 +69,20 @@ fn annotate_tokens_that_need_spacing(item: syntax::Item) -> syntax::Item {
     })
 }
 
-/// If the input sequence is non-empty, return the result of applying
-/// [`resolve_operator_precedence`] to it.
-pub fn resolve_operator_precedence_if_non_empty(
-    items: Vec<syntax::Item<'_>>,
-) -> Option<syntax::Tree<'_>> {
-    match NonEmptyVec::try_from(items) {
-        Ok(items) => Some(resolve_operator_precedence(items)),
-        _ => None,
-    }
-}
-
 /// Take [`Item`] stream, resolve operator precedence and return the final AST.
 ///
 /// The precedence resolution algorithm is based on the Shunting yard algorithm[1], extended to
 /// handle operator sections.
 /// [1]: https://en.wikipedia.org/wiki/Shunting_yard_algorithm
-pub fn resolve_operator_precedence<'s>(items: NonEmptyVec<syntax::Item<'s>>) -> syntax::Tree<'s> {
+pub fn resolve_operator_precedence(items: NonEmptyVec<syntax::Item<'_>>) -> syntax::Tree<'_> {
+    resolve_operator_precedence_if_non_empty(items).unwrap()
+}
+
+/// If the input sequence is non-empty, return the result of applying
+/// [`resolve_operator_precedence`] to it.
+pub fn resolve_operator_precedence_if_non_empty<'s>(
+    items: impl IntoIterator<Item = syntax::Item<'s>>,
+) -> Option<syntax::Tree<'s>> {
     type Tokens<'s> = Vec<syntax::Item<'s>>;
     let mut flattened: Tokens<'s> = default();
     let mut no_space_group: Tokens<'s> = default();
@@ -80,7 +92,7 @@ pub fn resolve_operator_precedence<'s>(items: NonEmptyVec<syntax::Item<'s>>) -> 
             flattened.extend(tokens);
         } else {
             let tokens = tokens.map(annotate_tokens_that_need_spacing);
-            let ast = resolve_operator_precedence_internal(tokens);
+            let ast = resolve_operator_precedence_internal(tokens).unwrap();
             flattened.push(ast.into());
         }
     };
@@ -107,7 +119,7 @@ pub fn resolve_operator_precedence<'s>(items: NonEmptyVec<syntax::Item<'s>>) -> 
 
 fn resolve_operator_precedence_internal<'s>(
     items: impl IntoIterator<Item = syntax::Item<'s>>,
-) -> syntax::Tree<'s> {
+) -> Option<syntax::Tree<'s>> {
     // Reverse-polish notation encoding.
     /// Classify an item as an operator-token, or other data; we track this state information
     /// because whenever consecutive operators or consecutive non-operators occur, we merge them
@@ -122,13 +134,25 @@ fn resolve_operator_precedence_internal<'s>(
     let mut output: Vec<syntax::Item> = default();
     let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
     let mut prev_type = None;
+    let mut precedence_error = None;
+    // Used until precedence computation is implemented, to attempt to parse inputs with operators
+    // that aren't in the precedence table. If we make use of this value the result will be
+    // placed in an `Unsupported` node, so the exact number isn't important because we're
+    // explicitly doing a best-effort parse of unknown syntax.
+    const ARBITRARY_FALLBACK_PRECEDENCE: usize = 10;
     for item in items {
         if let syntax::Item::Token(
                 Token { variant: token::Variant::Operator(opr), left_offset, code }) = item {
             // Item is an operator.
             let prev_type = mem::replace(&mut prev_type, Some(Opr));
 
-            let prec = precedence_of(&code);
+            let prec = match precedence_of(&code) {
+                Ok(prec) => prec,
+                Err(e) => {
+                    precedence_error.get_or_insert(e);
+                    ARBITRARY_FALLBACK_PRECEDENCE
+                }
+            };
             let opr = Token(left_offset, code, opr);
 
             if prev_type == Some(Opr) && let Some(prev_opr) = operator_stack.last_mut() {
@@ -177,14 +201,16 @@ fn resolve_operator_precedence_internal<'s>(
     if !output.is_empty() {
         panic!("Internal error. Not all tokens were consumed while constructing the expression.");
     }
-
-    // This unwrap is safe because:
-    // - resolve_operator_precedence only calls this function with non-empty sequences as inputs.
-    // - Given a non-empty input, we will always have at least one output.
-    let out = opt_rhs.unwrap();
-    if was_section_used {
-        syntax::Tree::opr_section_boundary(out)
+    let out = if was_section_used {
+        // This can't fail: `was_section_used` won't be true unless we had at least one input,
+        // and if we have at least one input, we have output.
+        let out = opt_rhs.unwrap();
+        Some(syntax::Tree::opr_section_boundary(out))
     } else {
-        out
+        opt_rhs
+    };
+    if let Some(error) = precedence_error {
+        return Some(syntax::Tree::with_unsupported(out.unwrap(), error));
     }
+    out
 }

@@ -76,16 +76,85 @@ fn parentheses_nested() {
     test("((a b) c)", expected);
 }
 
+
+// === Type Definitions ===
+
 #[test]
-fn type_definition() {
-    test("type Bool", block![(TypeDef (Ident type) (Ident Bool) #())]);
-    test("type Option a", block![(TypeDef (Ident type) (Ident Option) #((Ident a)))]);
+fn type_definition_no_body() {
+    test("type Bool", block![(TypeDef (Ident type) (Ident Bool) #() #() #())]);
+    test("type Option a", block![(TypeDef (Ident type) (Ident Option) #((Ident a)) #() #())]);
 }
+
+#[test]
+fn type_constructors() {
+    let code = [
+        "type Geo",
+        "    Circle",
+        "        radius",
+        "        4",
+        "    Rectangle width height",
+        "    Point",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef (Ident type) (Ident Geo) #()
+         #(((Circle #() #((Ident radius) (Number 4))))
+           ((Rectangle #((Ident width) (Ident height)) #()))
+           ((Point #() #())))
+         #())
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn type_methods() {
+    let code = ["type Geo", "    number =", "        23", "    area self = 1 + 1"];
+    #[rustfmt::skip]
+        let expected = block![
+        (TypeDef (Ident type) (Ident Geo) #() #()
+         #((Function number #() "=" (BodyBlock #((Number 23))))
+           (Function area #((Ident self)) "=" (OprApp (Number 1) (Ok "+") (Number 1)))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn type_def_full() {
+    let code = [
+        "type Geo",
+        "    Circle",
+        "        radius : float",
+        "        4",
+        "    Rectangle width height",
+        "    Point",
+        "",
+        "    number =",
+        "        23",
+        "    area self = 1 + 1",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef (Ident type) (Ident Geo) #()
+         #(((Circle #() #((OprApp (Ident radius) (Ok ":") (Ident float)) (Number 4))))
+           ((Rectangle #((Ident width) (Ident height)) #()))
+           ((Point #() #()))
+           (()))
+         #((Function number #() "=" (BodyBlock #((Number 23))))
+           (Function area #((Ident self)) "=" (OprApp (Number 1) (Ok "+") (Number 1)))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+
+// === Variable Assignment ===
 
 #[test]
 fn assignment_simple() {
     test("foo = 23", block![(Assignment (Ident foo) "=" (Number 23))]);
 }
+
+
+// === Functions ===
 
 #[test]
 fn function_inline_simple_args() {
@@ -105,6 +174,9 @@ fn function_block_simple_args() {
     test("foo a b =", block![(Function foo #((Ident a) (Ident b)) "=" ())]);
     test("foo a b c =", block![(Function foo #((Ident a) (Ident b) (Ident c)) "=" ())]);
 }
+
+
+// === Code Blocks ===
 
 #[test]
 fn code_block_body() {

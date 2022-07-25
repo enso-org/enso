@@ -24,9 +24,9 @@ const TOKEN_OFFSET_BEGIN: &str = "leftOffsetCodeReprBegin";
 //const TOKEN_OFFSET_LEN: &str = "leftOffsetCodeReprLen";
 
 /// Derive deserialization for all types in the typegraph.
-pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
+pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId, unsupported: ClassId) {
     let source = "source";
-    impl_deserialize(graph, tree, token, source);
+    impl_deserialize(graph, tree, token, unsupported, source);
     graph[token].methods.push(impl_getter(CODE_GETTER, source, TOKEN_BEGIN, TOKEN_LEN));
     graph[tree].methods.push(impl_getter(CODE_GETTER, source, TREE_BEGIN, TREE_LEN));
 }
@@ -34,7 +34,13 @@ pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId) {
 
 // === Deserialization Methods ===
 
-fn impl_deserialize(graph: &mut TypeGraph, tree: ClassId, token: ClassId, source: &str) {
+fn impl_deserialize(
+    graph: &mut TypeGraph,
+    tree: ClassId,
+    token: ClassId,
+    unsupported: ClassId,
+    source: &str,
+) {
     // Add source field to parent types.
     let buffer = Class::builtin("java.nio.ByteBuffer", vec![]);
     let buffer = graph.classes.insert(buffer);
@@ -52,6 +58,11 @@ fn impl_deserialize(graph: &mut TypeGraph, tree: ClassId, token: ClassId, source
         let class = &graph[id];
         let mut deserialization =
             bincode::DeserializerBuilder::new(id, crate::SERIALIZATION_SUPPORT, crate::EITHER_TYPE);
+        if id == unsupported {
+            deserialization.pre_hook(|bincode::HookInput { message }| {
+                format!("{message}.encounteredUnsupportedSyntax = true;\n")
+            });
+        }
         if class.parent == Some(tree) {
             deserialization.materialize(tree_source, context_materializer());
         }

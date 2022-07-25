@@ -67,6 +67,8 @@ pub struct DeserializerBuilder {
     materializers: BTreeMap<FieldId, Materializer>,
     #[derivative(Debug = "ignore")]
     mappers:       BTreeMap<FieldId, Mapper>,
+    #[derivative(Debug = "ignore")]
+    pre_hooks:     Vec<Hook>,
     support:       String,
     either_type:   String,
 }
@@ -81,7 +83,8 @@ impl DeserializerBuilder {
         let mappers = Default::default();
         let support = support.into();
         let either_type = either_type.into();
-        Self { root, materializers, mappers, support, either_type }
+        let pre_hooks = Default::default();
+        Self { root, materializers, mappers, support, either_type, pre_hooks }
     }
 
     /// Configure the specified field to be produced according to an expression, instead of by
@@ -98,6 +101,12 @@ impl DeserializerBuilder {
         self.mappers.insert(field, Box::new(mapper));
     }
 
+    /// Generate code to be run in the deserialization function, before any deserialization begins.
+    pub fn pre_hook<F>(&mut self, f: F)
+    where F: for<'a> FnOnce(HookInput<'a>) -> String + 'static {
+        self.pre_hooks.push(Box::new(f));
+    }
+
     /// Generate the deserialization method.
     pub fn build(mut self, graph: &TypeGraph) -> Method {
         let method = match graph[self.root].abstract_ {
@@ -110,6 +119,7 @@ impl DeserializerBuilder {
 
 type Materializer = Box<dyn for<'a> FnOnce(MaterializerInput<'a>) -> String>;
 type Mapper = Box<dyn for<'a, 'b> FnOnce(MapperInput<'a, 'b>) -> String>;
+type Hook = Box<dyn for<'a> FnOnce(HookInput<'a>) -> String>;
 
 /// Input to a function that produces an expression that deserializes a field.
 #[derive(Debug)]
@@ -125,6 +135,13 @@ pub struct MapperInput<'a, 'b> {
     pub message: &'a str,
     /// Identifier of the field's value, after producing with standard deserialization.
     pub value:   &'b str,
+}
+
+/// Input to a function that produces statement(s) to be run.
+#[derive(Debug)]
+pub struct HookInput<'a> {
+    /// Identifier of the serialized message object.
+    pub message: &'a str,
 }
 
 
@@ -143,6 +160,9 @@ impl DeserializerBuilder {
             next_temp_variable_number += 1;
             result
         };
+        for hook in self.pre_hooks.drain(..) {
+            body.push_str(&(hook)(HookInput { message }));
+        }
         let fields = class_fields(graph, class);
         for field in &fields {
             let ty_name = quote_type(graph, &field.data);

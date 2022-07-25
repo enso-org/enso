@@ -25,7 +25,7 @@ public final class Parser implements AutoCloseable {
         var state = allocState();
         return new Parser(state);
     }
-    public final Tree parse(String input) {
+    public final Tree parse(String input) throws UnsupportedSyntaxException {
         try {
             byte[] inputBytes = input.getBytes("UTF-8");
             ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
@@ -33,7 +33,12 @@ public final class Parser implements AutoCloseable {
             var serializedTree = parseInput(state, inputBuf);
             var base = getLastInputBase(state);
             serializedTree.order(ByteOrder.LITTLE_ENDIAN);
-            return Tree.deserialize(new Message(serializedTree, inputBuf, base));
+            var message = new Message(serializedTree, inputBuf, base);
+            var result = Tree.deserialize(message);
+            if (message.getEncounteredUnsupportedSyntax()) {
+                throw new UnsupportedSyntaxException(result);
+            }
+            return result;
         } catch (java.io.UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -41,5 +46,18 @@ public final class Parser implements AutoCloseable {
     public void close() {
         freeState(state);
         state = 0;
+    }
+
+    public static final class UnsupportedSyntaxException extends Exception {
+        Tree tree;
+
+        UnsupportedSyntaxException(Tree treeIn) {
+            super("Tree contains unsupported syntax. Details are in an `Unsupported` node in the tree.");
+            tree = treeIn;
+        }
+
+        public final Tree getTree() {
+            return tree;
+        }
     }
 }

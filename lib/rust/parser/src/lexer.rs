@@ -96,6 +96,7 @@ pub struct LexerState {
     pub last_spaces_visible_offset: VisibleOffset,
     pub current_block_indent:       VisibleOffset,
     pub block_indent_stack:         Vec<VisibleOffset>,
+    pub internal_error:             Option<String>,
 }
 
 impl<'s> Lexer<'s> {
@@ -516,8 +517,9 @@ impl<'s> Lexer<'s> {
                 match current {
                     '.' => this.take_while_1_('.'),
                     '=' => this.take_while_1_('='),
-                    ':' => (),
-                    ',' => (),
+                    ':' | ',' => {
+                        this.take_next();
+                    }
                     _ => this.take_while_1_(is_operator_body_char),
                 };
             }
@@ -587,44 +589,45 @@ fn is_inline_text_body(t: char) -> bool {
 
 impl<'s> Lexer<'s> {
     /// Parse a text literal.
-    // FIXME: This impl is not yet finished and not all cases are covered (also, tests missing).
     fn text(&mut self) {
         let token = self.token(|this| this.take_1('"'));
         if let Some(token) = token {
             self.submit_token(token.with_variant(token::Variant::text_start()));
             let line_empty = self.current_char.map(is_newline_char).unwrap_or(true);
             if line_empty {
-                todo!()
-            } else {
-                let mut parsed_element;
-                loop {
-                    parsed_element = false;
+                // FIXME: Handle this case; test this function. Issue: #182496940
+                let char = self.current_char;
+                self.internal_error.get_or_insert_with(|| format!("text: line_empty ({:?})", char));
+                return;
+            }
+            let mut parsed_element;
+            loop {
+                parsed_element = false;
 
-                    let section = self.token(|this| this.take_while_1(is_inline_text_body));
-                    if let Some(tok) = section {
-                        parsed_element = true;
-                        self.submit_token(tok.with_variant(token::Variant::text_section()));
-                    }
+                let section = self.token(|this| this.take_while_1(is_inline_text_body));
+                if let Some(tok) = section {
+                    parsed_element = true;
+                    self.submit_token(tok.with_variant(token::Variant::text_section()));
+                }
 
-                    let escape = self.token(|this| {
-                        if this.take_1('\\') {
-                            this.take_1('"');
-                        }
-                    });
-                    if let Some(token) = escape {
-                        parsed_element = true;
-                        self.submit_token(token.with_variant(token::Variant::text_escape()));
+                let escape = self.token(|this| {
+                    if this.take_1('\\') {
+                        this.take_1('"');
                     }
+                });
+                if let Some(token) = escape {
+                    parsed_element = true;
+                    self.submit_token(token.with_variant(token::Variant::text_escape()));
+                }
 
-                    let end = self.token(|this| this.take_1('"'));
-                    if let Some(token) = end {
-                        self.submit_token(token.with_variant(token::Variant::text_end()));
-                        break;
-                    }
+                let end = self.token(|this| this.take_1('"'));
+                if let Some(token) = end {
+                    self.submit_token(token.with_variant(token::Variant::text_end()));
+                    break;
+                }
 
-                    if !parsed_element {
-                        break;
-                    }
+                if !parsed_element {
+                    break;
                 }
             }
         }
@@ -732,13 +735,13 @@ const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
 impl<'s> Lexer<'s> {
     /// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
     /// hierarchy).
-    pub fn run(self) -> Vec<Item<'s>> {
-        build_block_hierarchy(self.run_flat())
+    pub fn run(self) -> ParseResult<Vec<Item<'s>>> {
+        self.run_flat().map(build_block_hierarchy)
     }
 
     /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
     /// as start and end tokens).
-    pub fn run_flat(mut self) -> Vec<Token<'s>> {
+    pub fn run_flat(mut self) -> ParseResult<Vec<Token<'s>>> {
         self.spaces_after_lexeme();
         let mut any_parser_matched = true;
         while any_parser_matched {
@@ -750,28 +753,30 @@ impl<'s> Lexer<'s> {
                 }
             }
         }
-        if self.current_char != None {
-            panic!("Internal error. Lexer did not consume all input. State: {self:?}");
-        }
         while self.end_block().is_some() {
             let block_end = self.marker_token(token::Variant::block_end());
             self.submit_token(block_end);
         }
-        let tokens = self.output;
-        event!(TRACE, "Tokens:\n{:#?}", tokens);
-        tokens
+        let mut internal_error = self.internal_error.take();
+        if self.current_char != None {
+            let message = format!("Lexer did not consume all input. State: {self:?}");
+            internal_error.get_or_insert(message);
+        }
+        let value = self.output;
+        event!(TRACE, "Tokens:\n{:#?}", value);
+        ParseResult { value, internal_error }
     }
 }
 
 /// Run the lexer. Return non-hierarchical list of tokens (the token groups will be represented
 /// as start and end tokens).
-pub fn run_flat(input: &'_ str) -> Vec<Token<'_>> {
+pub fn run_flat(input: &'_ str) -> ParseResult<Vec<Token<'_>>> {
     Lexer::new(input).run_flat()
 }
 
 /// Run the lexer. Return hierarchical list of tokens (the token groups will be represented as a
 /// hierarchy).
-pub fn run(input: &'_ str) -> Vec<Item<'_>> {
+pub fn run(input: &'_ str) -> ParseResult<Vec<Item<'_>>> {
     Lexer::new(input).run()
 }
 
@@ -844,7 +849,7 @@ mod tests {
     }
 
     fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
-        assert_eq!(run_flat(input), expected);
+        assert_eq!(run_flat(input).unwrap(), expected);
     }
 
     fn lexer_case_idents<'s>(idents: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
@@ -975,7 +980,7 @@ mod tests {
 
     #[test]
     fn test_case_operators() {
-        test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "==="]));
+        test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
         test_lexer_many(vec![("+-", vec![operator_("", "+"), operator_("", "-")])]);
     }
 
@@ -1165,7 +1170,7 @@ mod benches {
 
         b.iter(move || {
             let lexer = Lexer::new(&str);
-            assert_eq!(lexer.run().len(), reps);
+            assert_eq!(lexer.run().unwrap().len(), reps);
         });
     }
 }
