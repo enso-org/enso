@@ -209,9 +209,9 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         } else {
             false
         };
-        let icon = component.suggestion.icon.as_ref().and_then(|name| {
-            icon::Id::from_str(name.from_case(Case::Kebab).to_case(Case::Pascal).as_str()).ok()
-        });
+        let icon_name = component.suggestion.icon.as_ref();
+        let icon: Option<icon::Id> =
+            icon_name.and_then(|name| name.from_case(Case::Kebab).try_into().ok());
         let icon = if let Some(ico) = icon {
             if someico {
                 DEBUG!("got some ico");
