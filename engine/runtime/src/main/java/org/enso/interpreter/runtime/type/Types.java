@@ -129,8 +129,10 @@ public class Types {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
       return ConstantsGen.MANAGED_RESOURCE;
-    } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value)) {
+    } else if (TypesGen.isArray(value)) {
       return ConstantsGen.ARRAY;
+    } else if (TypesGen.isArrayOverBuffer(value)) {
+      return ConstantsGen.ARRAY_OVER_BUFFER;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;
     } else if (TypesGen.isRef(value)) {
