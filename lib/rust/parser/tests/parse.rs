@@ -231,6 +231,8 @@ use std::collections::HashSet;
 /// Given a block of input Enso code, test that:
 /// - The given code parses to the AST represented by the given S-expression.
 /// - The AST pretty-prints back to the original code.
+/// - Rust's deserialization is compatible with Rust's serialization for the type. (The Java format
+///   tests check Java's deserialization against Rust's deserialization).
 ///
 /// The S-expression format is as documented for [`enso_metamodel_lexpr`], with some
 /// postprocessing:
@@ -243,6 +245,9 @@ fn test(code: &str, expect: Value) {
     let ast_s_expr = to_s_expr(&ast, code);
     assert_eq!(ast_s_expr.to_string(), expect.to_string(), "{:?}", &ast);
     assert_eq!(ast.code(), code, "{:?}", &ast);
+    let serialized = enso_parser::serialization::serialize_tree(&ast).unwrap();
+    let deserialized = enso_parser::serialization::deserialize_tree(&serialized);
+    deserialized.unwrap();
 }
 
 
