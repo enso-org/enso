@@ -691,6 +691,7 @@ mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
+            icon: None,
         };
         let method = Entry {
             name: "method".to_string(),
@@ -793,6 +794,7 @@ mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
+            icon: None,
         };
         let method = Entry {
             name: "method".to_string(),
@@ -827,6 +829,7 @@ mod test {
             return_type:        "TestAtom".to_string(),
             documentation:      None,
             documentation_html: None,
+            documentation_sections: None,
             external_id:        None,
         };
         expect(atom, "TestProject.TestModule.TextAtom");
@@ -838,6 +841,7 @@ mod test {
             return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
             documentation:      None,
             documentation_html: None,
+            documentation_sections: None,
             external_id:        None,
         };
         expect(method, "Standard.Builtins.Main.System.create_process");
@@ -845,6 +849,7 @@ mod test {
             module:             "local.Unnamed_6.Main".to_string(),
             documentation:      None,
             documentation_html: None,
+            documentation_sections: None,
             reexport:           None,
         };
         expect(module, "local.Unnamed_6.Main");

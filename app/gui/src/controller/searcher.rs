@@ -1493,6 +1493,7 @@ pub mod test {
             documentation_html: default(),
             self_type: None,
             scope,
+            icon: None,
         };
         let entry2 = model::suggestion_database::Entry {
             name: "TestVar1".to_string(),
@@ -1552,6 +1553,7 @@ pub mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
+            icon: None,
         };
         let entry9 = model::suggestion_database::Entry {
             name: "testFunction2".to_string(),
