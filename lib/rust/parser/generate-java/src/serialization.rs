@@ -44,31 +44,23 @@ fn impl_deserialize(graph: &mut TypeGraph, tree: ClassId, token: ClassId, source
     let token_source_ = Field::object(source, buffer, true);
     let token_source = token_source_.id();
     graph[token].fields.push(token_source_);
+    let tree_begin = graph[tree].find_field(TREE_BEGIN).unwrap().id();
+    let token_begin = graph[token].find_field(TOKEN_BEGIN).unwrap().id();
+    let token_offset_begin = graph[token].find_field(TOKEN_OFFSET_BEGIN).unwrap().id();
     let ids: Vec<_> = graph.classes.keys().collect();
     for id in ids {
         let class = &graph[id];
         let mut deserialization =
             bincode::DeserializerBuilder::new(id, crate::SERIALIZATION_SUPPORT, crate::EITHER_TYPE);
-        match () {
-            // Base classes: Map the code repr fields.
-            _ if id == tree => {
-                let code_begin = class.find_field(TREE_BEGIN).unwrap().id();
-                deserialization.map(code_begin, offset_mapper());
-            }
-            _ if id == token => {
-                let code_begin = class.find_field(TOKEN_BEGIN).unwrap().id();
-                let offset_begin = class.find_field(TOKEN_OFFSET_BEGIN).unwrap().id();
-                deserialization.map(code_begin, offset_mapper());
-                deserialization.map(offset_begin, offset_mapper());
-            }
-            // Child classes: Pass context object from deserializer to parent.
-            _ if class.parent == Some(tree) =>
-                deserialization.materialize(tree_source, context_materializer()),
-            _ if class.parent == Some(token) =>
-                deserialization.materialize(token_source, context_materializer()),
-            // Everything else: Standard deserialization.
-            _ => (),
+        if class.parent == Some(tree) {
+            deserialization.materialize(tree_source, context_materializer());
         }
+        if class.parent == Some(token) {
+            deserialization.materialize(token_source, context_materializer());
+        }
+        deserialization.map(tree_begin, offset_mapper());
+        deserialization.map(token_begin, offset_mapper());
+        deserialization.map(token_offset_begin, offset_mapper());
         let deserializer = deserialization.build(graph);
         graph[id].methods.push(deserializer);
     }
@@ -90,8 +82,10 @@ fn impl_getter(name: &str, buffer: &str, begin: &str, len: &str) -> Method {
     let serialization = crate::SERIALIZATION_SUPPORT;
     let exception = format!("{serialization}.FormatException");
     writeln!(body, "byte[] dst = new byte[{len}];").unwrap();
-    writeln!(body, "{buffer}.position({begin});").unwrap();
-    writeln!(body, "{buffer}.get(dst);").unwrap();
+    writeln!(body, "if ({len} != 0) {{").unwrap();
+    writeln!(body, "    {buffer}.position({begin});").unwrap();
+    writeln!(body, "    {buffer}.get(dst);").unwrap();
+    writeln!(body, "}}").unwrap();
     writeln!(body, "try {{").unwrap();
     writeln!(body, "    return new String(dst, \"UTF-8\");").unwrap();
     writeln!(body, "}} catch (java.io.UnsupportedEncodingException e) {{").unwrap();
