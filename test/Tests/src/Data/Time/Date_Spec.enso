@@ -7,58 +7,66 @@ import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.Data.Time.Zone
 import Standard.Test
 
+polyglot java import java.time.LocalDate
+
 spec =
-    Test.group "Date" <|
+    specWith "Date" Date.new Date.parse
+    specWith "JavaScriptDate" js_date js_parse
+    specWith "JavaDate" java_date Date.parse
+    specWith "JavaScriptArrayWithADate" js_array_date Date.parse
+
+specWith name create_new_date parse_date =
+    Test.group name <|
 
         Test.specify "should create local date" <|
-            date = Date.new 2020 1 1
+            date = create_new_date 2020 1 1
             date . year . should_equal 2020
             date . month . should_equal 1
             date . day . should_equal 1
 
         Test.specify "should handle errors when creating local date" <|
-            case Date.new 2020 30 30 . catch of
+            case create_new_date 2020 30 30 . catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Invalid value for MonthOfYear (valid values 1 - 12): 30"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should format local date using provided pattern" <|
-            text = Date.new 2020 12 21 . format "yyyyMMdd"
+            text = create_new_date 2020 12 21 . format "yyyyMMdd"
             text . should_equal "20201221"
 
         Test.specify "should format local date using default pattern" <|
-            text = Date.new 2020 12 21 . to_text
+            text = create_new_date 2020 12 21 . to_text
             text . should_equal "2020-12-21"
 
         Test.specify "should parse default time format" <|
-            text = Date.new 2020 12 21 . to_text
-            date = Date.parse text
+            text = create_new_date 2020 12 21 . to_text
+            date = parse_date text
             date . year . should_equal 2020
             date . month . should_equal 12
             date . day . should_equal 21
 
         Test.specify "should throw error when parsing invalid date" <|
-            case Date.parse "birthday" . catch of
+            case parse_date "birthday" . catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Text 'birthday' could not be parsed at index 0"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should parse local date" <|
-            date = Date.parse "1999-01-01"
+            date = parse_date "1999-01-01"
             date . year . should_equal 1999
             date . month . should_equal 1
             date . day . should_equal 1
 
         Test.specify "should parse custom format" <|
-            date = Date.parse "1999 1 1" "yyyy M d"
+            date = parse_date "1999 1 1" "yyyy M d"
             date . year . should_equal 1999
             date . month . should_equal 1
             date . day . should_equal 1
 
         Test.specify "should throw error when parsing custom format" <|
-            date = Date.parse "1999-01-01" "yyyy M d"
+            date = parse_date "1999-01-01" "yyyy M d"
             case date.catch of
                 Time.Time_Error msg ->
                     msg . should_equal "Text '1999-01-01' could not be parsed at index 4"
@@ -66,7 +74,7 @@ spec =
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should convert to time" <|
-            time = Date.new 2000 12 21 . to_time (Time_Of_Day.new 12 30 45) Zone.utc
+            time = create_new_date 2000 12 21 . to_time (Time_Of_Day.new 12 30 45) Zone.utc
             time . year . should_equal 2000
             time . month . should_equal 12
             time . day . should_equal 21
@@ -77,45 +85,45 @@ spec =
             time . zone . zone_id . should_equal Zone.utc.zone_id
 
         Test.specify "should convert to Json" <|
-            date = Date.new 2001 12 21
+            date = create_new_date 2001 12 21
             date.to_json.should_equal <|
                 Json.from_pairs [["type", "Date"], ["day", date.day], ["month", date.month], ["year", date.year]]
 
         Test.specify "should add date-based interval" <|
-            date = Date.new 1970 + 1.day
+            date = create_new_date 1970 + 1.day
             date . year . should_equal 1970
             date . month . should_equal 1
             date . day . should_equal 2
 
         Test.specify "should subtract date-based interval" <|
-            date = Date.new 1970 - 1.year
+            date = create_new_date 1970 - 1.year
             date . year . should_equal 1969
             date . month . should_equal 1
             date . day . should_equal 1
 
         Test.specify "should support mixed interval operators" <|
-            date = Date.new 1970 + 1.month - 1.year
+            date = create_new_date 1970 + 1.month - 1.year
             date . year . should_equal 1969
             date . month . should_equal 2
             date . day . should_equal 1
 
         Test.specify "should throw error when adding time-based interval" <|
-            case (Date.new 1970 + 1.hour) . catch of
+            case (create_new_date 1970 + 1.hour) . catch of
                 Time.Time_Error message ->
                     message . should_equal "Date does not support time intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting time-based interval" <|
-            case (Date.new 1970 - (1.day - 1.minute)) . catch of
+            case (create_new_date 1970 - (1.day - 1.minute)) . catch of
                 Time.Time_Error message ->
                     message . should_equal "Date does not support time intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should be comparable" <|
-            date_1 = Date.parse "2021-01-02"
-            date_2 = Date.parse "2021-01-01"
+            date_1 = parse_date "2021-01-02"
+            date_2 = parse_date "2021-01-01"
             (date_1 == date_2) . should_be_false
             date_1==date_1 . should_be_true
             date_1!=date_2 . should_be_true
@@ -123,11 +131,40 @@ spec =
             date_1<date_2 . should_be_false
 
         Test.specify "should return the correct week of year" <|
-            date_1 = Date.parse "2021-08-01"
+            date_1 = parse_date "2021-08-01"
             date_1.week_of_year Locale.mexico . should_equal 32
 
-            date_2 = Date.parse "2021-01-01"
+            date_2 = parse_date "2021-01-01"
             date_2.week_of_year Locale.us . should_equal 1
             date_2.week_of_year Locale.uk . should_equal 0
 
 main = Test.Suite.run_main spec
+
+parseNormally x y = (Date.parse x y) . to_text
+
+js_parse text format=Nothing =
+    d = Date.parse text format
+    js_date d.year d.month d.day
+
+js_date year month=1 day=1 =
+    Panic.catch Any (js_date_impl year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
+
+
+js_array_date year month=1 day=1 =
+    arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
+    arr.at(0)
+
+java_date year month=1 day=1 =
+    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time.Time_Error <| err.payload.to_display_text.take (Range 16 Nothing)))
+
+foreign js js_date_impl year month=1 day=1 = """
+    if (month > 12) {
+        throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
+    }
+    return new Date(year, month - 1, day);
+
+foreign js js_array_dateCreate year month day = """
+    if (month > 12) {
+        throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
+    }
+    return [ new Date(year, month - 1, day) ];

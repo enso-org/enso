@@ -1,4 +1,11 @@
-//! This macro defines set of common macros which are useful across different projects.
+//! This module defines set of common macros which are useful across different projects.
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use enso_shapely::ForEachVariant;
 
 
 

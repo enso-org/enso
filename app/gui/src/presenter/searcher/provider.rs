@@ -157,6 +157,12 @@ impl ide_view::searcher::DocumentationProvider for Action {
     }
 }
 
+
+
+// ===========================
+// === provider::Component ===
+// ===========================
+
 /// Component Provider getting entries from a [`controller::searcher::component::Group`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
@@ -170,22 +176,39 @@ impl Component {
     }
 }
 
+macro_rules! kind_to_icon {
+    ([ $( $variant:ident ),* ] $kind:ident) => {
+        {
+            use component_group_view::icon::Id;
+            use suggestion_database::entry::Kind;
+            match $kind {
+                $( Kind::$variant => Id::$variant, )*
+            }
+        }
+    }
+}
+
 impl list_view::entry::ModelProvider<component_group_view::Entry> for Component {
     fn entry_count(&self) -> usize {
         self.group.matched_items.get()
     }
 
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
+        use suggestion_database::entry::for_each_kind_variant;
         let component = self.group.get_entry(id)?;
         let match_info = component.match_info.borrow();
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
+        let kind = component.suggestion.kind;
         Some(component_group_view::entry::Model {
-            icon:             component_group_view::icon::Id::AddColumn,
+            icon:             for_each_kind_variant!(kind_to_icon(kind)),
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
         })
     }
 }
+
+
+// === Component Provider helpers ===
 
 fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
     if let MatchInfo::Matches { subsequence } = match_info {
@@ -210,6 +233,12 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
         default()
     }
 }
+
+
+
+// ===========================
+// === Converter functions ===
+// ===========================
 
 /// Get [`LabeledAnyModelProvider`] for given component group.
 pub fn from_component_group(

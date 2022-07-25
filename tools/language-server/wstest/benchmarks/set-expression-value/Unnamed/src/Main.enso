@@ -1,0 +1,13 @@
+from Standard.Base import all
+import Standard.Visualization
+
+main =
+    variable = 8
+    IO.println variable
+
+
+
+
+#### METADATA ####
+[[{"index":{"value":5},"size":{"value":8}},"30e01fad-128e-4b5a-a22c-bd3b21252fd9"],[{"index":{"value":13},"size":{"value":1}},"f868fa0b-1802-450e-85d5-f1577643a1f4"],[{"index":{"value":14},"size":{"value":4}},"18565040-ef59-4267-ace8-048560f4086e"],[{"index":{"value":26},"size":{"value":3}},"4ecc4b5b-d5d2-446f-bcd5-fada2e48a042"],[{"index":{"value":0},"size":{"value":29}},"31fe4373-eee6-450d-a0ea-2bfff9d0d7b5"],[{"index":{"value":37},"size":{"value":8}},"718ff7cf-19c4-4f41-91a9-d2ff4221d5c2"],[{"index":{"value":45},"size":{"value":1}},"b794d41d-4007-44a7-8427-15fff08df9dd"],[{"index":{"value":46},"size":{"value":13}},"564816d2-b2cd-4504-a9e6-1062351887a0"],[{"index":{"value":30},"size":{"value":29}},"47952db2-9f21-4ee3-9ac6-53606eab1e03"],[{"index":{"value":61},"size":{"value":4}},"236aa79f-56e1-42f9-8bcb-99b1c2576719"],[{"index":{"value":66},"size":{"value":1}},"14539f71-fe59-41cc-9424-e18d5beb45d2"],[{"index":{"value":72},"size":{"value":8}},"cbe6ef7b-564e-44f4-87bc-51f277d48387"],[{"index":{"value":81},"size":{"value":1}},"2e69d11c-c79b-449a-ab7c-f08b698ad605"],[{"index":{"value":83},"size":{"value":1}},"524dd815-b652-4bbe-b9f2-26b35d17993a"],[{"index":{"value":72},"size":{"value":12}},"8740a5e4-cfb3-449b-958f-d2dd967642a5"],[{"index":{"value":89},"size":{"value":2}},"05a391e1-465a-4518-9f4f-3bde0cfd619e"],[{"index":{"value":91},"size":{"value":1}},"f61cf1f6-d89a-46da-85e3-74991abe9b82"],[{"index":{"value":92},"size":{"value":7}},"34887a2b-d4f9-413d-b11d-b339cf6c79f0"],[{"index":{"value":89},"size":{"value":10}},"734641cf-d983-4609-80aa-897ce2641ba4"],[{"index":{"value":100},"size":{"value":8}},"446d7d7d-599d-4207-878a-749862460884"],[{"index":{"value":89},"size":{"value":19}},"74ce36e2-e27c-44c1-90f1-faee61a1def2"],[{"index":{"value":67},"size":{"value":43}},"f6c651d5-bb31-48fb-9bc6-2eb373b00e43"],[{"index":{"value":61},"size":{"value":49}},"3b84a460-cddd-47ce-97d9-c94ccda80343"]]
+{"ide":{"node":{"524dd815-b652-4bbe-b9f2-26b35d17993a":{"position":{"vector":[-100.0,140.0]},"intended_method":null,"uploading_file":null,"selected":false,"visualization":{"name":{"content":{"content":"JSON"}},"project":"Builtin"}},"74ce36e2-e27c-44c1-90f1-faee61a1def2":{"position":{"vector":[-100.0,80.0]},"intended_method":null,"uploading_file":null,"selected":false,"visualization":null}},"project":null}}

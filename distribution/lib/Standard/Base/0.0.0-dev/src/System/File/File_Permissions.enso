@@ -1,0 +1,104 @@
+from Standard.Base import all
+
+polyglot java import java.nio.file.attribute.PosixFilePermission
+
+type Permission
+    ## Permission for read access for a given entity.
+    type Read
+
+    ## Permission for write access for a given entity.
+    type Write
+
+    ## Permission for execute access for a given entity.
+    type Execute
+
+type File_Permissions
+    ## Access permissions for a file.
+    type File_Permissions (owner : Vector Permission) (group : Vector Permission) (others : Vector Permission)
+
+    ## Converts the Enso atom to its Java enum counterpart.
+    to_java : Vector PosixFilePermission
+    to_java =
+        result = Vector.new_builder
+        if self.owner.contains Read then
+            result.append PosixFilePermission.OWNER_READ
+        if self.owner.contains Write then
+            result.append PosixFilePermission.OWNER_WRITE
+        if self.owner.contains Execute then
+            result.append PosixFilePermission.OWNER_EXECUTE
+        if self.group.contains Read then
+            result.append PosixFilePermission.GROUP_READ
+        if self.group.contains Write then
+            result.append PosixFilePermission.GROUP_WRITE
+        if self.group.contains Execute then
+            result.append PosixFilePermission.GROUP_EXECUTE
+        if self.others.contains Read then
+            result.append PosixFilePermission.OTHERS_READ
+        if self.others.contains Write then
+            result.append PosixFilePermission.OTHERS_WRITE
+        if self.others.contains Execute then
+            result.append PosixFilePermission.OTHERS_EXECUTE
+        result.to_vector
+
+    ## Checks if the given file can be read by the owner.
+    owner_read : Boolean
+    owner_read = self.owner.contains Read
+
+    ## Checks if the given file can be written by the owner.
+    owner_write : Boolean
+    owner_write = self.owner.contains Write
+
+    ## Checks if the given file can be executed by the owner.
+    owner_execute : Boolean
+    owner_execute = self.owner.contains Execute
+
+    ## Checks if the given file can be read by the group.
+    group_read : Boolean
+    group_read = self.group.contains Read
+
+    ## Checks if the given file can be written by the group.
+    group_write : Boolean
+    group_write = self.group.contains Write
+
+    ## Checks if the given file can be executed by the group.
+    group_execute : Boolean
+    group_execute = self.group.contains Execute
+
+    ## Checks if the given file can be read by others.
+    others_read : Boolean
+    others_read = self.others.contains Read
+
+    ## Checks if the given file can be written by others.
+    others_write : Boolean
+    others_write = self.others.contains Write
+
+    ## Checks if the given file can be executed by others.
+    others_execute : Boolean
+    others_execute = self.others.contains Execute
+
+## Converts a Java `Set` of Java `PosixFilePermission` to `File_Permissions`.
+from_java_set java_set =
+    owner = Vector.new_builder
+    group = Vector.new_builder
+    others = Vector.new_builder
+
+    if java_set.contains PosixFilePermission.OWNER_READ then
+        owner.append Read
+    if java_set.contains PosixFilePermission.OWNER_WRITE then
+        owner.append Write
+    if java_set.contains PosixFilePermission.OWNER_EXECUTE then
+        owner.append Execute
+    if java_set.contains PosixFilePermission.GROUP_READ then
+        group.append Read
+    if java_set.contains PosixFilePermission.GROUP_WRITE then
+        group.append Write
+    if java_set.contains PosixFilePermission.GROUP_EXECUTE then
+        group.append Execute
+    if java_set.contains PosixFilePermission.OTHERS_READ then
+        others.append Read
+    if java_set.contains PosixFilePermission.OTHERS_WRITE then
+        others.append Write
+    if java_set.contains PosixFilePermission.OTHERS_EXECUTE then
+        others.append Execute
+
+    File_Permissions owner.to_vector group.to_vector others.to_vector

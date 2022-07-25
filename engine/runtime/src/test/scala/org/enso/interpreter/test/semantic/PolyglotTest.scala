@@ -57,6 +57,20 @@ class PolyglotTest extends InterpreterTest {
       )
     }
 
+    "empty members when message not supported" in {
+      val code =
+        """from Standard.Base import all
+          |
+          |main =
+          |    instance = "Hi There"
+          |    members = Polyglot.get_members instance
+          |    IO.println members.length
+          |    IO.println members
+          |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List("0", "[]")
+    }
+
     "match on Polyglot type when imported everything from stdlib" in {
       val code =
         """from Standard.Base import all
