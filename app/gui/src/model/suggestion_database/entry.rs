@@ -371,7 +371,7 @@ impl Entry {
                 self_type: None,
                 kind: Kind::Atom,
                 scope: Scope::Everywhere,
-                icon: find_icon_name(&documentation_sections).map(String::from),
+                icon: icon_name_from_doc_sections(&documentation_sections),
             },
             #[allow(unused)]
             Method {
@@ -393,7 +393,7 @@ impl Entry {
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
                 scope: Scope::Everywhere,
-                icon: find_icon_name(&documentation_sections).map(String::from),
+                icon: icon_name_from_doc_sections(&documentation_sections),
             },
             Function { name, module, arguments, return_type, scope, .. } => Self {
                 name,
@@ -430,7 +430,7 @@ impl Entry {
                     kind:               Kind::Module,
                     scope:              Scope::Everywhere,
                     return_type:        module,
-                    icon:               find_icon_name(&documentation_sections).map(String::from),
+                    icon:               icon_name_from_doc_sections(&documentation_sections),
                 }
             }
         };
@@ -647,11 +647,11 @@ fn chain_iter_and_entry_name<'a>(
     iter.into_iter().chain(iter::once(entry.name.as_str()))
 }
 
-fn find_icon_name<'a, I>(doc_sections: I) -> Option<&'a str>
-where I: IntoIterator<Item = &'a language_server::types::DocSection> {
+fn icon_name_from_doc_sections<'_, I>(doc_sections: I) -> Option<String>
+where I: IntoIterator<Item = &'_ language_server::types::DocSection> {
     use language_server::types::DocSection;
     doc_sections.into_iter().find_map(|section| match section {
-        DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => Some(body.as_str()),
+        DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => Some(body.clone()),
         _ => None,
     })
 }
