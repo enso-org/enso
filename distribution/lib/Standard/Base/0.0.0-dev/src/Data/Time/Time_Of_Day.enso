@@ -2,7 +2,6 @@ from Standard.Base import all
 
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Date
 import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Zone
 
@@ -202,7 +201,6 @@ type Time_Of_Day
        > Example
          Convert local time to 1st January 2020 12:30 at system timezone.
 
-             import Standard.Base.Data.Time.Date
              import Standard.Base.Data.Time.Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
