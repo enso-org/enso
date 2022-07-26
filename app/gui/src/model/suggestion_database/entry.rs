@@ -684,7 +684,7 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
         DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
             let icon_name = IconName::from_kebab_case(body);
             Some(icon_name)
-        },
+        }
         _ => None,
     })
 }

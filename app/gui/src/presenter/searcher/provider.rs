@@ -258,13 +258,3 @@ pub fn from_component_group_list(
 ) -> Vec<LabeledAnyModelProvider> {
     groups.as_ref().iter().map(from_component_group).collect()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn mcdbg_kebab_case() {
-        assert_eq!("fOo-Bar-baZ".from_case(Case::Kebab).to_case(Case::Pascal), "FooBarBaz");
-    }
-}
