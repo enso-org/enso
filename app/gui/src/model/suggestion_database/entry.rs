@@ -647,8 +647,8 @@ fn chain_iter_and_entry_name<'a>(
     iter.into_iter().chain(iter::once(entry.name.as_str()))
 }
 
-fn find_icon_name_in_doc_sections<'_, I>(doc_sections: I) -> Option<String>
-where I: IntoIterator<Item = &'_ language_server::types::DocSection> {
+fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<String>
+where I: IntoIterator<Item = &'a language_server::types::DocSection> {
     use language_server::types::DocSection;
     doc_sections.into_iter().find_map(|section| match section {
         DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => Some(body.clone()),
