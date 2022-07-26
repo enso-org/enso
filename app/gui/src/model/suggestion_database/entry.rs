@@ -918,22 +918,12 @@ mod test {
     fn find_icon_name_in_doc_section_with_icon_key() {
         use language_server::types::DocSection;
         let doc_sections = [
-            DocSection::Paragraph {
-                body: "Some paragraph.".into(),
-            },
-            DocSection::Keyed {
-                key: "NotIcon".into(),
-                value: "example-not-icon-value".into(),
-            },
-            DocSection::Keyed {
-                key: "Icon".into(),
-                value: "example-icon-value".into(),
-            },
-            DocSection::Paragraph {
-                body: "Another paragraph.".into(),
-            },
+            DocSection::Paragraph { body: "Some paragraph.".into() },
+            DocSection::Keyed { key: "NotIcon".into(), body: "example-not-icon-body".into() },
+            DocSection::Keyed { key: "Icon".into(), body: "example-icon-name".into() },
+            DocSection::Paragraph { body: "Another paragraph.".into() },
         ];
         let icon_name = find_icon_name_in_doc_sections(&doc_sections).unwrap();
-        assert_eq!(icon_name.to_pascal_case(), "ExampleIconValue");
+        assert_eq!(icon_name.to_pascal_case(), "ExampleIconName");
     }
 }

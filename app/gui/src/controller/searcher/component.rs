@@ -321,7 +321,7 @@ pub(crate) mod tests {
             documentation_html: None,
             self_type:          None,
             scope:              model::suggestion_database::entry::Scope::Everywhere,
-            icon:               None,
+            icon_name:          None,
         }
     }
 

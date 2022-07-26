@@ -108,7 +108,7 @@ pub mod mock {
                 kind:               suggestion_database::entry::Kind::Method,
                 scope:              suggestion_database::entry::Scope::Everywhere,
                 documentation_html: None,
-                icon:               None,
+                icon_name:          None,
             }
         }
 
@@ -124,7 +124,7 @@ pub mod mock {
                 kind:               suggestion_database::entry::Kind::Method,
                 scope:              suggestion_database::entry::Scope::Everywhere,
                 documentation_html: None,
-                icon:               None,
+                icon_name:          None,
             }
         }
     }
