@@ -413,7 +413,6 @@ impl Entry {
                 module, documentation, documentation_html, documentation_sections, ..
             } => {
                 let module_name: module::QualifiedName = module.clone().try_into()?;
-                let doc_sections = documentation_sections.unwrap_or_default();
                 Self {
                     documentation_html: Self::make_html_docs(documentation, documentation_html),
                     name:               module_name.id().name().into(),
@@ -423,7 +422,7 @@ impl Entry {
                     kind:               Kind::Module,
                     scope:              Scope::Everywhere,
                     return_type:        module,
-                    icon:               find_icon_name(&doc_sections).map(String::from),
+                    icon:               find_icon_name(&documentation_sections).map(String::from),
                 }
             }
         };
@@ -846,7 +845,7 @@ mod test {
             module:                 "local.Unnamed_6.Main".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             reexport:               None,
         };
         expect(module, "local.Unnamed_6.Main");

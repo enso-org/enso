@@ -936,8 +936,8 @@ pub enum SuggestionEntry {
         documentation:          Option<String>,
         documentation_html:     Option<String>,
         reexport:               Option<String>,
-        // TODO[MC]: use serde_with::DefaultOnNull?
-        documentation_sections: Option<Vec<DocSection>>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
     },
 }
 

@@ -819,7 +819,7 @@ mod test {
             module:                 "local.Unnamed_6.Main".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             reexport:               None,
         };
         let entry4 = SuggestionEntry::Local {
@@ -900,7 +900,7 @@ mod test {
             module:                 GIBBERISH_MODULE_NAME.to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             reexport:               None,
         };
 
@@ -967,7 +967,7 @@ mod test {
             module:                 "local.Unnamed_6.Main".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             reexport:               None,
         };
         let update = SuggestionDatabaseUpdatesEvent {
@@ -1027,7 +1027,7 @@ mod test {
             module:                 "local.Unnamed_6.Main".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             reexport:               None,
         };
         let update = SuggestionDatabaseUpdatesEvent {
