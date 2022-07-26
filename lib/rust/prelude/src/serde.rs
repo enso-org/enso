@@ -19,7 +19,7 @@ where
     serde_json::from_value(json_value).or_else(|_error| Ok(Ret::default()))
 }
 
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde_json")]
 pub fn deserialize_null_as_default<'d, Ret, D>(d: D) -> Result<Ret, D::Error>
 where
     for<'e> Ret: Default + Deserialize<'e>,
