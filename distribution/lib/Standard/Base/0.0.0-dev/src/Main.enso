@@ -14,6 +14,9 @@ import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
 import project.Data.Pair
 import project.Data.Range
+import project.Data.Regression
+import project.Data.Statistics
+import project.Data.Statistics.Rank_Method
 import project.Data.Text
 import project.Data.Text.Encoding
 import project.Data.Text.Extensions
