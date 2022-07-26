@@ -196,7 +196,6 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
     }
 
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
-        use component_group_view::icon;
         use suggestion_database::entry::for_each_kind_variant;
         let component = self.group.get_entry(id)?;
         let match_info = component.match_info.borrow();
