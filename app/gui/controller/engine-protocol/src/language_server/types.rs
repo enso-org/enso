@@ -781,8 +781,10 @@ pub enum RegisterOptions {
 // === Doc Section ===
 // ===================
 
+/// Text rendered as HTML (may contain HTML tags).
 pub type HtmlString = String;
 
+/// Documentation section mark.
 #[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(missing_docs)]
 pub enum Mark {
