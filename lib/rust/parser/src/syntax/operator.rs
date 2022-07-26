@@ -12,50 +12,6 @@ use crate::syntax::token::Token;
 // === Precedence ===
 // ==================
 
-// FIXME: Compute precedences according to spec. Issue: #182497344
-fn precedence_of(operator: &str) -> WipResult<usize> {
-    Ok(match operator {
-        // "There are a few operators with the lowest precedence possible."
-        "=" => 1,
-        ":" => 2,
-        "->" => 3,
-        "|" | "\\\\" | "&" => 4,
-        ">>" | "<<" => 5,
-        "|>" | "|>>" | "<|" | "<<|" => 6,
-        // "The precedence of all other operators is determined by the operator's Precedence
-        // Character:"
-        "!" => 10,
-        "||" => 11,
-        "^" => 12,
-        "&&" => 13,
-        "+" | "++" | "-" => 14,
-        "*" | "/" | "%" => 15,
-        // FIXME: Not sure about these:
-        "==" => 1,
-        "," => 1,
-        "@" => 20,
-        "." => 21,
-        _ => return Err(format!("precedence_of({:?})", operator)),
-    })
-}
-
-/// An item with an assigned precedence.
-#[derive(Clone, Copy, Debug, Deref, DerefMut)]
-struct WithPrecedence<T> {
-    #[deref]
-    #[deref_mut]
-    elem:       T,
-    precedence: usize,
-}
-
-impl<T> WithPrecedence<T> {
-    /// Constructor.
-    pub fn new(precedence: usize, elem: T) -> Self {
-        Self { elem, precedence }
-    }
-}
-
-
 /// Annotate expressions that should use spacing, because otherwise they are misleading. For
 /// example, `if cond then.x else.y` is parsed as `if cond then .x else .y`, which after expansion
 /// translates to `if cond then (\t -> t.x) else (\t -> t.y)`. However, for some macros spacing is
@@ -132,52 +88,55 @@ fn resolve_operator_precedence_internal<'s>(
     use ItemType::*;
     let mut was_section_used = false;
     let mut output: Vec<syntax::Item> = default();
-    let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
+    let mut operator_stack: Vec<Vec<token::Operator>> = default();
+    let mut unary_operator: Option<token::Operator> = default();
     let mut prev_type = None;
     let mut precedence_error = None;
-    // Used until precedence computation is implemented, to attempt to parse inputs with operators
-    // that aren't in the precedence table. If we make use of this value the result will be
-    // placed in an `Unsupported` node, so the exact number isn't important because we're
-    // explicitly doing a best-effort parse of unknown syntax.
-    const ARBITRARY_FALLBACK_PRECEDENCE: usize = 10;
     for item in items {
         if let syntax::Item::Token(
                 Token { variant: token::Variant::Operator(opr), left_offset, code }) = item {
             // Item is an operator.
+            if let Some(unsatisified_opr) = unary_operator.take() {
+                output.push(syntax::Tree::unary_opr_app(unsatisified_opr, None).into());
+                prev_type = Some(Ast);
+            }
             let prev_type = mem::replace(&mut prev_type, Some(Opr));
-
-            let prec = match precedence_of(&code) {
-                Ok(prec) => prec,
-                Err(e) => {
-                    precedence_error.get_or_insert(e);
-                    ARBITRARY_FALLBACK_PRECEDENCE
+            if opr.can_be_binary_infix {
+            } else if opr.can_be_unary_prefix {
+                if prev_type == Some(Ast) {
+                    operator_stack.push(default());
                 }
+                let opr = Token(left_offset, code, opr);
+                unary_operator = Some(opr);
+                continue;
+            } else {
+                precedence_error.get_or_insert_with(|| format!("Precedence of: {:?}", code));
             };
+            let prec = opr.precedence;
             let opr = Token(left_offset, code, opr);
-
             if prev_type == Some(Opr) && let Some(prev_opr) = operator_stack.last_mut() {
                 // Error. Multiple operators next to each other.
-                match &mut prev_opr.elem {
-                    Err(err) => err.operators.push(opr),
-                    Ok(prev) => {
-                        let operators = NonEmptyVec::new(prev.clone(),vec![opr]);
-                        prev_opr.elem = Err(syntax::tree::MultipleOperatorError{operators});
-                    }
-                }
+                prev_opr.push(opr);
             } else {
+                // Application has the highest precedence.
+                const APP_PREC: usize = std::usize::MAX;
                 while let Some(prev_opr) = operator_stack.last()
-                    && prev_opr.precedence >= prec
+                    && prev_opr.first().map(|opr| opr.precedence).unwrap_or(APP_PREC) >= prec
                     && let Some(prev_opr) = operator_stack.pop()
                     && let Some(rhs) = output.pop()
                 {
                     // Prev operator in the [`operator_stack`] has a higher precedence.
                     let lhs = output.pop().map(|t| t.to_ast());
                     if lhs.is_none() { was_section_used = true; }
-                    let ast = syntax::tree::apply_operator(lhs, prev_opr.elem, Some(rhs.to_ast()));
+                    let ast = syntax::tree::apply_operator(lhs, prev_opr, Some(rhs.to_ast()));
                     output.push(ast.into());
                 }
-                operator_stack.push(WithPrecedence::new(prec, Ok(opr)));
+                operator_stack.push(vec![opr]);
             }
+        } else if let Some(opr) = unary_operator.take() {
+            let rhs = Some(item.to_ast());
+            output.push(syntax::Tree::unary_opr_app(opr, rhs).into());
+            prev_type = Some(Ast);
         } else if prev_type == Some(Ast) && let Some(lhs) = output.pop() {
             // Multiple non-operators next to each other.
             let lhs = lhs.to_ast();
@@ -190,13 +149,17 @@ fn resolve_operator_precedence_internal<'s>(
             output.push(item);
         }
     }
+    if let Some(unsatisified_opr) = unary_operator.take() {
+        output.push(syntax::Tree::unary_opr_app(unsatisified_opr, None).into());
+        prev_type = Some(Ast);
+    }
     let mut opt_rhs = (prev_type == Some(Ast)).and_option_from(|| output.pop().map(|t| t.to_ast()));
     while let Some(opr) = operator_stack.pop() {
         let opt_lhs = output.pop().map(|t| t.to_ast());
         if opt_lhs.is_none() || opt_rhs.is_none() {
             was_section_used = true;
         }
-        opt_rhs = Some(syntax::tree::apply_operator(opt_lhs, opr.elem, opt_rhs));
+        opt_rhs = Some(syntax::tree::apply_operator(opt_lhs, opr, opt_rhs));
     }
     if !output.is_empty() {
         panic!("Internal error. Not all tokens were consumed while constructing the expression.");

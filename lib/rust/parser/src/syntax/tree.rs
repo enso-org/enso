@@ -136,6 +136,12 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub opr: OperatorOrError<'s>,
             pub rhs: Option<Tree<'s>>,
         },
+        /// Application of a unary operator, like `-a` or `~handler`. It is a syntax error for `rhs`
+        /// to be `None`.
+        UnaryOprApp {
+            pub opr: token::Operator<'s>,
+            pub rhs: Option<Tree<'s>>,
+        },
         /// Defines the point where operator sections should be expanded to lambdas. Let's consider
         /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
         /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
@@ -392,9 +398,14 @@ pub fn apply<'s>(func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
 /// expression.
 pub fn apply_operator<'s>(
     lhs: Option<Tree<'s>>,
-    opr: OperatorOrError<'s>,
+    opr: Vec<token::Operator<'s>>,
     mut rhs: Option<Tree<'s>>,
 ) -> Tree<'s> {
+    let opr = match opr.len() {
+        0 => return apply(lhs.unwrap(), rhs.unwrap()),
+        1 => Ok(opr.into_iter().next().unwrap()),
+        _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
+    };
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {
