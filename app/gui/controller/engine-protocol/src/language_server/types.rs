@@ -899,7 +899,8 @@ pub enum SuggestionEntry {
         return_type:            String,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
-        documentation_sections: Option<Vec<DocSection>>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
     },
     #[serde(rename_all = "camelCase")]
     Method {
@@ -911,7 +912,8 @@ pub enum SuggestionEntry {
         return_type:            String,
         documentation:          Option<String>,
         documentation_html:     Option<String>,
-        documentation_sections: Option<Vec<DocSection>>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
     },
     #[serde(rename_all = "camelCase")]
     Function {

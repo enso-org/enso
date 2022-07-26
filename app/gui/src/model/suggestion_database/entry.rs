@@ -363,7 +363,7 @@ impl Entry {
                 self_type: None,
                 kind: Kind::Atom,
                 scope: Scope::Everywhere,
-                icon: find_icon_name(&documentation_sections.unwrap_or_default()).map(String::from),
+                icon: find_icon_name(&documentation_sections).map(String::from),
             },
             #[allow(unused)]
             Method {
@@ -385,7 +385,7 @@ impl Entry {
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
                 scope: Scope::Everywhere,
-                icon: find_icon_name(&documentation_sections.unwrap_or_default()).map(String::from),
+                icon: find_icon_name(&documentation_sections).map(String::from),
             },
             Function { name, module, arguments, return_type, scope, .. } => Self {
                 name,
@@ -825,7 +825,7 @@ mod test {
             return_type:            "TestAtom".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         expect(atom, "TestProject.TestModule.TextAtom");
@@ -837,7 +837,7 @@ mod test {
             return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         expect(method, "Standard.Builtins.Main.System.create_process");

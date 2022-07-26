@@ -479,7 +479,7 @@ mod test {
             return_type:            "TestAtom".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let db_entry = SuggestionsDatabaseEntry { id: 12, suggestion: entry };
@@ -505,7 +505,7 @@ mod test {
             return_type:            "TestAtom".to_owned(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let entry2 = SuggestionEntry::Atom {
@@ -515,7 +515,7 @@ mod test {
             return_type:            "TestAtom".to_owned(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let new_entry2 = SuggestionEntry::Atom {
@@ -525,7 +525,7 @@ mod test {
             return_type:            "TestAtom".to_owned(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let arg1 = SuggestionEntryArgument {
@@ -801,7 +801,7 @@ mod test {
             return_type:            "TestAtom".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let entry2 = SuggestionEntry::Method {
@@ -812,7 +812,7 @@ mod test {
             return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let entry3 = SuggestionEntry::Module {
@@ -886,7 +886,7 @@ mod test {
             return_type:            "".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let empty_entry = SuggestionEntry::Local {
@@ -928,7 +928,7 @@ mod test {
             return_type:            "TestAtom".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let entry2 = SuggestionEntry::Method {
@@ -939,7 +939,7 @@ mod test {
             return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
@@ -1005,7 +1005,7 @@ mod test {
             return_type:            "TestAtom".to_string(),
             documentation:          None,
             documentation_html:     None,
-            documentation_sections: None,
+            documentation_sections: default(),
             external_id:            None,
         };
         let id = 1;
