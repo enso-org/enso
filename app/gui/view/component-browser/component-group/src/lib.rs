@@ -729,10 +729,7 @@ impl Model {
         let header_padding_bottom = header_geometry.padding_bottom;
         let header_height = header_geometry.height;
         let half_header_height = header_height / 2.0;
-        let header_center_y = size.y / 2.0 - half_header_height;
-        let header_center_y = header_center_y - header_pos;
-        let header_center_y = header_center_y.max(-size.y / 2.0 + half_header_height);
-        let header_center_y = header_center_y.min(size.y / 2.0 - half_header_height);
+        let header_center_y = self.header_y(header_geometry, size, header_pos);
         let header_bottom_y = header_center_y - half_header_height;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
@@ -790,17 +787,24 @@ impl Model {
         header_pos: f32,
     ) -> Vector2 {
         if is_header_selected {
-            // The following equations are similar to equations in the `resize` method.
-            // We make sure that selection position is
-            // - in the same place as the header position,
-            // - is not outside the component group.
-            let half_header_height = header_geometry.height / 2.0;
-            let header_y = size.y / 2.0 - half_header_height - header_pos;
-            let header_y = header_y.max(-size.y / 2.0 + half_header_height);
+            let header_y = self.header_y(header_geometry, size, header_pos);
             Vector2(0.0, header_y)
         } else {
             self.entries.position().xy() + entries_selection_position
         }
+    }
+
+    /// The y position of the header. The position is restricted by the borders of the
+    /// component group.
+    fn header_y(&self, header_geometry: HeaderGeometry, size: Vector2, header_pos: f32) -> f32 {
+        let header_height = header_geometry.height;
+        let half_header_height = header_height / 2.0;
+        let top = size.y / 2.0;
+        let bottom = -size.y / 2.0;
+        let header_center_y = top - half_header_height - header_pos;
+        let header_center_y = header_center_y.max(bottom + half_header_height);
+        let header_center_y = header_center_y.min(top - half_header_height);
+        header_center_y
     }
 
     fn selection_size(&self, is_header_selected: bool, style: SelectionStyle) -> Vector2 {
