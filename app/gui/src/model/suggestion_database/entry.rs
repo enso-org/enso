@@ -140,7 +140,7 @@ impl<'a> IntoIterator for &'a QualifiedName {
 // ================
 
 /// Name of an icon. The name is composed of words with unspecified casing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IconName {
     /// Internally the name is kept in PascalCase to optimize converting into
     /// [`component_group_view::icon::Id`].
@@ -225,7 +225,8 @@ pub struct Entry {
     pub self_type:          Option<tp::QualifiedName>,
     /// A scope where this suggestion is visible.
     pub scope:              Scope,
-    pub icon_name:          Option<String>,
+    /// A name of a custom icon to use when displaying the entry.
+    pub icon_name:          Option<IconName>,
 }
 
 impl Entry {
@@ -676,11 +677,14 @@ fn chain_iter_and_entry_name<'a>(
     iter.into_iter().chain(iter::once(entry.name.as_str()))
 }
 
-fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<String>
+fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<IconName>
 where I: IntoIterator<Item = &'a language_server::types::DocSection> {
     use language_server::types::DocSection;
     doc_sections.into_iter().find_map(|section| match section {
-        DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => Some(body.clone()),
+        DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
+            let icon_name = IconName::from_kebab_case(body);
+            Some(icon_name)
+        },
         _ => None,
     })
 }
