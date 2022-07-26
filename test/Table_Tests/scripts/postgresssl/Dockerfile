@@ -1,13 +1,12 @@
 # syntax=docker/dockerfile:1
-FROM postgres:14.4-alpine
+FROM postgres:14.4
 
 ARG host_name
 
 COPY ./*.conf /root/
 
-RUN apk upgrade --update-cache --available && \
-    apk add openssl && \
-    rm -rf /var/cache/apk/* && \
+RUN apt-get update && \
+    apt-get upgrade -y && \
     mkdir openssl && cd openssl && \
     openssl req -x509 -sha256 -days 356 -nodes -newkey rsa:2048 -subj "/CN=${host_name}/C=UK/L=London" -keyout rootCA.key -out rootCA.crt && \
     openssl genrsa -out server.key 2048 && \
