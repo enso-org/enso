@@ -168,4 +168,5 @@ should_write_headers headers = case headers of
 ## PRIVATE
    The default line separator used for newly written delimited files, if no
    specific separator has been set.
-default_line_separator_for_writing = Line_Ending_Style.Unix
+# default_line_separator_for_writing = Line_Ending_Style.Unix
+default_line_separator_for_writing = Line_Ending_Style.Mac_Legacy
