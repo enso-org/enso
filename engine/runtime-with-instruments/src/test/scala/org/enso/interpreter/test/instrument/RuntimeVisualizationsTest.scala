@@ -119,6 +119,10 @@ class RuntimeVisualizationsTest
       val idFooY  = metadata.addItem(128, 8)
       val idFooZ  = metadata.addItem(145, 5)
 
+      println(s"idMainX=$idMainX")
+      println(s"idMainY=$idMainY")
+      println(s"idMainZ=$idMainZ")
+
       def code =
         metadata.appendToCode(
           """
@@ -234,13 +238,15 @@ class RuntimeVisualizationsTest
 
     object Visualisation {
 
-      val metadata = new Metadata
-      val idEncode = metadata.addItem(12, 9)
-      val idIncY   = metadata.addItem(48, 5)
-      val idIncRes = metadata.addItem(58, 8)
+      val metadata    = new Metadata
+      val idEncode    = metadata.addItem(12, 9)
+      val idIncY      = metadata.addItem(48, 5)
+      val idIncRes    = metadata.addItem(58, 8)
+      val idIncMethod = metadata.addItem(23, 44)
 
       println(s"DEBUG idIncY=$idIncY")
       println(s"DEBUG idIncRes=$idIncRes")
+      println(s"DEBUG idIncMet=$idIncMethod")
       println(s"DEBUG idEncode=$idEncode")
 
       val code =
@@ -252,7 +258,7 @@ class RuntimeVisualizationsTest
             |    y = x + 1
             |    encode y
             |
-            |""".stripMargin
+            |""".stripMargin.linesIterator.mkString("\n")
         )
 
     }
@@ -2233,5 +2239,46 @@ class RuntimeVisualizationsTest
         data
     }
     data2.sameElements("51".getBytes) shouldBe true
+
+    // Modify the visualization file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          visualisationFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(4, 12), model.Position(4, 13)),
+              "2"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+
+    val editFileResponse = context.receiveN(2)
+    editFileResponse should contain(
+//      context.Main.Update.mainX(contextId),
+//      context.Main.Update.mainY(contextId),
+//      context.Main.Update.mainZ(contextId),
+      //TestMessages.update(contextId, idMainRes, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+    val Some(data3) = editFileResponse.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMainRes`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    println(new String(data3))
+    data3.sameElements("52".getBytes) shouldBe true
   }
 }

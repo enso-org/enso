@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument
 
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
@@ -153,6 +154,25 @@ class ExecutionContextManager {
         visualisation <- state.visualisations.find(expressionId)
       } yield visualisation
     }
+
+  /** Get all visualisations invalidated by the provided list of expressions.
+    *
+    * @param module the module containing the visualisations
+    * @param invalidatedExpressions the list of invalidated expressions
+    * @return a list of matching visualisation
+    */
+  def getInvalidatedVisualisations(
+    module: QualifiedName,
+    invalidatedExpressions: Set[ExpressionId]
+  ): Iterable[Visualisation] = {
+    for {
+      state         <- contexts.values
+      visualisation <- state.visualisations.findByModule(module)
+      if visualisation.visualisationExpressionId.exists(
+        invalidatedExpressions.contains
+      )
+    } yield visualisation
+  }
 
   /** Removes a visualisation from the holder.
     *

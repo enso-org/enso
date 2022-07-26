@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import java.util.logging.Level
 import cats.implicits._
+import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
@@ -12,9 +13,7 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
   EvaluationFailed,
-  EvaluationFailure,
   EvaluationResult,
-  MaxEvaluationRetryCount,
   ModuleNotFound
 }
 import org.enso.interpreter.runtime.Module
@@ -23,6 +22,8 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExpressionId,
   RequestId,
+  VisualisationConfiguration,
+  VisualisationExpression,
   VisualisationId
 }
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
@@ -30,20 +31,20 @@ import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 /** A job that upserts a visualisation.
   *
   * @param requestId maybe a request id
+  * @param response a response used to reply to a client
   * @param visualisationId an identifier of visualisation
   * @param expressionId an identifier of expression
   * @param config a visualisation config
-  * @param response a response used to reply to a client
   */
 class UpsertVisualisationJob(
   requestId: Option[RequestId],
+  response: ApiResponse,
   visualisationId: VisualisationId,
   expressionId: ExpressionId,
-  config: Api.VisualisationConfiguration,
-  response: ApiResponse
+  config: Api.VisualisationConfiguration
 ) extends Job[Option[Executable]](
       List(config.executionContextId),
-      true,
+      false,
       false
     ) {
 
@@ -53,7 +54,9 @@ class UpsertVisualisationJob(
     ctx.locking.acquireWriteCompilationLock()
     try {
       val maybeCallable =
-        evaluateVisualisationExpression(config.expression)
+        UpsertVisualisationJob.evaluateVisualisationExpression(
+          config.expression
+        )
 
       maybeCallable match {
         case Left(ModuleNotFound) =>
@@ -65,12 +68,22 @@ class UpsertVisualisationJob(
           None
 
         case Right(EvaluationResult(module, callable)) =>
-          val visualisation = updateVisualisation(module, callable)
+          val visualisation =
+            UpsertVisualisationJob.updateVisualisation(
+              visualisationId,
+              expressionId,
+              module,
+              config,
+              callable
+            )
           ctx.endpoint.sendToClient(Api.Response(requestId, response))
           val stack = ctx.contextManager.getStack(config.executionContextId)
           val cachedValue = stack.headOption
             .flatMap(frame => Option(frame.cache.get(expressionId)))
-          requireVisualisationSynchronization(stack, expressionId)
+          UpsertVisualisationJob.requireVisualisationSynchronization(
+            stack,
+            expressionId
+          )
           cachedValue match {
             case Some(value) =>
               ProgramExecutionSupport.sendVisualisationUpdate(
@@ -88,42 +101,6 @@ class UpsertVisualisationJob(
     } finally {
       ctx.locking.releaseWriteCompilationLock()
       ctx.locking.releaseContextLock(config.executionContextId)
-    }
-  }
-
-  private def requireVisualisationSynchronization(
-    stack: Iterable[InstrumentFrame],
-    expressionId: ExpressionId
-  ): Unit = {
-    stack.foreach(_.syncState.setVisualisationUnsync(expressionId))
-  }
-
-  private def updateVisualisation(
-    module: Module,
-    callable: AnyRef
-  )(implicit ctx: RuntimeContext): Visualisation = {
-    val visualisation = Visualisation(
-      visualisationId,
-      expressionId,
-      new RuntimeCache(),
-      module,
-      callable
-    )
-    setCacheWeights(visualisation)
-    ctx.contextManager.upsertVisualisation(
-      config.executionContextId,
-      visualisation
-    )
-    visualisation
-  }
-
-  private def setCacheWeights(visualisation: Visualisation): Unit = {
-    visualisation.module.getIr.getMetadata(CachePreferenceAnalysis).foreach {
-      metadata =>
-        CacheInvalidation.runVisualisations(
-          Seq(visualisation),
-          CacheInvalidation.Command.SetMetadata(metadata)
-        )
     }
   }
 
@@ -145,6 +122,60 @@ class UpsertVisualisationJob(
     ctx.endpoint.sendToClient(
       Api.Response(requestId, Api.ModuleNotFound(module))
     )
+  }
+
+}
+
+object UpsertVisualisationJob {
+
+  /** The number of times to retry the expression evaluation. */
+  val MaxEvaluationRetryCount: Int = 5
+
+  /** Base trait for evaluation failures.
+    */
+  sealed trait EvaluationFailure
+
+  /** Signals that a module cannot be found.
+    */
+  case object ModuleNotFound extends EvaluationFailure
+
+  /** Signals that an evaluation of an expression failed.
+    *
+    * @param message the textual reason of a failure
+    * @param failure the error description
+    */
+  case class EvaluationFailed(
+    message: String,
+    failure: Option[Api.ExecutionResult.Diagnostic]
+  ) extends EvaluationFailure
+
+  case class EvaluationResult(module: Module, callback: AnyRef)
+
+  /** Upsert the provided visualisation.
+    *
+    * @param visualisation the visualisation to update
+    */
+  def upsertVisualisation(
+    visualisation: Visualisation
+  )(implicit ctx: RuntimeContext): Unit = {
+    val visualisationConfig = visualisation.config
+    val expressionId        = visualisation.expressionId
+    val visualisationId     = visualisation.id
+    val maybeCallable =
+      evaluateVisualisationExpression(visualisation.config.expression)
+
+    maybeCallable.foreach { result =>
+      updateVisualisation(
+        visualisationId,
+        expressionId,
+        result.module,
+        visualisationConfig,
+        result.callback
+      )
+      val stack =
+        ctx.contextManager.getStack(visualisationConfig.executionContextId)
+      requireVisualisationSynchronization(stack, expressionId)
+    }
   }
 
   private def findModule(
@@ -233,31 +264,70 @@ class UpsertVisualisationJob(
       expression <- evaluateModuleExpression(module, expression)
     } yield expression
   }
-}
 
-object UpsertVisualisationJob {
+  private def updateVisualisation(
+    visualisationId: VisualisationId,
+    expressionId: ExpressionId,
+    module: Module,
+    visualisationConfig: VisualisationConfiguration,
+    callback: AnyRef
+  )(implicit ctx: RuntimeContext): Visualisation = {
+    val visualisationExpressionId =
+      findVisualisationExpressionId(module, visualisationConfig.expression)
+    val visualisation = Visualisation(
+      visualisationId,
+      expressionId,
+      new RuntimeCache(),
+      module,
+      visualisationConfig,
+      visualisationExpressionId,
+      callback
+    )
+    setCacheWeights(visualisation)
+    ctx.contextManager.upsertVisualisation(
+      visualisationConfig.executionContextId,
+      visualisation
+    )
+    visualisation
+  }
 
-  /** The number of times to retry the expression evaluation. */
-  val MaxEvaluationRetryCount: Int = 5
+  private def findVisualisationExpressionId(
+    module: Module,
+    visualisationExpression: VisualisationExpression
+  ): Option[ExpressionId] =
+    visualisationExpression match {
+      case VisualisationExpression.ModuleMethod(methodPointer) =>
+        module.getIr.bindings
+          .collect { case method: IR.Module.Scope.Definition.Method =>
+            val methodReference        = method.methodReference
+            val methodReferenceName    = methodReference.methodName.name
+            val methodReferenceTypeOpt = methodReference.typePointer.map(_.name)
 
-  /** Base trait for evaluation failures.
-    */
-  sealed trait EvaluationFailure
+            method.getExternalId.filter { _ =>
+              methodReferenceName == methodPointer.name &&
+              methodReferenceTypeOpt.isEmpty
+            }
+          }
+          .flatten
+          .headOption
 
-  /** Signals that a module cannot be found.
-    */
-  case object ModuleNotFound extends EvaluationFailure
+      case _: VisualisationExpression.Text => None
+    }
 
-  /** Signals that an evaluation of an expression failed.
-    *
-    * @param message the textual reason of a failure
-    * @param failure the error description
-    */
-  case class EvaluationFailed(
-    message: String,
-    failure: Option[Api.ExecutionResult.Diagnostic]
-  ) extends EvaluationFailure
+  private def setCacheWeights(visualisation: Visualisation): Unit = {
+    visualisation.module.getIr.getMetadata(CachePreferenceAnalysis).foreach {
+      metadata =>
+        CacheInvalidation.runVisualisations(
+          Seq(visualisation),
+          CacheInvalidation.Command.SetMetadata(metadata)
+        )
+    }
+  }
 
-  case class EvaluationResult(module: Module, callback: AnyRef)
+  private def requireVisualisationSynchronization(
+    stack: Iterable[InstrumentFrame],
+    expressionId: ExpressionId
+  ): Unit =
+    stack.foreach(_.syncState.setVisualisationUnsync(expressionId))
 
 }

@@ -83,12 +83,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     applyEdits(new File(module.getPath)).map { changeset =>
       compile(module)
         .map { compilerResult =>
-          val cacheInvalidationCommands =
-            buildCacheInvalidationCommands(
-              changeset,
-              module.getSource.getCharacters
-            )
-          runInvalidationCommands(cacheInvalidationCommands)
+          invalidateCaches(module, changeset)
           ctx.jobProcessor.runBackground(
             AnalyzeModuleInScopeJob(
               module.getName,
@@ -270,37 +265,46 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
-    source: CharSequence
-  )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
+    @scala.annotation.unused source: CharSequence
+  )(implicit
+    @scala.annotation.unused ctx: RuntimeContext
+  ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-    val scopeIds = ctx.executionService.getContext.getCompiler
-      .parseMeta(source)
-      .map(_._2)
-    val invalidateStaleCommand =
-      CacheInvalidation.Command.InvalidateStale(scopeIds)
+//    val scopeIds = ctx.executionService.getContext.getCompiler
+//      .parseMeta(source)
+//      .map(_._2)
+//    val invalidateStaleCommand =
+//      CacheInvalidation.Command.InvalidateStale(scopeIds)
     Seq(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
         invalidateExpressionsCommand,
         Set(CacheInvalidation.IndexSelector.Weights)
-      ),
-      CacheInvalidation(
-        CacheInvalidation.StackSelector.All,
-        invalidateStaleCommand,
-        Set(CacheInvalidation.IndexSelector.All)
       )
+//      CacheInvalidation(
+//        CacheInvalidation.StackSelector.All,
+//        invalidateStaleCommand,
+//        Set(CacheInvalidation.IndexSelector.All)
+//      )
     )
   }
 
   /** Run the invalidation commands.
     *
-    * @param invalidationCommands the invalidation command to run
+    * @param module the compiled module
+    * @param changeset the changeset containing the list of invalidated expressions
     * @param ctx the runtime context
     */
-  private def runInvalidationCommands(
-    invalidationCommands: Iterable[CacheInvalidation]
+  private def invalidateCaches(
+    module: Module,
+    changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
+    val invalidationCommands =
+      buildCacheInvalidationCommands(
+        changeset,
+        module.getSource.getCharacters
+      )
     ctx.contextManager.getAll.values
       .foreach { stack =>
         if (stack.nonEmpty) {
@@ -322,6 +326,20 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.contextManager.getAllVisualisations,
       visualisationInvalidationCommands
     )
+    val invalidatedVisualisations =
+      ctx.contextManager.getInvalidatedVisualisations(
+        module.getName,
+        changeset.invalidated
+      )
+    invalidatedVisualisations.foreach { visualisation =>
+      UpsertVisualisationJob.upsertVisualisation(visualisation)
+    }
+    if (invalidatedVisualisations.nonEmpty) {
+      ctx.executionService.getLogger.log(
+        Level.FINE,
+        s"Invalidated visualisations [${invalidatedVisualisations.map(_.id)}]"
+      )
+    }
   }
 
   /** Send notification about the compilation status.
