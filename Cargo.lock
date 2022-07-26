@@ -3834,7 +3834,6 @@ dependencies = [
 name = "ide-view-component-group"
 version = "0.1.0"
 dependencies = [
- "convert_case 0.5.0",
  "enso-frp",
  "ensogl",
  "ensogl-core",

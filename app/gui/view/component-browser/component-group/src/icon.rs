@@ -1075,11 +1075,3 @@ impl Default for Id {
         Self::Star
     }
 }
-
-impl<T: AsRef<str>> TryFrom<convert_case::StateConverter<'_, T>> for Id {
-    type Error = UnknownIcon;
-    fn try_from(case_converter: convert_case::StateConverter<T>) -> Result<Id, Self::Error> {
-        use convert_case::Case;
-        case_converter.to_case(Case::Pascal).parse()
-    }
-}
