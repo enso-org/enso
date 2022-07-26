@@ -82,20 +82,14 @@ mod tests {
             #[serde(default, deserialize_with = "deserialize_null_as_default")]
             blah: Vec<i32>,
         }
-        let code = r#"{"blah" : null }"#;
-        let deserialized = serde_json::from_str::<Foo>(code).unwrap();
-        assert_eq!(deserialized, Foo { blah: vec![] });
-
-        let code = r#"{}"#;
-        let deserialized = serde_json::from_str::<Foo>(code).unwrap();
-        assert_eq!(deserialized, Foo { blah: vec![] });
-
-        let code = r#"{"blah" : [] }"#;
-        let deserialized = serde_json::from_str::<Foo>(code).unwrap();
-        assert_eq!(deserialized, Foo { blah: vec![] });
-
-        let code = r#"{"blah" : [1,2,3] }"#;
-        let deserialized = serde_json::from_str::<Foo>(code).unwrap();
-        assert_eq!(deserialized, Foo { blah: vec![1, 2, 3] });
+        fn check_deserialized_eq(code: &str, expected_deserialized: &Foo) {
+            let deserialized = serde_json::from_str::<Foo>(code).unwrap();
+            assert_eq!(&deserialized, expected_deserialized);
+        }
+        let empty_foo = Foo { blah: vec![] };
+        check_deserialized_eq(r#"{"blah" : null }"#, &empty_foo);
+        check_deserialized_eq(r#"{}"#, &empty_foo);
+        check_deserialized_eq(r#"{"blah" : [] }"#, &empty_foo);
+        check_deserialized_eq(r#"{"blah" : [1,2,3] }"#, &Foo { blah: vec![1, 2, 3] });
     }
 }
