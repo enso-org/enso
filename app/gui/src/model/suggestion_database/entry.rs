@@ -914,6 +914,8 @@ mod test {
         assert_eq!(String::from(qualified_name), "Foo.Bar".to_string());
     }
 
+    /// Test [`find_icon_name_in_doc_sections`] function extracting a name of an icon from the body
+    /// of a keyed [`DocSection`] which has its key equal to the `Icon` string.
     #[test]
     fn find_icon_name_in_doc_section_with_icon_key() {
         use language_server::types::DocSection;
@@ -925,5 +927,17 @@ mod test {
         ];
         let icon_name = find_icon_name_in_doc_sections(&doc_sections).unwrap();
         assert_eq!(icon_name.to_pascal_case(), "ExampleIconName");
+    }
+
+    /// Test case-insensitive comparison of [`IconName`] values and case-insensitiveness when
+    /// converting [`IconName`] values to PascalCase.
+    #[test]
+    fn icon_name_case_insensitiveness() {
+        let small_kebab_case_name = IconName::from_kebab_case("an-example-name");
+        let mixed_kebab_case_name = IconName::from_kebab_case("aN-EXAMPLE-name");
+        const PASCAL_CASE_NAME: &str = "AnExampleName";
+        assert_eq!(small_kebab_case_name, mixed_kebab_case_name);
+        assert_eq!(small_kebab_case_name.to_pascal_case(), PASCAL_CASE_NAME);
+        assert_eq!(mixed_kebab_case_name.to_pascal_case(), PASCAL_CASE_NAME);
     }
 }
