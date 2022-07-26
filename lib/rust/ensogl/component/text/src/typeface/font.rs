@@ -43,11 +43,7 @@ pub struct Cache<K: Eq + Hash, V> {
 impl<K: Eq + Hash, V: Copy> Cache<K, V> {
     pub fn get_or_create<F>(&self, key: K, constructor: F) -> V
     where F: FnOnce() -> V {
-        let mut map = self.map.borrow_mut();
-        match map.entry(key) {
-            Entry::Occupied(entry) => *entry.get(),
-            Entry::Vacant(entry) => *entry.insert(constructor()),
-        }
+        *self.map.borrow_mut().entry(key).or_insert_with(|| constructor())
     }
 }
 
@@ -207,8 +203,7 @@ impl Font {
 
     /// Create render info for one of embedded fonts
     pub fn try_from_embedded(base: &EmbeddedFonts, name: &str) -> Option<Self> {
-        let font_data_opt = base.font_data_by_name.get(name);
-        font_data_opt.map(|data| Self::from_raw_data(name.to_string(), data))
+        base.ttf_binary_data.get(name).map(|data| Self::from_raw_data(name.to_string(), data))
     }
 
     /// Get render info for one character, generating one if not found.
@@ -286,7 +281,7 @@ pub struct RegistryData {
 }
 
 impl {
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts
+    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns None if the name is missing in both cache and embedded
     /// font list.
     pub fn try_load(&mut self, name:&str) -> Option<Font> {
@@ -299,7 +294,7 @@ impl {
         }
     }
 
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts
+    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns default font if the name is missing in both cache and
     /// embedded font list.
     pub fn load(&mut self, name:&str) -> Font {
@@ -317,9 +312,9 @@ impl RegistryData {
     pub fn init_and_load_default() -> RegistryData {
         let embedded = EmbeddedFonts::create_and_fill();
         let fonts = HashMap::new();
-        let default_name = DEFAULT_FONT;
-        let default = Font::try_from_embedded(&embedded, default_name)
-            .unwrap_or_else(|| panic!("Cannot load default font {}.", default_name));
+        let default_font = DEFAULT_FONT;
+        let default = Font::try_from_embedded(&embedded, default_font)
+            .unwrap_or_else(|| panic!("Cannot load the default font '{}'.", default_font));
         Self { embedded, fonts, default }
     }
 }

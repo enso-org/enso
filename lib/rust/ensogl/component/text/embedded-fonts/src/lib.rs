@@ -35,15 +35,15 @@ pub type DefaultFamily = embedded_fonts_names::DejaVuSans;
 // === EmbeddedFonts ===
 // =====================
 
-/// A base of built-in fonts in application
+/// A base of built-in fonts in application.
 ///
-/// The structure keeps only a binary data in ttf format. The data should be then interpreted by
-/// user (e.g. by using msdf-sys crate).
+/// The structure keeps a map from a font name to its binary ttf representation. The binary data can
+/// be further interpreted by such libs as the `msdf-gen` one.
 ///
 /// For list of embedded fonts, see FONTS_TO_EXTRACT constant in `build.rs`.
 #[allow(missing_docs)]
 pub struct EmbeddedFonts {
-    pub font_data_by_name: HashMap<&'static str, &'static [u8]>,
+    pub ttf_binary_data: HashMap<&'static str, &'static [u8]>,
 }
 
 impl EmbeddedFonts {
@@ -51,9 +51,9 @@ impl EmbeddedFonts {
     ///
     /// For list of embedded fonts, see `FONTS_TO_EXTRACT` constant in `build.rs`
     pub fn create_and_fill() -> EmbeddedFonts {
-        let mut font_data_by_name = HashMap::<&'static str, &'static [u8]>::new();
+        let mut ttf_binary_data = HashMap::<&'static str, &'static [u8]>::new();
         include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
-        EmbeddedFonts { font_data_by_name }
+        EmbeddedFonts { ttf_binary_data }
     }
 }
 
@@ -79,7 +79,7 @@ mod test {
     #[test]
     fn loading_embedded_fonts() {
         let fonts = EmbeddedFonts::create_and_fill();
-        let example_font = fonts.font_data_by_name.get(DejaVuSans::regular()).unwrap();
+        let example_font = fonts.ttf_binary_data.get(DejaVuSans::regular()).unwrap();
 
         assert_eq!(0x00, example_font[0]);
         assert_eq!(0x01, example_font[1]);
