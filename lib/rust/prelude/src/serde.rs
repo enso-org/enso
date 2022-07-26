@@ -19,6 +19,8 @@ where
     serde_json::from_value(json_value).or_else(|_error| Ok(Ret::default()))
 }
 
+/// Deserialize a JSON value that is either of `Ret` type or equals `null`. A `null` is converted
+/// to a default value of `Ret` type.
 #[cfg(feature = "serde_json")]
 pub fn deserialize_null_as_default<'d, Ret, D>(d: D) -> Result<Ret, D::Error>
 where
