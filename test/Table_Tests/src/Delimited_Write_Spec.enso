@@ -30,7 +30,7 @@ type My_Type
     to_text : Text
     to_text = "[[[My Type :: " + self.x.to_text + "]]]"
 
-default_line_endings_for_new_files = Line_Ending_Style.Mac_Legacy
+default_line_endings_for_new_files = Line_Ending_Style.Unix
 join_lines lines trailing_newline=True =
     eol = default_line_endings_for_new_files.to_text
     if trailing_newline then lines.join eol suffix=eol else lines.join eol
