@@ -783,6 +783,14 @@ pub enum RegisterOptions {
 
 pub type HtmlString = String;
 
+#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub enum Mark {
+    Important,
+    Info,
+    Example,
+}
+
 /// A single section of the documentation.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(missing_docs)]
@@ -815,8 +823,7 @@ pub enum DocSection {
     #[serde(rename_all = "camelCase")]
     Marked {
         /// The section mark.
-        // FIXME[MC]: see if enum can be used here
-        mark:   String,
+        mark:   Mark,
         /// The section header.
         header: Option<String>,
         /// The elements that make up the body of the section.
