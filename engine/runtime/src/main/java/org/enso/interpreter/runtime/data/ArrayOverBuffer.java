@@ -4,13 +4,11 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 import java.nio.ByteBuffer;
 
 @ExportLibrary(InteropLibrary.class)
-public class ArrayOverBuffer implements TruffleObject {
+public final class ArrayOverBuffer implements TruffleObject {
   private final ByteBuffer buffer;
 
   private ArrayOverBuffer(ByteBuffer buffer) {
@@ -19,7 +17,7 @@ public class ArrayOverBuffer implements TruffleObject {
 
   @ExportMessage
   Object readArrayElement(long index) {
-    return (long) buffer.get(Math.toIntExact(index));
+    return (long) buffer.get(buffer.position() + Math.toIntExact(index));
   }
 
   @ExportMessage
