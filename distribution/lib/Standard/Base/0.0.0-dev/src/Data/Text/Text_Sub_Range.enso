@@ -6,16 +6,6 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Type defining a substring of a Text
 type Text_Sub_Range
-    ## Select the first `count` characters.
-       Select an empty string if `count` is less than or equal to 0.
-       Select the entire string if `count` is greater than the length of the input.
-    type First (count : Integer = 1)
-
-    ## Select the last `count` characters.
-       Select an empty string if `count` is less than or equal to 0.
-       Select the entire string if `count` is greater than the length of the input.
-    type Last (count : Integer = 1)
-
     ## Select characters until the first instance of `delimiter`.
        Select an empty string if `delimiter` is empty.
        Select the entire string if the input does not contain `delimiter`.
@@ -33,9 +23,6 @@ type Text_Sub_Range
     ## Select characters after the last instance of `delimiter`.
        Select an empty string if the input does not contain `delimiter`.
     type After_Last (delimiter : Text)
-
-    ## Select characters while the predicate returns `True`.
-    type While (predicate : (Text -> Boolean))
 
     ## PRIVATE
        Finds code-point indices corresponding to the part of the input matching the `Text_Sub_Range`.

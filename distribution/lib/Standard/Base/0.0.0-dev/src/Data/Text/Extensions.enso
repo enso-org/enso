@@ -1096,7 +1096,7 @@ Text.repeat self count=1 =
          "Hello World!".take (Range 5 Nothing) == " World!"
          "Hello World!".take (Range 5 12) == " World!"
          "Hello World!".take (Range 12 12) == ""
-Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.take : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.take self range =
     char_range = case range of
         Range _ _ _ -> Span_Module.range_to_char_indices self range
@@ -1136,7 +1136,7 @@ Text.take self range =
          "Hello World!".drop (Range 5 Nothing) == "Hello"
          "Hello World!".drop (Range 5 12) == "Hello"
          "Hello World!".drop (Range 12 12) == "Hello World!"
-Text.drop : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.drop self range =
     char_range = case range of
         Range _ _ _ -> Span_Module.range_to_char_indices self range

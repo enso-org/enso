@@ -17,7 +17,7 @@ type Index_Sub_Range
     type While (predicate : (Any -> Boolean))
 
     ## Selects specific row indexes (starting from 0) either as an Integer or a Range
-    type By_Index (indexes : (Integer | Range | [Integer | Range]) = [0])
+    type By_Index (indexes : (Integer | Range | Vector (Integer | Range)) = [0])
 
     ## Gets a random sample of entries.
     type Sample (count:Integer) (seed:Integer=Random.get_default_seed)
