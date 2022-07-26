@@ -29,6 +29,8 @@ pub use language_server::types::SuggestionsDatabaseUpdate as Update;
 // === Constants ===
 // =================
 
+/// Key of the keyed [`language_server::types::DocSection`] containing a name of an icon in its
+/// body.
 const ICON_DOC_SECTION_KEY: &str = "Icon";
 
 
