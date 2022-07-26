@@ -25,6 +25,14 @@ pub use language_server::types::SuggestionsDatabaseUpdate as Update;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const ICON_DOC_SECTION_KEY: &str = "Icon";
+
+
+
 // ==============
 // === Errors ===
 // ==============
@@ -642,12 +650,9 @@ fn chain_iter_and_entry_name<'a>(
 fn find_icon_name<'a, I>(doc_sections: I) -> Option<&'a str>
 where I: IntoIterator<Item = &'a language_server::types::DocSection> {
     use language_server::types::DocSection;
-    doc_sections.into_iter().find_map(|section| {
-        match section {
-            // FIXME[MC]: case insensitive comparison
-            DocSection::Keyed { key, body } if key == "Icon" => Some(body.as_str()),
-            _ => None,
-        }
+    doc_sections.into_iter().find_map(|section| match section {
+        DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => Some(body.as_str()),
+        _ => None,
     })
 }
 
