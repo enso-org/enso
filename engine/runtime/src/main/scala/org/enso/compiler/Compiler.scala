@@ -54,6 +54,7 @@ class Compiler(
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
+  private val ensoCompiler: EnsoCompiler = new EnsoCompiler();
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -421,8 +422,38 @@ class Compiler(
       compilerConfig   = config,
       isGeneratingDocs = isGenDocs
     )
-    val parsedAST        = parse(module.getSource)
-    val expr             = generateIR(parsedAST)
+
+    val src = module.getSource
+    def oldParse(print: Boolean) = {
+        val again = System.currentTimeMillis()
+        val parsedAST        = parse(src)
+        val took = System.currentTimeMillis() - again
+        System.err.println("Reparsed " + src.getURI() + " in " + took + " ms")
+        val ir = generateIR(parsedAST)
+        if (print) System.err.println(ir)
+        ir
+    }
+
+    val now = System.currentTimeMillis()
+    val expr = try {
+      val tree = ensoCompiler.parse(src)
+      val took = System.currentTimeMillis() - now
+      val size = src.getCharacters().length()
+      System.err.println("Parsed " + src.getURI() + " in " + took + " ms, size " + size)
+      if (size < 20) {
+        ensoCompiler.generateIR(tree)
+        oldParse(true)
+      } else {
+        oldParse(false)
+      }
+    } catch {
+      case ex : Throwable => {
+        val fail = System.currentTimeMillis() - now
+        System.err.println(ex.getClass().getSimpleName() + " in " + src.getURI() + " in " + fail + " ms with ")
+        oldParse(false)
+      }
+    }
+
     val discoveredModule = recognizeBindings(expr, moduleContext)
     module.unsafeSetIr(discoveredModule)
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
@@ -535,8 +566,10 @@ class Compiler(
     * @param source the code to parse
     * @return an AST representation of `source`
     */
-  def parse(source: Source): AST =
+  def parse(source: Source): AST = {
+    
     Parser().runWithIds(source.getCharacters.toString)
+  }
 
   /** Parses the metadata of the provided language sources.
     *

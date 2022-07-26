@@ -5,3 +5,5 @@ OperatorBlockExpression.java
 OperatorLine.java
 Token.java
 Tree.java
+TypeConstructorDef.java
+TypeConstructorLine.java

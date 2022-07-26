@@ -7,8 +7,19 @@ import java.nio.ByteOrder;
 
 public final class Parser implements AutoCloseable {
     static {
-        File parser = new File("target/rust/debug/libenso_parser.so");
-        System.load(parser.getAbsolutePath());
+        File dir = new File(".").getAbsoluteFile();
+        for (;;) {
+            File parser = new File(dir, "target/rust/debug/libenso_parser.so");
+            try {
+                System.load(parser.getAbsolutePath());
+                break;
+            } catch (LinkageError e) {
+                dir = dir.getParentFile();
+                if (dir == null) {
+                    throw e;
+                }
+            }
+        }
     }
 
     private long state;
@@ -25,9 +36,9 @@ public final class Parser implements AutoCloseable {
         var state = allocState();
         return new Parser(state);
     }
-    public final Tree parse(String input) throws UnsupportedSyntaxException {
+    public final Tree parse(CharSequence input) throws UnsupportedSyntaxException {
         try {
-            byte[] inputBytes = input.getBytes("UTF-8");
+            byte[] inputBytes = input.toString().getBytes("UTF-8");
             ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
             inputBuf.put(inputBytes);
             var serializedTree = parseInput(state, inputBuf);
