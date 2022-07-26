@@ -23,7 +23,8 @@ type Postgres
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-    type Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
+       - schema: The schema to connect to. If empty, the default schema will be used.
+    type Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing) (schema:Text="")
 
     ## Build the Connection resource.
 

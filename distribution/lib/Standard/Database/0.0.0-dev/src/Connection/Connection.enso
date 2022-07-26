@@ -27,15 +27,17 @@ type Connection
 
     ## PRIVATE
 
-       A Database connection using a JDBC driver.
+       A Database connection using a JDBC driver. Allows accessing tables from a database.
 
        Arguments:
        - connection_resource: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
-
-       Allows accessing tables from a database.
-    type Connection connection_resource dialect
+       - with_database: an action taking a new database name and returning a new
+         connection to that database.
+       - with_schema: an action taking a new database name and returning a new
+         connection to that schema.
+    type Connection connection_resource dialect with_database with_schema
 
     ## UNSTABLE
 
@@ -337,14 +339,14 @@ Unsupported_Dialect.to_display_text self =
    - url: The URL to connect to.
    - properties: A vector of properties for the connection.
    - dialect: A Dialect object that will be used to generate SQL.
-create_jdbc_connection : Text -> Vector -> Dialect -> Connection
-create_jdbc_connection url properties dialect = handle_sql_errors <|
+create_jdbc_connection : Text -> Vector -> Dialect -> (Text->Connection!Sql_Error) -> (Text->Connection!Sql_Error) -> Connection
+create_jdbc_connection url properties dialect with_database=(_->Error.throw (Sql_Error "Changing database is not supported.")) with_schema=(_->Error.throw (Sql_Error "Changing schema is not supported.")) = handle_sql_errors <|
     java_props = Properties.new
     properties.each pair->
         java_props.setProperty pair.first pair.second
     java_connection = JDBCProxy.getConnection url java_props
     resource = Managed_Resource.register java_connection close_connection
-    Connection resource dialect
+    Connection resource dialect with_database with_schema
 
 ## PRIVATE
 
