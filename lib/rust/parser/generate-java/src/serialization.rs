@@ -60,7 +60,7 @@ fn impl_deserialize(
             bincode::DeserializerBuilder::new(id, crate::SERIALIZATION_SUPPORT, crate::EITHER_TYPE);
         if id == unsupported {
             deserialization.pre_hook(|bincode::HookInput { message }| {
-                format!("{message}.encounteredUnsupportedSyntax = true;\n")
+                format!("{message}.markEncounteredUnsupportedSyntax();\n")
             });
         }
         if class.parent == Some(tree) {
