@@ -135,6 +135,35 @@ impl<'a> IntoIterator for &'a QualifiedName {
 
 
 
+// ================
+// === IconName ===
+// ================
+
+/// Name of an icon. The name is composed of words with unspecified casing.
+#[derive(Debug, Clone)]
+pub struct IconName {
+    /// Internally the name is kept in PascalCase to optimize converting into
+    /// [`component_group_view::icon::Id`].
+    pascal_cased: ImString,
+}
+
+impl IconName {
+    /// Construct from a name formatted in kebab-case.
+    pub fn from_kebab_case(s: impl AsRef<str>) -> Self {
+        use convert_case::Case;
+        use convert_case::Casing;
+        let pascal_cased = s.as_ref().from_case(Case::Kebab).to_case(Case::Pascal).into();
+        Self { pascal_cased }
+    }
+
+    /// Convert to a name formatted in PascalCase.
+    pub fn to_pascal_case(&self) -> ImString {
+        self.pascal_cased.clone()
+    }
+}
+
+
+
 // =============
 // === Entry ===
 // =============
