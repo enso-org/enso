@@ -20,11 +20,11 @@ type Postgres
        - host: The hostname of the database server (defaults to localhost).
        - port: The port of the database server (defaults to 5432).
        - database: The database to connect to. If empty, the default database will be used.
+       - schema: The schema to connect to. If empty, the default schema will be used.
        - credentials: The credentials to use for the connection (defaults to PGPass or No Authentication).
        - use_ssl: Whether to use SSL (defaults to `Prefer`).
        - client_cert: The client certificate to use or `Nothing` if not needed.
-       - schema: The schema to connect to. If empty, the default schema will be used.
-    type Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing) (schema:Text="")
+    type Postgres (host:Text=default_postgres_host) (port:Integer=default_postgres_port) (database:Text=default_postgres_database) (schema:Text="") (credentials:(Credentials|Nothing)=Nothing) (use_ssl:SSL_Mode=Prefer) (client_cert:(Client_Certificate|Nothing)=Nothing)
 
     ## Build the Connection resource.
 
@@ -35,7 +35,9 @@ type Postgres
         if Driver.isRegistered.not then Driver.register
 
         properties = options.merge self.jdbc_properties
-        Connection.create_jdbc_connection self.jdbc_url properties self.dialect
+        with_database database = Postgres self.host self.port database self.credentials self.use_ssl self.client_cert self.schema . connect
+        with_schema schema = Postgres self.host self.port self.database self.credentials self.use_ssl self.client_cert schema . connect
+        Connection.create_jdbc_connection self.jdbc_url properties self.dialect with_database with_schema
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
@@ -66,7 +68,7 @@ type Postgres
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
 
-        credentials + ssl_properties + cert_properties
+        (if self.schema == '' then [] else [Pair 'defaultSchema' self.schema]) + credentials + ssl_properties + cert_properties
 
     ## Provides the dialect needed for creating SQL statements.
     dialect : Dialect
