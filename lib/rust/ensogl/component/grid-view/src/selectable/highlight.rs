@@ -224,15 +224,13 @@ impl<E: Entry> Model<E, E::Model, E::Params> {
         is_layer_set
     }
 
-    fn connect_with_shape<Setter>(
+    fn connect_with_shape<Setter: shape::AttrSetter>(
         &self,
         network: &frp::Network,
         shape: &shape::View,
         connect_color: bool,
         hide: Option<&frp::Stream<bool>>,
-    ) where
-        Setter: shape::AttrSetter,
-    {
+    ) {
         let grid_frp = self.grid.frp();
         frp::extend! { network
             init <- source_();

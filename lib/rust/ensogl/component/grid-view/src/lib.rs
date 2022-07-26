@@ -455,6 +455,14 @@ where
     }
 }
 
+impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> AsRef<Self>
+    for GridViewTemplate<Entry, EntryModel, EntryParams>
+{
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
 impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::Object
     for GridViewTemplate<Entry, EntryModel, EntryParams>
 {

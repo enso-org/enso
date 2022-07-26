@@ -69,6 +69,17 @@ where
     }
 }
 
+impl<Entry, EntryModel, EntryParams> AsRef<crate::GridViewTemplate<Entry, EntryModel, EntryParams>>
+    for GridViewTemplate<Entry, EntryModel, EntryParams>
+where
+    EntryModel: frp::node::Data,
+    EntryParams: frp::node::Data,
+{
+    fn as_ref(&self) -> &crate::GridViewTemplate<Entry, EntryModel, EntryParams> {
+        &self.grid
+    }
+}
+
 impl<Entry, EntryModel, EntryParams> display::Object
     for GridViewTemplate<Entry, EntryModel, EntryParams>
 where
