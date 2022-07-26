@@ -38,4 +38,4 @@ different SSL modes will be tested.
 If connecting to `127.0.0.1` then the test suite will attempt to connect to
 `localhost` with in full verification mode to confirm that it fails. If there is
 an alternative hostname for this test it can be supplied in
-`ENSO_DATABASE_TEST_ALTERNATE_HOST`. 
+`ENSO_DATABASE_TEST_ALTERNATE_HOST`.
