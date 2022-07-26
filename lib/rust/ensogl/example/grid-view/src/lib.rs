@@ -67,7 +67,7 @@ fn init(app: &Application) {
     let text_layer = app.display.default_scene.layers.node_searcher.create_sublayer();
     let selection_layer = app.display.default_scene.layers.node_searcher.create_sublayer();
     grid_view.set_text_layer(Some(text_layer.downgrade()));
-    // grid_view.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
+    grid_view.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
     frp::new_network! { network
         requested_entry <- grid_view.model_for_entry_needed.map(|(row, col)| {
             let model = grid_view::simple::EntryModel {

@@ -27,10 +27,8 @@ ensogl_core::define_shape_system! {
         let hover = (&hover * &viewport).fill(hover_color);
         let selection = Rect(highlights_sizes.zw().px()).corners_radius(corners_radii.z().px());
         let selection = selection.translate(highlights_pos.zw().px());
-        // let selection = (&selection * &viewport.translate(highlights_pos.xy().px())).fill(selection_color); // Why do I need translate here?????????????
         let selection = (&selection * &viewport).fill(selection_color);
-        // let highlights = &hover + &selection.translate(-highlights_pos.xy().px()); // Why do I need translate here?
-        let highlights = &hover + &selection; // Why do I need translate here?
+        let highlights = &hover + &selection;
         highlights.into()
     }
 }

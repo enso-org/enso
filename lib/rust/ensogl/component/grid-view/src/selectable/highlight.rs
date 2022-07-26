@@ -2,6 +2,7 @@ pub mod layer;
 pub mod shape;
 
 use crate::prelude::*;
+use enso_frp::HasLabel;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::scene::layer::WeakLayer;
@@ -32,6 +33,7 @@ ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
         position(Vector2),
         contour(entry::Contour),
         color(color::Rgba),
+        is_masked_layer_set(bool),
     }
 }
 
@@ -201,7 +203,7 @@ impl<E: Entry> Model<E, E::Model, E::Params> {
         }
     }
 
-    fn setup_masked_layer(&self, layer: Option<&WeakLayer>) {
+    fn setup_masked_layer(&self, layer: Option<&WeakLayer>) -> bool {
         self.layers.take();
         let new_layers = layer.and_then(|l| l.upgrade()).map(|layer| {
             let layers = layer::Layers::new(&self.app, &layer, &self.grid);
@@ -209,7 +211,7 @@ impl<E: Entry> Model<E, E::Model, E::Params> {
             let network = layers.grid.network();
             let highlight_grid_frp = layers.grid.frp();
             let frp = &self.output;
-            self.connect_with_shape::<HoverAttrSetter>(network, shape);
+            self.connect_with_shape::<HoverAttrSetter>(network, shape, false, None);
             frp::extend! { network
                 highlight_grid_frp.set_entries_params <+ frp.entries_params;
             }
@@ -217,25 +219,46 @@ impl<E: Entry> Model<E, E::Model, E::Params> {
             SelectionAttrSetter::set_size(&shape, default());
             layers
         });
+        let is_layer_set = new_layers.is_some();
         *self.layers.borrow_mut() = new_layers;
+        is_layer_set
     }
 
-    fn connect_with_shape<Setter: shape::AttrSetter>(
+    fn connect_with_shape<Setter>(
         &self,
         network: &frp::Network,
         shape: &shape::View,
-    ) {
+        connect_color: bool,
+        hide: Option<&frp::Stream<bool>>,
+    ) where
+        Setter: shape::AttrSetter,
+    {
         let grid_frp = self.grid.frp();
         frp::extend! { network
             init <- source_();
             position <- all(init, self.animations.position.value)._1();
             size <- all(init, self.animations.size.value)._1();
             corners_radius <- all(init, self.animations.corners_radius.value)._1();
-
+        }
+        let size = if let Some(hide) = hide {
+            frp::extend! { network
+                size <- all_with(&size, hide, |sz, hidden| if *hidden { default() } else { *sz });
+            }
+            size
+        } else {
+            size
+        };
+        frp::extend! { network
             pos_and_viewport <- all(position, grid_frp.viewport);
             eval pos_and_viewport ([shape](&(pos, vp)) Setter::set_position(&shape, pos, vp));
             eval size ([shape](&size) Setter::set_size(&shape, size));
             eval corners_radius ([shape](&r) Setter::set_corners_radius(&shape, r));
+        }
+        if connect_color {
+            frp::extend! { network
+                color <- all(init, self.animations.color.value)._1();
+                eval color ([shape](&color) Setter::set_color(&shape, color));
+            }
         }
         init.emit(())
     }
@@ -273,7 +296,9 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             out.contour <+ none_highlightd.constant(default());
 
             out.entries_params <+ frp.set_entries_params;
-            eval frp.setup_masked_layer ((layer) model.setup_masked_layer(layer.as_ref()));
+            out.is_masked_layer_set <+
+                frp.setup_masked_layer.map(f!((layer) model.setup_masked_layer(layer.as_ref())));
+
         }
 
         Self { frp, model }
@@ -319,12 +344,7 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
 
     pub fn connect_with_shape<Setter: shape::AttrSetter>(&self, shape: &shape::View) {
         let network = self.frp.network();
-        self.model.connect_with_shape::<Setter>(network, shape);
-        frp::extend! { network
-            init <- source_();
-            color <- all(init, self.model.animations.color.value)._1();
-            eval color ([shape](&color) Setter::set_color(&shape, color));
-        }
-        init.emit(());
+        let shape_hidden = (&self.frp.is_masked_layer_set).into();
+        self.model.connect_with_shape::<Setter>(network, shape, true, Some(&shape_hidden));
     }
 }
