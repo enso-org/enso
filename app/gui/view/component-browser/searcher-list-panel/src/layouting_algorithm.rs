@@ -10,53 +10,40 @@ fn arrange(groups: Vec<(usize, usize)>) -> Vec<Vec<usize>> {
         column.into_iter().map(|(_id, size)| size).sum()
     }
 
-    // 1. The first not yet chosen place in the middle column is chosen and is used to draw the next
-    // group. The position of its highest entry is remembered as MAX. Then process to point 2.
-    columns[CENTER].push(groups[0]);
+    fn fill_till_max(
+        column: &mut Vec<(usize, usize)>,
+        max: usize,
+        mut groups: impl Iterator<Item = (usize, usize)>,
+    ) {
+        while height(column) < max {
+            if let Some(group) = groups.next() {
+                column.push(group);
+            } else {
+                break;
+            }
+        }
+    }
+
+    let mut iter = groups.into_iter().peekable();
+
+    if let Some(group) = iter.next() {
+        columns[CENTER].push(group);
+    }
     let mut max = height(&columns[CENTER]);
-    let mut i = 1;
-    while i < groups.len() {
-        // 2.If the first not yet chosen place in the left column starts below MAX, it is chosen and
-        // is used to draw the next group. Process to point 3.
-        if height(&columns[LEFT]) < max {
-            columns[LEFT].push(groups[i]);
+    while iter.peek().is_some() {
+        if let Some(group) = iter.next() {
+            columns[LEFT].push(group);
         }
-        i += 1;
-        if i >= groups.len() {
-            break;
+        if let Some(group) = iter.next() {
+            columns[RIGHT].push(group);
         }
-        // 3. If the first not yet chosen place in the right column starts below MAX, it is chosen
-        // and is used to draw the next group. Process to point 4.
-        if height(&columns[RIGHT]) < max {
-            columns[RIGHT].push(groups[i]);
+        if let Some(group) = iter.next() {
+            columns[CENTER].push(group);
         }
-        i += 1;
-        if i >= groups.len() {
-            break;
-        }
-        // 4.The first not yet chosen place in the middle column is chosen and is used to draw the
-        // next group. The position of its highest entry is remembered as NEXT_MAX. Then
-        // process to point 5.
-        columns[CENTER].push(groups[i]);
-        let next_max = height(&columns[CENTER]);
-        i += 1;
-        if i >= groups.len() {
-            break;
-        }
-        // 5. If the first not yet chosen place in the left column starts below MAX, it is chosen,
-        // is used to draw the next group, and then algorithm loops back to point 5.
-        while height(&columns[LEFT]) < max && i < groups.len() {
-            columns[LEFT].push(groups[i]);
-            i += 1;
-        }
-        // 6.If the first not yet chosen place in the right column starts below MAX, it is chosen,
-        // is used to draw the next group, and then algorithm loops back to point 6.
-        while height(&columns[RIGHT]) < max && i < groups.len() {
-            columns[RIGHT].push(groups[i]);
-            i += 1;
-        }
-        // 7. MAX = NEXT_MAX. Process to point 2.
-        max = next_max;
+
+        fill_till_max(&mut columns[LEFT], max, &mut iter);
+        fill_till_max(&mut columns[RIGHT], max, &mut iter);
+        max = height(&columns[CENTER]);
     }
 
     columns.into_iter().map(|column| column.into_iter().map(|(id, _)| id).collect()).collect()
