@@ -86,6 +86,10 @@ mod tests {
         let deserialized = serde_json::from_str::<Foo>(code).unwrap();
         assert_eq!(deserialized, Foo { blah: vec![] });
 
+        let code = r#"{}"#;
+        let deserialized = serde_json::from_str::<Foo>(code).unwrap();
+        assert_eq!(deserialized, Foo { blah: vec![] });
+
         let code = r#"{"blah" : [] }"#;
         let deserialized = serde_json::from_str::<Foo>(code).unwrap();
         assert_eq!(deserialized, Foo { blah: vec![] });
