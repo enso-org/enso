@@ -371,7 +371,7 @@ impl Entry {
                 self_type: None,
                 kind: Kind::Atom,
                 scope: Scope::Everywhere,
-                icon: icon_name_from_doc_sections(&documentation_sections),
+                icon: find_icon_name_in_doc_sections(&documentation_sections),
             },
             #[allow(unused)]
             Method {
@@ -393,7 +393,7 @@ impl Entry {
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
                 scope: Scope::Everywhere,
-                icon: icon_name_from_doc_sections(&documentation_sections),
+                icon: find_icon_name_in_doc_sections(&documentation_sections),
             },
             Function { name, module, arguments, return_type, scope, .. } => Self {
                 name,
@@ -430,7 +430,7 @@ impl Entry {
                     kind:               Kind::Module,
                     scope:              Scope::Everywhere,
                     return_type:        module,
-                    icon:               icon_name_from_doc_sections(&documentation_sections),
+                    icon:               find_icon_name_in_doc_sections(&documentation_sections),
                 }
             }
         };
@@ -647,7 +647,7 @@ fn chain_iter_and_entry_name<'a>(
     iter.into_iter().chain(iter::once(entry.name.as_str()))
 }
 
-fn icon_name_from_doc_sections<'_, I>(doc_sections: I) -> Option<String>
+fn find_icon_name_in_doc_sections<'_, I>(doc_sections: I) -> Option<String>
 where I: IntoIterator<Item = &'_ language_server::types::DocSection> {
     use language_server::types::DocSection;
     doc_sections.into_iter().find_map(|section| match section {
