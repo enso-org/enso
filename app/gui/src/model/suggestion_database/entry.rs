@@ -196,7 +196,7 @@ pub struct Entry {
     pub self_type:          Option<tp::QualifiedName>,
     /// A scope where this suggestion is visible.
     pub scope:              Scope,
-    pub icon:               Option<String>,
+    pub icon_name:          Option<String>,
 }
 
 impl Entry {
@@ -371,7 +371,7 @@ impl Entry {
                 self_type: None,
                 kind: Kind::Atom,
                 scope: Scope::Everywhere,
-                icon: find_icon_name_in_doc_sections(&documentation_sections),
+                icon_name: find_icon_name_in_doc_sections(&documentation_sections),
             },
             #[allow(unused)]
             Method {
@@ -393,7 +393,7 @@ impl Entry {
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
                 scope: Scope::Everywhere,
-                icon: find_icon_name_in_doc_sections(&documentation_sections),
+                icon_name: find_icon_name_in_doc_sections(&documentation_sections),
             },
             Function { name, module, arguments, return_type, scope, .. } => Self {
                 name,
@@ -404,7 +404,7 @@ impl Entry {
                 documentation_html: default(),
                 kind: Kind::Function,
                 scope: Scope::InModule { range: scope.into() },
-                icon: None,
+                icon_name: None,
             },
             Local { name, module, return_type, scope, .. } => Self {
                 name,
@@ -415,7 +415,7 @@ impl Entry {
                 documentation_html: default(),
                 kind: Kind::Local,
                 scope: Scope::InModule { range: scope.into() },
-                icon: None,
+                icon_name: None,
             },
             Module {
                 module, documentation, documentation_html, documentation_sections, ..
@@ -430,7 +430,7 @@ impl Entry {
                     kind:               Kind::Module,
                     scope:              Scope::Everywhere,
                     return_type:        module,
-                    icon:               find_icon_name_in_doc_sections(&documentation_sections),
+                    icon_name:          find_icon_name_in_doc_sections(&documentation_sections),
                 }
             }
         };
@@ -692,7 +692,7 @@ mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
-            icon:               None,
+            icon_name:          None,
         };
         let method = Entry {
             name: "method".to_string(),
@@ -795,7 +795,7 @@ mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
-            icon:               None,
+            icon_name:          None,
         };
         let method = Entry {
             name: "method".to_string(),
