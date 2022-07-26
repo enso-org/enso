@@ -10,7 +10,6 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import java.nio.ByteBuffer;
 
 @ExportLibrary(InteropLibrary.class)
-@Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array_Over_Buffer")
 public class ArrayOverBuffer implements TruffleObject {
   private final ByteBuffer buffer;
 
