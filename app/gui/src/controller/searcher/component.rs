@@ -113,8 +113,7 @@ pub enum Kind {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
-    pub id:         Immutable<Id>,
-    pub suggestion: Rc<suggestion_database::Entry>,
+    pub kind: Kind,
     pub match_info: Rc<RefCell<MatchInfo>>,
 }
 
