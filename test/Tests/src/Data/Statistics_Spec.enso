@@ -1,7 +1,4 @@
-from Standard.Base import Nothing, Vector, Number, Decimal, True, Illegal_Argument_Error, False
-
-import Standard.Base.Data.Statistics
-import Standard.Base.Data.Statistics.Rank_Method
+from Standard.Base import all
 from Standard.Base.Data.Statistics import all
 
 import Standard.Test
@@ -160,33 +157,33 @@ spec =
     Test.group "Rank Data" <|
         Test.specify "can rank a Decimal data series" <|
             values = [409.892906, 0.839952, 796.468572, 126.931298, -405.265005, -476.675817, 441.651325, 796.468572, 78.50094, 340.163324, 234.861926, 409.892906, 226.467105, 234.861926, 126.931298, 637.870512, -71.008044, -386.399663, -126.534337, -476.675817, 78.50094, -386.399663, 409.892906, 868.54485, 669.113037, 669.113037, 0.839952, 407.162613, -476.675817, 126.931298]
-            Statistics.rank_data values . should_equal [9, 21.5, 2.5, 17, 27, 29, 7, 2.5, 19.5, 12, 13.5, 9, 15, 13.5, 17, 6, 23, 25.5, 24, 29, 19.5, 25.5, 9, 1, 4.5, 4.5, 21.5, 11, 29, 17]
-            Statistics.rank_data values Rank_Method.Minimum . should_equal [8, 21, 2, 16, 27, 28, 7, 2, 19, 12, 13, 8, 15, 13, 16, 6, 23, 25, 24, 28, 19, 25, 8, 1, 4, 4, 21, 11, 28, 16]
-            Statistics.rank_data values Rank_Method.Maximum . should_equal [10, 22, 3, 18, 27, 30, 7, 3, 20, 12, 14, 10, 15, 14, 18, 6, 23, 26, 24, 30, 20, 26, 10, 1, 5, 5, 22, 11, 30, 18]
-            Statistics.rank_data values Rank_Method.Ordinal . should_equal [8, 21, 2, 16, 27, 28, 7, 3, 19, 12, 13, 9, 15, 14, 17, 6, 23, 25, 24, 29, 20, 26, 10, 1, 4, 5, 22, 11, 30, 18]
-            Statistics.rank_data values Rank_Method.Dense . should_equal [6, 13, 2, 11, 17, 18, 5, 2, 12, 8, 9, 6, 10, 9, 11, 4, 14, 16, 15, 18, 12, 16, 6, 1, 3, 3, 13, 7, 18, 11]
+            rank_data values . should_equal [9, 21.5, 2.5, 17, 27, 29, 7, 2.5, 19.5, 12, 13.5, 9, 15, 13.5, 17, 6, 23, 25.5, 24, 29, 19.5, 25.5, 9, 1, 4.5, 4.5, 21.5, 11, 29, 17]
+            rank_data values Rank_Method.Minimum . should_equal [8, 21, 2, 16, 27, 28, 7, 2, 19, 12, 13, 8, 15, 13, 16, 6, 23, 25, 24, 28, 19, 25, 8, 1, 4, 4, 21, 11, 28, 16]
+            rank_data values Rank_Method.Maximum . should_equal [10, 22, 3, 18, 27, 30, 7, 3, 20, 12, 14, 10, 15, 14, 18, 6, 23, 26, 24, 30, 20, 26, 10, 1, 5, 5, 22, 11, 30, 18]
+            rank_data values Rank_Method.Ordinal . should_equal [8, 21, 2, 16, 27, 28, 7, 3, 19, 12, 13, 9, 15, 14, 17, 6, 23, 25, 24, 29, 20, 26, 10, 1, 4, 5, 22, 11, 30, 18]
+            rank_data values Rank_Method.Dense . should_equal [6, 13, 2, 11, 17, 18, 5, 2, 12, 8, 9, 6, 10, 9, 11, 4, 14, 16, 15, 18, 12, 16, 6, 1, 3, 3, 13, 7, 18, 11]
 
         Test.specify "can rank an Integer data series" <|
             values = [10, 1, 124, 10]
-            Statistics.rank_data values . should_equal [2.5, 4, 1, 2.5]
+            rank_data values . should_equal [2.5, 4, 1, 2.5]
 
         Test.specify "can rank a Number data series" <|
             values = [10.0, 1, 12.4, 10]
-            Statistics.rank_data values . should_equal [2.5, 4, 1, 2.5]
+            rank_data values . should_equal [2.5, 4, 1, 2.5]
 
         Test.specify "can rank a Text data series" <|
             values = ["G", "AA", "B", "G", "D"]
-            Statistics.rank_data values . should_equal [1.5, 5, 4, 1.5, 3]
+            rank_data values . should_equal [1.5, 5, 4, 1.5, 3]
 
         Test.specify "should fail with Incomparable_Values_Error on custom type without compare_to" <|
             values = [No_Ord 10, No_Ord 2, No_Ord 9]
-            Statistics.rank_data values . should_fail_with Vector.Incomparable_Values_Error
+            rank_data values . should_fail_with Vector.Incomparable_Values_Error
 
         Test.specify "should fail with Incomparable_Values_Error on mixed Vectors" <|
-            Statistics.rank_data [1, "A"] . should_fail_with Vector.Incomparable_Values_Error
+            rank_data [1, "A"] . should_fail_with Vector.Incomparable_Values_Error
 
         Test.specify "should fail with Illegal_Argument_Error on Vectors with Nothing" <|
-            Statistics.rank_data [1, Nothing, 4] . should_fail_with Illegal_Argument_Error
+            rank_data [1, Nothing, 4] . should_fail_with Illegal_Argument_Error
 
     Test.group "Correlation Statistics" <|
         series_a = [0.22345,0.258315,0.74663,Nothing,0.686843,0.692246,Nothing,0.401859,0.725442,Nothing,0.963527,0.520363,0.633053,0.397123,Nothing,0.458942,0.036499,0.368194,0.598939,0.296476,0.093746,0.609329]
@@ -201,21 +198,21 @@ spec =
             series_a.compute (R_Squared series_b) . should_equal 0.006829275 epsilon=double_error
 
         Test.specify "can calculate a covariance matrix" <|
-            matrix = Statistics.covariance_matrix series
+            matrix = covariance_matrix series
             matrix.length . should_equal 3
             vector_compare (matrix.at 0) [0.0571699, -0.0053554, -0.02378204]
             vector_compare (matrix.at 1) [-0.0053554, 0.07707381, -0.00098274]
             vector_compare (matrix.at 2) [-0.02378204, -0.00098274, 0.05837098]
 
         Test.specify "can calculate a pearson correlation matrix" <|
-            matrix = Statistics.pearson_correlation series
+            matrix = pearson_correlation series
             matrix.length . should_equal 3
             vector_compare (matrix.at 0) [1, -0.08263943, -0.40469045]
             vector_compare (matrix.at 1) [-0.08263943, 1, -0.01537537]
             vector_compare (matrix.at 2) [-0.40469045, -0.01537537, 1]
 
         Test.specify "can calculate a spearman rank correlation matrix" <|
-            matrix = Statistics.spearman_correlation series
+            matrix = spearman_correlation series
             matrix.length . should_equal 3
             vector_compare (matrix.at 0) [1, -0.09313725, -0.43382353]
             vector_compare (matrix.at 1) [-0.09313725, 1, 0]
@@ -227,9 +224,9 @@ spec =
             data.first.compute (Pearson data.second) . should_fail_with Illegal_Argument_Error
             data.first.compute (Spearman data.second) . should_fail_with Illegal_Argument_Error
             data.first.compute (R_Squared data.second) . should_fail_with Illegal_Argument_Error
-            Statistics.covariance_matrix data . should_fail_with Illegal_Argument_Error
-            Statistics.pearson_correlation data . should_fail_with Illegal_Argument_Error
-            Statistics.spearman_correlation data . should_fail_with Illegal_Argument_Error
+            covariance_matrix data . should_fail_with Illegal_Argument_Error
+            pearson_correlation data . should_fail_with Illegal_Argument_Error
+            spearman_correlation data . should_fail_with Illegal_Argument_Error
 
         Test.specify "should fail with Illegal_Argument_Error if not number based" <|
             text = [["A","BC","CD"], ["0", "1", "2"], ["H", "I", "J"]]
@@ -237,14 +234,14 @@ spec =
             text.first.compute (Pearson text.second) . should_fail_with Illegal_Argument_Error
             text.first.compute (Spearman text.second) . should_fail_with Illegal_Argument_Error
             text.first.compute (R_Squared text.second) . should_fail_with Illegal_Argument_Error
-            Statistics.covariance_matrix text . should_fail_with Illegal_Argument_Error
-            Statistics.pearson_correlation text . should_fail_with Illegal_Argument_Error
-            Statistics.spearman_correlation text . should_fail_with Illegal_Argument_Error
+            covariance_matrix text . should_fail_with Illegal_Argument_Error
+            pearson_correlation text . should_fail_with Illegal_Argument_Error
+            spearman_correlation text . should_fail_with Illegal_Argument_Error
 
     Test.group "Statistics - invalid input" <|
         Test.specify "should fail with Illegal_Argument_Error on number based statistics for text Vector" <|
             series = [["A", "B", Nothing, "D"], ["A", "B", Nothing, "D"]]
-            Statistics.covariance_matrix series . should_fail_with Illegal_Argument_Error
-            Statistics.pearson_correlation series . should_fail_with Illegal_Argument_Error
+            covariance_matrix series . should_fail_with Illegal_Argument_Error
+            pearson_correlation series . should_fail_with Illegal_Argument_Error
 
 main = Test.Suite.run_main spec

@@ -1,9 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Data.Ordering.Natural_Order
 
 import Standard.Test.Bench
 import Standard.Test.Faker
-
-import Standard.Base.Data.Ordering.Natural_Order
 
 ## Bench Utilities ============================================================
 

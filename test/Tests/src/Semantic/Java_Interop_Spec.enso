@@ -1,17 +1,15 @@
 from Standard.Base import all
 
-import Standard.Test
-
 polyglot java import java.lang.Float
 polyglot java import java.lang.Integer
 polyglot java import java.lang.Long
 polyglot java import java.lang.String
 polyglot java import java.lang.StringBuilder as Java_String_Builder
 polyglot java import java.util.ArrayList
-
-import Standard.Base.Data.Time.Date
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
+
+import Standard.Test
 
 spec =
     Test.group "Java FFI" <|

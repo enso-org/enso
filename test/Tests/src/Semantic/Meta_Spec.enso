@@ -1,11 +1,12 @@
 from Standard.Base import all
+
 from Standard.Base.Data.Text.Text_Sub_Range import Last
 import Standard.Base.System.Platform
 
-import Standard.Test
-
 polyglot java import java.util.Random
 polyglot java import java.util.Locale as JavaLocale
+
+import Standard.Test
 
 type My_Type foo bar baz
 
@@ -82,7 +83,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         _ -> Nothing
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:84:15-40"
+        loc = "Meta_Spec.enso:85:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|

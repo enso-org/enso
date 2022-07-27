@@ -1,12 +1,13 @@
 from Standard.Base import all
 
-import Standard.Base.Network.Uri
+import Standard.Base.Network.URI
+
 import Standard.Test
 
 spec =
-    Test.group "Uri" <|
-        Test.specify "should parse Uri from string" <|
-            addr = Uri.parse "http://user:pass@example.com/foo/bar?key=val"
+    Test.group "URI" <|
+        Test.specify "should parse URI from string" <|
+            addr = URI.parse "http://user:pass@example.com/foo/bar?key=val"
             addr.scheme.should_equal "http"
             addr.user_info.should_equal "user:pass"
             addr.host.should_equal "example.com"
@@ -15,8 +16,8 @@ spec =
             addr.path.should_equal "/foo/bar"
             addr.query.should_equal "key=val"
             addr.fragment.should_fail_with Nothing
-        Test.specify "should escape Uri" <|
-            addr = Uri.parse "https://%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass@ru.wikipedia.org/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux?%D0%9A%D0%BE%D0%B4"
+        Test.specify "should escape URI" <|
+            addr = URI.parse "https://%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass@ru.wikipedia.org/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux?%D0%9A%D0%BE%D0%B4"
             addr.user_info.should_equal "Линус:pass"
             addr.authority.should_equal "Линус:pass@ru.wikipedia.org"
             addr.path.should_equal "/wiki/Ядро_Linux"
@@ -27,5 +28,5 @@ spec =
             addr.raw_path.should_equal "/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux"
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_fail_with Nothing
-        Test.specify "should return Syntax_Error when parsing invalid Uri" <|
-            Uri.parse "a b c" . should_fail_with Uri.Syntax_Error
+        Test.specify "should return Syntax_Error when parsing invalid URI" <|
+            URI.parse "a b c" . should_fail_with Syntax_Error

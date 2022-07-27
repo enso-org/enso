@@ -3,7 +3,6 @@ from Standard.Base import all
 import Standard.Base.System.Platform
 import Standard.Table.Data.Column
 import Standard.Visualization
-from Standard.Base.Data.Time.Date as Date_Module import Date
 import Standard.Table.IO.File_Format
 import Standard.Base.System.File
 import Standard.Base.System.File.Existing_File_Behavior

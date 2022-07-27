@@ -13,8 +13,6 @@ polyglot java import org.enso.base.Time_Utils
    > Example
      Get the current date.
 
-         import Standard.Base.Data.Time.Date
-
          example_now = Date.now
 now : Date
 now = @Builtin_Method "Date.now"
@@ -25,8 +23,6 @@ now = @Builtin_Method "Date.now"
 
    > Example
      Get the current date.
-
-         import Standard.Base.Data.Time.Date
 
          example_today = Date.today
 today : Date
@@ -50,8 +46,6 @@ today = now
 
    > Example
      Get the local date of 5th August 1986.
-
-         import Standard.Base.Data.Time.Date
 
          example_new = Date.new 1986 8 5
 
@@ -108,7 +102,6 @@ new year (month = 1) (day = 1) =
    > Example
      Recover from an error due to a wrong format.
 
-         import Standard.Base.Data.Time.Date
          import Standard.Base.Data.Time
 
          example_parse_err = Date.parse "my birthday" . catch Time.Time_Error _->
@@ -124,7 +117,6 @@ new year (month = 1) (day = 1) =
    > Example
      Recover from the parse error.
 
-         import Standard.Base.Data.Time.Date
          import Standard.base.Data.Time
 
          example_parse_err =
@@ -169,8 +161,6 @@ type Date
        > Example
          Get the current month.
 
-             import Standard.Base.Data.Time.Date
-
              example_month = Date.now.month
     month : Integer
     month = @Builtin_Method "Date.month"
@@ -213,7 +203,6 @@ type Date
        > Example
          Convert this date to midnight UTC time.
 
-             import Standard.Base.Data.Time.Date
              import Standard.Base.Data.Time.Time_Of_Day
              import Standard.Base.Data.Time.Zone
 
@@ -229,7 +218,6 @@ type Date
        > Example
          Add 6 months to a local date.
 
-             import Standard.Base.Data.Time.Date
              import Standard.Base.Data.Time.Duration
 
              example_add = Date.new 2020 + 6.months
@@ -260,8 +248,6 @@ type Date
        > Example
          Convert the current date to JSON.
 
-             import Standard.Base.Data.Time.Date
-
              example_to_json = Date.now.to_json
     to_json : Json.Object
     to_json = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
@@ -285,28 +271,20 @@ type Date
        > Example
          Format "2020-06-02" as "2 June 20"
 
-             import Standard.Base.Data.Time.Date
-
              example_format = Date.new 2020 6 2 . format "d MMMM yy"
 
        > Example
          Format "2020-06-02" as "Tuesday, 02 June 2020"
-
-             import Standard.Base.Data.Time.Date
 
              example_format = Date.new 2020 6 2 . format "EEEE, dd MMMM yyyy"
 
        > Example
          Format "2020-06-02" as "Tue Jun 2"
 
-             import Standard.Base.Data.Time.Date
-
              example_format = Date.new 2020 6 2 . format "EEE MMM d"
 
        > Example
          Format "2020-06-02" as "2020AD"
-
-             import Standard.Base.Data.Time.Date
 
              example_format = Date.new 2020 6 2 . format "yyyyGG"
     format : Text -> Text
