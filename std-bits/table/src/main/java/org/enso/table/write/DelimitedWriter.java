@@ -21,6 +21,8 @@ public class DelimitedWriter {
   private final char quoteChar;
   private final char quoteEscapeChar;
 
+  private final char commentChar;
+
   private final String quoteReplacement;
 
   private final String quoteEscapeReplacement;
@@ -35,6 +37,7 @@ public class DelimitedWriter {
       String newline,
       String quote,
       String quoteEscape,
+      String comment,
       WriteQuoteBehavior writeQuoteBehavior,
       boolean writeHeaders) {
     this.newline = newline;
@@ -95,6 +98,17 @@ public class DelimitedWriter {
     } else {
       quoteReplacement = null;
       quoteEscapeReplacement = null;
+    }
+
+    if (comment != null) {
+      if (comment.length() != 1) {
+        throw new IllegalArgumentException(
+            "The comment character must consist of exactly 1 codepoint.");
+      }
+
+      commentChar = comment.charAt(0);
+    } else {
+      commentChar = '\0';
     }
 
     this.writeQuoteBehavior = writeQuoteBehavior;
@@ -172,7 +186,11 @@ public class DelimitedWriter {
     boolean containsQuote = value.indexOf(quoteChar) >= 0;
     boolean containsQuoteEscape = quoteEscape != null && value.indexOf(quoteEscapeChar) >= 0;
     boolean shouldQuote =
-        wantsQuoting || containsQuote || containsQuoteEscape || value.indexOf(delimiter) >= 0;
+        wantsQuoting
+            || containsQuote
+            || containsQuoteEscape
+            || value.indexOf(delimiter) >= 0
+            || value.indexOf(commentChar) >= 0;
     if (!shouldQuote) {
       return value;
     }

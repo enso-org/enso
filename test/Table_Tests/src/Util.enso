@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System
+import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Table
 import Standard.Table.Data.Column
 import Standard.Test
@@ -16,7 +17,7 @@ Column.Column.should_equal expected =
     self.length.should_equal expected.length
     self.to_vector.should_equal expected.to_vector
 
-normalize_lines string line_separator=System.default_line_separator newline_at_end=True =
+normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_end=True =
     case newline_at_end of
         True -> string.lines.join line_separator suffix=line_separator
         False -> string.lines.join line_separator

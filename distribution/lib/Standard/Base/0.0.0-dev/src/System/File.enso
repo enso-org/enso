@@ -644,6 +644,19 @@ type File
         resource = Managed_Resource.register stream close_stream
         Output_Stream self resource
 
+    ## PRIVATE
+
+       Reads last `n` bytes from the file (or less if the file is too small) and
+       returns a vector of bytes.
+    read_last_bytes : Integer -> Vector ! File_Error
+    read_last_bytes n =
+        handle_java_exceptions self <|
+            Vector.Vector (self.read_last_bytes_builtin n)
+
+    ## PRIVATE
+    read_last_bytes_builtin : Integer -> Array
+    read_last_bytes_builtin n = @Builtin_Method "File.read_last_bytes_builtin"
+
     ## Lists files contained in the directory denoted by this file.
 
        Arguments:
