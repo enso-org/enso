@@ -296,6 +296,7 @@
 - [Introduce a smaller version of the standard library, just for testing][3531]
 - [Remove `here` and make method name resolution case-sensitive][3531]
 - [Added benchmarking tool for the language server][3578]
+- [Enable caching in visualisation functions][3618]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -330,6 +331,7 @@
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
 [3578]: https://github.com/enso-org/enso/pull/3578
+[3618]: https://github.com/enso-org/enso/pull/3618
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
