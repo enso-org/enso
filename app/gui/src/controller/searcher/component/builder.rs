@@ -220,7 +220,10 @@ impl List {
         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
         let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
         for group in favorites_groups.iter_mut() {
-            group.retain_entries(|e| self.allowed_favorites.contains(&e.id));
+            group.retain_entries(|e| match e.kind {
+                component::Kind::FromDb { id, .. } => self.allowed_favorites.contains(&id),
+                component::Kind::Virtual { .. } => true,
+            });
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
         component::group::List::new(favorites_groups)

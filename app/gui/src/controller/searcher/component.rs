@@ -122,7 +122,8 @@ impl Component {
     ///
     /// The matching info will be filled for an empty pattern.
     pub fn new(id: Id, suggestion: Rc<suggestion_database::Entry>) -> Self {
-        Self { id: Immutable(id), suggestion, match_info: default() }
+        let kind = Kind::FromDb { id: Immutable(id), suggestion };
+        Self { kind, match_info: default() }
     }
 
     /// The label which should be displayed in the Component Browser.
