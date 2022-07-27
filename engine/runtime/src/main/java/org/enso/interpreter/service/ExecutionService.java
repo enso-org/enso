@@ -253,6 +253,15 @@ public class ExecutionService {
     }
   }
 
+  /**
+   * Calls a function with the given argument and attaching an execution instrument.
+   *
+   * @param module the module providing scope for the function
+   * @param function the function object
+   * @param argument the argument applied to the function
+   * @param cache the runtime cache
+   * @return the result of calling the function
+   */
   public Object callFunctionWithInstrument(
       Module module, Object function, Object argument, RuntimeCache cache)
       throws UnsupportedTypeException, ArityException, UnsupportedMessageException {

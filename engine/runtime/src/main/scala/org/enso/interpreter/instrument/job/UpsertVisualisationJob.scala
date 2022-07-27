@@ -1,32 +1,27 @@
 package org.enso.interpreter.instrument.job
 
-import java.util.logging.Level
 import cats.implicits._
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
-import org.enso.interpreter.instrument.{
-  CacheInvalidation,
-  InstrumentFrame,
-  RuntimeCache,
-  Visualisation
-}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
   EvaluationFailed,
   EvaluationResult,
   ModuleNotFound
 }
+import org.enso.interpreter.instrument.{
+  CacheInvalidation,
+  InstrumentFrame,
+  RuntimeCache,
+  Visualisation
+}
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.runtime.Runtime.Api.{
-  ExpressionId,
-  RequestId,
-  VisualisationConfiguration,
-  VisualisationExpression,
-  VisualisationId
-}
+import org.enso.polyglot.runtime.Runtime.Api._
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
+
+import java.util.logging.Level
 
 /** A job that upserts a visualisation.
   *

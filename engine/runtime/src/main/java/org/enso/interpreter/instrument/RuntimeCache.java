@@ -14,16 +14,6 @@ public final class RuntimeCache {
   private final Map<UUID, IdExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
 
-  public RuntimeCache() {}
-
-  public RuntimeCache(Map<UUID, Double> weights) {
-    this.weights = weights;
-  }
-
-  public static RuntimeCache visualizationCache() {
-    return new RuntimeCache(new HashMapWithDefaultValue<>(1.0));
-  }
-
   /**
    * Add value to the cache if it is possible.
    *

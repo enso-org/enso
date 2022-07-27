@@ -267,10 +267,8 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
-    @scala.annotation.unused source: CharSequence
-  )(implicit
-    @scala.annotation.unused ctx: RuntimeContext
-  ): Seq[CacheInvalidation] = {
+    source: CharSequence
+  )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
     val scopeIds = ctx.executionService.getContext.getCompiler
