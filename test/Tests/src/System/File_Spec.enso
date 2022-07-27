@@ -93,6 +93,17 @@ spec =
             contents = File.read_bytes full_path
             contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
 
+        Test.specify "should allow to read last n bytes from a file" <|
+            file = enso_project.data / "transient" / "bytes.txt"
+            data = [1, 0, 0, 1, 2, 100, 20]
+            data.write_bytes file
+            file.read_last_bytes 0 . should_equal []
+            file.read_last_bytes 1 . should_equal [20]
+            file.read_last_bytes 2 . should_equal [100, 20]
+            file.read_last_bytes 5 . should_equal [0, 1, 2, 100, 20]
+            file.read_last_bytes 1000 . should_equal data
+            file.delete
+
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
             File.read_bytes "does_not_exist.txt" . should_fail_with File.File_Not_Found

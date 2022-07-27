@@ -1,14 +1,14 @@
 from Standard.Base import all
 import Standard.Base.Data.Time.Date
+import Standard.Base.Data.Text.Line_Ending_Style
 
 import Standard.Table
 import Standard.Table.Data.Column
-import Standard.Table.Io.File_Format
+import Standard.Table.IO.File_Format
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Table.Io.Line_Ending_Style import Unix_Line_Endings
 
 import Standard.Test
-import project.Util
+from project.Util import all
 
 spec =
     c_number = ["Number", [71, 72, 73, 74, 75, 76, 77]]
@@ -40,15 +40,16 @@ spec =
 
     Test.group "Should be able to serialise a table with Dates to Text" <|
         Test.specify "should serialise back to input" <|
-            expected_text = (enso_project.data / "prime_ministers.csv").read_text
-            delimited = Text.from expected format=(File_Format.Delimited "," line_endings=Unix_Line_Endings)
+            expected_text = normalize_lines <|
+                (enso_project.data / "prime_ministers.csv").read_text
+            delimited = Text.from expected format=(File_Format.Delimited "," line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
         Test.specify "should serialise dates with format" <|
             test_table = Table.new [c_from]
             expected_text = 'From\n04.05.1979\n28.11.1990\n02.05.1997\n27.06.2007\n11.05.2010\n13.07.2016\n24.07.2019\n'
             data_formatter = Data_Formatter . with_datetime_formats date_formats=["dd.MM.yyyy"]
-            delimited = Text.from test_table format=(File_Format.Delimited "," value_formatter=data_formatter line_endings=Unix_Line_Endings)
+            delimited = Text.from test_table format=(File_Format.Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
             delimited.should_equal expected_text
 
 main = Test.Suite.run_main spec
