@@ -12,8 +12,6 @@ import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
 from Standard.Base.Data.Time as Time_Module import Time
 
-export Standard.Base.System.File.Option
-
 polyglot java import org.enso.base.Array_Utils
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream

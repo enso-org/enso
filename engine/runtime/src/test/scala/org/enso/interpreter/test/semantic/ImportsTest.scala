@@ -77,4 +77,13 @@ class ImportsTest extends PackageTest {
     )) should have message "Compilation aborted due to errors."
     consumeOut should contain("Export statements form a cycle:")
   }
+
+  "Import statements" should "should allow for importing submodules" in {
+    evalTestProject("TestSubmodules") shouldEqual 42
+    val outLines = consumeOut
+    outLines(0) shouldEqual "(Foo 10)"
+    outLines(1) shouldEqual "(C 52)"
+    outLines(2) shouldEqual "20"
+    outLines(3) shouldEqual "(C 10)"
+  }
 }

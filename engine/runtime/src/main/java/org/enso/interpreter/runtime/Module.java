@@ -95,6 +95,7 @@ public class Module implements TruffleObject {
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
   private boolean virtual;
+  private QualifiedName[] directSubmoduleNames;
 
   /**
    * Creates a new module.
@@ -201,6 +202,7 @@ public class Module implements TruffleObject {
     return sources.rope();
   }
 
+  /** @return true if this module represents a virtual (compiler-generated) module */
   public boolean isVirtual() {
     return virtual;
   }
@@ -212,6 +214,27 @@ public class Module implements TruffleObject {
    */
   public void setLiteralSource(String source) {
     setLiteralSource(Rope.apply(source), null);
+  }
+
+  /**
+   * Attaches names of submodules that should be accessible from this module
+   *
+   * @param names fully qualified names of (potentially virtual) modules' names
+   */
+  public void setDirectSubmoduleNames(QualifiedName[] names) {
+    directSubmoduleNames = names;
+  }
+
+  /**
+   * Return an array of directly available modules of this one, if any.
+   *
+   * @return a non-null, possibly empty, array of fully qualified names of modules
+   */
+  public QualifiedName[] getDirectSubmoduleNames() {
+    if (directSubmoduleNames == null) {
+      return new QualifiedName[0];
+    }
+    return directSubmoduleNames;
   }
 
   /**
@@ -489,7 +512,7 @@ public class Module implements TruffleObject {
       String name = arguments.getSecond();
 
       try {
-        return scope.getMethods().get(cons).get(name.toLowerCase());
+        return scope.getMethods().get(cons).get(name);
       } catch (NullPointerException npe) {
         TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
         logger.log(

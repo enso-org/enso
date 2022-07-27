@@ -13,6 +13,7 @@ import Standard.Table.Data.Storage
 import Standard.Table.IO.Quote_Style
 import Standard.Base.Data.Text.Line_Ending_Style
 from Standard.Table.Internal.Delimited_Reader import Existing_Headers, No_Headers
+import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Data.Match_Columns
 
 polyglot java import org.enso.table.write.DelimitedWriter

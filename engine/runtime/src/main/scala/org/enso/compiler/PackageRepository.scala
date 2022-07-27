@@ -279,27 +279,32 @@ object PackageRepository {
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
-      val (regular, virtual) = pkg.listSources
+      val (regularModule, virtualModulesNames) = pkg.listSources
         .map(srcFile =>
           (
             new Module(srcFile.qualifiedName, pkg, srcFile.file),
-            inferModulesFromSrcFile(srcFile)
+            inferVirtualModuleNames(srcFile)
           )
         )
         .unzip
 
-      regular.foreach(registerModule)
+      regularModule.foreach(registerModule)
 
-      virtual.flatten
-        .groupMap(_._1)(_._2)
-        .map { case (qName, modules) =>
-          Module.virtual(
-            qName,
-            pkg,
-            Rope(modules.foldLeft("")(_ ++ "\n" ++ _))
+      virtualModulesNames.flatten
+        .groupMap(_._1)(v => (v._2, v._3))
+        .foreach { case (qName, modulesWithSources) =>
+          val source = modulesWithSources
+            .map(_._2)
+            .foldLeft("")(_ ++ "\n" ++ _)
+          registerVirtualModule(
+            Module.virtual(
+              qName,
+              pkg,
+              Rope(source)
+            ),
+            modulesWithSources.map(_._1)
           )
         }
-        .foreach(registerModule(_))
 
       if (isLibrary) {
         val root = Path.of(pkg.root.toString)
@@ -309,53 +314,57 @@ object PackageRepository {
       loadedPackages.put(libraryName, Some(pkg))
     }
 
-    private def inferModulesFromSrcFile(
+    /** For any given source file, infer data necessary to generate virtual modules as well as their contents.
+      * E.g., for A/B/C.enso it infers modules
+      * - A.B that exports A.B.C
+      * - A that exports A.B
+      *
+      * @param srcFile Enso source file to consider
+      * @return a list of triples representing the name of submodule along the path, what submodule it exports and its contents
+      */
+    private def inferVirtualModuleNames(
       srcFile: SourceFile[TruffleFile]
-    ): List[(QualifiedName, String)] = {
+    ): List[(QualifiedName, QualifiedName, String)] = {
+      def listAllIntermediateModules(
+        namespace: String,
+        name: String,
+        elements: List[String],
+        exportItem: String
+      ): List[(QualifiedName, QualifiedName, String)] = {
+        elements match {
+          case Nil =>
+            Nil
+          case lastModuleName :: parts =>
+            val pathElems = elements.reverse
+            val modName =
+              s"${namespace}.$name.${pathElems.mkString(".")}.$exportItem"
+            val virtualModuleSource =
+              s"""|import $modName
+                  |export $modName
+                  |""".stripMargin
+            (
+              QualifiedName(namespace :: name :: parts, lastModuleName),
+              QualifiedName(namespace :: name :: pathElems, exportItem),
+              virtualModuleSource
+            ) :: listAllIntermediateModules(
+              namespace,
+              name,
+              parts,
+              lastModuleName
+            )
+        }
+      }
       srcFile.qualifiedName.path match {
         case namespace :: name :: rest =>
           listAllIntermediateModules(
             namespace,
             name,
-            srcFile.qualifiedName.item,
-            rest
+            rest.reverse,
+            srcFile.qualifiedName.item
           )
         case _ =>
           Nil
       }
-    }
-
-    private def listAllIntermediateModules(
-      namespace: String,
-      name: String,
-      exportItem: String,
-      elements: List[String]
-    ): List[(QualifiedName, String)] = {
-      def listAllIntermediateModules0(
-        elements0: List[String],
-        exportItem0: String
-      ): List[(QualifiedName, String)] = {
-        val importsExports =
-          s"""|import ${namespace}.$name.${elements0.reverse
-            .mkString(".")}.$exportItem0
-              |export ${namespace}.$name.${elements0.reverse
-            .mkString(".")}.$exportItem0
-              |""".stripMargin
-        elements0 match {
-          case Nil => Nil
-          case last :: Nil =>
-            (
-              QualifiedName(namespace :: name :: Nil, last),
-              importsExports
-            ) :: Nil
-          case modName :: parts =>
-            (
-              QualifiedName(namespace :: name :: parts, modName),
-              importsExports
-            ) :: listAllIntermediateModules0(parts, modName)
-        }
-      }
-      listAllIntermediateModules0(elements.reverse, exportItem)
     }
 
     /** This package modifies the [[loadedPackages]], so it should be only
@@ -525,12 +534,27 @@ object PackageRepository {
       registerModule(module)
 
     private def registerModule(module: Module): Unit = {
-      if (!loadedModules.contains(module.getName.toString)) {
-        loadedModules.put(module.getName.toString, module)
+      loadedModules.put(module.getName.toString, module)
+    }
+
+    /** Registering virtual module, unlike the non-compiler generated one, is conditional
+      * in a sense that if a module already exists with a given name we only update its
+      * list of virtual modules that it should export.
+      * If no module exists under the given name, we register the virtual one.
+      *
+      * @param virtualModule a virtual module to register
+      * @param refs list of names of modules that should be exported by the module under the given name
+      */
+    private def registerVirtualModule(
+      virtualModule: Module,
+      refs: List[QualifiedName]
+    ): Unit = {
+      if (!loadedModules.contains(virtualModule.getName.toString)) {
+        loadedModules.put(virtualModule.getName.toString, virtualModule)
       } else {
-        val loaded = loadedModules(module.getName.toString)
-        if (loaded.isVirtual && !module.isVirtual) {
-          loadedModules.put(module.getName.toString, module)
+        val loaded = loadedModules(virtualModule.getName.toString)
+        if (!loaded.isVirtual && virtualModule.isVirtual) {
+          loaded.setDirectSubmoduleNames(refs.toArray)
         }
       }
     }
