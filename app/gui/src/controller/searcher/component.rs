@@ -86,6 +86,7 @@ pub enum Order {
 // === Kind ===
 // ============
 
+#[derive(Clone, CloneRef, Debug)]
 pub enum Kind {
     FromDb {
         id:         Immutable<Id>,
