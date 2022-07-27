@@ -112,8 +112,8 @@ type Delimited
          `Nothing` or dropping the excess columns) or dropped.
        - line_endings: Sets the line ending style to use. Defaults to `Infer` -
          when reading a file or appending to an existing file, the line endings
-         are detected from file contents; when writing a new file, the OS
-         defaults are used.
+         are detected from file contents; when writing a new file in `Infer`
+         mode the `Unix` line endings are used.
        - comment_character: Sets the character which indicates the start of a
          comment within a delimited file. Any line that begins with the comment
          character is skipped. The comment character is treated as any other

@@ -41,7 +41,7 @@ public class DelimitedReader {
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
-  private final String newlineSetting;
+  private String newlineSetting;
   private final boolean warningsAsErrors;
   private final NoOpProblemAggregator noOpProblemAggregator = new NoOpProblemAggregator();
   private long invalidRowsCount = 0;
@@ -353,18 +353,22 @@ public class DelimitedReader {
     return effectiveColumnNames.length;
   }
 
-  /** Returns the line separator used in the file.
+  /** Returns the line separator.
    *
-   * If a specific separator is set at construction, it is just returned. If it
-   * was set to null, the separator inferred from the file contents is returned.
+   * If it was provided explicitly at construction, the selected separator is used.
+   * If the initial separator was set to {@code null}, the reader tries to detect
+   * the separator from file contents.
    */
   public String getEffectiveLineSeparator() {
-    if (newlineSetting != null) {
-      return newlineSetting;
-    } else {
+    if (newlineSetting == null) {
       ensureHeadersDetected();
-      return parser.getDetectedFormat().getLineSeparatorString();
     }
+    return newlineSetting;
+  }
+
+  public long getVisitedCharactersCount() {
+    ensureHeadersDetected();
+    return parser.getContext().currentChar();
   }
 
   private void ensureHeadersDetected() {
@@ -375,6 +379,12 @@ public class DelimitedReader {
 
   private void detectHeaders() {
     Row firstRow = loadNextRow();
+
+    // Resolve the newline separator:
+    if (newlineSetting == null) {
+      newlineSetting = parser.getDetectedFormat().getLineSeparatorString();
+    }
+
     if (firstRow == null) {
       effectiveColumnNames = new String[0];
       headerProblems = Collections.emptyList();
@@ -389,7 +399,7 @@ public class DelimitedReader {
       case INFER -> {
         Row secondRow = loadNextRow();
         if (secondRow == null) {
-          /** If there is only one row in the file, we generate the headers and
+          /* If there is only one row in the file, we generate the headers and
            * stop further processing (as nothing more to process). */
           headerNames = generateDefaultHeaders(expectedColumnCount);
           pendingRows.add(firstRow);
