@@ -5,6 +5,8 @@ use crate::prelude::*;
 use crate::model::module::MethodId;
 
 use ast::constants::keywords;
+use convert_case::Case;
+use convert_case::Casing;
 use double_representation::module;
 use double_representation::tp;
 use engine_protocol::language_server;
@@ -150,12 +152,15 @@ pub struct IconName {
 }
 
 impl IconName {
-    /// Construct from a name formatted in kebab-case.
-    pub fn from_kebab_case(s: impl AsRef<str>) -> Self {
-        use convert_case::Case;
-        use convert_case::Casing;
-        let pascal_cased = s.as_ref().from_case(Case::Kebab).to_case(Case::Pascal).into();
+    /// Construct from a name formatted in snake_case.
+    pub fn from_snake_case(s: impl AsRef<str>) -> Self {
+        let pascal_cased = s.as_ref().from_case(Case::Snake).to_case(Case::Pascal).into();
         Self { pascal_cased }
+    }
+
+    /// Convert to a name formatted in snake_case.
+    pub fn to_snake_case(&self) -> ImString {
+        self.pascal_cased.from_case(Case::Pascal).to_case(Case::Snake).into()
     }
 
     /// Convert to a name formatted in PascalCase.
@@ -684,7 +689,16 @@ where I: IntoIterator<Item = &'a language_server::types::DocSection> {
     use language_server::types::DocSection;
     doc_sections.into_iter().find_map(|section| match section {
         DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
-            let icon_name = IconName::from_kebab_case(body);
+            let icon_name = IconName::from_snake_case(&body);
+            let as_snake_case = icon_name.to_snake_case();
+            if as_snake_case.as_str() != body.as_str() || !body.is_case(Case::Snake) {
+                let msg = format!(
+                    "The icon name {body} used in the {ICON_DOC_SECTION_KEY} section of the \
+                    documentation of a component is not a valid, losslessly-convertible snake_case \
+                    identifier. The component may be displayed with a different icon than expected."
+                );
+                event!(WARN, "{msg}");
+            }
             Some(icon_name)
         }
         _ => None,
