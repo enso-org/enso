@@ -47,7 +47,7 @@ pub fn initialized() -> impl Future<Output = ()> {
     MsdfgenJsInitialized()
 }
 
-/// The future for running test after initialization
+/// The future for running test after initialization.
 #[derive(Debug)]
 struct MsdfgenJsInitialized();
 
@@ -83,9 +83,9 @@ impl Drop for Font {
 }
 
 impl Font {
-    /// Loading font from memory
+    /// Loading font from memory.
     ///
-    /// Loads font from a any format which freetype library can handle.
+    /// Loads font from any format which freetype library can handle.
     /// See [https://www.freetype.org/freetype2/docs/index.html] for reference.
     pub fn load_from_memory(data: &[u8]) -> Self {
         let array_type_js = JsValue::from_str(ccall_types::ARRAY);
@@ -121,10 +121,9 @@ impl Font {
 // === Mutlichannel signed distance field generation ===
 // =====================================================
 
-/// Parameters of MSDF generation
+/// Parameters of MSDF generation.
 ///
-/// The structure gathering MSDF generation parameters meant to be same for all
-/// rendered glyphs
+/// The structure gathering MSDF generation parameters meant to be same for all rendered glyphs.
 #[derive(Clone, Copy, Debug)]
 pub struct MsdfParameters {
     pub width: usize,
@@ -156,8 +155,7 @@ impl Msdf {
 
     /// Generate Mutlichannel Signed Distance Field (MSDF) for one glyph.
     ///
-    /// For more information about MSDF see
-    /// [https://github.com/Chlumsky/msdfgen].
+    /// For more information about MSDF see [https://github.com/Chlumsky/msdfgen].
     pub fn generate(font: &Font, unicode: u32, params: &MsdfParameters) -> Msdf {
         let handle = msdfgen_generate_msdf(
             params.width,

@@ -11,7 +11,11 @@ use ensogl_text_embedded_fonts::Family;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
+use owned_ttf_parser as ttf;
+use owned_ttf_parser::AsFaceRef;
+use serde;
 use std::collections::hash_map::Entry;
+
 
 
 // ==============
@@ -35,7 +39,7 @@ pub const DEFAULT_FONT: &str = embedded_fonts::DefaultFamily::regular();
 // === Cache ===
 // =============
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Cache<K: Eq + Hash, V> {
     map: RefCell<HashMap<K, V>>,
 }
@@ -76,7 +80,7 @@ impl<K: Eq + Hash, V> Default for Cache<K, V> {
 /// Data used for rendering a single glyph.
 ///
 /// Each distance and transformation values are expressed in normalized coordinates, where
-/// (0.0, 0.0) is initial pen position for an character, and `y` = 1.0 is _ascender_.
+/// (0.0, 0.0) is initial pen position for a character, and `y` = 1.0 is an _ascender_.
 ///
 /// The `offset` and `scale` fields transforms the _base square_ for a character, such the glyph
 /// will be rendered correctly with assigned MSDF texture. The _base square_ corners are (0.0, 0.0),
@@ -84,7 +88,7 @@ impl<K: Eq + Hash, V> Default for Cache<K, V> {
 ///
 /// For explanation of various font-rendering terms, see the
 /// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GlyphRenderInfo {
     /// An index of glyph in a msdf texture (counted from the top of column). For details, see
     /// msdf::Texture documentation.
@@ -125,7 +129,7 @@ impl GlyphRenderInfo {
         overlap_support: true,
     };
 
-    /// Load new GlyphRenderInfo from msdf_sys font handle. This also extends the atlas with
+    /// Load new [`GlyphRenderInfo`] from msdf_sys font handle. This also extends the atlas with
     /// MSDF generated for this character.
     pub fn load(handle: &msdf_sys::Font, ch: char, atlas: &msdf::Texture) -> Self {
         let unicode = ch as u32;
@@ -176,48 +180,108 @@ impl From<FontData> for Font {
 // === FontData ===
 // ================
 
+const FONT_FACE_NUMBER: u32 = 0;
+
 /// Internal representation of `Font`.
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontData {
     pub name:  String,
-    msdf_font: msdf_sys::Font,
+    // FIXME: Contains the binary font data. This field should not be needed when it would be
+    //        possible to access the font data from within the `ttf::OwnedFace` structure.
+    //        See: https://github.com/RazrFalcon/ttf-parser/issues/103
+    data:      Vec<u8>,
+    msdf_font: Option<msdf_sys::Font>,
+    font_face: ttf::OwnedFace,
     atlas:     msdf::Texture,
     glyphs:    Cache<char, GlyphRenderInfo>,
     kerning:   Cache<(char, char), f32>,
 }
 
+impl FontData {
+    /// Removes all glyph info from the font definition, leaving helper tables, such as the kerning
+    /// table. The glyph atlas is not removed. The main purpose of this function is to prevent
+    /// extraction of the font files from the application, while still allowing rendering the glyphs
+    /// to the screen. You can think of the glyph atlas like a set of glyph images. This allows
+    /// usage of commercial fonts without the need to distribute the font with the application, and
+    /// thus, it allows for more flexibility in font licensing.
+    ///
+    /// The [`msdf_font`] definition is removed, which means that no new glyphs can be added to the
+    /// atlas after this operation. Moreover, all glyph shape data is erased from the [`font_face`]
+    /// definition, which means that the exact glyph shapes could not be reconstructed anymore.
+    pub fn remove_glyph_data(&mut self) {
+        mem::take(&mut self.msdf_font);
+        let data_slice = &self.data[..];
+        if let Ok(font_face) = ttf::RawFace::from_slice(data_slice, FONT_FACE_NUMBER) {
+            if let Some(glyph_table) = font_face.table(ttf::Tag::from_bytes(b"glyf")) {
+                let glyph_table_ptr = glyph_table.as_ptr();
+                let data_ptr = data_slice.as_ptr();
+                // Safety: This is safe, as both pointers refer to the same slice.
+                let start_index = unsafe { glyph_table_ptr.offset_from(data_ptr) };
+                for offset in 0..glyph_table.len() {
+                    self.data[start_index as usize + offset] = 0;
+                }
+            }
+        }
+        if let Ok(font_face) = ttf::OwnedFace::from_vec(self.data.clone(), FONT_FACE_NUMBER) {
+            self.font_face = font_face;
+        }
+    }
+}
+
 impl Font {
     /// Constructor.
-    pub fn from_msdf_font(name: String, msdf_font: msdf_sys::Font) -> Self {
+    pub fn from_msdf_font(
+        name: String,
+        msdf_font: msdf_sys::Font,
+        font_face: ttf::OwnedFace,
+        data: Vec<u8>,
+    ) -> Self {
         let atlas = default();
         let glyphs = default();
         let kerning = default();
-        FontData { name, msdf_font, atlas, glyphs, kerning }.into()
+        let msdf_font = Some(msdf_font);
+        FontData { name, data, msdf_font, font_face, atlas, glyphs, kerning }.into()
     }
 
     /// Constructor.
-    pub fn from_raw_data(name: String, font_data: &[u8]) -> Self {
-        Self::from_msdf_font(name, msdf_sys::Font::load_from_memory(font_data))
+    pub fn from_raw_data(name: String, font_data: &[u8]) -> Result<Self, ttf::FaceParsingError> {
+        ttf::OwnedFace::from_vec(font_data.into(), FONT_FACE_NUMBER).map(|face| {
+            let data = font_data.into();
+            Self::from_msdf_font(name, msdf_sys::Font::load_from_memory(font_data), face, data)
+        })
     }
 
     /// Create render info for one of embedded fonts
     pub fn try_from_embedded(base: &EmbeddedFonts, name: &str) -> Option<Self> {
-        base.ttf_binary_data.get(name).map(|data| Self::from_raw_data(name.to_string(), data))
+        base.ttf_binary_data
+            .get(name)
+            .and_then(|data| Self::from_raw_data(name.to_string(), data).ok())
     }
 
     /// Get render info for one character, generating one if not found.
     pub fn glyph_info(&self, ch: char) -> GlyphRenderInfo {
         let handle = &self.msdf_font;
-        self.glyphs.get_or_create(ch, move || GlyphRenderInfo::load(handle, ch, &self.atlas))
+        self.glyphs.get_or_create(ch, move || {
+            // FIXME: display default image for missing glyph.
+            GlyphRenderInfo::load(handle.as_ref().unwrap(), ch, &self.atlas)
+        })
     }
 
-    /// Get kerning between two characters
+    /// Get kerning between two characters.
     pub fn kerning(&self, left: char, right: char) -> f32 {
-        self.kerning.get_or_create((left, right), || {
-            let msdf_val = self.msdf_font.retrieve_kerning(left, right);
-            msdf::x_distance_from_msdf_value(msdf_val)
-        })
+        let opt_kerning = self.font_face.as_face_ref().glyph_index(left).and_then(|left_id| {
+            self.font_face.as_face_ref().glyph_index(right).map(|right_id| {
+                self.kerning.get_or_create((left, right), || {
+                    let tables = self.font_face.as_face_ref().tables();
+                    let units_per_em = tables.head.units_per_em;
+                    let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
+                    let kerning = kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
+                    kerning.unwrap_or_default() as f32 / units_per_em as f32
+                })
+            })
+        });
+        opt_kerning.unwrap_or_default()
     }
 
     /// A whole msdf texture bound for this font.
@@ -262,6 +326,47 @@ impl Font {
     pub fn mock_kerning_info(&self, l: char, r: char, value: f32) {
         self.kerning.invalidate(&(l, r));
         self.kerning.get_or_create((l, r), || value);
+    }
+}
+
+
+
+// ================================
+// === FontDataWithoutGlyphInfo ===
+// ================================
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct FontDataWithoutGlyphInfo {
+    pub name: String,
+    data:     Vec<u8>,
+    atlas:    msdf::Texture,
+    glyphs:   Cache<char, GlyphRenderInfo>,
+    kerning:  Cache<(char, char), f32>,
+}
+
+impl From<FontData> for FontDataWithoutGlyphInfo {
+    fn from(mut font_data: FontData) -> Self {
+        font_data.remove_glyph_data();
+        let name = font_data.name;
+        let data = font_data.data;
+        let atlas = font_data.atlas;
+        let glyphs = font_data.glyphs;
+        let kerning = font_data.kerning;
+        FontDataWithoutGlyphInfo { name, data, atlas, glyphs, kerning }
+    }
+}
+
+impl From<FontDataWithoutGlyphInfo> for FontData {
+    fn from(mut font_data: FontDataWithoutGlyphInfo) -> Self {
+        let name = font_data.name;
+        let data = font_data.data;
+        let atlas = font_data.atlas;
+        let glyphs = font_data.glyphs;
+        let kerning = font_data.kerning;
+        let msdf_font = None;
+        let err = "Internal error. The font data cannot be reconstructed.";
+        let font_face = ttf::OwnedFace::from_vec(data.clone(), FONT_FACE_NUMBER).expect(err);
+        FontData { name, data, atlas, glyphs, kerning, msdf_font, font_face }
     }
 }
 

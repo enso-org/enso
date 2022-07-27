@@ -69,6 +69,7 @@ impl Pen {
 
     /// Advance the pen to the next position.
     pub fn advance(&mut self, next: Option<CharInfo>) -> AdvanceResult {
+        event!(WARN, "ADVANCE THE PEN!");
         let next_char = next.map(|t| t.char);
         if let Some(current) = self.current_char {
             let kerning =

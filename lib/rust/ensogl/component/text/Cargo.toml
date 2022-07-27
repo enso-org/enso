@@ -18,6 +18,9 @@ ensogl-text-embedded-fonts = { path = "embedded-fonts" }
 ensogl-text-msdf-sys = { path = "msdf-sys" }
 const_format = "0.2.22"
 xi-rope = { version = "0.3.0" }
+owned_ttf_parser = "0.15"
+bincode = "2.0.0-rc.1"
+serde = {version = "1", features = ["rc"]}
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }

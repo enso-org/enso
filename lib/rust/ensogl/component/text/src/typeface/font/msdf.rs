@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use ensogl_text_msdf_sys::Msdf;
-
+use serde;
 
 
 // ====================
@@ -15,7 +15,7 @@ use ensogl_text_msdf_sys::Msdf;
 /// This structure keeps texture data in 8-bit-per-channel RGB format, which is ready to be passed
 /// to WebGL `texImage2D`. The texture contains MSDFs for all loaded glyph, organized in vertical
 /// column.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Texture {
     /// A plain data of this texture.
     data: Rc<RefCell<Vec<u8>>>,

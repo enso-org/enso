@@ -33,7 +33,10 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             let output = quote! {
                 #(#attrs)*
                 #[wasm_bindgen]
-                pub #fn_sig #block
+                pub #fn_sig {
+                    init_tracing(WARN);
+                    #block
+                }
             };
             output.into()
         }

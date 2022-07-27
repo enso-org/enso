@@ -45,10 +45,19 @@ pub fn main() {
 fn init(world: &World) {
     let fonts = world.default_scene.extension::<font::Registry>();
     let font = fonts.load(embedded_fonts::DefaultFamily::regular());
+    for a in 'a'..'z' {
+        for b in 'a'..'z' {
+            font.kerning(a, b);
+        }
+    }
+
+
     let glyph_system = glyph::System::new(&world.default_scene, font);
     let height = 32.0;
     let color = color::Rgba::new(0.5, 0.0, 0.0, 1.0);
     let start_pos = Vector2(-300.0, -300.0);
+
+
 
     for (line_ind, line) in CHARS_TO_TEST.iter().enumerate() {
         for (char_ind, char) in line.chars().enumerate() {

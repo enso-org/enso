@@ -770,6 +770,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "bincode"
+version = "2.0.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f609ceb2c41b0d0277314a789ef0e7eb14593d5485f7c67320bed3924ebb1b33"
+dependencies = [
+ "bincode_derive",
+]
+
+[[package]]
+name = "bincode_derive"
+version = "2.0.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "913287a8f3e00db4c7ae1b87e9b9b8cebd6b89217eaadfc281fa5c897da35dc3"
+dependencies = [
+ "virtue",
+]
+
+[[package]]
 name = "bit_field"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2032,7 +2050,7 @@ dependencies = [
 name = "enso-metamodel"
 version = "0.1.0"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "derivative",
  "derive_more",
 ]
@@ -2041,7 +2059,7 @@ dependencies = [
 name = "enso-metamodel-lexpr"
 version = "0.1.0"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "derivative",
  "enso-metamodel",
  "enso-reflect",
@@ -2060,7 +2078,7 @@ dependencies = [
 name = "enso-parser"
 version = "0.1.0"
 dependencies = [
- "bincode",
+ "bincode 1.3.3",
  "enso-data-structures",
  "enso-metamodel",
  "enso-metamodel-lexpr",
@@ -2785,6 +2803,7 @@ dependencies = [
 name = "ensogl-text"
 version = "0.1.0"
 dependencies = [
+ "bincode 2.0.0-rc.1",
  "const_format",
  "enso-frp",
  "enso-prelude",
@@ -2794,6 +2813,8 @@ dependencies = [
  "ensogl-core",
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
+ "owned_ttf_parser",
+ "serde",
  "wasm-bindgen-test",
  "xi-rope",
 ]
@@ -3711,7 +3732,7 @@ dependencies = [
  "anyhow",
  "async-compression",
  "async-trait",
- "bincode",
+ "bincode 1.3.3",
  "byte-unit",
  "bytes 1.1.0",
  "cached",
@@ -4860,6 +4881,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "owned_ttf_parser"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fb1e509cfe7a12db2a90bfa057dfcdbc55a347f5da677c506b53dd099cfec9d"
+dependencies = [
+ "ttf-parser",
 ]
 
 [[package]]
@@ -6926,6 +6956,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
 
 [[package]]
+name = "ttf-parser"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b3e06c9b9d80ed6b745c7159c40b311ad2916abb34a49e9be2653b90db0d8dd"
+
+[[package]]
 name = "typeable"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7099,6 +7135,12 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "virtue"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "757cfbfe0d17ee6f22fe97e536d463047d451b47cf9d11e2b7d1398b0ef274dd"
 
 [[package]]
 name = "void"
