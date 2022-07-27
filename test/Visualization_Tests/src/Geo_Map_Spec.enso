@@ -1,8 +1,11 @@
 from Standard.Base import all
 
 import Standard.Table.Data.Table
-import Standard.Test
+
 import Standard.Visualization.Geo_Map
+
+import Standard.Test
+
 import project.Helpers
 
 spec = 

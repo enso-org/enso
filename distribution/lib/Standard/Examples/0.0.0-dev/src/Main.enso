@@ -14,7 +14,7 @@ import Standard.Base.Data.Map as Enso_Map
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Mode as Regex_Mode
 import Standard.Base.Data.Time.Duration as Enso_Duration
-import Standard.Base.Network.Uri as Enso_Uri
+import Standard.Base.Network.URI
 import Standard.Image as Enso_Image
 import Standard.Image.Data.Matrix as Enso_Matrix
 
@@ -164,8 +164,8 @@ http_client : Http
 http_client = Http.new (timeout = 30.seconds)
 
 ## A basic URI for examples.
-uri : Uri
-uri = Enso_Uri.parse "http://user:pass@example.com/foo/bar?key=val"
+uri : URI
+uri = URI.parse "http://user:pass@example.com/foo/bar?key=val"
 
 ## A file that contains an image.
 

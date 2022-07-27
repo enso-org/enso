@@ -1,15 +1,13 @@
-
 from Standard.Base import all
-import Standard.Test
 
-import Standard.Base.Data.Text.Regex
+from Standard.Base.Data.Text.Regex import No_Such_Group_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Mode
-import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Regex.Option as Global_Option
 from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
+
+import Standard.Test
 
 Text.slice_utf_16 start end =
     chars = self.utf_16.drop_start start . drop_end (self.length - end)
@@ -40,7 +38,7 @@ spec =
             Default_Engine.from_enso_options [""] . should_fail_with Default_Engine.Invalid_Option_Error
             Default_Engine.from_enso_options ["", Global_Option.Ascii_Matching] . should_fail_with Default_Engine.Invalid_Option_Error
 
-    Test.group "The default regex engine (Regex.Engine.Default)" <|
+    Test.group "The default regex engine (Default_Engine)" <|
 
         Test.specify "should be able to compile patterns with no options" <|
             engine = Default_Engine.new
@@ -73,7 +71,7 @@ spec =
 
         Test.specify "should return a syntax error of the regex syntax is invalid" <|
             engine = Default_Engine.new
-            engine.compile "^(a" [] . should_fail_with Regex.Syntax_Error
+            engine.compile "^(a" [] . should_fail_with Syntax_Error
 
         Test.specify "should throw an invalid options error if an option is invalid" <|
             engine = Default_Engine.new
@@ -108,14 +106,14 @@ spec =
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "aa ab abc a bc bcd"
-            match = pattern.match input mode=Mode.First
+            match = pattern.match input mode=Regex_Mode.First
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal input
 
         Test.specify "should return `Nothing` if there are no matches in first mode" <|
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "abc"
-            match = pattern.match input mode=Mode.First
+            match = pattern.match input mode=Regex_Mode.First
             match . should_equal Nothing
 
         Test.specify "should be able to `match` at most N instances of the pattern in the input" <|
@@ -145,7 +143,7 @@ spec =
         Test.specify "should be able to `match` the all instances of the pattern in the input" <|
             pattern = engine.compile "(..)" []
             input = "abcdefghij"
-            match = pattern.match input mode=Mode.All
+            match = pattern.match input mode=Regex_Mode.All
             match.length . should_equal 5
             match.at 0 . group 0 . should_equal "ab"
             match.at 1 . group 0 . should_equal "cd"
@@ -156,28 +154,28 @@ spec =
         Test.specify "should return `Nothing` when an all match match fails" <|
             pattern = engine.compile "(aa)" []
             input = "abcdefghij"
-            match = pattern.match input mode=Mode.All
+            match = pattern.match input mode=Regex_Mode.All
             match . should_equal Nothing
 
         Test.specify "should be able to `match` the pattern against the entire input" <|
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "aa ab abc a bc bcd"
-            match = pattern.match input mode=Mode.Full
+            match = pattern.match input mode=Regex_Mode.Full
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal input
 
         Test.specify "should return `Nothing` if a full match does not match the entire input" <|
             pattern = engine.compile "(..)" []
             input = "aa ab"
-            full_match = pattern.match input mode=Mode.Full
+            full_match = pattern.match input mode=Regex_Mode.Full
             full_match . should_equal Nothing
-            match = pattern.match input mode=Mode.First
+            match = pattern.match input mode=Regex_Mode.First
             match . should_be_a Default_Engine.Match
 
         Test.specify "should be able to `match` the pattern against bounded input" <|
             pattern = engine.compile "(..)" []
             input = "abcdefghij"
-            match = pattern.match input mode=(Mode.Bounded 2 8)
+            match = pattern.match input mode=(Regex_Mode.Bounded 2 8)
             match.length . should_equal 3
             match.at 0 . group 0 . should_equal "cd"
             match.at 1 . group 0 . should_equal "ef"
@@ -185,12 +183,12 @@ spec =
 
         Test.specify "should correctly handle empty patterns" pending="Figure out how to make Regex correctly handle empty patterns." <|
            pattern = engine.compile "" []
-           match_1 = pattern.match "" mode=Mode.All
+           match_1 = pattern.match "" mode=Regex_Mode.All
            match_1.length . should_equal 1
            match_1.at 0 . start 0 . should_equal 0
            match_1.at 0 . end 0 . should_equal 0
 
-           match_2 = pattern.match "ABC" mode=Mode.All
+           match_2 = pattern.match "ABC" mode=Regex_Mode.All
            match_2.length . should_equal 4
            match_2.at 0 . start 0 . should_equal 0
            match_2.at 0 . end 0 . should_equal 0
@@ -205,14 +203,14 @@ spec =
         Test.specify "should be able to `find` the first instance of the pattern in the input" <|
             pattern = engine.compile "(..)" []
             input = "abcdefghij"
-            match = pattern.find input mode=Mode.First
+            match = pattern.find input mode=Regex_Mode.First
             match . should_be_a Text
             match . should_equal "ab"
 
         Test.specify "should return `Nothing` if there are no matches in first mode" <|
             pattern = engine.compile "(aa)" []
             input = "abcdefghij"
-            match = pattern.find input mode=Mode.First
+            match = pattern.find input mode=Regex_Mode.First
             match . should_equal Nothing
 
         Test.specify "should be able to `find` at most N instances of the pattern in the input" <|
@@ -242,7 +240,7 @@ spec =
         Test.specify "should be able to `find` the all instances of the pattern in the input" <|
             pattern = engine.compile "(..)" []
             input = "abcdefghij"
-            match = pattern.find input mode=Mode.All
+            match = pattern.find input mode=Regex_Mode.All
             match.length . should_equal 5
             match.at 0 . should_equal "ab"
             match.at 1 . should_equal "cd"
@@ -253,38 +251,38 @@ spec =
         Test.specify "should return `Nothing` when an all match match fails" <|
             pattern = engine.compile "(aa)" []
             input = "abcdefghij"
-            match = pattern.find input mode=Mode.All
+            match = pattern.find input mode=Regex_Mode.All
             match . should_equal Nothing
 
         Test.specify "should be able to `find` the pattern against the entire input" <|
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "aa ab abc a bc bcd"
-            match = pattern.find input mode=Mode.Full
+            match = pattern.find input mode=Regex_Mode.Full
             match . should_be_a Text
             match . should_equal input
 
         Test.specify "should return `Nothing` if a full find does not match the entire input" <|
             pattern = engine.compile "(..)" []
             input = "aa ab"
-            full_match = pattern.find input mode=Mode.Full
+            full_match = pattern.find input mode=Regex_Mode.Full
             full_match . should_equal Nothing
 
         Test.specify "should be able to `find` the pattern against bounded input" <|
             pattern = engine.compile "(..)" []
             input = "abcdefghij"
-            match = pattern.find input mode=(Mode.Bounded 2 8)
+            match = pattern.find input mode=(Regex_Mode.Bounded 2 8)
             match.length . should_equal 3
             match.at 0 . should_equal "cd"
             match.at 1 . should_equal "ef"
             match.at 2 . should_equal "gh"
 
-            match_2 = pattern.find input mode=(Mode.Bounded 2 8 mode=10)
+            match_2 = pattern.find input mode=(Regex_Mode.Bounded 2 8 mode=10)
             match_2.length . should_equal 3
             match_2.at 0 . should_equal "cd"
             match_2.at 1 . should_equal "ef"
             match_2.at 2 . should_equal "gh"
 
-            match_3 = pattern.find input mode=(Mode.Bounded 2 8 mode=2)
+            match_3 = pattern.find input mode=(Regex_Mode.Bounded 2 8 mode=2)
             match_3.length . should_equal 2
             match_3.at 0 . should_equal "cd"
             match_3.at 1 . should_equal "ef"
@@ -297,7 +295,7 @@ spec =
             engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=5 . should_equal ["a", "1", "b", "2"]
             engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=4 . should_equal ["a", "1", "b", "2"]
             engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=3 . should_equal ["a", "1", "b"]
-            engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=(Mode.Bounded 1 3) . should_equal ["1", "b"]
+            engine.compile "([0-9]+|[^0-9]+)" [] . find "a1b2" mode=(Regex_Mode.Bounded 1 3) . should_equal ["1", "b"]
 
     Test.group "The default regex engine's Pattern.split" <|
         engine = Default_Engine.new
@@ -305,7 +303,7 @@ spec =
         Test.specify "should be able to `split` on the first instance of the pattern" <|
             pattern = engine.compile "cd" []
             input = "abcdefghij"
-            match = pattern.split input mode=Mode.First
+            match = pattern.split input mode=Regex_Mode.First
             match.length . should_equal 2
             match.at 0 . should_equal "ab"
             match.at 1 . should_equal "efghij"
@@ -313,7 +311,7 @@ spec =
         Test.specify "should return the original text if there are no matches in first mode" <|
             pattern = engine.compile "(aa)" []
             input = "abcdefghij"
-            match = pattern.split input mode=Mode.First
+            match = pattern.split input mode=Regex_Mode.First
             match . should_equal ["abcdefghij"]
 
         Test.specify "should be able to `split` on at most N instances of the pattern in the input" <|
@@ -340,7 +338,7 @@ spec =
         Test.specify "should be able to `split` on the all instances of the pattern in the input" <|
             pattern = engine.compile "(a)" []
             input = "bacadaeaf"
-            match = pattern.split input mode=Mode.All
+            match = pattern.split input mode=Regex_Mode.All
             match.length . should_equal 5
             match.at 0 . should_equal "b"
             match.at 1 . should_equal "c"
@@ -354,14 +352,14 @@ spec =
         Test.specify "should be able to `replace` the first instance of the pattern in the input" <|
             pattern = engine.compile "abc" []
             input = "aa ab abc a bc abc"
-            match = pattern.replace input "REPLACED" mode=Mode.First
+            match = pattern.replace input "REPLACED" mode=Regex_Mode.First
             match . should_be_a Text
             match . should_equal "aa ab REPLACED a bc abc"
 
         Test.specify "should return the string unchanged if there are no matches to replace in first mode" <|
             pattern = engine.compile "xyz" []
             input = "aa ab ac ad"
-            match = pattern.replace input "REPLACED" mode=Mode.First
+            match = pattern.replace input "REPLACED" mode=Regex_Mode.First
             match . should_equal input
 
         Test.specify "should be able to replace at most N instances of the pattern in the input" <|
@@ -385,30 +383,30 @@ spec =
         Test.specify "should be able to replace the all instances of the pattern in the input" <|
             pattern = engine.compile "aa" []
             input = "aa ab aa ac ad aa aa ax"
-            match = pattern.replace input "REPLACED" mode=Mode.All
+            match = pattern.replace input "REPLACED" mode=Regex_Mode.All
             match . should_equal "REPLACED ab REPLACED ac ad REPLACED REPLACED ax"
 
         Test.specify "should return the input when an all replace fails" <|
             pattern = engine.compile "aa" []
             input = "abcdefghij"
-            match = pattern.replace input "REPLACED" mode=Mode.All
+            match = pattern.replace input "REPLACED" mode=Regex_Mode.All
             match . should_equal input
 
         Test.specify "should be able to replace the entire input only if it matches" <|
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "aa ab abc a bc bcd"
-            match = pattern.replace input "REPLACED" mode=Mode.Full
+            match = pattern.replace input "REPLACED" mode=Regex_Mode.Full
             match . should_equal "REPLACED"
 
         Test.specify "should correctly replace entire input in Full mode even if partial matches are possible" <|
             pattern = engine.compile "(aa)+" []
-            pattern.replace "aaa" "REPLACED" mode=Mode.Full . should_equal "aaa"
-            pattern.replace "aaaa" "REPLACED" mode=Mode.Full . should_equal "REPLACED"
+            pattern.replace "aaa" "REPLACED" mode=Regex_Mode.Full . should_equal "aaa"
+            pattern.replace "aaaa" "REPLACED" mode=Regex_Mode.Full . should_equal "REPLACED"
 
         Test.specify "should return the input for a full replace if the pattern doesn't match the entire input" <|
             pattern = engine.compile "(..)" []
             input = "aa ab"
-            full_match = pattern.replace input "REPLACED" mode=Mode.Full
+            full_match = pattern.replace input "REPLACED" mode=Regex_Mode.Full
             full_match . should_equal input
 
         Test.specify "should not perform overlapping replacements in counted mode" <|
@@ -420,43 +418,43 @@ spec =
         Test.specify "should not perform overlapping replacements in all mode" <|
             pattern = engine.compile "(..)" []
             input = "aa ab"
-            match = pattern.replace input "REPLACED" mode=Mode.All
+            match = pattern.replace input "REPLACED" mode=Regex_Mode.All
             match . should_equal "REPLACEDREPLACEDb"
 
         Test.specify "should handle capture groups in replacement" <|
             pattern = engine.compile "(?<capture>[a-z]+)" []
-            pattern.replace "foo bar, baz" "[$1]" mode=Mode.All . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[$1]" mode=Regex_Mode.All . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[$1]" mode=0 . should_equal "foo bar, baz"
             pattern.replace "foo bar, baz" "[$1]" mode=1 . should_equal "[foo] bar, baz"
             pattern.replace "foo bar, baz" "[$1]" mode=2 . should_equal "[foo] [bar], baz"
             pattern.replace "foo bar, baz" "[$1]" mode=3 . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[$1]" mode=4 . should_equal "[foo] [bar], [baz]"
-            pattern.replace "foo bar, baz" "[$1]" mode=Mode.First . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[$1]" mode=Regex_Mode.First . should_equal "[foo] bar, baz"
             pattern.replace "foo bar, baz" "[$1]" mode=Matching_Mode.Last . should_equal "foo bar, [baz]"
 
-            pattern.replace "foo bar, baz" "[${capture}]" mode=Mode.All . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=Regex_Mode.All . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[${capture}]" mode=0 . should_equal "foo bar, baz"
             pattern.replace "foo bar, baz" "[${capture}]" mode=1 . should_equal "[foo] bar, baz"
             pattern.replace "foo bar, baz" "[${capture}]" mode=2 . should_equal "[foo] [bar], baz"
             pattern.replace "foo bar, baz" "[${capture}]" mode=3 . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[${capture}]" mode=4 . should_equal "[foo] [bar], [baz]"
-            pattern.replace "foo bar, baz" "[${capture}]" mode=Mode.First . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=Regex_Mode.First . should_equal "[foo] bar, baz"
             pattern.replace "foo bar, baz" "[${capture}]" mode=Matching_Mode.Last . should_equal "foo bar, [baz]"
 
         Test.specify "should handle capture groups in replacement in All mode" <|
             pattern = engine.compile "([a-z]+)" []
-            pattern.replace "foo bar, baz" "[$1]" mode=Mode.Full . should_equal "foo bar, baz"
-            pattern.replace "foo" "[$1]" mode=Mode.Full . should_equal "[foo]"
+            pattern.replace "foo bar, baz" "[$1]" mode=Regex_Mode.Full . should_equal "foo bar, baz"
+            pattern.replace "foo" "[$1]" mode=Regex_Mode.Full . should_equal "[foo]"
 
             pattern_2 = engine.compile '<a href="(?<addr>.*?)">(?<name>.*?)</a>' []
-            pattern_2.replace '<a href="url">content</a>' "$2 <- $1" mode=Mode.Full . should_equal "content <- url"
-            pattern_2.replace '<a href="url">content</a>' "${name} <- ${addr}" mode=Mode.Full . should_equal "content <- url"
+            pattern_2.replace '<a href="url">content</a>' "$2 <- $1" mode=Regex_Mode.Full . should_equal "content <- url"
+            pattern_2.replace '<a href="url">content</a>' "${name} <- ${addr}" mode=Regex_Mode.Full . should_equal "content <- url"
 
     Test.group "Match.group" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Mode.First
+        match = pattern.match input mode=Regex_Mode.First
         match . should_be_a Default_Engine.Match
 
         Test.specify "should return the full match with index 0" <|
@@ -472,8 +470,8 @@ spec =
             match.group 3 . should_equal Nothing
 
         Test.specify "should fail with No_Such_Group_Error if the group did not exist" <|
-            match.group "fail" . should_fail_with Regex.No_Such_Group_Error
-            match.group 5 . should_fail_with Regex.No_Such_Group_Error
+            match.group "fail" . should_fail_with No_Such_Group_Error
+            match.group 5 . should_fail_with No_Such_Group_Error
 
         Test.specify "should make named groups accessible by index" <|
             match.group 2 . should_equal (match.group "letters")
@@ -482,7 +480,7 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Mode.First
+        match = pattern.match input mode=Regex_Mode.First
         match . should_be_a Default_Engine.Match
 
         Test.specify "should return the results of all groups" <|
@@ -499,7 +497,7 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Mode.First
+        match = pattern.match input mode=Regex_Mode.First
         match . should_be_a Default_Engine.Match
 
         Test.specify "should return the results of all named groups" <|
@@ -518,7 +516,7 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Mode.First
+        match = pattern.match input mode=Regex_Mode.First
         match . should_be_a Default_Engine.Match
 
         Test.specify "should return the start of a group by index" <|
@@ -532,14 +530,14 @@ spec =
             match.start "empty" . should_equal Nothing
 
         Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-            match.start 5 . should_fail_with Regex.No_Such_Group_Error
-            match.start "nonexistent" . should_fail_with Regex.No_Such_Group_Error
+            match.start 5 . should_fail_with No_Such_Group_Error
+            match.start "nonexistent" . should_fail_with No_Such_Group_Error
 
     Test.group "Match.end" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Mode.First
+        match = pattern.match input mode=Regex_Mode.First
         match . should_be_a Default_Engine.Match
 
         Test.specify "should return the end of a group by index" <|
@@ -553,14 +551,14 @@ spec =
             match.end "empty" . should_equal Nothing
 
         Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-            match.end 5 . should_fail_with Regex.No_Such_Group_Error
-            match.end "nonexistent" . should_fail_with Regex.No_Such_Group_Error
+            match.end 5 . should_fail_with No_Such_Group_Error
+            match.end "nonexistent" . should_fail_with No_Such_Group_Error
 
     Test.group "Match.span" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Mode.First
+        match = pattern.match input mode=Regex_Mode.First
         match . should_be_a Default_Engine.Match
 
         Test.specify "should get the span of a group by index" <|
@@ -574,14 +572,14 @@ spec =
             match.span "empty" . should_equal Nothing
 
         Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
-            match.span 5 . should_fail_with Regex.No_Such_Group_Error
-            match.span "nonexistent" . should_fail_with Regex.No_Such_Group_Error
+            match.span 5 . should_fail_with No_Such_Group_Error
+            match.span "nonexistent" . should_fail_with No_Such_Group_Error
 
     Test.group "Match.start_position" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Mode.First
+        match = pattern.match input mode=Regex_Mode.First
         match . should_be_a Default_Engine.Match
 
         Test.specify "should return the region start over which self match was performed" <|
@@ -591,7 +589,7 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Mode.First
+        match = pattern.match input mode=Regex_Mode.First
         match . should_be_a Default_Engine.Match
 
         Test.specify "should return the region end over which self match was performed" <|

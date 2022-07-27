@@ -1,11 +1,10 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Ordering.Comparator
-from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
-
-import Standard.Test
 
 polyglot java import java.lang.ClassCastException
+
+import Standard.Test
 
 # === Test Resources ===
 

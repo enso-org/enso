@@ -123,7 +123,7 @@ type Engine
         internal_pattern = maybe_java_pattern.map_error case _ of
             Polyglot_Error err ->
                 if err.is_a PatternSyntaxException . not then err else
-                    Regex.Syntax_Error err.getMessage
+                    Syntax_Error ("The regex could not be compiled: " + err.getMessage)
             other -> other
 
         Pattern internal_pattern all_options self

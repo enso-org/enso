@@ -1,6 +1,8 @@
 from Standard.Base import all
-import Standard.Test
+
 import Standard.Visualization
+
+import Standard.Test
 
 type My_Type my_field
 

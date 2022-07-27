@@ -1,15 +1,14 @@
 from Standard.Base import all
-import Standard.Test
-import Standard.Test.Problems
 
-import Standard.Base.Error.Problem_Behavior
 import Standard.Table.Data.Column_Name_Mapping
 from Standard.Table.Errors as Table_Errors import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
-from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Table.Data.Position as Position_Module import all
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
+
+import Standard.Test
+import Standard.Test.Problems
 
 type Test_Selection supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False
 
