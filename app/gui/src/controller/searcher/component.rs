@@ -141,7 +141,11 @@ impl Component {
     /// Currently, only modules can be entered, and then the Browser should display content and
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
-        self.suggestion.kind == suggestion_database::entry::Kind::Module
+        if let Kind::FromDb { suggestion, .. } = self.kind {
+            suggestion.kind == suggestion_database::entry::Kind::Module
+        } else {
+            false
+        }
     }
 
     /// Update matching info.
@@ -163,14 +167,20 @@ impl Component {
 
 impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let self_type_not_here =
-            self.suggestion.self_type.as_ref().filter(|t| *t != &self.suggestion.module);
-        if let Some(self_type) = self_type_not_here {
-            let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
-            let name = self.suggestion.name.from_case(Case::Snake).to_case(Case::Lower);
-            write!(f, "{} {}", self_name, name)
-        } else {
-            write!(f, "{}", self.suggestion.name.from_case(Case::Snake).to_case(Case::Lower))
+        match self.kind {
+            Kind::FromDb { suggestion, .. } => {
+                let self_type_not_here =
+                    suggestion.self_type.as_ref().filter(|t| *t != &suggestion.module);
+                if let Some(self_type) = self_type_not_here {
+                    let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
+                    let name = suggestion.name.from_case(Case::Snake).to_case(Case::Lower);
+                    write!(f, "{} {}", self_name, name)
+                } else {
+                    write!(f, "{}", suggestion.name.from_case(Case::Snake).to_case(Case::Lower))
+                }
+            },
+            // FIXME[MC]
+            Kind::Virtual { .. } => write!(f, "FIXME"),
         }
     }
 }
