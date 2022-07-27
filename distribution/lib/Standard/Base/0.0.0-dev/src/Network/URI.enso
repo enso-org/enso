@@ -1,44 +1,44 @@
 from Standard.Base import all
 
-import Standard.Base.Network.Uri.Internal
+import Standard.Base.Network.URI.Internal
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
 
 ## ALIAS Get URI
 
-   Parse a Uri from text.
+   Parse a URI from text.
 
    Arguments:
    - text: The text to parse as a URI.
 
-   Throws a Syntax_Error when the text cannot be parsed as a Uri.
+   Throws a Syntax_Error when the text cannot be parsed as a URI.
 
    > Example
-     Parse Uri text.
+     Parse URI text.
 
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_parse = Uri.parse "http://example.com"
-parse : Text -> Uri ! Syntax_Error
+         example_parse = URI.parse "http://example.com"
+parse : Text -> URI ! Syntax_Error
 parse text =
-    Panic.catch_java Any (Uri (Java_URI.create text)) java_exception->
-        Error.throw (Syntax_Error java_exception.getMessage)
+    Panic.catch_java Any (URI (Java_URI.create text)) java_exception->
+        Error.throw (Syntax_Error ("URI syntax error: " + java_exception.getMessage))
 
-## Convert Text to a Uri.
+## Convert Text to a URI.
 
-   Throws a Syntax_Error when `self` cannot be parsed as a Uri.
+   Throws a Syntax_Error when `self` cannot be parsed as a URI.
 
    > Example
-     Parse Uri text.
+     Parse URI text.
 
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
          example_parse = "http://example.com".to_uri
-Text.to_uri : Uri ! Syntax_Error
+Text.to_uri : URI ! Syntax_Error
 Text.to_uri = parse self
 
-type Uri
+type URI
 
     ## PRIVATE
 
@@ -46,9 +46,9 @@ type Uri
 
        Arguments:
        - internal_uri: The internal representation of the URI.
-    type Uri internal_uri
+    type URI internal_uri
 
-    ## Convert this to Uri.
+    ## Convert this to URI.
 
        > Examples
          Convert a URI to a URI (a no op).
@@ -56,10 +56,10 @@ type Uri
              import Standard.Examples
 
              example_to_uri = Examples.uri.to_uri
-    to_uri : Uri
+    to_uri : URI
     to_uri = self
 
-    ## Get the scheme part of this Uri.
+    ## Get the scheme part of this URI.
 
        > Example
          Return the scheme from the URI.
@@ -70,7 +70,7 @@ type Uri
     scheme : Text ! Nothing
     scheme = Internal.handle_nothing self.internal_uri.getScheme
 
-    ## Get the user info part of this Uri.
+    ## Get the user info part of this URI.
 
        > Example
          Return the user info part of the URI.
@@ -81,7 +81,7 @@ type Uri
     user_info : Text ! Nothing
     user_info = Internal.handle_nothing self.internal_uri.getUserInfo
 
-    ## Get the host part of this Uri.
+    ## Get the host part of this URI.
 
        > Example
          Return the host portion of the URI.
@@ -92,7 +92,7 @@ type Uri
     host : Text ! Nothing
     host = Internal.handle_nothing self.internal_uri.getHost
 
-    ## Get the authority (user info and host) part of this Uri.
+    ## Get the authority (user info and host) part of this URI.
 
        > Example
          Return the authority portion of the URI.
@@ -103,7 +103,7 @@ type Uri
     authority : Text ! Nothing
     authority = Internal.handle_nothing self.internal_uri.getAuthority
 
-    ## Get the port part of this Uri.
+    ## Get the port part of this URI.
 
        > Example
          Return the port portion of the URI
@@ -117,7 +117,7 @@ type Uri
         Internal.handle_nothing <|
             if port_number == -1 then Nothing else port_number.to_text
 
-    ## Get the path part of this Uri.
+    ## Get the path part of this URI.
 
        > Example
          Return the path portion of the URI.
@@ -128,7 +128,7 @@ type Uri
     path : Text ! Nothing
     path = Internal.handle_nothing self.internal_uri.getPath
 
-    ## Get the query part of this Uri.
+    ## Get the query part of this URI.
 
        > Example
          Return the query portion of the URI.
@@ -139,7 +139,7 @@ type Uri
     query : Text ! Nothing
     query = Internal.handle_nothing self.internal_uri.getQuery
 
-    ## Get the fragment part of this Uri.
+    ## Get the fragment part of this URI.
 
        > Example
          Return the fragment portion of the URI.
@@ -152,35 +152,35 @@ type Uri
 
     ## ADVANCED
 
-       Get the unescaped user info part of this Uri.
+       Get the unescaped user info part of this URI.
     raw_user_info : Text ! Nothing
     raw_user_info = Internal.handle_nothing self.internal_uri.getRawUserInfo
 
     ## ADVANCED
 
-       Get the unescaped authority part of this Uri.
+       Get the unescaped authority part of this URI.
     raw_authority : Text ! Nothing
     raw_authority = Internal.handle_nothing self.internal_uri.getRawAuthority
 
     ## ADVANCED
 
-       Get the unescaped path part of this Uri.
+       Get the unescaped path part of this URI.
     raw_path : Text ! Nothing
     raw_path = Internal.handle_nothing self.internal_uri.getRawPath
 
     ## ADVANCED
 
-       Get the unescaped query part of this Uri.
+       Get the unescaped query part of this URI.
     raw_query : Text ! Nothing
     raw_query = Internal.handle_nothing self.internal_uri.getRawQuery
 
     ## ADVANCED
 
-       Get the unescaped fragment part of this Uri.
+       Get the unescaped fragment part of this URI.
     raw_fragment : Text ! Nothing
     raw_fragment = Internal.handle_nothing self.internal_uri.getRawFragment
 
-    ## Convert this Uri to text.
+    ## Convert this URI to text.
 
        > Example
          Convert a URI to text.
@@ -191,12 +191,12 @@ type Uri
     to_text : Text
     to_text = self.internal_uri.toString
 
-    ## Convert a Uri to JSON.
+    ## Convert a URI to JSON.
 
        > Example
          Convert a URI to JSON.
 
-             import Standard.Base.Network.Uri
+             import Standard.Base.Network.URI
              import Standard.Examples
 
              example_to_json = Examples.uri.to_json
@@ -208,23 +208,8 @@ type Uri
        > Example
          Check if two URIs are equal.
 
-             import Standard.Base.Network.Uri
+             import Standard.Base.Network.URI
 
              example_eq = "https://example.com".to_uri == "http://example.org".to_uri
-    == : Uri -> Boolean
+    == : URI -> Boolean
     == that = self.internal_uri.equals that.internal_uri
-
-## UNSTABLE
-
-   Syntax error when parsing a Uri.
-
-   Arguments:
-   - message: The error message for the URI syntax error.
-type Syntax_Error message
-
-## UNSTABLE
-
-   Converts the URI syntax error to a human-readable form.
-Syntax_Error.to_display_text =
-    "Uri syntax error: " + self.message
-

@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Time.Date as Date_Module import Date
 from Standard.Base.Data.Time as Time_Module import Time
 from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Auto

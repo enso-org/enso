@@ -1,9 +1,10 @@
 from Standard.Base import all
-
 import Standard.Base.System
 import Standard.Base.Data.Text.Line_Ending_Style
+
 import Standard.Table
 import Standard.Table.Data.Column
+
 import Standard.Test
 
 Table.Table.should_equal expected =
