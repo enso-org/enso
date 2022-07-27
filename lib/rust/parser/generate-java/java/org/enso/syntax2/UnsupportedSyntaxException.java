@@ -1,7 +1,7 @@
 package org.enso.syntax2;
 
 public final class UnsupportedSyntaxException extends Exception {
-    protected final Tree tree;
+    private final Tree tree;
 
     UnsupportedSyntaxException(Tree treeIn) {
         super("Tree contains unsupported syntax. Details are in an `Unsupported` node in the tree.");
