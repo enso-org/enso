@@ -237,6 +237,19 @@ impl List {
                     // FIXME[MC] possible to fix?
                     icon: "TextInput".into(),
                 }),
+                Rc::new(component::Virtual {
+                    name: "number input",
+                    code: "0",
+                    this_arg: None,
+                    argument_types: vec![],
+                    // FIXME[MC]
+                    return_type: None, 
+                    imports: vec![],
+                    documentation_html: Some("This will allow you to enter a number easily."),
+                    method_id: None,
+                    // FIXME[MC] possible to fix?
+                    icon: "NumberInput".into(),
+                }),
             ]);
             favorites_groups.insert(0, vgroup);
         }
