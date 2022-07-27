@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Error.Problem_Behavior import all
 import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Time.Date
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.System
@@ -13,9 +14,9 @@ import Standard.Table.IO.File_Read
 from Standard.Table.IO.File_Format import Delimited
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.IO.Quote_Style
-from Standard.Table.IO.Line_Ending_Style import all
 import Standard.Table.Data.Match_Columns
 import Standard.Table.Data.Column_Name_Mapping
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
 from Standard.Table.Errors as Table_Errors import Column_Count_Mismatch, Column_Name_Mismatch
 
 import Standard.Test
@@ -29,9 +30,13 @@ type My_Type
     to_text : Text
     to_text = "[[[My Type :: " + self.x.to_text + "]]]"
 
+default_line_endings_for_new_files = Line_Ending_Style.Unix
+join_lines lines trailing_newline=True =
+    eol = default_line_endings_for_new_files.to_text
+    if trailing_newline then lines.join eol suffix=eol else lines.join eol
+
 spec =
-    line_ending_pairs = [[Unix_Line_Endings, '\n'], [Windows_Line_Endings, '\r\n'], [Classic_Mac_Line_Endings, '\r']]
-    system_separator = if System.os == "windows" then '\r\n' else '\n'
+    line_ending_pairs = [[Line_Ending_Style.Unix, '\n'], [Line_Ending_Style.Windows, '\r\n'], [Line_Ending_Style.Mac_Legacy, '\r']]
     Test.group "Delimited File Writing" <|
         Test.specify "should correctly write a simple table" <|
             table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]], ["D", ["a", 2, My_Type 10]]]
@@ -131,6 +136,27 @@ spec =
             text.should_equal expected_text
             file.delete
 
+        Test.specify "should quote values containing the comment symbol if comments are enabled" <|
+            table = Table.new [["#", ['b', 'x', '#']], ["B", [Nothing,"#","abc"]]]
+            file = (enso_project.data / "transient" / "comments.csv")
+            file.delete_if_exists
+            table.write file on_problems=Report_Error . should_succeed
+            expected_text = join_lines ['#,B','b,', 'x,#', '#,abc']
+            text = File.read_text file
+            text.should_equal expected_text
+            file.delete
+
+            format = File_Format.Delimited ',' . with_comments
+            table.write file format on_problems=Report_Error . should_succeed
+            expected_text_2 = normalize_lines <| """
+                "#",B
+                b,
+                x,"#"
+                "#",abc
+            text_2 = File.read_text file
+            text_2.should_equal expected_text_2
+            file.delete
+
         Test.specify 'should not quote values if quoting is disabled' <|
             format = File_Format.Delimited "," value_formatter=(Data_Formatter decimal_point=",") . without_quotes
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
@@ -187,8 +213,7 @@ spec =
             text = File.read_text file encoding=Encoding.ascii
             text.should_equal expected_text
             result . should_equal Nothing
-            sep_length = System.default_line_separator.codepoints.length
-            positions = [6 + sep_length, 7 + sep_length, 13 + 2*sep_length]
+            positions = [7, 8, 15]
             msg = "Encoding issues at codepoints " +
                 positions.map .to_text . join separator=", " suffix="."
             Warning.get_all result . map .value . should_equal [Encoding_Error msg]
@@ -236,6 +261,17 @@ spec =
             table.write file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             got_table = file.read
             got_table.should_equal table
+            file.delete
+
+        Test.specify "should correctly append to a file with a missing newline at EOF" <|
+            table = Table.new [["A", [1,2,3]], ["B", [1.0,1.5,2.2]], ["C", ["x","y","z"]]]
+            file = (enso_project.data / "transient" / "append_missing_newline.csv")
+            file.delete_if_exists
+            'A,B,C\r0,0,0'.write file
+            table.write file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            text = File.read_text file
+            expected_lines = ["A,B,C", "0,0,0", "1,1.0,x", "2,1.5,y", "3,2.2,z"]
+            text.should_equal (expected_lines.join '\r' suffix='\r')
             file.delete
 
         Test.specify "should append to a file, matching columns by name (headers=Infer)" <|
@@ -358,7 +394,7 @@ spec =
                 text.should_equal (expected_lines.join separator suffix=separator)
                 file.delete
 
-        Test.specify "should use the system default line ending style when appending to an empty or nonexistent file" <|
+        Test.specify "should use Unix line ending style when appending to an empty or nonexistent file" <|
             empty_file = (enso_project.data / "transient" / "empty.csv")
             "".write empty_file
             nonexistent_file = (enso_project.data / "transient" / "nonexistent.csv")
@@ -369,7 +405,7 @@ spec =
             table_to_append.write empty_file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
 
             expected_lines = ["a,d", "x,z", "y,w"]
-            expected_text = (expected_lines.join system_separator suffix=system_separator)
+            expected_text = join_lines expected_lines
             File.read_text empty_file . should_equal expected_text
             File.read_text nonexistent_file . should_equal expected_text
 
@@ -389,13 +425,130 @@ spec =
                 text.should_equal expected_text
                 file.delete
 
+        Test.specify "should use the existing line ending style when appending to a file consisting of only comments missing last EOL" <|
+            initial_lines = ["# comment 1", "# comment 2 without EOL"]
+            table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
+            expected_lines = initial_lines + ["a,b", "x,z", "y,w"]
+            file = (enso_project.data / "transient" / "endings_comments_only.csv")
+            line_ending_pairs.each setting->
+                separator=setting.second
+                file.delete_if_exists
+                (initial_lines.join separator).write file
+                format = File_Format.Delimited ',' . with_comments
+                table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+                text = File.read_text file
+                expected_text = expected_lines.join separator suffix=separator
+                text.should_equal expected_text
+                file.delete
+
+        Test.specify "should correctly handle append edge cases" <|
+            table = Table.new [["a", [1, 2]]]
+            file = (enso_project.data / "transient" / "append_edge_cases.csv")
+            file.delete_if_exists
+
+            format = File_Format.Delimited ',' . without_headers
+
+            # A long line but without a trailing newline
+            base_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-ABC"
+            expected_lines_1 = [base_line, "1", "2"]
+            # 1 character with trailing newline
+            line_ending_pairs.each setting->
+                separator=setting.second
+                (base_line+separator).write file
+                table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+                text = File.read_text file
+                expected_text = expected_lines_1.join separator suffix=separator
+                text.should_equal expected_text
+                file.delete
+
+            base_line.write file
+            table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+            File.read_text file . should_equal <| normalize_lines base_line+'\n1\n2\n'
+            file.delete
+
+            # 1 character without trailing newline
+            "#".write file
+            table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+            File.read_text file . should_equal <| normalize_lines '#\n1\n2\n'
+            file.delete
+
+            "#".write file
+            table.write file format.with_comments on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+            File.read_text file . should_equal <| normalize_lines '#\n1\n2\n'
+            file.delete
+
+            expected_lines_2 = ["#", "1", "2"]
+            # 1 character with trailing newline
+            line_ending_pairs.each setting->
+                [format.with_comments, format].each format->
+                    separator=setting.second
+                    ("#"+separator).write file
+                    table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+                    text = File.read_text file
+                    expected_text = expected_lines_2.join separator suffix=separator
+                    text.should_equal expected_text
+                    file.delete
+
+            ["B", "#"].each middle_line->
+                expected_lines_3 = ["A", middle_line, "1", "2"]
+                [format.with_comments, format].each format->
+                    # 2 lines without trailing newline
+                    line_ending_pairs.each setting->
+                        separator=setting.second
+                        ("A"+separator+middle_line).write file
+                        table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+                        text = File.read_text file
+                        expected_text = expected_lines_3.join separator suffix=separator
+                        text.should_equal expected_text
+                        file.delete
+
+                    # 2 lines with trailing newline
+                    line_ending_pairs.each setting->
+                        separator=setting.second
+                        ("A"+separator+middle_line+separator).write file
+                        table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
+                        text = File.read_text file
+                        expected_text = expected_lines_3.join separator suffix=separator
+                        text.should_equal expected_text
+                        file.delete
+
+        Test.specify "should use the existing line ending style when appending to a file consisting of only one comment with EOL" <|
+            initial_line = "# comment 1 with EOL"
+            table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
+            expected_lines = [initial_line] + ["a,b", "x,z", "y,w"]
+            file = (enso_project.data / "transient" / "endings_comments_only.csv")
+            line_ending_pairs.each setting->
+                separator=setting.second
+                file.delete_if_exists
+                (initial_line+separator).write file
+                format = File_Format.Delimited ',' . with_comments
+                table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+                text = File.read_text file
+                expected_text = expected_lines.join separator suffix=separator
+                text.should_equal expected_text
+                file.delete
+
+        Test.specify "should use the Unix line ending style when appending to a file consisting of only one comment and missing the EOL" <|
+            initial_lines = ["# comment 1 without EOL"]
+            table_to_append = Table.new [["a", ["x", "y"]], ["b", ["z", "w"]]]
+            expected_lines = initial_lines + ["a,b", "x,z", "y,w"]
+            file = (enso_project.data / "transient" / "endings_comments_only.csv")
+            file.delete_if_exists
+            (join_lines initial_lines trailing_newline=False).write file
+            format = File_Format.Delimited ',' . with_comments
+            table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
+            text = File.read_text file
+            expected_text = join_lines expected_lines
+            text.should_equal expected_text
+            file.delete
+
         Test.specify "should fail if explicitly provided line endings do not match line endings in the file when appending" <|
             initial_table = Table.new [["a", [1, 2]]]
             table_to_append = Table.new [["a", ["x", "y"]]]
             file = (enso_project.data / "transient" / "endings_mismatch.csv")
             file.delete_if_exists
-            initial_table.write file (File_Format.Delimited ',' line_endings=Classic_Mac_Line_Endings)
-            result = table_to_append.write file (File_Format.Delimited ',' line_endings=Unix_Line_Endings) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            initial_table.write file (File_Format.Delimited ',' line_endings=Line_Ending_Style.Mac_Legacy)
+            result = table_to_append.write file (File_Format.Delimited ',' line_endings=Line_Ending_Style.Unix) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
             result . should_fail_with Illegal_Argument_Error
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete
