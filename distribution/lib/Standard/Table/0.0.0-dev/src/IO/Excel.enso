@@ -1,11 +1,11 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+from Standard.Base.Error.Problem_Behavior import Problem_Behavior
 import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.System.File.Option
 from Standard.Table.IO.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Errors as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Match_Columns
 
