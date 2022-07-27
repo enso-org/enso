@@ -54,8 +54,8 @@ type Connection
         wrap_sql_errors <|
             self.connection_resource.with connection->
                 metadata = connection.getMetaData
-                schema_result_set = metadata.getCatalogs
-                read_column schema_result_set "TABLE_CAT"
+                database_result_set = metadata.getCatalogs
+                read_column database_result_set "TABLE_CAT"
 
     ## Returns the name of the current database (or catalog).
     database : Text
@@ -94,18 +94,30 @@ type Connection
     set_schema schema =
         self.with_schema schema
 
-    ## Returns a materialised Table of all the matching views and tables.
-
-       Arguments:
-       - database: The database name to search in (default is current database).
-       - schema: The schema name to search in (defaults to current schema).
-       - name_like: The table name pattern to search for.
-    tables : Text -> Text -> Text -> Materialized_Table
-    tables database=self.database schema=self.schema name_like=Nothing =
+    ## Gets a list of the table types
+    table_types : [Text]
+    table_types =
         wrap_sql_errors <|
             self.connection_resource.with connection->
                 metadata = connection.getMetaData
-                result_set_to_table <| metadata.getTables database schema name_like Nothing
+                types_result_set = metadata.getTableTypes
+                read_column types_result_set "TABLE_TYPE"
+
+    ## Returns a materialised Table of all the matching views and tables.
+
+       Arguments:
+       - name_like: The table name pattern to search for. Support SQL wildcards.
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+       - types: The table types to search for.
+    tables : Text -> Text -> Text -> Materialized_Table
+    tables name_like=Nothing database=self.database schema=self.schema types=Nothing =
+        types_array = if types.is_nothing then Nothing else types.to_array
+        wrap_sql_errors <|
+            self.connection_resource.with connection->
+                metadata = connection.getMetaData
+                result_set_to_table <|
+                    metadata.getTables database schema name_like types_array
 
     ## UNSTABLE
 
