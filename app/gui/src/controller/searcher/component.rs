@@ -30,6 +30,7 @@ pub type Id = suggestion_database::entry::Id;
 /// Information how the component matches the filtering pattern.
 pub type MatchInfo = controller::searcher::action::MatchInfo;
 
+pub type Virtual = controller::searcher::action::hardcoded::Suggestion;
 
 
 // ==============
@@ -77,6 +78,22 @@ pub enum Order {
     /// components in component browser - the lower (with greater indices) entries are more
     /// handy.
     ByMatch,
+}
+
+
+
+// ============
+// === Kind ===
+// ============
+
+pub enum Kind {
+    FromDb {
+        id:         Immutable<Id>,
+        suggestion: Rc<suggestion_database::Entry>,
+    },
+    Virtual {
+        suggestion: Rc<Virtual>,
+    },
 }
 
 
