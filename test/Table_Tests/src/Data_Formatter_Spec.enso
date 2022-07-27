@@ -1,15 +1,11 @@
 from Standard.Base import all
-import Standard.Base.Error.Problem_Behavior
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+
+import Standard.Base.Data.Time
+import Standard.Base.Data.Time.Time_Of_Day
 
 import Standard.Table
 import Standard.Table.Data.Column
 from Standard.Table.Errors import all
-
-import Standard.Base.Data.Time.Date
-import Standard.Base.Data.Time
-import Standard.Base.Data.Time.Time_Of_Day
-
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.IO.Quote_Style
 

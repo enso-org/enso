@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Runtime.Resource
+from Standard.Base.Runtime.Resource import Managed_Resource
 
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Internal.IR

@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Test
 
 type Author name year_of_birth
+
 type Book title author
 
 Text.should_fail_parsing_with expected =

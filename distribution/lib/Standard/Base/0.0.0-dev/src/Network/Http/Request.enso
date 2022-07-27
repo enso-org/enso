@@ -4,7 +4,7 @@ import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request.Body as Request_Body
-import Standard.Base.Network.Uri
+import Standard.Base.Network.URI
 import Standard.Base.System.File
 
 ## Create new HTTP request.
@@ -20,10 +20,10 @@ import Standard.Base.System.File
 
          import Standard.Base.Network.Http.Method
          import Standard.Base.Network.Http.Request
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_new = Request.new Method.Post (Uri.parse "http://example.com")
-new : Method -> (Text | Uri) -> Vector.Vector -> Request_Body -> Request
+         example_new = Request.new Method.Post (URI.parse "http://example.com")
+new : Method -> (Text | URI) -> Vector.Vector -> Request_Body -> Request
 new method addr (headers = []) (body = Request_Body.Empty) =
     Panic.recover Any (Request method (Panic.rethrow (addr.to_uri)) headers body)
 
@@ -35,10 +35,10 @@ new method addr (headers = []) (body = Request_Body.Empty) =
      Create a new options request.
 
          import Standard.Base.Network.Http.Request
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_options = Request.options (Uri.parse "http://example.com")
-options : (Text | Uri) -> Vector.Vector -> Request
+         example_options = Request.options (URI.parse "http://example.com")
+options : (Text | URI) -> Vector.Vector -> Request
 options addr (headers = []) = new Method.Options addr headers
 
 ## Create a Get request.
@@ -51,10 +51,10 @@ options addr (headers = []) = new Method.Options addr headers
      Create a new get request.
 
          import Standard.Base.Network.Http.Request
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_get = Request.get (Uri.parse "http://example.com")
-get : (Text | Uri) -> Vector.Vector -> Request
+         example_get = Request.get (URI.parse "http://example.com")
+get : (Text | URI) -> Vector.Vector -> Request
 get addr (headers = []) = new Method.Get addr headers
 
 ## Create a Head request.
@@ -67,10 +67,10 @@ get addr (headers = []) = new Method.Get addr headers
      Create a new head request.
 
          import Standard.Base.Network.Http.Request
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_head = Request.head (Uri.parse "http://example.com")
-head : (Text | Uri) -> Vector.Vector -> Request
+         example_head = Request.head (URI.parse "http://example.com")
+head : (Text | URI) -> Vector.Vector -> Request
 head addr (headers = []) = new Method.Head addr headers
 
 ## Create a Post request.
@@ -85,10 +85,10 @@ head addr (headers = []) = new Method.Head addr headers
 
          import Standard.Base.Network.Http.Request
          import Standard.Base.Network.Http.Request.Body as Request_Body
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_post = Request.post (Uri.parse "http://example.com") Request_Body.Empty
-post : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
+         example_post = Request.post (URI.parse "http://example.com") Request_Body.Empty
+post : (Text | URI) -> Request_Body -> Vector.Vector -> Request
 post addr body (headers = []) = new Method.Post addr headers body
 
 ## Create a Put request.
@@ -103,10 +103,10 @@ post addr body (headers = []) = new Method.Post addr headers body
 
          import Standard.Base.Network.Http.Request
          import Standard.Base.Network.Http.Request.Body as Request_Body
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_put = Request.put (Uri.parse "http://example.com") Request_Body.Empty
-put : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
+         example_put = Request.put (URI.parse "http://example.com") Request_Body.Empty
+put : (Text | URI) -> Request_Body -> Vector.Vector -> Request
 put addr body (headers = []) = new Method.Put addr headers body
 
 ## Create a Delete request.
@@ -119,10 +119,10 @@ put addr body (headers = []) = new Method.Put addr headers body
      Create a new delete request.
 
          import Standard.Base.Network.Http.Request
-         import Standard.Base.Network.Uri
+         import Standard.Base.Network.URI
 
-         example_delete = Request.delete (Uri.parse "http://example.com")
-delete : (Text | Uri) -> Vector.Vector -> Request
+         example_delete = Request.delete (URI.parse "http://example.com")
+delete : (Text | URI) -> Vector.Vector -> Request
 delete addr (headers = []) = new Method.Delete addr headers
 
 type Request
@@ -189,10 +189,10 @@ type Request
 
              import Standard.Base.Network.Http.Request
              import Standard.Base.Network.Http.Request.Body as Request_Body
-             import Standard.Base.Network.Uri
+             import Standard.Base.Network.URI
 
              example_with_body =
-                 Request.post (Uri.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
+                 Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
     with_body : Request_Body -> Request
     with_body new_body = Request self.method self.uri self.headers new_body
 
@@ -207,10 +207,10 @@ type Request
 
              import Standard.Base.Network.Http.Request
              import Standard.Base.Network.Http.Request.Body as Request_Body
-             import Standard.Base.Network.Uri
+             import Standard.Base.Network.URI
 
              example_with_json =
-                 Request.post (Uri.parse "http://example.com") Request_Body.Empty |> _.with_json '{ "a": "b" }'
+                 Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_json '{ "a": "b" }'
     with_json : (Text | Json) -> Request
     with_json json_body =
         new_body = Request_Body.Json json_body
@@ -225,10 +225,10 @@ type Request
          Create a delete request with an empty form.
 
              import Standard.Base.Network.Http.Request
-             import Standard.Base.Network.Uri
+             import Standard.Base.Network.URI
 
              example_delete =
-                Request.delete (Uri.parse "http://example.com") . with_form []
+                Request.delete (URI.parse "http://example.com") . with_form []
     with_form : (Vector | Form) -> Request
     with_form parts =
         new_body = Request_Body.Form parts.to_form

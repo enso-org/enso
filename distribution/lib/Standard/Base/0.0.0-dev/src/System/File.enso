@@ -8,7 +8,8 @@ import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
-from Standard.Base.Runtime.Resource import all
+import Standard.Base.Runtime.Resource
+from Standard.Base.Runtime.Resource import Managed_Resource
 from Standard.Base.Data.Time as Time_Module import Time
 
 export Standard.Base.System.File.Option

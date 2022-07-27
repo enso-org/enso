@@ -5,19 +5,21 @@ import Standard.Base.System.Platform
 import Standard.Base.System.Process
 from Standard.Base.System.Process.Exit_Code import Exit_Success
 
+import Standard.Table as Materialized_Table
+from Standard.Table.Data.Aggregate_Column import all
+
 from Standard.Database import all
 from Standard.Database.Connection.Connection import Sql_Error
-import Standard.Table as Materialized_Table
-import project.Database.Common_Spec
-import project.Database.Helpers.Name_Generator
-import project.Common_Table_Spec
-import project.Aggregate_Spec
-from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Database.Internal.Postgres.Pgpass import Pgpass_Entry
 
 import Standard.Test
 import Standard.Test.Test_Environment
+
+import project.Database.Common_Spec
+import project.Database.Helpers.Name_Generator
+import project.Common_Table_Spec
+import project.Aggregate_Spec
 
 postgres_specific_spec connection pending =
     Test.group "[PostgreSQL] Info" pending=pending <|
