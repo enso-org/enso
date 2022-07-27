@@ -234,11 +234,7 @@ class RuntimeVisualizationsTest
 
     object Visualisation {
 
-      val metadata    = new Metadata
-      val idEncode    = metadata.addItem(12, 9)
-      val idIncY      = metadata.addItem(48, 5)
-      val idIncRes    = metadata.addItem(58, 8)
-      val idIncMethod = metadata.addItem(23, 44)
+      val metadata = new Metadata
 
       val code =
         metadata.appendToCode(
@@ -249,6 +245,30 @@ class RuntimeVisualizationsTest
             |    y = x + 1
             |    encode y
             |
+            |""".stripMargin.linesIterator.mkString("\n")
+        )
+
+    }
+
+    object AnnotatedVisualisation {
+
+      val metadata    = new Metadata
+      val idIncY      = metadata.addItem(50, 5)
+      val idIncRes    = metadata.addItem(66, 8)
+      val idIncMethod = metadata.addItem(25, 58)
+
+      val code =
+        metadata.appendToCode(
+          """import Standard.Base.IO
+            |
+            |incAndEncode x =
+            |    y = x + 1
+            |    res = encode y
+            |    res
+            |
+            |encode x =
+            |   IO.println "encoding..."
+            |   x.to_text
             |""".stripMargin.linesIterator.mkString("\n")
         )
 
@@ -2119,13 +2139,16 @@ class RuntimeVisualizationsTest
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
     val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+      context.writeInSrcDir(
+        "Visualisation",
+        context.AnnotatedVisualisation.code
+      )
 
     context.send(
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code
+          context.AnnotatedVisualisation.code
         )
       )
     )
@@ -2163,6 +2186,7 @@ class RuntimeVisualizationsTest
       TestMessages.update(contextId, idMainRes, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
+    context.consumeOut shouldEqual List()
 
     // attach visualisation
     context.send(
@@ -2204,6 +2228,7 @@ class RuntimeVisualizationsTest
         data
     }
     data.sameElements("51".getBytes) shouldBe true
+    context.consumeOut shouldEqual List("encoding...")
 
     // recompute
     context.send(
@@ -2230,6 +2255,7 @@ class RuntimeVisualizationsTest
         data
     }
     data2.sameElements("51".getBytes) shouldBe true
+    context.consumeOut shouldEqual List()
 
     // Modify the visualization file
     context.send(
@@ -2238,7 +2264,7 @@ class RuntimeVisualizationsTest
           visualisationFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(4, 12), model.Position(4, 13)),
+              model.Range(model.Position(3, 12), model.Position(3, 13)),
               "2"
             )
           ),
@@ -2266,5 +2292,6 @@ class RuntimeVisualizationsTest
         data
     }
     data3.sameElements("52".getBytes) shouldBe true
+    context.consumeOut shouldEqual List("encoding...")
   }
 }
