@@ -79,12 +79,19 @@ ensogl_core::define_endpoints_2! {
         /// Declare what area of the GridView is visible. The area position is relative to left-top
         /// corner of the Grid View.
         set_viewport(Viewport),
-        /// Reset entries, providing number of rows and columns. All currently displayed entries
+        /// Set new size of the grid. If the number of rows or columns is reduced, the entries are
+        /// removed from the view. If it is extended, new model for entries may be requested if
+        /// needed.
+        resize_grid(Row, Col),
+        /// Reset entries, providing new number of rows and columns. All currently displayed entries
         /// will be detached and their models re-requested.
         reset_entries(Row, Col),
         /// Provide model for specific entry. Should be called only after `model_for_entry_needed`
         /// event for given row and column. After that the entry will be visible.
         model_for_entry(Row, Col, EntryModel),
+        /// Emit `model_for_entry_needed` signal for each visible entry. In contrary to
+        /// [`reset_entries`], it does not detach any entry.
+        request_model_for_visible_entries(),
         /// Set the entries size. All entries have the same size.
         set_entries_size(Vector2),
         /// Set the entries parameters.
@@ -97,8 +104,7 @@ ensogl_core::define_endpoints_2! {
     }
 
     Output {
-        row_count(Row),
-        column_count(Col),
+        grid_size(Row, Col),
         viewport(Viewport),
         entries_size(Vector2),
         entries_params(EntryParams),
@@ -209,6 +215,12 @@ struct Properties {
     entries_size: Vector2,
 }
 
+impl Properties {
+    fn all_visible_locations(&self) -> impl Iterator<Item = (Row, Col)> {
+        all_visible_locations(&self.viewport, self.entries_size, self.row_count, self.col_count)
+    }
+}
+
 
 // === Model ===
 
@@ -260,7 +272,6 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
     }
 
     fn reset_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
-        let Properties { viewport, entries_size, row_count, col_count } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
         let detached = visible_entries.drain().map(|(_, entry)| {
@@ -268,7 +279,7 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
             entry
         });
         free_entries.extend(detached);
-        all_visible_locations(&viewport, entries_size, row_count, col_count).collect_vec()
+        properties.all_visible_locations().collect_vec()
     }
 
     fn drop_all_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
@@ -386,23 +397,25 @@ impl<E: Entry> GridView<E> {
         };
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
-            out.row_count <+ input.reset_entries._0();
-            out.column_count <+ input.reset_entries._1();
+            out.grid_size <+ input.resize_grid;
+            out.grid_size <+ input.reset_entries;
             out.viewport <+ input.set_viewport;
             out.entries_size <+ input.set_entries_size;
             out.entries_params <+ input.set_entries_params;
-            prop <- all_with4(
-                &out.row_count, &out.column_count, &out.viewport, &out.entries_size,
-                |&row_count, &col_count, &viewport, &entries_size| {
+            prop <- all_with3(
+                &out.grid_size, &out.viewport, &out.entries_size,
+                |&(row_count, col_count), &viewport, &entries_size| {
                     Properties { row_count, col_count, viewport, entries_size }
                 }
             );
 
-            content_size_params <- all(input.reset_entries, input.set_entries_size);
+            content_size_params <- all(out.grid_size, input.set_entries_size);
             out.content_size <+ content_size_params.map(|&((rows, cols), esz)| Self::content_size(rows, cols, esz));
 
             request_models_after_vis_area_change <=
                 input.set_viewport.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
+            request_model_after_grid_size_change <=
+                input.resize_grid.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
             request_models_after_entry_size_change <= input.set_entries_size.map2(
                 &prop,
                 f!((_, p) model.update_after_entries_size_change(*p))
@@ -411,10 +424,15 @@ impl<E: Entry> GridView<E> {
                 input.reset_entries.map2(&prop, f!((_, p) model.reset_entries(*p)));
             request_models_after_text_layer_change <=
                 input.set_text_layer.map2(&prop, f!((_, p) model.drop_all_entries(*p)));
+            request_models_for_request <= input.request_model_for_visible_entries.map2(
+                &prop,
+                |_, p| p.all_visible_locations().collect_vec()
+            );
             out.model_for_entry_needed <+ request_models_after_vis_area_change;
             out.model_for_entry_needed <+ request_models_after_entry_size_change;
             out.model_for_entry_needed <+ request_models_after_reset;
             out.model_for_entry_needed <+ request_models_after_text_layer_change;
+            out.model_for_entry_needed <+ request_models_for_request;
 
             out.entry_selected <+ input.select_entry;
             out.entry_accepted <+ input.accept_entry;

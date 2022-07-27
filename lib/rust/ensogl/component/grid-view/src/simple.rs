@@ -26,23 +26,29 @@ use ensogl_text as text;
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct EntryParams {
-    pub bg_color:    color::Rgba,
-    pub bg_margin:   f32,
-    pub font:        ImString,
-    pub text_offset: f32,
-    pub text_size:   text::Size,
-    pub text_color:  color::Rgba,
+    pub bg_color:            color::Rgba,
+    pub bg_margin:           f32,
+    pub hover_color:         color::Rgba,
+    pub selection_color:     color::Rgba,
+    pub font:                ImString,
+    pub text_offset:         f32,
+    pub text_size:           text::Size,
+    pub text_color:          color::Rgba,
+    pub disabled_text_color: color::Rgba,
 }
 
 impl Default for EntryParams {
     fn default() -> Self {
         Self {
-            bg_color:    color::Rgba::transparent(),
-            bg_margin:   0.0,
-            font:        text::typeface::font::DEFAULT_FONT.into(),
-            text_offset: 7.0,
-            text_size:   text::Size(14.0),
-            text_color:  default(),
+            bg_color:            color::Rgba::transparent(),
+            bg_margin:           0.0,
+            hover_color:         color::Rgba(0.9, 0.9, 0.9, 1.0),
+            selection_color:     color::Rgba(0.8, 0.8, 0.8, 1.0),
+            font:                text::typeface::font::DEFAULT_FONT.into(),
+            text_offset:         7.0,
+            text_size:           text::Size(14.0),
+            text_color:          color::Rgba(0.0, 0.0, 0.0, 1.0),
+            disabled_text_color: color::Rgba(0.7, 0.7, 0.7, 1.0),
         }
     }
 }
@@ -134,34 +140,39 @@ impl crate::Entry for Entry {
             size <- input.set_size.on_change();
             bg_color <- input.set_params.map(|p| p.bg_color).on_change();
             bg_margin <- input.set_params.map(|p| p.bg_margin).on_change();
+            hover_color <- input.set_params.map(|p| p.hover_color).on_change();
+            selection_color <- input.set_params.map(|p| p.selection_color).on_change();
             font <- input.set_params.map(|p| p.font.clone_ref()).on_change();
             text_offset <- input.set_params.map(|p| p.text_offset).on_change();
             text_color <- input.set_params.map(|p| p.text_color).on_change();
             text_size <- input.set_params.map(|p| p.text_size).on_change();
+            dis_text_color <- input.set_params.map(|p| p.disabled_text_color).on_change();
 
-            contour <- all_with3(&size, &bg_margin, &frp.set_location, |size, margin, &loc| if loc != (5, 1) { entry::Contour {
+            contour <- all_with(&size, &bg_margin, |size, margin| entry::Contour {
                 size: *size - Vector2(*margin, *margin) * 2.0,
-                corners_radius: 4.0,
-            }} else { entry::Contour {size: Vector2(100.0, 12.0), corners_radius: 0.0 }});
+                corners_radius: 0.0,
+            });
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
-            out.contour <+ contour;
-
             eval bg_color ((color) data.background.color.set(color.into()));
-            data.label.set_default_color <+ text_color.on_change();
-            data.label.set_font <+ font.on_change().map(ToString::to_string);
-            data.label.set_default_text_size <+ text_size.on_change();
-
+            disabled <- input.set_model.map(|m| *m.disabled);
+            data.label.set_default_color <+ all_with3(
+                &text_color,
+                &dis_text_color,
+                &disabled,
+                |c, dc, d| if *d { *dc } else { *c }
+            );
+            data.label.set_font <+ font.map(ToString::to_string);
+            data.label.set_default_text_size <+ text_size;
             content <- input.set_model.map(|m| m.text.to_string());
             max_width_px <- input.set_size.map(|size| size.x);
             data.label.set_content_truncated <+ all(&content, &max_width_px);
-            out.disabled <+ input.set_model.map(|m| *m.disabled);
 
-            init <- source_();
-            out.hover_highlight_color <+ init.constant(color::Rgba(0.0, 1.0, 0.0, 1.0));
-            out.selection_highlight_color <+ init.constant(color::Rgba(0.0, 0.0, 1.0, 1.0));
+            out.contour <+ contour;
+            out.disabled <+ disabled;
+            out.hover_highlight_color <+ hover_color;
+            out.selection_highlight_color <+ selection_color;
         }
-        init.emit(());
         Self { frp, data }
     }
 

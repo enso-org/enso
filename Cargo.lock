@@ -2495,6 +2495,7 @@ dependencies = [
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf-sys",
+ "itertools 0.10.3",
  "wasm-bindgen",
 ]
 

@@ -16,14 +16,6 @@ pub struct Layers<Entry: 'static, EntryModel: frp::node::Data, EntryParams: frp:
     pub shape: shape::View,
 }
 
-macro_rules! propagate_grid_input {
-    ($network: ident, $init:ident, $target:ident, $src:ident, [$($endpoint:ident),*]) => {
-        frp::extend! { $network
-            $($target.$endpoint <+ all(&$init, &$src.$endpoint)._1();)*
-        }
-    }
-}
-
 impl<E: Entry> Layers<E, E::Model, E::Params> {
     pub fn new(app: &Application, parent_layer: &Layer, base_grid: &crate::GridView<E>) -> Self {
         let grid = crate::GridView::new(app);
@@ -42,19 +34,25 @@ impl<E: Entry> Layers<E, E::Model, E::Params> {
         base_grid.add_child(&grid);
         grid.add_child(&shape);
 
+        // The order of instructions below is very important! We need to initialize the viewport
+        // and entries size first, only then we could resize grid and request for models. Otherwise,
+        // the model updates could be ignored by `grid` (which could think they are not visible
+        // anyway).
+        //TODO[ao] rephrase maybe?
         let network = grid.network();
         frp::extend! { network
             init <- source_();
             viewport <- all(init, base_grid.viewport)._1();
             eval viewport ([shape](&vp) shape::set_viewport(&shape, vp));
+            grid.set_viewport <+ viewport;
+            grid.set_entries_size <+ all(init, base_grid.entries_size)._1();
+            grid.resize_grid <+ all(init, base_grid.grid_size)._1();
+            trace grid.resize_grid;
+            grid.model_for_entry <+ base_grid.model_for_entry;
+            trace grid.model_for_entry;
         }
-        propagate_grid_input!(network, init, grid, base_grid, [
-            set_viewport,
-            reset_entries,
-            model_for_entry,
-            set_entries_size
-        ]);
         init.emit(());
+        base_grid.request_model_for_visible_entries();
 
         Self { entries, text, mask, grid, shape }
     }
