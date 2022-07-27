@@ -85,10 +85,10 @@ find_codepoint_ranges text subrange =
                 Vector.Vector _ -> one_or_many_descriptors
                 _ -> [one_or_many_descriptors]
             case indices.length == 1 of
-                True -> resolve_index_or_range indices.first text
+                True -> resolve_index_or_range text indices.first
                 False ->
                     # TODO it may still be more efficient to use resolve_index_or_range for small lengths, so we can add a threshold here, but then we need to flat_map Codepoint_Ranges objects, so TODO for later
-                    batch_resolve_indices_or_ranges indices text
+                    batch_resolve_indices_or_ranges text indices
         Sample count seed ->
             gen = Java_Random.new seed
             len = text.length
@@ -164,7 +164,7 @@ resolve_index_or_range text descriptor =
                 go start_index current_grapheme =
                     end_index = iterator.next
                     if (start_index == -1) || (end_index == -1) || (end_condition current_grapheme end) then Nothing else
-                        ranges.add (Range start_index end_index)
+                        ranges.append (Range start_index end_index)
                         ## We always go one character to the right to find the
                            end of current grapheme, so if step is positive, we
                            need to decrease it by one and if it is negative we
@@ -200,7 +200,7 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover Index_Out_Of_Bo
             Integer ->
                 Panic.rethrow <|
                     ranges.append (characters.at descriptor)
-            ## TODO maybe we can optimize step=-1 too? Maybe we should support reversed ranges - for dropping the direction does not matter and for taking we could more efficiently take if we created a reversed copy instead of going one-by-one
+            ## TODO maybe we can optimize step=-1 too? Maybe we should support reversed ranges - for dropping the direction does not matter
             Range start end step -> case step == 1 of
                 True -> if start == end then Range 0 0 else
                     first_grapheme = characters.at start

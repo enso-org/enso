@@ -1103,9 +1103,10 @@ Text.take self range =
         Range start end _ ->
             Text_Utils.substring self start end
         Text_Sub_Range.Codepoint_Ranges char_ranges _ ->
-            parts = char_ranges.map char_range->
-                Text_Utils.substring self char_range.start char_range.end
-            parts.join
+            sb = StringBuilder.new
+            char_ranges.map char_range->
+               sb.append self char_range.start char_range.end
+            sb.toString
 
 ## ALIAS skip, remove
    Creates a new Text by removing the specified range of the input.
@@ -1151,7 +1152,12 @@ Text.drop self range =
                     prefix + Text_Utils.drop_first self end
         Text_Sub_Range.Codepoint_Ranges _ _ ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
-            unimplemented "TODO: we will iterate over the ranges and build the string by appending what is remaining between them"
+            len = Text_Utils.char_length self
+            sb = StringBuilder.new
+            ranges_with_sentinels = [Range 0 0] + sorted_char_ranges_to_remove + [Range len len]
+            ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
+                sb.append self prev.end next.start
+            sb.toString
 
 ## ALIAS lower, upper, title, proper
    Converts each character in `self` to the specified case.
