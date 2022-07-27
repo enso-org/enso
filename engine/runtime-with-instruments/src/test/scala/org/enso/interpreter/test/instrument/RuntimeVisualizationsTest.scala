@@ -56,7 +56,7 @@ class RuntimeVisualizationsTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "INFO")
+        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
@@ -70,7 +70,7 @@ class RuntimeVisualizationsTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           Paths.get("../../distribution/component").toFile.getAbsolutePath
         )
-        //.logHandler(logOut)
+        .logHandler(logOut)
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -118,10 +118,6 @@ class RuntimeVisualizationsTest
       val idMainZ = metadata.addItem(89, 5)
       val idFooY  = metadata.addItem(128, 8)
       val idFooZ  = metadata.addItem(145, 5)
-
-      println(s"idMainX=$idMainX")
-      println(s"idMainY=$idMainY")
-      println(s"idMainZ=$idMainZ")
 
       def code =
         metadata.appendToCode(
@@ -243,11 +239,6 @@ class RuntimeVisualizationsTest
       val idIncY      = metadata.addItem(48, 5)
       val idIncRes    = metadata.addItem(58, 8)
       val idIncMethod = metadata.addItem(23, 44)
-
-      println(s"DEBUG idIncY=$idIncY")
-      println(s"DEBUG idIncRes=$idIncRes")
-      println(s"DEBUG idIncMet=$idIncMethod")
-      println(s"DEBUG idEncode=$idEncode")
 
       val code =
         metadata.appendToCode(
@@ -2258,10 +2249,6 @@ class RuntimeVisualizationsTest
 
     val editFileResponse = context.receiveN(2)
     editFileResponse should contain(
-//      context.Main.Update.mainX(contextId),
-//      context.Main.Update.mainY(contextId),
-//      context.Main.Update.mainZ(contextId),
-      //TestMessages.update(contextId, idMainRes, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
     val Some(data3) = editFileResponse.collectFirst {
@@ -2278,7 +2265,6 @@ class RuntimeVisualizationsTest
           ) =>
         data
     }
-    println(new String(data3))
     data3.sameElements("52".getBytes) shouldBe true
   }
 }

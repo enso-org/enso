@@ -332,11 +332,6 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId  = value.getExpressionId
     val methodPointer = toMethodPointer(value)
-    println(
-      s"sendExpressionUpdate[$expressionId] [isExpressionSync=${syncState
-        .isExpressionSync(expressionId)}] [isMethodPointerSync=${syncState
-        .isMethodPointerSync(expressionId)}] [methodPointer.isDefined=${methodPointer.isDefined}]"
-    )
     if (
       !syncState.isExpressionSync(expressionId) ||
       (
@@ -438,6 +433,7 @@ object ProgramExecutionSupport {
             s"Executing visualisation ${visualisation.expressionId}"
           )
           ctx.executionService.callFunctionWithInstrument(
+            visualisation.module,
             visualisation.callback,
             expressionValue,
             visualisation.cache

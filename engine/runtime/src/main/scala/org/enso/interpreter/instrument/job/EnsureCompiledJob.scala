@@ -19,7 +19,9 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
 
 import java.io.File
@@ -271,22 +273,22 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   ): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-//    val scopeIds = ctx.executionService.getContext.getCompiler
-//      .parseMeta(source)
-//      .map(_._2)
-//    val invalidateStaleCommand =
-//      CacheInvalidation.Command.InvalidateStale(scopeIds)
+    val scopeIds = ctx.executionService.getContext.getCompiler
+      .parseMeta(source)
+      .map(_._2)
+    val invalidateStaleCommand =
+      CacheInvalidation.Command.InvalidateStale(scopeIds)
     Seq(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
         invalidateExpressionsCommand,
         Set(CacheInvalidation.IndexSelector.Weights)
+      ),
+      CacheInvalidation(
+        CacheInvalidation.StackSelector.All,
+        invalidateStaleCommand,
+        Set(CacheInvalidation.IndexSelector.All)
       )
-//      CacheInvalidation(
-//        CacheInvalidation.StackSelector.All,
-//        invalidateStaleCommand,
-//        Set(CacheInvalidation.IndexSelector.All)
-//      )
     )
   }
 
@@ -307,25 +309,15 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       )
     ctx.contextManager.getAll.values
       .foreach { stack =>
-        if (stack.nonEmpty) {
+        if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
           CacheInvalidation.runAll(stack, invalidationCommands)
         }
       }
-    val visualisationInvalidationCommands =
-      invalidationCommands.filter {
-        case CacheInvalidation(
-              _,
-              _: CacheInvalidation.Command.InvalidateStale,
-              _
-            ) =>
-          false
-        case _ =>
-          true
-      }
     CacheInvalidation.runAllVisualisations(
-      ctx.contextManager.getAllVisualisations,
-      visualisationInvalidationCommands
+      ctx.contextManager.getVisualisations(module.getName),
+      invalidationCommands
     )
+
     val invalidatedVisualisations =
       ctx.contextManager.getInvalidatedVisualisations(
         module.getName,
@@ -430,6 +422,24 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     ctx: RuntimeContext
   ): Iterable[Module] =
     ctx.executionService.getContext.getTopScope.getModules.asScala
+
+  /** Check if stack belongs to the provided module.
+    *
+    * @param module the qualified module name
+    * @param stack the execution stack
+    */
+  private def isStackInModule(
+    module: QualifiedName,
+    stack: Iterable[InstrumentFrame]
+  ): Boolean =
+    stack.headOption match {
+      case Some(
+            InstrumentFrame(StackItem.ExplicitCall(methodPointer, _, _), _, _)
+          ) =>
+        methodPointer.module == module.toString
+      case _ =>
+        false
+    }
 
 }
 

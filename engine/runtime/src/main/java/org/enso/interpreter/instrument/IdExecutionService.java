@@ -47,17 +47,6 @@ public interface IdExecutionService {
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<Exception> onExceptionalCallback);
 
-  public EventBinding<ExecutionEventListener> bindVis(
-      CallTarget entryCallTarget,
-      RuntimeCache cache,
-      MethodCallsCache methodCallsCache,
-      UpdatesSynchronizationState syncState,
-      UUID nextExecutionItem,
-      Consumer<ExpressionCall> functionCallCallback,
-      Consumer<ExpressionValue> onComputedCallback,
-      Consumer<ExpressionValue> onCachedCallback,
-      Consumer<Exception> onExceptionalCallback);
-
   /**
    * Override the default nanosecond timer with the specified {@code timer}.
    *

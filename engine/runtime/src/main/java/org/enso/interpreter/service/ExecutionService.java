@@ -35,7 +35,6 @@ import org.enso.interpreter.service.error.SourceNotFoundException;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
-import org.enso.polyglot.runtime.Runtime;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
 
@@ -254,33 +253,28 @@ public class ExecutionService {
     }
   }
 
-  public Object callFunctionWithInstrument(Object function, Object argument, RuntimeCache cache)
+  public Object callFunctionWithInstrument(
+      Module module, Object function, Object argument, RuntimeCache cache)
       throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     UUID nextExecutionItem = null;
     CallTarget entryCallTarget =
         (function instanceof Function) ? ((Function) function).getCallTarget() : null;
-    var methodCallsCache = new MethodCallsCache();
-    var syncState = new UpdatesSynchronizationState();
+    MethodCallsCache methodCallsCache = new MethodCallsCache();
+    UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
     Consumer<IdExecutionService.ExpressionCall> funCallCallback =
-        (x) -> {
-          context.getLogger().info("!!!! funCallCallback " + x.getExpressionId());
-        };
+        (value) -> context.getLogger().finest("ON_CACHED_CALL " + value.getExpressionId());
     Consumer<IdExecutionService.ExpressionValue> onComputedCallback =
-        (x) -> {
-          context.getLogger().info("!!!! onComputedCallback " + x.getExpressionId());
-        };
+        (value) -> context.getLogger().finest("ON_COMPUTED " + value.getExpressionId());
     Consumer<IdExecutionService.ExpressionValue> onCachedCallback =
-        (x) -> {
-          context.getLogger().info("!!!! onCachedCallback " + x.getExpressionId());
-        };
+        (value) -> context.getLogger().finest("ON_CACHED_VALUE " + value.getExpressionId());
     Consumer<Exception> onExceptionalCallback =
-        (x) -> {
-          context.getLogger().info("!!!! onExceptionCallback");
-        };
+        (value) -> context.getLogger().finest("ON_ERROR " + value);
+
     Optional<EventBinding<ExecutionEventListener>> listener =
         idExecutionInstrument.map(
             service ->
-                service.bindVis(
+                service.bind(
+                    module,
                     entryCallTarget,
                     cache,
                     methodCallsCache,

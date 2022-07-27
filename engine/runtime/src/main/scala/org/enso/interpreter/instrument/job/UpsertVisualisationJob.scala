@@ -178,11 +178,15 @@ object UpsertVisualisationJob {
     }
   }
 
+  /** Find module by name.
+    *
+    * @param moduleName the module name
+    * @return either the requested module or an error
+    */
   private def findModule(
     moduleName: String
   )(implicit ctx: RuntimeContext): Either[EvaluationFailure, Module] = {
     val context = ctx.executionService.getContext
-    // TODO [RW] more specific error when the module cannot be installed (#1861)
     context.ensureModuleIsLoaded(moduleName)
     val maybeModule = context.findModule(moduleName)
 
@@ -190,6 +194,13 @@ object UpsertVisualisationJob {
     else Left(ModuleNotFound)
   }
 
+  /** Evaluate the visualisation expression in a given module.
+    *
+    * @param module the module where to evaluate the expression
+    * @param expression the visualisation expression
+    * @param retryCount the number of attempted retries
+    * @return either the evaluation result or an evaluation failure
+    */
   private def evaluateModuleExpression(
     module: Module,
     expression: Api.VisualisationExpression,
@@ -254,6 +265,11 @@ object UpsertVisualisationJob {
           )
       }
 
+  /** Evaluate the visualisation expression.
+    *
+    * @param expression the visualisation expression to evaluate
+    * @return either the evaluation result or an evaluation error
+    */
   private def evaluateVisualisationExpression(
     expression: Api.VisualisationExpression
   )(implicit
@@ -265,6 +281,16 @@ object UpsertVisualisationJob {
     } yield expression
   }
 
+  /** Update the visualisation state.
+    *
+    * @param visualisationId the visualisation identifier
+    * @param expressionId the expression to which the visualisation is applied
+    * @param module the module containing the visualisation
+    * @param visualisationConfig the visualisation configuration
+    * @param callback the visualisation callback function
+    * @param ctx the runtime context
+    * @return the re-evaluated visualisation
+    */
   private def updateVisualisation(
     visualisationId: VisualisationId,
     expressionId: ExpressionId,
@@ -291,6 +317,12 @@ object UpsertVisualisationJob {
     visualisation
   }
 
+  /** Find the expressionId of visualisation function.
+    *
+    * @param module the module environment
+    * @param visualisationExpression the visualisation expression
+    * @return the expression id of required visualisation function
+    */
   private def findVisualisationExpressionId(
     module: Module,
     visualisationExpression: VisualisationExpression
@@ -314,6 +346,10 @@ object UpsertVisualisationJob {
       case _: VisualisationExpression.Text => None
     }
 
+  /** Set the cache weights for the provided visualisation.
+    *
+    * @param visualisation the visualisation to update
+    */
   private def setCacheWeights(visualisation: Visualisation): Unit = {
     visualisation.module.getIr.getMetadata(CachePreferenceAnalysis).foreach {
       metadata =>
@@ -324,6 +360,11 @@ object UpsertVisualisationJob {
     }
   }
 
+  /** Require to send the visualisation update.
+    *
+    * @param stack the execution stack
+    * @param expressionId the expression id to which the visualisation is applied
+    */
   private def requireVisualisationSynchronization(
     stack: Iterable[InstrumentFrame],
     expressionId: ExpressionId

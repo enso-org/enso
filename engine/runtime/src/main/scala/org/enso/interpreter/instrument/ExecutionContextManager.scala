@@ -121,6 +121,16 @@ class ExecutionContextManager {
       contexts.values.flatMap(_.visualisations.getAll)
     }
 
+  /** Get visualisations defined in the module.
+    *
+    * @param module the qualified module name
+    * @return the list of matching visualisations
+    */
+  def getVisualisations(module: QualifiedName): Iterable[Visualisation] =
+    synchronized {
+      contexts.values.flatMap(_.visualisations.findByModule(module))
+    }
+
   /** Returns a visualisation with the provided id.
     *
     * @param contextId the identifier of the execution context

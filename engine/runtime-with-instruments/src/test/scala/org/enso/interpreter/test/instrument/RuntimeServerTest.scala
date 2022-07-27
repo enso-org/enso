@@ -1066,7 +1066,9 @@ class RuntimeServerTest
           contextId,
           mainFoo,
           ConstantsGen.INTEGER,
-          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
+          Api
+            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
+          fromCache = true
         ),
       context.executionComplete(contextId)
     )
