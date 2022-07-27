@@ -557,6 +557,52 @@ fn type_annotations() {
 }
 
 
+// === Text Literals ===
+
+#[test]
+fn inline_text_literals() {
+    #[rustfmt::skip]
+    let cases = [
+        (r#""I'm an inline raw text!""#, block![
+            (TextLiteral "\"" #("I'm an inline raw text!") "\"")]),
+        (r#"zero_length = """#, block![
+            (Assignment (Ident zero_length) "=" (TextLiteral "\"" #() "\""))]),
+        (r#"unclosed = ""#, block![(Assignment (Ident unclosed) "=" (TextLiteral "\"" #() ()))]),
+        (r#"unclosed = "a"#, block![
+            (Assignment (Ident unclosed) "=" (TextLiteral "\"" #("a") ()))]),
+        (r#"'Other quote type'"#, block![(TextLiteral "'" #("Other quote type") "'")]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn multiline_text_literals() {
+    test("'''", block![(TextLiteral "'''" #() ())]);
+    const CODE: &str = r#"'''
+    part of the string
+       3-spaces indented line, part of the Text Block
+    this does not end the string -> '''
+
+    also part of the string
+
+3"#;
+    #[rustfmt::skip]
+    let expected = block![
+        (TextLiteral
+         "'''"
+         #("\n" "part of the string"
+           "\n" "3-spaces indented line, part of the Text Block"
+           "\n" "this does not end the string -> '''"
+           "\n" ""
+           "\n" "also part of the string"
+           "\n" "")
+        ())
+        (Number 3)
+    ];
+    test(CODE, expected);
+}
+
+
 
 // ====================
 // === Test Support ===
@@ -610,6 +656,9 @@ where T: serde::Serialize + Reflect {
     let symbol_token = rust_to_meta[&token::variant::Symbol::reflect().id];
     let number_token = rust_to_meta[&token::variant::Number::reflect().id];
     let newline_token = rust_to_meta[&token::variant::Newline::reflect().id];
+    let text_start_token = rust_to_meta[&token::variant::TextStart::reflect().id];
+    let text_end_token = rust_to_meta[&token::variant::TextEnd::reflect().id];
+    let text_section_token = rust_to_meta[&token::variant::TextSection::reflect().id];
     // TODO: Implement `#[reflect(flag = "enso::concrete")]`, which just attaches user data to the
     //  type info; then filter by flag here instead of hard-coding these simplifications.
     let line = rust_to_meta[&tree::block::Line::reflect().id];
@@ -624,6 +673,12 @@ where T: serde::Serialize + Reflect {
     to_s_expr.mapper(operator_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(symbol_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_start_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_end_token, move |token| Value::string(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(text_section_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str;
     to_s_expr.mapper(number_token, move |token| {
         Value::Number(token_to_str_(token).parse::<u64>().unwrap().into())

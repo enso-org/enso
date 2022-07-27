@@ -121,9 +121,14 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         Number {
             pub token: token::Number<'s>,
         },
-        /// A text section.
-        TextSection {
-            pub token: token::TextSection<'s>,
+        TextLiteral {
+            pub open_quote: Option<token::TextStart<'s>>,
+            /// One for each line in the literal.
+            pub sections: Vec<token::TextSection<'s>>,
+            /// Conditions when this is `None`:
+            /// - Block literal: Always.
+            /// - Inline literal: On error: EOL or EOF occurred without the string being closed.
+            pub close_quote: Option<token::TextEnd<'s>>,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -429,6 +434,18 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         if let Ok(opr) = &app.opr && !opr.can_form_section && app.rhs.is_none() => {
             app.rhs = Some(arg);
             return func;
+        }
+        Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant
+                && lhs.close_quote.is_none() && rhs.open_quote.is_none() => {
+            if let Some(first) = rhs.sections.first_mut() {
+                first.left_offset = arg.span.left_offset;
+            }
+            lhs.sections.append(&mut rhs.sections);
+            lhs.close_quote = rhs.close_quote.take();
+            return func;
+        }
+        Variant::TextLiteral(lhs) if let Variant::TextLiteral(rhs) = &mut *arg.variant => {
+            panic!("lhs: {:?}, rhs: {:?}", lhs, rhs)
         }
         _ => (),
     }
