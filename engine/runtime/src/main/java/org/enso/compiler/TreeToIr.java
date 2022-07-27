@@ -464,7 +464,7 @@ final class TreeToIr {
   IR.Expression translateExpression(Tree tree, boolean insideTypeSignature) {
     return switch (tree) {
       case Tree.OprApp app -> {
-        var rhs = translateExpression(app.getRhs(), insideTypeSignature);
+        var rhs = translateIdent(app.getRhs(), true);
         var lhs = translateExpression(app.getLhs(), insideTypeSignature);
         var callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, Option.empty(), meta(), diag());
         var prefix = new IR$Application$Prefix(
@@ -482,7 +482,7 @@ final class TreeToIr {
         Option.empty(), n.getToken().codeRepr(),
         Option.empty(), meta(), diag()
       );
-      case Tree.Ident id -> translateIdent(id);
+      case Tree.Ident id -> translateIdent(id, false);
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
@@ -1055,9 +1055,9 @@ final class TreeToIr {
     * @param identifier the identifier to translate
     * @return the [[IR]] representation of `identifier`
     */
-  IR.Expression translateIdent(Tree identifier) {
+  IR.Expression translateIdent(Tree identifier, boolean isMethod) {
     return switch (identifier) {
-      case Tree.Ident id -> buildName(id);
+      case Tree.Ident id -> buildName(id, isMethod);
       default -> throw new UnhandledEntity(identifier, "translateIdent");
     };
     /*
