@@ -114,7 +114,7 @@ impl GlyphRenderInfo {
     /// Parameters used for MSDF generation.
     ///
     /// The range was picked such way, that we avoid fitting range in one rendered pixel.
-    /// Otherwise the antialiasing won't work. I assumed some maximum `shrink factor` (how many
+    /// Otherwise, the antialiasing won't work. I assumed some maximum `shrink factor` (how many
     /// times rendered square will be smaller than MSDF size), and pick an arbitrary maximum glyph
     /// scale up.
     ///
@@ -204,24 +204,48 @@ impl FontData {
     /// extraction of the font files from the application, while still allowing rendering the glyphs
     /// to the screen. You can think of the glyph atlas like a set of glyph images. This allows
     /// usage of commercial fonts without the need to distribute the font with the application, and
-    /// thus, it allows for more flexibility in font licensing.
+    /// thus, it allows for more flexibility in font licensing (according to our font provider).
     ///
     /// The [`msdf_font`] definition is removed, which means that no new glyphs can be added to the
     /// atlas after this operation. Moreover, all glyph shape data is erased from the [`font_face`]
     /// definition, which means that the exact glyph shapes could not be reconstructed anymore.
+    ///
+    /// To learn more about the tables being removed, please refer to the `ttf-parser` documentation
+    /// at https://docs.rs/ttf-parser/0.15.2/ttf_parser/index.html#modules.
     pub fn remove_glyph_data(&mut self) {
         mem::take(&mut self.msdf_font);
         let data_slice = &self.data[..];
+        let data_ptr = data_slice.as_ptr();
         if let Ok(font_face) = ttf::RawFace::from_slice(data_slice, FONT_FACE_NUMBER) {
-            if let Some(glyph_table) = font_face.table(ttf::Tag::from_bytes(b"glyf")) {
-                let glyph_table_ptr = glyph_table.as_ptr();
-                let data_ptr = data_slice.as_ptr();
-                // Safety: This is safe, as both pointers refer to the same slice.
-                let start_index = unsafe { glyph_table_ptr.offset_from(data_ptr) };
-                for offset in 0..glyph_table.len() {
-                    self.data[start_index as usize + offset] = 0;
+            let tags_to_remove =
+                [b"CBDT", b"CBLC", b"CFF ", b"CFF2", b"fvar", b"gvar", b"sbix", b"SVG ", b"glyf"];
+            let mut ranges_to_remove = tags_to_remove
+                .into_iter()
+                .filter_map(|tag| {
+                    font_face.table(ttf::Tag::from_bytes(tag)).map(|glyph_table| {
+                        let glyph_table_ptr = glyph_table.as_ptr();
+                        // Safety: This is safe, as both pointers refer to the same slice.
+                        let start_index = unsafe { glyph_table_ptr.offset_from(data_ptr) } as usize;
+                        start_index..(start_index + glyph_table.len())
+                    })
+                })
+                .sorted_by_key(|t| t.start)
+                .into_iter();
+            let mut range_to_remove = ranges_to_remove.next();
+            let mut index = 0;
+            self.data.retain(|_| {
+                let mut keep = true;
+                if let Some(range) = &range_to_remove {
+                    let in_range = range.contains(&index);
+                    let next_in_range = range.contains(&(index + 1));
+                    if in_range && !next_in_range {
+                        range_to_remove = ranges_to_remove.next();
+                    }
+                    keep = !in_range;
                 }
-            }
+                index += 1;
+                keep
+            });
         }
         if let Ok(font_face) = ttf::OwnedFace::from_vec(self.data.clone(), FONT_FACE_NUMBER) {
             self.font_face = font_face;
