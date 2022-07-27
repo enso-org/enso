@@ -92,7 +92,7 @@ len_list list =
    Arguments:
    - act: The action to perform `self` number of times.
 Number.times : List Any
-Number.times act =
+Number.times self act =
     go = results -> number -> if number == 0 then results else
         @Tail_Call go (Cons (act number) results) number-1
     res = reverse_list (go Nil self)

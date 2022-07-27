@@ -128,6 +128,6 @@ type No_Such_Group_Error (id : Text | Integer)
 
    Provides a human-readable representation of the `No_Such_Group_Error`.
 No_Such_Group_Error.to_display_text : Text
-No_Such_Group_Error.to_display_text = case self.id of
+No_Such_Group_Error.to_display_text self = case self.id of
     Integer -> "No group exists with the index " + self.id.to_text + "."
     Text -> "No group exists with the name " + self.id + "."

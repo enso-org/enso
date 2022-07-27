@@ -27,7 +27,7 @@ type Encoding
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset
     to_java_charset : Charset
-    to_java_charset =
+    to_java_charset self =
         Panic.catch UnsupportedCharsetException (Charset.forName self.character_set) _->
             Error.throw (Illegal_Argument_Error ("Unknown Character Set: " + self.character_set))
 
@@ -99,4 +99,4 @@ type Encoding
 type Encoding_Error (message:Text)
 
 Encoding_Error.to_display_text : Text
-Encoding_Error.to_display_text = "Encoding_Error: " + self.message
+Encoding_Error.to_display_text self = "Encoding_Error: " + self.message

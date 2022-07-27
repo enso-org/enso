@@ -8,6 +8,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
@@ -107,13 +108,28 @@ public class MethodDefinition {
   private List<ArgumentDefinition> initArguments(ExecutableElement method) {
     List<ArgumentDefinition> args = new ArrayList<>();
     List<? extends VariableElement> params = method.getParameters();
+    boolean noSelfDeclared =
+        params.stream()
+            .filter(e -> e.getSimpleName().toString().equals("self"))
+            .findFirst()
+            .isEmpty();
+    boolean needsSelf = noSelfDeclared;
     int position = 0;
     for (VariableElement param : params) {
-      ArgumentDefinition def = new ArgumentDefinition(param, position);
+      ArgumentDefinition def = new ArgumentDefinitionFromParameter(param, position);
+      if (needsSelf && def.isPositional()) {
+        args.add(new SelfArgumentDefinition());
+        position++;
+        def.incPosition();
+        needsSelf = false;
+      }
       args.add(def);
       if (def.isPositional()) {
         position++;
       }
+    }
+    if (needsSelf) {
+      args.add(new SelfArgumentDefinition());
     }
     return args;
   }
@@ -191,8 +207,162 @@ public class MethodDefinition {
     return constructorExpression;
   }
 
+  public interface ArgumentDefinition {
+
+    boolean validate(ProcessingEnvironment processingEnvironment);
+
+    /** @return whether this argument should be passed the monadic state. */
+    boolean isState();
+
+    /** @return whether this argument should be passed the execution frame. */
+    boolean isFrame();
+
+    /** @return whether this argument should be passed the caller info. */
+    boolean isCallerInfo();
+
+    /** @return whether this argument should be passed the next positional function argument. */
+    boolean isPositional();
+
+    /** @return the position of this argument in the positional arguments list. */
+    int getPosition();
+
+    /** @return any import this argument requires. */
+    Optional<String> getImport();
+
+    /** @return whether this argument needs to be type-casted on read. */
+    boolean requiresCast();
+
+    boolean isArray();
+
+    /** @return the name of the type of this argument. */
+    String getTypeName();
+
+    /** @return the name of this argument. */
+    String getName();
+
+    /** @return whether this argument is expected to be passed suspended. */
+    boolean isSuspended();
+
+    /** @return whether this argument accepts a dataflow error. */
+    boolean acceptsError();
+
+    boolean acceptsWarning();
+
+    boolean isSelf();
+
+    boolean shouldCheckErrors();
+
+    boolean shouldCheckWarnings();
+
+    void incPosition();
+
+    /**
+     * @return whether the argument should be implicitly added by the processor and is not present
+     *     in the signature
+     */
+    boolean isImplicit();
+  }
+
+  public class SelfArgumentDefinition implements ArgumentDefinition {
+
+    @Override
+    public boolean validate(ProcessingEnvironment processingEnvironment) {
+      return true;
+    }
+
+    @Override
+    public boolean isState() {
+      return false;
+    }
+
+    @Override
+    public boolean isFrame() {
+      return false;
+    }
+
+    @Override
+    public boolean isCallerInfo() {
+      return false;
+    }
+
+    @Override
+    public boolean isPositional() {
+      return true;
+    }
+
+    @Override
+    public int getPosition() {
+      return 0;
+    }
+
+    @Override
+    public Optional<String> getImport() {
+      return Optional.empty();
+    }
+
+    @Override
+    public boolean requiresCast() {
+      return false;
+    }
+
+    @Override
+    public boolean isArray() {
+      return false;
+    }
+
+    @Override
+    public String getTypeName() {
+      return "Object";
+    }
+
+    @Override
+    public String getName() {
+      return "self";
+    }
+
+    @Override
+    public boolean isSuspended() {
+      return false;
+    }
+
+    @Override
+    public boolean acceptsError() {
+      return false;
+    }
+
+    @Override
+    public boolean acceptsWarning() {
+      return false;
+    }
+
+    @Override
+    public boolean isSelf() {
+      return true;
+    }
+
+    @Override
+    public boolean shouldCheckErrors() {
+      return false;
+    }
+
+    @Override
+    public boolean shouldCheckWarnings() {
+      return false;
+    }
+
+    @Override
+    public void incPosition() {
+      // noop
+    }
+
+    @Override
+    public boolean isImplicit() {
+      return true;
+    }
+  }
+
   /** A domain specific representation of a method argument. */
-  public static class ArgumentDefinition {
+  public static class ArgumentDefinitionFromParameter implements ArgumentDefinition {
     private static final String VIRTUAL_FRAME = "com.oracle.truffle.api.frame.VirtualFrame";
     private static final String OBJECT = "java.lang.Object";
     private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
@@ -208,7 +378,7 @@ public class MethodDefinition {
     private final boolean isSuspended;
     private final boolean acceptsError;
     private final boolean acceptsWarning;
-    private final int position;
+    private int position;
     private final VariableElement element;
 
     /**
@@ -217,7 +387,7 @@ public class MethodDefinition {
      * @param element the element representing this argument.
      * @param position the position (0-indexed) of this argument in the arguments list.
      */
-    public ArgumentDefinition(VariableElement element, int position) {
+    public ArgumentDefinitionFromParameter(VariableElement element, int position) {
       this.element = element;
       type = element.asType();
       String[] typeNameSegments = type.toString().split("\\.");
@@ -293,6 +463,10 @@ public class MethodDefinition {
       return position;
     }
 
+    public void incPosition() {
+      position = position + 1;
+    }
+
     /** @return any import this argument requires. */
     public Optional<String> getImport() {
       if (type.getKind() == TypeKind.DECLARED) {
@@ -315,11 +489,6 @@ public class MethodDefinition {
     /** @return the name of the type of this argument. */
     public String getTypeName() {
       return typeName;
-    }
-
-    /** @return the type of this argument. */
-    public TypeMirror getType() {
-      return type;
     }
 
     /** @return the name of this argument. */
@@ -351,6 +520,10 @@ public class MethodDefinition {
 
     public boolean shouldCheckWarnings() {
       return isPositional() && !isSelf() && !acceptsWarning();
+    }
+
+    public boolean isImplicit() {
+      return false;
     }
   }
 }

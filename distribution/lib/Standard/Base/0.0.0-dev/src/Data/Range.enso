@@ -25,7 +25,7 @@ type Range
 
              10.down_to 0 . with_step 2 . to_vector == [10, 8, 6, 4, 2]
     with_step : Integer -> Range
-    with_step new_step = case new_step of
+    with_step self new_step = case new_step of
         Integer ->
             if new_step == 0 then throw_zero_step_error else
                 if new_step < 0 then Error.throw (Illegal_Argument_Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
@@ -36,7 +36,7 @@ type Range
     ## Returns the last element that is included within the range or `Nothing`
        if the range is empty.
     last : Integer | Nothing
-    last = if self.is_empty then Nothing else case self.step > 0 of
+    last self = if self.is_empty then Nothing else case self.step > 0 of
         True ->
             diff = self.end - self.start
             rem = diff % self.step
@@ -53,7 +53,7 @@ type Range
 
             0.up_to 100 . length
     length : Number
-    length = case self.last of
+    length self = case self.last of
         Nothing -> 0
         last -> ((last - self.start) . div self.step) + 1
 
@@ -64,7 +64,7 @@ type Range
 
              0.up_to 100 . is_empty
     is_empty : Boolean
-    is_empty = if self.step > 0 then self.end <= self.start else
+    is_empty self = if self.step > 0 then self.end <= self.start else
         if self.step < 0 then self.start <= self.end else
             throw_zero_step_error
 
@@ -75,7 +75,7 @@ type Range
 
              0.up_to 100 . not_empty
     not_empty : Boolean
-    not_empty = self.is_empty.not
+    not_empty self = self.is_empty.not
 
     ## Applies a function to each element in the range, producing a vector of
        results.
@@ -89,7 +89,7 @@ type Range
 
              1.up_to 10 . map (*2)
     map : (Number -> Any) -> Vector Any
-    map function =
+    map self function =
         Vector.new self.length (i -> function (self.start + i*self.step))
 
     ## Returns a vector of all elements of this range which satisfy a predicate.
@@ -104,7 +104,7 @@ type Range
 
              (0.up_to 7).filter (> 3)
     filter : (Any -> Boolean) -> Vector Any
-    filter predicate =
+    filter self predicate =
         builder = self.fold Vector.new_builder builder-> elem->
             if predicate elem then builder.append elem else builder
         builder.to_vector
@@ -118,7 +118,7 @@ type Range
          To print all the numbers from 1 to 10 use:
              1.up_to 11 . each IO.println
     each : (Number -> Any) -> Nothing
-    each function =
+    each self function =
         go end_condition current =
             if end_condition current self.end then Nothing else
                 function current
@@ -146,7 +146,7 @@ type Range
 
              0.up_to 100 . with_step 2 . fold 0 (+)
     fold : Any -> (Any -> Number -> Any) -> Any
-    fold init function =
+    fold self init function =
         go end_condition acc current =
             if end_condition current self.end then acc else
                 new_acc = function acc current
@@ -167,7 +167,7 @@ type Range
 
              10.up_to 100 . all (> 5)
     all : (Number -> Boolean) -> Boolean
-    all predicate = self . exists (predicate >> .not) . not
+    all self predicate = self . exists (predicate >> .not) . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
@@ -181,7 +181,7 @@ type Range
 
              1.up_to 100 . exists (> 10)
     exists : (Number -> Boolean) -> Boolean
-    exists predicate = self.find predicate . is_nothing . not
+    exists self predicate = self.find predicate . is_nothing . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
@@ -195,7 +195,7 @@ type Range
 
              1.up_to 100 . any (> 10)
     any : (Number -> Boolean) -> Boolean
-    any predicate = self.exists predicate
+    any self predicate = self.exists predicate
 
     ## Gets the first index when `predicate` is satisfied this range.
        If no index satisfies the predicate, return Nothing
@@ -210,7 +210,7 @@ type Range
 
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
     find : (Integer -> Boolean) -> Integer | Nothing
-    find predicate =
+    find self predicate =
         go end_condition current =
             if end_condition current self.end then Nothing else
                 if predicate current then current else
@@ -226,7 +226,7 @@ type Range
 
              1.up_to 6 . to_vector
     to_vector : Vector.Vector
-    to_vector = self.map x->x
+    to_vector self = self.map x->x
 
     ## Checks if the range contains the specified value.
 
@@ -236,7 +236,7 @@ type Range
               vec = ["A", "B", "C", "D", "E"]
               0.up_to vec.length . contains 3
     contains : Integer -> Boolean
-    contains value = case value of
+    contains self value = case value of
         Integer ->
             if self.step > 0 then (value >= self.start) && (value < self.end) && (((value - self.start) % self.step) == 0) else
                 if self.step < 0 then (value <= self.start) && (value > self.end) && (((self.start - value) % (-self.step)) == 0) else
@@ -260,7 +260,7 @@ type Range
 
          0.up_to 5
 Integer.up_to : Integer -> Range
-Integer.up_to n = case n of
+Integer.up_to self n = case n of
     Integer -> Range self n
     _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
 
@@ -276,7 +276,7 @@ Integer.up_to n = case n of
 
          5.down_to 0
 Integer.down_to : Integer -> Range
-Integer.down_to n = case n of
+Integer.down_to self n = case n of
     Integer -> Range self n -1
     _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
 

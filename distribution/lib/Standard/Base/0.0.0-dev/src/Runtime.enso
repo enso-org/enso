@@ -19,7 +19,7 @@ primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
    resulting vector is such that the top stack frame is the first element.
 get_stack_trace : Vector.Vector Stack_Trace_Element
 get_stack_trace =
-    prim_stack = self.primitive_get_stack_trace
+    prim_stack = primitive_get_stack_trace
     stack_with_prims = Vector.Vector prim_stack
     stack = stack_with_prims.map wrap_primitive_stack_trace_element
     # drop this frame and the one from `Runtime.primitive_get_stack_trace`

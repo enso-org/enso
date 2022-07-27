@@ -30,7 +30,7 @@ type Any
 
              7.to_text
     to_text : Text
-    to_text = @Builtin_Method "Any.to_text"
+    to_text self = @Builtin_Method "Any.to_text"
 
     ## Generic conversion of an arbitrary Enso value to a corresponding human-readable
        representation.
@@ -40,7 +40,7 @@ type Any
 
              7.to_text
     to_display_text : Text
-    to_display_text = @Builtin_Method "Any.to_display_text"
+    to_display_text self = @Builtin_Method "Any.to_display_text"
 
     ## ALIAS Equality
 
@@ -75,7 +75,7 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == that = if Meta.is_same_object self that then True else
+    == self that = if Meta.is_same_object self that then True else
         self_meta = Meta.meta self
         that_meta = Meta.meta that
         case Cons self_meta that_meta of
@@ -118,7 +118,7 @@ type Any
                  a = 7 * 21
                  a != 147
     != : Any -> Boolean
-    != that = (self == that).not
+    != self that = (self == that).not
 
     ## ALIAS Greater Than
 
@@ -143,7 +143,7 @@ type Any
                  a = 7 * 28
                  a > 147
     > : Any -> Boolean
-    > that = self.compare_to that == Ordering.Greater
+    > self that = self.compare_to that == Ordering.Greater
 
     ## ALIAS Greater Than or Equal
 
@@ -169,7 +169,7 @@ type Any
                  a = 6 * 21
                  a >= 147
     >= : Any -> Boolean
-    >= that =
+    >= self that =
         ordering = self.compare_to that
         (ordering == Ordering.Greater) || (ordering == Ordering.Equal)
 
@@ -196,7 +196,7 @@ type Any
                  a = 7 * 21
                  a < 147
     < : Any -> Boolean
-    < that = self.compare_to that == Ordering.Less
+    < self that = self.compare_to that == Ordering.Less
 
     ## ALIAS Less Than or Equal
 
@@ -222,7 +222,7 @@ type Any
                  a = 7 * 21
                  a < 147
     <= : Any -> Boolean
-    <= that =
+    <= self that =
         ordering = self.compare_to that
         (ordering == Ordering.Less) || (ordering == Ordering.Equal)
 
@@ -236,7 +236,7 @@ type Any
 
              1.is_nothing
     is_nothing : Boolean
-    is_nothing = False
+    is_nothing self = False
 
     ## UNSTABLE
        If `self` is Nothing then returns `function`.
@@ -246,7 +246,7 @@ type Any
 
              "Hello".if_nothing ""
     if_nothing : Any -> Any
-    if_nothing ~_ = self
+    if_nothing self ~_ = self
 
     ## Executes the provided handler on an error, or returns the value unchanged.
 
@@ -274,7 +274,7 @@ type Any
                  error = Error.throw 42
                  error.catch == 42
     catch : Any -> (Error -> Any) -> Any
-    catch (error_type = Any) (handler = x->x) =
+    catch self (error_type = Any) (handler = x->x) =
         self.catch_primitive error_value->
             case error_value.is_a error_type of
                 True -> handler error_value
@@ -299,7 +299,7 @@ type Any
                 error = my_map.get "x"
                 error.map_error (_ -> Example_Error_Type "x is missing")
     map_error : (Error -> Error) -> Any
-    map_error _ = self
+    map_error self _ = self
 
     ## Checks if `self` is an error.
 
@@ -308,7 +308,7 @@ type Any
 
              1.is_error
     is_error : Boolean
-    is_error = False
+    is_error self = False
 
     ## Applies the provided function to `self` unless `self` is `Nothing`, which is
        returned unchanged.
@@ -321,7 +321,7 @@ type Any
 
              10.map_nothing *2
     map_nothing : (a -> b) -> b | Nothing
-    map_nothing f = case self of
+    map_nothing self f = case self of
         Nothing -> Nothing
         a -> f a
 
@@ -342,7 +342,7 @@ type Any
                 y = 1 ^ 3
                 3 + y
     <| : Any -> Any
-    <| ~argument = self argument
+    <| self ~argument = self argument
 
     ## Applies the function on the right hand side to the argument on the left.
 
@@ -363,7 +363,7 @@ type Any
 
              1 |> (* 2) |> (/ 100) |> .to_text
     |> : (Any -> Any) -> Any
-    |> ~function = function self
+    |> self ~function = function self
 
     ## Composes two functions together, for `f << g` creating the function
        composition `f ∘ g` (equivalent to `x -> f (g x)`).
@@ -376,7 +376,7 @@ type Any
 
              (+1 << *2) 2
     << : (Any -> Any) -> (Any -> Any) -> Any -> Any
-    << ~that = x -> self (that x)
+    << self ~that = x -> self (that x)
 
     ## Composes two functions together in the forward direction, for `f >> g`
        creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
@@ -389,7 +389,7 @@ type Any
 
              (+1 >> *2) 2
     >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
-    >> ~that = x -> that (self x)
+    >> self ~that = x -> that (self x)
 
     ## UNSTABLE
        ADVANCED
@@ -408,4 +408,4 @@ type Any
 
              2.to_default_visualization_data
     to_default_visualization_data : Text
-    to_default_visualization_data = self.to_json.to_text
+    to_default_visualization_data self = self.to_json.to_text

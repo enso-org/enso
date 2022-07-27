@@ -6,9 +6,9 @@ type My_Type
 
 bar = Runtime.get_stack_trace
 baz = bar
-Number.foo = baz
+Number.foo self = baz
 foo x = x.foo
-My_Type.foo = foo 123
+My_Type.foo self = foo 123
 
 spec = Test.group "Stack traces" <|
     Test.specify "should capture traces correctly" <|

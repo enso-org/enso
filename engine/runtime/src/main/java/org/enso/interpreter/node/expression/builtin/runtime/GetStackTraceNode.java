@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     name = "primitive_get_stack_trace",
     description = "Gets the current execution stacktrace.")
 public class GetStackTraceNode extends Node {
-  Array execute(Object self) {
+  Array execute() {
     var exception = new PanicException("Stacktrace", this);
     TruffleStackTrace.fillIn(exception);
     return stackTraceToArray(exception);

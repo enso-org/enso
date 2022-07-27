@@ -151,7 +151,7 @@ type Request
 
              example_with_header = Request.delete.with_header "Foo" "bar"
     with_header : Text -> Text -> Request
-    with_header key val =
+    with_header self key val =
        new_header = Header.new key val
        update_header p h = case p of
            Pair acc True -> Pair (acc + [h]) True
@@ -175,7 +175,7 @@ type Request
 
              example_with_headers = Request.delete.with_headers []
     with_headers : [Header] -> Request
-    with_headers new_headers =
+    with_headers self new_headers =
         update_header req new_header = req.with_header new_header.name new_header.value
         new_headers.fold self update_header
 
@@ -194,7 +194,7 @@ type Request
              example_with_body =
                  Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
     with_body : Request_Body -> Request
-    with_body new_body = Request self.method self.uri self.headers new_body
+    with_body self new_body = Request self.method self.uri self.headers new_body
 
     ## Set the body text in the request encoded as "application/json".
 
@@ -212,7 +212,7 @@ type Request
              example_with_json =
                  Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_json '{ "a": "b" }'
     with_json : (Text | Json) -> Request
-    with_json json_body =
+    with_json self json_body =
         new_body = Request_Body.Json json_body
         Request self.method self.uri self.headers new_body . with_headers [Header.application_json]
 
@@ -230,6 +230,6 @@ type Request
              example_delete =
                 Request.delete (URI.parse "http://example.com") . with_form []
     with_form : (Vector | Form) -> Request
-    with_form parts =
+    with_form self parts =
         new_body = Request_Body.Form parts.to_form
         Request self.method self.uri self.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
