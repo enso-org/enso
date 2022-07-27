@@ -1,5 +1,6 @@
 package org.enso.compiler;
 
+import java.lang.reflect.Field;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
@@ -11,9 +12,11 @@ import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
+import org.enso.compiler.core.IR.IdentifiedLocation;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.exception.UnhandledEntity;
+import org.enso.syntax.text.Location;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.Tree;
 import scala.Option;
@@ -53,15 +56,15 @@ final class TreeToIr {
               };
               var r = new IR$Name$MethodReference(
                 Option.empty(),
-                new IR$Name$Literal(name, false, Option.empty(), meta(), diag()),
-                Option.empty(),
+                new IR$Name$Literal(name, false, getIdentifiedLocation(module), meta(), diag()),
+                getIdentifiedLocation(module),
                 meta(), diag()
               );
               var m = new IR$Module$Scope$Definition$Method$Binding(
                 r,
                 nil(),
                 translateExpression(a.getExpr(), false),
-                Option.empty(),
+                getIdentifiedLocation(module),
                 meta(), diag()
               );
               bindings = cons(m, bindings);
@@ -79,7 +82,7 @@ final class TreeToIr {
             }
           }
         }
-        yield new IR.Module(nil(), nil(), bindings, Option.empty(), meta(), diag());
+        yield new IR.Module(nil(), nil(), bindings, getIdentifiedLocation(module), meta(), diag());
       }
       default -> throw new UnhandledEntity(module, "translateModule");
     };
@@ -483,12 +486,12 @@ final class TreeToIr {
       case Tree.OprApp app -> {
         var rhs = translateIdent(app.getRhs(), true);
         var lhs = translateExpression(app.getLhs(), insideTypeSignature);
-        var callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, Option.empty(), meta(), diag());
+        var callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, getIdentifiedLocation(tree), meta(), diag());
         var prefix = new IR$Application$Prefix(
             rhs,
             cons(callArgument, nil()),
             false,
-            Option.empty(),
+            getIdentifiedLocation(tree),
             meta(),
             diag()
         );
@@ -497,7 +500,7 @@ final class TreeToIr {
       case Tree.Number n -> new IR$Literal$Number(
         // translateDecimalLiteral(inputAst, intPart, fracPart)
         Option.empty(), n.getToken().codeRepr(),
-        Option.empty(), meta(), diag()
+        getIdentifiedLocation(n), meta(), diag()
       );
       case Tree.Ident id -> translateIdent(id, false);
       default -> throw new UnhandledEntity(tree, "translateExpression");
@@ -1310,16 +1313,34 @@ final class TreeToIr {
       case Tree.Ident id -> new IR$Name$Literal(
         id.getToken().codeRepr(),
         isMethod , // || AST.Opr.any.unapply(ident).isDefined,
-        Option.empty(), // getIdentifiedLocation(ident)
+        getIdentifiedLocation(ident),
         meta(), diag()
       );
       default -> throw new UnhandledEntity(ident, "buildName");
     };
   }
-/*
-  private def getIdentifiedLocation(ast: AST): Option[IdentifiedLocation] =
-    ast.location.map(IdentifiedLocation(_, ast.id))
-*/
+
+  private static final Field spanLeftOffsetCodeReprBegin;
+  private static final Field spanLeftOffsetCodeReprLen;
+  static {
+    try {
+      spanLeftOffsetCodeReprBegin = Tree.class.getDeclaredField("spanLeftOffsetCodeReprBegin");
+      spanLeftOffsetCodeReprLen = Tree.class.getDeclaredField("spanLeftOffsetCodeReprLen");
+      spanLeftOffsetCodeReprBegin.setAccessible(true);
+      spanLeftOffsetCodeReprLen.setAccessible(true);
+    } catch (NoSuchFieldException ex) {
+      throw new ExceptionInInitializerError(ex);
+    }
+  }
+  private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
+    try {
+      int begin = spanLeftOffsetCodeReprBegin.getInt(ast);
+      int len = spanLeftOffsetCodeReprLen.getInt(ast);
+      return Option.apply(new IdentifiedLocation(new Location(begin, begin + len), Option.empty()));
+    } catch (IllegalArgumentException | IllegalAccessException ex) {
+      throw new IllegalStateException(ex);
+    }
+  }
   private MetadataStorage meta() {
     return MetadataStorage.apply(nil());
   }
