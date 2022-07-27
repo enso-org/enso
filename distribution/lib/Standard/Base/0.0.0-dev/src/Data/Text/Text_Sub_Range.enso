@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
@@ -117,7 +118,18 @@ type Codepoint_Ranges
        merged.
     sorted_and_distinct_ranges : Vector Range
     sorted_and_distinct_ranges = if self.is_sorted_and_distinct then self.ranges else
-        unimplemented "TODO: sort and merge intersecting ranges"
+        sorted = self.ranges.sort on=(.start)
+        if sorted.is_empty then [] else
+            current = Ref.new sorted.first
+            builder = Vector.new_builder
+            sorted.tail.each range->
+                case range.start == current.start of
+                    True -> current.put (Range current.start (Math.max current.end range.end))
+                    False ->
+                        builder.append current.get
+                        current.put range
+            builder.append current.get
+            builder.to_vector
 
 ## Utility function to find char indices for Text_Sub_Range.
    Arguments:
@@ -202,7 +214,7 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover Index_Out_Of_Bo
                     ranges.append (characters.at descriptor)
             ## TODO maybe we can optimize step=-1 too? Maybe we should support reversed ranges - for dropping the direction does not matter
             Range start end step -> case step == 1 of
-                True -> if start == end then Range 0 0 else
+                True -> if descriptor.is_empty then Range 0 0 else
                     first_grapheme = characters.at start
                     last_grapheme = characters.at end-1
                     Range first_grapheme.start last_grapheme.end
