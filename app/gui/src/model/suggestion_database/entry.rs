@@ -937,8 +937,8 @@ mod test {
         use language_server::types::DocSection;
         let doc_sections = [
             DocSection::Paragraph { body: "Some paragraph.".into() },
-            DocSection::Keyed { key: "NotIcon".into(), body: "example-not-icon-body".into() },
-            DocSection::Keyed { key: "Icon".into(), body: "example-icon-name".into() },
+            DocSection::Keyed { key: "NotIcon".into(), body: "example_not_icon_body".into() },
+            DocSection::Keyed { key: "Icon".into(), body: "example_icon_name".into() },
             DocSection::Paragraph { body: "Another paragraph.".into() },
         ];
         let icon_name = find_icon_name_in_doc_sections(&doc_sections).unwrap();
@@ -949,11 +949,11 @@ mod test {
     /// converting [`IconName`] values to PascalCase.
     #[test]
     fn icon_name_case_insensitiveness() {
-        let small_kebab_case_name = IconName::from_kebab_case("an-example-name");
-        let mixed_kebab_case_name = IconName::from_kebab_case("aN-EXAMPLE-name");
+        let name_from_small_snake_case = IconName::from_snake_case("an_example_name");
+        let name_from_mixed_snake_case = IconName::from_snake_case("aN_EXAMPLE_name");
         const PASCAL_CASE_NAME: &str = "AnExampleName";
-        assert_eq!(small_kebab_case_name, mixed_kebab_case_name);
-        assert_eq!(small_kebab_case_name.to_pascal_case(), PASCAL_CASE_NAME);
-        assert_eq!(mixed_kebab_case_name.to_pascal_case(), PASCAL_CASE_NAME);
+        assert_eq!(name_from_small_snake_case, name_from_mixed_snake_case);
+        assert_eq!(name_from_small_snake_case.to_pascal_case(), PASCAL_CASE_NAME);
+        assert_eq!(name_from_mixed_snake_case.to_pascal_case(), PASCAL_CASE_NAME);
     }
 }
