@@ -21,6 +21,7 @@ polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
+polyglot java import java.sql.ResultSet
 polyglot java import org.enso.database.JDBCProxy
 
 type Connection
@@ -39,18 +40,6 @@ type Connection
          connection to that schema.
     type Connection connection_resource dialect with_database with_schema
 
-    ## UNSTABLE
-
-       Accesses a table within the database, returning an object that can be
-       used to create queries for that table.
-
-       Arguments:
-       - name: name of the table to access
-    access_table : Text -> Database_Table
-    access_table self name = handle_sql_errors <|
-        columns = self.fetch_columns name
-        Database_Table.make_table self name columns
-
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
@@ -66,7 +55,21 @@ type Connection
             self.connection_resource.with connection->
                 metadata = connection.getMetaData
                 schema_result_set = metadata.getCatalogs
-                Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_CAT")
+                read_column schema_result_set "TABLE_CAT"
+
+    ## Returns the name of the current database (or catalog).
+    database : Text
+    database =
+        self.connection_resource.with connection->
+            connection.getCatalog
+
+    ## Returns a new Connection with the specified database set as default.
+
+       Arguments:
+        - database: The name of the database to connect to.
+    set_database : Text -> Connection ! Sql_Error
+    set_database database =
+        self.with_database database
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
@@ -75,7 +78,46 @@ type Connection
             self.connection_resource.with connection->
                 metadata = connection.getMetaData
                 schema_result_set = metadata.getSchemas
-                Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_SCHEM")
+                read_column schema_result_set "TABLE_SCHEM"
+
+    ## Returns the name of the current schema.
+    schema : Text
+    schema =
+        self.connection_resource.with connection->
+            connection.getSchema
+
+    ## Returns a new Connection with the specified schema set as default.
+
+       Arguments:
+        - schema: The name of the schema to connect to.
+    set_schema : Text -> Connection ! Sql_Error
+    set_schema schema =
+        self.with_schema schema
+
+    ## Returns a materialised Table of all the matching views and tables.
+
+       Arguments:
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+       - name_like: The table name pattern to search for.
+    tables : Text -> Text -> Text -> Materialized_Table
+    tables database=self.database schema=self.schema name_like=Nothing =
+        wrap_sql_errors <|
+            self.connection_resource.with connection->
+                metadata = connection.getMetaData
+                result_set_to_table <| metadata.getTables database schema name_like Nothing
+
+    ## UNSTABLE
+
+       Accesses a table within the database, returning an object that can be
+       used to create queries for that table.
+
+       Arguments:
+       - name: name of the table to access
+    access_table : Text -> Database_Table
+    access_table name = handle_sql_errors <|
+        columns = self.fetch_columns name
+        Database_Table.make_table self name columns
 
     ## ADVANCED
 
@@ -89,25 +131,7 @@ type Connection
     execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
     execute_query self query expected_types=Nothing = handle_sql_errors <|
         self.with_prepared_statement query stmt->
-            rs = stmt.executeQuery
-            metadata = rs.getMetaData
-            ncols = metadata.getColumnCount
-            column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
-            column_types = if expected_types.is_nothing.not then expected_types else
-                Vector.new ncols ix->
-                    typeid = metadata.getColumnType ix+1
-                    name = metadata.getColumnTypeName ix+1
-                    Sql_Type typeid name
-            column_builders = column_types.map typ->
-                create_builder typ
-            go has_next = if has_next.not then Nothing else
-                column_builders.map_with_index ix-> builder->
-                    builder.fetch_and_append rs ix+1
-                @Tail_Call go rs.next
-            go rs.next
-            columns = column_builders.zip column_names builder-> name->
-                builder.make_column name
-            Materialized_Table.from_columns columns
+            result_set_to_table stmt.executeQuery expected_types
 
     ## ADVANCED
 
@@ -340,7 +364,7 @@ Unsupported_Dialect.to_display_text self =
    - properties: A vector of properties for the connection.
    - dialect: A Dialect object that will be used to generate SQL.
 create_jdbc_connection : Text -> Vector -> Dialect -> (Text->Connection!Sql_Error) -> (Text->Connection!Sql_Error) -> Connection
-create_jdbc_connection url properties dialect with_database=(_->Error.throw (Sql_Error "Changing database is not supported.")) with_schema=(_->Error.throw (Sql_Error "Changing schema is not supported.")) = handle_sql_errors <|
+create_jdbc_connection url properties dialect with_database=(_-> Sql_Error.throw_sql_error "Changing database is not supported.") with_schema=(_-> Sql_Error.throw_sql_error "Changing schema is not supported.") = handle_sql_errors <|
     java_props = Properties.new
     properties.each pair->
         java_props.setProperty pair.first pair.second
@@ -384,6 +408,11 @@ type Sql_Error
        Pretty print the SQL error.
     to_display_text : Text
     to_display_text self = self.to_text
+
+    ## PRIVATE
+    throw_sql_error : Text -> Sql_Error
+    throw_sql_error message =
+        Error.throw (Sql_Error (SQLException.new message))
 
 type Sql_Timeout_Error
 
@@ -463,3 +492,41 @@ set_statement_values stmt holes =
         case obj.first of
             Nothing -> stmt.setNull position obj.second.typeid
             _ -> stmt.setObject position obj.first
+
+## PRIVATE
+   Read a single column from a ResultSet into a Vector
+read_column : ResultSet -> Text -> Vector
+read_column result_set column_name =
+    if result_set.isClosed then [] else
+        index = result_set.findColumn column_name
+
+        builder = Vector.new_builder
+        go has_next = if has_next.not then Nothing else
+            builder.append (result_set.getObject index)
+            @Tail_Call go result_set.next
+
+        go result_set.next
+        builder.to_vector
+
+## PRIVATE
+   Converts a ResultSet into a Materialized_Table.
+result_set_to_table : ResultSet -> (Vector | Nothing) -> Materialized_Table
+result_set_to_table result_set expected_types=Nothing =
+    metadata = result_set.getMetaData
+    ncols = metadata.getColumnCount
+    column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
+    column_types = if expected_types.is_nothing.not then expected_types else
+        Vector.new ncols ix->
+            typeid = metadata.getColumnType ix+1
+            name = metadata.getColumnTypeName ix+1
+            Sql_Type typeid name
+    column_builders = column_types.map typ->
+        create_builder typ
+    go has_next = if has_next.not then Nothing else
+        column_builders.map_with_index ix-> builder->
+            builder.fetch_and_append result_set ix+1
+        @Tail_Call go result_set.next
+    go result_set.next
+    columns = column_builders.zip column_names builder-> name->
+        builder.make_column name
+    Materialized_Table.from_columns columns

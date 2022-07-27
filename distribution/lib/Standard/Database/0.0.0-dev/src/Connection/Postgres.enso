@@ -35,8 +35,8 @@ type Postgres
         if Driver.isRegistered.not then Driver.register
 
         properties = options.merge self.jdbc_properties
-        with_database database = Postgres self.host self.port database self.credentials self.use_ssl self.client_cert self.schema . connect
-        with_schema schema = Postgres self.host self.port self.database self.credentials self.use_ssl self.client_cert schema . connect
+        with_database database = Postgres self.host self.port database self.schema self.credentials self.use_ssl self.client_cert . connect options
+        with_schema schema = Postgres self.host self.port self.database schema self.credentials self.use_ssl self.client_cert . connect options
         Connection.create_jdbc_connection self.jdbc_url properties self.dialect with_database with_schema
 
     ## Provides the jdbc url for the connection.
