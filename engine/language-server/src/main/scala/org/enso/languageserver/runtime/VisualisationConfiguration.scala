@@ -43,6 +43,7 @@ object VisualisationConfiguration {
     * @param contextId an execution context of the visualisation
     * @param module a qualified module name containing the visualisation
     * @param expression a visualisation expression
+    * @return an instance of [[VisualisationConfiguration]]
     */
   def apply(
     contextId: UUID,
@@ -52,6 +53,21 @@ object VisualisationConfiguration {
     new VisualisationConfiguration(
       contextId,
       VisualisationExpression.Text(module, expression)
+    )
+
+  /** Create a visualisation configuration.
+    *
+    * @param contextId an execution context of the visualisation
+    * @param expression a visualisation expression
+    * @return an instance of [[VisualisationConfiguration]]
+    */
+  def apply(
+    contextId: UUID,
+    expression: MethodPointer
+  ): VisualisationConfiguration =
+    new VisualisationConfiguration(
+      contextId,
+      VisualisationExpression.ModuleMethod(expression)
     )
 
   private object CodecField {
@@ -74,7 +90,7 @@ object VisualisationConfiguration {
               .as[UUID]
             expression <- cursor
               .downField(CodecField.Expression)
-              .as[VisualisationExpression]
+              .as[MethodPointer]
           } yield VisualisationConfiguration(contextId, expression)
 
         case Right(expression) =>

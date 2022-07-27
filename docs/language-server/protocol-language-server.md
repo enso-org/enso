@@ -389,29 +389,7 @@ interface VisualisationConfiguration {
   visualisationModule?: String;
 
   /** An expression that creates a visualisation. */
-  expression: String | VisualisationExpression;
-}
-```
-
-### `VisualisationExpression`
-
-A visualisation expression can be a text expression, or a pointer to a module
-method.
-
-```typescript
-type VisualisationExpression = Text | ModuleMethod;
-
-interface Text {
-  /** A qualified module name containing the expression. */
-  module: string;
-
-  /** An Enso expression that creates a visualisation. */
-  expression: string;
-}
-
-interface ModuleMethod {
-  /** A pointer to a method definition. */
-  methodPointer: MethodPointer;
+  expression: String | MethodPointer;
 }
 ```
 

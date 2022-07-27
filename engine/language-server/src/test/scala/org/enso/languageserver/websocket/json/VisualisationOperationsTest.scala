@@ -1,8 +1,10 @@
 package org.enso.languageserver.websocket.json
 import java.util.UUID
-
 import io.circe.literal._
-import org.enso.languageserver.runtime.VisualisationConfiguration
+import org.enso.languageserver.runtime.{
+  MethodPointer,
+  VisualisationConfiguration
+}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 
@@ -53,37 +55,31 @@ class VisualisationOperationsTest extends BaseServerTest {
       client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
-    "support old protocol" in {
+    "allow attaching method pointer as a visualisation expression" in {
       val visualisationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
 
-      val client                  = getInitialisedWsClient()
-      val contextId               = createExecutionContext(client)
-      val visualisationModule     = "Foo.Bar.baz"
-      val visualisationExpression = "a=x+y"
+      val client              = getInitialisedWsClient()
+      val contextId           = createExecutionContext(client)
+      val visualisationModule = "Foo.Bar"
+      val visualisationMethod = "baz"
       val visualisationConfig =
         VisualisationConfiguration(
           contextId,
-          visualisationModule,
-          visualisationExpression
+          MethodPointer(
+            visualisationModule,
+            visualisationModule,
+            visualisationMethod
+          )
         )
 
       client.send(
-        json"""
-          { "jsonrpc": "2.0",
-            "method": "executionContext/attachVisualisation",
-            "id": 1,
-            "params": {
-              "visualisationId": $visualisationId,
-              "expressionId": $expressionId,
-              "visualisationConfig": {
-                "executionContextId": $contextId,
-                "visualisationModule": $visualisationModule,
-                "expression": $visualisationExpression
-              }
-            }
-          }
-          """
+        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+          1,
+          visualisationId,
+          expressionId,
+          visualisationConfig
+        )
       )
 
       val requestId =
@@ -279,17 +275,14 @@ class VisualisationOperationsTest extends BaseServerTest {
       val expressionId    = UUID.randomUUID()
       val client          = getInitialisedWsClient()
       val contextId       = createExecutionContext(client)
-      client.send(json"""
-          {  "jsonrpc": "2.0",
-            "method": "executionContext/detachVisualisation",
-            "id": 1,
-            "params": {
-              "contextId": $contextId,
-              "visualisationId": $visualisationId,
-              "expressionId": $expressionId
-            }
-          }
-          """)
+      client.send(
+        ExecutionContextJsonMessages.executionContextDetachVisualisationRequest(
+          1,
+          contextId,
+          visualisationId,
+          expressionId
+        )
+      )
       val requestId =
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
@@ -318,17 +311,14 @@ class VisualisationOperationsTest extends BaseServerTest {
       val expressionId    = UUID.randomUUID()
       val contextId       = UUID.randomUUID()
       val client          = getInitialisedWsClient()
-      client.send(json"""
-          {  "jsonrpc": "2.0",
-            "method": "executionContext/detachVisualisation",
-            "id": 1,
-            "params": {
-              "contextId": $contextId,
-              "visualisationId": $visualisationId,
-              "expressionId": $expressionId
-            }
-          }
-          """)
+      client.send(
+        ExecutionContextJsonMessages.executionContextDetachVisualisationRequest(
+          1,
+          contextId,
+          visualisationId,
+          expressionId
+        )
+      )
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id" : 1,
@@ -350,20 +340,13 @@ class VisualisationOperationsTest extends BaseServerTest {
       val contextId       = createExecutionContext(client)
       val visualisationConfig =
         VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
-      client.send(json"""
-          {  "jsonrpc": "2.0",
-            "method": "executionContext/modifyVisualisation",
-            "id": 1,
-            "params": {
-              "visualisationId": $visualisationId,
-              "visualisationConfig": {
-                  "executionContextId": $contextId,
-                  "visualisationModule": ${visualisationConfig.visualisationModule},
-                  "expression": ${visualisationConfig.expression}
-              }
-            }
-          }
-          """)
+      client.send(
+        ExecutionContextJsonMessages.executionContextModifyVisualisationRequest(
+          1,
+          visualisationId,
+          visualisationConfig
+        )
+      )
 
       val requestId =
         runtimeConnectorProbe.receiveN(1).head match {
@@ -393,20 +376,14 @@ class VisualisationOperationsTest extends BaseServerTest {
       val client          = getInitialisedWsClient()
       val visualisationConfig =
         VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
-      client.send(json"""
-          {  "jsonrpc": "2.0",
-            "method": "executionContext/modifyVisualisation",
-            "id": 1,
-            "params": {
-              "visualisationId": $visualisationId,
-              "visualisationConfig": {
-                  "executionContextId": $contextId,
-                  "visualisationModule": ${visualisationConfig.visualisationModule},
-                  "expression": ${visualisationConfig.expression}
-              }
-            }
-          }
-          """)
+
+      client.send(
+        ExecutionContextJsonMessages.executionContextModifyVisualisationRequest(
+          1,
+          visualisationId,
+          visualisationConfig
+        )
+      )
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id" : 1,
@@ -417,7 +394,6 @@ class VisualisationOperationsTest extends BaseServerTest {
           }
           """)
     }
-
   }
 
   private def createExecutionContext(client: WsTestClient): UUID = {

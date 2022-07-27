@@ -2,7 +2,10 @@ package org.enso.languageserver.websocket.json
 
 import org.enso.polyglot.runtime.Runtime.Api
 import io.circe.literal._
-import org.enso.languageserver.runtime.VisualisationConfiguration
+import org.enso.languageserver.runtime.{
+  VisualisationConfiguration,
+  VisualisationExpression
+}
 
 object ExecutionContextJsonMessages {
 
@@ -131,8 +134,10 @@ object ExecutionContextJsonMessages {
     visualisationId: Api.VisualisationId,
     expressionId: Api.ExpressionId,
     configuration: VisualisationConfiguration
-  ) =
-    json"""
+  ) = {
+    configuration.expression match {
+      case VisualisationExpression.Text(module, expression) =>
+        json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/attachVisualisation",
             "id": $reqId,
@@ -141,11 +146,33 @@ object ExecutionContextJsonMessages {
               "expressionId": $expressionId,
               "visualisationConfig": {
                 "executionContextId": ${configuration.executionContextId},
-                "expression": ${configuration.expression}
+                "visualisationModule": $module,
+                "expression": $expression
               }
             }
           }
           """
+      case VisualisationExpression.ModuleMethod(methodPointer) =>
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/attachVisualisation",
+            "id": $reqId,
+            "params": {
+              "visualisationId": $visualisationId,
+              "expressionId": $expressionId,
+              "visualisationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "expression": {
+                  "module": ${methodPointer.module},
+                  "definedOnType": ${methodPointer.definedOnType},
+                  "name": ${methodPointer.name}
+                }
+              }
+            }
+          }
+          """
+    }
+  }
 
   def executionContextModuleNotFound(
     reqId: Int,
@@ -214,8 +241,10 @@ object ExecutionContextJsonMessages {
     reqId: Int,
     visualisationId: Api.VisualisationId,
     configuration: VisualisationConfiguration
-  ) =
-    json"""
+  ) = {
+    configuration.expression match {
+      case VisualisationExpression.Text(module, expression) =>
+        json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/modifyVisualisation",
             "id": $reqId,
@@ -223,12 +252,32 @@ object ExecutionContextJsonMessages {
               "visualisationId": $visualisationId,
               "visualisationConfig": {
                 "executionContextId": ${configuration.executionContextId},
-                "visualisationModule": ${configuration.visualisationModule},
-                "expression": ${configuration.expression}
+                "visualisationModule": $module,
+                "expression": $expression
               }
             }
           }
           """
+      case VisualisationExpression.ModuleMethod(methodPointer) =>
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/modifyVisualisation",
+            "id": $reqId,
+            "params": {
+              "visualisationId": $visualisationId,
+              "visualisationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "expression": {
+                  "module": ${methodPointer.module},
+                  "definedOnType": ${methodPointer.definedOnType},
+                  "name": ${methodPointer.name}
+                }
+              }
+            }
+          }
+          """
+    }
+  }
 
   def executionContextGetComponentGroupsRequest(
     reqId: Int,

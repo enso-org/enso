@@ -1,4 +1,5 @@
 package org.enso.languageserver.runtime
+
 import org.enso.polyglot.runtime.Runtime.Api
 
 /** An object pointing to a method definition.
