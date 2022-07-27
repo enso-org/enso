@@ -279,7 +279,7 @@ object PackageRepository {
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
-      val (regularModule, virtualModulesNames) = pkg.listSources
+      val (regularModules, virtualModulesNames) = pkg.listSources
         .map(srcFile =>
           (
             new Module(srcFile.qualifiedName, pkg, srcFile.file),
@@ -288,7 +288,7 @@ object PackageRepository {
         )
         .unzip
 
-      regularModule.foreach(registerModule)
+      regularModules.foreach(registerModule)
 
       virtualModulesNames.flatten
         .groupMap(_._1)(v => (v._2, v._3))
