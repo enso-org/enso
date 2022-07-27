@@ -19,7 +19,7 @@ type Project_Description
 
              enso_project.root
     root : File.File
-    root = File.new self.prim_root_file
+    root self = File.new self.prim_root_file
 
     ## Returns the root data directory of the project.
 
@@ -28,7 +28,7 @@ type Project_Description
 
              enso_project.data
     data : File.File
-    data = self.root / "data"
+    data self = self.root / "data"
 
     ## Returns the name of the project.
 
@@ -37,7 +37,7 @@ type Project_Description
 
              enso_project.name
     name : Text
-    name = self.prim_config.name
+    name self = self.prim_config.name
 
     ## Returns the namespace of the project.
 
@@ -46,4 +46,4 @@ type Project_Description
 
              enso_project.namespace
     namespace : Text
-    namespace = self.prim_config.namespace
+    namespace self = self.prim_config.namespace

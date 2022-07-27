@@ -21,10 +21,10 @@ public abstract class PutStateNode extends Node {
     return PutStateNodeGen.create();
   }
 
-  abstract Stateful execute(@MonadicState Object state, Object self, Object key, Object new_state);
+  abstract Stateful execute(@MonadicState Object state, Object key, Object new_state);
 
   @Specialization(guards = "state.getKey() == key")
-  Stateful doExistingSingleton(SingletonMap state, Object self, Object key, Object new_state) {
+  Stateful doExistingSingleton(SingletonMap state, Object key, Object new_state) {
     return new Stateful(new SingletonMap(key, new_state), new_state);
   }
 
@@ -32,7 +32,6 @@ public abstract class PutStateNode extends Node {
       guards = {"state.getKeys() == cachedKeys", "index != NOT_FOUND", "key == cachedKey"})
   Stateful doExistingMultiCached(
       SmallMap state,
-      Object self,
       Object key,
       Object new_state,
       @Cached("key") Object cachedKey,
@@ -46,7 +45,7 @@ public abstract class PutStateNode extends Node {
   }
 
   @Specialization
-  Stateful doMultiUncached(SmallMap state, Object self, Object key, Object new_state) {
+  Stateful doMultiUncached(SmallMap state, Object key, Object new_state) {
     int index = state.indexOf(key);
     if (index == SmallMap.NOT_FOUND) {
       return new Stateful(
@@ -54,12 +53,12 @@ public abstract class PutStateNode extends Node {
           DataflowError.withoutTrace(
               Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this));
     } else {
-      return doExistingMultiCached(state, self, key, new_state, key, state.getKeys(), index);
+      return doExistingMultiCached(state, key, new_state, key, state.getKeys(), index);
     }
   }
 
   @Specialization
-  Stateful doError(Object state, Object self, Object key, Object new_state) {
+  Stateful doError(Object state, Object key, Object new_state) {
     return new Stateful(
         state,
         DataflowError.withoutTrace(

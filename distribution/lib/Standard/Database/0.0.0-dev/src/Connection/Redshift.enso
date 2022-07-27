@@ -30,7 +30,7 @@ type Redshift
        Arguments:
        - options: Overrides for the connection properties.
     connect : Connection_Options
-    connect options =
+    connect self options =
         if Driver.isRegistered.not then Driver.register
 
         properties = options.merge self.jdbc_properties
@@ -41,7 +41,7 @@ type Redshift
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
-    jdbc_url =
+    jdbc_url self =
         prefix = case self.credentials of
             AWS_Profile _ _ -> 'jdbc:redshift:iam://'
             AWS_Key _ _ _ -> 'jdbc:redshift:iam://'
@@ -50,7 +50,7 @@ type Redshift
 
     ## Provides the properties for the connection.
     jdbc_properties : [Pair Text Text]
-    jdbc_properties =
+    jdbc_properties self =
         credentials = case self.credentials of
             Nothing -> Pgpass.read self.host self.port self.schema
             AWS_Profile db_user profile ->
@@ -70,7 +70,7 @@ type Redshift
 
     ## Provides the dialect needed for creating SQL statements.
     dialect : Dialect
-    dialect = Dialect.redshift
+    dialect self = Dialect.redshift
 
 type AWS_Profile
     ## Access Redshift using IAM via an AWS profile.

@@ -10,14 +10,24 @@ import project.Data.Maybe
 import project.Data.Noise
 import project.Data.Numbers
 import project.Data.Ordering
+import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Sort_Direction
 import project.Data.Pair
 import project.Data.Range
+import project.Data.Regression
+import project.Data.Statistics
+import project.Data.Statistics.Rank_Method
 import project.Data.Text
+import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
+import project.Data.Text.Matching_Mode
+import project.Data.Text.Text_Ordering
+import project.Data.Text.Span
+import project.Data.Time.Date
 import project.Data.Vector
 import project.Error.Common
+import project.Error.Problem_Behavior
 import project.Function
 import project.IO
 import project.Nothing
@@ -29,14 +39,11 @@ import project.Polyglot.Java
 import project.Runtime
 import project.Runtime.Extensions
 import project.Runtime.State
-import project.Runtime.Resource
 import project.System.Environment
 import project.System.File
+import project.System.File.Existing_File_Behavior
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
-import project.Data.Statistics
-import project.Data.Statistics.Rank_Method
-import project.Data.Regression
 
 export project.Data.Interval
 export project.Data.Json
@@ -44,11 +51,16 @@ export project.Data.Locale
 export project.Data.Map
 export project.Data.Maybe
 export project.Data.Ordering
+export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Sort_Direction
 export project.Data.Regression
 export project.Data.Statistics
 export project.Data.Statistics.Rank_Method
+export project.Data.Text.Regex.Mode as Regex_Mode
+export project.Data.Text.Matching_Mode
+export project.Data.Time.Date
 export project.Data.Vector
+export project.Error.Problem_Behavior
 export project.IO
 export project.Math
 export project.Meta
@@ -57,7 +69,7 @@ export project.Runtime
 export project.Runtime.State
 export project.System.Environment
 export project.System.File
-export project.Data.Text.Regex.Mode as Regex_Mode
+export project.System.File.Existing_File_Behavior
 export project.Warning
 
 from project.Data.Array export Array
@@ -76,12 +88,14 @@ from project.Data.Range export all
    https://www.pivotaltracker.com/story/show/181403340
    https://www.pivotaltracker.com/story/show/181309938
 from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location
-from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher
+from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher, No_Matches_Found
 from project.Data.Text export all
+from project.Data.Text.Encoding export Encoding, Encoding_Error
+from project.Data.Text.Text_Ordering export all
+from project.Data.Text.Span export all
 from project.Error.Common export all
 from project.Function export all
 from project.Meta.Enso_Project export all
 from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
-from project.Runtime.Resource export all

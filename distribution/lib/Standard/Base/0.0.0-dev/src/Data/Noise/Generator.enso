@@ -30,7 +30,7 @@ type Generator
        The return type may be chosen freely by the generator implementation, as
        it usually depends on the generator and its intended use.
     step : Number -> Interval -> Any
-    step _ _ = unimplemented "Only intended to demonstrate an interface."
+    step self _ _ = unimplemented "Only intended to demonstrate an interface."
 
 ## A noise generator that implements a seeded deterministic random peterbation
    of the input.
@@ -59,7 +59,7 @@ type Deterministic_Random
 
              example_det_random = Deterministic_Random.step 1 (Interval.inclusive 0 1)
     step : Number -> Interval -> Number
-    step input interval =
+    step self input interval =
         max_long = Long.MAX_VALUE
         seed = input.floor % max_long
         gen = Random.new seed

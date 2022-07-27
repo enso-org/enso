@@ -6,5 +6,5 @@ type Connection_Options
 
     ## Merge the base set of options with the overrides in this object.
     merge :  Vector -> Vector
-    merge base_options =
+    merge self base_options =
         base_options.filter x->(self.options.any (y->y.first==x.first) . not) + self.options
