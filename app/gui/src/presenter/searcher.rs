@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action::Suggestion;
+use crate::controller::searcher::component;
 use crate::controller::searcher::Notification;
 use crate::controller::searcher::UserAction;
 use crate::executor::global::spawn_stream_handler;
@@ -97,7 +98,12 @@ impl Model {
     ) -> Option<(ViewNodeId, node_view::Expression)> {
         let component = self.component_by_view_id(id);
         let new_code = component.and_then(|component| {
-            let suggestion = Suggestion::FromDatabase(component.suggestion.clone_ref());
+            let suggestion = match component.kind {
+                component::Kind::FromDb { suggestion, .. } => 
+                    Suggestion::FromDatabase(suggestion.clone_ref()),
+                component::Kind::Virtual { suggestion } =>
+                    Suggestion::Hardcoded(suggestion.clone_ref()),
+            };
             self.controller.use_suggestion(suggestion)
         });
         match new_code {
@@ -157,24 +163,35 @@ impl Model {
     ) -> String {
         let component = id.and_then(|id| self.component_by_view_id(id).ok());
         if let Some(component) = component {
-            if let Some(documentation) = &component.suggestion.documentation_html {
-                let title = match component.suggestion.kind {
-                    Kind::Atom => format!("Atom {}", component.suggestion.name),
-                    Kind::Function => format!("Function {}", component.suggestion.name),
-                    Kind::Local => format!("Node {}", component.suggestion.name),
-                    Kind::Method => format!(
-                        "Method {}{}{}",
-                        component.suggestion.name,
-                        if component.suggestion.self_type.is_some() { " of " } else { "" },
-                        component.suggestion.self_type.as_ref().map_or("", |tp| &tp.name),
-                    ),
-                    Kind::Module => format!("Module {}", component.suggestion.name),
-                };
-                format!("<div class=\"enso docs summary\"><p />{title}</div>{documentation}")
-            } else {
-                provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
-                    component.suggestion.clone_ref(),
-                ))
+            match component.kind {
+                component::Kind::FromDb { suggestion, .. } => {
+                    if let Some(documentation) = &suggestion.documentation_html {
+                        let title = match suggestion.kind {
+                            Kind::Atom => format!("Atom {}", suggestion.name),
+                            Kind::Function => format!("Function {}", suggestion.name),
+                            Kind::Local => format!("Node {}", suggestion.name),
+                            Kind::Method => format!(
+                                "Method {}{}{}",
+                                suggestion.name,
+                                if suggestion.self_type.is_some() { " of " } else { "" },
+                                suggestion.self_type.as_ref().map_or("", |tp| &tp.name),
+                            ),
+                            Kind::Module => format!("Module {}", suggestion.name),
+                        };
+                        format!("<div class=\"enso docs summary\"><p />{title}</div>{documentation}")
+                    } else {
+                        provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
+                            suggestion.clone_ref(),
+                        ))
+                    }
+                },
+                component::Kind::Virtual { suggestion } => {
+                    if let Some(documentation) = &suggestion.documentation_html {
+                        documentation.to_string()
+                    } else {
+                        default()
+                    }
+                },
             }
         } else {
             default()
