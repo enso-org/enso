@@ -180,8 +180,7 @@ impl Display for Component {
                     write!(f, "{}", suggestion.name.from_case(Case::Snake).to_case(Case::Lower))
                 }
             },
-            // FIXME[MC]
-            Kind::Virtual { .. } => write!(f, "FIXME"),
+            Kind::Virtual { suggestion } => write!(f, "{}", suggestion.name),
         }
     }
 }
