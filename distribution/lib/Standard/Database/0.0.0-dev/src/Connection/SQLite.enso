@@ -10,23 +10,23 @@ type SQLite
 
     ## Build the Connection resource.
     connect : Connection_Options
-    connect options =
+    connect self options =
         properties = options.merge self.jdbc_properties
         Connection.create_jdbc_connection self.jdbc_url properties self.dialect
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
-    jdbc_url = case self.location of
+    jdbc_url self = case self.location of
         In_Memory -> "jdbc:sqlite::memory:"
         _ -> "jdbc:sqlite:" + ((File.new self.location).absolute.path.replace '\\' '/')
 
     ## Provides the properties for the connection.
     jdbc_properties : Vector
-    jdbc_properties = []
+    jdbc_properties self = []
 
     ## Provides the dialect needed for creating SQL statements.
     dialect : Dialect
-    dialect = Dialect.sqlite
+    dialect self = Dialect.sqlite
 
 ## Connect to an in-memory SQLite database.
 type In_Memory

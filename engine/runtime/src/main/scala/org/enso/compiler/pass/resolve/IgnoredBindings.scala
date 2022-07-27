@@ -210,7 +210,7 @@ case object IgnoredBindings extends IRPass {
   ): IR.DefinitionArgument = {
     arg match {
       case spec @ IR.DefinitionArgument.Specified(
-            IR.Name.Self(_, _, _),
+            IR.Name.Self(_, _, _, _),
             _,
             _,
             _,

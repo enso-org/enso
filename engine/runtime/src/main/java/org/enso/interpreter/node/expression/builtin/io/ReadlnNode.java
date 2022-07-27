@@ -16,11 +16,11 @@ public abstract class ReadlnNode extends Node {
     return ReadlnNodeGen.create();
   }
 
-  abstract Object execute(Object self);
+  abstract Object execute();
 
   @Specialization
   @TruffleBoundary
-  Text doRead(Object self) {
+  Text doRead() {
     try {
       return Text.create(Context.get(this).getInReader().readLine());
     } catch (IOException e) {

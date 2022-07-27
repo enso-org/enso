@@ -77,7 +77,7 @@ spec =
             Panic.recover Any (123.from (Quux 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
 
         Test.specify "should be callable with by-name arguments" <|
-            .from that=4 self=Foo . should_equal (Foo [4, 0, 0, 0])
+            .from self=Foo that=4 first_param=2 . should_equal (Foo [4, 2, 0, 0])
         Test.specify "should support the use of multiple arguments" <|
             Foo.from that=4 second_param=1 2 . should_equal (Foo [4, 2, 1, 0])
 

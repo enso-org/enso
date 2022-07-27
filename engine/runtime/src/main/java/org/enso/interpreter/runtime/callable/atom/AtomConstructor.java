@@ -184,7 +184,7 @@ public final class AtomConstructor implements TruffleObject {
             callTarget,
             null,
             new FunctionSchema(
-                new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
+                new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(
         definitionScope.getAssociatedType(), this.name.toLowerCase(), function);
   }
@@ -196,7 +196,7 @@ public final class AtomConstructor implements TruffleObject {
         callTarget,
         null,
         new FunctionSchema(
-            new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
+            new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
   }
 
   /**

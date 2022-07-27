@@ -146,7 +146,7 @@ type Time_Of_Day
 
              example_hour = Time_Of_Day.now.hour
     hour : Integer
-    hour = self . internal_local_time . getHour
+    hour self = self . internal_local_time . getHour
 
     ## Get the minute portion of the time of day.
 
@@ -157,7 +157,7 @@ type Time_Of_Day
 
              example_minute = Time_Of_Day.now.minute
     minute : Integer
-    minute = self . internal_local_time . getMinute
+    minute self = self . internal_local_time . getMinute
 
     ## Get the second portion of the time of day.
 
@@ -168,7 +168,7 @@ type Time_Of_Day
 
              example_second = Time_Of_Day.now.second
     second : Integer
-    second = self . internal_local_time . getSecond
+    second self = self . internal_local_time . getSecond
 
     ## Get the nanosecond portion of the time of day.
 
@@ -179,7 +179,7 @@ type Time_Of_Day
 
              example_nanosecond = Time_Of_Day.now.nanosecond
     nanosecond : Integer
-    nanosecond = self . internal_local_time . getNano
+    nanosecond self = self . internal_local_time . getNano
 
     ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
 
@@ -190,7 +190,7 @@ type Time_Of_Day
 
              example_to_seconds = Time_Of_Day.now.to_seconds
     to_seconds : Integer
-    to_seconds = self . internal_local_time . toSecondOfDay
+    to_seconds self = self . internal_local_time . toSecondOfDay
 
     ## Combine this time of day with a date to create a point in time.
 
@@ -205,7 +205,7 @@ type Time_Of_Day
 
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_time : Date -> Zone -> Time
-    to_time date (zone = Zone.system) =
+    to_time self date (zone = Zone.system) =
         Time.Time (self . internal_local_time . atDate date . atZone zone.internal_zone_id)
 
     ## Add the specified amount of time to this instant to get a new instant.
@@ -220,7 +220,7 @@ type Time_Of_Day
 
              example_plus = Time_Of_Day.new + 3.seconds
     + : Duration -> Time_Of_Day
-    + amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
+    + self amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
         Time_Of_Day (self . internal_local_time . plus amount.internal_duration)
 
     ## Subtract the  specified amount of time from this instant to get a new
@@ -237,7 +237,7 @@ type Time_Of_Day
 
              example_minus = Time_Of_Day.now - 12.hours
     - : Duration -> Time_Of_Day
-    - amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
+    - self amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
         Time_Of_Day (self . internal_local_time . minus amount.internal_duration)
 
     ## Format this time of day as text using the default formatter.
@@ -249,7 +249,7 @@ type Time_Of_Day
 
              example_to_text = Time_Of_Day.now.to_text
     to_text : Text
-    to_text = Time_Utils.default_time_of_day_formatter . format self.internal_local_time
+    to_text self = Time_Utils.default_time_of_day_formatter . format self.internal_local_time
 
     ## A Time_Of_Day to Json conversion.
 
@@ -260,7 +260,7 @@ type Time_Of_Day
 
              example_to_json = Time_Of_Day.now.to_text
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Time_Of_Day"], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
+    to_json self = Json.from_pairs [["type", "Time_Of_Day"], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
 
     ## Format this time of day using the provided formatter pattern.
 
@@ -309,7 +309,7 @@ type Time_Of_Day
 
              example_format = Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> Text
-    format pattern =
+    format self pattern =
         DateTimeFormatter.ofPattern pattern . format self.internal_local_time
 
     ## Compares `self` to `that` to produce an ordering.
@@ -327,12 +327,12 @@ type Time_Of_Day
                  time_2 = Time_Of_Day.new minute=50
                  time_1.compare_to time_2
     compare_to : Time_Of_Day -> Ordering
-    compare_to that =
+    compare_to self that =
         sign = self.internal_local_time.compareTo that.internal_local_time
         Ordering.from_sign sign
 
     ## Compares two Time_Of_Day for equality.
     == : Date -> Boolean
-    == that = case that of
+    == self that = case that of
         Time_Of_Day _ -> self.internal_local_time.equals that.internal_local_time
         _ -> False

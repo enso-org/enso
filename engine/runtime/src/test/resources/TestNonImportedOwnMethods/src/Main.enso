@@ -3,6 +3,6 @@ import local.TestNonImportedOwnMethods.Util
 
 type X a
 
-X.method = 10
+X.method self = 10
 
 main = Nothing.util (X 1)

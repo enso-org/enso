@@ -136,6 +136,9 @@ type Date
 
     ## This type represents a date, often viewed as year-month-day.
 
+       Arguments:
+       - internal_local_date: The internal date representation.
+
        For example, the value "2nd October 2007" can be stored in a `Date`.
 
        This class does not store or represent a time or timezone. Instead, it
@@ -154,7 +157,7 @@ type Date
 
              example_year = Date.now.year
     year : Integer
-    year = @Builtin_Method "Date.year"
+    year self = @Builtin_Method "Date.year"
 
     ## Get the month of year field, as a number from 1 to 12.
 
@@ -163,7 +166,7 @@ type Date
 
              example_month = Date.now.month
     month : Integer
-    month = @Builtin_Method "Date.month"
+    month self = @Builtin_Method "Date.month"
 
     ## Get the day of month field.
 
@@ -174,7 +177,7 @@ type Date
 
              example_day = Date.now.day
     day : Integer
-    day = @Builtin_Method "Date.day"
+    day self = @Builtin_Method "Date.day"
 
     ## Returns the number of week of year this date falls into.
 
@@ -190,7 +193,7 @@ type Date
          containing the first Thursday of the year. Therefore it is important to
          properly specify the `locale` argument.
     week_of_year : Locale.Locale -> Integer
-    week_of_year locale=Locale.default = Time_Utils.week_of_year self locale.java_locale
+    week_of_year self locale=Locale.default = Time_Utils.week_of_year self locale.java_locale
 
     ## ALIAS Date to Time
 
@@ -208,7 +211,7 @@ type Date
 
              example_to_time = Date.new 2020 2 3 . to_time Time_Of_Day.new Zone.utc
     to_time : Time_Of_Day -> Zone -> Time
-    to_time time_of_day (zone = Zone.system) = Time.Time (Time_Utils.date_with_time self time_of_day.internal_local_time zone.internal_zone_id)
+    to_time self time_of_day (zone = Zone.system) = Time.Time (Time_Utils.date_with_time self time_of_day.internal_local_time zone.internal_zone_id)
 
     ## Add the specified amount of time to this instant to get another date.
 
@@ -222,7 +225,7 @@ type Date
 
              example_add = Date.new 2020 + 6.months
     + : Duration -> Date
-    + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
+    + self amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
         (Time_Utils.date_adjust self 1 amount.internal_period) . internal_local_date
 
     ## Subtract the specified amount of time from this instant to get another
@@ -239,7 +242,7 @@ type Date
 
              example_subtract = Date.new 2020 - 7.days
     - : Duration -> Date
-    - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
+    - self amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
         (Time_Utils.date_adjust self -1 amount.internal_period) . internal_local_date
 
 
@@ -250,7 +253,7 @@ type Date
 
              example_to_json = Date.now.to_json
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
+    to_json self = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
 
     ## Format this date using the provided format specifier.
 
@@ -288,7 +291,7 @@ type Date
 
              example_format = Date.new 2020 6 2 . format "yyyyGG"
     format : Text -> Text
-    format pattern = Time_Utils.local_date_format self pattern
+    format self pattern = Time_Utils.local_date_format self pattern
 
     ## Compares `self` to `that` to produce an ordering.
 
@@ -300,12 +303,12 @@ type Date
 
          (Date.new 2000).compare_to (Date.new 2001)
     compare_to : Date -> Ordering
-    compare_to that =
+    compare_to self that =
         sign = Time_Utils.compare_to self that
         Ordering.from_sign sign
 
     ## Compares two Dates for equality.
     == : Date -> Boolean
-    == that =
+    == self that =
         sign = Time_Utils.compare_to self that
         0 == sign
