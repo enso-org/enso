@@ -2,6 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
@@ -174,56 +175,140 @@ case object FunctionBinding extends IRPass {
               IR.Error.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
-            val firstArgumentType = args.head.ascribedType.get
-            val firstArgumentName = args.head.name
+            val firstArg :: restArgs = args
+            val firstArgumentType    = firstArg.ascribedType.get
+            val firstArgumentName    = firstArg.name
             val newFirstArgument =
               if (firstArgumentName.isInstanceOf[IR.Name.Blank]) {
-                val newName = IR.Name
-                  .Literal(
-                    Constants.Names.THAT_ARGUMENT,
-                    firstArgumentName.isMethod,
-                    firstArgumentName.location
-                  )
-
-                args.head
+                val newName =
+                  if (restArgs.nonEmpty)
+                    IR.Name.Self(firstArgumentName.location, synthetic = true)
+                  else
+                    IR.Name
+                      .Literal(
+                        Constants.Names.THAT_ARGUMENT,
+                        firstArgumentName.isMethod,
+                        firstArgumentName.location
+                      )
+                firstArg
                   .withName(newName)
                   .updateMetadata(
                     IgnoredBindings -->> IgnoredBindings.State.Ignored
                   )
               } else {
-                args.head
+                firstArg
               }
-            val nonDefaultedArg = args.drop(1).find(_.defaultValue.isEmpty)
-            if (newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT) {
-              IR.Error.Conversion(
-                newFirstArgument,
-                IR.Error.Conversion.InvalidSourceArgumentName(
-                  newFirstArgument.name.name
-                )
-              )
-            } else if (nonDefaultedArg.isEmpty) {
-              val newBody = (newFirstArgument :: args.tail)
-                .map(_.mapExpressions(desugarExpression))
-                .foldRight(desugarExpression(body))((arg, body) =>
-                  IR.Function.Lambda(List(arg), body, None)
-                )
-
-              Method.Conversion(
-                methRef,
-                firstArgumentType,
-                newBody,
-                loc,
-                passData,
-                diagnostics
-              )
-            } else {
-              IR.Error.Conversion(
-                nonDefaultedArg.get,
-                IR.Error.Conversion.NonDefaultedArgument(
-                  nonDefaultedArg.get.name.name
-                )
-              )
+            val (sndArgument, remaining) = restArgs match {
+              case snd :: rest =>
+                val sndArgName = snd.name
+                if (sndArgName.isInstanceOf[IR.Name.Blank]) {
+                  val newName = IR.Name
+                    .Literal(
+                      Constants.Names.THAT_ARGUMENT,
+                      sndArgName.isMethod,
+                      sndArgName.location
+                    )
+                  (
+                    Some(
+                      snd
+                        .withName(newName)
+                        .updateMetadata(
+                          IgnoredBindings -->> IgnoredBindings.State.Ignored
+                        )
+                    ),
+                    rest
+                  )
+                } else if (snd.name.name != Constants.Names.THAT_ARGUMENT) {
+                  (None, restArgs)
+                } else {
+                  (Some(snd), rest)
+                }
+              case _ =>
+                (None, Nil)
             }
+            def transformRemainingArgs(
+              requiredArgs: List[DefinitionArgument],
+              remainingArgs: List[DefinitionArgument]
+            ): Either[IR.Error, IR.Module.Scope.Definition.Method] = {
+              remaining
+                .filter(_.name.name != Constants.Names.SELF_ARGUMENT)
+                .find(_.defaultValue.isEmpty) match {
+                case Some(nonDefaultedArg) =>
+                  Left(
+                    IR.Error.Conversion(
+                      nonDefaultedArg,
+                      IR.Error.Conversion.NonDefaultedArgument(
+                        nonDefaultedArg.name.name
+                      )
+                    )
+                  )
+                case None =>
+                  val newBody = (requiredArgs ::: remainingArgs)
+                    .map(_.mapExpressions(desugarExpression))
+                    .foldRight(desugarExpression(body))((arg, body) =>
+                      IR.Function.Lambda(List(arg), body, None)
+                    )
+                  Right(
+                    Method.Conversion(
+                      methRef,
+                      firstArgumentType,
+                      newBody,
+                      loc,
+                      passData,
+                      diagnostics
+                    )
+                  )
+              }
+            }
+            val failures = sndArgument match {
+              case Some(newSndArgument) =>
+                if (
+                  newFirstArgument.name.name == Constants.Names.SELF_ARGUMENT
+                ) {
+                  if (newSndArgument.name.name != Constants.Names.THAT_ARGUMENT)
+                    Left(
+                      IR.Error.Conversion(
+                        newSndArgument,
+                        IR.Error.Conversion.InvalidSourceArgumentName(
+                          newSndArgument.name.name
+                        )
+                      )
+                    )
+                  else Right(())
+                } else if (
+                  newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT
+                ) {
+                  Left(
+                    IR.Error.Conversion(
+                      newFirstArgument,
+                      IR.Error.Conversion.InvalidSourceArgumentName(
+                        newFirstArgument.name.name
+                      )
+                    )
+                  )
+                } else Right(())
+              case None =>
+                if (
+                  newFirstArgument.name.name != Constants.Names.THAT_ARGUMENT
+                ) {
+                  Left(
+                    IR.Error.Conversion(
+                      newFirstArgument,
+                      IR.Error.Conversion.InvalidSourceArgumentName(
+                        newFirstArgument.name.name
+                      )
+                    )
+                  )
+                } else Right(())
+            }
+            failures
+              .flatMap(_ =>
+                transformRemainingArgs(
+                  newFirstArgument :: sndArgument.map(List(_)).getOrElse(Nil),
+                  remaining
+                )
+              )
+              .fold(identity, identity)
           }
         }
       case _: IR.Module.Scope.Definition.Type =>

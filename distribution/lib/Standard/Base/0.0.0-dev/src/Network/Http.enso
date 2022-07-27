@@ -308,7 +308,7 @@ type Http
 
              example_options = Examples.http_client.options "http://httpbin.org"
     options : (Text | URI) -> Vector.Vector -> Response ! Request_Error
-    options uri (headers = []) =
+    options self uri (headers = []) =
         req = Request.options uri headers
         self.request req
 
@@ -346,7 +346,7 @@ type Http
                  res = Examples.http_client.get "http://httpbin.org/bytes/1024"
                  res.body.to_file out_file
     get : (Text | URI) -> Vector.Vector -> Response ! Request_Error
-    get uri (headers = []) =
+    get self uri (headers = []) =
         req = Request.get uri headers
         self.request req
 
@@ -364,7 +364,7 @@ type Http
 
              example_head = Examples.http_client.head "http://httpbin.org"
     head : (Text | URI) -> Vector.Vector -> Response ! Request_Error
-    head uri (headers = []) =
+    head self uri (headers = []) =
         req = Request.head uri headers
         self.request req
 
@@ -388,7 +388,7 @@ type Http
                  body = Body.Bytes "Hello".utf_8
                  Examples.http_client.post "http://httpbin.org/post" body [header_binary]
     post : (Text | URI) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
-    post uri body (headers = []) =
+    post self uri body (headers = []) =
         req = Request.post uri body headers
         self.request req
 
@@ -425,7 +425,7 @@ type Http
                  form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (enso_project.root / "LICENSE")]
                  Examples.http_client.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
     post_form : (Text | URI) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
-    post_form uri parts (headers = []) =
+    post_form self uri parts (headers = []) =
         new_headers = [Header.application_x_www_form_urlencoded]
         req = Request.post uri (Request_Body.Form parts.to_form) new_headers . with_headers headers
         self.request req
@@ -448,7 +448,7 @@ type Http
                  json = Json.parse '{"key":"val"}'
                  Examples.http_client.post_json "http://httpbin.org/post" json
     post_json : (Text | URI) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
-    post_json uri body_json (headers = []) =
+    post_json self uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
         self.request req
@@ -471,7 +471,7 @@ type Http
                  body = Body.Bytes "contents".utf_8
                  Examples.http_client.put "http://httpbin.org/post" body [header_binary]
     put : (Text | URI) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
-    put uri body (headers = []) =
+    put self uri body (headers = []) =
         req = Request.put uri body headers
         self.request req
 
@@ -492,7 +492,7 @@ type Http
                  json = Json.parse '{"key":"val"}'
                  Examples.http_client.put_json "http://httpbin.org/post" json
     put_json : (Text | URI) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
-    put_json uri body_json (headers = []) =
+    put_json self uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
         self.request req
@@ -510,7 +510,7 @@ type Http
 
              example_delete = Examples.http_client.delete "http://httpbin.org/delete"
     delete : (Text | URI) -> Vector.Vector -> Response ! Request_Error
-    delete uri (headers = []) =
+    delete self uri (headers = []) =
         req = Request.delete uri headers
         self.request req
 
@@ -595,7 +595,7 @@ type Http
                  http = Http.new (timeout = 30.seconds)
                  http.request req
     request : Request -> Response ! Request_Error
-    request req =
+    request self req =
         handle_request_error =
             Panic.catch_java Any handler=(err-> Error.throw (Request_Error 'IllegalArgumentException' err.getMessage))
         Panic.recover Any <| handle_request_error <|
@@ -657,7 +657,7 @@ type Http
 
        Build an HTTP client.
     internal_http_client : HttpClient
-    internal_http_client =
+    internal_http_client self =
         builder = HttpClient.newBuilder
         # timeout
         if self.timeout.is_date then Panic.throw (Time.Time_Error "Connection timeout does not support date intervals") else
@@ -699,7 +699,7 @@ type Request_Error error_type message
 ## UNSTABLE
 
    Convert a request error to a human-readable form.
-Request_Error.to_display_text =
+Request_Error.to_display_text self =
     description_text = case self.message of
         Nothing -> ""
         _ -> " " + self.message

@@ -15,7 +15,7 @@ public class GetMembersNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
 
-  Object execute(Object self, Object object) {
+  Object execute(Object object) {
     try {
       return library.getMembers(object);
     } catch (UnsupportedMessageException e) {

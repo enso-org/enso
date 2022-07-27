@@ -25,7 +25,7 @@ type My_Type
     type My_Type x
 
     to_text : Text
-    to_text = "[[[My Type :: " + self.x.to_text + "]]]"
+    to_text self = "[[[My Type :: " + self.x.to_text + "]]]"
 
 default_line_endings_for_new_files = Line_Ending_Style.Unix
 join_lines lines trailing_newline=True =

@@ -101,7 +101,7 @@ type Json
                  format = (Vector.Vector (Book title=Text (Author name=Text year_of_birth=Number)))
                  json.into format
     into : Any -> Any ! Marshalling_Error
-    into type_descriptor =
+    into self type_descriptor =
         Panic.recover Any (Internal.into_helper type_descriptor self)
 
     ## Returns this Json object.
@@ -109,7 +109,7 @@ type Json
        This is a no-op on a JSON object, but is included to implement the
        `to_json` interface.
     to_json : Json
-    to_json = self
+    to_json self = self
 
     ## Renders this JSON into an RFC-8259 compliant text.
 
@@ -121,7 +121,7 @@ type Json
 
              example_to_text = Examples.json.to_text
     to_text : Text
-    to_text = Internal.render_helper "" self
+    to_text self = Internal.render_helper "" self
 
     ## Recursively unwraps the JSON value into primitive values.
 
@@ -132,7 +132,7 @@ type Json
 
              example_unwrap = Json.Number 3 . unwrap
     unwrap : Any
-    unwrap = case self of
+    unwrap self = case self of
         Json.Array its -> its.map .unwrap
         Json.Boolean b -> b
         Json.Number n -> n
@@ -151,7 +151,7 @@ type Parse_Error message
 
    Converts the error to a display representation.
 Parse_Error.to_display_text : Text
-Parse_Error.to_display_text =
+Parse_Error.to_display_text self =
     "Parse error in parsing JSON: " + self.message.to_text + "."
 
 ## Gets the value associated with the given key in this object.
@@ -169,7 +169,7 @@ Parse_Error.to_display_text =
 
          example_get = Examples.json_object.get "title"
 Object.get : Text -> Json ! No_Such_Field_Error
-Object.get field = self.fields.get field . map_error case _ of
+Object.get self field = self.fields.get field . map_error case _ of
     Map.No_Value_For_Key_Error _ -> No_Such_Field_Error field
     x -> x
 
@@ -182,7 +182,7 @@ type No_Such_Field_Error field_name
 
    Pretty prints the no such field error.
 No_Such_Field_Error.to_display_text : Text
-No_Such_Field_Error.to_display_text =
+No_Such_Field_Error.to_display_text self =
     "The field " + self.field_name.to_text + " is not present in this object."
 
 ## UNSTABLE
@@ -221,7 +221,7 @@ type Marshalling_Error
 
        Convert the marshalling error into a human-readable format.
     to_display_text : Text
-    to_display_text = case self of
+    to_display_text self = case self of
         Type_Mismatch_Error json format ->
             json_text = Meta.get_simple_type_name json
             format_text = Meta.get_simple_type_name format
@@ -240,7 +240,7 @@ type Marshalling_Error
    > Example
      Convert a vector to JSON.
          [1, 2, 3, 4].to_json
-Any.to_json =
+Any.to_json self =
     m = Meta.meta self
     case m of
         Meta.Atom _ ->
@@ -265,7 +265,7 @@ Any.to_json =
      Ensure that the text "foo" is a JSON key.
          "foo".to_json_key
 Text.to_json_key : Text
-Text.to_json_key = self
+Text.to_json_key self = self
 
 ## Convert a boolean to JSON.
 
@@ -273,7 +273,7 @@ Text.to_json_key = self
      Convert `True` to JSON.
          True.to_json
 Base.Boolean.to_json : Boolean
-Base.Boolean.to_json = Boolean self
+Base.Boolean.to_json self = Boolean self
 
 ## Convert `Nothing` to JSON.
 
@@ -281,5 +281,5 @@ Base.Boolean.to_json = Boolean self
      Convert `Nothing` to JSON.
          Nothing.to_json
 Nothing.to_json : Null
-Nothing.to_json = Null
+Nothing.to_json self = Null
 

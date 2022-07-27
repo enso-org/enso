@@ -36,7 +36,7 @@ type List
 
              example_length = Examples.list.length
     length : Number
-    length = self.fold 0 (acc -> _ -> acc + 1)
+    length self = self.fold 0 (acc -> _ -> acc + 1)
 
     ## Combines all the elements of the list, by iteratively applying the
        passed function with next elements of the list.
@@ -58,7 +58,7 @@ type List
 
              example_fold = Examples.list.fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
-    fold init f =
+    fold self init f =
         go acc list = case list of
             Nil -> acc
             Cons h t -> @Tail_Call go (f acc h) t
@@ -79,7 +79,7 @@ type List
 
              example_exists = Examples.list.exists (> 5)
     exists : (Any -> Boolean) -> Boolean
-    exists predicate =
+    exists self predicate =
         go list = case list of
             Nil -> False
             Cons h t -> if predicate h then True else
@@ -104,7 +104,7 @@ type List
 
              example_any = Examples.list.any (> 5)
     any : (Any -> Boolean) -> Boolean
-    any predicate = self.exists predicate
+    any self predicate = self.exists predicate
 
     ## Checks whether a predicate holds for all elements in this list.
 
@@ -120,7 +120,7 @@ type List
 
              example_all = Examples.list.all (> 0)
     all : (Any -> Boolean) -> Boolean
-    all predicate = self.fold True (l -> r -> l && predicate r)
+    all self predicate = self.fold True (l -> r -> l && predicate r)
 
     ## Checks whether this list contains a given value as an element.
 
@@ -134,7 +134,7 @@ type List
 
              example_contains = Examples.list.contains 3
     contains : Any -> Boolean
-    contains elem = self.exists ix-> ix == elem
+    contains self elem = self.exists ix-> ix == elem
 
     ## Checks if this list is empty.
 
@@ -145,7 +145,7 @@ type List
 
              example_empty = Examples.list.is_empty
     is_empty : Boolean
-    is_empty = self.length == 0
+    is_empty self = self.length == 0
 
     ## Checks if the list is not empty.
 
@@ -156,7 +156,7 @@ type List
 
              example_not_empty = Examples.list.not_empty
     not_empty : Boolean
-    not_empty = self.is_empty.not
+    not_empty self = self.is_empty.not
 
     ## Selects all elements of this list which satisfy a predicate.
 
@@ -172,7 +172,7 @@ type List
 
              example_filter = Examples.list.filter (< 3)
     filter : (Any -> Boolean) -> List
-    filter predicate =
+    filter self predicate =
         case self of
             Cons a b ->
                 rest = b.filter predicate
@@ -192,7 +192,7 @@ type List
 
              example_map = Examples.list.map +1
     map : (Any -> Any) -> List
-    map f = case self of
+    map self f = case self of
         Nil -> Nil
         Cons h t ->
             res = Cons (f h) Nil
@@ -214,7 +214,7 @@ type List
 
              example_each = Examples.list.each IO.println
     each : (Any -> Any) -> Nothing
-    each f =
+    each self f =
         go list = case list of
             Nil -> Nothing
             Cons h t ->
@@ -233,7 +233,7 @@ type List
 
              example_reverse = Examples.list.reverse
     reverse : List
-    reverse = self.fold Nil (l -> el -> Cons el l)
+    reverse self = self.fold Nil (l -> el -> Cons el l)
 
     ## Creates a new list with the first `count` elements at the start of `self`
        removed.
@@ -248,7 +248,7 @@ type List
 
              example_drop_start = Examples.list.drop_start 1
     drop_start : Integer -> List
-    drop_start count = if count <= 0 then self else case self of
+    drop_start self count = if count <= 0 then self else case self of
         Cons _ b -> b.drop_start count-1
         Nil -> Nil
 
@@ -265,7 +265,7 @@ type List
 
              example_take_start = Examples.list.take_start 2
     take_start : Integer -> List
-    take_start count = if count <= 0 then Nil else case self of
+    take_start self count = if count <= 0 then Nil else case self of
         Cons a b -> Cons a (b.take_start count-1)
         Nil -> Nil
 
@@ -278,7 +278,7 @@ type List
 
              example_head = Examples.list.x
     head : Any ! Empty_Error
-    head = case self of
+    head self = case self of
         Cons a _ -> a
         Nil -> Error.throw Empty_Error
 
@@ -291,7 +291,7 @@ type List
 
              example_tail = Examples.list.tail
     tail : List ! Empty_Error
-    tail = case self of
+    tail self = case self of
         Cons _ b -> b
         Nil -> Error.throw Empty_Error
 
@@ -304,7 +304,7 @@ type List
 
              example_init = Examples.list.init
     init : List ! Empty_Error
-    init =
+    init self =
         init' x y = case y of
             Nil -> Nil
             Cons a b -> Cons x (init' a b)
@@ -321,7 +321,7 @@ type List
 
              example_last = Examples.list.last
     last : Any ! Empty_Error
-    last = case self.fold Nothing (_ -> r -> r) of
+    last self = case self.fold Nothing (_ -> r -> r) of
         Nothing -> Error.throw Empty_Error
         a -> a
 
@@ -334,7 +334,7 @@ type List
 
              example_first = Examples.list.first
     first : Any ! Empty_Error
-    first = self.head
+    first self = self.head
 
     ## Get all elements from the list except the first.
 
@@ -345,7 +345,7 @@ type List
 
              example_rest = Examples.list.rest
     rest : List ! Empty_Error
-    rest = self.tail
+    rest self = self.tail
 
 ## UNSTABLE
 
@@ -356,7 +356,7 @@ type Empty_Error
 
    Pretty prints the empty error.
 Empty_Error.to_display_text : Text
-Empty_Error.to_display_text = "The List is empty."
+Empty_Error.to_display_text self = "The List is empty."
 
 ## PRIVATE
    A helper for the `map` function.

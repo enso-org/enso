@@ -49,7 +49,7 @@ type Index_Out_Of_Bounds_Error index length
 
          "건반(Korean)".length
 Text.length : Integer
-Text.length =
+Text.length self =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText self
 
@@ -69,7 +69,7 @@ Text.length =
 
          "Hello, world!".reverse
 Text.reverse : Text
-Text.reverse =
+Text.reverse self =
     reverseStringBuilder = StringBuilder.new self.length
     iterator = BreakIterator.getCharacterInstance
     iterator.setText self
@@ -94,7 +94,7 @@ Text.reverse =
 
          "aaa".each IO.println
 Text.each : (Text -> Any) -> Nothing
-Text.each function =
+Text.each self function =
     iterator = BreakIterator.getCharacterInstance
     iterator.setText self
 
@@ -123,7 +123,7 @@ Text.each function =
 
          "건반(Korean)".at 1 == "반"
 Text.at : Integer -> Text ! Index_Out_Of_Bounds_Error
-Text.at index =
+Text.at self index =
     case index < 0 of
         True ->
             length = self.length
@@ -152,7 +152,7 @@ Text.at index =
 
          "건반(Korean)".characters
 Text.characters : Vector.Vector Text
-Text.characters =
+Text.characters self =
     bldr = Vector.new_builder
     self.each bldr.append
     bldr.to_vector
@@ -215,7 +215,7 @@ Text.characters =
              regex = ".+@.+"
              "contact@enso.org".match regex
 Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
-Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+Text.match self pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.match self mode
 
@@ -277,7 +277,7 @@ Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing do
              regex = ".+@.+"
              "contact@enso.org".matches regex
 Text.matches : Text | Engine.Pattern -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Boolean ! Regex.Compile_Error
-Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+Text.matches self pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.matches self
 
@@ -338,7 +338,7 @@ Text.matches pattern match_ascii=Nothing case_insensitive=Nothing dot_matches_ne
              text = "Now I know my ABCs"
              text.find "\w{1,3}"
 Text.find : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
-Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+Text.find self pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
     compiled_pattern.find self mode
 
@@ -370,7 +370,7 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
 
          'abc  def\tghi'.split '\\s+' Regex_Matcher == ["abc", "def", "ghi"]
 Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector.Vector Text
-Text.split delimiter="," matcher=Text_Matcher = if delimiter.is_empty then Error.throw (Illegal_Argument_Error "The delimiter cannot be empty.") else
+Text.split self delimiter="," matcher=Text_Matcher = if delimiter.is_empty then Error.throw (Illegal_Argument_Error "The delimiter cannot be empty.") else
     case matcher of
         Text_Matcher case_sensitivity ->
             delimiters = Vector.Vector <| case case_sensitivity of
@@ -465,7 +465,7 @@ Text.split delimiter="," matcher=Text_Matcher = if delimiter.is_empty then Error
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
          "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
 Text.replace : Text -> Text -> (Matching_Mode.First | Matching_Mode.Last | Mode.All) -> (Text_Matcher | Regex_Matcher) -> Text
-Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then self else
+Text.replace self term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then self else
     case matcher of
         Text_Matcher case_sensitivity ->
             array_from_single_result result = case result of
@@ -517,7 +517,7 @@ Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is
 
          "แมวมีสี่ขา".words == ['แมว', 'มี', 'สี่', 'ขา']
 Text.words : Boolean -> Vector.Vector Text
-Text.words keep_whitespace=False =
+Text.words self keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
     iterator.setText self
     bldr = Vector.new_builder
@@ -560,7 +560,7 @@ Text.words keep_whitespace=False =
 
         '\na\nb\n'.lines keep_endings=True == ['\n', 'a\n', 'b\n']
 Text.lines : Boolean -> Vector.Vector Text
-Text.lines keep_endings=False =
+Text.lines self keep_endings=False =
     Vector.Vector (Text_Utils.split_on_lines self keep_endings)
 
 ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
@@ -586,7 +586,7 @@ Text.lines keep_endings=False =
 
          (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
 Text.equals_ignore_case : Text -> Locale -> Boolean
-Text.equals_ignore_case that locale=Locale.default =
+Text.equals_ignore_case self that locale=Locale.default =
     Text_Utils.equals_ignore_case self that locale.java_locale
 
 ## ADVANCED
@@ -595,7 +595,7 @@ Text.equals_ignore_case that locale=Locale.default =
    Unifies the case of all letters in the text, generating a key which can be
    used to perform case-insensitive comparisons.
 Text.to_case_insensitive_key : Locale -> Text
-Text.to_case_insensitive_key locale=Locale.default =
+Text.to_case_insensitive_key self locale=Locale.default =
     Text_Utils.case_insensitive_key self locale.java_locale
 
 ## Compare two texts to discover their ordering.
@@ -608,7 +608,7 @@ Text.to_case_insensitive_key locale=Locale.default =
 
          "a".compare_to "b"
 Text.compare_to : Text -> Ordering
-Text.compare_to that =
+Text.compare_to self that =
     comparison_result = Text_Utils.compare_normalized self that
     if comparison_result == 0 then Ordering.Equal else
         if comparison_result < 0 then Ordering.Less else
@@ -624,7 +624,7 @@ Text.compare_to that =
 
          "a".compare_to_ignore_case "b"
 Text.compare_to_ignore_case : Text -> Locale -> Ordering
-Text.compare_to_ignore_case that locale=Locale.default =
+Text.compare_to_ignore_case self that locale=Locale.default =
     comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
     if comparison_result == 0 then Ordering.Equal else
         if comparison_result < 0 then Ordering.Less else
@@ -642,7 +642,7 @@ Text.compare_to_ignore_case that locale=Locale.default =
 
          "aaa".is_empty
 Text.is_empty : Boolean
-Text.is_empty = self == ""
+Text.is_empty self = self == ""
 
 ## ALIAS Check Non-Emptiness
 
@@ -656,7 +656,7 @@ Text.is_empty = self == ""
 
          "aaa".not_empty
 Text.not_empty : Boolean
-Text.not_empty = self.is_empty.not
+Text.not_empty self = self.is_empty.not
 
 ## Inserts text value at the specified index.
 
@@ -680,7 +680,7 @@ Text.not_empty = self.is_empty.not
          "Hello World!".insert 5 " Cruel" == "Hello Cruel World!"
          "Hello World!".insert -1 " Cruel" == "Hello World! Cruel"
 Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds_Error
-Text.insert index that =
+Text.insert self index that =
     len = self.length
     idx = if index < 0 then len + index + 1 else index
     if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error index len) else
@@ -712,7 +712,7 @@ Text.insert index that =
          "A0".is_digit 1 == True
          "건반(Korean)".is_digit 1 == False
 Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds_Error
-Text.is_digit (index=0) =
+Text.is_digit self (index=0) =
     grapheme = self.at index
     char = (Text_Utils.get_chars grapheme).at 0
     char>=48 && char<=57
@@ -725,7 +725,7 @@ Text.is_digit (index=0) =
          ' \t'.is_whitespace == True
          "0 ".is_whitespace == False
 Text.is_whitespace : Boolean
-Text.is_whitespace =
+Text.is_whitespace self =
     Text_Utils.is_all_whitespace self
 
 ## Returns a vector containing bytes representing the specified encoding of the
@@ -746,7 +746,7 @@ Text.is_whitespace =
 
          "Hello".bytes (Encoding.ascii)
 Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
-Text.bytes encoding on_problems=Report_Warning =
+Text.bytes self encoding on_problems=Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.Vector result.result
     if result.warnings.is_nothing then vector else
@@ -792,7 +792,7 @@ Text.from_bytes bytes encoding on_problems=Report_Warning =
 
          "Hello".utf_8
 Text.utf_8 : Problem_Behavior -> Vector.Vector Byte
-Text.utf_8 on_problems=Report_Warning =
+Text.utf_8 self on_problems=Report_Warning =
     self.bytes Encoding.utf_8 on_problems
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
@@ -826,7 +826,7 @@ Text.from_utf_8 bytes on_problems=Report_Warning =
 
          "Hello".char_vector
 Text.char_vector : Vector.Vector Integer
-Text.char_vector = Vector.Vector (Text_Utils.get_chars self)
+Text.char_vector self = Vector.Vector (Text_Utils.get_chars self)
 
 ## Takes a vector of characters and returns the text that results from it.
 
@@ -849,7 +849,7 @@ Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
          "Hello".codepoints
 Text.codepoints : Vector.Vector Integer
-Text.codepoints = Vector.Vector (Text_Utils.get_codepoints self)
+Text.codepoints self = Vector.Vector (Text_Utils.get_codepoints self)
 
 ## Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.
@@ -902,7 +902,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          "Hello!".starts_with "[a-z]" Regex_Matcher == False
          "Hello!".starts_with "[A-Z]" Regex_Matcher == True
 Text.starts_with : Text -> Matcher -> Boolean
-Text.starts_with prefix matcher=Text_Matcher = case matcher of
+Text.starts_with self prefix matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True ->
             self.take (Text_Sub_Range.First prefix.length) == prefix
@@ -939,7 +939,7 @@ Text.starts_with prefix matcher=Text_Matcher = case matcher of
          "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) == True
          "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher == True
 Text.ends_with : Text -> Matcher -> Boolean
-Text.ends_with suffix matcher=Text_Matcher = case matcher of
+Text.ends_with self suffix matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True ->
             self.take (Text_Sub_Range.Last suffix.length) == suffix
@@ -1003,7 +1003,7 @@ Text.ends_with suffix matcher=Text_Matcher = case matcher of
 
          "Hello!".contains "[a-z]" Regex_Matcher
 Text.contains : Text -> Matcher -> Boolean
-Text.contains term="" matcher=Text_Matcher = case matcher of
+Text.contains self term="" matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True -> Text_Utils.contains self term
         Case_Insensitive locale ->
@@ -1020,7 +1020,7 @@ Text.contains term="" matcher=Text_Matcher = case matcher of
 
          "cześć".to_json
 Text.to_json : Json.String
-Text.to_json = Json.String self
+Text.to_json self = Json.String self
 
 
 ## Takes an integer and returns a new text, consisting of `count` concatenated
@@ -1040,7 +1040,7 @@ Text.to_json = Json.String self
 
          "Hello " * 2 == "Hello Hello "
 Text.* : Integer -> Text
-Text.* count = self.repeat count
+Text.* self count = self.repeat count
 
 ## Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
@@ -1059,7 +1059,7 @@ Text.* count = self.repeat count
 
          "Hello ".repeat 2 == "Hello Hello "
 Text.repeat : Integer -> Text
-Text.repeat count=1 =
+Text.repeat self count=1 =
     ## TODO max is a workaround until Range is sorted to make 0..-1 not cause an infinite loop
        https://www.pivotaltracker.com/story/show/181435598
     0.up_to (count.max 0) . fold "" acc-> _-> acc + self
@@ -1098,7 +1098,7 @@ Text.repeat count=1 =
          "Hello World!".take (Range 5 12) == " World!"
          "Hello World!".take (Range 12 12) == ""
 Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
-Text.take range =
+Text.take self range =
     char_range = case range of
         Range _ _ _ -> Span_Module.range_to_char_indices self range
         _ -> range.to_char_range self
@@ -1138,7 +1138,7 @@ Text.take range =
          "Hello World!".drop (Range 5 12) == "Hello"
          "Hello World!".drop (Range 12 12) == "Hello World!"
 Text.drop : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
-Text.drop range =
+Text.drop self range =
     char_range = case range of
         Range _ _ _ -> Span_Module.range_to_char_indices self range
         _ -> range.to_char_range self
@@ -1179,7 +1179,7 @@ Text.drop range =
 
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
 Text.to_case : Case -> Locale -> Text
-Text.to_case case_option=Case.Lower locale=Locale.default = case case_option of
+Text.to_case self case_option=Case.Lower locale=Locale.default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale self
     Case.Upper -> UCharacter.toUpperCase locale.java_locale self
     Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
@@ -1209,7 +1209,7 @@ Text.to_case case_option=Case.Lower locale=Locale.default = case case_option of
          "HELLO".pad 8 "AB" Start == "BABHELLO"
 
 Text.pad : Integer -> Text -> (Location.Start | Location.End) -> Text
-Text.pad length=0 with_pad=' ' at=Location.End =
+Text.pad self length=0 with_pad=' ' at=Location.End =
     with_pad_length = with_pad.length
     if with_pad_length == 0 then Error.throw (Illegal_Argument_Error "`with_pad` must not be an empty string.") else
         pad_size = length - self.length
@@ -1246,7 +1246,7 @@ Text.pad length=0 with_pad=' ' at=Location.End =
         "ABC123".trim Start "ABC" == "123"
         "ABBA123".trim Start "ABC" == "123"
 Text.trim : (Location.Start | Location.End | Location.Both) -> (Text | (Text -> Boolean)) -> Text
-Text.trim where=Location.Both what=_.is_whitespace =
+Text.trim self where=Location.Both what=_.is_whitespace =
     predicate = case what of
         Text -> what.contains _
         _ -> what
@@ -1369,7 +1369,7 @@ Text.trim where=Location.Both what=_.is_whitespace =
          "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
          "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
 Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
-Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher = case matcher of
+Text.location_of self term="" mode=Matching_Mode.First matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
         True ->
             codepoint_span = case mode of
@@ -1472,7 +1472,7 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher = case ma
          match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
 Text.location_of_all : Text -> Matcher -> [Span]
-Text.location_of_all term="" matcher=Text_Matcher = case matcher of
+Text.location_of_all self term="" matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitive -> if term.is_empty then Vector.new (self.length + 1) (ix -> Span (Range ix ix) self) else case case_sensitive of
         True ->
             codepoint_spans = Vector.Vector <| Text_Utils.span_of_all self term

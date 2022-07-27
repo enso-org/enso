@@ -36,7 +36,7 @@ parse text =
 
          example_parse = "http://example.com".to_uri
 Text.to_uri : URI ! Syntax_Error
-Text.to_uri = parse self
+Text.to_uri self = parse self
 
 type URI
 
@@ -57,7 +57,7 @@ type URI
 
              example_to_uri = Examples.uri.to_uri
     to_uri : URI
-    to_uri = self
+    to_uri self = self
 
     ## Get the scheme part of this URI.
 
@@ -68,7 +68,7 @@ type URI
 
              example_scheme = Examples.uri.scheme
     scheme : Text ! Nothing
-    scheme = Internal.handle_nothing self.internal_uri.getScheme
+    scheme self = Internal.handle_nothing self.internal_uri.getScheme
 
     ## Get the user info part of this URI.
 
@@ -79,7 +79,7 @@ type URI
 
              example_user_info = Examples.uri.user_info
     user_info : Text ! Nothing
-    user_info = Internal.handle_nothing self.internal_uri.getUserInfo
+    user_info self = Internal.handle_nothing self.internal_uri.getUserInfo
 
     ## Get the host part of this URI.
 
@@ -90,7 +90,7 @@ type URI
 
              example_host = Examples.uri.host
     host : Text ! Nothing
-    host = Internal.handle_nothing self.internal_uri.getHost
+    host self = Internal.handle_nothing self.internal_uri.getHost
 
     ## Get the authority (user info and host) part of this URI.
 
@@ -101,7 +101,7 @@ type URI
 
              example_authority = Examples.uri.authority
     authority : Text ! Nothing
-    authority = Internal.handle_nothing self.internal_uri.getAuthority
+    authority self = Internal.handle_nothing self.internal_uri.getAuthority
 
     ## Get the port part of this URI.
 
@@ -112,7 +112,7 @@ type URI
 
              example_port = Examples.uri.port
     port : Text ! Nothing
-    port =
+    port self =
         port_number = self.internal_uri.getPort
         Internal.handle_nothing <|
             if port_number == -1 then Nothing else port_number.to_text
@@ -126,7 +126,7 @@ type URI
 
              example_path = Examples.uri.path
     path : Text ! Nothing
-    path = Internal.handle_nothing self.internal_uri.getPath
+    path self = Internal.handle_nothing self.internal_uri.getPath
 
     ## Get the query part of this URI.
 
@@ -137,7 +137,7 @@ type URI
 
              example_query = Examples.uri.query
     query : Text ! Nothing
-    query = Internal.handle_nothing self.internal_uri.getQuery
+    query self = Internal.handle_nothing self.internal_uri.getQuery
 
     ## Get the fragment part of this URI.
 
@@ -148,37 +148,37 @@ type URI
 
              example_fragment = Examples.uri.fragment
     fragment : Text ! Nothing
-    fragment = Internal.handle_nothing self.internal_uri.getFragment
+    fragment self = Internal.handle_nothing self.internal_uri.getFragment
 
     ## ADVANCED
 
        Get the unescaped user info part of this URI.
     raw_user_info : Text ! Nothing
-    raw_user_info = Internal.handle_nothing self.internal_uri.getRawUserInfo
+    raw_user_info self = Internal.handle_nothing self.internal_uri.getRawUserInfo
 
     ## ADVANCED
 
        Get the unescaped authority part of this URI.
     raw_authority : Text ! Nothing
-    raw_authority = Internal.handle_nothing self.internal_uri.getRawAuthority
+    raw_authority self = Internal.handle_nothing self.internal_uri.getRawAuthority
 
     ## ADVANCED
 
        Get the unescaped path part of this URI.
     raw_path : Text ! Nothing
-    raw_path = Internal.handle_nothing self.internal_uri.getRawPath
+    raw_path self = Internal.handle_nothing self.internal_uri.getRawPath
 
     ## ADVANCED
 
        Get the unescaped query part of this URI.
     raw_query : Text ! Nothing
-    raw_query = Internal.handle_nothing self.internal_uri.getRawQuery
+    raw_query self = Internal.handle_nothing self.internal_uri.getRawQuery
 
     ## ADVANCED
 
        Get the unescaped fragment part of this URI.
     raw_fragment : Text ! Nothing
-    raw_fragment = Internal.handle_nothing self.internal_uri.getRawFragment
+    raw_fragment self = Internal.handle_nothing self.internal_uri.getRawFragment
 
     ## Convert this URI to text.
 
@@ -189,7 +189,7 @@ type URI
 
              example_to_text = Examples.uri.to_text
     to_text : Text
-    to_text = self.internal_uri.toString
+    to_text self = self.internal_uri.toString
 
     ## Convert a URI to JSON.
 
@@ -201,7 +201,7 @@ type URI
 
              example_to_json = Examples.uri.to_json
     to_json : Json.String
-    to_json = Json.String self.to_text
+    to_json self = Json.String self.to_text
 
     ## Check if this URI is equal to another URI.
 
@@ -212,4 +212,4 @@ type URI
 
              example_eq = "https://example.com".to_uri == "http://example.org".to_uri
     == : URI -> Boolean
-    == that = self.internal_uri.equals that.internal_uri
+    == self that = self.internal_uri.equals that.internal_uri

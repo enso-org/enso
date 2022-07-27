@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.data.text.Text;
     name = "get_constructor_fields",
     description = "Gets the field names of a constructor.")
 public class GetConstructorFieldNamesNode extends Node {
-  Array execute(Object self, AtomConstructor atom_constructor) {
+  Array execute(AtomConstructor atom_constructor) {
     ArgumentDefinition[] fields = atom_constructor.getFields();
     Object[] result = new Object[fields.length];
     for (int i = 0; i < fields.length; i++) {

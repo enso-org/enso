@@ -58,11 +58,12 @@ public abstract class MethodGenerator {
   protected String methodSigDef(String owner, List<MethodParameter> params, boolean isAbstract) {
     int paramsLen = params.size();
     String paramsDef;
+    boolean includeSelfParam = !(isStatic || isConstructor);
     if (params.isEmpty()) {
       paramsDef = "";
     } else {
       paramsDef =
-          ", "
+          (includeSelfParam ? ", " : "")
               + StringUtils.join(
                   params.stream()
                       .flatMap(x -> x.declaredParameters(expandVararg(paramsLen, x.index())))
@@ -70,12 +71,11 @@ public abstract class MethodGenerator {
                   ", ");
     }
     String abstractModifier = isAbstract ? "abstract " : "";
-    String thisParamTpe = isStatic || isConstructor || isAbstract ? "Object" : owner;
+    String thisParamTpe = isStatic || isConstructor ? (isAbstract ? "Object" : owner) : owner;
     return abstractModifier
         + targetReturnType(returnTpe)
         + " execute("
-        + thisParamTpe
-        + " self"
+        + (includeSelfParam ? (thisParamTpe + " self") : "")
         + paramsDef
         + ")"
         + (isAbstract ? ";" : "");

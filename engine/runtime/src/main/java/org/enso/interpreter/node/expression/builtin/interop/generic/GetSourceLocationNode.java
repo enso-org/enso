@@ -20,7 +20,7 @@ public class GetSourceLocationNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object self, Object value) {
+  Object execute(Object value) {
     try {
       return Context.get(this)
           .getEnvironment()
