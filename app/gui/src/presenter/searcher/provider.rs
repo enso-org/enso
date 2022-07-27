@@ -206,7 +206,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
                 for_each_kind_variant!(kind_to_icon(kind))
             },
             component::Kind::Virtual { suggestion } => {
-                let icon = suggestion.icon;
+                let icon = &suggestion.icon;
                 let parsed_icon = component_group_view::icon::Id::from_str(&icon);
                 parsed_icon.unwrap_or_else(|_| {
                     event!(ERROR, "Virtual component uses an icon name {icon} not found among predefined icons.");

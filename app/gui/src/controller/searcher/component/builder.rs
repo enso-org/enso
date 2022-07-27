@@ -118,7 +118,7 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
-            if let component::Kind::FromDb { id, suggestion } = component.kind {
+            if let component::Kind::FromDb { id, ref suggestion } = component.kind {
                 self.allowed_favorites.insert(*id);
                 let mut component_inserted_somewhere = false;
                 if let Some(parent_module) = suggestion.parent_module() {
