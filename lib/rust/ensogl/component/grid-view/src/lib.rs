@@ -100,6 +100,7 @@ ensogl_core::define_endpoints_2! {
         /// constructors. **Performance note**: This will re-instantiate all entries.
         set_text_layer(Option<WeakLayer>),
         select_entry(Option<(Row, Col)>),
+        hover_entry(Option<(Row, Col)>),
         accept_entry(Row, Col),
     }
 
@@ -434,6 +435,7 @@ impl<E: Entry> GridView<E> {
             out.model_for_entry_needed <+ request_models_after_text_layer_change;
             out.model_for_entry_needed <+ request_models_for_request;
 
+            out.entry_hovered <+ input.hover_entry;
             out.entry_selected <+ input.select_entry;
             out.entry_accepted <+ input.accept_entry;
 

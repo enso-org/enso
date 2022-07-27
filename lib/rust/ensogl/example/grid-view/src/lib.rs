@@ -24,6 +24,7 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
+use enso_frp::web::forward_panic_hook_to_console;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -45,6 +46,7 @@ use ensogl_text_msdf_sys::run_once_initialized;
 pub fn main() {
     run_once_initialized(|| {
         init_tracing(TRACE);
+        forward_panic_hook_to_console();
         let app = Application::new("root");
         init(&app);
         mem::forget(app);
@@ -99,9 +101,9 @@ fn init(app: &Application) {
     let hover_layer = main_layer.create_sublayer();
     let selection_layer = main_layer.create_sublayer();
 
-    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(4).collect_vec();
-    let with_hover_mask = [&grid_views[1], &grid_views[3]];
-    let with_selection_mask = [&grid_views[2], &grid_views[3]];
+    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
+    let with_hover_mask = [&grid_views[2]];
+    let with_selection_mask = [&grid_views[1], &grid_views[2]];
     let positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]);
 
     for (view, (x, y)) in grid_views.iter().zip(positions) {

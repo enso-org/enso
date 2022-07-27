@@ -47,9 +47,11 @@ impl<E: Entry> Layers<E, E::Model, E::Params> {
             grid.set_viewport <+ viewport;
             grid.set_entries_size <+ all(init, base_grid.entries_size)._1();
             grid.resize_grid <+ all(init, base_grid.grid_size)._1();
-            trace grid.resize_grid;
             grid.model_for_entry <+ base_grid.model_for_entry;
-            trace grid.model_for_entry;
+
+            base_grid.hover_entry <+ grid.entry_hovered;
+            base_grid.select_entry <+ grid.entry_selected;
+            base_grid.accept_entry <+ grid.entry_accepted;
         }
         init.emit(());
         base_grid.request_model_for_visible_entries();
