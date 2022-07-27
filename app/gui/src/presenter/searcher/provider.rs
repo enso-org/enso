@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action::MatchInfo;
+use crate::controller::searcher::component;
 use crate::model::suggestion_database;
 
 use enso_text as text;
@@ -199,9 +200,22 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let match_info = component.match_info.borrow();
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
-        let kind = component.suggestion.kind;
+        let icon = match component.kind {
+            component::Kind::FromDb { suggestion, .. } => {
+                let kind = suggestion.kind;
+                for_each_kind_variant!(kind_to_icon(kind))
+            },
+            component::Kind::Virtual { suggestion } => {
+                let icon = suggestion.icon;
+                let parsed_icon = component_group_view::icon::Id::from_str(&icon);
+                parsed_icon.unwrap_or_else(|_| {
+                    event!(ERROR, "Virtual component uses an icon name {icon} not found among predefined icons.");
+                    default()
+                })
+            },
+        };
         Some(component_group_view::entry::Model {
-            icon:             for_each_kind_variant!(kind_to_icon(kind)),
+            icon,
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
         })
     }
