@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.data.Array;
     name = "get_atom_fields",
     description = "Gets the fields of an unresolved atom.")
 public class GetAtomFieldsNode extends Node {
-  Array execute(Object self, Atom atom) {
+  Array execute(Atom atom) {
     return new Array(atom.getFields());
   }
 }

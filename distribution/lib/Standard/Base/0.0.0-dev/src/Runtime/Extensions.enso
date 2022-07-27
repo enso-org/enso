@@ -11,38 +11,38 @@ type Source_Location
     ## UNSTABLE
        Pretty prints the location.
     to_text : Text
-    to_text =
+    to_text self =
         '(Source_Location ' + self.formatted_coordinates + ')'
 
     ## UNSTABLE
 
        Returns the 1-based line index of the start of this code range.
     start_line : Integer
-    start_line = self.prim_location.getStartLine
+    start_line self = self.prim_location.getStartLine
 
     ## UNSTABLE
 
        Returns the 1-based line index of the end of this code range.
     end_line : Integer
-    end_line = self.prim_location.getEndLine
+    end_line self = self.prim_location.getEndLine
 
     ## UNSTABLE
 
        Returns the 1-based column index of the start of this code range.
     start_column : Integer
-    start_column = self.prim_location.getStartColumn
+    start_column self = self.prim_location.getStartColumn
 
     ## UNSTABLE
 
        Returns the 1-based column index of the end of this code range.
     end_column : Integer
-    end_column = self.prim_location.getEndColumn
+    end_column self = self.prim_location.getEndColumn
 
     ## UNSTABLE
 
        Returns a pretty-printed location (file and line info).
     formatted_coordinates : Text
-    formatted_coordinates =
+    formatted_coordinates self =
         start_line = self.start_line
         end_line = self.end_line
         indices = case start_line == end_line of
@@ -64,4 +64,4 @@ type Source_Location
 
        Return the source file corresponding to this location.
     file : File.File
-    file = File.new self.prim_location.getSource.getPath
+    file self = File.new self.prim_location.getSource.getPath

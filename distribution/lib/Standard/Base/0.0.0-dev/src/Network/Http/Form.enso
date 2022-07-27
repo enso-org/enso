@@ -68,7 +68,7 @@ type Form
 
              example_to_form = Form.new [Part "foo" (Part_Text "bar")] . to_form
     to_form : Form
-    to_form = self
+    to_form self = self
 
 ## Convert Vector to a Form.
 
@@ -81,7 +81,7 @@ type Form
              part_1 = Form.text_field "Foo" "bar"
              part_2 = Form.text_field "Baz" "quux"
              [part_1, part_2].to_form
-Vector.Vector.to_form = Form self
+Vector.Vector.to_form self = Form self
 
 ## The key-value element of the form.
 type Part

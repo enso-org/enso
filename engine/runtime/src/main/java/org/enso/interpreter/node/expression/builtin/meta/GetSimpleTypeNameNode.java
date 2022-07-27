@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 public class GetSimpleTypeNameNode extends Node {
   @Child @CompilationFinal TypeToDisplayTextNode displayTypeNode = TypeToDisplayTextNode.build();
 
-  Text execute(@AcceptsError Object self, Object value) {
+  Text execute(@AcceptsError Object value) {
     return Text.create(displayTypeNode.execute(value));
   }
 }

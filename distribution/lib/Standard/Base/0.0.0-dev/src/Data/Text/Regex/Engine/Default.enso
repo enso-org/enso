@@ -112,7 +112,7 @@ type Engine
                  engine = Default_Engine.new
                  engine.compile expression options
     compile : Text -> Vector Global_Option.Option -> Pattern ! (Regex.Compile_Error | Invalid_Option_Error)
-    compile expression options =
+    compile self expression options =
         all_options = options + self.engine_opts
         options_bitmask = from_enso_options all_options
         unicode_regex = UnicodeRegex.new
@@ -147,7 +147,7 @@ type Engine
                  engine = Default_Engine.new
                  engine.escape literal_string
     escape : Text -> Text
-    escape expression = Java_Pattern.quote expression
+    escape self expression = Java_Pattern.quote expression
 
 ## The default implementation of the `Data.Text.Regex.Engine.Pattern` interface.
 type Pattern
@@ -179,7 +179,7 @@ type Pattern
          will not contain "s". To get consistent behavior that does not depend
          on the encoding, we normalize all input.
     build_matcher : Text -> Integer -> Integer -> Java_Matcher
-    build_matcher input start end =
+    build_matcher self input start end =
         ## TODO [RW] Normalization had to be disabled - since start and end are
            in code unit space, normalization could shift these indices!
            This should be addressed when reviewing
@@ -258,7 +258,7 @@ type Pattern
                  input = "abcdefghij"
                  pattern.match input mode=Mode.Full
     match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
-    match input mode=Mode.All =
+    match self input mode=Mode.All =
         do_match_mode mode start end = case mode of
             Mode.First ->
                 internal_matcher = self.build_matcher input start end
@@ -341,7 +341,7 @@ type Pattern
                  input = "aa"
                  pattern.matches input
     matches : Text -> Boolean
-    matches input = case self.match input mode=Mode.Full of
+    matches self input = case self.match input mode=Mode.Full of
         Match _ _ _ _ -> True
         Vector.Vector _ -> True
         _ -> False
@@ -410,7 +410,7 @@ type Pattern
                  input = "abcdefghij"
                  pattern.find input mode=Mode.Full
     find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
-    find input mode=Mode.All =
+    find self input mode=Mode.All =
         matches = self.match input mode
         case matches of
             Match _ _ _ _ -> matches.group 0
@@ -462,7 +462,7 @@ type Pattern
                  input = "bacadaeaf"
                  pattern.match input
     split : Text -> (Mode.First | Integer | Mode.All) -> Vector.Vector Text
-    split input mode=Mode.All =
+    split self input mode=Mode.All =
         # Java uses this to mean the max length of the resulting array, so we
         # add 1.
         limit = case mode of
@@ -531,7 +531,7 @@ type Pattern
                  input = "aabbaabbbbbaab"
                  pattern.replace input "REPLACED"
     replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full | Matching_Mode.Last) -> Text
-    replace input replacement mode=Mode.All =
+    replace self input replacement mode=Mode.All =
         do_replace_mode mode start end = case mode of
             Mode.First ->
                 internal_matcher = self.build_matcher input start end
@@ -631,7 +631,7 @@ type Match
                  match = Examples.match
                  match.group "letters"
     group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
-    group id =
+    group self id =
         Panic.recover Any (self.internal_match.group id) . map_error (handle_error _ id)
 
     ## Gets a vector containing the results of _all_ of the capturing groups in
@@ -659,7 +659,7 @@ type Match
                  match = Examples.match
                  match.groups default="UNMATCHED"
     groups : (a : Any) -> Vector.Vector (Text | a)
-    groups default=Nothing =
+    groups self default=Nothing =
         group_numbers = 0.up_to self.internal_match.groupCount+1
         group_numbers.map n->
             case self.group n of
@@ -684,7 +684,7 @@ type Match
                  match = Examples.match
                  matcg.named_groups default="UNMATCHED"
     named_groups : (a : Any) -> Map Text (Text | a)
-    named_groups default=Nothing =
+    named_groups self default=Nothing =
         group_names = Vector.Vector <|
             Regex_Utils.get_group_names self.internal_match.pattern
         pairs = group_names.map name->
@@ -717,7 +717,7 @@ type Match
                  match = Examples.match
                  match.start 0
     start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
-    start id =
+    start self id =
         result = Panic.recover Any (self.internal_match.start id)
         no_errors = result.map_error (handle_error _ id)
         if no_errors == -1 then Nothing else no_errors
@@ -745,7 +745,7 @@ type Match
                  match = Examples.match
                  match.end 0
     end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
-    end id =
+    end self id =
         result = Panic.recover Any (self.internal_match.end id)
         no_errors = result.map_error (handle_error _ id)
         if no_errors == -1 then Nothing else no_errors
@@ -771,7 +771,7 @@ type Match
                  match = Examples.match
                  match.span 0
     span : Integer | Text -> Utf_16_Span | Nothing ! Regex.No_Such_Group_Error
-    span id = case self.group id of
+    span self id = case self.group id of
         Nothing -> Nothing
         _ -> Utf_16_Span (Range (self.start id) (self.end id)) self.input
 
@@ -792,7 +792,7 @@ type Match
                  match = Examples.match
                  match.start_position
     start_position : Integer
-    start_position = self.region_start
+    start_position self = self.region_start
 
     ## Returns the end character index of the match's region.
 
@@ -811,7 +811,7 @@ type Match
                  match = Examples.match
                  match.end_position
     end_position : Integer
-    end_position = self.region_end
+    end_position self = self.region_end
 
 ## PRIVATE
 
@@ -912,7 +912,7 @@ type Mode_Error (message : Text)
 
    Provides a human-readable representation of the invalid bounds error.
 Mode_Error.to_display_text : Text
-Mode_Error.to_display_text = self.message.to_text
+Mode_Error.to_display_text self = self.message.to_text
 
 ## PRIVATE
 
@@ -926,6 +926,6 @@ type Invalid_Option_Error (opt : Any)
 
    Provides a human-readable representation of the invalid option error.
 Invalid_Option_Error.to_display_text : Text
-Invalid_Option_Error.to_display_text =
+Invalid_Option_Error.to_display_text self =
     "The option " + self.opt.to_text + " is not valid for the default regex engine."
 

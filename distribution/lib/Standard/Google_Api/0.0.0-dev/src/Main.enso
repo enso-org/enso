@@ -19,7 +19,7 @@ type Google_Api_Client
        - app_name: the application name to use for making the API calls. This
          will show up in access logs etc.
     spreadsheets : Text -> Spreadsheets_Service
-    spreadsheets app_name='Enso' =
+    spreadsheets self app_name='Enso' =
         service = Sheets.Builder.new self.http_transport self.json_factory self.credential . setApplicationName app_name . build
         Spreadsheets_Service service
 
@@ -36,7 +36,7 @@ type Spreadsheets_Service
        - sheet_range: specifies the sheet and cell range to read, e.g.
          `'Sheet1!A1:B7'`.
     get_table : Text -> Text -> Table
-    get_table sheet_id sheet_range =
+    get_table self sheet_id sheet_range =
         request = self.java_service.spreadsheets.values.get sheet_id sheet_range . setMajorDimension 'COLUMNS' . setValueRenderOption 'UNFORMATTED_VALUE'
         response = request.execute
         values = Vector.Vector response.getValues . map Vector.Vector

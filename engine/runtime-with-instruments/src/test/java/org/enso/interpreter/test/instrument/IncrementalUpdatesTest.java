@@ -238,7 +238,7 @@ public class IncrementalUpdatesTest {
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
-    var allNodesAfterException = nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 25, Integer.MAX_VALUE);
+    var allNodesAfterException = nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 23, Integer.MAX_VALUE);
     var literalNode = findLiteralNode(truffleNodeType, allNodesAfterException);
     assertEquals("Check Literal node text in the source", originalText, literalNode.getSourceSection().getCharacters().toString());
 

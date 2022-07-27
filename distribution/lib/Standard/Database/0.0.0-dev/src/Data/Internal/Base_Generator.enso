@@ -33,7 +33,7 @@ type Internal_Dialect
 
        # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
     extend_with : Vector Any -> Internal_Dialect
-    extend_with mappings =
+    extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
         Internal_Dialect new_map self.wrap_identifier
 

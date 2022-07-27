@@ -26,7 +26,7 @@ polyglot java import java.lang.StringBuilder
 Suite.run_main : Any -> Nothing
 Suite.run_main ~specs =
     config = config_from_env
-    r = self.run specs config
+    r = Suite.run specs config
     code = if r.is_fail then 1 else 0
     System.exit code
 
@@ -179,7 +179,7 @@ specify label ~behavior pending=Nothing =
    - verb: The property (see `Verbs`) being asserted
    - argument: The argument to the verb.
 Any.should : (Verbs -> Any -> Any) -> Any -> Assertion
-Any.should verb argument = verb Verbs self argument
+Any.should self verb argument = verb Verbs self argument
 
 ## Fail a test with the given message.
 
@@ -213,7 +213,7 @@ fail message =
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
 Any.should_fail_with : Any -> Integer -> Assertion
-Any.should_fail_with matcher frames_to_skip=0 =
+Any.should_fail_with self matcher frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
     fail ("Expected an error " + matcher.to_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
 
@@ -233,7 +233,7 @@ Any.should_fail_with matcher frames_to_skip=0 =
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Integer -> Assertion
-Error.should_fail_with matcher frames_to_skip=0 =
+Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
     if caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
@@ -280,7 +280,7 @@ expect_panic_with ~action matcher =
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Any.should_equal : Any -> Integer -> Assertion
-Any.should_equal that frames_to_skip=0 = case self == that of
+Any.should_equal self that frames_to_skip=0 = case self == that of
     True -> Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
@@ -302,7 +302,7 @@ Any.should_equal that frames_to_skip=0 = case self == that of
 
          example_should_not_equal = Examples.add_1_to 1 . should_not_equal 2
 Any.should_not_equal : Any -> Integer -> Assertion
-Any.should_not_equal that frames_to_skip=0 = case self != that of
+Any.should_not_equal self that frames_to_skip=0 = case self != that of
     True -> Success
     False ->
         loc = Meta.get_source_location 2+frames_to_skip
@@ -322,7 +322,7 @@ Any.should_not_equal that frames_to_skip=0 = case self != that of
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Assertion
-Error.should_equal _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+frames_to_skip
+Error.should_equal self _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` is within `epsilon` from `that`.
 
@@ -347,7 +347,7 @@ Error.should_equal _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+fr
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
 Decimal.should_equal : Decimal -> Decimal -> Integer -> Assertion
-Decimal.should_equal that epsilon=0 frames_to_skip=0 =
+Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
     matches = case that of
         Number -> self.equals that epsilon
         _ -> False
@@ -371,7 +371,7 @@ Decimal.should_equal that epsilon=0 frames_to_skip=0 =
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
 Any.should_succeed : Boolean -> Integer -> Any
-Any.should_succeed frames_to_skip=0 =
+Any.should_succeed self frames_to_skip=0 =
     _ = frames_to_skip
     self
 
@@ -388,7 +388,7 @@ Any.should_succeed frames_to_skip=0 =
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
 Error.should_succeed : Boolean -> Integer -> Any
-Error.should_succeed frames_to_skip=0 =
+Error.should_succeed self frames_to_skip=0 =
     fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Checks that the provided action returns without any errors or warnings.
@@ -414,7 +414,7 @@ assert_no_problems value frames_to_skip=0 =
 
          example_should_be_true = Examples.get_boolean . should_be_true
 Boolean.should_be_true : Assertion
-Boolean.should_be_true = case self of
+Boolean.should_be_true self = case self of
     True -> Success
     False ->
         loc = Meta.get_source_location 2
@@ -430,7 +430,7 @@ Boolean.should_be_true = case self of
 
          example_should_be_true = Examples.get_boolean . should_be_true
 Error.should_be_true : Assertion
-Error.should_be_true = fail_match_on_unexpected_error self 1
+Error.should_be_true self = fail_match_on_unexpected_error self 1
 
 ## Asserts that the given `Boolean` is `False`
 
@@ -442,7 +442,7 @@ Error.should_be_true = fail_match_on_unexpected_error self 1
 
          example_should_be_false = Examples.get_boolean . should_be_false
 Boolean.should_be_false : Assertion
-Boolean.should_be_false = case self of
+Boolean.should_be_false self = case self of
     True ->
         loc = Meta.get_source_location 2
         Panic.throw (Failure "Expected True to be False (at "+loc+").")
@@ -458,7 +458,7 @@ Boolean.should_be_false = case self of
 
          example_should_be_false = Examples.get_boolean . should_be_false
 Error.should_be_false : Assertion
-Error.should_be_false = fail_match_on_unexpected_error self 1
+Error.should_be_false self = fail_match_on_unexpected_error self 1
 
 ## Asserts that a value is of a given type.
 
@@ -472,7 +472,7 @@ Error.should_be_false = fail_match_on_unexpected_error self 1
 
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Assertion
-Any.should_be_a typ = if self.is_a typ then Success else
+Any.should_be_a self typ = if self.is_a typ then Success else
     loc = Meta.get_source_location 0
     expected_type = Meta.get_qualified_type_name typ
     actual_type = Meta.get_qualified_type_name self
@@ -491,7 +491,7 @@ Any.should_be_a typ = if self.is_a typ then Success else
 
          example_should_be_an = 1.should_be_an Integer
 Any.should_be_an : Any -> Assertion
-Any.should_be_an typ = self.should_be_a typ
+Any.should_be_an self typ = self.should_be_a typ
 
 ## Asserts that `self` value contains the same elements as `that`.
 
@@ -515,7 +515,7 @@ Any.should_be_an typ = self.should_be_a typ
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
 Any.should_contain_the_same_elements_as : Any -> Integer -> Assertion
-Any.should_contain_the_same_elements_as that frames_to_skip=0 =
+Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
     that.each element->
         if self.contains element . not then
             loc = Meta.get_source_location 2+frames_to_skip
@@ -549,7 +549,7 @@ Any.should_contain_the_same_elements_as that frames_to_skip=0 =
 
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
 Error.should_contain_the_same_elements_as : Any -> Assertion
-Error.should_contain_the_same_elements_as _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+frames_to_skip
+Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = fail_match_on_unexpected_error self 1+frames_to_skip
 
 
 type Verbs
@@ -567,7 +567,7 @@ type Verbs
        - subject: The value to check. It must have a `.starts_with` method.
        - argument: The expected prefix.
     start_with : Text -> Text -> Assertion
-    start_with subject argument =
+    start_with self subject argument =
         if subject.starts_with argument then Success else
             fail (subject.to_text + " did not start with " + argument.to_text))
 
@@ -580,7 +580,7 @@ type Verbs
        - argument: The provided value to check the `subject` for equality
          against.
     equal : Any -> Any -> Assertion
-    equal subject argument =
+    equal self subject argument =
         if subject == argument then Success else
             msg = subject.to_text + " did not equal " + argument.to_text + "."
             fail msg
@@ -594,7 +594,7 @@ type Verbs
        - argument: The provided value to check the `subject` for equality
          against.
     be : Any -> Any -> Assertion
-    be subject argument = self.equal subject argument
+    be self subject argument = self.equal subject argument
 
     ## PRIVATE
 
@@ -605,7 +605,7 @@ type Verbs
          This type must have a `.contains` method.
        - argument: The value to see if it is contained in `subject`.
     contain : Any -> Any -> Assertion
-    contain subject argument =
+    contain self subject argument =
         if subject.contains argument then Success else
             msg = subject.to_text + " did not contain " + argument.to_text + "."
             fail msg
@@ -615,13 +615,13 @@ type Verbs
 type Suite_Config
     type Suite_Config only_group_regexp output_path
 
-    should_run_group name =
+    should_run_group self name =
         regexp = self.only_group_regexp
         case regexp of
             Text -> name.matches regexp . catch Any (_->True)
             _ -> True
 
-    should_output_junit =
+    should_output_junit self =
         self.output_path.is_nothing.not
 
 
@@ -657,19 +657,19 @@ type Behavior name result
 
    Checks if the behavior is a failure.
 Behavior.is_fail : Boolean
-Behavior.is_fail = self.result.is_fail
+Behavior.is_fail self = self.result.is_fail
 
 ## PRIVATE
 
    Checks if the spec group contains any failures and hence fails itself.
 Spec.is_fail : Boolean
-Spec.is_fail = self.behaviors.any .is_fail
+Spec.is_fail self = self.behaviors.any .is_fail
 
 ## PRIVATE
 
    Checks if the suite contains any failures, and hence fails itself.
 Suite.is_fail : Boolean
-Suite.is_fail = self.specs.any .is_fail
+Suite.is_fail self = self.specs.any .is_fail
 
 ## PRIVATE
 
@@ -709,7 +709,7 @@ type Assertion
 
        Checks if the Assertion is a failure.
     is_fail : Boolean
-    is_fail = case self of
+    is_fail self = case self of
         Success -> False
         Failure _ -> True
         Pending _ -> False
@@ -781,7 +781,7 @@ report_pending_group name reason config builder =
 ## PRIVATE
    Prints a report on the tests to standard output.
 Spec.print_report : Suite_Config -> (StringBuilder|Nothing) -> Nothing
-Spec.print_report config builder =
+Spec.print_report self config builder =
     if config.should_output_junit then
         builder.append ('    <testsuite name="' + (escape_xml self.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + self.behaviors.length.to_text + '"')
