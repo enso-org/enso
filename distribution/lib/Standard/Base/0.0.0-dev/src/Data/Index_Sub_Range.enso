@@ -23,4 +23,8 @@ type Index_Sub_Range
     type Sample (count:Integer) (seed:Integer=Random.get_default_seed)
 
     ## Gets every Nth entry.
-    type Every (n:Integer)
+
+       Arguments:
+       - step: The step between consecutive entries that are included.
+       - first: The first entry to include.
+    type Every (step:Integer) (first:Integer=0)

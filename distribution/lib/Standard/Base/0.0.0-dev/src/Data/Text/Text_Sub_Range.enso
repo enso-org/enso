@@ -1,8 +1,13 @@
 from Standard.Base import all
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
+from Standard.Base.Data.Text.Span as Span_Module import Span
+from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
+
+from Standard.Base.Data.Index_Sub_Range export First, Last, While, By_Index, Sample, Every
 
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
+polyglot java import java.util.Random as Java_Random
 
 ## Type defining a substring of a Text
 type Text_Sub_Range
@@ -24,68 +29,197 @@ type Text_Sub_Range
        Select an empty string if the input does not contain `delimiter`.
     type After_Last (delimiter : Text)
 
+## PRIVATE
+   Finds code-point indices corresponding to the part of the input matching the
+   range specified by one of the types: `Text_Sub_Range`, `Index_Sub_Range`,
+   `Range`.
+
+   This method may return either a single range instance or a vector of ranges.
+
+   While the input ranges may have varying steps, they are processed and split
+   in such a way that the ranges returned by this method always have a step
+   equal to 1.
+find_codepoint_ranges : Text -> (Text_Sub_Range | Index_Sub_Range | Range) -> (Range | Codepoint_Ranges)
+find_codepoint_ranges text subrange =
+    case subrange of
+        Before delimiter ->
+            if delimiter.is_empty then (Range 0 0) else
+                span = Text_Utils.span_of text delimiter
+                if span.is_nothing then (Range 0 (Text_Utils.char_length text)) else
+                    (Range 0 span.codeunit_start)
+        Before_Last delimiter ->
+            if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
+                span = Text_Utils.last_span_of text delimiter
+                if span.is_nothing then (Range 0 (Text_Utils.char_length text)) else
+                    (Range 0 span.codeunit_start)
+        After delimiter ->
+            if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
+                span = Text_Utils.span_of text delimiter
+                if span.is_nothing then (Range 0 0) else
+                    (Range span.codeunit_end (Text_Utils.char_length text))
+        After_Last delimiter ->
+            if delimiter.is_empty then (Range 0 0) else
+                span = Text_Utils.last_span_of text delimiter
+                if span.is_nothing then (Range 0 0) else
+                    (Range span.codeunit_end (Text_Utils.char_length text))
+        First count ->
+            if count <= 0 then (Range 0 0) else
+                iterator = BreakIterator.getCharacterInstance
+                iterator.setText text
+                start_index = iterator.next count
+                Range 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
+        Last count ->
+            if count <= 0 then (Range 0 0) else
+                iterator = BreakIterator.getCharacterInstance
+                iterator.setText text
+                iterator.last
+                start_index = iterator.next -count
+                Range (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
+        While predicate ->
+            indices = find_sub_range_end text _-> start-> end->
+                predicate (Text_Utils.substring text start end) . not
+            if indices.first == -1 then (Range 0 indices.second) else
+                Range 0 indices.first
+        By_Index one_or_many_descriptors ->
+            indices = case one_or_many_descriptors of
+                Vector.Vector _ -> one_or_many_descriptors
+                _ -> [one_or_many_descriptors]
+            case indices.length == 1 of
+                True -> resolve_index_or_range indices.first text
+                False ->
+                    # TODO it may still be more efficient to use resolve_index_or_range for small lengths, so we can add a threshold here, but then we need to flat_map Codepoint_Ranges objects, so TODO for later
+                    batch_resolve_indices_or_ranges indices text
+        Sample count seed ->
+            gen = Java_Random.new seed
+            len = text.length
+            indices = (0.up_to count).map _->
+                gen.nextInt len
+            find_codepoint_ranges text (By_Index indices)
+        Every step start ->
+            range = Range start text.length-start step
+            find_codepoint_ranges text (By_Index range)
+        Range start end step ->
+            find_codepoint_ranges text (By_Index subrange)
+
+type Codepoint_Ranges
     ## PRIVATE
-       Finds code-point indices corresponding to the part of the input matching the `Text_Sub_Range`.
-    to_char_range : Text -> Range
-    to_char_range self text =
+       A list of codepoint ranges corresponding to the matched parts of the
+       input.
 
-        ## Utility function to find char indices for Text_Sub_Range.
-           Arguments:
-           - text: Text to search
-           - predicate: Function to test each character, receives:
-             - index: current index
-             - start: index the char array to start of grapheme cluster
-             - end: index the char array to start of next grapheme cluster
-             If the predicate returns True for a given character, the loop will exit.
-           Returns: either a Pair of char indices for current grapheme cluster or
-             Pair -1 (char array length) if not found.
-        find_sub_range_end = text->predicate->
-            iterator = BreakIterator.getCharacterInstance
-            iterator.setText text
+       Arguments:
+       - ranges: the list of ranges. Each `Range` has `step` equal to 1.
+       - is_sorted_and_distinct: A helper value specifying if the ranges are
+         already sorted and non-intersecting.
+    type Codepoint_Ranges (ranges : Vector Range) (is_sorted_and_distinct : Boolean)
 
-            loop index start end =
-                if end == -1 then (Pair -1 start) else
-                    if predicate index start end then (Pair start end) else
-                        @Tail_Call loop (index + 1) end iterator.next
+    ## PRIVATE
+       Returns a new sorted list of ranges where intersecting ranges have been
+       merged.
+    sorted_and_distinct_ranges : Vector Range
+    sorted_and_distinct_ranges = if self.is_sorted_and_distinct then self.ranges else
+        unimplemented "TODO: sort and merge intersecting ranges"
 
-            loop 0 0 iterator.next
+## Utility function to find char indices for Text_Sub_Range.
+   Arguments:
+   - text: Text to search
+   - predicate: Function to test each character, receives:
+     - index: current index
+     - start: index the char array to start of grapheme cluster
+     - end: index the char array to start of next grapheme cluster
+     If the predicate returns True for a given character, the loop will exit.
+   Returns: either a Pair of char indices for current grapheme cluster or
+     Pair -1 (char array length) if not found.
+find_sub_range_end = text->predicate->
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText text
 
-        case self of
-            First count ->
-                if count <= 0 then (Range 0 0) else
-                    iterator = BreakIterator.getCharacterInstance
-                    iterator.setText text
-                    start_index = iterator.next count
-                    Range 0 (if start_index == -1 then (Text_Utils.char_length text) else start_index)
-            Last count ->
-                if count <= 0 then (Range 0 0) else
-                    iterator = BreakIterator.getCharacterInstance
-                    iterator.setText text
+    loop index start end =
+        if end == -1 then (Pair -1 start) else
+            if predicate index start end then (Pair start end) else
+                @Tail_Call loop (index + 1) end iterator.next
+
+    loop 0 0 iterator.next
+
+## PRIVATE
+resolve_index_or_range text descriptor =
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText text
+    case descriptor of
+        Integer ->
+            if descriptor < 0 then
+                iterator.last
+            start = iterator.next descriptor
+            end = iterator.next
+            if (start == -1) || (end == -1) then Error.throw (Index_Out_Of_Bounds_Error descriptor text.length) else
+                Range start end
+        Range start end step -> case step == 1 of
+            ## TODO possibly add handling of reversed ranges for efficient step=-1 handling
+            True -> Span_Module.range_to_char_indices text descriptor
+            False ->
+                ranges = Vector.new_builder
+                actual_step = if step > 0 then step-1 else
+                    if step < 0 then step+1 else
+                        Range.throw_zero_step_error
+                end_condition = if step > 0 then (>=) else (<=)
+                go start_index current_grapheme =
+                    end_index = iterator.next
+                    if (start_index == -1) || (end_index == -1) || (end_condition current_grapheme end) then Nothing else
+                        ranges.add (Range start_index end_index)
+                        ## We always go one character to the right to find the
+                           end of current grapheme, so if step is positive, we
+                           need to decrease it by one and if it is negative we
+                           need to increase it by one to account for this.
+                        @Tail_Call go (iterator.next actual_step) start+step
+
+                if start < 0 then
                     iterator.last
-                    start_index = iterator.next -count
-                    Range (if start_index == -1 then 0 else start_index) (Text_Utils.char_length text)
-            Before delimiter ->
-                if delimiter.is_empty then (Range 0 0) else
-                    span = Text_Utils.span_of text delimiter
-                    if span.is_nothing then (Range 0 (Text_Utils.char_length text)) else
-                        (Range 0 span.codeunit_start)
-            Before_Last delimiter ->
-                if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
-                    span = Text_Utils.last_span_of text delimiter
-                    if span.is_nothing then (Range 0 (Text_Utils.char_length text)) else
-                        (Range 0 span.codeunit_start)
-            After delimiter ->
-                if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
-                    span = Text_Utils.span_of text delimiter
-                    if span.is_nothing then (Range 0 0) else
-                        (Range span.codeunit_end (Text_Utils.char_length text))
-            After_Last delimiter ->
-                if delimiter.is_empty then (Range 0 0) else
-                    span = Text_Utils.last_span_of text delimiter
-                    if span.is_nothing then (Range 0 0) else
-                        (Range span.codeunit_end (Text_Utils.char_length text))
-            While predicate ->
-                indices = find_sub_range_end text _-> start-> end->
-                    predicate (Text_Utils.substring text start end) . not
-                if indices.first == -1 then (Range 0 indices.second) else
-                    Range 0 indices.first
+                go (iterator.next start) start
+                built = ranges.to_vector
+                sorted = if step < 0 then built.reverse else built
+                Codepoint_Ranges sorted is_sorted_and_distinct=True
+
+## PRIVATE
+   Returns an array of codepoint indices corresponding to the beginning and end
+   of each consecutive grapheme cluster.
+character_ranges text =
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText self
+    ranges = Vector.new_builder
+    go prev nxt = if nxt == -1 then Nothing else
+        ranges.append (Range prev nxt)
+        @Tail_Call go nxt iterator.next
+    go iterator.first iterator.next
+    ranges.to_vector
+
+## PRIVATE
+batch_resolve_indices_or_ranges text descriptors = Panic.recover Index_Out_Of_Bounds_Error <|
+    characters = character_ranges text
+    ranges = Vector.new_builder
+    descriptors.each descriptor->
+        case descriptor of
+            Integer ->
+                Panic.rethrow <|
+                    ranges.append (characters.at descriptor)
+            ## TODO maybe we can optimize step=-1 too? Maybe we should support reversed ranges - for dropping the direction does not matter and for taking we could more efficiently take if we created a reversed copy instead of going one-by-one
+            Range start end step -> case step == 1 of
+                True -> if start == end then Range 0 0 else
+                    first_grapheme = characters.at start
+                    last_grapheme = characters.at end-1
+                    Range first_grapheme.start last_grapheme.end
+                False ->
+                    len = text.length
+                    # TODO truncate range correctly handling negative indices
+#                    true_start = if start < 0 then len+start else start
+#                    if true_start >= len then
+#                        Panic.throw (Index_Out_Of_Bounds_Error start len)
+#                    true_end = if end < 0 then len+end else end
+#                    fixed_end = case step > 0 of
+#                        True -> if true_end > len then len else true_end
+#                        False -> if true_end < 0 then 0 else true_end
+#                    true_range = Range true_start true_end step
+                    true_end = if end > len then len else end
+                    true_range = Range start true_end step
+                    true_range.to_vector.each ix->
+                        Panic.rethrow <|
+                            ranges.append (characters.at descriptor)
+    Codepoint_Ranges ranges.to_vector is_sorted_and_distinct=False
