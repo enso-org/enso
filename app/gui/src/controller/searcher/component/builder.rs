@@ -118,30 +118,33 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
-            if let component::Kind::FromDb { id, .. } = component.kind {
+            if let component::Kind::FromDb { id, suggestion } = component.kind {
                 self.allowed_favorites.insert(*id);
-            }
-            let mut component_inserted_somewhere = false;
-            if let Some(parent_module) = component.suggestion.parent_module() {
-                if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
-                    parent_group.content.entries.borrow_mut().push(component.clone_ref());
-                    component_inserted_somewhere = true;
-                    let parent_id = parent_group.content.component_id;
-                    let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
-                    let not_module = component.suggestion.kind != Kind::Module;
-                    if in_local_scope && not_module {
-                        self.local_scope.entries.borrow_mut().push(component.clone_ref());
-                    }
-                }
-                if let Some(top_group) = self.lookup_module_group(db, &parent_module.top_module()) {
-                    if let Some(flatten_group) = &mut top_group.flattened_content {
-                        flatten_group.entries.borrow_mut().push(component.clone_ref());
+                let mut component_inserted_somewhere = false;
+                if let Some(parent_module) = suggestion.parent_module() {
+                    if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
+                        parent_group.content.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
+                        let parent_id = parent_group.content.component_id;
+                        let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
+                        let not_module = suggestion.kind != Kind::Module;
+                        if in_local_scope && not_module {
+                            self.local_scope.entries.borrow_mut().push(component.clone_ref());
+                        }
+                    }
+                    let top_module = parent_module.top_module();
+                    if let Some(top_group) = self.lookup_module_group(db, &top_module) {
+                        if let Some(flatten_group) = &mut top_group.flattened_content {
+                            flatten_group.entries.borrow_mut().push(component.clone_ref());
+                            component_inserted_somewhere = true;
+                        }
                     }
                 }
-            }
-            if component_inserted_somewhere {
-                self.all_components.push(component);
+                if component_inserted_somewhere {
+                    self.all_components.push(component);
+                }
+            } else {
+                event!(ERROR, "The suggestion database returned a component of a non-FromDb kind: {component:?}");
             }
         }
     }
