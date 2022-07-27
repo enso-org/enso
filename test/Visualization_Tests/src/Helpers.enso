@@ -5,6 +5,6 @@ import Standard.Table.Data.Column
 import Standard.Test
 
 Column.Column.expect : Text -> Vector -> Test.Success
-Column.Column.expect name contents =
+Column.Column.expect self name contents =
     self.name.should_equal name
     self.to_vector.should_equal contents

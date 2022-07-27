@@ -295,6 +295,7 @@
 - [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
 - [Remove `here` and make method name resolution case-sensitive][3531]
+- [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -329,6 +330,7 @@
 [3531]: https://github.com/enso-org/enso/pull/3531
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
+[3538]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

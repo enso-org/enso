@@ -10,7 +10,7 @@ import Standard.Test
 
 type My_Type foo bar baz
 
-My_Type.my_method = self.foo + self.bar + self.baz
+My_Type.my_method self = self.foo + self.bar + self.baz
 
 type Test_Type x
 

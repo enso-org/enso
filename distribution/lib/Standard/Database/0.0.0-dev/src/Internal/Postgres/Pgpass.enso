@@ -41,7 +41,7 @@ type Pgpass_Entry
 
     ## PRIVATE
     matches : Text -> Text|Integer -> Text -> Text -> Boolean
-    matches host port database username=Nothing =
+    matches self host port database username=Nothing =
         wildcard='*'
         host_match = self.host==wildcard || self.host==host
         port_match = self.port==wildcard ||

@@ -20,7 +20,7 @@ public class GetMemberNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object self, Object object, Object member_name) {
+  Object execute(Object object, Object member_name) {
     try {
       return library.readMember(object, expectStringNode.execute(member_name));
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {

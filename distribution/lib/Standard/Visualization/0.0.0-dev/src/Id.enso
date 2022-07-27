@@ -11,7 +11,7 @@ type Id
 
     ## Serializes this ID to a JSON format understandable by the graphical
        interface.
-    to_json =
+    to_json self =
         project = case self of
             Builtin _ -> Nothing
             Library project _ ->
@@ -99,4 +99,4 @@ from_module module visualization_name =
 
    Specifies that the builtin JSON visualization should be used for any type,
    unless specified otherwise.
-Any.default_visualization = json
+Any.default_visualization self = json

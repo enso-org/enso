@@ -46,7 +46,7 @@ type Column
 
              example_display = Examples.integer_column.display
     display : Integer -> Boolean -> Text
-    display show_rows=10 format_terminal=False =
+    display self show_rows=10 format_terminal=False =
         java_col = self.java_column
         index = java_col.getIndex
         col_name = java_col.getName
@@ -77,7 +77,7 @@ type Column
 
              example_display = Examples.integer_column.print
     print : Integer -> Nothing
-    print show_rows=10 =
+    print self show_rows=10 =
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
@@ -105,7 +105,7 @@ type Column
 
              example_eq = Examples.integer_column == 1
     == : Column | Any -> Column
-    == other =
+    == self other =
         run_vectorized_binary_op self "==" (==) other
 
     ## Element-wise non-equality comparison.
@@ -132,7 +132,7 @@ type Column
 
              example_neq = Examples.integer_column != 1
     != : Column | Any -> Column
-    != other = (self == other).not
+    != self other = (self == other).not
 
     ## Element-wise order comparison.
 
@@ -158,7 +158,7 @@ type Column
 
              example_geq = Examples.integer_column >= 1
     >= : Column | Any -> Column
-    >= other =
+    >= self other =
         run_vectorized_binary_op self ">=" (>=) other
 
     ## Element-wise order comparison.
@@ -185,7 +185,7 @@ type Column
 
              example_leq = Examples.integer_column <= 1
     <= : Column | Any -> Column
-    <= other =
+    <= self other =
         run_vectorized_binary_op self "<=" (<=) other
 
     ## Element-wise order comparison.
@@ -212,7 +212,7 @@ type Column
 
              example_gt = Examples.integer_column > 1
     > : Column | Any -> Column
-    > other =
+    > self other =
         run_vectorized_binary_op self ">" (>) other
 
     ## Element-wise order comparison.
@@ -239,7 +239,7 @@ type Column
 
              example_lt = Examples.integer_column < 1
     < : Column | Any -> Column
-    < other = run_vectorized_binary_op self "<" (<) other
+    < self other = run_vectorized_binary_op self "<" (<) other
 
     ## ALIAS Add Columns
 
@@ -267,7 +267,7 @@ type Column
 
              example_plus = Examples.integer_column + 10
     + : Column | Any -> Column
-    + other = run_vectorized_binary_op self '+' (+) other
+    + self other = run_vectorized_binary_op self '+' (+) other
 
     ## ALIAS Subtract Columns
 
@@ -295,7 +295,7 @@ type Column
 
              example_minus = Examples.integer_column - 10
     - : Column | Any -> Column
-    - other = run_vectorized_binary_op self '-' (-) other
+    - self other = run_vectorized_binary_op self '-' (-) other
 
     ## ALIAS Multiply Columns
 
@@ -323,7 +323,7 @@ type Column
 
              example_mul = Examples.integer_column * 10
     * : Column | Any -> Column
-    * other = run_vectorized_binary_op self '*' (*) other
+    * self other = run_vectorized_binary_op self '*' (*) other
 
     ## ALIAS Divide Columns
 
@@ -351,7 +351,7 @@ type Column
 
              example_div = Examples.integer_column / 10
     / : Column | Any -> Column
-    / other = run_vectorized_binary_op self '/' (/) other
+    / self other = run_vectorized_binary_op self '/' (/) other
 
     ## ALIAS AND Columns
 
@@ -380,7 +380,7 @@ type Column
 
              example_and = Examples.bool_column_1 && True
     && : Column | Any -> Column
-    && other =
+    && self other =
         run_vectorized_binary_op self "&&" (&&) other
 
     ## ALIAS OR Columns
@@ -410,7 +410,7 @@ type Column
 
              example_or = Examples.bool_column_1 || True
     || : Column | Any -> Column
-    || other =
+    || self other =
         run_vectorized_binary_op self "||" (||) other
 
     ## ALIAS NOT Columns
@@ -424,7 +424,7 @@ type Column
 
              example_not = Examples.bool_column_1.not
     not : Column
-    not = run_vectorized_unary_op self "not" .not
+    not self = run_vectorized_unary_op self "not" .not
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
@@ -436,7 +436,7 @@ type Column
 
              example_is_missing = Examples.decimal_column.is_missing
     is_missing : Column
-    is_missing = run_vectorized_unary_op self "is_missing" (== Nothing)
+    is_missing self = run_vectorized_unary_op self "is_missing" (== Nothing)
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column does not contain a `Nothing`.
@@ -448,7 +448,7 @@ type Column
 
              example_is_present = Examples.decimal_column.is_present
     is_present : Column
-    is_present = self.is_missing.not
+    is_present self = self.is_missing.not
 
     ## ALIAS Fill Missing
 
@@ -467,7 +467,7 @@ type Column
 
              example_fill_missing = Examples.decimal_column.fill_missing 20.5
     fill_missing : Column | Any -> Column
-    fill_missing default =
+    fill_missing self default =
         storage = self.java_column.getStorage
         index = self.java_column.getIndex
         name = self.java_column.getName
@@ -491,7 +491,7 @@ type Column
 
              example_drop_missing = Examples.decimal_column.drop_missing
     drop_missing : Any -> Column
-    drop_missing =
+    drop_missing self =
         self.where self.is_missing.not
 
     ## Checks for each element of the column if it starts with `other`.
@@ -517,7 +517,7 @@ type Column
 
              example_starts_with = Examples.text_column_1.starts_with "hell"
     starts_with : Column | Text -> Column
-    starts_with other =
+    starts_with self other =
         run_vectorized_binary_op self "starts_with" (a -> b -> a.starts_with b) other
 
     ## Checks for each element of the column if it ends with `other`.
@@ -543,7 +543,7 @@ type Column
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
     ends_with : Column | Text -> Column
-    ends_with other =
+    ends_with self other =
         run_vectorized_binary_op self "ends_with" (a -> b -> a.ends_with b) other
 
     ## Checks for each element of the column if it contains `other`.
@@ -569,7 +569,7 @@ type Column
 
              example_contains = Examples.text_column_1.contains "hell"
     contains : Column | Text -> Column
-    contains other =
+    contains self other =
         run_vectorized_binary_op self "contains" (a -> b -> a.contains b) other
 
     ## ALIAS Transform Column
@@ -587,7 +587,7 @@ type Column
 
              example_map = Examples.integer_column.map (x -> x * x)
     map : (Any -> Any) -> Column
-    map function =
+    map self function =
         storage = self.java_column.getStorage
         index = self.java_column.getIndex
         new_st = storage.map Nothing function
@@ -617,7 +617,7 @@ type Column
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
-    zip that function skip_missing=True =
+    zip self that function skip_missing=True =
         s1 = self.java_column.getStorage
         ix = self.java_column.getIndex
         s2 = that.java_column.getStorage
@@ -639,7 +639,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column
-    rename name = Column (self.java_column.rename name)
+    rename self name = Column (self.java_column.rename name)
 
     ## Returns the name of this column.
 
@@ -650,7 +650,7 @@ type Column
 
              example_name = Examples.text_column_2.name
     name : Text
-    name = self.java_column.getName
+    name self = self.java_column.getName
 
     ## Returns the length of this column.
 
@@ -661,7 +661,7 @@ type Column
 
              example_length = Examples.text_column_2.length
     length : Integer
-    length = self.java_column . getSize
+    length self = self.java_column . getSize
 
     ## Returns the number of missing items in this column.
 
@@ -672,7 +672,7 @@ type Column
 
              example_count_missing = Examples.text_column_2.count_missing
     count_missing : Integer
-    count_missing = self.java_column.getStorage.countMissing
+    count_missing self = self.java_column.getStorage.countMissing
 
     ## Returns the number of non-null items in this column.
 
@@ -683,7 +683,7 @@ type Column
 
              example_count = Examples.text_column_2.count
     count : Integer
-    count = self.length - self.count_missing
+    count self = self.length - self.count_missing
 
     ## Returns the index of this column, as a column (indexed by itself).
 
@@ -696,7 +696,7 @@ type Column
 
              example_index = Examples.decimal_column.index
     index : Column ! Table.No_Index_Set_Error
-    index = case self.java_column.getIndex.toColumn of
+    index self = case self.java_column.getIndex.toColumn of
         Nothing -> Error.throw Table.No_Index_Set_Error
         i -> Column i
 
@@ -713,7 +713,7 @@ type Column
              example_set_index =
                 Examples.decimal_column.set_index Examples.integer_column
     set_index : Column -> Column
-    set_index index = Column (self.java_column.setIndex index.java_column)
+    set_index self index = Column (self.java_column.setIndex index.java_column)
 
     ## Returns the value contained in this column at the given index.
 
@@ -730,7 +730,7 @@ type Column
 
              example_at = Examples.integer_column.at 0
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds_Error
-    at index =
+    at self index =
         valid_index = (index >= 0) && (index < self.length)
         if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error index self.length) else
             storage = self.java_column.getStorage
@@ -755,7 +755,7 @@ type Column
              example_where =
                  Examples.text_column_1.where (Examples.text_column_1.map .length > 2)
     where : Column -> Column
-    where indexes =
+    where self indexes =
         Column (self.java_column.mask indexes.java_column)
 
     ## Returns a vector containing all the elements in this column.
@@ -767,7 +767,7 @@ type Column
 
              example_to_vector = Examples.integer_column.to_vector
     to_vector : Vector
-    to_vector = Vector.Vector self.java_column.getStorage.toList
+    to_vector self = Vector.Vector self.java_column.getStorage.toList
 
     ## Returns the underlying storage type of this column.
 
@@ -778,7 +778,7 @@ type Column
 
              example_storage_type = Examples.integer_column.storage_type
     storage_type : Storage.Type
-    storage_type =
+    storage_type self =
         tp = self.java_column.getStorage.getType
         if tp == storage_type_string then Storage.Text else
             if tp == storage_type_long then Storage.Integer else
@@ -797,7 +797,7 @@ type Column
 
              example_to_json = Examples.integer_column.to_json
     to_json : Json
-    to_json =
+    to_json self =
         col = self.java_column
         name = col.getName
         storage = col.getStorage
@@ -837,7 +837,7 @@ type Column
 
              example_join = Examples.integer_column.join Examples.bool_column_1
     join : Table.Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
-    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
+    join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         self.to_table.join other on drop_unmatched left_suffix right_suffix
 
     ## Converts this column into a single-column table.
@@ -849,7 +849,7 @@ type Column
 
              example_to_table = Examples.integer_column.to_table
     to_table : Table.Table
-    to_table = Table.Table self.java_column.toTable
+    to_table self = Table.Table self.java_column.toTable
 
     ## UNSTABLE
        ADVANCED
@@ -857,7 +857,7 @@ type Column
        Shows a JSON serialization of a truncated version of this column, for the
        benefit of visualization in the IDE.
     to_default_visualization_data : Text
-    to_default_visualization_data =
+    to_default_visualization_data self =
         size = ['length', self.length]
         name = ['name', self.name]
         max_data = 100
@@ -875,7 +875,7 @@ type Column
 
              example_sum = Examples.integer_column.sum
     sum : Any
-    sum = self.java_column.aggregate 'sum' (x-> Vector.Vector x . reduce (+)) True
+    sum self = self.java_column.aggregate 'sum' (x-> Vector.Vector x . reduce (+)) True
 
     ## ALIAS Max Columns
 
@@ -888,7 +888,7 @@ type Column
 
              example_max = Examples.integer_column.max
     max : Any
-    max =
+    max self =
         self.java_column.aggregate 'max' (x-> Vector.Vector x . reduce Math.max) True
 
     ## ALIAS Min Columns
@@ -902,7 +902,7 @@ type Column
 
              example_min = Examples.integer_column.min
     min : Any
-    min =
+    min self =
         self.java_column.aggregate 'min' (x-> Vector.Vector x . reduce Math.min) True
 
     ## ALIAS Mean Columns
@@ -916,7 +916,7 @@ type Column
 
              example_mean = Examples.integer_column.mean
     mean : Any
-    mean =
+    mean self =
         vec_mean v = if v.length == 0 then Nothing else
             (Vector.Vector v).reduce (+) / v.length
         self.java_column.aggregate 'mean' vec_mean True
@@ -928,7 +928,7 @@ type Column
          missing degrees of freedom in the sample. The default value of `1`
          computes a sample variance. Setting it to `0` will compute population
          variance instead.
-    variance degrees_of_freedom_correction=1 =
+    variance self degrees_of_freedom_correction=1 =
         mean = self.mean
         shifted = self - mean
         sq = shifted * shifted
@@ -941,14 +941,14 @@ type Column
          missing degrees of freedom in the sample. The default value of `1`
          computes a sample standard deviation. Setting it to `0` will compute
          population standard deviation instead.
-    standard_deviation degrees_of_freedom_correction=1 =
+    standard_deviation self degrees_of_freedom_correction=1 =
         self.variance degrees_of_freedom_correction . sqrt
 
     ## Computes the coefficient of determination of a given prediction column.
 
        Arguments:
        - predictions: the column predicting the values of this column.
-    r_squared predictions =
+    r_squared self predictions =
         prediction_diff = self - predictions
         ss_res = prediction_diff*prediction_diff . sum
         ss_tot_lin = self - self.mean
@@ -996,7 +996,7 @@ type Column
                  my_comparator a b = a.abs.compare_to b.abs
                  Examples.decimal_column.sort comparator=my_comparator
     sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort order=Sort_Direction.Ascending missing_last=True comparator=Nothing =
+    sort self order=Sort_Direction.Ascending missing_last=True comparator=Nothing =
         order_bool = case order of
             Sort_Direction.Ascending -> True
             Sort_Direction.Descending -> False
@@ -1023,7 +1023,7 @@ type Column
 
              example_take_start = Examples.integer_column.take_start 2
     take_start : Integer -> Column
-    take_start count =
+    take_start self count =
         Column (self.java_column.slice 0 count)
 
     ## UNSTABLE
@@ -1043,7 +1043,7 @@ type Column
 
              example_take_end = Examples.integer_column.take_end 2
     take_end : Integer -> Column
-    take_end count =
+    take_end self count =
         start_point = Math.max (self.length - count) 0
         Column (self.java_column.slice start_point count)
 
@@ -1061,7 +1061,7 @@ type Column
 
              example_first = Examples.integer_column.first
     first : Any ! Empty_Error
-    first = self.at 0 . catch Index_Out_Of_Bounds_Error (_ -> Error.throw Empty_Error)
+    first self = self.at 0 . catch Index_Out_Of_Bounds_Error (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1077,7 +1077,7 @@ type Column
 
              example_head = Examples.integer_column.head
     head : Any ! Empty_Error
-    head = self.first
+    head self = self.first
 
     ## UNSTABLE
 
@@ -1093,7 +1093,7 @@ type Column
 
              example_last = Examples.integer_column.last
     last : Any ! Empty_Error
-    last = self.at (self.length - 1) . catch Index_Out_Of_Bounds_Error (_ -> Error.throw Empty_Error)
+    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds_Error (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1107,7 +1107,7 @@ type Column
 
              example_reverse = Examples.integer_column.reverse
     reverse : Column
-    reverse =
+    reverse self =
         mask = OrderBuilder.buildReversedMask self.length
         Column <| self.java_column.applyMask mask
 
@@ -1123,7 +1123,7 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count : Column
-    duplicate_count = Column self.java_column.duplicateCount
+    duplicate_count self = Column self.java_column.duplicateCount
 
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.
@@ -1152,7 +1152,7 @@ type Aggregate_Column
              example_reduce =
                  Examples.aggregate_column.reduce .length . rename "transaction_count"
     reduce : (Vector.Vector -> Any) -> Boolean -> Text -> Column
-    reduce function skip_missing=True name_suffix="_result" =
+    reduce self function skip_missing=True name_suffix="_result" =
         f arr = function (Vector.Vector arr)
         r = self.java_column.aggregate Nothing name_suffix f skip_missing
         Column r
@@ -1171,7 +1171,7 @@ type Aggregate_Column
 
              example_sum = Examples.aggregate_column.sum . rename "id_sum"
     sum : Text -> Column
-    sum name_suffix='_sum' =
+    sum self name_suffix='_sum' =
         r = self.java_column.aggregate 'sum' name_suffix (x-> Vector.Vector x . reduce (+)) True
         Column r
 
@@ -1188,7 +1188,7 @@ type Aggregate_Column
 
              example_max = Examples.aggregate_column.max . rename "latest_transaction"
     max : Text -> Column
-    max name_suffix='_max' =
+    max self name_suffix='_max' =
         r = self.java_column.aggregate 'max' name_suffix (x-> Vector.Vector x . reduce Math.max) True
         Column r
 
@@ -1205,7 +1205,7 @@ type Aggregate_Column
 
              example_min = Examples.aggregate_column.min . rename "first_transaction"
     min : Text -> Column
-    min name_suffix='_min' =
+    min self name_suffix='_min' =
         r = self.java_column.aggregate 'min' name_suffix (x-> Vector.Vector x . reduce Math.min) True
         Column r
 
@@ -1223,7 +1223,7 @@ type Aggregate_Column
 
              example_count = Examples.aggregate_column.count . rename "transaction_count"
     count : Text -> Column
-    count name_suffix='_count' =
+    count self name_suffix='_count' =
         r = self.java_column.aggregate 'count' name_suffix (x-> x.length) True
         Column r
 
@@ -1240,7 +1240,7 @@ type Aggregate_Column
 
              example_mean = Examples.aggregate_column.mean
     mean : Text -> Column
-    mean name_suffix='_mean' =
+    mean self name_suffix='_mean' =
         vec_mean v = if v.length == 0 then Nothing else
             (Vector.Vector v).reduce (+) / v.length
         r = self.java_column.aggregate 'mean' name_suffix vec_mean True
@@ -1260,7 +1260,7 @@ type Aggregate_Column
 
              example_values = Examples.aggregate_column.values
     values : Text -> Column
-    values name_suffix='_values' =
+    values self name_suffix='_values' =
         r = self.java_column.aggregate Nothing name_suffix Vector.Vector False
         Column r
 
@@ -1277,7 +1277,7 @@ type Aggregate_Column
 
              example_print = Examples.aggregate_column.print
     print : Nothing
-    print = self.values.print
+    print self = self.values.print
 
 ## UNSTABLE
 
@@ -1292,7 +1292,7 @@ type Index_Out_Of_Bounds_Error index length
 
    Pretty-prints the index out of bounds error.
 Index_Out_Of_Bounds_Error.to_display_text : Text
-Index_Out_Of_Bounds_Error.to_display_text =
+Index_Out_Of_Bounds_Error.to_display_text self =
     ix_text = self.index.to_text
     len_text = self.length.to_text
     "The index " + ix_text + " is out of bounds in a column of length " + len_text + "."
@@ -1306,7 +1306,7 @@ type Empty_Error
 
    Pretty prints the error.
 Empty_Error.to_display_text : Text
-Empty_Error.to_display_text = "The column is empty."
+Empty_Error.to_display_text self = "The column is empty."
 
 ## PRIVATE
 

@@ -30,7 +30,7 @@ type Postgres
        Arguments:
        - options: Overrides for the connection properties.
     connect : Connection_Options
-    connect options =
+    connect self options =
         if Driver.isRegistered.not then Driver.register
 
         properties = options.merge self.jdbc_properties
@@ -38,12 +38,12 @@ type Postgres
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
-    jdbc_url =
+    jdbc_url self =
         'jdbc:postgresql://' + self.host + ':' + self.port.to_text + (if self.database == '' then '' else '/' + self.database)
 
     ## Provides the properties for the connection.
     jdbc_properties : [Pair Text Text]
-    jdbc_properties =
+    jdbc_properties self =
         credentials = case self.credentials of
             Nothing ->
                 env_user = Environment.get "PGUSER"
@@ -69,7 +69,7 @@ type Postgres
 
     ## Provides the dialect needed for creating SQL statements.
     dialect : Dialect
-    dialect = Dialect.postgres
+    dialect self = Dialect.postgres
 
 ## PRIVATE
    Given an `SSL_Mode`, create the JDBC properties to secure a Postgres-based

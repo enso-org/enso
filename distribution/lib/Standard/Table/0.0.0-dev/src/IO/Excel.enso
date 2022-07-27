@@ -47,43 +47,43 @@ type Excel_Range
 
     ## Gets the name of the sheet.
     sheet_name : Text
-    sheet_name = self.java_range.getSheetName
+    sheet_name self = self.java_range.getSheetName
 
     ## Gets the index (1-based) of the top row of the range.
        Returns `Nothing` if referring to a complete column.
     top_row : Integer | Nothing
-    top_row = if self.java_range.isWholeColumn then Nothing else
+    top_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getTopRow
 
     ## Gets the index (1-based) of the bottom row of the range.
        Returns `Nothing` if referring to a complete column.
     bottom_row : Integer | Nothing
-    bottom_row = if self.java_range.isWholeColumn then Nothing else
+    bottom_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getBottomRow
 
     ## Gets the index (1-based) of the left column of the range.
        Returns `Nothing` if referring to a complete row.
     left_column : Integer | Nothing
-    left_column = if self.java_range.isWholeRow then Nothing else
+    left_column self = if self.java_range.isWholeRow then Nothing else
         self.java_range.getLeftColumn
 
     ## Gets the index (1-based) of the right column of the range.
        Returns `Nothing` if referring to a complete row.
     right_column : Integer | Nothing
-    right_column = if self.java_range.isWholeRow then Nothing else
+    right_column self = if self.java_range.isWholeRow then Nothing else
         self.java_range.getRightColumn
 
     ## Is the Excel_Range referring to a single cell
     is_single_cell : Boolean
-    is_single_cell = self.java_range.isSingleCell
+    is_single_cell self = self.java_range.isSingleCell
 
     ## Gets the address to this in A1 format.
     address : Text
-    address = self.java_range.getAddress
+    address self = self.java_range.getAddress
 
     ## Displays the Excel_Range.
     to_text : Text
-    to_text = "Excel_Range " + self.address
+    to_text self = "Excel_Range " + self.address
 
     ## Validates if a column index (1-based) is within the valid range for
        Excel.
@@ -91,7 +91,7 @@ type Excel_Range
        Arguments:
        - column: 1-based index to check.
     is_valid_column : Integer -> Boolean
-    is_valid_column column =
+    is_valid_column self column =
         excel_2007_column_limit = 16384
         (column > 0) && (column <= excel_2007_column_limit)
 
@@ -100,14 +100,14 @@ type Excel_Range
        Arguments:
        - row: 1-based index to check.
     is_valid_row : Integer -> Boolean
-    is_valid_row row =
+    is_valid_row self row =
         excel_2007_row_limit = 1048576
         (row > 0) && (row <= excel_2007_row_limit)
 
     ## Given a column name, parses to the index (1-based) or return index
        unchanged.
     column_index : (Text|Integer) -> Integer
-    column_index column =
+    column_index self column =
         if column.is_an Integer then column else Java_Range.parseA1Column column
 
     ## Creates a Range from an address.
@@ -118,7 +118,7 @@ type Excel_Range
 
     ## Create a Range for a single cell.
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
-    for_cell sheet column row =
+    for_cell self sheet column row =
         col_index = Excel_Range.column_index column
 
         col_valid = validate (Excel_Range.is_valid_column col_index) ("Invalid column for Excel: " + column.to_text + ".")
@@ -129,7 +129,7 @@ type Excel_Range
 
     ## Create an Excel_Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
-    for_range sheet left top right bottom =
+    for_range self sheet left top right bottom =
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
@@ -143,7 +143,7 @@ type Excel_Range
 
     ## Create an Excel_Range for a set of columns.
     for_columns : Text -> (Text|Integer) -> (Text|Integer) -> Excel_Range
-    for_columns sheet left (right=left) =
+    for_columns self sheet left (right=left) =
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
@@ -155,7 +155,7 @@ type Excel_Range
 
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
-    for_rows sheet top (bottom=top) =
+    for_rows self sheet top (bottom=top) =
         top_valid = validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
         bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 

@@ -155,7 +155,7 @@ type Table
 
              example_display = Examples.inventory_table.display
     display : Integer -> Boolean -> Text
-    display show_rows=10 format_terminal=False =
+    display self show_rows=10 format_terminal=False =
         cols = Vector.Vector self.java_table.getColumns
         index =  self.java_table.getIndex
         col_names = [index.getName] + cols.map .getName
@@ -183,7 +183,7 @@ type Table
              import Standard.Examples
 
              example_print = Examples.inventory_table.print
-    print show_rows=10 =
+    print self show_rows=10 =
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
@@ -196,7 +196,7 @@ type Table
 
              example_to_json = Examples.inventory_table.to_json
     to_json : Json
-    to_json =
+    to_json self =
         index_prep = case self.index.catch No_Index_Set_Error (_->Nothing) of
             Nothing -> []
             index -> [index]
@@ -214,7 +214,7 @@ type Table
        Returns a JSON object containing useful metadata and previews of column
        values.
     to_default_visualization_data : Text
-    to_default_visualization_data =
+    to_default_visualization_data self =
         max_size = 10
         row_count = ['number_of_rows', self.row_count]
         cols = self.columns.map c->
@@ -229,7 +229,7 @@ type Table
        Guides the visualization system to display the most suitable graphical
        representation for this table.
     default_visualization : Visualization.Id.Id
-    default_visualization =
+    default_visualization self =
         cols = self.columns.map .name . map name-> name.to_case Case.Lower
         if cols.contains "latitude" && cols.contains "longitude" then Visualization.Id.geo_map else
             if cols.contains "x" && cols.contains "y" then Visualization.Id.scatter_plot else
@@ -247,7 +247,7 @@ type Table
 
              example_at = Examples.inventory_table.at "item_name"
     at : Text -> Column ! No_Such_Column_Error
-    at name = case self.java_table.getColumnOrIndexByName name of
+    at self name = case self.java_table.getColumnOrIndexByName name of
         Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Column c
 
@@ -298,7 +298,7 @@ type Table
 
              table.select_columns (By_Column [column1, column2])
     select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
-    select_columns (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
+    select_columns self (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
         new new_columns
 
@@ -347,7 +347,7 @@ type Table
 
              table.remove_columns (By_Column [column1, column2])
     remove_columns : Column_Selector -> Problem_Behavior -> Table
-    remove_columns (columns = By_Index [0]) (on_problems = Report_Warning) =
+    remove_columns self (columns = By_Index [0]) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.remove_columns internal_columns=self.columns selector=columns on_problems=on_problems
         new new_columns
 
@@ -401,7 +401,7 @@ type Table
 
              table.reorder_columns (By_Column [column1, column2])
     reorder_columns : Column_Selector -> Position.Position -> Problem_Behavior -> Table
-    reorder_columns (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
+    reorder_columns self (columns = By_Index [0]) (position = Position.Before_Other_Columns) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.reorder_columns internal_columns=self.columns selector=columns position=position on_problems=on_problems
         new new_columns
 
@@ -429,7 +429,7 @@ type Table
 
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> Table
-    sort_columns direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
+    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
         new_columns = Table_Helpers.sort_columns internal_columns=self.columns direction text_ordering
         new new_columns
 
@@ -461,7 +461,7 @@ type Table
 
               table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
     rename_columns : Column_Name_Mapping -> Problem_Behavior -> Table
-    rename_columns (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
+    rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) =
         new_names = Table_Helpers.rename_columns internal_columns=self.columns mapping=column_map on_problems=on_problems
         if new_names.is_error then new_names else
             new_columns = self.columns.map_with_index i->c->(c.rename (new_names.at i))
@@ -485,7 +485,7 @@ type Table
 
               table.use_first_row_as_names
     use_first_row_as_names : Problem_Behavior -> Table
-    use_first_row_as_names (on_problems=Report_Warning) =
+    use_first_row_as_names self (on_problems=Report_Warning) =
         mapper = col->
             val = col.at 0
             case val of
@@ -521,7 +521,7 @@ type Table
 
               table.aggregate [Group_By "Key", Count Nothing]
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
-    aggregate columns (on_problems=Report_Warning) =
+    aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
 
         on_problems.attach_problems_before validated.problems <|
@@ -607,7 +607,7 @@ type Table
                  table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning =
+    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
@@ -628,7 +628,7 @@ type Table
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
     parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
-    parse_values value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
+    parse_values self value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         columns = self.columns
         problem_builder = Vector.new_builder
 
@@ -708,7 +708,7 @@ type Table
                  mask = (table.at "sold_stock" > (table.at "total_stock" / 2))
                  table.where mask
     where : Column -> Table
-    where indexes =
+    where self indexes =
         Table (self.java_table.mask indexes.java_column)
 
     ## ALIAS Add Column
@@ -733,7 +733,7 @@ type Table
                  double_inventory = table.at "total_stock" * 2
                  table.set "total_stock" double_inventory
     set : Text -> Column.Column | Vector.Vector -> Table
-    set name column = case column of
+    set self name column = case column of
         Vector.Vector _ ->
             self.set name (Column.from_vector name column)
         Column.Column _ ->
@@ -748,7 +748,7 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns = Vector.Vector self.java_table.getColumns . map Column.Column
+    columns self = Vector.Vector self.java_table.getColumns . map Column.Column
 
     ## Sets the index of this table, using the column with the provided name.
 
@@ -763,7 +763,7 @@ type Table
 
              example_set_index = Examples.inventory_table.set_index "item_name"
     set_index : Text | Column -> Table
-    set_index index = case index of
+    set_index self index = case index of
         Text -> Table (self.java_table.indexFromColumn index)
         Column.Column c -> Table (self.java_table.indexFromColumn c)
 
@@ -779,7 +779,7 @@ type Table
 
              example_index = Examples.inventory_table.index
     index : Column.Column ! No_Index_Set_Error
-    index = case self.java_table.getIndex.toColumn of
+    index self = case self.java_table.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column i
 
@@ -813,7 +813,7 @@ type Table
              example_join =
                  Examples.inventory_table.join Examples.popularity_table
     join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
-    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
+    join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
             Column.Column _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
             Table t ->
@@ -832,7 +832,7 @@ type Table
              example_drop_missing_rows =
                  Examples.inventory_table.drop_missing_rows
     drop_missing_rows : Table
-    drop_missing_rows =
+    drop_missing_rows self =
         cols = self.columns
         case cols.not_empty of
             True ->
@@ -853,7 +853,7 @@ type Table
              example_drop_missing_cols =
                  Examples.inventory_table.drop_missing_columns
     drop_missing_columns : Table
-    drop_missing_columns =
+    drop_missing_columns self =
         non_missing = self.columns . filter (col -> col.count_missing == 0)
         index = self.java_table.getIndex
         Table (Java_Table.new (non_missing.map .java_column . to_array) index)
@@ -867,7 +867,7 @@ type Table
 
              example_row_count = Examples.inventory_table.row_count
     row_count : Integer
-    row_count = self.java_table.rowCount
+    row_count self = self.java_table.rowCount
 
     ## Returns the number of rows in this table.
 
@@ -878,7 +878,7 @@ type Table
 
              example_length = Examples.inventory_table.length
     length : Integer
-    length = self.row_count
+    length self = self.row_count
 
     ## Returns a Table describing this table's contents.
 
@@ -892,7 +892,7 @@ type Table
 
              example_info = Examples.inventory_table.info
     info : Table
-    info =
+    info self =
         cols = self.columns
         new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
 
@@ -914,7 +914,7 @@ type Table
              example_concat =
                  Examples.inventory_table.concat Examples.popularity_table
     concat : Table -> Table
-    concat other = Table (Java_Table.concat [self.java_table, other.java_table].to_array)
+    concat self other = Table (Java_Table.concat [self.java_table, other.java_table].to_array)
 
     ## ALIAS First N Rows
        UNSTABLE
@@ -934,7 +934,7 @@ type Table
 
              example_take_start = Examples.inventory_table.take_start 4
     take_start : Integer -> Table
-    take_start count = Table (self.java_table.slice 0 count)
+    take_start self count = Table (self.java_table.slice 0 count)
 
     ## ALIAS Last N Rows
        UNSTABLE
@@ -954,7 +954,7 @@ type Table
 
              example_take_end = Examples.inventory_table.take_end 4
     take_end : Integer -> Table
-    take_end count =
+    take_end self count =
         start_point = Math.max (self.row_count - count) 0
         Table (self.java_table.slice start_point count)
 
@@ -973,7 +973,7 @@ type Table
 
              example_first = Examples.inventory_table.first
     first : Table ! Empty_Error
-    first =
+    first self =
         table = self.take_start 1
         if table.row_count != 1 then Error.throw Empty_Error else table
 
@@ -991,7 +991,7 @@ type Table
 
              example_head = Examples.inventory_table.head
     head : Table ! Empty_Error
-    head = self.first
+    head self = self.first
 
     ## ALIAS Last Row
        UNSTABLE
@@ -1008,7 +1008,7 @@ type Table
 
              example_last = Examples.inventory_table.last
     last : Table ! Empty_Error
-    last =
+    last self =
         table = self.take_end 1
         if table.row_count != 1 then Error.throw Empty_Error else table
 
@@ -1024,7 +1024,7 @@ type Table
 
              example_reverse = Examples.inventory_table.reverse
     reverse : Table
-    reverse =
+    reverse self =
         mask = OrderBuilder.buildReversedMask self.row_count
         Table <| self.java_table.applyMask mask
 
@@ -1046,7 +1046,7 @@ type Table
 
              example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
     write_json : File.File -> Nothing
-    write_json file = self.to_json.to_text.write file
+    write_json self file = self.to_json.to_text.write file
 
     ## This function writes a table from memory into a file.
 
@@ -1110,12 +1110,12 @@ type Table
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") File_Format.Excel
     write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Not_Found | IO_Error
-    write path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
+    write self path format=File_Format.Auto on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         format.write_table (File.new path) self on_existing_file match_columns on_problems
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
-    to_csv = Text.from self (File_Format.Delimited delimiter=",")
+    to_csv self = Text.from self (File_Format.Delimited delimiter=",")
 
 
 ## UNSTABLE
@@ -1130,7 +1130,7 @@ type No_Such_Column_Error column_name
 
    Create a human-readable version of the no such column error.
 No_Such_Column_Error.to_display_text : Text
-No_Such_Column_Error.to_display_text =
+No_Such_Column_Error.to_display_text self =
     "The column " + self.column_name + " does not exist."
 
 ## UNSTABLE
@@ -1142,7 +1142,7 @@ type No_Index_Set_Error
 
    Create a human-readable version of the no such column error.
 No_Index_Set_Error.to_display_text : Text
-No_Index_Set_Error.to_display_text = "The table does not have an index set."
+No_Index_Set_Error.to_display_text self = "The table does not have an index set."
 
 ## UNSTABLE
 
@@ -1153,7 +1153,7 @@ type Empty_Error
 
    Pretty prints the error.
 Empty_Error.to_display_text : Text
-Empty_Error.to_display_text = "The table is empty."
+Empty_Error.to_display_text self = "The table is empty."
 
 ## PRIVATE
 from_columns cols = Table (Java_Table.new cols.to_array)

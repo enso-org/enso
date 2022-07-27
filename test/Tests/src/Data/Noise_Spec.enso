@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Test
 
 type My_Generator
-My_Generator.step _ _ = 1
+My_Generator.step self _ _ = 1
 
 spec = Test.group "Noise" <|
     Test.specify "should be able to be called on numbers" <|
