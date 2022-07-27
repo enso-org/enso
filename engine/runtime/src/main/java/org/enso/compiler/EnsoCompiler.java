@@ -21,8 +21,7 @@ final class EnsoCompiler implements AutoCloseable {
       return parser.parse(src.getCharacters());
   }
   
-  IR generateIR(Tree t) {
-    System.out.println(t);
-    return null;
+  IR.Module generateIR(Tree t) {
+    return TreeToIr.MODULE.translate(t);
   }
 }

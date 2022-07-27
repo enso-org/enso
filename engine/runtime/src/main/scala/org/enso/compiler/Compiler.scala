@@ -441,15 +441,26 @@ class Compiler(
       val size = src.getCharacters().length()
       System.err.println("Parsed " + src.getURI() + " in " + took + " ms, size " + size)
       if (size < 20) {
-        ensoCompiler.generateIR(tree)
-        oldParse(true)
+        val ensoIr = ensoCompiler.generateIR(tree)
+        val oldIr = oldParse(true)
+        def filter(ir : IR): String = ir.pretty.replaceAll("id = [0-9a-f\\-]*", "id = _")
+
+        if (filter(ensoIr) != filter(oldIr)) {
+
+          System.err.println("============ Difference =========")
+          System.err.println(filter(oldIr));
+          System.err.println("============ End of old IR =========")
+          System.err.println(filter(ensoIr));
+          System.err.println("============ End of new IR =========")
+        }
+        ensoIr
       } else {
         oldParse(false)
       }
     } catch {
       case ex : Throwable => {
         val fail = System.currentTimeMillis() - now
-        System.err.println(ex.getClass().getSimpleName() + " in " + src.getURI() + " in " + fail + " ms with ")
+        System.err.println(ex.getClass().getSimpleName() + ":" + ex.getMessage() + " in " + src.getURI() + " in " + fail + " ms with ")
         oldParse(false)
       }
     }
@@ -567,7 +578,7 @@ class Compiler(
     * @return an AST representation of `source`
     */
   def parse(source: Source): AST = {
-    
+
     Parser().runWithIds(source.getCharacters.toString)
   }
 
