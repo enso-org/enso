@@ -3,6 +3,9 @@ package org.enso.compiler;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
+import org.enso.compiler.core.IR$Error$Syntax;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidTypeDefinition$;
+import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
@@ -62,6 +65,13 @@ final class TreeToIr {
                 meta(), diag()
               );
               bindings = cons(m, bindings);
+            }
+            case Tree.TypeDef def -> {
+              var key = buildName(def);
+              var name = buildName(def.getName());
+              var params = def.getParams();
+              var constructors = def.getConstructors();
+              var translatedBody = translateTypeBody(def);
             }
             case null -> {
             }
@@ -320,19 +330,20 @@ final class TreeToIr {
     *
     * @param body the body to be translated
     * @return the [[IR]] representation of `body`
-
-  def translateTypeBody(body: AST): List[IR] = {
-    body match {
-      case AST.Block.any(block) =>
-        val actualLines: List[AST] =
-          block.firstLine.elem :: block.lines.flatMap(_.elem)
-
-        if (actualLines.nonEmpty) {
-          actualLines.map(translateTypeBodyExpression)
-        } else {
-          List(Error.Syntax(body, Error.Syntax.InvalidTypeDefinition))
-        }
-      case _ => List(Error.Syntax(body, Error.Syntax.InvalidTypeDefinition))
+    */
+  private scala.collection.immutable.List<IR> translateTypeBody(Tree.TypeDef def) {
+    List<IR> result = nil();
+    boolean found = false;
+    for (var line : def.getBlock()) {
+      var expr = translateTypeBodyExpression(line);
+      result = cons(expr, nil());
+      found = true;
+    }
+    if (!found) {
+      var err = new IR$Error$Syntax(null, IR$Error$Syntax$InvalidTypeDefinition$.MODULE$, meta(), diag());
+      return cons(err, result);
+    } else {
+      return result;
     }
   }
 
@@ -341,12 +352,15 @@ final class TreeToIr {
     *
     * @param maybeParensedInput the expression to be translated
     * @return the [[IR]] representation of `maybeParensedInput`
-
-  def translateTypeBodyExpression(maybeParensedInput: AST): IR = {
-    val inputAst = AstView.MaybeManyParensed
+    */
+  private IR translateTypeBodyExpression(Line maybeParensedInput) {
+    var inputAst = maybeParensedInput;
+    /*
+        AstView.MaybeManyParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
-
+    */
+    /*
     inputAst match {
       case AST.Ident.Annotation.any(ann) =>
         IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
@@ -396,8 +410,11 @@ final class TreeToIr {
       case _ =>
         IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
     }
+    */
+    return new IR$Error$Syntax(null, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
   }
 
+  /*
   private def translateForeignDefinition(header: List[AST], body: AST): Either[
     String,
     (IR.Name, List[IR.DefinitionArgument], IR.Foreign.Definition)
@@ -1285,16 +1302,19 @@ final class TreeToIr {
     }
   }
   */
-  private IR$Name$Literal buildName(Tree.Ident ident) {
+  private IR$Name$Literal buildName(Tree ident) {
     return buildName(ident, false);
   }
-  private IR$Name$Literal buildName(Tree.Ident ident, boolean isMethod) {
-    return new IR$Name$Literal(
-      ident.getToken().codeRepr(),
-      isMethod , // || AST.Opr.any.unapply(ident).isDefined,
-      Option.empty(), // getIdentifiedLocation(ident)
-      meta(), diag()
-    );
+  private IR$Name$Literal buildName(Tree ident, boolean isMethod) {
+    return switch (ident) {
+      case Tree.Ident id -> new IR$Name$Literal(
+        id.getToken().codeRepr(),
+        isMethod , // || AST.Opr.any.unapply(ident).isDefined,
+        Option.empty(), // getIdentifiedLocation(ident)
+        meta(), diag()
+      );
+      default -> throw new UnhandledEntity(ident, "buildName");
+    };
   }
 /*
   private def getIdentifiedLocation(ast: AST): Option[IdentifiedLocation] =

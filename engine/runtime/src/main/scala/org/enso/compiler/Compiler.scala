@@ -440,7 +440,7 @@ class Compiler(
       val took = System.currentTimeMillis() - now
       val size = src.getCharacters().length()
       System.err.println("Parsed " + src.getURI() + " in " + took + " ms, size " + size)
-      if (size < 20) {
+      if (size < 41) {
         val ensoIr = ensoCompiler.generateIR(tree)
         val oldIr = oldParse(true)
         def filter(ir : IR): String = ir.pretty.replaceAll("id = [0-9a-f\\-]*", "id = _")
