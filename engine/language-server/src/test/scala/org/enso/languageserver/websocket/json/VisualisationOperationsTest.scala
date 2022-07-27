@@ -37,7 +37,66 @@ class VisualisationOperationsTest extends BaseServerTest {
                   config
                 )
               ) =>
-            config.expression shouldBe visualisationConfig.expression
+            config.expression shouldBe visualisationConfig.expression.toApi
+            config.visualisationModule shouldBe visualisationConfig.visualisationModule
+            config.executionContextId shouldBe visualisationConfig.executionContextId
+            requestId
+
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.VisualisationAttached()
+      )
+      client.expectJson(ExecutionContextJsonMessages.ok(1))
+    }
+
+    "support old protocol" in {
+      val visualisationId = UUID.randomUUID()
+      val expressionId    = UUID.randomUUID()
+
+      val client                  = getInitialisedWsClient()
+      val contextId               = createExecutionContext(client)
+      val visualisationModule     = "Foo.Bar.baz"
+      val visualisationExpression = "a=x+y"
+      val visualisationConfig =
+        VisualisationConfiguration(
+          contextId,
+          visualisationModule,
+          visualisationExpression
+        )
+
+      client.send(
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/attachVisualisation",
+            "id": 1,
+            "params": {
+              "visualisationId": $visualisationId,
+              "expressionId": $expressionId,
+              "visualisationConfig": {
+                "executionContextId": $contextId,
+                "visualisationModule": $visualisationModule,
+                "expression": $visualisationExpression
+              }
+            }
+          }
+          """
+      )
+
+      val requestId =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.AttachVisualisation(
+                  `visualisationId`,
+                  `expressionId`,
+                  config
+                )
+              ) =>
+            config.expression shouldBe visualisationConfig.expression.toApi
             config.visualisationModule shouldBe visualisationConfig.visualisationModule
             config.executionContextId shouldBe visualisationConfig.executionContextId
             requestId
@@ -106,7 +165,7 @@ class VisualisationOperationsTest extends BaseServerTest {
                   config
                 )
               ) =>
-            config.expression shouldBe visualisationConfig.expression
+            config.expression shouldBe visualisationConfig.expression.toApi
             config.visualisationModule shouldBe visualisationConfig.visualisationModule
             config.executionContextId shouldBe visualisationConfig.executionContextId
             requestId
@@ -155,7 +214,7 @@ class VisualisationOperationsTest extends BaseServerTest {
                   config
                 )
               ) =>
-            config.expression shouldBe visualisationConfig.expression
+            config.expression shouldBe visualisationConfig.expression.toApi
             config.visualisationModule shouldBe visualisationConfig.visualisationModule
             config.executionContextId shouldBe visualisationConfig.executionContextId
             requestId
@@ -312,7 +371,7 @@ class VisualisationOperationsTest extends BaseServerTest {
                 requestId,
                 Api.ModifyVisualisation(`visualisationId`, config)
               ) =>
-            config.expression shouldBe visualisationConfig.expression
+            config.expression shouldBe visualisationConfig.expression.toApi
             config.visualisationModule shouldBe visualisationConfig.visualisationModule
             config.executionContextId shouldBe visualisationConfig.executionContextId
             requestId

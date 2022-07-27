@@ -27,6 +27,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
+  - [`VisualisationExpression`](#visualisationexpression)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
@@ -378,19 +379,39 @@ A configuration object for properties of the visualisation.
 
 ```typescript
 interface VisualisationConfiguration {
-  /**
-   * An execution context of the visualisation.
-   */
+  /** An execution context of the visualisation. */
   executionContextId: UUID;
+
   /**
    * A qualified name of the module containing the expression which creates
    * visualisation.
    */
-  visualisationModule: String;
-  /**
-   * The expression that creates a visualisation.
-   */
-  expression: String;
+  visualisationModule?: String;
+
+  /** An expression that creates a visualisation. */
+  expression: String | VisualisationExpression;
+}
+```
+
+### `VisualisationExpression`
+
+A visualisation expression can be a text expression, or a pointer to a module
+method.
+
+```typescript
+type VisualisationExpression = Text | ModuleMethod;
+
+interface Text {
+  /** A qualified module name containing the expression. */
+  module: string;
+
+  /** An Enso expression that creates a visualisation. */
+  expression: string;
+}
+
+interface ModuleMethod {
+  /** A pointer to a method definition. */
+  methodPointer: MethodPointer;
 }
 ```
 

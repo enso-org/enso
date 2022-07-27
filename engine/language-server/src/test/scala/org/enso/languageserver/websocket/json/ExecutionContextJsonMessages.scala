@@ -141,7 +141,6 @@ object ExecutionContextJsonMessages {
               "expressionId": $expressionId,
               "visualisationConfig": {
                 "executionContextId": ${configuration.executionContextId},
-                "visualisationModule": ${configuration.visualisationModule},
                 "expression": ${configuration.expression}
               }
             }

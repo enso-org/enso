@@ -491,7 +491,7 @@ object Runtime {
         )
       )
     )
-    sealed trait VisualisationExpression {
+    sealed trait VisualisationExpression extends ToLogString {
       def module: String
     }
     object VisualisationExpression {
@@ -502,7 +502,15 @@ object Runtime {
         * @param expression an expression that creates a visualization
         */
       case class Text(module: String, expression: String)
-          extends VisualisationExpression
+          extends VisualisationExpression {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"Text(module=$module" +
+          s",expression=" +
+          (if (shouldMask) STUB else expression) +
+          ")"
+      }
 
       /** Visualization expression represented as a module method.
         *
@@ -510,7 +518,13 @@ object Runtime {
         */
       case class ModuleMethod(methodPointer: MethodPointer)
           extends VisualisationExpression {
+
+        /** @inheritdoc */
         override val module: String = methodPointer.module
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"ModuleMethod(methodPointer=$methodPointer)"
       }
     }
 
@@ -524,13 +538,15 @@ object Runtime {
       expression: VisualisationExpression
     ) extends ToLogString {
 
+      /** A qualified module name containing the expression. */
+      def visualisationModule: String =
+        expression.module
+
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         s"VisualisationConfiguration(" +
         s"executionContextId=$executionContextId," +
-        s"expression=" +
-        (if (shouldMask) STUB else expression) +
-        ")"
+        s"expression=${expression.toLogString(shouldMask)})"
     }
 
     /** An operation applied to the suggestion argument. */
