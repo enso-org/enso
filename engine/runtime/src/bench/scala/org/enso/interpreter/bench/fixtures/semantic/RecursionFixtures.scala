@@ -55,10 +55,10 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |stateSum = n ->
       |    acc = State.get Number
       |    State.put Number (acc + n)
-      |    if n == 0 then State.get Number else @Tail_Call here.stateSum (n - 1)
+      |    if n == 0 then State.get Number else @Tail_Call stateSum (n - 1)
       |
       |main = sumTo ->
-      |    res = State.run Number 0 (here.stateSum sumTo)
+      |    res = State.run Number 0 (stateSum sumTo)
       |    res
       |""".stripMargin
   val sumStateTCO = getMain(sumStateTCOCode)
@@ -82,14 +82,14 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |
       |doNTimes = n -> ~block ->
       |    block
-      |    if n == 1 then Nothing else @Tail_Call here.doNTimes n-1 block
+      |    if n == 1 then Nothing else @Tail_Call doNTimes n-1 block
       |
       |main = n ->
       |    block =
       |        x = State.get Number
       |        State.put Number x+1
       |
-      |    res = State.run Number 0 (here.doNTimes n block)
+      |    res = State.run Number 0 (doNTimes n block)
       |    res
       |""".stripMargin
   val nestedThunkSum = getMain(nestedThunkSumCode)
