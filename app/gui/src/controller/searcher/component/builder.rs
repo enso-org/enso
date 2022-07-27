@@ -219,6 +219,27 @@ impl List {
     fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
         let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
+        // FIXME[MC]: do it explicitly from searcher through a separate method
+        // TODO(LATER): how to make it possible to add virtual entries only to Standard.Base.Input
+        // group, not to any group named `Input`?
+        {
+            let vgroup = component::Group::from_name_and_virtual_entries("Favs", [
+                Rc::new(component::Virtual {
+                    name: "text input",
+                    code: "\"\"",
+                    this_arg: None,
+                    argument_types: vec![],
+                    // FIXME[MC]
+                    return_type: None, 
+                    imports: vec![],
+                    documentation_html: Some("This will allow you to enter some text easily."),
+                    method_id: None,
+                    // FIXME[MC] possible to fix?
+                    icon: "TextInput".into(),
+                }),
+            ]);
+            favorites_groups.insert(0, vgroup);
+        }
         for group in favorites_groups.iter_mut() {
             group.retain_entries(|e| match e.kind {
                 component::Kind::FromDb { id, .. } => self.allowed_favorites.contains(&id),
