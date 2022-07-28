@@ -549,12 +549,15 @@ object PackageRepository {
       virtualModule: Module,
       refs: List[QualifiedName]
     ): Unit = {
+      import scala.jdk.CollectionConverters._
+
+      assert(virtualModule.isVirtual)
       if (!loadedModules.contains(virtualModule.getName.toString)) {
         loadedModules.put(virtualModule.getName.toString, virtualModule)
       } else {
         val loaded = loadedModules(virtualModule.getName.toString)
-        if (!loaded.isVirtual && virtualModule.isVirtual) {
-          loaded.setDirectSubmoduleNames(refs.toArray)
+        if (!loaded.isVirtual) {
+          loaded.setDirectVirtualModulesRefs(refs.asJava)
         }
       }
     }

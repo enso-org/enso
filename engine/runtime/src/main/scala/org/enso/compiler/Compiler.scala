@@ -424,7 +424,7 @@ class Compiler(
     val parsedAST = parse(module.getSource)
     val expr      = generateIR(parsedAST)
     val exprWithModuleExports =
-      injectVirtualModuleExports(expr, module.getDirectSubmoduleNames.toList)
+      injectVirtualModuleExports(expr, module.getDirectVirtualModulesRefs)
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
     module.unsafeSetIr(discoveredModule)
@@ -591,9 +591,11 @@ class Compiler(
     */
   private def injectVirtualModuleExports(
     ir: IR.Module,
-    modules: Iterable[QualifiedName]
+    modules: java.util.List[QualifiedName]
   ): IR.Module = {
-    val moduleNames = modules.map { q =>
+    import scala.jdk.CollectionConverters._
+    
+    val moduleNames = modules.asScala.map { q =>
       val name = q.path.map(
         IR.Name.Literal(_, isMethod = false, location = None)
       ) ++ List(IR.Name.Literal(q.item, isMethod = false, location = None))

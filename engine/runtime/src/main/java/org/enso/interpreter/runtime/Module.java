@@ -15,8 +15,9 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
@@ -95,7 +96,7 @@ public class Module implements TruffleObject {
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
   private boolean virtual;
-  private QualifiedName[] directSubmoduleNames;
+  private List<QualifiedName> directVirtualModulesRefs;
 
   /**
    * Creates a new module.
@@ -161,9 +162,9 @@ public class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(
-      QualifiedName name, Package<TruffleFile> pkg, boolean virtual, Optional<Rope> literalSource) {
+      QualifiedName name, Package<TruffleFile> pkg, boolean virtual, Rope literalSource) {
     this.sources =
-        literalSource.map(s -> ModuleSources.NONE.newWith(s)).orElseGet(() -> ModuleSources.NONE);
+        literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
@@ -183,11 +184,11 @@ public class Module implements TruffleObject {
    * @return the module with empty scope.
    */
   public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
-    return new Module(name, pkg, false, Optional.empty());
+    return new Module(name, pkg, false, null);
   }
 
   public static Module virtual(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
-    return new Module(name, pkg, true, Optional.of(source));
+    return new Module(name, pkg, true, source);
   }
 
   /** Clears any literal source set for this module. */
@@ -221,20 +222,21 @@ public class Module implements TruffleObject {
    *
    * @param names fully qualified names of (potentially virtual) modules' names
    */
-  public void setDirectSubmoduleNames(QualifiedName[] names) {
-    directSubmoduleNames = names;
+  public void setDirectVirtualModulesRefs(List<QualifiedName> names) {
+    assert directVirtualModulesRefs == null;
+    directVirtualModulesRefs = names;
   }
 
   /**
-   * Return an array of directly available modules of this one, if any.
+   * Return a list of directly referencing virtual modules of this one, if any.
    *
    * @return a non-null, possibly empty, array of fully qualified names of modules
    */
-  public QualifiedName[] getDirectSubmoduleNames() {
-    if (directSubmoduleNames == null) {
-      return new QualifiedName[0];
+  public List<QualifiedName> getDirectVirtualModulesRefs() {
+    if (directVirtualModulesRefs == null) {
+      return new ArrayList<>();
     }
-    return directSubmoduleNames;
+    return directVirtualModulesRefs;
   }
 
   /**

@@ -185,8 +185,7 @@ public final class AtomConstructor implements TruffleObject {
             null,
             new FunctionSchema(
                 new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
-    definitionScope.registerMethod(
-        definitionScope.getAssociatedType(), this.name, function);
+    definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
   private Function generateGetter(int position) {
