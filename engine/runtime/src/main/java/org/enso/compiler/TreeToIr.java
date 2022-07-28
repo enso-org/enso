@@ -18,6 +18,7 @@ import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.syntax.text.Location;
 import org.enso.syntax2.Line;
+import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
 import scala.Option;
 import scala.collection.immutable.List;
@@ -51,13 +52,17 @@ final class TreeToIr {
           switch (line.getExpression()) {
             case Tree.Assignment a -> {
               var name = switch (a.getPattern()) {
-                case Tree.Ident id -> id.getToken().codeRepr();
+                case Tree.Ident id -> new IR$Name$Literal(
+                  id.getToken().codeRepr(), false,
+                  getIdentifiedLocation(id),
+                  meta(), diag()
+                );
                 default -> throw new IllegalStateException("Not an identifier: " + a.getPattern());
               };
               var r = new IR$Name$MethodReference(
                 Option.empty(),
-                new IR$Name$Literal(name, false, getIdentifiedLocation(module), meta(), diag()),
-                getIdentifiedLocation(module),
+                name,
+                name.location(),
                 meta(), diag()
               );
               var m = new IR$Module$Scope$Definition$Method$Binding(
@@ -1320,22 +1325,35 @@ final class TreeToIr {
     };
   }
 
-  private static final Field spanLeftOffsetCodeReprBegin;
-  private static final Field spanLeftOffsetCodeReprLen;
+  private static final Field codeReprBegin;
+  private static final Field codeReprLen;
+  private static final Field spanLeftOffsetVisible;
+  private static final Field spanCodeLength;
   static {
     try {
-      spanLeftOffsetCodeReprBegin = Tree.class.getDeclaredField("spanLeftOffsetCodeReprBegin");
-      spanLeftOffsetCodeReprLen = Tree.class.getDeclaredField("spanLeftOffsetCodeReprLen");
-      spanLeftOffsetCodeReprBegin.setAccessible(true);
-      spanLeftOffsetCodeReprLen.setAccessible(true);
+      codeReprBegin = Token.class.getDeclaredField("codeReprBegin");
+      codeReprLen = Token.class.getDeclaredField("codeReprLen");
+      spanLeftOffsetVisible = Tree.class.getDeclaredField("spanLeftOffsetVisible");
+      spanCodeLength = Tree.class.getDeclaredField("spanCodeLength");
+      codeReprBegin.setAccessible(true);
+      codeReprLen.setAccessible(true);
+      spanLeftOffsetVisible.setAccessible(true);
+      spanCodeLength.setAccessible(true);
     } catch (NoSuchFieldException ex) {
       throw new ExceptionInInitializerError(ex);
     }
   }
   private Option<IdentifiedLocation> getIdentifiedLocation(Tree ast) {
     try {
-      int begin = spanLeftOffsetCodeReprBegin.getInt(ast);
-      int len = spanLeftOffsetCodeReprLen.getInt(ast);
+      int begin, len;
+      if (ast instanceof Tree.Ident id) {
+        var token = id.getToken();
+        begin = (int) codeReprBegin.getLong(token);
+        len = (int) codeReprLen.getLong(token);
+      } else {
+        begin = (int) spanLeftOffsetVisible.getLong(ast);
+        len = (int) spanCodeLength.getLong(ast);
+      }
       return Option.apply(new IdentifiedLocation(new Location(begin, begin + len), Option.empty()));
     } catch (IllegalArgumentException | IllegalAccessException ex) {
       throw new IllegalStateException(ex);

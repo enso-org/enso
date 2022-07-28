@@ -17,11 +17,16 @@ final class EnsoCompiler implements AutoCloseable {
   public void close() throws Exception {
     this.parser.close();
   }
-  
+
+  IR.Module compile(Source src) throws UnsupportedSyntaxException {
+    var tree = parse(src);
+    return generateIR(tree);
+  }
+
   Tree parse(Source src) throws UnsupportedSyntaxException {
       return parser.parse(src.getCharacters());
   }
-  
+
   IR.Module generateIR(Tree t) {
     return TreeToIr.MODULE.translate(t);
   }
