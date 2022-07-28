@@ -51,7 +51,6 @@ use crate::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
@@ -62,6 +61,14 @@ use crate::visible_area::all_visible_locations;
 use crate::visible_area::visible_columns;
 use crate::visible_area::visible_rows;
 pub use entry::Entry;
+
+
+// =================
+// === Constants ===
+// =================
+
+const MOUSE_MOVEMENT_NEEDED_TO_HOVER_PX: f32 = 1.5;
+
 
 
 // ===========
@@ -172,6 +179,7 @@ where EntryParams: frp::node::Data
         if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();
             let entry_network = entry_frp.network();
+            let mouse = &self.app.display.default_scene.mouse.frp;
             frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
                 init <- source_();
                 entry_frp.set_size <+ all(init, self.set_entry_size)._1();
@@ -182,10 +190,16 @@ where EntryParams: frp::node::Data
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
                 let location = entry_frp.set_location.clone_ref();
+                mouse_in <- bool(&events.mouse_out, &events.mouse_over);
                 hovered <- events.mouse_over.gate_not(disabled);
+                hover_start_pos <- mouse.position.sample(&hovered);
+                mouse_over_with_start_pos <- all(mouse.position, hover_start_pos).gate(&mouse_in);
+                mouse_move_which_hovers <- mouse_over_with_start_pos.filter(
+                    |(pos, start_pos)| (pos - start_pos).norm() > MOUSE_MOVEMENT_NEEDED_TO_HOVER_PX
+                );
                 selected <- events.mouse_down.gate_not(disabled);
                 accepted <- events.mouse_down_primary.gate_not(disabled);
-                self.entry_hovered <+ location.sample(&hovered).map(|l| Some(*l));
+                self.entry_hovered <+ location.sample(&mouse_move_which_hovers).map(|l| Some(*l));
                 self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
                 self.entry_accepted <+ location.sample(&accepted);
             }
@@ -374,6 +388,15 @@ pub struct GridViewTemplate<
 /// anymore, after adding connections to this FRP node in particular. Therefore, be sure, that you
 /// connect providing models logic before emitting any of [`Frp::set_entries_size`] or
 /// [`Frp::set_viewport`].  
+///
+/// # Hovering, Selecting and Accepting Entries
+///
+/// The support for hovering, selecting or accepting entries is limited in this component - it will
+/// react for mouse events and emit appropriate event when an entry is hovered/selected or accepted.
+/// It does not set `is_selected/is_hovered` flag on entry nor highlight any of those components. If
+/// you   want to have full support, use [`selectable::GridView`] instead.
+///
+/// The entries are both selected accepted with LMB-click, and selected with any other mouse click.
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
 impl<E: Entry> GridView<E> {
@@ -430,6 +453,7 @@ impl<E: Entry> GridView<E> {
                 |_, p| p.all_visible_locations().collect_vec()
             );
             out.model_for_entry_needed <+ request_models_after_vis_area_change;
+            out.model_for_entry_needed <+ request_model_after_grid_size_change;
             out.model_for_entry_needed <+ request_models_after_entry_size_change;
             out.model_for_entry_needed <+ request_models_after_reset;
             out.model_for_entry_needed <+ request_models_after_text_layer_change;

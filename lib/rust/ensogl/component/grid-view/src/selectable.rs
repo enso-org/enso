@@ -1,18 +1,18 @@
-pub mod highlight;
+//! A module containing the selectable [`GridView`] component.
 
-use crate::entry;
-use crate::entry_position;
 use crate::prelude::*;
-use crate::Col;
+
 use crate::Entry;
-use crate::Row;
+
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::object::Instance;
-use ensogl_core::display::object::WeakInstance;
-use ensogl_core::display::Scene;
-use ensogl_core::gui::Widget;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod highlight;
 
 
 
@@ -20,6 +20,8 @@ use ensogl_core::gui::Widget;
 // === GridView ===
 // ================
 
+/// A template for [`GridView`] structure, where entry parameters and model are separate generic
+/// arguments, similar to [`crate::GridViewTemplate`] - see its docs for details.
 #[derive(CloneRef, Debug, Deref, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct GridViewTemplate<
@@ -34,9 +36,37 @@ pub struct GridViewTemplate<
     hover_handler:     highlight::Handler<Entry, EntryModel, EntryParams>,
 }
 
+/// The Selectable Grid View.
+///
+/// An extension of [the base `GridView`](crate::GridView), where hovered and selected entries
+/// will be highlighted. It shares the base [FRP API][`crate::Frp`], also providing additional
+/// FRP APIs for handling [selection](selection_highlight_frp) and [hover](hover_highlight_frp)
+/// highlights.
+///
+/// # Highlight modes
+///
+/// **Basic**: By default, the highlight is displayed as `highlight::shape::View` instance. The
+/// shapes used by entries should specify if they need to be above or below highlight (for example
+/// by adding `above = [ensogl_grid_view::selectable::highlight::shape]` clause to
+/// [`define_shape_system!`] macro.
+///
+/// **Masked Layer**: The basic highlight, however does not work correctly with case where we want
+/// selected entries having different style (e.g. different text color) when highlighted. Because
+/// of the highlight's smooth transition between entries, there are frames where only part of
+/// the entry is highlighted.
+///
+/// Therefore, you may specify a special layer, which is displayed over base grid view. The Grid
+/// View will then create needed sub-layers (main and for text) and their mask: the sub-layers will
+/// have another [`GridView`] instance with identical content but different entry parameters. They
+/// are masked with the highlight shape, so only the highlighted fragment of the another grid view
+/// is actually displayed.
+///
+/// The "Masked layer" mode may be set for highlight and selection independently, by calling
+/// [`highlight::FRP::setup_masked_layer`] on the proper highlight API.
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
 impl<E: Entry> GridView<E> {
+    /// Create new Selectable Grid View instance.
     pub fn new(app: &Application) -> Self {
         let grid = crate::GridView::<E>::new(app);
         let highlights = highlight::shape::View::new(Logger::new("highlights"));
@@ -60,10 +90,12 @@ where
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
 {
+    /// Access to the Selection Highlight FRP.
     pub fn selection_highlight_frp(&self) -> &highlight::Frp<EntryParams> {
         &self.selection_handler.frp
     }
 
+    /// Access to the Hover Highlight FRP.
     pub fn hover_highlight_frp(&self) -> &highlight::Frp<EntryParams> {
         &self.hover_handler.frp
     }
@@ -100,12 +132,16 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::entry;
+    use crate::entry_position;
+    use crate::Col;
     use crate::EntryFrp;
+    use crate::Row;
     use ensogl_core::application::frp::API;
+    use ensogl_core::data::color;
     use ensogl_core::display::scene::Layer;
     use ensogl_core::display::Scene;
     use ensogl_scroll_area::Viewport;
-    use ensogl_text::View;
     use itertools::iproduct;
 
     const CONTOUR_VARIANTS: [entry::Contour; 3] = [

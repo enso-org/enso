@@ -149,10 +149,15 @@ pub trait Dim4: Dim3 {
     fn w(&self) -> Self::Component;
 }
 
+/// Describes types with at least 4 dimension components, which has their "two-dimension" version,
+/// for example [`Vector4`] whose "two-dimension" version is [`Vector2`].
 pub trait HasDim2Version: Dim4 {
+    /// The type being the "two-dimension" version of self.
     type Dim2Version;
 
+    /// Create "two-dimension" version constructed from first and second component.
     fn xy(&self) -> Self::Dim2Version;
+    /// Create "two-dimension" version constructed third and fourth component.
     fn zw(&self) -> Self::Dim2Version;
 }
 

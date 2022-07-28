@@ -1,22 +1,45 @@
+//! A module containing the single _Masked layer_ [`Handler`] used in
+//! [`crate::selectable::highlight::Handler`].
+
 use crate::prelude::*;
+
 use crate::selectable::highlight::shape;
-use crate::Col;
 use crate::Entry;
-use crate::Row;
+
 use ensogl_core::application::Application;
 use ensogl_core::display::scene::Layer;
 
+
+
+// ===============
+// === Handler ===
+// ===============
+
+/// The highlight _Masked layer_ handler.
+///
+/// The handler can be created for some specific layer and _base_ grid view. It will add two
+/// sub-layers:
+/// * one with the new _inner_ [`crate::GridView`] component;
+/// * second being set up as a text layer of aforementioned grid view.
+/// The _inner_ Grid View will be fully synchronized with the _base_ one except the entries'
+/// parameters. The layers will be masked with highlight [`shape`], so only the highlighted fragment
+/// of the _inner_ grid view is actually displayed.
+///
+/// See [`selection::GridView`] docs for usage example.
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
-pub struct Layers<Entry: 'static, EntryModel: frp::node::Data, EntryParams: frp::node::Data> {
+pub struct Handler<Entry: 'static, EntryModel: frp::node::Data, EntryParams: frp::node::Data> {
     entries:   Layer,
     text:      Layer,
     mask:      Layer,
+    /// The _inner_ grid view.
     pub grid:  crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
+    /// The shape being a mask for the sub-layers.
     pub shape: shape::View,
 }
 
-impl<E: Entry> Layers<E, E::Model, E::Params> {
+impl<E: Entry> Handler<E, E::Model, E::Params> {
+    /// Create new handler for given layer and _base_ [`GridView`](crate::GridView).
     pub fn new(app: &Application, parent_layer: &Layer, base_grid: &crate::GridView<E>) -> Self {
         let grid = crate::GridView::new(app);
         let shape = shape::View::new(Logger::new("HighlightMask"));

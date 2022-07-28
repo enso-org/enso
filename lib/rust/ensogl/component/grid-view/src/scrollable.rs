@@ -18,8 +18,8 @@ use ensogl_scroll_area::ScrollArea;
 // === GridView ===
 // ================
 
-/// A template for [`GridView`] structure, where entry parameters and model are separate generic
-/// arguments, similar to [`crate::GridViewTemplate`] - see its docs for details.
+/// A template for [`GridView`] and [`SelectableGridView`] structures, parametrized by the
+/// exact GridView implementation inside scroll area.
 #[derive(Clone, CloneRef, Debug, Deref)]
 #[clone_ref(bound = "InnerGridView: CloneRef")]
 pub struct GridViewTemplate<InnerGridView> {
@@ -29,28 +29,34 @@ pub struct GridViewTemplate<InnerGridView> {
     text_layer: Layer,
 }
 
-// /// Scrollable Grid View Component.
-// ///
-// /// This Component displays any kind of entry `E` in a grid. It's a wrapper putting the
-// /// [`crate::GridView`] into [`ScrollArea`] and updating the wrapped grid view with
-// [`ScrollArea`]'s /// viewport.
-// ///
-// /// The FRP API of [`crate::GridView`] is exposed as [`Deref`] target. The [`scroll_frp`]
-// /// method gives access to [`ScrollArea`] API.
-// ///
-// /// To have it working you must do same steps as in [`crate::GridView`], but instead of setting
-// /// viewport you must set size of ScrollArea by calling [`resize`] method, or using `resize`
-// /// endpoint of [`ScrollArea`] API.
-// ///
-// /// See [`crate::GridView`] docs for more info about entries instantiation and process of
-// requesting /// for Models.
-// pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
-
+/// Scrollable Grid View Component.
+///
+/// This Component displays any kind of entry `E` in a grid. It's a wrapper putting the
+/// [`crate::GridView`] into [`ScrollArea`] and updating the wrapped grid view with [`ScrollArea`]'s
+/// viewport.
+///
+/// The FRP API of [`crate::GridView`] is exposed as [`Deref`] target. The [`scroll_frp`]
+/// method gives access to [`ScrollArea`] API.
+///
+/// To have it working you must do same steps as in [`crate::GridView`], but instead of setting
+/// viewport you must set size of ScrollArea by calling [`resize`] method, or using `resize`
+/// endpoint of [`ScrollArea`] API.
+///
+/// See [`crate::GridView`] docs for more info about entries instantiation and process of requesting
+/// for Models.
 pub type GridView<E> = GridViewTemplate<crate::GridView<E>>;
+
+/// Scrollable and Selectable Grid View Component.
+///
+/// This Component displays any kind of entry `E` in a grid, inside the Scroll area and allowing
+/// displaying highlights for hovered and selected entries.
+///
+/// Essentially, it's a [scrollable `GridView`](GridView) wrapping the [selectable `GridView`]. See
+/// their respective documentations for usage information.
 pub type SelectableGridView<E> = GridViewTemplate<selectable::GridView<E>>;
 
 impl<InnerGridView> GridViewTemplate<InnerGridView> {
-    /// Create new Scrollable Grid View component.
+    /// Create new Scrollable Grid View component wrapping a created instance of `inner_grid`.
     pub fn new_wrapping<E>(app: &Application, inner_grid: InnerGridView) -> Self
     where
         E: Entry,
@@ -84,12 +90,14 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
 }
 
 impl<E: Entry> GridView<E> {
+    /// Create new scrollable [`GridView`] component.
     pub fn new(app: &Application) -> Self {
         Self::new_wrapping(app, crate::GridView::new(app))
     }
 }
 
 impl<E: Entry> SelectableGridView<E> {
+    /// Create new scrollable [`SelectableGridView`] component.
     pub fn new(app: &Application) -> Self {
         Self::new_wrapping(app, selectable::GridView::new(app))
     }

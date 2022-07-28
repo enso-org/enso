@@ -1,9 +1,32 @@
-use crate::prelude::*;
+//! A module containing the highlight shape.
+//!
+//! The Highlight shape handles both highlights at once (selection and hover), so we are sure
+//! the selection highlight will always be displayed over hover highlight without making unnecessary
+//! shape systems.
+//!
+//! The shape is clipped to the viewport "manually", because it is used as a mask for _Masked Layer_
+//! (see [`crate::selectable::highlight::layer::Handler`], and masks in EnsoGL cannot be further
+//! masked.
+//!
+//! # Setting Parameters
+//!
+//! The positioning, size, and other highlight parameters are not easily mapped to shape parameter
+//! due to above reasons, and the fact that the number of parameters of one shape is constrained.
+//! Use the helper functions defined in this module instead:
+//! * Keep up-to-date the info about the grid view's viewport using [`set_viewport`].
+//! * Set parameters of the specific highlight using one of [`AttrSetter`] instances:
+//!   [`HoverAttrSetter`] or [`SelectionAttrSetter`]
 
-use crate::entry::Contour;
+use crate::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_scroll_area::Viewport;
+
+
+
+// ========================
+// === Shape Definition ===
+// ========================
 
 ensogl_core::define_shape_system! {
     pointer_events = false;
@@ -33,11 +56,26 @@ ensogl_core::define_shape_system! {
     }
 }
 
+
+
+// ===========================
+// === Parameters' Setters ===
+// ===========================
+
+// === set_viewport ===
+
+/// Updates the shape's viewport. The position and size of the sprite will be updated. See
+/// [module's docs](mod@self) for more info.
 pub fn set_viewport(shape: &View, viewport: Viewport) {
     shape.size.set(viewport.size());
     shape.set_position_xy(viewport.center_point());
 }
 
+
+// === AttrSetter ===
+
+/// The trait with setters for all attributes of a single highlight.
+#[allow(missing_docs)]
 pub trait AttrSetter {
     fn set_position(shape: &View, position: Vector2, viewport: Viewport);
     fn set_size(shape: &View, size: Vector2);
@@ -45,6 +83,11 @@ pub trait AttrSetter {
     fn set_color(shape: &View, color: color::Rgba);
 }
 
+
+// === HoverAttrSetter ===
+
+/// Struct with setters for all attributes for hover highlight.
+#[derive(Copy, Clone, Debug)]
 pub struct HoverAttrSetter;
 
 impl AttrSetter for HoverAttrSetter {
@@ -75,6 +118,11 @@ impl AttrSetter for HoverAttrSetter {
     }
 }
 
+
+// === SelectionAttrSetter ===
+
+/// Struct with setters for all attributes for selection highlight.
+#[derive(Copy, Clone, Debug)]
 pub struct SelectionAttrSetter;
 
 impl AttrSetter for SelectionAttrSetter {

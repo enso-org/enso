@@ -59,6 +59,8 @@ impl Default for EntryParams {
 // === EntryModel ===
 // ==================
 
+/// The model of [`SimpleGridView`]`s entries.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct EntryModel {
     pub text:     ImString,
@@ -202,5 +204,6 @@ pub type SimpleScrollableGridView = scrollable::GridView<Entry>;
 /// The Simple version of Selectable Grid View, where each entry is just a label with background.
 pub type SimpleSelectableGridView = selectable::GridView<Entry>;
 
-/// The Simple version of Selectable Grid View, where each entry is just a label with background.
+/// The Simple version of scrollable and selectable Grid View, where each entry is just a label with
+/// background.
 pub type SimpleScrollableSelectableGridView = scrollable::SelectableGridView<Entry>;
