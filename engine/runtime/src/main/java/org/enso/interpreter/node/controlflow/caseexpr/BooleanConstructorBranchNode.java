@@ -8,23 +8,16 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "BooleanConsMatch", description = "Match using the Boolean constructor.")
 public abstract class BooleanConstructorBranchNode extends BranchNode {
-  private final AtomConstructor boolCons;
-  private final AtomConstructor trueCons;
-  private final AtomConstructor falseCons;
+  private final Type boolTp;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  BooleanConstructorBranchNode(
-      AtomConstructor bool,
-      AtomConstructor trueAtom,
-      AtomConstructor falseAtom,
-      RootCallTarget branch) {
+  BooleanConstructorBranchNode(Type bool, RootCallTarget branch) {
     super(branch);
-    this.boolCons = bool;
-    this.trueCons = trueAtom;
-    this.falseCons = falseAtom;
+    this.boolTp = bool;
   }
 
   /**
@@ -34,21 +27,13 @@ public abstract class BooleanConstructorBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static BooleanConstructorBranchNode build(
-      AtomConstructor bool,
-      AtomConstructor trueAtom,
-      AtomConstructor falseAtom,
-      RootCallTarget branch) {
-    return BooleanConstructorBranchNodeGen.create(bool, trueAtom, falseAtom, branch);
+  public static BooleanConstructorBranchNode build(Type bool, RootCallTarget branch) {
+    return BooleanConstructorBranchNodeGen.create(bool, branch);
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    var shouldMatch =
-        (target.getConstructor() == boolCons)
-            || (target.getConstructor() == falseCons)
-            || (target.getConstructor() == trueCons);
-    if (profile.profile(shouldMatch)) {
+  void doConstructor(VirtualFrame frame, Object state, Type target) {
+    if (profile.profile(target == boolTp)) {
       accept(frame, state, new Object[0]);
     }
   }

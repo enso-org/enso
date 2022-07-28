@@ -7,6 +7,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 
 /**
  * A library used for equipping data structures with Enso-style (fully unapplied) method dispatch.
@@ -94,7 +95,7 @@ public abstract class MethodDispatchLibrary extends Library {
 
   @GenerateLibrary.Abstract(ifExported = {"canConvertFrom"})
   public Function getConversionFunction(
-      Object receiver, AtomConstructor target, UnresolvedConversion symbol)
+          Object receiver, Type target, UnresolvedConversion symbol)
       throws MethodDispatchLibrary.NoSuchConversionException {
     throw new MethodDispatchLibrary.NoSuchConversionException();
   }

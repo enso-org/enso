@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.runtime.data.Array;
@@ -121,12 +122,16 @@ public final class Function implements TruffleObject {
     return callTarget;
   }
 
-  /** @return the name of this function. */
+  /**
+   * @return the name of this function.
+   */
   public String getName() {
     return getCallTarget().getRootNode().getName();
   }
 
-  /** @return the source section this function was defined in. */
+  /**
+   * @return the source section this function was defined in.
+   */
   public SourceSection getSourceSection() {
     return getCallTarget().getRootNode().getSourceSection();
   }
@@ -377,7 +382,7 @@ public final class Function implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().function(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().function());
     }
 
     static Context getContext() {
@@ -421,10 +426,9 @@ public final class Function implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+    static Function doResolve(Type target, UnresolvedConversion conversion) {
       Context context = getContext();
-      return conversion.resolveFor(
-          target, context.getBuiltins().function(), context.getBuiltins().any());
+      return conversion.resolveFor(target, context.getBuiltins().function());
     }
 
     static Context getContext() {
@@ -441,16 +445,16 @@ public final class Function implements TruffleObject {
         limit = "CACHE_SIZE")
     static Function resolveCached(
         Function self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("target") Type cachedTarget,
         @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Function self, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Function self, Type target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

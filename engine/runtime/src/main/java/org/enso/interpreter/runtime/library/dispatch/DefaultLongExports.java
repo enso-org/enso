@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 
 @ExportLibrary(value = MethodDispatchLibrary.class, receiverType = Long.class)
 public class DefaultLongExports {
@@ -25,11 +26,7 @@ public class DefaultLongExports {
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
       Number number = context.getBuiltins().number();
-      return symbol.resolveFor(
-          number.getSmallInteger(),
-          number.getInteger(),
-          number.getNumber(),
-          context.getBuiltins().any());
+      return symbol.resolveFor(number.getSmallInteger());
     }
 
     static Context getContext() {
@@ -77,15 +74,10 @@ public class DefaultLongExports {
   @ExportMessage
   static class GetConversionFunction {
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+    static Function doResolve(Type target, UnresolvedConversion conversion) {
       Context context = getContext();
       Number number = context.getBuiltins().number();
-      return conversion.resolveFor(
-          target,
-          number.getSmallInteger(),
-          number.getInteger(),
-          number.getNumber(),
-          context.getBuiltins().any());
+      return conversion.resolveFor(target, number.getSmallInteger());
     }
 
     static Context getContext() {
@@ -104,16 +96,16 @@ public class DefaultLongExports {
         limit = "CACHE_SIZE")
     static Function resolveCached(
         Long self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("target") Type cachedTarget,
         @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Long self, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Long self, Type target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

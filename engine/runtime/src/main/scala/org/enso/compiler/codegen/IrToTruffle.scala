@@ -842,7 +842,16 @@ class IrToTruffle(
             )
           }
 
-          val runtimeConsOpt = constructor match {
+          val fieldNames   = cons.unsafeFieldsAsNamed
+          val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
+
+          val branchCodeNode = childProcessor.processFunctionBody(
+            fieldsAsArgs,
+            branch.expression,
+            branch.location
+          )
+
+          constructor match {
             case err: IR.Error.Resolution =>
               Left(BadPatternMatch.NonVisibleConstructor(err.name))
             case _ =>
@@ -861,13 +870,59 @@ class IrToTruffle(
                         BindingsMap.ResolvedConstructor(mod, cons)
                       )
                     ) =>
-                  Right(
+                  val atomCons =
                     mod.unsafeAsModule().getScope.getConstructors.get(cons.name)
-                  )
+                  val r = if (atomCons == context.getBuiltins.bool().getTrue) {
+                    BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
+                  } else if (atomCons == context.getBuiltins.bool().getFalse) {
+                    BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
+                  } else {
+                    ConstructorBranchNode.build(
+                      atomCons,
+                      branchCodeNode.getCallTarget
+                    )
+                  }
+                  Right(r)
                 case Some(
-                      BindingsMap.Resolution(BindingsMap.ResolvedType(_, _))
+                      BindingsMap.Resolution(BindingsMap.ResolvedType(mod, tp))
                     ) =>
-                  throw new CompilerError("todo")
+                  val tpe =
+                    mod.unsafeAsModule().getScope.getTypes.get(tp.name)
+                  val any         = context.getBuiltins.any
+                  val array       = context.getBuiltins.array
+                  val file        = context.getBuiltins.file
+                  val builtinBool = context.getBuiltins.bool.getBool
+                  val number      = context.getBuiltins.number
+                  val polyglot    = context.getBuiltins.polyglot
+                  val text        = context.getBuiltins.text
+                  val branch = if (tpe == builtinBool) {
+                    BooleanConstructorBranchNode.build(
+                      builtinBool,
+                      branchCodeNode.getCallTarget
+                    )
+                  } else if (tpe == text) {
+                    TextBranchNode.build(text, branchCodeNode.getCallTarget)
+                  } else if (tpe == number.getInteger) {
+                    IntegerBranchNode.build(
+                      number,
+                      branchCodeNode.getCallTarget
+                    )
+                  } else if (tpe == number.getDecimal) {
+                    DecimalBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == number.getNumber) {
+                    NumberBranchNode.build(number, branchCodeNode.getCallTarget)
+                  } else if (tpe == array) {
+                    ArrayBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == file) {
+                    FileBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == polyglot) {
+                    PolyglotBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  } else if (tpe == any) {
+                    CatchAllBranchNode.build(branchCodeNode.getCallTarget)
+                  } else {
+                    throw new CompilerError("think about this")
+                  }
+                  Right(branch)
                 case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedPolyglotSymbol(_, _)
@@ -885,67 +940,6 @@ class IrToTruffle(
                     "Impossible method here, should be caught by Patterns resolution pass."
                   )
               }
-          }
-
-          val fieldNames   = cons.unsafeFieldsAsNamed
-          val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
-
-          val branchCodeNode = childProcessor.processFunctionBody(
-            fieldsAsArgs,
-            branch.expression,
-            branch.location
-          )
-
-          runtimeConsOpt.map { atomCons =>
-            val any          = context.getBuiltins.any
-            val array        = context.getBuiltins.array
-            val file         = context.getBuiltins.file
-            val builtinBool  = context.getBuiltins.bool().getBool
-            val builtinTrue  = context.getBuiltins.bool().getTrue
-            val builtinFalse = context.getBuiltins.bool().getFalse
-            val number       = context.getBuiltins.number
-            val polyglot     = context.getBuiltins.polyglot
-            val text         = context.getBuiltins.text
-            val branchNode: BranchNode =
-              if (atomCons == builtinTrue) {
-                BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
-              } else if (atomCons == builtinFalse) {
-                BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
-              } else if (atomCons == builtinBool) {
-                BooleanConstructorBranchNode.build(
-                  builtinBool,
-                  builtinTrue,
-                  builtinFalse,
-                  branchCodeNode.getCallTarget
-                )
-              } else if (atomCons == text) {
-                throw new CompilerError("todo")
-//                TextBranchNode.build(text, branchCodeNode.getCallTarget)
-              } else if (atomCons == number.getInteger) {
-                IntegerBranchNode.build(number, branchCodeNode.getCallTarget)
-              } else if (atomCons == number.getDecimal) {
-                DecimalBranchNode.build(
-                  number.getDecimal,
-                  branchCodeNode.getCallTarget
-                )
-              } else if (atomCons == number.getNumber) {
-                NumberBranchNode.build(number, branchCodeNode.getCallTarget)
-              } else if (atomCons == array) {
-                ArrayBranchNode.build(atomCons, branchCodeNode.getCallTarget)
-              } else if (atomCons == file) {
-                FileBranchNode.build(atomCons, branchCodeNode.getCallTarget)
-              } else if (atomCons == polyglot) {
-                PolyglotBranchNode.build(atomCons, branchCodeNode.getCallTarget)
-              } else if (atomCons == any) {
-                CatchAllBranchNode.build(branchCodeNode.getCallTarget)
-              } else {
-                ConstructorBranchNode.build(
-                  atomCons,
-                  branchCodeNode.getCallTarget
-                )
-              }
-
-            branchNode
           }
         case _: Pattern.Documentation =>
           throw new CompilerError(

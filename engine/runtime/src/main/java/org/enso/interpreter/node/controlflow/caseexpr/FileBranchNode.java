@@ -9,6 +9,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.EnsoFile;
+import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "FileMatch", description = "Allows matching on the File type.")
 public abstract class FileBranchNode extends BranchNode {
@@ -27,7 +28,7 @@ public abstract class FileBranchNode extends BranchNode {
    * @param branch the code to execute in this case
    * @return a file branch node
    */
-  public static FileBranchNode build(AtomConstructor file, RootCallTarget branch) {
+  public static FileBranchNode build(Type file, RootCallTarget branch) {
     return FileBranchNodeGen.create(file, branch);
   }
 

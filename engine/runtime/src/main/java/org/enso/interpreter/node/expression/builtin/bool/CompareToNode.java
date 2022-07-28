@@ -32,7 +32,7 @@ public abstract class CompareToNode extends Node {
   @Specialization
   Atom doOther(Boolean self, Object that) {
     CompilerDirectives.transferToInterpreter();
-    var bool = Context.get(this).getBuiltins().bool().getBool().newInstance();
+    var bool = Context.get(this).getBuiltins().bool().getBool();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, bool, "that");
     throw new PanicException(typeError, this);
   }

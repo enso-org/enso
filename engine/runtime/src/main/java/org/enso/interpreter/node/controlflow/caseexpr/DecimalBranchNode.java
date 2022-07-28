@@ -8,6 +8,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "TextMatch", description = "Allows matching on the Decimal type.")
 public abstract class DecimalBranchNode extends BranchNode {
@@ -26,7 +27,7 @@ public abstract class DecimalBranchNode extends BranchNode {
    * @param branch the code to execute in this case
    * @return a decimal branch node
    */
-  public static DecimalBranchNode build(AtomConstructor decimal, RootCallTarget branch) {
+  public static DecimalBranchNode build(Type decimal, RootCallTarget branch) {
     return DecimalBranchNodeGen.create(decimal, branch);
   }
 

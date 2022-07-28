@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 import java.math.BigInteger;
@@ -32,7 +33,9 @@ public class EnsoBigInteger implements TruffleObject {
     this.value = value;
   }
 
-  /** @return the contained {@link BigInteger}. */
+  /**
+   * @return the contained {@link BigInteger}.
+   */
   public BigInteger getValue() {
     return value;
   }
@@ -62,11 +65,7 @@ public class EnsoBigInteger implements TruffleObject {
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
       Number number = context.getBuiltins().number();
-      return symbol.resolveFor(
-          number.getBigInteger(),
-          number.getInteger(),
-          number.getNumber(),
-          context.getBuiltins().any());
+      return symbol.resolveFor(number.getBigInteger());
     }
 
     static Context getContext() {
@@ -110,15 +109,10 @@ public class EnsoBigInteger implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+    static Function doResolve(Type target, UnresolvedConversion conversion) {
       Context context = getContext();
       Number number = context.getBuiltins().number();
-      return conversion.resolveFor(
-          target,
-          number.getBigInteger(),
-          number.getInteger(),
-          number.getNumber(),
-          context.getBuiltins().any());
+      return conversion.resolveFor(target, number.getBigInteger());
     }
 
     static Context getContext() {
@@ -135,17 +129,16 @@ public class EnsoBigInteger implements TruffleObject {
         limit = "CACHE_SIZE")
     static Function resolveCached(
         EnsoBigInteger self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("target") Type cachedTarget,
         @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        EnsoBigInteger self, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(EnsoBigInteger self, Type target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

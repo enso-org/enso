@@ -11,6 +11,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "ArrayMatch", description = "Allows matching on the Array type.")
 public abstract class ArrayBranchNode extends BranchNode {
@@ -29,7 +30,7 @@ public abstract class ArrayBranchNode extends BranchNode {
    * @param branch the code to execute in this case
    * @return an array branch node
    */
-  public static ArrayBranchNode build(AtomConstructor array, RootCallTarget branch) {
+  public static ArrayBranchNode build(Type array, RootCallTarget branch) {
     return ArrayBranchNodeGen.create(array, branch);
   }
 

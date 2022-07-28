@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 /**
@@ -114,7 +115,7 @@ public class DataflowError extends AbstractTruffleException {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+    static Function doResolve(Type target, UnresolvedConversion conversion) {
       Context context = getContext();
       return conversion.resolveFor(target, context.getBuiltins().dataflowError());
     }
@@ -133,17 +134,17 @@ public class DataflowError extends AbstractTruffleException {
         limit = "CACHE_SIZE")
     static Function resolveCached(
         DataflowError self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("target") Type cachedTarget,
         @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        DataflowError self, AtomConstructor target, UnresolvedConversion conversion)
+        DataflowError self, Type target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

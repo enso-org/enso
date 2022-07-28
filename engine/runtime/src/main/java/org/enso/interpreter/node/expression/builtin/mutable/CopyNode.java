@@ -30,7 +30,7 @@ public abstract class CopyNode extends Node {
       Object self, Array src, long source_index, Array dest, long dest_index, long count) {
     System.arraycopy(
         src.getItems(), (int) source_index, dest.getItems(), (int) dest_index, (int) count);
-    return Context.get(this).getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing();
   }
 
   @Specialization(guards = "arrays.hasArrayElements(src)")
@@ -58,7 +58,7 @@ public abstract class CopyNode extends Node {
               .makeInvalidArrayIndexError(src, e.getInvalidIndex()),
           this);
     }
-    return Context.get(this).getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing();
   }
 
   @Fallback
@@ -66,6 +66,6 @@ public abstract class CopyNode extends Node {
       Object self, Object src, long source_index, Array dest, long dest_index, long count) {
     Builtins builtins = Context.get(this).getBuiltins();
     throw new PanicException(
-        builtins.error().makeTypeError(builtins.array().newInstance(), src, "src"), this);
+        builtins.error().makeTypeError(builtins.array(), src, "src"), this);
   }
 }

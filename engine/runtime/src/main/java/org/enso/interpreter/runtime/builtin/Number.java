@@ -5,6 +5,7 @@ import org.enso.interpreter.node.expression.builtin.number.Decimal;
 import org.enso.interpreter.node.expression.builtin.number.Integer;
 import org.enso.interpreter.node.expression.builtin.number.SmallInteger;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 
 /** A container for all number-related builtins. */
 public class Number {
@@ -26,27 +27,27 @@ public class Number {
   }
 
   /** @return the Int64 atom constructor. */
-  public AtomConstructor getSmallInteger() {
+  public Type getSmallInteger() {
     return smallInteger.getType();
   }
 
   /** @return the Big_Integer atom constructor. */
-  public AtomConstructor getBigInteger() {
+  public Type getBigInteger() {
     return bigInteger.getType();
   }
 
   /** @return the Integer atom constructor */
-  public AtomConstructor getInteger() {
+  public Type getInteger() {
     return integer.getType();
   }
 
   /** @return the Number atom constructor */
-  public AtomConstructor getNumber() {
+  public Type getNumber() {
     return number.getType();
   }
 
   /** @return the Decimal atom constructor */
-  public AtomConstructor getDecimal() {
+  public Type getDecimal() {
     return decimal.getType();
   }
 }

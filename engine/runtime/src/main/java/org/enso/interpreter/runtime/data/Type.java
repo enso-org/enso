@@ -13,10 +13,12 @@ public class Type implements TruffleObject {
   private final String name;
   private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
   private final boolean builtin;
+  private final Type supertype;
 
-  public Type(String name, ModuleScope definitionScope, boolean builtin) {
+  public Type(String name, ModuleScope definitionScope, Type supertype, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
+    this.supertype = supertype;
     this.builtin = builtin;
   }
   //
@@ -66,5 +68,9 @@ public class Type implements TruffleObject {
 
   public boolean isBuiltin() {
     return builtin;
+  }
+
+  public Type getSupertype() {
+    return supertype;
   }
 }

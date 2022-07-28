@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.builtin;
 import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.bool.*;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.Type;
 
 /** A container class for all Boolean-related stdlib builtins. */
 public class Bool {
@@ -28,7 +29,7 @@ public class Bool {
   }
 
   /** @return the atom constructor for {@code Boolean}. */
-  public AtomConstructor getBool() {
+  public Type getBool() {
     return bool.getType();
   }
 }

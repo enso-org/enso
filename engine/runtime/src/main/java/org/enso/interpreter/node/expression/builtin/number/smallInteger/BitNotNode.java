@@ -25,7 +25,7 @@ public abstract class BitNotNode extends Node {
   @Fallback
   Object doOther(Object self) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
+    var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, self, "this"), this);
   }
 }

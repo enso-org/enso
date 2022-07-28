@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 
 @ExportLibrary(value = MethodDispatchLibrary.class, receiverType = Boolean.class)
 public class DefaultBooleanExports {
@@ -32,13 +33,13 @@ public class DefaultBooleanExports {
     static Function resolveMethodOnPrimBoolean(UnresolvedSymbol symbol) {
       Context context = getContext();
       Builtins builtins = context.getBuiltins();
-      if (symbol.resolveFor(builtins.bool().getFalse()) != null) {
+      if (symbol.resolveFor(builtins.bool().getFalse().getType()) != null) {
         return null;
       }
-      if (symbol.resolveFor(builtins.bool().getTrue()) != null) {
+      if (symbol.resolveFor(builtins.bool().getTrue().getType()) != null) {
         return null;
       }
-      return symbol.resolveFor(builtins.bool().getBool(), context.getBuiltins().any());
+      return symbol.resolveFor(builtins.bool().getBool());
     }
 
     @CompilerDirectives.TruffleBoundary
@@ -46,7 +47,7 @@ public class DefaultBooleanExports {
       Context context = getContext();
       Builtins builtins = context.getBuiltins();
       AtomConstructor cons = self ? builtins.bool().getTrue() : builtins.bool().getFalse();
-      return symbol.resolveFor(cons, builtins.bool().getBool(), context.getBuiltins().any());
+      return symbol.resolveFor(cons.getType());
     }
 
     static Context getContext() {
@@ -126,27 +127,25 @@ public class DefaultBooleanExports {
   @ExportMessage
   static class GetConversionFunction {
     @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnPrimBoolean(
-        AtomConstructor target, UnresolvedConversion conversion) {
+    static Function resolveMethodOnPrimBoolean(Type target, UnresolvedConversion conversion) {
       Context context = Context.get(null);
       Builtins builtins = context.getBuiltins();
-      if (conversion.resolveFor(target, builtins.bool().getFalse()) != null) {
+      if (conversion.resolveFor(target, builtins.bool().getFalse().getType()) != null) {
         return null;
       }
-      if (conversion.resolveFor(target, builtins.bool().getTrue()) != null) {
+      if (conversion.resolveFor(target, builtins.bool().getTrue().getType()) != null) {
         return null;
       }
-      return conversion.resolveFor(target, builtins.bool().getBool(), context.getBuiltins().any());
+      return conversion.resolveFor(target, builtins.bool().getBool());
     }
 
     @CompilerDirectives.TruffleBoundary
     static Function resolveMethodOnBool(
-        boolean self, AtomConstructor target, UnresolvedConversion conversion) {
+        boolean self, Type target, UnresolvedConversion conversion) {
       Context context = Context.get(null);
       Builtins builtins = context.getBuiltins();
       AtomConstructor cons = self ? builtins.bool().getTrue() : builtins.bool().getFalse();
-      return conversion.resolveFor(
-          target, cons, builtins.bool().getBool(), context.getBuiltins().any());
+      return conversion.resolveFor(target, cons.getType());
     }
 
     static Context getContext() {
@@ -163,10 +162,10 @@ public class DefaultBooleanExports {
         limit = "CACHE_SIZE")
     static Function resolveCached(
         Boolean self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("target") Type cachedTarget,
         @Cached("resolveMethodOnPrimBoolean(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
@@ -183,9 +182,9 @@ public class DefaultBooleanExports {
         replaces = "resolveCached")
     static Function resolveTrueCached(
         Boolean self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
-        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("target") Type cachedTarget,
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("resolveMethodOnBool(self, cachedTarget, cachedConversion)") Function function) {
       return function;
@@ -203,16 +202,16 @@ public class DefaultBooleanExports {
         replaces = "resolveCached")
     static Function resolveFalseCached(
         Boolean self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("target") Type cachedTarget,
         @Cached("resolveMethodOnBool(self, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = {"resolveTrueCached", "resolveFalseCached"})
-    static Function resolve(Boolean self, AtomConstructor target, UnresolvedConversion symbol)
+    static Function resolve(Boolean self, Type target, UnresolvedConversion symbol)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = resolveMethodOnBool(self, target, symbol);
       if (function == null) {

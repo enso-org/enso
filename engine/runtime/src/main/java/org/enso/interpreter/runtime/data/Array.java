@@ -205,10 +205,10 @@ public class Array implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+    static Function doResolve(Type target, UnresolvedConversion conversion) {
       Context context = getContext();
       return conversion.resolveFor(
-          target, context.getBuiltins().array(), context.getBuiltins().any());
+          target, context.getBuiltins().array());
     }
 
     static Context getContext() {
@@ -225,16 +225,16 @@ public class Array implements TruffleObject {
         limit = "CACHE_SIZE")
     static Function resolveCached(
         Array self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("target") Type cachedTarget,
         @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(Array self, AtomConstructor target, UnresolvedConversion conversion)
+    static Function resolve(Array self, Type target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

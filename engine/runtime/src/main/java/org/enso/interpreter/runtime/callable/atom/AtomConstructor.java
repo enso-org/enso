@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -42,6 +43,8 @@ public final class AtomConstructor implements TruffleObject {
   private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
+
+  private final Type type;
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
@@ -288,6 +291,10 @@ public final class AtomConstructor implements TruffleObject {
     return constructorFunction.getSchema().getArgumentInfos();
   }
 
+  public Type getType() {
+    return type;
+  }
+
   @ExportMessage
   boolean hasFunctionalDispatch() {
     return true;
@@ -345,8 +352,8 @@ public final class AtomConstructor implements TruffleObject {
 
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(
-        AtomConstructor cons, AtomConstructor target, UnresolvedConversion conversion) {
-      return conversion.resolveFor(target, cons, getContext().getBuiltins().any());
+        Type self, Type target, UnresolvedConversion conversion) {
+      return conversion.resolveFor(target, self);
     }
 
     static Context getContext() {
@@ -358,30 +365,31 @@ public final class AtomConstructor implements TruffleObject {
           "!getContext().isInlineCachingDisabled()",
           "cachedConversion == conversion",
           "cachedTarget == target",
-          "self == cachedConstructor",
+          "self.getType() == cachedType",
           "function != null"
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
         AtomConstructor self,
-        AtomConstructor target,
+        Type target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") AtomConstructor cachedTarget,
-        @Cached("self") AtomConstructor cachedConstructor,
-        @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)") Function function) {
+        @Cached("target") Type cachedTarget,
+        @Cached("self.getType()") Type cachedType,
+        @Cached("doResolve(cachedType, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        AtomConstructor self, AtomConstructor target, UnresolvedConversion conversion)
+        AtomConstructor self, Type target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(self, target, conversion);
+      Function function = doResolve(self.type, target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
       }
       return function;
     }
   }
+
 }
