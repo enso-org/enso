@@ -352,7 +352,7 @@ class CollaborativeBuffer(
   }
 
   private def openBuffer(rpcSession: JsonSession, path: Path): Unit = {
-    self ! FileManagerProtocol.OpenBuffer(path)
+    fileManager ! FileManagerProtocol.OpenBuffer(path)
     val timeoutCancellable = context.system.scheduler
       .scheduleOnce(timeout, self, IOTimeout)
     context.become(

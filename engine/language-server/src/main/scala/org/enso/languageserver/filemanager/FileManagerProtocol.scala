@@ -24,14 +24,6 @@ object FileManagerProtocol {
     */
   case class OpenBuffer(path: Path)
 
-  /** Returns a result of opening an in-memory buffer path.
-    *
-    * @param result either file system failure or a resolved file path
-    */
-  case class OpenBufferResult(
-    result: Either[FileSystemFailure, TextualFileContent]
-  )
-
   /** Requests the Language Server write textual content to an arbitrary file.
     *
     * @param path a path to a file

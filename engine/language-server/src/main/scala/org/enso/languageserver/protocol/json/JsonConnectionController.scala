@@ -434,6 +434,8 @@ class JsonConnectionController(
         .props(capabilityRouter, requestTimeout, rpcSession),
       ReleaseCapability -> ReleaseCapabilityHandler
         .props(capabilityRouter, requestTimeout, rpcSession),
+      OpenBuffer -> OpenBufferHandler
+        .props(bufferRegistry, requestTimeout, rpcSession),
       OpenFile -> OpenFileHandler
         .props(bufferRegistry, requestTimeout, rpcSession),
       CloseFile -> CloseFileHandler
