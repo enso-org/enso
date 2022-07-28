@@ -153,6 +153,13 @@ impl Group {
         })
     }
 
+    pub fn insert_entries(&mut self, entries: &[Component]) {
+        let group_data = Rc::make_mut(&mut self.data);
+        group_data.entries.borrow_mut().splice(0..0, entries.iter().cloned());
+        group_data.initial_entries_order.splice(0..0, entries.iter().cloned());
+        group_data.update_matched_items();
+    }
+
     /// Modify the group keeping only the [`Component`]s for which `f` returns [`true`].
     pub fn retain_entries<F>(&mut self, mut f: F)
     where F: FnMut(&Component) -> bool {

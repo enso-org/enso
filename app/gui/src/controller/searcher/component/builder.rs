@@ -166,12 +166,18 @@ impl List {
     }
 
     pub fn insert_virtual_components_in_favorites_group(&mut self, library: project::QualifiedName, group_name: impl AsRef<str>, components: impl IntoIterator<Item = Rc<component::Virtual>>) {
+        let virtual_components = components.into_iter().map(|c| Component {
+            kind: component::Kind::Virtual { suggestion: c },
+            match_info: default(),
+        }).collect_vec();
         // FIXME: factor out common part of this and build_favorites_...
         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
         let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
+        let mut inserted = false;
         for group in favorites_groups.iter_mut() {
             DEBUG!("MCDBG blub: " group.library;? " " group.name;?);
             if group.library.as_ref() == Some(&library) && group.name.as_str() == group_name.as_ref() {
+                group.insert_entries(&virtual_components);
                 DEBUG!("MCDBG found library: " group.library;? " " group.name);
             }
         }
