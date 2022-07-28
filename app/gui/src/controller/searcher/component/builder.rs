@@ -100,9 +100,10 @@ impl List {
     /// returned object, components passed to the method which have their parent module ID equal
     /// to `module_id` will be cloned into [`component::List::local_scope`].
     pub fn with_local_scope_module_id(self, module_id: component::Id) -> Self {
+        use crate::controller::searcher::component::Group;
         const LOCAL_SCOPE_GROUP_NAME: &str = "Local Scope";
         let id = Some(module_id);
-        let local_scope = component::Group::from_name_and_id(LOCAL_SCOPE_GROUP_NAME, id);
+        let local_scope = Group::from_library_name_and_id(None, LOCAL_SCOPE_GROUP_NAME, id);
         Self { local_scope, ..self }
     }
 
@@ -168,8 +169,8 @@ impl List {
         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
         let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
         for group in favorites_groups.iter_mut() {
-            if group.library == library && group.name.as_ref() == group_name.as_ref() {
-                DEBUG!("MCDBG found library: " group.library " " group.name);
+            if group.library == Some(library) && group.name.as_str() == group_name.as_ref() {
+                DEBUG!("MCDBG found library: " group.library;? " " group.name);
             }
         }
         self.grouping_and_order_of_favorites = component::group::List::new(favorites_groups);
@@ -235,37 +236,37 @@ impl List {
         // FIXME[MC]: do it explicitly from searcher through a separate method
         // TODO(LATER): how to make it possible to add virtual entries only to Standard.Base.Input
         // group, not to any group named `Input`?
-        {
-            let vgroup = component::Group::from_name_and_virtual_entries("Favs", [
-                Rc::new(component::Virtual {
-                    name:               "text input",
-                    code:               "\"\"",
-                    this_arg:           None,
-                    argument_types:     vec![],
-                    // FIXME[MC]
-                    return_type:        None,
-                    imports:            vec![],
-                    documentation_html: Some("This will allow you to enter some text easily."),
-                    method_id:          None,
-                    // FIXME[MC] possible to fix?
-                    icon:               "TextInput".into(),
-                }),
-                Rc::new(component::Virtual {
-                    name:               "number input",
-                    code:               "0",
-                    this_arg:           None,
-                    argument_types:     vec![],
-                    // FIXME[MC]
-                    return_type:        None,
-                    imports:            vec![],
-                    documentation_html: Some("This will allow you to enter a number easily."),
-                    method_id:          None,
-                    // FIXME[MC] possible to fix?
-                    icon:               "NumberInput".into(),
-                }),
-            ]);
-            favorites_groups.insert(0, vgroup);
-        }
+        // {
+        //     let vgroup = component::Group::from_name_and_virtual_entries("Favs", [
+        //         Rc::new(component::Virtual {
+        //             name:               "text input",
+        //             code:               "\"\"",
+        //             this_arg:           None,
+        //             argument_types:     vec![],
+        //             // FIXME[MC]
+        //             return_type:        None,
+        //             imports:            vec![],
+        //             documentation_html: Some("This will allow you to enter some text easily."),
+        //             method_id:          None,
+        //             // FIXME[MC] possible to fix?
+        //             icon:               "TextInput".into(),
+        //         }),
+        //         Rc::new(component::Virtual {
+        //             name:               "number input",
+        //             code:               "0",
+        //             this_arg:           None,
+        //             argument_types:     vec![],
+        //             // FIXME[MC]
+        //             return_type:        None,
+        //             imports:            vec![],
+        //             documentation_html: Some("This will allow you to enter a number easily."),
+        //             method_id:          None,
+        //             // FIXME[MC] possible to fix?
+        //             icon:               "NumberInput".into(),
+        //         }),
+        //     ]);
+        //     favorites_groups.insert(0, vgroup);
+        // }
         for group in favorites_groups.iter_mut() {
             group.retain_entries(|e| match e.kind {
                 component::Kind::FromDb { id, .. } => self.allowed_favorites.contains(&id),

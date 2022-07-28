@@ -11,6 +11,7 @@ use crate::controller::searcher::component::NoSuchGroup;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
+use double_representation::project;
 use ensogl::data::color;
 use std::cmp;
 
@@ -24,6 +25,7 @@ use std::cmp;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Data {
+    pub library:               Option<project::QualifiedName>,
     pub name:                  ImString,
     pub color:                 Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
@@ -38,8 +40,9 @@ pub struct Data {
 }
 
 impl Data {
-    fn from_name_and_id(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+    fn from_library_name_and_id(library: Option<project::QualifiedName>, name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
         Data {
+            library,
             name: name.into(),
             color: None,
             component_id,
@@ -77,11 +80,12 @@ impl Deref for Group {
 
 impl Group {
     /// Create a named empty group referring to module with specified component ID.
-    pub fn from_name_and_id(
+    pub fn from_library_name_and_id(
+        library: Option<project::QualifiedName>,
         name: impl Into<ImString>,
         component_id: Option<component::Id>,
     ) -> Self {
-        Self { data: Rc::new(Data::from_name_and_id(name, component_id)) }
+        Self { data: Rc::new(Data::from_library_name_and_id(library, name, component_id)) }
     }
 
     /// Create empty group referring to some module component.
@@ -93,30 +97,32 @@ impl Group {
         } else {
             entry.module.name().into()
         };
-        Self::from_name_and_id(name, Some(component_id))
+        let library = entry.module.project_name.clone();
+        Self::from_library_name_and_id(Some(library), name, Some(component_id))
     }
 
-    pub fn from_name_and_virtual_entries(
-        name: impl Into<ImString>,
-        entries: impl IntoIterator<Item = Rc<component::Virtual>>,
-    ) -> Self {
-        let components = entries
-            .into_iter()
-            .map(|suggestion| Component {
-                kind:       component::Kind::Virtual { suggestion },
-                match_info: default(),
-            })
-            .collect_vec();
-        let group_data = Data {
-            name:                  name.into(),
-            color:                 None,
-            component_id:          None,
-            matched_items:         Cell::new(components.len()),
-            initial_entries_order: components.clone(),
-            entries:               RefCell::new(components),
-        };
-        Group { data: Rc::new(group_data) }
-    }
+    // pub fn from_name_and_virtual_entries(
+    //     name: impl Into<ImString>,
+    //     entries: impl IntoIterator<Item = Rc<component::Virtual>>,
+    // ) -> Self {
+    //     let components = entries
+    //         .into_iter()
+    //         .map(|suggestion| Component {
+    //             kind:       component::Kind::Virtual { suggestion },
+    //             match_info: default(),
+    //         })
+    //         .collect_vec();
+    //     let group_data = Data {
+    //         library: None,
+    //         name:                  name.into(),
+    //         color:                 None,
+    //         component_id:          None,
+    //         matched_items:         Cell::new(components.len()),
+    //         initial_entries_order: components.clone(),
+    //         entries:               RefCell::new(components),
+    //     };
+    //     Group { data: Rc::new(group_data) }
+    // }
 
     /// Construct from [`execution_context::ComponentGroup`] components looked up in the suggestion
     /// database by their full qualified name. Returns a group containing only the successfully
@@ -135,6 +141,7 @@ impl Group {
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
+                library: Some(group.library.clone()),
                 name:                  group.name.clone(),
                 color:                 group.color,
                 component_id:          None,
