@@ -25,15 +25,6 @@ polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Encoding_Utils
 
-## UNSTABLE
-
-   An error for when an index is out of bounds in a text.
-
-   Arguments:
-   - index: The requested index in the text.
-   - length: The length of the text.
-type Index_Out_Of_Bounds_Error index length
-
 ## ALIAS Length
 
    Computes the number of characters in the text.

@@ -1130,22 +1130,6 @@ type Builder
 
 ## UNSTABLE
 
-   An error for when an index is out of bounds in a vector.
-
-   Arguments:
-   - index: The requested index in the vector.
-   - length: The length of the vector.
-type Index_Out_Of_Bounds_Error index length
-
-## UNSTABLE
-
-   Pretty prints an index out of bounds error.
-Index_Out_Of_Bounds_Error.to_display_text : Text
-Index_Out_Of_Bounds_Error.to_display_text self =
-    "The index " + self.index.to_text + " is out of bounds in a vector with length " + self.length.to_text + "."
-
-## UNSTABLE
-
    An error that indicates that the vector is empty.
 type Empty_Error
 
