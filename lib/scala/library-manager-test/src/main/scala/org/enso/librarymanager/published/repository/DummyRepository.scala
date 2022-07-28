@@ -177,20 +177,24 @@ abstract class DummyRepository {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
 
-    val preinstallCommand =
-      commandPrefix ++ Seq(npmCommand, "install")
-    val preinstallExitCode = new ProcessBuilder()
-      .command(preinstallCommand: _*)
-      .directory(serverDirectory.toFile)
-      .inheritIO()
-      .start()
-      .waitFor()
+    // We can ommit installation step on CI because there is a separate step
+    // executing `npm install` command before the tests.
+    if (!DummyRepository.isCI) {
+      val preinstallCommand =
+        commandPrefix ++ Seq(npmCommand, "install")
+      val preinstallExitCode = new ProcessBuilder()
+        .command(preinstallCommand: _*)
+        .directory(serverDirectory.toFile)
+        .inheritIO()
+        .start()
+        .waitFor()
 
-    if (preinstallExitCode != 0)
-      throw new RuntimeException(
-        s"Failed to preinstall the Library Repository Server dependencies: " +
-        s"npm exited with code $preinstallCommand."
-      )
+      if (preinstallExitCode != 0)
+        throw new RuntimeException(
+          s"Failed to preinstall the Library Repository Server dependencies: " +
+          s"npm exited with code $preinstallCommand."
+        )
+    }
 
     val uploadsArgs = if (uploads) Seq("--upload", "no-auth") else Seq()
     val command = commandPrefix ++ Seq(
@@ -223,4 +227,6 @@ abstract class DummyRepository {
 }
 object DummyRepository {
   private val lock = new Object
+
+  private def isCI = sys.env.contains("CI")
 }
