@@ -240,6 +240,65 @@ spec =
             text_2 = '\n\t\a\b\f\r\v\e\''
             text_2.to_text.should_equal "'\n\t\a\b\f\r\v\e\''"
 
+        Test.specify "should allow taking or dropping every other character" <|
+            "ABCDE".take (Every 2) . should_equal "ACE"
+            "ABCD".take (Every 2) . should_equal "AC"
+            "ABCD".take (Every 2 first=1) . should_equal "BD"
+            "ABCDE".take (Every 2 first=1) . should_equal "BD"
+            "ABCDE".take (Every 3) . should_equal "AD"
+            "ABCDEFG".take (Every 3) . should_equal "ADG"
+            "ABCDEFG".take (Every 3 first=1) . should_equal "BE"
+            "ABCDEFG".take (Every 10) . should_equal "A"
+
+            "ABCDE".drop (Every 2) . should_equal "BD"
+            "ABCD".drop (Every 2) . should_equal "BD"
+            "ABCD".drop (Every 2 first=1) . should_equal "AC"
+            "ABCDE".drop (Every 2 first=1) . should_equal "ACE"
+            "ABCDE".drop (Every 3) . should_equal "BCE"
+            "ABCDEFG".drop (Every 3) . should_equal "BCEF"
+            "ABCDEFG".drop (Every 3 first=1) . should_equal "BCEF"
+            "ABCDEFGH".drop (Every 3 first=1) . should_equal "BCEFH"
+
+        Test.specify "should allow selecting a random sample of a substring"
+            "AAAAA".take (Sample 3) . should_equal "AAA"
+            "AAAAA".drop (Sample 3) . should_equal "AA"
+
+            "ABCDEFGH".take (Sample 0) . should_equal ""
+            "ABCDEFGH".take (Sample 1) . should_equal "TODO"
+            "ABCDEFGH".take (Sample 2 seed=42) . should_equal "TODO"
+            "ABCDEFGH".take (Sample 4 seed=42) . should_equal "TODO"
+            "ABCDEFGH".take (Sample 8 seed=42) . should_equal "TODO"
+            "ABCDEFGH".take (Sample 100 seed=42) . should_equal "TODO"
+
+            "ABCDEFGH".drop (Sample 0) . should_equal "ABCDEFGH"
+            "ABCDEFGH".drop (Sample 1) . should_equal "TODO"
+            "ABCDEFGH".drop (Sample 2 seed=42) . should_equal "TODO"
+            "ABCDEFGH".drop (Sample 4 seed=42) . should_equal "TODO"
+            "ABCDEFGH".drop (Sample 8 seed=42) . should_equal ""
+            "ABCDEFGH".drop (Sample 100 seed=42) . should_equal ""
+
+        Test.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
+            "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-x)) . should_equal "321"*1000
+            "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
+            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range 6*ix+1 6*ix+3)) . should_equal "23"*100
+            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range ix+1 ix+5)) . should_equal "BABAABAB"*50
+
+            "123"*1000 . take (By_Index (Vector.new 300 ix-> 2999-x)) . should_equal "123"*900
+            "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
+            "123456"*1000 . take (By_Index (Vector.new 1000 ix-> Range 6*ix+1 6*ix+3)) . should_equal "1456"*1000
+            "ABCD"*25 . take (By_Index (Vector.new 90 ix-> Range ix+1 ix+5)) . should_equal "ADABCD"
+
+            "0123456789".take (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "0123458"
+            "0123456789".take (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "45012300"
+            "0123456789".drop (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "6789"
+            "0123456789".drop (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "6789"
+            "0123456789".drop (By_Index [Range 2 5, Range 0 3, 0, 0]) . should_equal "56789"
+
+            "0123456789".take (By_Index [Range 0 -2]) . should_equal "1234567"
+            "0123456789".take (By_Index [Range -2 -1]) . should_equal "8"
+            "0123456789".drop (By_Index [Range 0 -2]) . should_equal "89"
+            "0123456789".drop (By_Index [Range -2 -1]) . should_equal "12345679"
+
         Test.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
             txt.take (First 2) . should_equal (kshi + facepalm)
