@@ -177,6 +177,8 @@ abstract class DummyRepository {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
 
+    // We can ommit installation step on CI because there is a separate step
+    // executing `npm install` command before the tests.
     if (!DummyRepository.isCI) {
       val preinstallCommand =
         commandPrefix ++ Seq(npmCommand, "install")
