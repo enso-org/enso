@@ -166,6 +166,7 @@ impl List {
     }
 
     pub fn insert_virtual_components_in_favorites_group(&mut self, library: project::QualifiedName, group_name: impl AsRef<str>, components: impl IntoIterator<Item = Rc<component::Virtual>>) {
+        // FIXME: factor out common part of this and build_favorites_...
         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
         let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
         for group in favorites_groups.iter_mut() {
