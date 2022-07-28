@@ -6492,6 +6492,19 @@ object IR {
         override def diagnosticKeys(): Array[Any] =
           Array(shadowedName, shadower)
       }
+
+      sealed case class VirtualModule(
+        typeName: String,
+        moduleName: IR.Name.Qualified,
+        override val shadower: IR,
+        override val location: Option[IdentifiedLocation]
+      ) extends Shadowed {
+        override def message: String =
+          s"""Declaration of type $typeName shadows module ${moduleName.name} making it inaccessible via a qualified name."""
+        override def diagnosticKeys(): Array[Any] =
+          Array(typeName, moduleName, shadower)
+
+      }
     }
 
     /** A warning raised when a call is annotated with `@Auto_Parallel`, but the
