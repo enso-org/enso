@@ -1076,10 +1076,6 @@ impl Searcher {
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
-        // FIXME[MC]: solve 'unwrap' somehow: make this a thread_local static? validate "Base" at comptime?
-        let base_lib = project::QualifiedName::from_segments("Standard", "Base").unwrap();
-        let components = VIRTUAL_COMPONENTS_IN_INPUT_GROUP.with(|c| c.clone());
-        builder.insert_virtual_components_in_favorites_group(base_lib, "Input", components);
         builder.build()
     }
 
@@ -1224,6 +1220,10 @@ fn component_list_builder_with_favorites<'a>(
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
+    // FIXME[MC]: solve 'unwrap' somehow: make this a thread_local static? validate "Base" at comptime?
+    let base_lib = project::QualifiedName::from_segments("Standard", "Base").unwrap();
+    let components = VIRTUAL_COMPONENTS_IN_INPUT_GROUP.with(|c| c.clone());
+    builder.insert_virtual_components_in_favorites_group(base_lib, "Input", components);
     builder
 }
 
