@@ -131,6 +131,7 @@ impl Layers {
         let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &camera);
         let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &camera);
         selection.set_mask(&selection_mask);
+        // app.display.default_scene.layers.node_searcher.add_sublayer(&selection_mask);
         app.display.default_scene.layers.node_searcher.add_sublayer(&base);
         app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
         app.display.default_scene.layers.node_searcher.add_sublayer(&navigator);
@@ -306,6 +307,7 @@ pub mod selection_box {
             let mask = Rect(size.px()).corners_radius(corners_radius.px());
             let mask = mask.translate(pos.px());
             let mask = &mask * &area;
+            // area.fill(color::Rgba::black()).into()
             mask.fill(color::Rgba::black()).into()
         }
     }
@@ -865,6 +867,22 @@ impl EntryId {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub enum Selected {
+    Header(GroupId),
+    Entry(EntryId),
+}
+
+impl Selected {
+    fn from_wrapper_event(&(group, selected): &(GroupId, component_group::Selected)) -> Self {
+        use component_group::Selected::*;
+        match selected {
+            Header => Self::Header(group),
+            Entry(entry_id) => Self::Entry(EntryId { group, entry_id }),
+        }
+    }
+}
+
 define_endpoints_2! {
     Input{
         set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
@@ -874,10 +892,9 @@ define_endpoints_2! {
         shown(),
     }
     Output{
-        selected_entry(Option<EntryId>),
+        selected(Option<Selected>),
         suggestion_accepted(EntryId),
         expression_accepted(EntryId),
-        is_header_selected(GroupId, bool),
         header_accepted(GroupId),
         size(Vector2),
     }
@@ -928,10 +945,9 @@ impl component::Frp<Model> for Frp {
             eval_ on_hover ( model.on_hover() );
             eval_ on_hover_end ( model.on_hover_end() );
 
-            output.selected_entry <+ groups.selected_entry.map(|op| op.as_ref().map(EntryId::from_wrapper_event));
+            output.selected <+ groups.selected.map(|op| op.as_ref().map(Selected::from_wrapper_event));
             output.suggestion_accepted <+ groups.suggestion_accepted.map(EntryId::from_wrapper_event);
             output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
-            output.is_header_selected <+ groups.is_header_selected;
             output.header_accepted <+ groups.header_accepted;
 
             output.size <+ layout_frp.update.map(|style| style.size_inner());
@@ -959,9 +975,12 @@ impl component::Frp<Model> for Frp {
             //
             // As only a single header is selected at a time, we can use the
             // `groups.is_header_selected` output to determine if the selection covers any header.
-            is_any_header_selected <- groups.is_header_selected.map(|(_,b)| *b);
-            on_any_header_selected <- is_any_header_selected.on_true();
-            on_any_header_deselected <- is_any_header_selected.on_false();
+            on_any_header_selected <- output.selected.map(|s| matches!(*s, Some(Selected::Header
+                (_)))).on_change().on_true();
+            on_any_header_deselected <- output.selected.map(|s| matches!(*s, Some
+                (Selected::Header(_)))).on_change().on_false();
+            trace on_any_header_selected;
+            trace on_any_header_deselected;
             // The local scope section does not have a header and we must reset the selection area
             // margin when hovering it.
             mouse_in_local_scope_section <- groups.mouse_in_group.map(
@@ -971,6 +990,8 @@ impl component::Frp<Model> for Frp {
             on_local_scope_leaved <- mouse_in_local_scope_section.on_false();
             reset_selection_area <- any(&on_any_header_selected, &on_local_scope_entered);
             restrict_selection_area <- any(&on_any_header_deselected, &on_local_scope_leaved);
+            trace reset_selection_area;
+            trace restrict_selection_area;
             eval_ reset_selection_area(selection.margin_top.set(0.0));
             _eval <- all_with(&header_height, &restrict_selection_area,
                 f!((height, _) selection.margin_top.set(*height))

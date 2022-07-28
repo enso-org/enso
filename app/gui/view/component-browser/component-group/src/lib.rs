@@ -366,6 +366,12 @@ impl Colors {
 // === FRP ===
 // ===========
 
+#[derive(Clone, Copy, CloneRef, Debug, PartialEq, Eq)]
+pub enum Selected {
+    Header,
+    Entry(entry::Id),
+}
+
 ensogl::define_endpoints_2! {
     Input {
         /// Accept the currently selected suggestion. Should be bound to "Suggestion Acceptance Key"
@@ -387,10 +393,9 @@ ensogl::define_endpoints_2! {
     }
     Output {
         is_mouse_over(bool),
-        selected_entry(Option<entry::Id>),
+        selected(Option<Selected>),
         suggestion_accepted(entry::Id),
         expression_accepted(entry::Id),
-        is_header_selected(bool),
         header_accepted(),
         selection_size(Vector2<f32>),
         selection_position_target(Vector2<f32>),
@@ -472,9 +477,10 @@ impl component::Frp<Model> for Frp {
         // === Suggestion Acceptance ===
 
         frp::extend! { network
+            is_header_selected <- out.selected.map(|s| *s == Some(Selected::Header));
             accepted_entry <- model.entries.selected_entry.sample(&input.accept_suggestion);
             out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e);
-            header_accepted_by_frp <- input.accept_suggestion.gate(&out.is_header_selected);
+            header_accepted_by_frp <- input.accept_suggestion.gate(&is_header_selected);
             header_accepted_by_mouse <- model.header_overlay.events.mouse_down.constant(());
             header_accepted <- any(header_accepted_by_frp, header_accepted_by_mouse);
             out.header_accepted <+ header_accepted;
@@ -500,18 +506,19 @@ impl component::Frp<Model> for Frp {
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
             deselect_header <- any(&some_entry_selected, &mouse_moved_beyond_header);
-            out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
+            header_selected <- bool(&deselect_header, &select_header).on_change().on_true();
+            out.selected <+ select_header.map(|_| Some(Selected::Header));
             model.entries.select_entry <+ select_header.constant(None);
 
             let selection_style = SelectionStyle::from_style(style, network);
             out.selection_size <+ all_with3(
                 &selection_style,
-                &out.is_header_selected,
+                &is_header_selected,
                 &out.focused,
                 f!((style, h_sel, _) model.selection_size(*h_sel, *style))
             );
             out.selection_position_target <+ all_with5(
-                &out.is_header_selected,
+                &is_header_selected,
                 &header_geometry,
                 &out.size,
                 &model.entries.selection_position_target,
@@ -521,7 +528,7 @@ impl component::Frp<Model> for Frp {
                 )
             );
             out.selection_corners_radius <+ all_with3(
-                &out.is_header_selected,
+                &is_header_selected,
                 &selection_style,
                 &out.focused,
                 f!((h_sel, style,_) model.selection_corners_radius(*h_sel, *style))
@@ -540,8 +547,7 @@ impl component::Frp<Model> for Frp {
 
         frp::extend! { network
             model.entries.set_entries <+ input.set_entries;
-            out.selected_entry <+ model.entries.selected_entry;
-            out.selected_entry <+ out.is_header_selected.on_true().constant(None);
+            out.selected <+ model.entries.selected_entry.map(|e| e.map(Selected::Entry)).filter(|e| e.is_some());
         }
 
         init.emit(());

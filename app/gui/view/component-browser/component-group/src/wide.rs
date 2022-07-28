@@ -17,6 +17,7 @@ use crate::background;
 use crate::entry;
 use crate::theme;
 use crate::Colors;
+use crate::Selected;
 use crate::SelectionStyle;
 
 use enso_frp as frp;
@@ -115,7 +116,7 @@ ensogl::define_endpoints_2! {
     }
     Output {
         is_mouse_over(bool),
-        selected_entry(Option<entry::Id>),
+        selected(Option<Selected>),
         suggestion_accepted(entry::Id),
         expression_accepted(entry::Id),
         /// While resizing the list of entries, the selection will follow the selected entry if
@@ -231,8 +232,8 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
 
                 is_column_selected <- column.selected_entry.map(|e| e.is_some());
                 selected_entry <- column.selected_entry.gate(&is_column_selected);
-                out.selected_entry <+ selected_entry.map2(&entry_count, move |entry, total| {
-                    entry.map(|e| local_idx_to_global::<COLUMNS>(col_id, e, *total))
+                out.selected <+ selected_entry.map2(&entry_count, move |entry, total| {
+                    entry.map(|e| Selected::Entry(local_idx_to_global::<COLUMNS>(col_id,e,*total)))
                 });
 
 
