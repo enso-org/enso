@@ -1,14 +1,15 @@
 package org.enso.interpreter.node.expression.constant;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.error.PanicException;
 
 /** Throws a runtime panic containing a statically-known payload. */
 public class ErrorNode extends ExpressionNode {
-  private final Object payload;
+  private final TruffleObject payload;
 
-  private ErrorNode(Object payload) {
+  private ErrorNode(TruffleObject payload) {
     this.payload = payload;
   }
 
@@ -29,7 +30,7 @@ public class ErrorNode extends ExpressionNode {
    * @param payload the payload carried by exceptions thrown in the course of this node's execution.
    * @return a new instance of this node.
    */
-  public static ErrorNode build(Object payload) {
+  public static ErrorNode build(TruffleObject payload) {
     return new ErrorNode(payload);
   }
 }

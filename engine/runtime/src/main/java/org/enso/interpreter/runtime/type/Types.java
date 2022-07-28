@@ -9,10 +9,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.EnsoFile;
-import org.enso.interpreter.runtime.data.ManagedResource;
-import org.enso.interpreter.runtime.data.Ref;
+import org.enso.interpreter.runtime.data.*;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -44,6 +41,7 @@ import org.enso.polyglot.data.TypeGraph;
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
   Array.class,
+  ArrayOverBuffer.class,
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,
@@ -51,7 +49,8 @@ import org.enso.polyglot.data.TypeGraph;
   PanicException.class,
   PanicSentinel.class,
   Warning.class,
-  EnsoFile.class
+  EnsoFile.class,
+  EnsoDate.class
 })
 public class Types {
 
@@ -130,7 +129,7 @@ public class Types {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
       return ConstantsGen.MANAGED_RESOURCE;
-    } else if (TypesGen.isArray(value)) {
+    } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value)) {
       return ConstantsGen.ARRAY;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;

@@ -1,0 +1,4 @@
+"jsonrpc":"2.0","id":5,"result":null
+"method":"file/rootAdded"
+"method":"executionContext/expressionUpdates"
+"jsonrpc":"2.0","id":7,"result":null

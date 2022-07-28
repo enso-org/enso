@@ -99,7 +99,7 @@ case object SuspendedArguments extends IRPass {
   /** Resolves suspended arguments for a module binding.
     *
     * It is expected that module-level type signatures _do not_ include the
-    * `this` argument.
+    * `self` argument.
     *
     * @param binding the top-level binding to resolve suspensions in
     * @return `binding`, with any suspended arguments resolved
@@ -130,17 +130,25 @@ case object SuspendedArguments extends IRPass {
                   )
                 }
               case None =>
-                if (args(1).suspended) {
-                  IR.Error.Conversion(
-                    method,
-                    IR.Error.Conversion.SuspendedSourceArgument(
-                      args(1).name.name
+                args match {
+                  case _ :: Nil =>
+                    IR.Error.Conversion(
+                      method,
+                      IR.Error.Conversion.SuspendedSourceArgument(
+                        "unknown"
+                      )
                     )
-                  )
-                } else {
-                  method.copy(
-                    body = lam.copy(body = resolveExpression(body))
-                  )
+                  case _ :: sourceArg :: _ if sourceArg.suspended =>
+                    IR.Error.Conversion(
+                      method,
+                      IR.Error.Conversion.SuspendedSourceArgument(
+                        sourceArg.name.name
+                      )
+                    )
+                  case _ =>
+                    method.copy(
+                      body = lam.copy(body = resolveExpression(body))
+                    )
                 }
             }
           case _ =>

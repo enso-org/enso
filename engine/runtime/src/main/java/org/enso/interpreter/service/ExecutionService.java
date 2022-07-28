@@ -100,7 +100,7 @@ public class ExecutionService {
       throw new MethodNotFoundException(module.getName().toString(), atomConstructor, methodName);
     }
     return new FunctionCallInstrumentationNode.FunctionCall(
-        function, EmptyMap.create(), new Object[] {atomConstructor.newInstance()});
+        function, EmptyMap.create(), new Object[] {});
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {

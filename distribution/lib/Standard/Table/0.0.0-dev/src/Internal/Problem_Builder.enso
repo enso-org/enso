@@ -9,27 +9,27 @@ from Standard.Table.Errors as Error_Module import Missing_Input_Columns, Column_
 type Problem_Builder
     type Problem_Builder oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
 
-    report_oob_indices indices =
+    report_oob_indices self indices =
         append_to_ref self.oob_indices indices
 
-    report_duplicate_column_selectors selectors =
+    report_duplicate_column_selectors self selectors =
         append_to_ref self.duplicate_column_selectors selectors
 
-    report_input_indices_already_matched indices =
+    report_input_indices_already_matched self indices =
         append_to_ref self.input_indices_already_matched indices
 
-    report_missing_input_columns columns =
+    report_missing_input_columns self columns =
         append_to_ref self.missing_input_columns columns
 
-    report_column_matched_by_multiple_selectors column_name selectors =
+    report_column_matched_by_multiple_selectors self column_name selectors =
         self.report_other_warning (Column_Matched_By_Multiple_Selectors column_name selectors)
 
-    report_other_warning warning =
+    report_other_warning self warning =
         self.other.append warning
 
     ## Returns a vector containing all reported problems, aggregated.
     build_problemset : Vector
-    build_problemset =
+    build_problemset self =
         problems = Vector.new_builder
         build_vector_and_append ref problem_creator =
             vec = ref.get . build
@@ -48,14 +48,14 @@ type Problem_Builder
        Any errors from the `result` take precedence over the ones owned by this
        builder.
     attach_problems_after : Problem_Behavior -> Any -> Any
-    attach_problems_after problem_behavior result =
+    attach_problems_after self problem_behavior result =
         problem_behavior.attach_problems_after result self.build_problemset
 
     ## Attaches gathered warnings to the result of the provided computation.
        If in `Report_Error` mode and there are any problems gathered, the first
        one will be returned as error without even running the computation.
     attach_problems_before : Problem_Behavior -> Any -> Any
-    attach_problems_before problem_behavior ~computation =
+    attach_problems_before self problem_behavior ~computation =
         problem_behavior.attach_problems_before self.build_problemset computation
 
 ## PRIVATE

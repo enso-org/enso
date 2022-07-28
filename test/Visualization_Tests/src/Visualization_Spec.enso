@@ -1,8 +1,10 @@
 from Standard.Base import all
 
 import Standard.Examples
-import Standard.Test
+
 import Standard.Visualization
+
+import Standard.Test
 
 from Standard.Visualization.File_Upload import File_Being_Uploaded
 

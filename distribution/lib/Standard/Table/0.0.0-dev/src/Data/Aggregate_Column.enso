@@ -114,7 +114,7 @@ type Aggregate_Column
        - column: column (specified by name, index or Column object) to compute
          standard deviation.
        - name: name of new column.
-       - population argument specifies if group is a sample or the population
+       - population: specifies if group is a sample or the population
     type Standard_Deviation (column:Column|Text|Integer) (new_name:Text|Nothing=Nothing) (population:Boolean=False)
 
     ## Creates a new column with the values concatenated together. `Nothing`

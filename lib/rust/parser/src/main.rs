@@ -34,7 +34,7 @@ use enso_parser::prelude::*;
 
 fn main() {
     init_tracing(TRACE);
-    let ast = enso_parser::Parser::new().run("type Option (a) b c");
+    let ast = enso_parser::Parser::new().run("foo = 23");
     println!("\n\n==================\n\n");
     println!("{:#?}", ast);
 }

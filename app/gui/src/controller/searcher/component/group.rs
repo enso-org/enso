@@ -48,6 +48,12 @@ impl Data {
             matched_items: Cell::new(0),
         }
     }
+
+    fn update_matched_items(&self) {
+        let entries = self.entries.borrow();
+        let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
+        self.matched_items.set(matched_items);
+    }
 }
 
 
@@ -118,6 +124,15 @@ impl Group {
         })
     }
 
+    /// Modify the group keeping only the [`Component`]s for which `f` returns [`true`].
+    pub fn retain_entries<F>(&mut self, mut f: F)
+    where F: FnMut(&Component) -> bool {
+        let group_data = Rc::make_mut(&mut self.data);
+        group_data.entries.borrow_mut().retain(&mut f);
+        group_data.initial_entries_order.retain(f);
+        group_data.update_matched_items();
+    }
+
     /// Update the group sorting according to the `order` and update information about matched items
     /// count.
     pub fn update_sorting(&self, order: component::Order) {
@@ -127,9 +142,7 @@ impl Group {
                 self.sort_by_name_non_modules_then_modules(),
             component::Order::ByMatch => self.sort_by_match(),
         }
-        let entries = self.entries.borrow();
-        let matched_items = entries.iter().take_while(|c| !c.is_filtered_out()).count();
-        self.matched_items.set(matched_items);
+        self.update_matched_items();
     }
 
     fn restore_initial_order(&self) {
@@ -227,6 +240,15 @@ impl List {
 impl FromIterator<Group> for List {
     fn from_iter<T: IntoIterator<Item = Group>>(iter: T) -> Self {
         Self::new(iter.into_iter().collect())
+    }
+}
+
+impl IntoIterator for List {
+    type Item = Group;
+    type IntoIter = std::vec::IntoIter<Group>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Rc::unwrap_or_clone(self.groups).into_iter()
     }
 }
 

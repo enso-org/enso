@@ -1,6 +1,6 @@
 type Foo a b c
 
-Foo.sum = case self of
+Foo.sum self = case self of
     Foo a b c -> a + b + c
 
 another_constant = 10
@@ -11,3 +11,8 @@ method_with_local_vars a =
   bar = another_constant
   another_constant = f -> f + a + 1
   bar + (another_constant a)
+
+type Bar
+    type Bar a
+
+    meh self x = self.a + x

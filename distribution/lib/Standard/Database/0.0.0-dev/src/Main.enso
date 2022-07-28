@@ -8,7 +8,7 @@ import Standard.Database.Connection.Client_Certificate
 import Standard.Database.Connection.SSL_Mode
 import Standard.Database.Connection.Connection_Options
 
-import Standard.Database.Connection.PostgreSQL
+import Standard.Database.Connection.Postgres
 import Standard.Database.Connection.SQLite
 import Standard.Database.Connection.Redshift
 
@@ -22,6 +22,6 @@ from Standard.Database.Connection.SSL_Mode export all
 from Standard.Database.Connection.Connection_Options export all
 
 from Standard.Database.Connection.Database export all
-from Standard.Database.Connection.PostgreSQL export all
+from Standard.Database.Connection.Postgres export all
 from Standard.Database.Connection.SQLite export all
 from Standard.Database.Connection.Redshift export all

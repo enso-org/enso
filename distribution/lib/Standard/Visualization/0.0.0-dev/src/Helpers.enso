@@ -12,7 +12,7 @@ import Standard.Table.Data.Table
    - f: unary invokable that is applied to each vector element. Non-error
         values are returned in the resulting vector. Error values are dropped.
 Vector.Vector.filter_map : Any -> Vector
-Vector.Vector.filter_map f = self.map f . filter .is_valid
+Vector.Vector.filter_map self f = self.map f . filter .is_valid
 
 ## PRIVATE
 
@@ -21,7 +21,7 @@ Vector.Vector.filter_map f = self.map f . filter .is_valid
    Arguments:
    - val: a value that will be evaluated and returned if `self` is an error.
 Any.when_valid : Any -> Any
-Any.when_valid ~val = self.map_valid (_-> val)
+Any.when_valid self ~val = self.map_valid (_-> val)
 
 ## PRIVATE
 
@@ -30,19 +30,19 @@ Any.when_valid ~val = self.map_valid (_-> val)
    Arguments:
    - val: a value that will be evaluated and returned if `self` is an error.
 Error.when_valid : Any -> Any
-Error.when_valid ~val = self.map_valid (_-> val)
+Error.when_valid self ~val = self.map_valid (_-> val)
 
 ## PRIVATE
 
    Checks if the value is not an error.
 Any.is_valid : Any
-Any.is_valid = self.is_error.not
+Any.is_valid self = self.is_error.not
 
 ## PRIVATE
 
    Checks if the value is not an error.
 Error.is_valid : Any
-Error.is_valid = self.is_error.not
+Error.is_valid self = self.is_error.not
 
 ## PRIVATE
 
@@ -52,7 +52,7 @@ Error.is_valid = self.is_error.not
    - f: a function that will be used to generate return value from a non-error
         `self` value.
 Any.map_valid : Any -> Any
-Any.map_valid f = f self
+Any.map_valid self f = f self
 
 ## PRIVATE
 
@@ -62,7 +62,7 @@ Any.map_valid f = f self
    - _: a function that will be used to generate return value from a non-error
         `self` value.
 Error.map_valid : Any -> Any
-Error.map_valid _ = self
+Error.map_valid self _ = self
 
 ## PRIVATE
 
@@ -73,7 +73,7 @@ Error.map_valid _ = self
    Arguments:
    - val: a value that will be evaluated and returned if `self` is an error.
 Any.catch_ : Any -> Any
-Any.catch_ ~val = self.catch Any (_-> val)
+Any.catch_ self ~val = self.catch Any (_-> val)
 
 ## PRIVATE
 
@@ -84,7 +84,7 @@ Any.catch_ ~val = self.catch Any (_-> val)
    Arguments:
    - val: a value that will be evaluated and returned if `self` is an error.
 Error.catch_ : Any -> Any
-Error.catch_ ~val = self.catch Any (_-> val)
+Error.catch_ self ~val = self.catch Any (_-> val)
 
 ## PRIVATE
 recover_errors : Any -> Any
@@ -99,7 +99,7 @@ recover_errors ~body =
 
    Index columns are placed before other columns.
 Table.Table.all_columns : Vector
-Table.Table.all_columns =
+Table.Table.all_columns self =
     index = self.index.catch_ []
     index_columns = case index of
         Vector.Vector _ -> index
@@ -115,7 +115,7 @@ Table.Table.all_columns =
    Arguments:
    - text: the case-insensitive name of the searched column.
 Table.Table.lookup_ignore_case : Text -> Column ! Nothing
-Table.Table.lookup_ignore_case name =
+Table.Table.lookup_ignore_case self name =
     ret = self.all_columns.find <| col->
         col.name.equals_ignore_case name
     ret
@@ -124,5 +124,5 @@ Table.Table.lookup_ignore_case name =
 
   Checks if the column stores numbers.
 Column.Column.is_numeric : Boolean
-Column.Column.is_numeric =
+Column.Column.is_numeric self =
     [Storage.Integer,Storage.Decimal].contains self.storage_type

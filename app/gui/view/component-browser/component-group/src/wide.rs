@@ -399,6 +399,7 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
     pub fn set_layers(&self, layers: &crate::Layers) {
         layers.normal.background.add_exclusive(&self.background);
         layers.selection.background.add_exclusive(&self.selection_background);
+        self.no_items_label.set_layers(&layers.normal.text, &layers.normal.text);
         let layer = &layers.selection.text;
         for column in self.columns.iter() {
             let mut params = column.list_view.entry_params();

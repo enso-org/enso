@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
     name = "is_atom_constructor",
     description = "Checks if the argument is a constructor.")
 public class IsAtomConstructorNode extends Node {
-  boolean execute(Object self, @AcceptsError Object value) {
+  boolean execute(@AcceptsError Object value) {
     return TypesGen.isAtomConstructor(value);
   }
 }
