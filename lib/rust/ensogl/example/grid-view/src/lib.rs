@@ -113,9 +113,10 @@ fn init(app: &Application) {
     for view in with_hover_mask {
         view.hover_highlight_frp().setup_masked_layer(Some(hover_layer.downgrade()));
         let params = grid_view::simple::EntryParams {
-            bg_color: color::Rgba(0.9, 0.9, 1.0, 1.0),
+            bg_color: color::Rgba(0.7, 0.7, 0.9, 1.0),
             bg_margin: 0.0,
             text_offset: 8.0,
+            text_color: color::Rgba(0.9, 0.9, 0.9, 1.0),
             ..default()
         };
         view.hover_highlight_frp().set_entries_params(params);
