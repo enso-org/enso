@@ -307,12 +307,14 @@ impl ComponentGroup {
         let name = group.name.into();
         let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
         let components = group.exports.into_iter().map(|e| e.name.into()).collect();
-        ComponentGroup { library, name, color, components }
+        Ok(ComponentGroup { library, name, color, components })
     }
 }
 
-impl From<language_server::LibraryComponentGroup> for ComponentGroup {
-    fn from(group: language_server::LibraryComponentGroup) -> Self {
+impl TryFrom<language_server::LibraryComponentGroup> for ComponentGroup {
+    type Error = failure::Error;
+
+    fn try_from(group: language_server::LibraryComponentGroup) -> FallibleResult<Self> {
         Self::from_language_server_protocol_struct(group)
     }
 }
