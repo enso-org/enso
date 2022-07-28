@@ -594,7 +594,7 @@ class Compiler(
     modules: java.util.List[QualifiedName]
   ): IR.Module = {
     import scala.jdk.CollectionConverters._
-    
+
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.map(
         IR.Name.Literal(_, isMethod = false, location = None)

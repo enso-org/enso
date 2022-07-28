@@ -15,7 +15,7 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -234,7 +234,7 @@ public class Module implements TruffleObject {
    */
   public List<QualifiedName> getDirectVirtualModulesRefs() {
     if (directVirtualModulesRefs == null) {
-      return new ArrayList<>();
+      return Collections.emptyList();
     }
     return directVirtualModulesRefs;
   }
