@@ -190,16 +190,25 @@ where EntryParams: frp::node::Data
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
                 let location = entry_frp.set_location.clone_ref();
+
+                // We make a distinction between "hovered" state and "mouse_in" state, because
+                // we want to highlight entry as hovered only when mouse moves a bit.
+                hovering <- any(...);
+                hovering <+ events.mouse_out.constant(false);
                 mouse_in <- bool(&events.mouse_out, &events.mouse_over);
-                hovered <- events.mouse_over.gate_not(disabled);
-                hover_start_pos <- mouse.position.sample(&hovered);
-                mouse_over_with_start_pos <- all(mouse.position, hover_start_pos).gate(&mouse_in);
+                // We can receive `mouse_over` event a couple of frames after actual hovering.
+                // Therefore, we count our "mouse move" from a couple of frames before.
+                mouse_pos_some_time_ago <- mouse.prev_position.previous().previous().previous();
+                mouse_over_movement_start <- mouse_pos_some_time_ago.sample(&events.mouse_over);
+                mouse_over_with_start_pos <- all(mouse.position, mouse_over_movement_start).gate(&mouse_in);
                 mouse_move_which_hovers <- mouse_over_with_start_pos.filter(
                     |(pos, start_pos)| (pos - start_pos).norm() > MOUSE_MOVEMENT_NEEDED_TO_HOVER_PX
                 );
+                hovered <- mouse_move_which_hovers.gate_not(&hovering).gate_not(disabled);
+                hovering <+ hovered.constant(true);
                 selected <- events.mouse_down.gate_not(disabled);
                 accepted <- events.mouse_down_primary.gate_not(disabled);
-                self.entry_hovered <+ location.sample(&mouse_move_which_hovers).map(|l| Some(*l));
+                self.entry_hovered <+ location.sample(&hovered).map(|l| Some(*l));
                 self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
                 self.entry_accepted <+ location.sample(&accepted);
             }
