@@ -527,17 +527,17 @@ impl<'s> Lexer<'s> {
         if let Some(token) = token {
             if token.code == "+-" {
                 let (left, right) = token.split_at_(Bytes(1));
-                let (prec, binary, unary) = compute_precedence(&left.code);
-                self.submit_token(left.with_variant(token::Variant::operator(prec, binary, unary)));
-                self.submit_token(right.with_variant(token::Variant::operator(0, false, true)));
+                let (binary, unary) = compute_precedence(&left.code);
+                self.submit_token(left.with_variant(token::Variant::operator(binary, unary)));
+                self.submit_token(right.with_variant(token::Variant::operator(None, Some(30))));
             } else {
                 let only_eq = token.code.chars().all(|t| t == '=');
                 let is_mod = token.code.ends_with('=') && !only_eq;
                 let tp = if is_mod {
                     token::Variant::modifier()
                 } else {
-                    let (prec, binary, unary) = compute_precedence(&token.code);
-                    token::Variant::operator(prec, binary, unary)
+                    let (binary, unary) = compute_precedence(&token.code);
+                    token::Variant::operator(binary, unary)
                 };
                 let token = token.with_variant(tp);
                 self.submit_token(token);
@@ -550,11 +550,11 @@ impl<'s> Lexer<'s> {
 // === Precedence ===
 
 // FIXME: Compute precedences according to spec. Issue: #182497344
-fn compute_precedence(token: &str) -> (usize, bool, bool) {
+fn compute_precedence(token: &str) -> (Option<usize>, Option<usize>) {
     let binary = match token {
         // Special handling for tokens that can be unary.
-        "~" => return (0, false, true),
-        "-" => return (14, true, true),
+        "~" => return (None, Some(100)),
+        "-" => return (Some(14), Some(19)),
         // "There are a few operators with the lowest precedence possible."
         "=" => 1,
         ":" => 2,
@@ -575,9 +575,9 @@ fn compute_precedence(token: &str) -> (usize, bool, bool) {
         "," => 1,
         "@" => 20,
         "." => 21,
-        _ => return (0, false, false),
+        _ => return (None, None),
     };
-    (binary, true, false)
+    (Some(binary), None)
 }
 
 
@@ -872,8 +872,8 @@ pub mod test {
 
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
-        let (precedence, binary, unary) = compute_precedence(code);
-        Token(left_offset, code, token::Variant::operator(precedence, binary, unary))
+        let (binary, unary) = compute_precedence(code);
+        Token(left_offset, code, token::Variant::operator(binary, unary))
     }
 }
 
@@ -1021,7 +1021,7 @@ mod tests {
     #[test]
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
-        let unary_minus = Token("", "-", token::Variant::operator(0, false, true));
+        let unary_minus = Token("", "-", token::Variant::operator(None, Some(30)));
         test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
     }
 

@@ -361,6 +361,55 @@ fn plus_negative() {
     test(&code.join("\n"), expected);
 }
 
+#[test]
+fn minus_binary() {
+    let cases = [
+        ("x - 5", block![(OprApp (Ident x) (Ok "-") (Number 5))]),
+        ("x-5", block![(OprApp (Ident x) (Ok "-") (Number 5))]),
+        ("x.-y", block![(OprApp (Ident x) (Ok ".") (UnaryOprApp "-" (Ident y)))]),
+        ("x.~y", block![(OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Ident y)))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn minus_section() {
+    #[rustfmt::skip]
+    let cases = [
+        ("- x", block![(OprSectionBoundary (OprApp () (Ok "-") (Ident x)))]),
+        ("(- x)", block![
+            (MultiSegmentApp #(
+             ((Symbol "(") (OprSectionBoundary (OprApp () (Ok "-") (Ident x))))
+             ((Symbol ")") ())))]),
+        ("- (x * 2)", block![
+            (OprSectionBoundary (OprApp () (Ok "-")
+             (MultiSegmentApp #(
+              ((Symbol "(") (OprApp (Ident x) (Ok "*") (Number 2)))
+              ((Symbol ")") ())))))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn minus_unary() {
+    #[rustfmt::skip]
+    let cases = [
+        ("f -5", block![(App (Ident f) (UnaryOprApp "-" (Number 5)))]),
+        ("-5", block![(UnaryOprApp "-" (Number 5))]),
+        ("(-5)", block![
+            (MultiSegmentApp #(((Symbol "(") (UnaryOprApp "-" (Number 5))) ((Symbol ")") ())))]),
+        ("-(x * 2)", block![
+            (UnaryOprApp "-" (MultiSegmentApp #(
+             ((Symbol "(") (OprApp (Ident x) (Ok "*") (Number 2)))
+             ((Symbol ")") ()))))]),
+        ("x=-1", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Number 1)))]),
+        ("-1+2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "+") (Number 2))]),
+        ("-1*2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "*") (Number 2))]),
+        ("-x.y", block![(UnaryOprApp "-" (OprApp (Ident x) (Ok ".") (Ident y)))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
 
 
 // ====================

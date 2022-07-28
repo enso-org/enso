@@ -263,9 +263,8 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub lift_level: usize
         },
         Operator {
-            pub precedence: usize,
-            pub can_be_binary_infix: bool,
-            pub can_be_unary_prefix: bool,
+            pub binary_infix_precedence: Option<usize>,
+            pub unary_prefix_precedence: Option<usize>,
         },
         Modifier,
         Comment,
