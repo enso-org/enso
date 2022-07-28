@@ -45,12 +45,12 @@ pub struct Group {
 /// contain the indices of the component groups that should be displayed in each column, ordered
 /// from bottom to top.
 ///
-/// A special arrangment is needed because we want to make the most important groups accesible
+/// A special arrangement is needed because we want to make the most important groups accessible
 /// with the least amount of keystrokes possible.
 ///
-/// The layouting algorithm itself is described in the [design doc]. The order of first 4 groups
+/// The layouting algorithm itself is described in the [design doc]. The order of the first 4 groups
 /// is predefined: groups 1 and 4 go to the central column, groups 2 and 3 go to the left and right
-/// columns, respectively. The order and columns of the rest of the groups is determined by their
+/// columns, respectively. The order and columns of the rest of the groups are determined by their
 /// sizes.
 ///
 /// [design doc]: https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#layouting-algorithm
@@ -118,7 +118,7 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
 mod tests {
     use super::*;
 
-    /// Test that algorithm doesn't panic even with small count of component groups.
+    /// Test that the algorithm doesn't panic even with a small count of component groups.
     #[test]
     fn test_small_count_of_groups() {
         for count in 0..4 {
