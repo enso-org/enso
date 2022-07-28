@@ -58,10 +58,8 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         grid.add_child(&shape);
 
         // The order of instructions below is very important! We need to initialize the viewport
-        // and entries size first, only then we could resize grid and request for models. Otherwise,
-        // the model updates could be ignored by `grid` (which could think they are not visible
-        // anyway).
-        //TODO[ao] rephrase maybe?
+        // and entries size first, because its required to receive `model_for_entry` events after
+        // resizing grid properly.
         let network = grid.network();
         frp::extend! { network
             init <- source_();
@@ -72,7 +70,8 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             grid.resize_grid <+ all(init, base_grid.grid_size)._1();
             grid.model_for_entry <+ base_grid.model_for_entry;
 
-            base_grid.hover_entry <+ grid.entry_hovered;
+            different_entry_hovered <- grid.entry_hovered.map2(&base_grid.entry_hovered, |e1, e2| e1 != e2);
+            base_grid.hover_entry <+ grid.entry_hovered.gate(&different_entry_hovered);
             base_grid.select_entry <+ grid.entry_selected;
             base_grid.accept_entry <+ grid.entry_accepted;
         }
