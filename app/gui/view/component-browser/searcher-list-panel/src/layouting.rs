@@ -70,8 +70,8 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
     pub fn arrange(mut self) -> [Vec<GroupIndex>; COLUMNS] {
         let mut max_height = self.push_next_group_to(CENTER);
         while self.iter.peek().is_some() {
-            self.heights[LEFT] += self.push_next_group_to(LEFT);
-            self.heights[RIGHT] += self.push_next_group_to(RIGHT);
+            self.push_next_group_to(LEFT);
+            self.push_next_group_to(RIGHT);
             let next_max_height = max_height + self.push_next_group_to(CENTER);
 
             self.fill_till_height(LEFT, max_height);
@@ -87,6 +87,7 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
     fn push_next_group_to(&mut self, column: Column) -> GroupSize {
         if let Some(group) = self.iter.next() {
             self.columns[column].push(group.index);
+            self.heights[column] += group.size;
             group.size
         } else {
             0
