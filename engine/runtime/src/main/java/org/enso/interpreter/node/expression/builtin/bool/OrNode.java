@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.state.Stateful;
     description = "Computes the logical disjunction of two booleans")
 public abstract class OrNode extends Node {
 
-  ConditionProfile conditionProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile conditionProfile = ConditionProfile.createCountingProfile();
 
   public static OrNode build() {
     return OrNodeGen.create();
