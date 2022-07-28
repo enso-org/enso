@@ -1,7 +1,5 @@
 //! Code blocks.
 
-
-
 use crate::syntax::tree::*;
 
 

@@ -19,6 +19,8 @@ const CENTER: usize = 1;
 const RIGHT: usize = 2;
 type Column = usize;
 
+
+
 // =============
 // === Group ===
 // =============
@@ -31,6 +33,8 @@ pub struct Group {
     pub index: GroupIndex,
     pub size:  GroupSize,
 }
+
+
 
 // ================
 // === Layouter ===
@@ -102,6 +106,8 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
         }
     }
 }
+
+
 
 // =============
 // === Tests ===
