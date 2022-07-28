@@ -12,7 +12,7 @@ type SQLite
     connect : Connection_Options
     connect self options =
         properties = options.merge self.jdbc_properties
-        Connection.create_jdbc_connection self.jdbc_url properties self.dialect
+        Connection.create_jdbc_connection self.jdbc_url properties self.dialect get_databases=(_->[Nothing]) get_schemas=(_->[Nothing])
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text

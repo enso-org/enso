@@ -9,9 +9,10 @@ import Standard.Database.Data.Sql
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Data.Storage
-import Standard.Table.Internal.Java_Exports
 import Standard.Database.Data.Internal.Base_Generator
 from Standard.Database.Data.Sql import Sql_Type
+
+from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
 
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.ArrayList
@@ -38,7 +39,11 @@ type Connection
          connection to that database.
        - with_schema: an action taking a new database name and returning a new
          connection to that schema.
-    type Connection connection_resource dialect with_database with_schema
+       - get_databases: an action returning a list of databases, allowing for
+         connection specific overrides.
+       - with_schema: an action returning a list of schema, allowing for
+         connection specific overrides.
+    type Connection connection_resource dialect with_database with_schema get_databases=Nothing get_schemas=Nothing
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
@@ -53,9 +58,13 @@ type Connection
     databases self =
         wrap_sql_errors <|
             self.connection_resource.with connection->
-                metadata = connection.getMetaData
-                database_result_set = metadata.getCatalogs
-                read_column database_result_set "TABLE_CAT"
+                case self.get_databases.is_nothing of
+                    True ->
+                        metadata = connection.getMetaData
+                        database_result_set = metadata.getCatalogs
+                        read_column database_result_set "TABLE_CAT"
+                    False ->
+                        self.get_databases connection
 
     ## Returns the name of the current database (or catalog).
     database : Text
@@ -69,16 +78,21 @@ type Connection
         - database: The name of the database to connect to.
     set_database : Text -> Connection ! Sql_Error
     set_database self database =
-        self.with_database database
+        if database == self.database then self else
+            self.with_database database
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
     schemas self =
         wrap_sql_errors <|
             self.connection_resource.with connection->
-                metadata = connection.getMetaData
-                schema_result_set = metadata.getSchemas
-                read_column schema_result_set "TABLE_SCHEM"
+                case self.get_schemas.is_nothing of
+                    True ->
+                        metadata = connection.getMetaData
+                        schema_result_set = metadata.getSchemas
+                        read_column schema_result_set "TABLE_SCHEM"
+                    False ->
+                        self.get_schemas connection
 
     ## Returns the name of the current schema.
     schema : Text
@@ -92,7 +106,8 @@ type Connection
         - schema: The name of the schema to connect to.
     set_schema : Text -> Connection ! Sql_Error
     set_schema self schema =
-        self.with_schema schema
+        if schema == self.schema then self else
+            self.with_schema schema
 
     ## Gets a list of the table types
     table_types : [Text]
@@ -140,7 +155,7 @@ type Connection
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
-    execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
+    execute_query : Text | Sql.Statement -> Vector Sql_Type -> Materialized_Table =
     execute_query self query expected_types=Nothing = handle_sql_errors <|
         self.with_prepared_statement query stmt->
             result_set_to_table stmt.executeQuery expected_types
@@ -262,110 +277,6 @@ type Connection
                 java_connection.commit
         db_table
 
-
-## PRIVATE
-
-   Creates a builder for a column based on a provided SQL type, trying to infer
-   the best type for the builder.
-
-   Arguments:
-   - sql_type: The SQL type of the column to create a builder for.
-create_builder : Sql_Type -> Builder
-create_builder sql_type =
-    initial_size = 10
-    if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
-        if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
-            if sql_type.is_definitely_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
-                Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
-
-type Builder
-
-    ## PRIVATE
-
-       A builder that has an inferred column type at runtime.
-
-       Arguments:
-       - java_builder: The underlying builder object.
-    type Builder_Inferred java_builder
-
-    ## PRIVATE
-
-       A builder that has an inferred column type at runtime.
-
-       Arguments:
-       - java_builder: The underlying builder object.
-    type Builder_Double java_builder
-
-    ## PRIVATE
-
-       A builder that has an inferred column type at runtime.
-
-       Arguments:
-       - java_builder: The underlying builder object.
-    type Builder_Long java_builder
-
-    ## PRIVATE
-
-       A builder that has an inferred column type at runtime.
-
-       Arguments:
-       - java_builder: The underlying builder object.
-    type Builder_Boolean java_builder
-
-    ## PRIVATE
-
-       Fetches the value of ith column from the current row of the result set
-       and appends it to the builder.
-
-       Arguments:
-       - rs: the Java ResultSet from which the value will be fetched.
-       - i: the index of the column to fetch from (starting from 1 as is the
-         ResultSet convention).
-    fetch_and_append : ResultSet -> Integer -> Nothing
-    fetch_and_append self rs i = case self of
-        Builder_Inferred _ ->
-            obj = rs.getObject i
-            self.java_builder.append obj
-        Builder_Boolean _ ->
-            bool = rs.getBoolean i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendBoolean bool
-        Builder_Long _ ->
-            long = rs.getLong i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendLong long
-        Builder_Double _ ->
-            double = rs.getDouble i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendDouble double
-
-    ## PRIVATE
-
-       Seals the builder and returns a built Java-column.
-
-       Argument:
-       - name: The name of the column.
-    make_column : Text -> Java_Exports.Column
-    make_column self name =
-        storage = self.java_builder.seal
-        Java_Exports.make_column name storage
-
-
-## An error indicating that a supported dialect could not be deduced for the
-   provided URL.
-
-   Argument:
-   - url: The URL for which the dialect could not be deduced.
-type Unsupported_Dialect url
-
-## Pretty print the error about unsupported SQL dialects.
-Unsupported_Dialect.to_display_text : Text
-Unsupported_Dialect.to_display_text self =
-    "Could not infer the SQL dialect for the database at " + self.url + "."
-
 ## PRIVATE
 
    Creates a JDBC connection based on a URL and optionally username and
@@ -375,14 +286,21 @@ Unsupported_Dialect.to_display_text self =
    - url: The URL to connect to.
    - properties: A vector of properties for the connection.
    - dialect: A Dialect object that will be used to generate SQL.
-create_jdbc_connection : Text -> Vector -> Dialect -> (Text->Connection!Sql_Error) -> (Text->Connection!Sql_Error) -> Connection
-create_jdbc_connection url properties dialect with_database=(_-> Sql_Error.throw_sql_error "Changing database is not supported.") with_schema=(_-> Sql_Error.throw_sql_error "Changing schema is not supported.") = handle_sql_errors <|
-    java_props = Properties.new
-    properties.each pair->
-        java_props.setProperty pair.first pair.second
-    java_connection = JDBCProxy.getConnection url java_props
-    resource = Managed_Resource.register java_connection close_connection
-    Connection resource dialect with_database with_schema
+   - with_database: A constructor function to build a new connection for a new
+     database.
+   - with_schema: A constructor function to build a new connection for a new
+     schema.
+   - get_databases: A function that returns a list of databases.
+   - get_schemas: A function that returns a list of schemas.
+create_jdbc_connection : Text -> Vector -> Dialect -> (Text->Connection!Sql_Error) -> (Text->Connection!Sql_Error) -> Any -> Any -> Connection
+create_jdbc_connection url properties dialect with_database=(_-> Sql_Error.throw_sql_error "Changing database is not supported.") with_schema=(_-> Sql_Error.throw_sql_error "Changing schema is not supported.") get_databases=Nothing get_schemas=Nothing =
+    handle_sql_errors <|
+        java_props = Properties.new
+        properties.each pair->
+            java_props.setProperty pair.first pair.second
+        java_connection = JDBCProxy.getConnection url java_props
+        resource = Managed_Resource.register java_connection close_connection
+        Connection resource dialect with_database with_schema get_databases get_schemas
 
 ## PRIVATE
 
@@ -504,41 +422,3 @@ set_statement_values stmt holes =
         case obj.first of
             Nothing -> stmt.setNull position obj.second.typeid
             _ -> stmt.setObject position obj.first
-
-## PRIVATE
-   Read a single column from a ResultSet into a Vector
-read_column : ResultSet -> Text -> Vector
-read_column result_set column_name =
-    if result_set.isClosed then [] else
-        index = result_set.findColumn column_name
-
-        builder = Vector.new_builder
-        go has_next = if has_next.not then Nothing else
-            builder.append (result_set.getObject index)
-            @Tail_Call go result_set.next
-
-        go result_set.next
-        builder.to_vector
-
-## PRIVATE
-   Converts a ResultSet into a Materialized_Table.
-result_set_to_table : ResultSet -> (Vector | Nothing) -> Materialized_Table
-result_set_to_table result_set expected_types=Nothing =
-    metadata = result_set.getMetaData
-    ncols = metadata.getColumnCount
-    column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
-    column_types = if expected_types.is_nothing.not then expected_types else
-        Vector.new ncols ix->
-            typeid = metadata.getColumnType ix+1
-            name = metadata.getColumnTypeName ix+1
-            Sql_Type typeid name
-    column_builders = column_types.map typ->
-        create_builder typ
-    go has_next = if has_next.not then Nothing else
-        column_builders.map_with_index ix-> builder->
-            builder.fetch_and_append result_set ix+1
-        @Tail_Call go result_set.next
-    go result_set.next
-    columns = column_builders.zip column_names builder-> name->
-        builder.make_column name
-    Materialized_Table.from_columns columns

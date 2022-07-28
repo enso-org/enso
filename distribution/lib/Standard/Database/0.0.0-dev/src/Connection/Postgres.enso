@@ -11,6 +11,8 @@ from Standard.Database.Connection.SSL_Mode import all
 import Standard.Database.Connection.Client_Certificate
 import Standard.Database.Internal.Postgres.Pgpass
 
+from Standard.Database.Internal.Result_Set import read_column
+
 polyglot java import org.postgresql.Driver
 
 type Postgres
@@ -37,7 +39,12 @@ type Postgres
         properties = options.merge self.jdbc_properties
         with_database database = Postgres self.host self.port database self.schema self.credentials self.use_ssl self.client_cert . connect options
         with_schema schema = Postgres self.host self.port self.database schema self.credentials self.use_ssl self.client_cert . connect options
-        Connection.create_jdbc_connection self.jdbc_url properties self.dialect with_database with_schema
+
+        get_databases connection =
+            result_set = connection.createStatement.executeQuery "select datname from pg_database where datname not in ('template0', 'template1')"
+            read_column result_set "datname"
+
+        Connection.create_jdbc_connection self.jdbc_url properties self.dialect with_database with_schema get_databases=get_databases
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text
@@ -68,7 +75,7 @@ type Postgres
         cert_properties = if self.client_cert.is_nothing then [] else
             self.client_cert.properties
 
-        (if self.schema == '' then [] else [Pair 'defaultSchema' self.schema]) + credentials + ssl_properties + cert_properties
+        (if self.schema == '' then [] else [Pair 'currentSchema' self.schema]) + credentials + ssl_properties + cert_properties
 
     ## Provides the dialect needed for creating SQL statements.
     dialect : Dialect
