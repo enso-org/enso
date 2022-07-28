@@ -187,6 +187,15 @@ public class Module implements TruffleObject {
     return new Module(name, pkg, false, null);
   }
 
+  /**
+   * Creates a virtual module which only purpose is to export symbols of other modules.
+   *
+   * @param name the qualified name of the newly created module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
+   * @param source source of the module declaring exports of the desired modules
+   * @return the virtual module
+   */
   public static Module virtual(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
     return new Module(name, pkg, true, source);
   }
@@ -228,9 +237,9 @@ public class Module implements TruffleObject {
   }
 
   /**
-   * Return a list of directly referencing virtual modules of this one, if any.
+   * Return a list of directly referencing submodules of this one, if any.
    *
-   * @return a non-null, possibly empty, array of fully qualified names of modules
+   * @return a non-null, possibly empty, list of fully qualified names of modules
    */
   public List<QualifiedName> getDirectVirtualModulesRefs() {
     if (directVirtualModulesRefs == null) {

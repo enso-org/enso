@@ -424,7 +424,10 @@ class Compiler(
     val parsedAST = parse(module.getSource)
     val expr      = generateIR(parsedAST)
     val exprWithModuleExports =
-      injectVirtualModuleExports(expr, module.getDirectVirtualModulesRefs)
+      if (module.isVirtual)
+        expr
+      else
+        injectVirtualModuleExports(expr, module.getDirectVirtualModulesRefs)
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
     module.unsafeSetIr(discoveredModule)
@@ -586,7 +589,7 @@ class Compiler(
     * ````
     *
     * @param ir IR to be enhanced
-    * @param modules fully qualified names pf modules
+    * @param modules fully qualified names of modules
     * @return enhanced
     */
   private def injectVirtualModuleExports(
@@ -596,9 +599,11 @@ class Compiler(
     import scala.jdk.CollectionConverters._
 
     val moduleNames = modules.asScala.map { q =>
-      val name = q.path.map(
-        IR.Name.Literal(_, isMethod = false, location = None)
-      ) ++ List(IR.Name.Literal(q.item, isMethod = false, location = None))
+      val name = q.path.foldRight(
+        List(IR.Name.Literal(q.item, isMethod = false, location = None))
+      ) { case (part, acc) =>
+        IR.Name.Literal(part, isMethod = false, location = None) :: acc
+      }
       IR.Name.Qualified(name, location = None)
     }.toList
     ir.copy(

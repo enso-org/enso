@@ -211,8 +211,7 @@ case class BindingsMap(
     candidates.distinct match {
       case List()   => Left(ResolutionNotFound)
       case List(it) => Right(it)
-      case items =>
-        Left(ResolutionAmbiguous(items))
+      case items    => Left(ResolutionAmbiguous(items))
     }
   }
 

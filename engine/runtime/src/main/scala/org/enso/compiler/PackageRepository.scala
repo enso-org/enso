@@ -556,9 +556,8 @@ object PackageRepository {
         loadedModules.put(virtualModule.getName.toString, virtualModule)
       } else {
         val loaded = loadedModules(virtualModule.getName.toString)
-        if (!loaded.isVirtual) {
-          loaded.setDirectVirtualModulesRefs(refs.asJava)
-        }
+        assert(!loaded.isVirtual)
+        loaded.setDirectVirtualModulesRefs(refs.asJava)
       }
     }
 

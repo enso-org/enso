@@ -6493,6 +6493,14 @@ object IR {
           Array(shadowedName, shadower)
       }
 
+      /** A warning that a submodule is being shadowed by the type of the same name
+        * therefore preventing the user from accessing the module via a qualified name.
+        *
+        * @param typename the type name shadowing the module
+        * @param moduleName the module being shadowed
+        * @param shadower the expression shadowing `moduleName`
+        * @param location the location at which the shadowing takes place
+        */
       sealed case class VirtualModule(
         typeName: String,
         moduleName: IR.Name.Qualified,
