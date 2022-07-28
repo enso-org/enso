@@ -2088,6 +2088,7 @@ dependencies = [
  "lexpr",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "rand_distr 0.4.3",
  "serde",
 ]
 
@@ -4486,7 +4487,7 @@ dependencies = [
  "num-rational 0.2.4",
  "num-traits",
  "rand 0.7.3",
- "rand_distr",
+ "rand_distr 0.2.2",
  "serde",
  "serde_derive",
  "simba 0.1.5",
@@ -5480,6 +5481,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96977acbdd3a6576fb1d27391900035bf3863d4a16422973a409b488cf29ffb2"
 dependencies = [
  "rand 0.7.3",
+]
+
+[[package]]
+name = "rand_distr"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32cb0b9bc82b0a0876c2dd994a7e7a2683d3e7390ca40e6886785ef0c7e3ee31"
+dependencies = [
+ "num-traits",
+ "rand 0.8.5",
 ]
 
 [[package]]

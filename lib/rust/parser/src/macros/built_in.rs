@@ -44,42 +44,135 @@ pub fn type_def<'s>() -> Definition<'s> {
         identifier() / "name" % "type name" >>
         many(identifier() % "type parameter" / "param") % "type parameters" >>
         block(
-            many(identifier() / "constructor") % "type constructors" >> 
-            everything()
+            everything() / "statements"
         ) % "type definition body";
-    // let pattern2 = Everything;
     crate::macro_definition! {
         ("type", pattern)
         type_def_body
     }
 }
 
-// TODO: The comments in the code were left in order to allow easy debugging of this struct. They
-//       should be removed in the future.
 fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
-    let segment = matched_segments.to_vec().pop().unwrap();
-    // println!(">>>");
-    // println!("{:#?}", segment);
-    // println!(">>>");
+    // FIXME: This implementation of parsing constructors works for correct inputs, but doesn't
+    //  handle incorrect syntax ideally. Issue: #182745069
+    let segment = matched_segments.pop().0;
     let match_tree = segment.result.into_var_map();
-    // println!("{:#?}", match_tree);
-    // println!("\n\n------------- 1");
-
     let mut v = match_tree.view();
-    let name = &v.query("name").unwrap()[0];
-    let name = operator::resolve_operator_precedence_if_non_empty(name.clone()).unwrap();
-    // println!("{:#?}", name);
-    // println!("\n\n------------- 2");
-
-    let no_params = vec![];
+    let name = v.query("name").map(|name| name[0].clone()).unwrap_or_default();
+    let name = operator::resolve_operator_precedence_if_non_empty(name);
+    let no_params = [];
     let params = v.nested().query("param").unwrap_or(&no_params);
-    // println!("{:#?}", params);
-    // println!("\n\n------------- 3");
-
     let params = params
         .iter()
-        .map(|tokens| operator::resolve_operator_precedence_if_non_empty(tokens.clone()).unwrap())
+        .map(|tokens| {
+            operator::resolve_operator_precedence_if_non_empty(tokens.iter().cloned()).unwrap()
+        })
         .collect_vec();
-    // println!("{:#?}", params);
-    syntax::Tree::type_def(segment.header, name, params)
+    let mut constructors = default();
+    let mut body = default();
+    if let Some(items) = v.query("statements") {
+        let items = items[0].iter().cloned();
+        let mut builder = TypeDefBodyBuilder::default();
+        for syntax::tree::block::Line { newline, expression } in syntax::tree::block::lines(items) {
+            builder.line(newline, expression);
+        }
+        let (constructors_, body_) = builder.finish();
+        constructors = constructors_;
+        body = body_;
+    }
+    match name {
+        Some(name) => syntax::Tree::type_def(segment.header, name, params, constructors, body),
+        None => {
+            let name = syntax::Tree::ident(syntax::token::ident("", "", false, 0));
+            let result = syntax::Tree::type_def(segment.header, name, params, constructors, body);
+            result.with_error("Expected identifier after `type` keyword.")
+        }
+    }
+}
+
+#[derive(Default)]
+struct TypeDefBodyBuilder<'s> {
+    constructors: Vec<syntax::tree::TypeConstructorLine<'s>>,
+    body:         Vec<syntax::tree::block::Line<'s>>,
+}
+
+impl<'s> TypeDefBodyBuilder<'s> {
+    /// Apply the line to the state.
+    pub fn line(
+        &mut self,
+        newline: syntax::token::Newline<'s>,
+        expression: Option<syntax::Tree<'s>>,
+    ) {
+        if self.body.is_empty() {
+            if let Some(expression) = expression {
+                match Self::to_constructor_line(expression) {
+                    Ok(expression) => {
+                        let expression = Some(expression);
+                        let line = syntax::tree::TypeConstructorLine { newline, expression };
+                        self.constructors.push(line);
+                    }
+                    Err(expression) => {
+                        let expression = crate::expression_to_statement(expression);
+                        let expression = Some(expression);
+                        self.body.push(syntax::tree::block::Line { newline, expression });
+                    }
+                }
+            } else {
+                self.constructors.push(newline.into());
+            }
+        } else {
+            let expression = expression.map(crate::expression_to_statement);
+            self.body.push(syntax::tree::block::Line { newline, expression });
+        }
+    }
+
+    /// Return the constructor/body sequences.
+    pub fn finish(
+        self,
+    ) -> (Vec<syntax::tree::TypeConstructorLine<'s>>, Vec<syntax::tree::block::Line<'s>>) {
+        (self.constructors, self.body)
+    }
+
+    /// Interpret the given expression as an `TypeConstructorDef`, if its syntax is compatible.
+    fn to_constructor_line(
+        expression: syntax::Tree<'_>,
+    ) -> Result<syntax::tree::TypeConstructorDef<'_>, syntax::Tree<'_>> {
+        use syntax::tree::*;
+        if let Tree {
+            variant:
+                box Variant::ArgumentBlockApplication(ArgumentBlockApplication {
+                    lhs: Some(Tree { variant: box Variant::Ident(ident), span: span_ }),
+                    arguments,
+                }),
+            span,
+        } = expression
+        {
+            let mut constructor = ident.token;
+            let mut left_offset = span.left_offset;
+            left_offset += &span_.left_offset;
+            left_offset += constructor.left_offset;
+            constructor.left_offset = left_offset;
+            let block = arguments;
+            let arguments = default();
+            return Ok(TypeConstructorDef { constructor, arguments, block });
+        }
+        let mut arguments = vec![];
+        let mut lhs = &expression;
+        let mut left_offset = crate::source::span::Offset::default();
+        while let Tree { variant: box Variant::App(App { func, arg }), span } = lhs {
+            left_offset += &span.left_offset;
+            lhs = func;
+            arguments.push(arg.clone());
+        }
+        if let Tree { variant: box Variant::Ident(Ident { token }), span } = lhs {
+            let mut constructor = token.clone();
+            left_offset += &span.left_offset;
+            left_offset += constructor.left_offset;
+            constructor.left_offset = left_offset;
+            arguments.reverse();
+            let block = default();
+            return Ok(TypeConstructorDef { constructor, arguments, block });
+        }
+        Err(expression)
+    }
 }
