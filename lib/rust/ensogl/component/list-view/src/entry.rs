@@ -240,8 +240,13 @@ impl display::Object for GlyphHighlightedLabel {
 /// for models of entries when they're about to be displayed. So setting the select content is
 /// essentially providing an implementor of this trait.
 pub trait ModelProvider<E>: Debug {
-    /// Number of all entries.
+    /// Number of entries after filtering.
     fn entry_count(&self) -> usize;
+
+    /// Number of all entries before any filtering.
+    fn original_entry_count(&self) -> usize {
+        self.entry_count()
+    }
 
     /// Get the model of entry with given id. The implementors should return `None` only when
     /// requested id greater or equal to entries count.

@@ -92,7 +92,7 @@ use searcher_theme::list_panel as list_panel_theme;
 
 pub mod column_grid;
 
-mod layouting_algorithm;
+mod layouting;
 
 pub use column_grid::LabeledAnyModelProvider;
 pub use component_group::set::GroupId;

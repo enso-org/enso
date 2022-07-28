@@ -193,6 +193,10 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         self.group.matched_items.get()
     }
 
+    fn original_entry_count(&self) -> usize {
+        self.group.entries.borrow().len()
+    }
+
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
         use suggestion_database::entry::for_each_kind_variant;
         let component = self.group.get_entry(id)?;

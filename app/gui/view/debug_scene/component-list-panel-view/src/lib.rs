@@ -139,6 +139,28 @@ fn mock_data() -> Vec<LabeledAnyModelProvider> {
     .collect_vec()
 }
 
+fn mock_data_in_favorites_section() -> Vec<LabeledAnyModelProvider> {
+    vec![
+        MockEntries::new(3),
+        MockEntries::new(1),
+        MockEntries::new(3),
+        MockEntries::new(4),
+        MockEntries::new(1),
+        MockEntries::new(1),
+        MockEntries::new(4),
+        MockEntries::new(1),
+        MockEntries::new(2),
+        MockEntries::new(1),
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(index, mock_entries)| LabeledAnyModelProvider {
+        content: AnyModelProvider::from(mock_entries.clone_ref()),
+        label:   format!("Header {}", index).into(),
+    })
+    .collect_vec()
+}
+
 fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
     let sub_module_data = mock_data();
     searcher_list_panel.set_sub_modules_section(sub_module_data);
@@ -148,14 +170,14 @@ fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
 }
 
 fn init_favourites_section(searcher_list_panel: &ComponentBrowserPanel) {
-    let local_scope_data = mock_data();
-    searcher_list_panel.set_favourites_section(local_scope_data);
+    let favorites_data = mock_data_in_favorites_section();
+    searcher_list_panel.set_favourites_section(favorites_data);
     // Doing this twice to reveal potential issues with setting new data.
-    let local_scope_data = mock_data();
-    searcher_list_panel.set_favourites_section(local_scope_data);
+    let favorites_data = mock_data_in_favorites_section();
+    searcher_list_panel.set_favourites_section(favorites_data);
 }
 
-fn init_local_cope_section(searcher_list_panel: &ComponentBrowserPanel) {
+fn init_local_scope_section(searcher_list_panel: &ComponentBrowserPanel) {
     let mock_entries = MockEntries::new(20);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     searcher_list_panel.set_local_scope_section(model_provider.clone_ref());
@@ -187,7 +209,7 @@ pub fn main() {
         searcher_list_panel.model().set_navigator(Some(navigator.clone()));
 
         init_favourites_section(&searcher_list_panel);
-        init_local_cope_section(&searcher_list_panel);
+        init_local_scope_section(&searcher_list_panel);
         init_sub_modules_section(&searcher_list_panel);
 
         world.add_child(&searcher_list_panel);
