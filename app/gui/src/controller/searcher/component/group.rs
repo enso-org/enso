@@ -96,18 +96,24 @@ impl Group {
         Self::from_name_and_id(name, Some(component_id))
     }
 
-    pub fn from_name_and_virtual_entries(name: impl Into<ImString>, entries: impl IntoIterator<Item = Rc<component::Virtual>>) -> Self {
-        let components = entries.into_iter().map(|suggestion| Component {
-            kind: component::Kind::Virtual { suggestion },
-            match_info: default(),
-        }).collect_vec();
+    pub fn from_name_and_virtual_entries(
+        name: impl Into<ImString>,
+        entries: impl IntoIterator<Item = Rc<component::Virtual>>,
+    ) -> Self {
+        let components = entries
+            .into_iter()
+            .map(|suggestion| Component {
+                kind:       component::Kind::Virtual { suggestion },
+                match_info: default(),
+            })
+            .collect_vec();
         let group_data = Data {
-            name: name.into(),
-            color: None,
-            component_id: None,
-            matched_items: Cell::new(components.len()),
+            name:                  name.into(),
+            color:                 None,
+            component_id:          None,
+            matched_items:         Cell::new(components.len()),
             initial_entries_order: components.clone(),
-            entries: RefCell::new(components),
+            entries:               RefCell::new(components),
         };
         Group { data: Rc::new(group_data) }
     }

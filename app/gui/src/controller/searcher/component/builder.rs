@@ -126,7 +126,8 @@ impl List {
                         parent_group.content.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
                         let parent_id = parent_group.content.component_id;
-                        let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
+                        let in_local_scope =
+                            parent_id == local_scope_id && local_scope_id.is_some();
                         let not_module = suggestion.kind != Kind::Module;
                         if in_local_scope && not_module {
                             self.local_scope.entries.borrow_mut().push(component.clone_ref());
@@ -225,30 +226,30 @@ impl List {
         {
             let vgroup = component::Group::from_name_and_virtual_entries("Favs", [
                 Rc::new(component::Virtual {
-                    name: "text input",
-                    code: "\"\"",
-                    this_arg: None,
-                    argument_types: vec![],
+                    name:               "text input",
+                    code:               "\"\"",
+                    this_arg:           None,
+                    argument_types:     vec![],
                     // FIXME[MC]
-                    return_type: None, 
-                    imports: vec![],
+                    return_type:        None,
+                    imports:            vec![],
                     documentation_html: Some("This will allow you to enter some text easily."),
-                    method_id: None,
+                    method_id:          None,
                     // FIXME[MC] possible to fix?
-                    icon: "TextInput".into(),
+                    icon:               "TextInput".into(),
                 }),
                 Rc::new(component::Virtual {
-                    name: "number input",
-                    code: "0",
-                    this_arg: None,
-                    argument_types: vec![],
+                    name:               "number input",
+                    code:               "0",
+                    this_arg:           None,
+                    argument_types:     vec![],
                     // FIXME[MC]
-                    return_type: None, 
-                    imports: vec![],
+                    return_type:        None,
+                    imports:            vec![],
                     documentation_html: Some("This will allow you to enter a number easily."),
-                    method_id: None,
+                    method_id:          None,
                     // FIXME[MC] possible to fix?
-                    icon: "NumberInput".into(),
+                    icon:               "NumberInput".into(),
                 }),
             ]);
             favorites_groups.insert(0, vgroup);

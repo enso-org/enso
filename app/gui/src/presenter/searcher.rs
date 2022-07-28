@@ -99,7 +99,7 @@ impl Model {
         let component = self.component_by_view_id(id);
         let new_code = component.and_then(|component| {
             let suggestion = match component.kind {
-                component::Kind::FromDb { suggestion, .. } => 
+                component::Kind::FromDb { suggestion, .. } =>
                     Suggestion::FromDatabase(suggestion.clone_ref()),
                 component::Kind::Virtual { suggestion } =>
                     Suggestion::Hardcoded(suggestion.clone_ref()),
@@ -178,20 +178,22 @@ impl Model {
                             ),
                             Kind::Module => format!("Module {}", suggestion.name),
                         };
-                        format!("<div class=\"enso docs summary\"><p />{title}</div>{documentation}")
+                        format!(
+                            "<div class=\"enso docs summary\"><p />{title}</div>{documentation}"
+                        )
                     } else {
                         provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
                             suggestion.clone_ref(),
                         ))
                     }
-                },
+                }
                 component::Kind::Virtual { suggestion } => {
                     if let Some(documentation) = &suggestion.documentation_html {
                         documentation.to_string()
                     } else {
                         default()
                     }
-                },
+                }
             }
         } else {
             default()

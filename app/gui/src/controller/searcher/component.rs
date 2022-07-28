@@ -88,13 +88,8 @@ pub enum Order {
 
 #[derive(Clone, CloneRef, Debug)]
 pub enum Kind {
-    FromDb {
-        id:         Immutable<Id>,
-        suggestion: Rc<suggestion_database::Entry>,
-    },
-    Virtual {
-        suggestion: Rc<Virtual>,
-    },
+    FromDb { id: Immutable<Id>, suggestion: Rc<suggestion_database::Entry> },
+    Virtual { suggestion: Rc<Virtual> },
 }
 
 
@@ -114,7 +109,7 @@ pub enum Kind {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
-    pub kind: Kind,
+    pub kind:       Kind,
     pub match_info: Rc<RefCell<MatchInfo>>,
 }
 
@@ -179,7 +174,7 @@ impl Display for Component {
                 } else {
                     write!(f, "{}", suggestion.name.from_case(Case::Snake).to_case(Case::Lower))
                 }
-            },
+            }
             Kind::Virtual { suggestion } => write!(f, "{}", suggestion.name),
         }
     }
