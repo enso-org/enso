@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.state.Stateful;
     description = "Computes the logical conjunction of two booleans")
 public abstract class AndNode extends Node {
 
-  ConditionProfile conditionProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile conditionProfile = ConditionProfile.createCountingProfile();
 
   public static AndNode build() {
     return AndNodeGen.create();
