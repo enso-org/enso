@@ -25,6 +25,7 @@ use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::module;
+use double_representation::project;
 
 
 
@@ -161,6 +162,9 @@ impl List {
             .into_iter()
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
+    }
+
+    pub fn insert_virtual_components_in_favorites_group(&mut self, library: project::QualifiedName, group_name: impl AsRef<str>, components: impl IntoIterator<Item = Rc<component::Virtual>>) {
     }
 
     fn lookup_module_group(

@@ -49,6 +49,39 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 /// See also [`Searcher::add_enso_project_entries`].
 const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
 
+thread_local! {
+    // TODO[MC]: can it be just slice? `[Rc<component::Virtual>]`
+    static VIRTUAL_COMPONENTS_IN_INPUT_GROUP: Vec<Rc<component::Virtual>> = vec![
+        Rc::new(component::Virtual {
+            name:               "text input",
+            code:               "\"\"",
+            this_arg:           None,
+            argument_types:     vec![],
+            // FIXME[MC]
+            return_type:        None,
+            imports:            vec![],
+            // FIXME[MC]
+            documentation_html: Some("This will allow you to enter some text easily."),
+            method_id:          None,
+            // FIXME[MC] possible to fix to use icon::Id?
+            icon:               "TextInput".into(),
+        }),
+        Rc::new(component::Virtual {
+            name:               "number input",
+            code:               "0",
+            this_arg:           None,
+            argument_types:     vec![],
+            // FIXME[MC]
+            return_type:        None,
+            imports:            vec![],
+            // FIXME[MC]
+            documentation_html: Some("This will allow you to enter a number easily."),
+            method_id:          None,
+            // FIXME[MC] possible to fix to use icon::Id?
+            icon:               "NumberInput".into(),
+        }),
+    ];
+}
 
 // ==============
 // === Errors ===
@@ -1043,6 +1076,10 @@ impl Searcher {
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
+        // FIXME[MC]: solve 'unwrap' somehow: make this a thread_local static? validate "Base" at comptime?
+        let base_lib = project::QualifiedName::from_segments("Standard", "Base").unwrap();
+        let components = VIRTUAL_COMPONENTS_IN_INPUT_GROUP.with(|c| c.clone());
+        builder.insert_virtual_components_in_favorites_group(base_lib, "Input", components);
         builder.build()
     }
 
