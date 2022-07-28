@@ -100,7 +100,7 @@ find_codepoint_ranges text subrange =
             if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
                 range = Range start text.length-start step
                 find_codepoint_ranges text (By_Index range)
-        Range start end step ->
+        Range _ _ _ ->
             find_codepoint_ranges text (By_Index subrange)
 
 type Codepoint_Ranges
@@ -121,15 +121,16 @@ type Codepoint_Ranges
     sorted_and_distinct_ranges self = if self.is_sorted_and_distinct then self.ranges else
         sorted = self.ranges.sort on=(.start)
         if sorted.is_empty then [] else
-            current = Ref.new sorted.first
+            current_ref = Ref.new sorted.first
             builder = Vector.new_builder
             sorted.tail.each range->
+                current = current_ref.get
                 case range.start == current.start of
                     True -> current.put (Range current.start (Math.max current.end range.end))
                     False ->
-                        builder.append current.get
-                        current.put range
-            builder.append current.get
+                        builder.append current
+                        current_ref.put range
+            builder.append current_ref.get
             builder.to_vector
 
 ## Utility function to find char indices for Text_Sub_Range.
@@ -215,11 +216,11 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_B
                         first_grapheme = characters.at true_range.start
                         last_grapheme = characters.at true_range.end-1
                         Range first_grapheme.start last_grapheme.end
-                False ->
-                    if true_range.step <= 0 then panic_on_non_positive_step
-                    true_range.to_vector.each ix->
-                        Panic.rethrow <|
-                            ranges.append (characters.at descriptor)
+                    False ->
+                        if true_range.step <= 0 then panic_on_non_positive_step
+                        true_range.to_vector.each ix->
+                            Panic.rethrow <|
+                                ranges.append (characters.at ix)
     Codepoint_Ranges ranges.to_vector is_sorted_and_distinct=False
 
 ## PRIVATE

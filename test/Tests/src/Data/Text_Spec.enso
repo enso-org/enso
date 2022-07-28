@@ -337,8 +337,6 @@ spec =
             txt_2.take (While c->c!='e') . should_equal txt_2
             txt_2.take (Range 3 5) . should_equal 'lo\u{308}'
             txt_2.take (Range -3 -1) . should_equal 'ld'
-            txt_2.take (Range -3 Nothing) . should_equal 'ld!'
-            txt_2.take (Range 5 Nothing) . should_equal ' Wo\u{308}rld!'
             txt_2.take (Range 5 12) . should_equal ' Wo\u{308}rld!'
             txt_2.take (Range 12 12) . should_equal ''
 
