@@ -59,7 +59,7 @@ type Connection
 
     ## Returns the name of the current database (or catalog).
     database : Text
-    database =
+    database self =
         self.connection_resource.with connection->
             connection.getCatalog
 
@@ -68,7 +68,7 @@ type Connection
        Arguments:
         - database: The name of the database to connect to.
     set_database : Text -> Connection ! Sql_Error
-    set_database database =
+    set_database self database =
         self.with_database database
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
@@ -82,7 +82,7 @@ type Connection
 
     ## Returns the name of the current schema.
     schema : Text
-    schema =
+    schema self =
         self.connection_resource.with connection->
             connection.getSchema
 
@@ -91,12 +91,12 @@ type Connection
        Arguments:
         - schema: The name of the schema to connect to.
     set_schema : Text -> Connection ! Sql_Error
-    set_schema schema =
+    set_schema self schema =
         self.with_schema schema
 
     ## Gets a list of the table types
     table_types : [Text]
-    table_types =
+    table_types self =
         wrap_sql_errors <|
             self.connection_resource.with connection->
                 metadata = connection.getMetaData
@@ -111,7 +111,7 @@ type Connection
        - schema: The schema name to search in (defaults to current schema).
        - types: The table types to search for.
     tables : Text -> Text -> Text -> Materialized_Table
-    tables name_like=Nothing database=self.database schema=self.schema types=Nothing =
+    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing =
         types_array = if types.is_nothing then Nothing else types.to_array
         wrap_sql_errors <|
             self.connection_resource.with connection->
@@ -127,7 +127,7 @@ type Connection
        Arguments:
        - name: name of the table to access
     access_table : Text -> Database_Table
-    access_table name = handle_sql_errors <|
+    access_table self name = handle_sql_errors <|
         columns = self.fetch_columns name
         Database_Table.make_table self name columns
 
