@@ -264,7 +264,7 @@ spec =
             "AAAAA".drop (Sample 3) . should_equal "AA"
 
             "ABCDEFGH".take (Sample 0) . should_equal ""
-            "ABCDEFGH".take (Sample 1) . should_equal "TODO"
+            "ABCDEFGH".take (Sample 1) . should_equal "H"
             "ABCDEFGH".take (Sample 2 seed=42) . should_equal "TODO"
             "ABCDEFGH".take (Sample 4 seed=42) . should_equal "TODO"
             "ABCDEFGH".take (Sample 8 seed=42) . should_equal "TODO"
@@ -278,12 +278,12 @@ spec =
             "ABCDEFGH".drop (Sample 100 seed=42) . should_equal ""
 
         Test.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
-            "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-x)) . should_equal "321"*1000
+            "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000
             "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
             "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range 6*ix+1 6*ix+3)) . should_equal "23"*100
             "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range ix+1 ix+5)) . should_equal "BABAABAB"*50
 
-            "123"*1000 . take (By_Index (Vector.new 300 ix-> 2999-x)) . should_equal "123"*900
+            "123"*1000 . take (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
             "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
             "123456"*1000 . take (By_Index (Vector.new 1000 ix-> Range 6*ix+1 6*ix+3)) . should_equal "1456"*1000
             "ABCD"*25 . take (By_Index (Vector.new 90 ix-> Range ix+1 ix+5)) . should_equal "ADABCD"
