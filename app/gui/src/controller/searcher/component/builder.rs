@@ -170,6 +170,7 @@ impl List {
         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
         let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
         for group in favorites_groups.iter_mut() {
+            DEBUG!("MCDBG blub: " group.library;? " " group.name;?);
             if group.library.as_ref() == Some(&library) && group.name.as_str() == group_name.as_ref() {
                 DEBUG!("MCDBG found library: " group.library;? " " group.name);
             }
