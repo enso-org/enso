@@ -179,7 +179,12 @@ impl List {
             if group.library.as_ref() == Some(&library) && group.name.as_str() == group_name.as_ref() {
                 group.insert_entries(&virtual_components);
                 DEBUG!("MCDBG found library: " group.library;? " " group.name);
+                inserted = true;
             }
+        }
+        if !inserted {
+            // FIXME[mc]
+            DEBUG!("FIXME insert new group with virtual entries at the beginning");
         }
         self.grouping_and_order_of_favorites = component::group::List::new(favorites_groups);
     }
