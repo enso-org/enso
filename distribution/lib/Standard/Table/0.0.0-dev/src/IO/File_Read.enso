@@ -56,6 +56,6 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
 
          example_xls_to_table = Examples.xls.read (Excel (Sheet 'Dates'))
 File.File.read : File_Format -> Problem_Behavior -> Any ! File_Error
-File.File.read (format=File_Format.Auto) (on_problems=Report_Warning) =
+File.File.read self (format=File_Format.Auto) (on_problems=Report_Warning) =
     format.read self on_problems
 

@@ -1,7 +1,8 @@
 from Standard.Base import all
 
-import Standard.Test
 import project.Semantic.Deep_Export.Internal
+
+import Standard.Test
 
 spec =
     Test.group "Deep Exports" <|

@@ -47,7 +47,7 @@ type Span
          Standard Annex 29. This is the smallest unit that still has semantic
          meaning in most text-processing applications.
     start : Integer
-    start = self.range.start
+    start self = self.range.start
 
     ## The index of the first character after `start` that is _not_ included in
        the span.
@@ -57,7 +57,7 @@ type Span
          Standard Annex 29. This is the smallest unit that still has semantic
          meaning in most text-processing applications.
     end : Integer
-    end = self.range.end
+    end self = self.range.end
 
     ## The length of the span in extended grapheme clusters.
 
@@ -66,7 +66,7 @@ type Span
          Standard Annex 29. This is the smallest unit that still has semantic
          meaning in most text-processing applications.
     length : Integer
-    length = self.range.length
+    length self = self.range.length
 
     ## Converts the span of extended grapheme clusters to a corresponding span
        of UTF-16 code units.
@@ -77,7 +77,7 @@ type Span
          text = 'ae\u{301}fz'
          (Span (Range 1 3) text).to_utf_16_span == (Utf_16_Span (Range 1 4) text)
     to_utf_16_span : Utf_16_Span
-    to_utf_16_span =
+    to_utf_16_span self =
         Utf_16_Span (range_to_char_indices self.text self.range) self.text
 
 type Utf_16_Span
@@ -100,16 +100,16 @@ type Utf_16_Span
 
     ## The index of the first code unit included in the span.
     start : Integer
-    start = self.range.start
+    start self = self.range.start
 
     ## The index of the first code unit after `start` that is _not_ included in
        the span.
     end : Integer
-    end = self.range.end
+    end self = self.range.end
 
     ## The length of the span in UTF-16 code units.
     length : Integer
-    length = self.range.length
+    length self = self.range.length
 
     ## Returns a span of extended grapheme clusters which is the closest
        approximation of this span of code units.
@@ -129,7 +129,7 @@ type Utf_16_Span
          extended == Span (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
          extended.to_utf_16_span == Utf_16_Span (Range 0 6) text
     to_grapheme_span : Span
-    to_grapheme_span = if (self.start < 0) || (self.end > Text_Utils.char_length self.text) then Error.throw (Illegal_State_Error "Utf_16_Span indices are out of range of the associated text.") else
+    to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.text) then Error.throw (Illegal_State_Error "Utf_16_Span indices are out of range of the associated text.") else
         if self.end < self.start then Error.throw (Illegal_State_Error "Utf_16_Span invariant violation: start <= end") else
             case self.start == self.end of
                 True ->

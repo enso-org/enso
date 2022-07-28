@@ -17,7 +17,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |    type Atom_One
           |    type Atom_Two
           |
-          |    is_atom_one = case self of
+          |    is_atom_one self = case self of
           |        Atom_One -> 10
           |        Atom_Two -> -10
           |
@@ -37,7 +37,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |    type Atom_One
           |    type Atom_Two
           |
-          |    is_atom_one n = case self of
+          |    is_atom_one self n = case self of
           |        Atom_One -> 10 + n
           |        Atom_Two -> -10 - n
           |
@@ -56,7 +56,7 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
           |type My_Type
           |    type My_Atom a
           |
-          |    is_equal n = case self of
+          |    is_equal self n = case self of
           |        My_Atom a -> n - a
           |
           |main =

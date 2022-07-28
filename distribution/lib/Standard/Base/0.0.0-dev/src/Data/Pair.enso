@@ -21,5 +21,5 @@ type Pair
 
          (Pair 1 2).map (+1) == (Pair 2 3)
     map : (Any -> Any) -> Pair
-    map fun =
+    map self fun =
         Pair (fun self.first) (fun self.second)

@@ -4,9 +4,9 @@ from Standard.Base.Data.Numbers import Parse_Error
 
 import Standard.Test
 
-Integer.is_even = self % 2 == 0
+Integer.is_even self = self % 2 == 0
 
-Decimal.get_fun_factor = "Wow, " + self.to_text + " is such a fun number!"
+Decimal.get_fun_factor self = "Wow, " + self.to_text + " is such a fun number!"
 
 spec =
     eps = 0.000001

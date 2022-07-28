@@ -4,7 +4,7 @@ public final class Message {
     private final java.nio.ByteBuffer buffer;
     private final java.nio.ByteBuffer context;
     private final int base;
-    public boolean encounteredUnsupportedSyntax;
+    private boolean encounteredUnsupportedSyntax;
 
     public Message(java.nio.ByteBuffer bufferIn, java.nio.ByteBuffer contextIn, long baseIn) {
         buffer = bufferIn;
@@ -61,5 +61,9 @@ public final class Message {
 
     public final boolean getEncounteredUnsupportedSyntax() {
         return encounteredUnsupportedSyntax;
+    }
+
+    public final void markEncounteredUnsupportedSyntax() {
+        encounteredUnsupportedSyntax = true;
     }
 }

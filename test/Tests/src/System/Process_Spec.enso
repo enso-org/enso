@@ -2,9 +2,9 @@ from Standard.Base import all
 
 import Standard.Base.System.Platform
 import Standard.Base.System.Process
-import Standard.Test
-
 from Standard.Base.System.Process.Exit_Code import Exit_Success, Exit_Failure
+
+import Standard.Test
 
 spec = Test.group "Process" <|
     Test.specify "should call simple command" <|

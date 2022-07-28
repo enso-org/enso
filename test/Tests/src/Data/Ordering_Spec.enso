@@ -7,7 +7,7 @@ import Standard.Test
 type Ord number
 
 Ord.compare_to : Ord -> Ordering
-Ord.compare_to that = if self.number == that.number then Ordering.Equal else
+Ord.compare_to self that = if self.number == that.number then Ordering.Equal else
     if self.number > that.number then Ordering.Greater else Ordering.Less
 
 
@@ -40,3 +40,5 @@ spec =
             Ordering.from_sign -1 . should_equal Ordering.Less
             Ordering.from_sign 0 . should_equal Ordering.Equal
             Ordering.from_sign 1 . should_equal Ordering.Greater
+
+main = Test.Suite.run_main spec

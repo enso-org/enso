@@ -6,9 +6,9 @@ natural =
     gen ~n = if (n >= 10) then self else Generator n (@Tail_Call gen n+1)
     gen 2
 
-Generator.n = case self of
+Generator.n self = case self of
     Generator n _ -> n
-Generator.next = case self of
+Generator.next self = case self of
     Generator _ n -> n
 
 spec = Test.group "Lazy Generator" <|

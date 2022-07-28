@@ -1,7 +1,9 @@
 from Standard.Base import all
 
 from Standard.Database import all
+
 import Standard.Visualization.Sql.Visualization as Visualization
+
 import Standard.Test
 
 visualization_spec connection =

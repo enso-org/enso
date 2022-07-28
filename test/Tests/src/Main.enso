@@ -51,7 +51,7 @@ import project.Data.Text.Encoding_Spec
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http_Spec
-import project.Network.Uri_Spec
+import project.Network.URI_Spec
 
 import project.Resource.Bracket_Spec
 
@@ -116,7 +116,7 @@ main = Test.Suite.run_main <|
     Utils_Spec.spec
     Text_Spec.spec
     Time_Spec.spec
-    Uri_Spec.spec
+    URI_Spec.spec
     Vector_Spec.spec
     Statistics_Spec.spec
     Regression_Spec.spec

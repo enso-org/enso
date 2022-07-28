@@ -5,5 +5,5 @@ from Standard.Base import all
 type Unsupported_Database_Operation_Error message
 
 Unsupported_Database_Operation_Error.to_display_text : Text
-Unsupported_Database_Operation_Error.to_display_text =
+Unsupported_Database_Operation_Error.to_display_text self =
     "Unsupported database operation: " + self.message

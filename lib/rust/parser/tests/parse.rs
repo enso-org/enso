@@ -76,6 +76,12 @@ fn parentheses_nested() {
     test("((a b) c)", expected);
 }
 
+#[test]
+fn comments() {
+    // Basic, full-line comment.
+    test("# a b c", block![(Comment "# a b c")]);
+}
+
 
 // === Type Definitions ===
 
@@ -291,6 +297,71 @@ fn code_block_with_following_statement() {
 }
 
 
+// === Binary Operators ===
+
+#[test]
+fn multiple_operator_error() {
+    let code = ["4 + + 1"];
+    let expected = block![
+        (OprApp (Number 4) (Err (#("+" "+"))) (Number 1))
+    ];
+    test(&code.join("\n"), expected);
+    let code = ["4 + + + 1"];
+    let expected = block![
+        (OprApp (Number 4) (Err (#("+" "+" "+"))) (Number 1))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn precedence() {
+    let code = ["1 * 2 + 3"];
+    let expected = block![
+        (OprApp (OprApp (Number 1) (Ok "*") (Number 2)) (Ok "+") (Number 3))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+
+// === Unary Operators ===
+
+#[test]
+fn unevaluated_argument() {
+    let code = ["main ~foo = 4"];
+    let expected = block![
+        (Function main #((UnaryOprApp "~" (Ident foo))) "=" (Number 4))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn unary_operator_missing_operand() {
+    let code = ["main ~ = 4"];
+    let expected = block![
+        (Function main #((UnaryOprApp "~" ())) "=" (Number 4))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn unary_operator_at_end_of_expression() {
+    let code = ["foo ~"];
+    let expected = block![
+        (App (Ident foo) (UnaryOprApp "~" ()))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn plus_negative() {
+    let code = ["x = 4+-1"];
+    let expected = block![
+        (Assignment (Ident x) "=" (OprApp (Number 4) (Ok "+") (UnaryOprApp "-" (Number 1))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+
 
 // ====================
 // === Test Support ===
@@ -340,6 +411,7 @@ where T: serde::Serialize + Reflect {
     let mut to_s_expr = ToSExpr::new(&graph);
     to_s_expr.mapper(ast_ty, strip_hidden_fields);
     let ident_token = rust_to_meta[&token::variant::Ident::reflect().id];
+    let comment_token = rust_to_meta[&token::variant::Comment::reflect().id];
     let operator_token = rust_to_meta[&token::variant::Operator::reflect().id];
     let symbol_token = rust_to_meta[&token::variant::Symbol::reflect().id];
     let number_token = rust_to_meta[&token::variant::Number::reflect().id];
@@ -354,6 +426,8 @@ where T: serde::Serialize + Reflect {
     };
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(ident_token, move |token| Value::symbol(token_to_str_(token)));
+    let token_to_str_ = token_to_str.clone();
+    to_s_expr.mapper(comment_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();
     to_s_expr.mapper(operator_token, move |token| Value::string(token_to_str_(token)));
     let token_to_str_ = token_to_str.clone();

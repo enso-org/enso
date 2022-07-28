@@ -56,19 +56,19 @@ type Point_Data
 
     ## PRIVATE
     recognized_names : Vector
-    recognized_names = self.all_fields.map _.name
+    recognized_names self = self.all_fields.map _.name
 
     ## PRIVATE
     is_recognized : Column -> Boolean
-    is_recognized column = self.recognized_names.contains column.name
+    is_recognized self column = self.recognized_names.contains column.name
 
     ## PRIVATE
     name : Text
-    name = self.to_text.to_case Case.Lower
+    name self = self.to_text.to_case Case.Lower
 
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
-    fallback_column table = case self of
+    fallback_column self table = case self of
         X -> table.index.catch_ <| self.iota table.row_count
         Y ->
             x_column = X.lookup_in table
@@ -89,7 +89,7 @@ type Point_Data
 
     ## PRIVATE
     lookup_in : Table -> Column
-    lookup_in table =
+    lookup_in self table =
         named = table.lookup_ignore_case self.name
         named.catch_ <| self.fallback_column table
 
@@ -98,14 +98,14 @@ type No_Fallback_Column
 
 ## PRIVATE
 No_Fallback_Column.to_display_text : Text
-No_Fallback_Column.to_display_text =
+No_Fallback_Column.to_display_text self =
     "No fallback column found for the scatter plot."
 
 ## PRIVATE
 
    Generates JSON that describes points data.
 Table.Table.point_data : Table -> Object
-Table.Table.point_data =
+Table.Table.point_data self =
     get_point_data field = field.lookup_in self . rename field.name
     columns = Point_Data.all_fields.filter_map get_point_data
     (0.up_to self.row_count).to_vector.map <| row_n->
@@ -118,7 +118,7 @@ Table.Table.point_data =
 
    Generates JSON that describes plot axes.
 Table.Table.axes : Table -> Object
-Table.Table.axes =
+Table.Table.axes self =
     describe_axis field =
         col_name = field.lookup_in self . name
         label = Json.from_pairs [[label_field, col_name]]
@@ -133,7 +133,7 @@ Table.Table.axes =
 
 ## PRIVATE
 Vector.Vector.point_data : Vector -> Object
-Vector.Vector.point_data =
+Vector.Vector.point_data self =
         self.map_with_index <| i-> elem->
             Json.from_pairs [[X.name,i],[Y.name,elem]]
 

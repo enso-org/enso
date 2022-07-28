@@ -262,7 +262,11 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub is_free: bool,
             pub lift_level: usize
         },
-        Operator,
+        Operator {
+            pub precedence: usize,
+            pub can_be_binary_infix: bool,
+            pub can_be_unary_prefix: bool,
+        },
         Modifier,
         Comment,
         DocComment,

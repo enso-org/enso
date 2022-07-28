@@ -44,10 +44,12 @@ fn impl_deserialize(
     // Add source field to parent types.
     let buffer = Class::builtin("java.nio.ByteBuffer", vec![]);
     let buffer = graph.classes.insert(buffer);
-    let tree_source_ = Field::object(source, buffer, true);
+    let mut tree_source_ = Field::object(source, buffer, true);
+    tree_source_.hide_in_tostring();
     let tree_source = tree_source_.id();
     graph[tree].fields.push(tree_source_);
-    let token_source_ = Field::object(source, buffer, true);
+    let mut token_source_ = Field::object(source, buffer, true);
+    token_source_.hide_in_tostring();
     let token_source = token_source_.id();
     graph[token].fields.push(token_source_);
     let tree_begin = graph[tree].find_field(TREE_BEGIN).unwrap().id();
@@ -60,7 +62,7 @@ fn impl_deserialize(
             bincode::DeserializerBuilder::new(id, crate::SERIALIZATION_SUPPORT, crate::EITHER_TYPE);
         if id == unsupported {
             deserialization.pre_hook(|bincode::HookInput { message }| {
-                format!("{message}.encounteredUnsupportedSyntax = true;\n")
+                format!("{message}.markEncounteredUnsupportedSyntax();\n")
             });
         }
         if class.parent == Some(tree) {

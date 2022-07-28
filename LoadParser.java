@@ -10,6 +10,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.enso.syntax2.Parser;
+import org.enso.syntax2.UnsupportedSyntaxException;
 import org.graalvm.polyglot.Source;
 
 class LoadParser implements FileVisitor<Path>, AutoCloseable {
@@ -64,7 +65,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
             if (text == null) {
                 failed.add(file);
             }
-        } catch (Parser.UnsupportedSyntaxException ex) {
+        } catch (UnsupportedSyntaxException ex) {
             failed.add(file);
         }
 

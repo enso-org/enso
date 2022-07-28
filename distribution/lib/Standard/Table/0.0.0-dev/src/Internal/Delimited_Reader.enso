@@ -1,15 +1,16 @@
 from Standard.Base import all
 import Standard.Table
 
+import Standard.Base.Data.Statistics
 import Standard.Base.Error.Common as Errors
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Ignore
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Ignore, Report_Error
 from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.IO.Quote_Style
-from Standard.Table.IO.Line_Ending_Style import line_separator_sequence
 
+polyglot java import org.enso.base.encoding.NewlineDetector
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
 polyglot java import org.enso.table.parsing.problems.InvalidRow
@@ -19,7 +20,6 @@ polyglot java import org.enso.table.util.problems.DuplicateNames
 polyglot java import org.enso.table.util.problems.InvalidNames
 polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException
-polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream
 polyglot java import java.io.Reader
 polyglot java import java.io.StringReader
@@ -97,7 +97,7 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
 
 ## PRIVATE
-prepare_delimited_reader java_reader format max_columns on_problems =
+prepare_delimited_reader java_reader format max_columns on_problems newline_override=Nothing =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> DelimitedReader.HeaderBehavior.INFER
@@ -106,7 +106,7 @@ prepare_delimited_reader java_reader format max_columns on_problems =
         Nothing -> -1
         Integer -> format.row_limit
         _ -> Error.throw (Illegal_Argument_Error "`row_limit` should be Integer or Nothing.")
-    warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
+    warnings_as_errors = on_problems == Report_Error
     quote_characters = case format.quote_style of
         Quote_Style.No_Quotes -> Pair Nothing Nothing
         Quote_Style.With_Quotes _ quote quote_escape -> Pair quote quote_escape
@@ -120,7 +120,9 @@ prepare_delimited_reader java_reader format max_columns on_problems =
     cell_type_guesser = if format.headers != Infer then Nothing else
         formatter = format.value_formatter.if_nothing Data_Formatter
         TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-    newline = line_separator_sequence format.line_endings
+    newline = newline_override.if_nothing <| case format.line_endings of
+        Infer -> Nothing
+        endings -> endings.to_text
     DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 translate_reader_problem problem =
@@ -147,11 +149,18 @@ type Detected_Headers
     ## Indicates that the file exists but no headers have been found, so only positional column matching is possible.
     type No_Headers (column_count : Integer)
 
-## PRIVATE
-   An internal type representing metadata describing the format of a specific
-   Delimited file.
 type Detected_File_Metadata
-    type Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing)
+    ## PRIVATE
+       An internal type representing metadata describing the format of a specific
+       Delimited file.
+
+       Arguments:
+       - headers: headers present in the file.
+       - line_separator: line separator detected from file contents, if any.
+       - ends_with_newline: specifies if the last line ends with a line
+         separator that is consistent with the detected one.
+       - has_any_content: specifies if the file contains any content.
+    type Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
 
 ## PRIVATE
    Reads the beginning of the file to detect the existing headers and column
@@ -160,13 +169,18 @@ detect_metadata : File -> File_Format.Delimited -> Detected_Headers
 detect_metadata file format =
     on_problems = Ignore
     result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
+        trailing_line_separator = newline_at_eof file format.encoding
+        has_trailing_line_separator = trailing_line_separator.is_nothing.not
         file.with_input_stream [File.Option.Read] stream->
             stream.with_stream_decoder format.encoding on_problems java_reader->
+                ## We don't need to close this one, as closing the parent stream
+                   will suffice.
+                newline_detecting_reader = NewlineDetector.new java_reader
                 ## We use the default `max_columns` setting. If we want to be able to
                    read files with unlimited column limits (risking OutOfMemory
                    exceptions), we can catch the exception indicating the limit has been
                    reached and restart parsing with an increased limit.
-                reader = prepare_delimited_reader java_reader format max_columns=default_max_columns on_problems
+                reader = prepare_delimited_reader newline_detecting_reader format max_columns=default_max_columns on_problems newline_override=trailing_line_separator
                 defined_columns = reader.getDefinedColumnNames
                 headers = case defined_columns of
                     Nothing ->
@@ -174,9 +188,34 @@ detect_metadata file format =
                         if column_count == 0 then Nothing else
                             No_Headers column_count
                     _ -> Existing_Headers (Vector.Vector defined_columns)
-                line_separator = reader.getEffectiveLineSeparator
-                Detected_File_Metadata headers line_separator
-    result.catch File.File_Not_Found (_->(Detected_File_Metadata Nothing Nothing))
+                line_separator_from_parser = reader.getEffectiveLineSeparator
+                has_seen_newline = newline_detecting_reader.newlineEncountered
+                ## If the parser has seen a newline, we can trust that it
+                   detected the newline correctly. However if it has not, we
+                   cannot trust it as it tends to just fall back to the system
+                   default which is wrong. Thus we return the trailing line
+                   separator (which may be `Nothing`).
+                effective_line_separator = case has_seen_newline of
+                    True -> line_separator_from_parser
+                    False -> trailing_line_separator
+                has_any_content = reader.getVisitedCharactersCount > 0
+                Detected_File_Metadata headers effective_line_separator has_trailing_line_separator has_any_content
+    result.catch File.File_Not_Found (_->(Detected_File_Metadata Nothing Nothing False False))
+
+## PRIVATE
+   Checks if the file has a newline at the end.
+
+   Returns the newline sequence if found, `Nothing` otherwise.
+newline_at_eof : File -> Encoding -> Text|Nothing
+newline_at_eof file encoding =
+    newlines = ['\r\n', '\n', '\r']
+    newline_bytes = newlines.map (x-> x.bytes encoding Report_Error)
+    most_bytes = newline_bytes.map .length . compute Statistics.Maximum
+    file_last_bytes = file.read_last_bytes most_bytes
+    result = newlines.zip newline_bytes . find pair->
+        bytes = pair.second
+        bytes == (file_last_bytes.take_end bytes.length)
+    result.first . catch Nothing
 
 ## PRIVATE
 handle_parsing_failure =

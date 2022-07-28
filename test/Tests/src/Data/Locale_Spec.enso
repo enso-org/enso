@@ -1,9 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Locale
-import Standard.Test
-
 polyglot java import java.util.Locale as JavaLocale
+
+import Standard.Test
 
 with_locale locale ~test =
     default_locale = JavaLocale.getDefault

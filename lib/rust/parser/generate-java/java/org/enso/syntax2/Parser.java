@@ -1,6 +1,7 @@
 package org.enso.syntax2;
 
 import org.enso.syntax2.serialization.Message;
+import org.enso.syntax2.UnsupportedSyntaxException;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -57,18 +58,5 @@ public final class Parser implements AutoCloseable {
     public void close() {
         freeState(state);
         state = 0;
-    }
-
-    public static final class UnsupportedSyntaxException extends Exception {
-        Tree tree;
-
-        UnsupportedSyntaxException(Tree treeIn) {
-            super("Tree contains unsupported syntax. Details are in an `Unsupported` node in the tree.");
-            tree = treeIn;
-        }
-
-        public final Tree getTree() {
-            return tree;
-        }
     }
 }

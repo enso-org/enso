@@ -5,14 +5,16 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 
+import java.util.Arrays;
+
 /** A node responsible for performing foreign JS calls. */
 @NodeField(name = "foreignFunction", type = Object.class)
 @NodeField(name = "arity", type = int.class)
 public abstract class JsForeignNode extends ForeignFunctionCallNode {
 
-  abstract int getArity();
-
   abstract Object getForeignFunction();
+
+  abstract int getArity();
 
   /**
    * Creates a new instance of this node.
@@ -22,15 +24,16 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
    *     InteropLibrary#isExecutable(Object)})
    * @return a node able to call the JS function with given arguments
    */
-  public static JsForeignNode build(int argumentsCount, Object jsFunction) {
+  public static JsForeignNode build(Object jsFunction, int argumentsCount) {
     return JsForeignNodeGen.create(jsFunction, argumentsCount);
   }
 
   @Specialization
   Object doExecute(
       Object[] arguments, @CachedLibrary("foreignFunction") InteropLibrary interopLibrary) {
-    Object[] positionalArgs = new Object[getArity() - 1];
-    if (getArity() - 1 >= 0) System.arraycopy(arguments, 1, positionalArgs, 0, getArity() - 1);
+    int newLength = getArity() - 1;
+    Object[] positionalArgs = new Object[newLength];
+    System.arraycopy(arguments, 1, positionalArgs, 0, newLength);
     try {
       return interopLibrary.invokeMember(
           getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs));
