@@ -1,8 +1,6 @@
 from Standard.Base import all
-import Standard.Test
 
-import Standard.Base.Error.Problem_Behavior
-import Standard.Base.Warning
+import Standard.Test
 
 ## UNSTABLE
    Tests how a specific operation behaves depending on the requested

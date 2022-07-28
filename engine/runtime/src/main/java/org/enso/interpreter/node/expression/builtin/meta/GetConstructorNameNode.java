@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.data.text.Text;
     name = "get_constructor_name",
     description = "Gets the name of a constructor.")
 public class GetConstructorNameNode extends Node {
-  Text execute(Object self, AtomConstructor atom_constructor) {
+  Text execute(AtomConstructor atom_constructor) {
     return Text.create(atom_constructor.getName());
   }
 }

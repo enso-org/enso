@@ -47,7 +47,13 @@ impl<'s> Item<'s> {
             Item::Token(token) => match token.variant {
                 token::Variant::Ident(ident) => Tree::ident(token.with_variant(ident)),
                 token::Variant::Number(number) => Tree::number(token.with_variant(number)),
-                _ => todo!("{token:?}"),
+                token::Variant::Comment(comment) => Tree::comment(token.with_variant(comment)),
+                token::Variant::TextSection(text) => Tree::text_section(token.with_variant(text)),
+                _ => {
+                    let message = format!("to_ast: Item::Token({token:?})");
+                    let value = Tree::ident(token.with_variant(token::variant::Ident(false, 0)));
+                    Tree::with_unsupported(value, message)
+                }
             },
             Item::Tree(ast) => ast,
             Item::Block(items) => build_block(items),
@@ -86,24 +92,8 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
 /// Given a sequence of [`Item`]s belonging to one block, create an AST block node, of a type
 /// determined by the syntax of the lines in the block.
 fn build_block<'s>(items: impl IntoIterator<Item = Item<'s>>) -> Tree<'s> {
-    let mut line = vec![];
     let mut block_builder = tree::block::Builder::new();
-    let mut newline = None;
-    for item in items {
-        match item {
-            Item::Token(Token { variant: token::Variant::Newline(_), left_offset, code }) => {
-                let newline = mem::replace(&mut newline, Some(token::newline(left_offset, code)));
-                if let Some(newline) = newline {
-                    let line: Vec<_> = line.drain(..).collect();
-                    let expression = operator::resolve_operator_precedence_if_non_empty(line);
-                    block_builder.push(newline, expression);
-                }
-            }
-            _ => line.push(item),
-        }
-    }
-    if let Some(newline) = newline {
-        let expression = operator::resolve_operator_precedence_if_non_empty(line);
+    for tree::block::Line { newline, expression } in tree::block::lines(items) {
         block_builder.push(newline, expression);
     }
     block_builder.build()

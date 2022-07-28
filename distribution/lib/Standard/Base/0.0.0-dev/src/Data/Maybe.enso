@@ -35,7 +35,7 @@ type Maybe
 
              example_maybe = Maybe.Some 2 . maybe 0 *2
     maybe : Any -> (Any -> Any) -> Any
-    maybe ~default function = case self of
+    maybe self ~default function = case self of
         Nothing -> default
         Some val -> function val
 
@@ -48,4 +48,4 @@ type Maybe
 
              example_is_some = Maybe.Some "yes!" . is_some
     is_some : Boolean
-    is_some = self.is_nothing.not
+    is_some self = self.is_nothing.not

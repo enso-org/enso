@@ -26,13 +26,13 @@ type Redshift_Dialect
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name = "redshift"
+    name self = "redshift"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> Sql.Statement
-    generate_sql query =
+    generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
@@ -41,7 +41,7 @@ type Redshift_Dialect
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
-    resolve_target_sql_type aggregate =
+    resolve_target_sql_type self aggregate =
         Postgres.resolve_target_sql_type aggregate
 
     ## PRIVATE
@@ -50,5 +50,5 @@ type Redshift_Dialect
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
     prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
-    prepare_order_descriptor internal_column sort_direction text_ordering =
+    prepare_order_descriptor self internal_column sort_direction text_ordering =
         Postgres.make_order_descriptor internal_column sort_direction text_ordering

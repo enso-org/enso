@@ -11,12 +11,12 @@ foreign js debug = """
 type My_Type
     type My_Type a b
 
-    foreign js my_method = """
+    foreign js my_method this = """
         return this.a + this.b;
 
-    my_method_2 x = self.my_method * x
+    my_method_2 self x = self.my_method * x
 
-    foreign js my_method_3 y = """
+    foreign js my_method_3 this y = """
         var r = this.my_method_2(y)
         return r + 1;
 
@@ -24,9 +24,9 @@ type My_Type
         var err = new Error("JS Exc");
         throw err;
 
-    do_throw = Panic.throw self
+    do_throw self = Panic.throw self
 
-    foreign js do_catch = """
+    foreign js do_catch this = """
         try {
             this.do_throw();
         } catch (e) {
@@ -76,6 +76,8 @@ spec = Test.group "Polyglot JS" <|
 
     Test.specify "should allow declaring module-level methods in JS" <|
         my_method 1 2 . should_equal 3
+        m = my_method 1
+        m 2 . should_equal 3
 
     Test.specify "should allow mutual calling of instance-level methods" <|
         My_Type 3 4 . my_method_3 5 . should_equal 36

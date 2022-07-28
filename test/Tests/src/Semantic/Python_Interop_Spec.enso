@@ -8,12 +8,12 @@ foreign python my_method a b = """
 type My_Type
     type My_Type a b
 
-    foreign python my_method = """
+    foreign python my_method self = """
         return self.a + self.b
 
-    my_method_2 x = self.my_method * x
+    my_method_2 self x = self.my_method * x
 
-    foreign python my_method_3 y = """
+    foreign python my_method_3 self y = """
         r = self.my_method_2(y)
         return r + 1
 
@@ -21,9 +21,9 @@ type My_Type
         err = RuntimeError('Error!')
         raise err
 
-    do_throw = Panic.throw self
+    do_throw self = Panic.throw self
 
-    foreign python do_catch = """
+    foreign python do_catch self = """
         try:
             self.do_throw()
         except: # Polyglot exceptions can only be caught with except-all.

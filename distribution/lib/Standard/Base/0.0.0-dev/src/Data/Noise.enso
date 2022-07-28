@@ -19,5 +19,5 @@ from Standard.Base.Data.Noise.Generator import all
      Deterministically perturb the input number 1.
          1.noise
 Number.noise : Interval -> Generator -> Any
-Number.noise (interval = Interval.exclusive 0 1) gen=Deterministic_Random =
+Number.noise self (interval = Interval.exclusive 0 1) gen=Deterministic_Random =
     gen.step self interval

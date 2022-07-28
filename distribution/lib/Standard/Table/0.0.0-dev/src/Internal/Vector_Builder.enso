@@ -32,7 +32,7 @@ type Vector_Builder
 
        Number of elements inside of the to-be-built vector.
     length : Integer
-    length = case self of
+    length self = case self of
         Leaf vec -> vec.length
         Append _ _ len -> len
 
@@ -40,13 +40,13 @@ type Vector_Builder
 
        Checks if this builder contains any elements.
     is_empty : Boolean
-    is_empty = self.length == 0
+    is_empty self = self.length == 0
 
     ## PRIVATE
 
        Materializes the actual vector from this builder.
     build : Vector.Vector Any
-    build =
+    build self =
        array = Array.new self.length
        go ix elem = case elem of
            Leaf vec ->
@@ -68,7 +68,7 @@ type Vector_Builder
        It returns a new builder that will yield a vector that is a concatenation
        of `self` and the argument.
     ++ : Vector_Builder Any | Vector.Vector Any -> Vector_Builder Any
-    ++ other = if other.is_empty then self else
+    ++ self other = if other.is_empty then self else
         len = self.length + other.length
         case other of
             Leaf _ -> Append self other len

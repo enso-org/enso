@@ -90,14 +90,14 @@ get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
    Returns a vector of field values of the given atom.
 Atom.fields : Vector.Vector
-Atom.fields = Vector.Vector (get_atom_fields self.value)
+Atom.fields self = Vector.Vector (get_atom_fields self.value)
 
 ## UNSTABLE
    ADVANCED
 
    Returns a constructor value of the given atom.
 Atom.constructor : Atom_Constructor
-Atom.constructor = get_atom_constructor self.value
+Atom.constructor self = get_atom_constructor self.value
 
 # Polyglot methods
 ## PRIVATE
@@ -114,7 +114,7 @@ get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
 
    Returns the language with which a polyglot value is associated.
 Polyglot.get_language : Language
-Polyglot.get_language =
+Polyglot.get_language self =
     lang_str = get_polyglot_language self.value
     if lang_str == "java" then Java else Unknown
 
@@ -156,7 +156,7 @@ get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol
    Arguments:
    - new_name: The new name for the unresolved symbol.
 Unresolved_Symbol.rename : Text -> Any
-Unresolved_Symbol.rename new_name =
+Unresolved_Symbol.rename self new_name =
     create_unresolved_symbol new_name self.scope
 
 ## UNSTABLE
@@ -164,14 +164,14 @@ Unresolved_Symbol.rename new_name =
 
    Returns the name of an unresolved symbol.
 Unresolved_Symbol.name : Text
-Unresolved_Symbol.name = get_unresolved_symbol_name self.value
+Unresolved_Symbol.name self = get_unresolved_symbol_name self.value
 
 ## UNSTABLE
    ADVANCED
 
    Returns the definition scope of an unresolved symbol.
 Unresolved_Symbol.scope : Any
-Unresolved_Symbol.scope = get_unresolved_symbol_scope self.value
+Unresolved_Symbol.scope self = get_unresolved_symbol_scope self.value
 
 
 # Constructor methods
@@ -208,14 +208,14 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
    Returns a vector of field names defined by a constructor.
 Constructor.fields : Vector.Vector
-Constructor.fields = Vector.Vector (get_constructor_fields self.value)
+Constructor.fields self = Vector.Vector (get_constructor_fields self.value)
 
 ## UNSTABLE
    ADVANCED
 
    Returns the name of a constructor.
 Constructor.name : Text
-Constructor.name = get_constructor_name self.value
+Constructor.name self = get_constructor_name self.value
 
 ## UNSTABLE
    ADVANCED
@@ -226,7 +226,7 @@ Constructor.name = get_constructor_name self.value
    - fields: A vector of arguments to pass to the constructor when creating the
      new atom.
 Constructor.new : Vector.Vector -> Any
-Constructor.new fields = new_atom self.value fields.to_array
+Constructor.new self fields = new_atom self.value fields.to_array
 
 
 ## UNSTABLE
@@ -263,7 +263,7 @@ is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
    Arguments:
    - typ: The type to check `self` against.
 Any.is_a : Any -> Boolean
-Any.is_a typ = is_a self typ
+Any.is_a self typ = is_a self typ
 
 ## UNSTABLE
    ADVANCED
@@ -273,7 +273,7 @@ Any.is_a typ = is_a self typ
    Arguments:
    - typ: The type to check `self` against.
 Any.is_an : Any -> Boolean
-Any.is_an typ = is_a self typ
+Any.is_an self typ = is_a self typ
 
 ## UNSTABLE
    ADVANCED
@@ -283,7 +283,7 @@ Any.is_an typ = is_a self typ
    Arguments:
    - typ: The type to check `self` against.
 Base.Error.is_a : Any -> Boolean
-Base.Error.is_a typ = self.is_an typ
+Base.Error.is_a self typ = self.is_an typ
 
 ## UNSTABLE
    ADVANCED
@@ -293,7 +293,7 @@ Base.Error.is_a typ = self.is_an typ
    Arguments:
    - typ: The type to check `self` against.
 Base.Error.is_an : Any -> Boolean
-Base.Error.is_an typ = typ==Any || typ==Base.Error
+Base.Error.is_an self typ = typ==Any || typ==Base.Error
 
 ## UNSTABLE
    ADVANCED

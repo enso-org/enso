@@ -6,6 +6,6 @@ new year (month = 1) (day = 1) = (LocalDate.of year month day) . internal_local_
 type Date
     @Builtin_Type
     type Date
-    year = @Builtin_Method "Date.year"
-    month = @Builtin_Method "Date.month"
-    day = @Builtin_Method "Date.day"
+    year self = @Builtin_Method "Date.year"
+    month self = @Builtin_Method "Date.month"
+    day self = @Builtin_Method "Date.day"

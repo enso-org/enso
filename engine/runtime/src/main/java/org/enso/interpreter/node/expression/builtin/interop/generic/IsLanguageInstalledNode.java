@@ -17,11 +17,11 @@ public abstract class IsLanguageInstalledNode extends Node {
     return IsLanguageInstalledNodeGen.create();
   }
 
+  abstract boolean execute(Object language_name);
+
   @Specialization
-  boolean doExecute(Object self, Object language_name, @Cached ExpectStringNode expectStringNode) {
+  boolean doExecute(Object language_name, @Cached ExpectStringNode expectStringNode) {
     String name = expectStringNode.execute(language_name);
     return Context.get(this).getEnvironment().getPublicLanguages().get(name) != null;
   }
-
-  abstract boolean execute(Object self, Object language_name);
 }

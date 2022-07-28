@@ -1,6 +1,10 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.interpreter.test.{
+  InterpreterContext,
+  InterpreterException,
+  InterpreterTest
+}
 
 class PolyglotTest extends InterpreterTest {
   override def subject: String = "Polyglot"
@@ -20,6 +24,37 @@ class PolyglotTest extends InterpreterTest {
           |""".stripMargin
 
       eval(code) shouldEqual 3
+    }
+
+    "interop exception without a message" in {
+      val code =
+        """import Standard.Base.IO
+          |polyglot java import org.enso.example.TestClass
+          |main =
+          |    IO.println <| TestClass.raiseException 0
+          |""".stripMargin
+
+      try {
+        eval(code) shouldEqual "An exception shall be thrown"
+      } catch {
+        case ex: InterpreterException => {
+          ex.getMessage() shouldEqual null
+        }
+      }
+    }
+    "interop exception with a message" in {
+      val code =
+        """import Standard.Base.IO
+          |polyglot java import org.enso.example.TestClass
+          |main =
+          |    IO.println <| TestClass.raiseException 1
+          |""".stripMargin
+
+      try {
+        eval(code) shouldEqual "An exception shall be thrown"
+      } catch {
+        case ex: InterpreterException => ex.getMessage() shouldEqual "NPE!"
+      }
     }
 
     "allow instantiating objects and calling methods on them" in {
