@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Ref
 import Standard.Base.Runtime.Unsafe
 from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
+import Standard.Base.Polyglot.Proxy_Polyglot_Array
 import Standard.Base.Random
 
 ## Creates a new vector of the given length, initializing elements using
@@ -86,15 +87,8 @@ new_builder (capacity=1) = Builder.new capacity
 
    A vector allows to store an arbitrary number of elements in linear memory. It
    is the recommended data structure for most applications.
-
-   ! Value Copying
-     As Enso vectors implement immutable semantics, this constructor function
-     makes a copy of each value in the argument array.
-
-     If this didn't happen then it would be possible for the underlying array to
-     be mutated under the hood, and sneak mutability into our immutable data.
-from_array : Any -> Vector Any
-from_array arr = new (Polyglot.get_array_size arr) (arr.at _)
+from_polyglot_array : Any -> Vector Any
+from_polyglot_array arr = Vector (Proxy_Polyglot_Array.Proxy_Polyglot_Array arr)
 
 ## The basic, immutable, vector type.
 type Vector
@@ -126,7 +120,8 @@ type Vector
 
              [1, 2, 3, 4].length
     length : Number
-    length self = Polyglot.get_array_size self.to_array
+    length self =
+        self.to_array.length
 
     ## Gets an element from the vector at a specified index (0-based).
 

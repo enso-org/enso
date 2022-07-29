@@ -546,7 +546,7 @@ type File
        Builtin method that deletes the file.
        Recommended to use `File.delete` instead which handles potential exceptions.
     delete_builtin : Nothing
-    delete_builtin self = @Builtin_Method "File.delete"
+    delete_builtin self = @Builtin_Method "File.delete_builtin"
 
     ## Moves the file to the specified destination.
 
