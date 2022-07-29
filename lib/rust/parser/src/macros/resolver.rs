@@ -504,7 +504,9 @@ impl<'s> Resolver<'s> {
             let out = (macro_def.body)(pattern_matched_segments);
             (out, not_used_items_of_last_segment)
         } else {
-            todo!("Macro was not matched with any known macro definition. This should return an AST node indicating invalid match.")
+            let message = format!("Macro was not matched with any known macro definition.\nResolved segments: {resolved_segments:?}");
+            let error = syntax::tree::Error::new(message);
+            (syntax::tree::Tree::invalid(error, default()), default())
         }
     }
 

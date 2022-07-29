@@ -41,14 +41,14 @@ type Error
        Arguments:
        - handler: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
-    catch_primitive handler = @Builtin_Method "Error.catch_primitive"
+    catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
 
     ## PRIVATE
        UNSTABLE
 
        Returns a textual representation of the stack trace attached to an error.
     get_stack_trace_text : Text
-    get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
+    get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
 
     ## Converts an error to a corresponding textual representation.
 
@@ -57,13 +57,13 @@ type Error
 
              Error.throw "foo" . to_text
     to_text : Text
-    to_text = @Builtin_Method "Error.to_text"
+    to_text self = @Builtin_Method "Error.to_text"
 
     ## UNSTABLE
 
        Returns a human-readable text representing this error.
     to_display_text : Text
-    to_display_text  = "Error: " + (self.catch Any .to_display_text)
+    to_display_text self = "Error: " + (self.catch Any .to_display_text)
 
     ## Executes the provided handler on an error, or returns the value unchanged.
 
@@ -91,7 +91,7 @@ type Error
                  error = Error.throw 42
                  error.catch == 42
     catch : Any -> (Error -> Any) -> Any
-    catch (error_type = Any) (handler = x->x) =
+    catch self (error_type = Any) (handler = x->x) =
         self.catch_primitive error_value->
             case error_value.is_a error_type of
                 True -> handler error_value
@@ -108,7 +108,7 @@ type Error
 
              example_display = Examples.throw_error.to_default_visualization_data
     to_default_visualization_data : Text
-    to_default_visualization_data = self.catch Any .to_default_visualization_data
+    to_default_visualization_data self = self.catch Any .to_default_visualization_data
 
     ## UNSTABLE
 
@@ -121,7 +121,7 @@ type Error
 
              example_to_json = Examples.throw_error.to_json
     to_json : Json.Object
-    to_json =
+    to_json self =
         error_type = ["type", "Error"]
         caught = self.catch
         error_content = ["content", caught.to_json]
@@ -145,7 +145,7 @@ type Error
                  map = Examples.map
                  map.get 10 . map_error (_ -> "The element 10 was not found.")
     map_error : (Error -> Error) -> Any
-    map_error f = self.catch Any (x -> Error.throw (f x))
+    map_error self f = self.catch Any (x -> Error.throw (f x))
 
     ## ADVANCED
        UNSTABLE
@@ -155,7 +155,7 @@ type Error
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
     stack_trace : Vector.Vector Runtime.Stack_Trace_Element
-    stack_trace =
+    stack_trace self =
         Panic.get_attached_stack_trace self
 
     ## Checks if `self` is an error.
@@ -165,7 +165,7 @@ type Error
 
              1.is_error
     is_error : Boolean
-    is_error = True
+    is_error self = True
 
 
 type Illegal_State_Error
@@ -205,7 +205,7 @@ type Wrapped_Dataflow_Error payload
 
 ## PRIVATE
    Throws the original error.
-Wrapped_Dataflow_Error.unwrap = Error.throw self.payload
+Wrapped_Dataflow_Error.unwrap self = Error.throw self.payload
 
 type Caught_Panic
     ## A wrapper for a caught panic.
@@ -222,11 +222,11 @@ type Caught_Panic
     ## Converts this caught panic into a dataflow error containing the same
        payload and stack trace.
     convert_to_dataflow_error : Error
-    convert_to_dataflow_error = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
+    convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
     ## Returns the stack trace of the caught panic.
     stack_trace : Vector.Vector Runtime.Stack_Trace_Element
-    stack_trace =
+    stack_trace self =
         Panic.get_attached_stack_trace self
 
 ## Panics.
@@ -527,7 +527,7 @@ type No_Such_Method_Error target symbol
              error = Examples.no_such_method
              error.method_name
 No_Such_Method_Error.method_name : Text
-No_Such_Method_Error.method_name =
+No_Such_Method_Error.method_name self =
     Meta.meta self.symbol . name
 
 
@@ -612,7 +612,7 @@ type Unimplemented_Error message
 
    Converts the unimplemented error to a human-readable error message.
 Unimplemented_Error.to_display_text : Text
-Unimplemented_Error.to_display_text = "An implementation is missing: " + self.message
+Unimplemented_Error.to_display_text self = "An implementation is missing: " + self.message
 
 ## ADVANCED
 

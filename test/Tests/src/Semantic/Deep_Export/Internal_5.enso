@@ -6,4 +6,4 @@ bar = 345
 
 const = foo + bar
 
-Number.bar = self + 5
+Number.bar self = self + 5

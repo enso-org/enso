@@ -73,7 +73,7 @@ type Duration
 
              example_add = 1.month + 12.hours
     + : Duration -> Duration
-    + that =
+    + self that =
         period = self.internal_period . plus that.internal_period . normalized
         duration = self.internal_duration . plus that.internal_duration
         Duration period duration
@@ -97,7 +97,7 @@ type Duration
 
              example_subtract = 7.months - 30.minutes
     - : Duration -> Duration
-    - that =
+    - self that =
         period = self.internal_period . minus that.internal_period . normalized
         duration = self.internal_duration . minus that.internal_duration
         Duration period duration
@@ -111,7 +111,7 @@ type Duration
 
              example_nanos = Examples.duration.nanoseconds
     nanoseconds : Integer
-    nanoseconds = self.internal_duration . toNanosPart
+    nanoseconds self = self.internal_duration . toNanosPart
 
     ## Get the portion of the duration expressed in milliseconds.
 
@@ -122,7 +122,7 @@ type Duration
 
              example_millis = Examples.duration.milliseconds
     milliseconds : Integer
-    milliseconds = self.internal_duration . toMillisPart
+    milliseconds self = self.internal_duration . toMillisPart
 
     ## Get the portion of the duration expressed in seconds.
 
@@ -133,7 +133,7 @@ type Duration
 
              example_seconds = Examples.duration.milliseconds
     seconds : Integer
-    seconds = self.internal_duration . toSecondsPart
+    seconds self = self.internal_duration . toSecondsPart
 
     ## Get the portion of the duration expressed in minutes.
 
@@ -144,7 +144,7 @@ type Duration
 
              example_minutes = Examples.duration.milliseconds
     minutes : Integer
-    minutes = self.internal_duration . toMinutesPart
+    minutes self = self.internal_duration . toMinutesPart
 
     ## Get the portion of the duration expressed in hours.
 
@@ -155,7 +155,7 @@ type Duration
 
              example_hours = Examples.duration.milliseconds
     hours : Integer
-    hours = self.internal_duration . toHours
+    hours self = self.internal_duration . toHours
 
     ## Get the portion of the duration expressed in days.
 
@@ -166,7 +166,7 @@ type Duration
 
              example_days = Examples.duration.milliseconds
     days : Integer
-    days = self.internal_period . getDays
+    days self = self.internal_period . getDays
 
     ## Get the portion of the duration expressed in months.
 
@@ -177,7 +177,7 @@ type Duration
 
              example_months = Examples.duration.months
     months : Integer
-    months = self.internal_period . getMonths
+    months self = self.internal_period . getMonths
 
     ## Get the portion of the duration expressed in years.
 
@@ -188,7 +188,7 @@ type Duration
 
              example_years = Examples.duration.years
     years : Integer
-    years = self.internal_period . getYears
+    years self = self.internal_period . getYears
 
     ## Convert this duration to a Vector of years, months, days, hours, minutes,
        seconds and nanosecnods.
@@ -209,7 +209,7 @@ type Duration
 
              example_to_vec = 800.nanoseconds . to_vector
     to_vector : Vector.Vector Integer
-    to_vector = [self.years, self.months, self.days, self.hours, self.minutes, self.seconds, self.nanoseconds]
+    to_vector self = [self.years, self.months, self.days, self.hours, self.minutes, self.seconds, self.nanoseconds]
 
     ## A Duration to Json conversion.
 
@@ -220,7 +220,7 @@ type Duration
 
              example_to_json = 10.seconds.to_json
     to_json : Json.Object
-    to_json =
+    to_json self =
         b = Vector.new_builder
         b.append ["type", "Duration"]
         if self.years==0 . not then b.append ["years", self.years]
@@ -241,7 +241,7 @@ type Duration
 
              example_is_date = 10.seconds.is_date
     is_date : Boolean
-    is_date = (self.years==0 . not) || (self.months==0 . not) || (self.days==0 . not)
+    is_date self = (self.years==0 . not) || (self.months==0 . not) || (self.days==0 . not)
 
     ## Check if this duration is time-based.
 
@@ -252,7 +252,7 @@ type Duration
 
              example_is_time = 10.seconds.is_time
     is_time : Boolean
-    is_time = (self.hours==0 . not) || (self.minutes==0 . not) || (self.seconds==0 . not) || (self.nanoseconds==0 . not)
+    is_time self = (self.hours==0 . not) || (self.minutes==0 . not) || (self.seconds==0 . not) || (self.nanoseconds==0 . not)
 
     ## Check if this duration represents an empty time-span.
 
@@ -263,7 +263,7 @@ type Duration
 
              example_is_empty = 10.seconds.is_empty
     is_empty : Boolean
-    is_empty = self.is_date.not && self.is_time.not
+    is_empty self = self.is_date.not && self.is_time.not
 
     ## Check two durations for equality.
 
@@ -277,7 +277,7 @@ type Duration
 
              example_eq = 60.seconds == 1.minute
     == : Duration -> Boolean
-    == that = self.to_vector == that.to_vector
+    == self that = self.to_vector == that.to_vector
 
     ## Compares `self` to `that` to produce an ordering.
 
@@ -294,7 +294,7 @@ type Duration
                  duration_2 = 12.months + 1.day
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
-    compare_to that =
+    compare_to self that =
         if self.years > that.years then Ordering.Greater else
             if self.years < that.years then Ordering.Less else
                 if self.months > that.months then Ordering.Greater else
@@ -313,7 +313,7 @@ type Duration
 
          example_nano = 1.nanosecond
 Integer.nanosecond : Duration
-Integer.nanosecond = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos self)
+Integer.nanosecond self = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos self)
 
 ## Create a duration of `self` nanoseconds.
 
@@ -324,7 +324,7 @@ Integer.nanosecond = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos self
 
          example_nano = 20.nanoseconds
 Integer.nanoseconds : Duration
-Integer.nanoseconds = self.nanosecond
+Integer.nanoseconds self = self.nanosecond
 
 ## Create a duration of `self` milliseconds.
 
@@ -335,7 +335,7 @@ Integer.nanoseconds = self.nanosecond
 
          example_milli = 1.millisecond
 Integer.millisecond : Duration
-Integer.millisecond = Duration (Java_Period.ofDays 0) (Java_Duration.ofMillis self)
+Integer.millisecond self = Duration (Java_Period.ofDays 0) (Java_Duration.ofMillis self)
 
 ## Create a duration of `self` milliseconds.
 
@@ -346,7 +346,7 @@ Integer.millisecond = Duration (Java_Period.ofDays 0) (Java_Duration.ofMillis se
 
          example_milli = 20.milliseconds
 Integer.milliseconds : Duration
-Integer.milliseconds = self.millisecond
+Integer.milliseconds self = self.millisecond
 
 ## Create a duration of `self` seconds.
 
@@ -357,7 +357,7 @@ Integer.milliseconds = self.millisecond
 
          example_second = 1.second
 Integer.second : Duration
-Integer.second = Duration (Java_Period.ofDays 0) (Java_Duration.ofSeconds self)
+Integer.second self = Duration (Java_Period.ofDays 0) (Java_Duration.ofSeconds self)
 
 ## Create a duration of `self` seconds.
 
@@ -368,7 +368,7 @@ Integer.second = Duration (Java_Period.ofDays 0) (Java_Duration.ofSeconds self)
 
          example_second = 20.seconds
 Integer.seconds : Duration
-Integer.seconds = self.second
+Integer.seconds self = self.second
 
 ## Create a duration of `self` minutes.
 
@@ -379,7 +379,7 @@ Integer.seconds = self.second
 
          example_min = 1.minute
 Integer.minute : Duration
-Integer.minute = Duration (Java_Period.ofDays 0) (Java_Duration.ofMinutes self)
+Integer.minute self = Duration (Java_Period.ofDays 0) (Java_Duration.ofMinutes self)
 
 ## Create a duration of `self` minutes.
 
@@ -390,7 +390,7 @@ Integer.minute = Duration (Java_Period.ofDays 0) (Java_Duration.ofMinutes self)
 
          example_min = 20.minutes
 Integer.minutes : Duration
-Integer.minutes = self.minute
+Integer.minutes self = self.minute
 
 ## Create a duration of `self` hours.
 
@@ -401,7 +401,7 @@ Integer.minutes = self.minute
 
          example_hour = 1.hour
 Integer.hour : Duration
-Integer.hour = Duration (Java_Period.ofDays 0) (Java_Duration.ofHours self)
+Integer.hour self = Duration (Java_Period.ofDays 0) (Java_Duration.ofHours self)
 
 ## Create a duration of `self` hours.
 
@@ -412,7 +412,7 @@ Integer.hour = Duration (Java_Period.ofDays 0) (Java_Duration.ofHours self)
 
          example_hour = 20.hours
 Integer.hours : Duration
-Integer.hours = self.hour
+Integer.hours self = self.hour
 
 ## Create a duration of `self` days.
 
@@ -423,7 +423,7 @@ Integer.hours = self.hour
 
          example_day = 1.day
 Integer.day : Duration
-Integer.day = Duration (Java_Period.ofDays self . normalized) (Java_Duration.ofSeconds 0)
+Integer.day self = Duration (Java_Period.ofDays self . normalized) (Java_Duration.ofSeconds 0)
 
 ## Create a duration of `self` days.
 
@@ -434,7 +434,7 @@ Integer.day = Duration (Java_Period.ofDays self . normalized) (Java_Duration.ofS
 
          example_day = 20.days
 Integer.days : Duration
-Integer.days = self.day
+Integer.days self = self.day
 
 ## Create a duration of `self` months.
 
@@ -445,7 +445,7 @@ Integer.days = self.day
 
          example_month = 1.month
 Integer.month : Duration
-Integer.month = Duration (Java_Period.ofMonths self . normalized) (Java_Duration.ofSeconds 0)
+Integer.month self = Duration (Java_Period.ofMonths self . normalized) (Java_Duration.ofSeconds 0)
 
 ## Create a duration of `self` months.
 
@@ -456,7 +456,7 @@ Integer.month = Duration (Java_Period.ofMonths self . normalized) (Java_Duration
 
          example_month = 6.months
 Integer.months : Duration
-Integer.months = self.month
+Integer.months self = self.month
 
 ## Create a duration of `self` years.
 
@@ -467,7 +467,7 @@ Integer.months = self.month
 
          example_year = 1.year
 Integer.year : Duration
-Integer.year = Duration (Java_Period.ofYears self . normalized) (Java_Duration.ofSeconds 0)
+Integer.year self = Duration (Java_Period.ofYears self . normalized) (Java_Duration.ofSeconds 0)
 
 ## Create a duration of `self` years.
 
@@ -478,5 +478,5 @@ Integer.year = Duration (Java_Period.ofYears self . normalized) (Java_Duration.o
 
          example_year = 20.years
 Integer.years : Duration
-Integer.years = self.year
+Integer.years self = self.year
 

@@ -1,8 +1,9 @@
 
 from Standard.Base import all
-import Standard.Test
 
 from Standard.Base.Data.Text.Span as Span_Module import Span, Utf_16_Span
+
+import Standard.Test
 
 spec = Test.group "Text.Span" <|
 

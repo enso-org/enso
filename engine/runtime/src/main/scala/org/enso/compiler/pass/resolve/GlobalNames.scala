@@ -164,7 +164,9 @@ case object GlobalNames extends IRPass {
               lit.updateMetadata(this -->> BindingsMap.Resolution(value))
           }
 
-        } else { lit }
+        } else {
+          lit
+        }
       case app: IR.Application.Prefix =>
         app.function match {
           case lit: IR.Name.Literal =>

@@ -40,7 +40,7 @@ type Text_Sub_Range
     ## PRIVATE
        Finds code-point indices corresponding to the part of the input matching the `Text_Sub_Range`.
     to_char_range : Text -> Range
-    to_char_range text =
+    to_char_range self text =
 
         ## Utility function to find char indices for Text_Sub_Range.
            Arguments:

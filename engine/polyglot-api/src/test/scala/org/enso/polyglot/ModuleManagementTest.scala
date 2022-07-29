@@ -62,7 +62,7 @@ class ModuleManagementTest
     val assocCons = mainModule.getAssociatedConstructor
     val mainFun1  = mainModule.getMethod(assocCons, "main").get
 
-    mainFun1.execute(assocCons).asLong() shouldEqual 12345L
+    mainFun1.execute().asLong() shouldEqual 12345L
 
     ctx.writeMain("""
                     |main = 4567
@@ -70,7 +70,7 @@ class ModuleManagementTest
 
     mainModule.reparse()
     val mainFun2 = mainModule.getMethod(assocCons, "main").get
-    mainFun2.execute(assocCons).asLong() shouldEqual 4567L
+    mainFun2.execute().asLong() shouldEqual 4567L
   }
 
   it should "allow to switch back and forth between literal and on-disk sources" in {
@@ -83,19 +83,19 @@ class ModuleManagementTest
     val assocCons = mainModule.getAssociatedConstructor
     val mainFun1  = mainModule.getMethod(assocCons, "main").get
 
-    mainFun1.execute(assocCons).asLong() shouldEqual 123L
+    mainFun1.execute().asLong() shouldEqual 123L
 
     mainModule.setSource("""
                            |main = 456
                            |""".stripMargin)
     val mainFun2 = mainModule.getMethod(assocCons, "main").get
-    mainFun2.execute(assocCons).asLong() shouldEqual 456L
+    mainFun2.execute().asLong() shouldEqual 456L
 
     mainModule.setSource("""
                            |main = 789
                            |""".stripMargin)
     val mainFun3 = mainModule.getMethod(assocCons, "main").get
-    mainFun3.execute(assocCons).asLong() shouldEqual 789L
+    mainFun3.execute().asLong() shouldEqual 789L
 
     ctx.writeMain("""
                     |main = 987
@@ -103,7 +103,7 @@ class ModuleManagementTest
 
     mainModule.setSourceFile(ctx.pkg.mainFile.getAbsolutePath)
     val mainFun4 = mainModule.getMethod(assocCons, "main").get
-    mainFun4.execute(assocCons).asLong() shouldEqual 987L
+    mainFun4.execute().asLong() shouldEqual 987L
   }
 
   it should "allow to create new, importable modules" in {
@@ -129,7 +129,7 @@ class ModuleManagementTest
     val mainModule = topScope.getModule("Enso_Test.Test.Main")
     val assocCons  = mainModule.getAssociatedConstructor
     val mainFun    = mainModule.getMethod(assocCons, "main").get
-    mainFun.execute(assocCons).asLong shouldEqual 11L
+    mainFun.execute().asLong shouldEqual 11L
   }
 
   it should "allow importing literal-source modules" in {
@@ -158,7 +158,7 @@ class ModuleManagementTest
     val mainModule = topScope.getModule("Enso_Test.Test.Main")
     val assocCons  = mainModule.getAssociatedConstructor
     val mainFun    = mainModule.getMethod(assocCons, "main").get
-    mainFun.execute(assocCons).asLong shouldEqual 21L
+    mainFun.execute().asLong shouldEqual 21L
   }
 
   it should "allow for module deletions" in {

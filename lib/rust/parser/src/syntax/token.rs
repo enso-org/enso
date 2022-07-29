@@ -170,7 +170,7 @@ impl<'s, T> Token<'s, T> {
 
 impl<'s, T: Debug> Debug for Token<'s, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}:\"{}\"] ", self.left_offset.visible, self.code)?;
+        write!(f, "[{}:{:?}] ", self.left_offset.visible, self.code)?;
         Debug::fmt(&self.variant, f)
     }
 }
@@ -262,7 +262,11 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub is_free: bool,
             pub lift_level: usize
         },
-        Operator,
+        Operator {
+            pub precedence: usize,
+            pub can_be_binary_infix: bool,
+            pub can_be_unary_prefix: bool,
+        },
         Modifier,
         Comment,
         DocComment,
