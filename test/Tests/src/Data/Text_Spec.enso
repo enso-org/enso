@@ -287,10 +287,10 @@ spec =
             "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range 6*ix+1 6*ix+3)) . should_equal "23"*100
             "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range ix+1 ix+5)) . should_equal "BABAABAB"*50
 
-            "123"*1000 . take (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
-            "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
-            "123456"*1000 . take (By_Index (Vector.new 1000 ix-> Range 6*ix+1 6*ix+3)) . should_equal "1456"*1000
-            "ABCD"*25 . take (By_Index (Vector.new 90 ix-> Range ix+1 ix+5)) . should_equal "ADABCD"
+            "123"*1000 . drop (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
+            "123"*1000 . drop (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
+            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range 6*ix+1 6*ix+3)) . should_equal "1456"*1000
+            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range ix+1 ix+5)) . should_equal "ADABCD"
 
             "0123456789".take (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "0123458"
             "0123456789".take (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "45012300"
@@ -384,7 +384,6 @@ spec =
             txt.take (By_Index [Range 0 2 2, Range 13 20 2]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (By_Index [Range 0 2 2, Range txt.length 100 2]) . should_fail_with Index_Out_Of_Bounds_Error
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
-            "ABC".take (Every 5 first=4) . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "take should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
@@ -455,7 +454,9 @@ spec =
             "ABC".take (By_Index []) . should_equal ""
             "ABC".take (By_Index (Range -2 -1)) . should_fail_with Illegal_Argument_Error
             "".take (Every 2) . should_equal ""
+            "".take (Every 2 first=1) . should_equal ""
             "ABC".take (Every 5) . should_equal "A"
+            "ABC".take (Every 5 first=4) . should_equal ""
             "".take (Sample 0) . should_equal ""
             "".take (Sample 100) . should_equal ""
 
@@ -574,7 +575,9 @@ spec =
             "ABC".drop (By_Index [-1, -1, -1, -3, 2]) . should_equal "B"
             "ABC".drop (By_Index []) . should_equal "ABC"
             "".drop (Every 2) . should_equal ""
+            "".drop (Every 2 first=1) . should_equal ""
             "ABC".drop (Every 5) . should_equal "BC"
+            "ABC".drop (Every 5 first=4) . should_equal "ABC"
             "".drop (Sample 0) . should_equal ""
             "".drop (Sample 100) . should_equal ""
 

@@ -96,9 +96,7 @@ find_codepoint_ranges text subrange =
             find_codepoint_ranges text (By_Index indices)
         Every step start ->
             if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                len = text.length
-                if start >= len then Error.throw (Index_Out_Of_Bounds_Error start )
-                range = Range start len step
+                range = Range start text.length step
                 find_codepoint_ranges text (By_Index range)
         Range _ _ _ ->
             find_codepoint_ranges text (By_Index subrange)
@@ -117,15 +115,17 @@ type Codepoint_Ranges
     ## PRIVATE
        Returns a new sorted list of ranges where intersecting ranges have been
        merged.
+
+       Empty subranges are not discarded.
     sorted_and_distinct_ranges : Vector Range
     sorted_and_distinct_ranges self = if self.is_sorted_and_distinct then self.ranges else
-        sorted = self.ranges.sort on=(.start)
+        sorted = self.ranges.filter (range-> range.is_empty.not) . sort on=(.start)
         if sorted.is_empty then [] else
             current_ref = Ref.new sorted.first
             builder = Vector.new_builder
             sorted.tail.each range->
                 current = current_ref.get
-                case range.start == current.start of
+                case range.start <= current.end of
                     True -> current_ref.put (Range current.start (Math.max current.end range.end))
                     False ->
                         builder.append current
