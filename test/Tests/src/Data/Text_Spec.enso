@@ -463,6 +463,7 @@ spec =
             "".take (Every 2) . should_equal ""
             "".take (Every 2 first=1) . should_equal ""
             "ABC".take (Every 5) . should_equal "A"
+            "A".take (Every 5) . should_equal "A"
             "ABC".take (Every 5 first=4) . should_equal ""
             "".take (Sample 0) . should_equal ""
             "".take (Sample 100) . should_equal ""
