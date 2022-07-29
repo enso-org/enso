@@ -8,10 +8,9 @@ import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
-from Standard.Base.Data.Text.Span as Span_Module import Span
+import Standard.Base.Data.Text.Span as Span_Module
 import Standard.Base.Data.Text.Text_Sub_Range
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
 

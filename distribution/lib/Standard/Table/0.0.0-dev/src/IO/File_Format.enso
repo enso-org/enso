@@ -4,14 +4,14 @@ import Standard.Table
 import Standard.Base.Error.Common as Errors
 import Standard.Base.System
 import Standard.Table.Data.Match_Columns
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+from Standard.Base.Error.Problem_Behavior import Problem_Behavior
+from Standard.Base.Data.Text.Encoding import Encoding
 import Standard.Base.Runtime.Ref
 import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Delimited_Writer
-from Standard.Table.Errors as Table_Errors import Unsupported_File_Type
+from Standard.Table.Errors import Unsupported_File_Type
 
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+from Standard.Table.Data.Data_Formatter import Data_Formatter
 import Standard.Table.IO.Excel as Excel_Module
 import Standard.Table.IO.Quote_Style
 

@@ -57,7 +57,6 @@ case object BindingAnalysis extends IRPass {
 
     val definedConstructors = ir.bindings.collect {
       case cons: IR.Module.Scope.Definition.Atom =>
-        // FIXME: move to a different pass
         val isBuiltinType = cons
           .getMetadata(ModuleAnnotations)
           .exists(_.annotations.exists(_.name == "@Builtin_Type"))

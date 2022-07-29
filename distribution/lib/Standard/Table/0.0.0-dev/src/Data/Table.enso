@@ -14,12 +14,12 @@ import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Delimited_Writer
 import Standard.Table.Internal.Problem_Builder
 
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
-from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
-from Standard.Table.Errors as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
+from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
+from Standard.Table.Data.Data_Formatter import Data_Formatter
+from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
+from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 import Standard.Table.Data.Match_Columns
 
 import Standard.Table.Data.Column_Name_Mapping
