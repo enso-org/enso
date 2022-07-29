@@ -32,33 +32,6 @@ pub type MatchInfo = controller::searcher::action::MatchInfo;
 
 
 
-// ==============
-// === Errors ===
-// ==============
-
-// === NoSuchGroup===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "No component group with the index {} in section {}.", index, section_name)]
-pub struct NoSuchGroup {
-    section_name: CowString,
-    index:        usize,
-}
-
-
-// === NoSuchComponent ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "No component entry with the index {} in {}.", index, group_name)]
-pub struct NoSuchComponent {
-    group_name: CowString,
-    index:      usize,
-}
-
-
-
 // =============
 // === Order ===
 // =============
@@ -225,31 +198,6 @@ impl List {
     /// module.
     pub fn get_module_content(&self, component: Id) -> Option<&Group> {
         self.module_groups.get(&component).map(|mg| &mg.content)
-    }
-
-    /// Get the component from Top Modules by index.
-    pub fn top_module_entry_by_index(
-        &self,
-        group_index: usize,
-        entry_index: usize,
-    ) -> FallibleResult<Component> {
-        self.top_modules().entry_by_index("Sub-modules".into(), group_index, entry_index)
-    }
-
-    /// Get the component from Favorites section by index.
-    pub fn favorites_entry_by_index(
-        &self,
-        group_index: usize,
-        entry_index: usize,
-    ) -> FallibleResult<Component> {
-        self.favorites.entry_by_index("Favorites".into(), group_index, entry_index)
-    }
-
-    /// Get the component from Local Scope section by index.
-    pub fn local_scope_entry_by_index(&self, index: usize) -> FallibleResult<Component> {
-        let error =
-            || NoSuchComponent { group_name: self.local_scope.name.to_string().into(), index };
-        self.local_scope.get_entry(index).ok_or_else(error).map_err(|e| e.into())
     }
 
     /// Update matching info in all components according to the new filtering pattern.
