@@ -156,10 +156,11 @@ fn standard_methods() -> Vec<Method> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field {
     #[allow(missing_docs)]
-    pub name: String,
+    pub name:         String,
     #[allow(missing_docs)]
-    pub data: FieldData,
-    id:       FieldId,
+    pub data:         FieldData,
+    id:               FieldId,
+    hide_in_tostring: bool,
 }
 
 impl Field {
@@ -168,7 +169,8 @@ impl Field {
         let name = name.into();
         let data = FieldData::Object { type_, non_null };
         let id = Default::default();
-        Self { name, data, id }
+        let hide_in_tostring = Default::default();
+        Self { name, data, id, hide_in_tostring }
     }
 
     /// Create a field holding primitive data.
@@ -176,12 +178,18 @@ impl Field {
         let name = name.into();
         let data = FieldData::Primitive(primitive);
         let id = Default::default();
-        Self { name, data, id }
+        let hide_in_tostring = Default::default();
+        Self { name, data, id, hide_in_tostring }
     }
 
     #[allow(missing_docs)]
     pub fn id(&self) -> FieldId {
         self.id
+    }
+
+    /// Omit this field from any containing class's `toString` implementation.
+    pub fn hide_in_tostring(&mut self) {
+        self.hide_in_tostring = true;
     }
 }
 
