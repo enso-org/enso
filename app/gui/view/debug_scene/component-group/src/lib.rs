@@ -34,6 +34,7 @@ use ide_view_component_group::icon;
 use ide_view_component_group::set::GroupId;
 use ide_view_component_group::set::SectionId::Favorites;
 use ide_view_component_group::Entry;
+use ide_view_component_group::Selected;
 use list_view::entry::AnyModelProvider;
 
 
@@ -353,12 +354,14 @@ fn init(app: &Application) {
     }
 
     frp::extend! { network
-        selected_entry <- multiview.selected_entry.on_change();
-        eval selected_entry([](e) if let Some((g, e)) = e {  DEBUG!("Entry {e} from group {g:?} selected") });
+        selected <- multiview.selected.on_change();
+        eval selected([](s) match s {
+            Some((g, Selected::Header)) => DEBUG!("Header selected in group {g:?}"),
+            Some((g, Selected::Entry(id))) => DEBUG!("Entry {id} from group {g:?} selected"),
+            _ => {},
+        });
         eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g:?}"));
         eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g:?}"));
-        header_selected <- multiview.is_header_selected.filter_map(|(g, h)| if *h { Some(*g) } else { None });
-        eval header_selected([](g) DEBUG!("Header selected in group {g:?}"));
         eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g:?}"));
 
         eval multiview.focused([groups]((g, f)) {

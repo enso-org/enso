@@ -867,6 +867,10 @@ impl EntryId {
     }
 }
 
+/// The selected part of the component group and the identifier of this group.
+///
+/// Similar to [`component_group::Selected`], but also contains a group id.
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Selected {
     Header(GroupId),
@@ -972,26 +976,22 @@ impl component::Frp<Model> for Frp {
             // parameter is reset to zero to avoid clipping the selection shape.
             // See the documentation of the [`selection_box`](selection_box) module for more
             // details.
-            //
-            // As only a single header is selected at a time, we can use the
-            // `groups.is_header_selected` output to determine if the selection covers any header.
-            on_any_header_selected <- output.selected.map(|s| matches!(*s, Some(Selected::Header
-                (_)))).on_change().on_true();
-            on_any_header_deselected <- output.selected.map(|s| matches!(*s, Some
-                (Selected::Header(_)))).on_change().on_false();
-            trace on_any_header_selected;
-            trace on_any_header_deselected;
+            let is_header = |s: &Option<Selected>| matches!(*s, Some(Selected::Header(_)));
+            is_any_header_selected <- output.selected.map(is_header).on_change();
+            on_any_header_selected <- is_any_header_selected.on_true();
+            on_any_header_deselected <- is_any_header_selected.on_false();
             // The local scope section does not have a header and we must reset the selection area
             // margin when hovering it.
-            mouse_in_local_scope_section <- groups.mouse_in_group.map(
-                |id| *id == GroupId::local_scope_group()
-            );
-            on_local_scope_entered <- mouse_in_local_scope_section.on_true();
-            on_local_scope_leaved <- mouse_in_local_scope_section.on_false();
-            reset_selection_area <- any(&on_any_header_selected, &on_local_scope_entered);
-            restrict_selection_area <- any(&on_any_header_deselected, &on_local_scope_leaved);
-            trace reset_selection_area;
-            trace restrict_selection_area;
+            let is_local_scope = |s: &Option<(GroupId, _)>| {
+                matches!(*s, Some((id, _)) if id == GroupId::local_scope_group())
+            };
+            is_local_scope_section_selected <- groups.selected.map(is_local_scope).on_change();
+            should_reset_area <- any(...);
+            should_reset_area <+ on_any_header_selected.constant(true);
+            should_reset_area <+ on_any_header_deselected.constant(false);
+            should_reset_area <- or(&should_reset_area, &is_local_scope_section_selected);
+            reset_selection_area <- should_reset_area.on_true();
+            restrict_selection_area <- should_reset_area.on_false();
             eval_ reset_selection_area(selection.margin_top.set(0.0));
             _eval <- all_with(&header_height, &restrict_selection_area,
                 f!((height, _) selection.margin_top.set(*height))

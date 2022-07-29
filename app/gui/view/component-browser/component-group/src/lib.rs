@@ -366,7 +366,9 @@ impl Colors {
 // === FRP ===
 // ===========
 
+/// The type of the [`selected`] FRP output of the component group.
 #[derive(Clone, Copy, CloneRef, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Selected {
     Header,
     Entry(entry::Id),
@@ -499,14 +501,9 @@ impl component::Frp<Model> for Frp {
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
             is_mouse_over_header <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             mouse_moved <- mouse_position.on_change().constant(());
-            is_entry_selected <- model.entries.selected_entry.on_change().map(|e| e.is_some());
-            some_entry_selected <- is_entry_selected.on_true();
             mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over_header);
-            mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over_header);
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
-            deselect_header <- any(&some_entry_selected, &mouse_moved_beyond_header);
-            header_selected <- bool(&deselect_header, &select_header).on_change().on_true();
             out.selected <+ select_header.map(|_| Some(Selected::Header));
             model.entries.select_entry <+ select_header.constant(None);
 
@@ -809,8 +806,7 @@ impl Model {
         let bottom = -size.y / 2.0;
         let header_center_y = top - half_header_height - header_pos;
         let header_center_y = header_center_y.max(bottom + half_header_height);
-        let header_center_y = header_center_y.min(top - half_header_height);
-        header_center_y
+        header_center_y.min(top - half_header_height)
     }
 
     fn selection_size(&self, is_header_selected: bool, style: SelectionStyle) -> Vector2 {
@@ -861,19 +857,17 @@ mod tests {
     macro_rules! expect_entry_selected {
         ($cgv:ident, $id:expr) => {
             assert_eq!(
-                $cgv.selected_entry.value(),
-                Some($id),
+                $cgv.selected.value(),
+                Some(Selected::Entry($id)),
                 "Selected entry is not Some({}).",
                 $id
             );
-            assert!(!$cgv.is_header_selected.value(), "Header is selected.");
         };
     }
 
     macro_rules! expect_header_selected {
         ($cgv:ident) => {
-            assert_eq!($cgv.selected_entry.value(), None, "Selected entry is not None.");
-            assert!($cgv.is_header_selected.value(), "Header is not selected.");
+            assert_eq!($cgv.selected.value(), Some(Selected::Header), "Header is not selected.");
         };
     }
 

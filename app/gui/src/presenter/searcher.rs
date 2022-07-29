@@ -14,6 +14,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
 use ide_view as view;
+use ide_view::component_browser::list_panel;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::project::SearcherParams;
@@ -242,9 +243,13 @@ impl Searcher {
                     trace new_input;
                     graph.set_node_expression <+ new_input;
 
+                    selected_entry <- list_view.selected.map(|s| match s {
+                        Some(list_panel::Selected::Entry(e)) => Some(*e),
+                        _ => None,
+                    });
                     current_docs <- all_with(
                         &action_list_changed,
-                        &list_view.selected_entry,
+                        &selected_entry,
                         f!((_, entry) model.documentation_of_component(*entry))
                     );
                     documentation.frp.display_documentation <+ current_docs;
