@@ -31,12 +31,16 @@ public class ManagedResource implements TruffleObject {
     this.phantomReference = null;
   }
 
-  /** @return the underlying resource */
+  /**
+   * @return the underlying resource
+   */
   public Object getResource() {
     return resource;
   }
 
-  /** @return the phantom reference tracking this managed resource */
+  /**
+   * @return the phantom reference tracking this managed resource
+   */
   public PhantomReference<ManagedResource> getPhantomReference() {
     return phantomReference;
   }
@@ -89,8 +93,7 @@ public class ManagedResource implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(
-          context.getBuiltins().managedResource(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().managedResource());
     }
 
     static Context getContext() {

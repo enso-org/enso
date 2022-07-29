@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.*;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethodError;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
@@ -16,24 +17,24 @@ import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAnd
 /** Container for builtin Error types */
 public class Error {
 
-  private final BuiltinType syntaxError;
-  private final BuiltinType typeError;
-  private final BuiltinType compileError;
-  private final BuiltinType inexhaustivePatternMatchError;
-  private final BuiltinType uninitializedState;
-  private final BuiltinType noSuchMethodError;
-  private final BuiltinType noSuchConversionError;
-  private final BuiltinType polyglotError;
-  private final BuiltinType moduleNotInPackageError;
-  private final BuiltinType arithmeticError;
-  private final BuiltinType invalidArrayIndexError;
-  private final BuiltinType arityError;
-  private final BuiltinType unsupportedArgumentsError;
-  private final BuiltinType moduleDoesNotExistError;
-  private final BuiltinType notInvokableError;
-  private final BuiltinType invalidConversionTargetError;
-  private final BuiltinType panic;
-  private final BuiltinType caughtPanic;
+  private final Builtin syntaxError;
+  private final Builtin typeError;
+  private final Builtin compileError;
+  private final Builtin inexhaustivePatternMatchError;
+  private final Builtin uninitializedState;
+  private final Builtin noSuchMethodError;
+  private final Builtin noSuchConversionError;
+  private final Builtin polyglotError;
+  private final Builtin moduleNotInPackageError;
+  private final Builtin arithmeticError;
+  private final Builtin invalidArrayIndexError;
+  private final Builtin arityError;
+  private final Builtin unsupportedArgumentsError;
+  private final Builtin moduleDoesNotExistError;
+  private final Builtin notInvokableError;
+  private final Builtin invalidConversionTargetError;
+  private final Builtin panic;
+  private final Builtin caughtPanic;
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
@@ -44,55 +45,52 @@ public class Error {
 
   /** Creates builders for error Atom Constructors. */
   public Error(Builtins builtins) {
-    syntaxError = new BuiltinType(builtins, SyntaxError.class);
-    typeError = new BuiltinType(builtins, TypeError.class);
-    compileError = new BuiltinType(builtins, CompileError.class);
-    inexhaustivePatternMatchError =
-        new BuiltinType(builtins, InexhaustivePatternMatchError.class);
-    uninitializedState = new BuiltinType(builtins, UninitializedState.class);
-    noSuchMethodError = new BuiltinType(builtins, NoSuchMethodError.class);
-    noSuchConversionError = new BuiltinType(builtins, NoSuchConversionError.class);
-    polyglotError = new BuiltinType(builtins, PolyglotError.class);
-    moduleNotInPackageError = new BuiltinType(builtins, ModuleNotInPackageError.class);
-    arithmeticError = new BuiltinType(builtins, ArithmeticError.class);
-    invalidArrayIndexError = new BuiltinType(builtins, InvalidArrayIndexError.class);
-    arityError = new BuiltinType(builtins, ArityError.class);
-    unsupportedArgumentsError =
-        new BuiltinType(builtins, UnsupportedArgumentTypes.class);
-    moduleDoesNotExistError = new BuiltinType(builtins, ModuleDoesNotExist.class);
-    notInvokableError = new BuiltinType(builtins, NotInvokableError.class);
-    invalidConversionTargetError =
-        new BuiltinType(builtins, InvalidConversionTargetError.class);
-    panic = new BuiltinType(builtins, Panic.class);
-    caughtPanic = new BuiltinType(builtins, CaughtPanic.class);
+    syntaxError = builtins.getBuiltinType(SyntaxError.class);
+    typeError = builtins.getBuiltinType(TypeError.class);
+    compileError = builtins.getBuiltinType(CompileError.class);
+    inexhaustivePatternMatchError = builtins.getBuiltinType(InexhaustivePatternMatchError.class);
+    uninitializedState = builtins.getBuiltinType(UninitializedState.class);
+    noSuchMethodError = builtins.getBuiltinType(NoSuchMethodError.class);
+    noSuchConversionError = builtins.getBuiltinType(NoSuchConversionError.class);
+    polyglotError = builtins.getBuiltinType(PolyglotError.class);
+    moduleNotInPackageError = builtins.getBuiltinType(ModuleNotInPackageError.class);
+    arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
+    invalidArrayIndexError = builtins.getBuiltinType(InvalidArrayIndexError.class);
+    arityError = builtins.getBuiltinType(ArityError.class);
+    unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
+    moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
+    notInvokableError = builtins.getBuiltinType(NotInvokableError.class);
+    invalidConversionTargetError = builtins.getBuiltinType(InvalidConversionTargetError.class);
+    panic = builtins.getBuiltinType(Panic.class);
+    caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
   }
 
   public Atom makeSyntaxError(Object message) {
-    return syntaxError.newInstance(message);
+    return syntaxError.getUniqueConstructor().newInstance(message);
   }
 
   public Atom makeCompileError(Object message) {
-    return compileError.newInstance(message);
+    return compileError.getUniqueConstructor().newInstance(message);
   }
 
   public Atom makeInexhaustivePatternMatchError(Object message) {
-    return inexhaustivePatternMatchError.newInstance(message);
+    return inexhaustivePatternMatchError.getUniqueConstructor().newInstance(message);
   }
 
   public Atom makeUninitializedStateError(Object key) {
-    return uninitializedState.newInstance(key);
+    return uninitializedState.getUniqueConstructor().newInstance(key);
   }
 
   public Atom makeModuleNotInPackageError() {
-    return moduleNotInPackageError.newInstance();
+    return moduleNotInPackageError.getUniqueConstructor().newInstance();
   }
 
   public Type panic() {
     return panic.getType();
   }
 
-  public Type caughtPanic() {
-    return caughtPanic.getType();
+  public Builtin caughtPanic() {
+    return caughtPanic;
   }
 
   /**
@@ -103,16 +101,16 @@ public class Error {
    * @return a runtime representation of the error
    */
   public Atom makeNoSuchMethodError(Object target, UnresolvedSymbol symbol) {
-    return noSuchMethodError.newInstance(target, symbol);
+    return noSuchMethodError.getUniqueConstructor().newInstance(target, symbol);
   }
 
   public Atom makeNoSuchConversionError(
       Object target, Object that, UnresolvedConversion conversion) {
-    return noSuchConversionError.newInstance(target, that, conversion);
+    return noSuchConversionError.getUniqueConstructor().newInstance(target, that, conversion);
   }
 
   public Atom makeInvalidConversionTargetError(Object target) {
-    return invalidConversionTargetError.newInstance(target);
+    return invalidConversionTargetError.getUniqueConstructor().newInstance(target);
   }
 
   /**
@@ -124,7 +122,7 @@ public class Error {
    * @return a runtime representation of the error.
    */
   public Atom makeTypeError(Object expected, Object actual, String name) {
-    return typeError.newInstance(expected, actual, Text.create(name));
+    return typeError.getUniqueConstructor().newInstance(expected, actual, Text.create(name));
   }
 
   /**
@@ -134,7 +132,7 @@ public class Error {
    * @return a runtime representation of the polyglot error.
    */
   public Atom makePolyglotError(Object cause) {
-    return polyglotError.newInstance(cause);
+    return polyglotError.getUniqueConstructor().newInstance(cause);
   }
 
   /**
@@ -144,10 +142,12 @@ public class Error {
    * @return a runtime representation of the arithmetic error
    */
   private Atom makeArithmeticError(Text reason) {
-    return arithmeticError.newInstance(reason);
+    return arithmeticError.getUniqueConstructor().newInstance(reason);
   }
 
-  /** @return An arithmetic error representing a too-large shift for the bit shift. */
+  /**
+   * @return An arithmetic error representing a too-large shift for the bit shift.
+   */
   public Atom getShiftAmountTooLargeError() {
     if (arithmeticErrorShiftTooBig == null) {
       transferToInterpreterAndInvalidate();
@@ -156,7 +156,9 @@ public class Error {
     return arithmeticErrorShiftTooBig;
   }
 
-  /** @return An Arithmetic error representing a division by zero. */
+  /**
+   * @return An Arithmetic error representing a division by zero.
+   */
   public Atom getDivideByZeroError() {
     if (arithmeticErrorDivideByZero == null) {
       transferToInterpreterAndInvalidate();
@@ -171,7 +173,7 @@ public class Error {
    * @return An error representing that the {@code index} is not valid in {@code array}
    */
   public Atom makeInvalidArrayIndexError(Object array, Object index) {
-    return invalidArrayIndexError.newInstance(array, index);
+    return invalidArrayIndexError.getUniqueConstructor().newInstance(array, index);
   }
 
   /**
@@ -181,7 +183,7 @@ public class Error {
    * @return an error informing about the arity being mismatched
    */
   public Atom makeArityError(long expected_min, long expected_max, long actual) {
-    return arityError.newInstance(expected_min, expected_max, actual);
+    return arityError.getUniqueConstructor().newInstance(expected_min, expected_max, actual);
   }
 
   /**
@@ -190,7 +192,7 @@ public class Error {
    *     given method callp
    */
   public Atom makeUnsupportedArgumentsError(Object[] args) {
-    return unsupportedArgumentsError.newInstance(new Array(args));
+    return unsupportedArgumentsError.getUniqueConstructor().newInstance(new Array(args));
   }
 
   /**
@@ -198,7 +200,7 @@ public class Error {
    * @return a module does not exist error
    */
   public Atom makeModuleDoesNotExistError(String name) {
-    return moduleDoesNotExistError.newInstance(Text.create(name));
+    return moduleDoesNotExistError.getUniqueConstructor().newInstance(Text.create(name));
   }
 
   /**
@@ -206,6 +208,6 @@ public class Error {
    * @return a not invokable error
    */
   public Atom makeNotInvokableError(Object target) {
-    return notInvokableError.newInstance(target);
+    return notInvokableError.getUniqueConstructor().newInstance(target);
   }
 }

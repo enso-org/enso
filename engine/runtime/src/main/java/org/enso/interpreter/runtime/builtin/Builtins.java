@@ -26,13 +26,11 @@ import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
+import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -97,7 +95,7 @@ public class Builtins {
     registerBuiltinMethods(scope, language);
 
     error = new Error(this);
-    ordering = new Ordering(this);
+    ordering = getBuiltinType(Ordering.class);
     system = new System(this);
     number = new Number(this);
     bool = new Bool(this);
@@ -324,12 +322,14 @@ public class Builtins {
     }
   }
 
-  public Builtin getBuiltinType(Class<? extends Builtin> clazz) {
-    return builtins.get(clazz);
+  public <T extends Builtin> T getBuiltinType(Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+    T t = (T) builtins.get(clazz);
+    return t;
   }
 
-  public Builtin getBuiltinType(String name) {
-    return builtinsByName.get(name);
+  public Type getBuiltinType(String name) {
+    return builtinsByName.get(name).getType();
   }
 
   /**
@@ -429,8 +429,8 @@ public class Builtins {
   /**
    * @return the {@code Project_Description} atom constructor
    */
-  public Type getProjectDescription() {
-    return projectDescription.getType();
+  public Builtin getProjectDescription() {
+    return projectDescription;
   }
 
   /**
@@ -464,7 +464,7 @@ public class Builtins {
   /**
    * @return the {@code Caught_Panic} atom constructor
    */
-  public Type caughtPanic() {
+  public Builtin caughtPanic() {
     return this.error.caughtPanic();
   }
 

@@ -21,12 +21,12 @@ public class BuiltinType {
   public Type getType() {
     if (type == null) {
       transferToInterpreterAndInvalidate();
-      type = builtins.getBuiltinType(clazz);
+      type = builtins.getBuiltinType(clazz).getType();
     }
     return type;
   }
 
-//  Atom newInstance(Object... args) {
-//    return getType().newInstance(args);
-//  }
+  //  Atom newInstance(Object... args) {
+  //    return getType().newInstance(args);
+  //  }
 }

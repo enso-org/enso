@@ -2,10 +2,12 @@ package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -13,6 +15,10 @@ import java.util.stream.IntStream;
 /** A base class for all classes annotated with @BuiltinType */
 public abstract class Builtin {
   public record Cons(String name, List<String> params) {
+    public Cons(String name, String... params) {
+      this(name, Arrays.asList(params));
+    }
+
     private AtomConstructor build(ModuleScope scope) {
       var res = new AtomConstructor(name, scope, true);
       res.initializeFields(
@@ -30,6 +36,7 @@ public abstract class Builtin {
 
   private @CompilerDirectives.CompilationFinal Type type;
   private @CompilerDirectives.CompilationFinal(dimensions = 1) AtomConstructor[] constructors;
+  private @CompilerDirectives.CompilationFinal AtomConstructor uniqueConstructor;
 
   public final void setName(String name) {
     this.name = name;
@@ -59,6 +66,9 @@ public abstract class Builtin {
       for (int i = 0; i < constructors.length; i++) {
         constructors[i] = conses.get(i).build(scope);
       }
+      if (constructors.length == 1) {
+        uniqueConstructor = constructors[0];
+      }
     }
   }
 
@@ -68,5 +78,9 @@ public abstract class Builtin {
 
   public AtomConstructor[] getConstructors() {
     return constructors;
+  }
+
+  public AtomConstructor getUniqueConstructor() {
+    return uniqueConstructor;
   }
 }

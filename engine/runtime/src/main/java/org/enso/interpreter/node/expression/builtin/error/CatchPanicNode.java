@@ -77,7 +77,8 @@ public abstract class CatchPanicNode extends Node {
       Object payload,
       AbstractTruffleException originalException) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom caughtPanic = builtins.caughtPanic().newInstance(payload, originalException);
+    Atom caughtPanic =
+        builtins.caughtPanic().getUniqueConstructor().newInstance(payload, originalException);
     return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
   }
 }

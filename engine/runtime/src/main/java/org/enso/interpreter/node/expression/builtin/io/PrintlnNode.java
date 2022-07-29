@@ -44,7 +44,7 @@ public abstract class PrintlnNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible. self is guaranteed to be a string");
     }
-    return new Stateful(state, ctx.getNothing().newInstance());
+    return new Stateful(state, ctx.getNothing());
   }
 
   @Specialization(guards = "!strings.isString(message)")
