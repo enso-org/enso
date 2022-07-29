@@ -297,6 +297,7 @@
 - [Remove `here` and make method name resolution case-sensitive][3531]
 - [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
+- [Support module imports using a qualified name][3608]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -332,6 +333,7 @@
 [3538]: https://github.com/enso-org/enso/pull/3538
 [3538]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
+[3608]: https://github.com/enso-org/enso/pull/3608
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Column as Column_Module import Column
+from Standard.Table.Data.Column import Column
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Name, By_Index, By_Column
 import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Table_Helpers
@@ -12,7 +12,7 @@ import Standard.Table.Data.Sort_Column
 
 import Standard.Base.Data.Ordering.Comparator
 
-from Standard.Table.Errors as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
