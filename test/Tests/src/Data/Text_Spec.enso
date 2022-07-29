@@ -332,6 +332,8 @@ spec =
             txt.drop (By_Index [0, 3, 0]) . should_equal (facepalm + accent_1)
             txt.drop (By_Index [0, 3, 0, 2, 1]) . should_equal ""
             txt.take (By_Index [0, 3, 0, 2, 1]) . should_equal (kshi + accent_2 + kshi + accent_1 + facepalm)
+            txt.take (By_Index [0, 0, Range 0 2]) . should_equal (kshi + kshi + kshi + facepalm)
+            txt.drop (By_Index [Range 2 4, Range 0 2]) . should_equal ""
 
         Test.specify "take should work as in the examples" <|
             "Hello World!".take First . should_equal "H"
