@@ -3,12 +3,12 @@ import Standard.Base.Runtime.Ref
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
+import Standard.Base.Random
 
 from Standard.Base.Data.Index_Sub_Range export First, Last, While, By_Index, Sample, Every
 
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
-polyglot java import java.util.Random as Java_Random
 
 ## Type defining a substring of a Text
 type Text_Sub_Range
@@ -91,14 +91,12 @@ find_codepoint_ranges text subrange =
                     # TODO it may still be more efficient to use resolve_index_or_range for small lengths, so we can add a threshold here, but then we need to flat_map Codepoint_Ranges objects, so TODO for later
                     batch_resolve_indices_or_ranges text indices
         Sample count seed ->
-            gen = Java_Random.new seed
-            len = text.length
-            indices = (0.up_to count).map _->
-                gen.nextInt len
+            rng = Random.new seed
+            indices = Random.random_indices text.length count rng
             find_codepoint_ranges text (By_Index indices)
         Every step start ->
             if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                range = Range start text.length-start step
+                range = Range start text.length step
                 find_codepoint_ranges text (By_Index range)
         Range _ _ _ ->
             find_codepoint_ranges text (By_Index subrange)
@@ -126,7 +124,7 @@ type Codepoint_Ranges
             sorted.tail.each range->
                 current = current_ref.get
                 case range.start == current.start of
-                    True -> current.put (Range current.start (Math.max current.end range.end))
+                    True -> current_ref.put (Range current.start (Math.max current.end range.end))
                     False ->
                         builder.append current
                         current_ref.put range
@@ -237,6 +235,6 @@ normalize_range range length =
     true_start = if range.start < 0 then length+range.start else range.start
     if (true_start >= length) || (true_start < 0) then Error.throw (Index_Out_Of_Bounds_Error range.start length) else
         true_end = if range.end < 0 then length+range.end else range.end
-        if true_end < 0 then Range true_start true_start else
-            if true_end >= length then Range true_start length else
-                Range true_start true_end
+        if true_end < 0 then Range true_start true_start range.step else
+            if true_end >= length then Range true_start length range.step else
+                Range true_start true_end range.step

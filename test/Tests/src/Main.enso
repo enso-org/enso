@@ -65,6 +65,8 @@ import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
 import project.System.System_Spec
 
+import project.Random_Spec
+
 main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
@@ -122,3 +124,4 @@ main = Test.Suite.run_main <|
     Regression_Spec.spec
     Warnings_Spec.spec
     System_Spec.spec
+    Random_Spec.spec

@@ -248,6 +248,7 @@ spec =
             "ABCDE".take (Every 3) . should_equal "AD"
             "ABCDEFG".take (Every 3) . should_equal "ADG"
             "ABCDEFG".take (Every 3 first=1) . should_equal "BE"
+            "ABCDEFG".take (Every 3 first=6) . should_equal "G"
             "ABCDEFG".take (Every 10) . should_equal "A"
 
             "ABCDE".drop (Every 2) . should_equal "BD"
@@ -256,16 +257,19 @@ spec =
             "ABCDE".drop (Every 2 first=1) . should_equal "ACE"
             "ABCDE".drop (Every 3) . should_equal "BCE"
             "ABCDEFG".drop (Every 3) . should_equal "BCEF"
-            "ABCDEFG".drop (Every 3 first=1) . should_equal "BCEF"
-            "ABCDEFGH".drop (Every 3 first=1) . should_equal "BCEFH"
+            "ABCDEFG".drop (Every 3 first=1) . should_equal "ACDFG"
+            "ABCDEFGH".drop (Every 3 first=1) . should_equal "ACDFG"
+            "ABCDEFGHI".drop (Every 3 first=1) . should_equal "ACDFGI"
 
         Test.specify "should allow selecting a random sample of a substring"
             "AAAAA".take (Sample 3) . should_equal "AAA"
             "AAAAA".drop (Sample 3) . should_equal "AA"
 
+            ## These tests are very brittle and can be invalidated by a valid
+               implementation modification, so they may need to be updated.
             "ABCDEFGH".take (Sample 0) . should_equal ""
             "ABCDEFGH".take (Sample 1) . should_equal "H"
-            "ABCDEFGH".take (Sample 2 seed=42) . should_equal "TODO"
+            "ABCDEFGH".take (Sample 2 seed=42) . should_equal "FA"
             "ABCDEFGH".take (Sample 4 seed=42) . should_equal "TODO"
             "ABCDEFGH".take (Sample 8 seed=42) . should_equal "TODO"
             "ABCDEFGH".take (Sample 100 seed=42) . should_equal "TODO"
