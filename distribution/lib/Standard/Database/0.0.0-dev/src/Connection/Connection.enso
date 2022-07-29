@@ -45,6 +45,7 @@ type Connection
          connection specific overrides.
        - with_schema: an action returning a list of schema, allowing for
          connection specific overrides.
+       - type_mapping:
     type Connection connection_resource dialect with_database with_schema get_databases=Nothing get_schemas=Nothing
 
     ## Closes the connection releasing the underlying database resources
@@ -167,14 +168,19 @@ type Connection
     columns : Text -> Text -> Text -> Vector
     columns self table database=self.database schema=self.schema =
         metadata_table = self.columns_metadata_table table database schema
+        names = metadata_table.at 'Name'
+        positions = metadata_table.at 'Position'
+        types = metadata_table.at 'Java Type'
+        sizes = metadata_table.at 'Size'
+        digits = metadata_table.at 'Decimal Digits'
+        defaults = metadata_table.at 'Default Value'
+        descs = metadata_table.at 'Description'
+
         row_count = metadata_table.row_count
         builder = Vector.builder row_count
         0.up_to row_count i->
-            name = metadata_table.at 'Name' . at i
-            idx = metadata_table.at 'Position' . at i
-            default = metadata_table.at 'Default Value' . at i
-            desc = metadata_table.at 'Description' . at i
-            builder.append <| Column_Metadata name idx Nothing default desc
+            data_type =
+            builder.append <| Column_Metadata (names.at i) (positions.at i) Nothing (defaults.at i) (descs.at i)
         builder.to_array
 
     ## UNSTABLE
