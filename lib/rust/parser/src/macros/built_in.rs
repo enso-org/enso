@@ -22,7 +22,7 @@ pub fn all() -> resolver::SegmentMap<'static> {
     macro_map
 }
 
-fn register_import_macros<'s>(macros: &mut resolver::SegmentMap<'s>) {
+fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
     use crate::macro_definition;
     let defs = [
         macro_definition! {("import", everything())},
