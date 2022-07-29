@@ -25,6 +25,7 @@
 // ==============
 
 pub mod entry;
+pub mod header;
 pub mod scrollable;
 pub mod selectable;
 pub mod simple;
@@ -53,7 +54,6 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
-use ensogl_core::display::scene::Layer;
 use ensogl_core::gui::Widget;
 
 use crate::entry::EntryFrp;
@@ -63,22 +63,37 @@ use crate::visible_area::visible_rows;
 pub use entry::Entry;
 
 
-// =================
-// === Constants ===
-// =================
-
-const MOUSE_MOVEMENT_NEEDED_TO_HOVER_PX: f32 = 1.5;
-
-
 
 // ===========
 // === FRP ===
 // ===========
 
+// === Row and Col Aliases ===
+
 /// A row index in [`GridView`].
 pub type Row = usize;
 /// A column index  in [`GridView`].
 pub type Col = usize;
+
+
+// === Properties ===
+
+#[derive(Copy, Clone, Debug, Default)]
+pub struct Properties {
+    pub row_count:    usize,
+    pub col_count:    usize,
+    pub viewport:     Viewport,
+    pub entries_size: Vector2,
+}
+
+impl Properties {
+    pub fn all_visible_locations(&self) -> impl Iterator<Item = (Row, Col)> {
+        all_visible_locations(self.viewport, self.entries_size, self.row_count, self.col_count)
+    }
+}
+
+
+// === The Endpoints ===
 
 ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
@@ -117,6 +132,7 @@ ensogl_core::define_endpoints_2! {
         entries_size(Vector2),
         entries_params(EntryParams),
         content_size(Vector2),
+        properties(Properties),
         /// Event emitted when the Grid View needs model for an uncovered entry.
         model_for_entry_needed(Row, Col),
         entry_shown(Row, Col),
@@ -128,137 +144,23 @@ ensogl_core::define_endpoints_2! {
 
 
 
-// ====================
-// === VisibleEntry ===
-// ====================
-
-#[derive(Clone, CloneRef, Debug)]
-#[clone_ref(bound = "Entry: CloneRef")]
-struct VisibleEntry<Entry> {
-    entry:   Entry,
-    overlay: entry::overlay::View,
-}
-
-impl<E: display::Object> display::Object for VisibleEntry<E> {
-    fn display_object(&self) -> &display::object::Instance {
-        self.entry.display_object()
-    }
-}
-
-
-
 // =============
 // === Model ===
 // =============
-
-// === EntryCreationCtx ===
-
-/// A structure gathering all data required for creating new entry instance.
-#[derive(CloneRef, Debug, Derivative)]
-#[derivative(Clone(bound = ""))]
-struct EntryCreationCtx<EntryParams> {
-    app:              Application,
-    network:          frp::WeakNetwork,
-    set_entry_size:   frp::Stream<Vector2>,
-    set_entry_params: frp::Stream<EntryParams>,
-    entry_hovered:    frp::Any<Option<(Row, Col)>>,
-    entry_selected:   frp::Any<Option<(Row, Col)>>,
-    entry_accepted:   frp::Any<(Row, Col)>,
-}
-
-impl<EntryParams> EntryCreationCtx<EntryParams>
-where EntryParams: frp::node::Data
-{
-    fn create_entry<E: Entry<Params = EntryParams>>(
-        &self,
-        text_layer: Option<&Layer>,
-    ) -> VisibleEntry<E> {
-        let entry = E::new(&self.app, text_layer);
-        let overlay = entry::overlay::View::new(Logger::new("EntryOverlay"));
-        entry.add_child(&overlay);
-        if let Some(network) = self.network.upgrade_or_warn() {
-            let entry_frp = entry.frp();
-            let entry_network = entry_frp.network();
-            let mouse = &self.app.display.default_scene.mouse.frp;
-            frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
-                init <- source_();
-                entry_frp.set_size <+ all(init, self.set_entry_size)._1();
-                entry_frp.set_params <+ all(init, self.set_entry_params)._1();
-                contour <- all(init, entry_frp.contour)._1();
-                eval contour ((c) overlay.set_contour(*c));
-
-                let events = &overlay.events;
-                let disabled = &entry_frp.disabled;
-                let location = entry_frp.set_location.clone_ref();
-
-                // We make a distinction between "hovered" state and "mouse_in" state, because
-                // we want to highlight entry as hovered only when mouse moves a bit.
-                hovering <- any(...);
-                hovering <+ events.mouse_out.constant(false);
-                mouse_in <- bool(&events.mouse_out, &events.mouse_over);
-                // We can receive `mouse_over` event a couple of frames after actual hovering.
-                // Therefore, we count our "mouse move" from a couple of frames before.
-                mouse_pos_some_time_ago <- mouse.prev_position.previous().previous().previous();
-                mouse_over_movement_start <- mouse_pos_some_time_ago.sample(&events.mouse_over);
-                mouse_over_with_start_pos <- all(mouse.position, mouse_over_movement_start).gate(&mouse_in);
-                mouse_move_which_hovers <- mouse_over_with_start_pos.filter(
-                    |(pos, start_pos)| (pos - start_pos).norm() > MOUSE_MOVEMENT_NEEDED_TO_HOVER_PX
-                );
-                hovered <- mouse_move_which_hovers.gate_not(&hovering).gate_not(disabled);
-                hovering <+ hovered.constant(true);
-                selected <- events.mouse_down.gate_not(disabled);
-                accepted <- events.mouse_down_primary.gate_not(disabled);
-                self.entry_hovered <+ location.sample(&hovered).map(|l| Some(*l));
-                self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
-                self.entry_accepted <+ location.sample(&accepted);
-            }
-            init.emit(());
-        }
-        VisibleEntry { entry, overlay }
-    }
-}
-
-fn entry_position(row: Row, col: Col, entry_size: Vector2) -> Vector2 {
-    let x = (col as f32 + 0.5) * entry_size.x;
-    let y = (row as f32 + 0.5) * -entry_size.y;
-    Vector2(x, y)
-}
-
-fn set_entry_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_size: Vector2) {
-    entry.set_position_xy(entry_position(row, col, entry_size));
-}
-
-
-// === Properties ===
-
-#[derive(Copy, Clone, Debug, Default)]
-struct Properties {
-    row_count:    usize,
-    col_count:    usize,
-    viewport:     Viewport,
-    entries_size: Vector2,
-}
-
-impl Properties {
-    fn all_visible_locations(&self) -> impl Iterator<Item = (Row, Col)> {
-        all_visible_locations(&self.viewport, self.entries_size, self.row_count, self.col_count)
-    }
-}
-
 
 // === Model ===
 
 /// The Model of [`GridView`].
 #[derive(Clone, Debug)]
 pub struct Model<Entry, EntryParams> {
-    display_object:     display::object::Instance,
-    visible_entries:    RefCell<HashMap<(Row, Col), VisibleEntry<Entry>>>,
-    free_entries:       RefCell<Vec<VisibleEntry<Entry>>>,
-    entry_creation_ctx: EntryCreationCtx<EntryParams>,
+    display_object:         display::object::Instance,
+    visible_entries:        RefCell<HashMap<(Row, Col), entry::visible::VisibleEntry<Entry>>>,
+    free_entries:           RefCell<Vec<entry::visible::VisibleEntry<Entry>>>,
+    pub entry_creation_ctx: entry::visible::CreationCtx<EntryParams>,
 }
 
 impl<Entry, EntryParams> Model<Entry, EntryParams> {
-    fn new(entry_creation_ctx: EntryCreationCtx<EntryParams>) -> Self {
+    fn new(entry_creation_ctx: entry::visible::CreationCtx<EntryParams>) -> Self {
         let logger = Logger::new("GridView");
         let display_object = display::object::Instance::new(&logger);
         let visible_entries = default();
@@ -272,8 +174,8 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
         let Properties { viewport, entries_size, row_count, col_count } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
-        let visible_rows = visible_rows(&viewport, entries_size, row_count);
-        let visible_cols = visible_columns(&viewport, entries_size, col_count);
+        let visible_rows = visible_rows(viewport, entries_size, row_count);
+        let visible_cols = visible_columns(viewport, entries_size, col_count);
         let no_longer_visible = visible_entries.drain_filter(|(row, col), _| {
             !visible_rows.contains(row) || !visible_cols.contains(col)
         });
@@ -282,7 +184,7 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
             entry
         });
         free_entries.extend(detached);
-        let uncovered = all_visible_locations(&viewport, entries_size, row_count, col_count)
+        let uncovered = all_visible_locations(viewport, entries_size, row_count, col_count)
             .filter(|loc| !visible_entries.contains_key(loc));
         uncovered.collect_vec()
     }
@@ -290,7 +192,7 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
     fn update_after_entries_size_change(&self, properties: Properties) -> Vec<(Row, Col)> {
         let to_model_request = self.update_entries_visibility(properties);
         for ((row, col), visible_entry) in &*self.visible_entries.borrow() {
-            set_entry_position(visible_entry, *row, *col, properties.entries_size);
+            entry::visible::set_position(visible_entry, *row, *col, properties.entries_size);
         }
         to_model_request
     }
@@ -333,7 +235,7 @@ impl<E: Entry> Model<E, E::Params> {
             Occupied(entry) => entry.into_mut(),
             Vacant(lack_of_entry) => {
                 let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
-                set_entry_position(&new_entry, row, col, entry_size);
+                entry::visible::set_position(&new_entry, row, col, entry_size);
                 new_entry.entry.frp().set_location((row, col));
                 self.display_object.add_child(&new_entry);
                 lack_of_entry.insert(new_entry)
@@ -419,7 +321,7 @@ impl<E: Entry> GridView<E> {
             set_entry_size <- input.set_entries_size.sampler();
             set_entry_params <- input.set_entries_params.sampler();
         }
-        let entry_creation_ctx = EntryCreationCtx {
+        let entry_creation_ctx = entry::visible::CreationCtx {
             app:              app.clone_ref(),
             network:          network.downgrade(),
             set_entry_size:   set_entry_size.into(),
@@ -435,7 +337,7 @@ impl<E: Entry> GridView<E> {
             out.viewport <+ input.set_viewport;
             out.entries_size <+ input.set_entries_size;
             out.entries_params <+ input.set_entries_params;
-            prop <- all_with3(
+            out.properties <+ all_with3(
                 &out.grid_size, &out.viewport, &out.entries_size,
                 |&(row_count, col_count), &viewport, &entries_size| {
                     Properties { row_count, col_count, viewport, entries_size }
@@ -446,19 +348,19 @@ impl<E: Entry> GridView<E> {
             out.content_size <+ content_size_params.map(|&((rows, cols), esz)| Self::content_size(rows, cols, esz));
 
             request_models_after_vis_area_change <=
-                input.set_viewport.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
+                input.set_viewport.map2(&out.properties, f!((_, p) model.update_entries_visibility(*p)));
             request_model_after_grid_size_change <=
-                input.resize_grid.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
+                input.resize_grid.map2(&out.properties, f!((_, p) model.update_entries_visibility(*p)));
             request_models_after_entry_size_change <= input.set_entries_size.map2(
-                &prop,
+                &out.properties,
                 f!((_, p) model.update_after_entries_size_change(*p))
             );
             request_models_after_reset <=
-                input.reset_entries.map2(&prop, f!((_, p) model.reset_entries(*p)));
+                input.reset_entries.map2(&out.properties, f!((_, p) model.reset_entries(*p)));
             request_models_after_text_layer_change <=
-                input.set_text_layer.map2(&prop, f!((_, p) model.drop_all_entries(*p)));
+                input.set_text_layer.map2(&out.properties, f!((_, p) model.drop_all_entries(*p)));
             request_models_for_request <= input.request_model_for_visible_entries.map2(
-                &prop,
+                &out.properties,
                 |_, p| p.all_visible_locations().collect_vec()
             );
             out.model_for_entry_needed <+ request_models_after_vis_area_change;
@@ -476,7 +378,7 @@ impl<E: Entry> GridView<E> {
             // inform everyone that the entry is visible. They may want to immediately get the entry
             // with [`get_entry`] method.
             model_prop_and_layer <-
-                input.model_for_entry.map3(&prop, &input.set_text_layer, |model, prop, layer| (model.clone(), *prop, layer.clone()));
+                input.model_for_entry.map3(&out.properties, &input.set_text_layer, |m, p, l| (m.clone(), *p, l.clone()));
             eval model_prop_and_layer
                 ((((row, col, entry_model), prop, layer): &((Row, Col, E::Model), Properties, Option<WeakLayer>))
                     model.update_entry(*row, *col, entry_model.clone(), prop.entries_size, layer)
@@ -531,20 +433,21 @@ impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::
 // =============
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+    use ensogl_core::display::scene::Layer;
 
     #[derive(Copy, Clone, CloneRef, Debug, Default)]
-    struct TestEntryParams {
-        param: Immutable<usize>,
+    pub struct TestEntryParams {
+        pub param: Immutable<usize>,
     }
 
     #[derive(Clone, CloneRef, Debug)]
-    struct TestEntry {
-        frp:            EntryFrp<Self>,
-        param_set:      Rc<Cell<usize>>,
-        model_set:      Rc<Cell<usize>>,
-        display_object: display::object::Instance,
+    pub struct TestEntry {
+        pub frp:            EntryFrp<Self>,
+        pub param_set:      Rc<Cell<usize>>,
+        pub model_set:      Rc<Cell<usize>>,
+        pub display_object: display::object::Instance,
     }
 
     impl Entry for TestEntry {

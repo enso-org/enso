@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 use crate::entry;
-use crate::entry_position;
 use crate::selectable::highlight::shape::HoverAttrSetter;
 use crate::selectable::highlight::shape::SelectionAttrSetter;
 use crate::Col;
@@ -349,7 +348,7 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
             out.position <+ became_highlighted.all_with(
                 &grid_frp.entries_size,
-                |&(row, col), &es| entry_position(row, col, es)
+                |&(row, col), &es| entry::visible::position(row, col, es)
             );
             none_highlightd <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
             out.contour <+ none_highlightd.constant(default());
