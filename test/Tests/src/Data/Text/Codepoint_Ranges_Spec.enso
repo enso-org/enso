@@ -19,6 +19,7 @@ spec = Test.group "Text_Sub_Range.Codepoint_Ranges" <|
         run [Range 5 10, Range 3 6, Range 3 6, Range 3 5, Range 3 7, Range 0 1] . should_equal [Range 0 1, Range 3 10]
         run [Range 0 1, Range 0 1] . should_equal [Range 0 1]
         run [Range 0 1, Range 1 2] . should_equal [Range 0 2]
+
     Test.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
         character_ranges "" . should_equal []
         character_ranges "A" . should_equal [Range 0 1]
