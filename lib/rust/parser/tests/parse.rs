@@ -362,6 +362,49 @@ fn plus_negative() {
 }
 
 
+// === Import ===
+
+#[test]
+fn import() {
+    #[rustfmt::skip]
+    let cases = [
+        ("import project.IO", block![
+            (MultiSegmentApp #(((Ident import) (OprApp (Ident project) (Ok ".") (Ident IO)))))]),
+        ("import Standard.Base as Enso_List", block![
+            (MultiSegmentApp #(
+             ((Ident import) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ((Ident as) (Ident Enso_List))))]),
+        ("from Standard.Base import all", block![
+            (MultiSegmentApp #(
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ((Ident import) (Ident all))))]),
+        ("from Standard.Base import all hiding Number, Boolean", block![
+            (MultiSegmentApp #(
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ((Ident import) (Ident all))
+             ((Ident hiding)
+              (App (OprSectionBoundary (OprApp (Ident Number) (Ok ",") ())) (Ident Boolean)))))]),
+        ("from Standard.Table as Column_Module import Column", block![
+            (MultiSegmentApp #(
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Table)))
+             ((Ident as) (Ident Column_Module))
+             ((Ident import) (Ident Column))))]),
+        ("polyglot java import java.lang.Float", block![
+            (MultiSegmentApp #(
+             ((Ident polyglot) (Ident java))
+             ((Ident import)
+              (OprApp (OprApp (Ident java) (Ok ".") (Ident lang)) (Ok ".") (Ident Float)))))]),
+        ("polyglot java import java.net.URI as Java_URI", block![
+            (MultiSegmentApp #(
+             ((Ident polyglot) (Ident java))
+             ((Ident import)
+              (OprApp (OprApp (Ident java) (Ok ".") (Ident net)) (Ok ".") (Ident URI)))
+             ((Ident as) (Ident Java_URI))))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+
 
 // ====================
 // === Test Support ===

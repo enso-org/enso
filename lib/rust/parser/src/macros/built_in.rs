@@ -16,9 +16,28 @@ pub fn all() -> resolver::SegmentMap<'static> {
     let mut macro_map = resolver::SegmentMap::default();
     // macro_map.register(if_then());
     // macro_map.register(if_then_else());
+    register_import_macros(&mut macro_map);
     macro_map.register(group());
     macro_map.register(type_def());
     macro_map
+}
+
+fn register_import_macros<'s>(macros: &mut resolver::SegmentMap<'s>) {
+    use crate::macro_definition;
+    let defs = [
+        macro_definition! {("import", everything())},
+        macro_definition! {("import", everything(), "as", everything())},
+        macro_definition! {("import", everything(), "hiding", everything())},
+        macro_definition! {("polyglot", everything(), "import", everything())},
+        macro_definition! {("polyglot", everything(), "import", everything(), "as", everything())},
+        macro_definition! {("polyglot", everything(), "import", everything(), "hiding", everything())},
+        macro_definition! {("from", everything(), "import", everything(), "hiding", everything())},
+        macro_definition! {("from", everything(), "as", everything(), "import", everything())},
+        macro_definition! {("from", everything(), "import", everything())},
+    ];
+    for def in defs {
+        macros.register(def);
+    }
 }
 
 /// If-then-else macro definition.
