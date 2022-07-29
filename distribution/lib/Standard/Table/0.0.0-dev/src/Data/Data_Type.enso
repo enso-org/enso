@@ -98,4 +98,5 @@ from_java_sql_type java_type size=Nothing precision=Nothing =
     if java_type == Types.BIT then output.put Boolean
     if java_type == Types.BINARY then output.put (Binary_Object -1 False)
     if java_type == Types.VARBINARY then output.put (Binary_Object -1 True)
+
     output.get
