@@ -130,18 +130,6 @@ impl<'s> ExpressionBuilder<'s> {
         match (self.nospace, opr.binary_infix_precedence, opr.unary_prefix_precedence) {
             // If an operator has a binary role, and a LHS is available, it's acting as binary.
             (_, Some(prec), _) if self.prev_type == Some(Ast) => self.binary_operator(prec, opr),
-            // Special case of multiple-operator error: If an operator `opr` has a unary and binary
-            // role, and it follows a binary operator `prev`, and the precedence of `opr` is such
-            // that it wouldn't be evaluated before
-
-            // A unary operator can only follow a binary
-            // precedence that it will be evaluated before the
-            // to an operator section before pushing an operator of this precedence; that operator
-            // section would serve as a LHS, so treat it as binary like above.
-            //(_, Some(_), Some(prec)) if self.prev_type == Some(Opr)
-            //        && let Some(prev) = self.operator_stack.last() && prev.precedence >= prec
-            //    => self.push_operator(prec, Arity::Unary(opr)),
-
             // Otherwise, if the operator is inside a nospace group, and it has a unary role,
             // it's acting as unary.
             (true, _, Some(prec)) => self.push_operator(prec, Arity::Unary(opr)),
