@@ -12,10 +12,10 @@ import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "TextMatch", description = "Allows matching on the Decimal type.")
 public abstract class DecimalBranchNode extends BranchNode {
-  private final AtomConstructor decimal;
+  private final Type decimal;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  DecimalBranchNode(AtomConstructor decimal, RootCallTarget branch) {
+  DecimalBranchNode(Type decimal, RootCallTarget branch) {
     super(branch);
     this.decimal = decimal;
   }
@@ -32,9 +32,9 @@ public abstract class DecimalBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(decimal == target.getConstructor())) {
-      accept(frame, state, target.getFields());
+  void doType(VirtualFrame frame, Object state, Type target) {
+    if (profile.profile(decimal == target)) {
+      accept(frame, state, new Object[0]);
     }
   }
 

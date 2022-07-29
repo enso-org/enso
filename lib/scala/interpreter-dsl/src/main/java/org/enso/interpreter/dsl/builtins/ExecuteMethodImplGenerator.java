@@ -104,7 +104,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
         case VOID:
           return new String[] {
             "  " + qual + "." + name + "(" + paramsApplied + ");",
-            "  return Context.get(this).getBuiltins().nothing().newInstance();"
+            "  return Context.get(this).getBuiltins().nothing();"
           };
         case ARRAY:
           return new String[] {

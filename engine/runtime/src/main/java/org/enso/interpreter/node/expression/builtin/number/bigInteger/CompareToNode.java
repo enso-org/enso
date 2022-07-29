@@ -41,7 +41,7 @@ public abstract class CompareToNode extends Node {
   @Specialization
   Atom doOther(EnsoBigInteger self, Object that) {
     CompilerDirectives.transferToInterpreter();
-    var number = Context.get(this).getBuiltins().number().getNumber().newInstance();
+    var number = Context.get(this).getBuiltins().number().getNumber();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");
     throw new PanicException(typeError, this);
   }

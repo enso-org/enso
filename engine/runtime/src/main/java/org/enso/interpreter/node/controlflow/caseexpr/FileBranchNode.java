@@ -13,10 +13,10 @@ import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "FileMatch", description = "Allows matching on the File type.")
 public abstract class FileBranchNode extends BranchNode {
-  private final AtomConstructor file;
+  private final Type file;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  FileBranchNode(AtomConstructor file, RootCallTarget branch) {
+  FileBranchNode(Type file, RootCallTarget branch) {
     super(branch);
     this.file = file;
   }
@@ -33,9 +33,9 @@ public abstract class FileBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(file == target.getConstructor())) {
-      accept(frame, state, target.getFields());
+  void doType(VirtualFrame frame, Object state, Type target) {
+    if (profile.profile(file == target)) {
+      accept(frame, state, new Object[0]);
     }
   }
 

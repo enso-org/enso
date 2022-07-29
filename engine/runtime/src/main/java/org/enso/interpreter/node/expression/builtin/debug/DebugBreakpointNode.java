@@ -41,7 +41,7 @@ public abstract class DebugBreakpointNode extends Node implements Instrumentable
 
   @Specialization
   Stateful doExecute(VirtualFrame frame, CallerInfo callerInfo, Object state, Object self) {
-    return new Stateful(state, Context.get(this).getNothing().newInstance());
+    return new Stateful(state, Context.get(this).getNothing());
   }
 
   /**

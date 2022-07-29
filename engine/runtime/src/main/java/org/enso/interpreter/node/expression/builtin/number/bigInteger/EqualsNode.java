@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Big_Integer", name = "==", description = "Big integer equality.")
 public abstract class EqualsNode extends Node {
 
-  abstract boolean execute(Object self, Object that);
+  abstract boolean execute(EnsoBigInteger self, Object that);
 
   static EqualsNode build() {
     return EqualsNodeGen.create();
@@ -30,20 +30,9 @@ public abstract class EqualsNode extends Node {
     return BigIntegerOps.toDouble(self.getValue()) == that;
   }
 
-  @Specialization
-  boolean doAtom(
-      Atom self, Atom that, @Cached("getBigIntegerConstructor()") AtomConstructor bigIntCons) {
-    var thisCons = self.getConstructor();
-    var thatCons = that.getConstructor();
-    return (thatCons == bigIntCons) && (thisCons == thatCons);
-  }
-
   @Fallback
-  boolean doOther(Object self, Object that) {
+  boolean doOther(EnsoBigInteger self, Object that) {
     return false;
   }
 
-  AtomConstructor getBigIntegerConstructor() {
-    return Context.get(this).getBuiltins().number().getBigInteger();
-  }
 }

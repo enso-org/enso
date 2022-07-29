@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -52,7 +53,8 @@ public class Builtins {
   }
 
   private final Map<String, Map<String, Class<BuiltinRootNode>>> builtinMethodNodes;
-  private final Map<String, Type> builtins;
+  private final Map<Class<? extends Builtin>, Builtin> builtins;
+  private final Map<String, Builtin> builtinsByName;
 
   private final Error error;
   private final Module module;
@@ -64,19 +66,19 @@ public class Builtins {
   private final Special special;
 
   // Builtin types
-  private final Type any;
-  private final BuiltinType nothing;
-  private final BuiltinType function;
-  private final BuiltinType polyglot;
-  private final BuiltinType text;
-  private final BuiltinType array;
-  private final BuiltinType dataflowError;
-  private final BuiltinType ref;
-  private final BuiltinType managedResource;
-  private final BuiltinType debug;
-  private final BuiltinType projectDescription;
-  private final BuiltinType file;
-  private final BuiltinType warning;
+  private final Builtin any;
+  private final Builtin nothing;
+  private final Builtin function;
+  private final Builtin polyglot;
+  private final Builtin text;
+  private final Builtin array;
+  private final Builtin dataflowError;
+  private final Builtin ref;
+  private final Builtin managedResource;
+  private final Builtin debug;
+  private final Builtin projectDescription;
+  private final Builtin file;
+  private final Builtin warning;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -88,11 +90,11 @@ public class Builtins {
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     scope = module.compileScope(context);
 
-    builtins = new HashMap<>();
-    any = new Type("Any", scope, true);
-    var builtinTypes = readBuiltinTypesMetadata(scope);
+    builtins = readBuiltinTypesMetadata(scope);
+    builtinsByName =
+        builtins.values().stream().collect(Collectors.toMap(v -> v.getType().getName(), v -> v));
     builtinMethodNodes = readBuiltinMethodsMetadata(scope);
-    registerBuiltinMethods(builtinTypes, scope, language);
+    registerBuiltinMethods(scope, language);
 
     error = new Error(this);
     ordering = new Ordering(this);
@@ -100,20 +102,20 @@ public class Builtins {
     number = new Number(this);
     bool = new Bool(this);
 
-    nothing = new BuiltinType(this, Nothing.class);
-    function =
-        new BuiltinType(this, org.enso.interpreter.node.expression.builtin.function.Function.class);
-    polyglot = new BuiltinType(this, Polyglot.class);
-    text = new BuiltinType(this, Text.class);
-    array = new BuiltinType(this, Array.class);
-    dataflowError = new BuiltinType(this, org.enso.interpreter.node.expression.builtin.Error.class);
-    ref = new BuiltinType(this, Ref.class);
-    managedResource = new BuiltinType(this, ManagedResource.class);
-    debug = new BuiltinType(this, Debug.class);
-    projectDescription = new BuiltinType(this, ProjectDescription.class);
-    file = new BuiltinType(this, File.class);
+    any = builtins.get(Any.class);
+    nothing = builtins.get(Nothing.class);
+    function = builtins.get(org.enso.interpreter.node.expression.builtin.function.Function.class);
+    polyglot = builtins.get(Polyglot.class);
+    text = builtins.get(Text.class);
+    array = builtins.get(Array.class);
+    dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
+    ref = builtins.get(Ref.class);
+    managedResource = builtins.get(ManagedResource.class);
+    debug = builtins.get(Debug.class);
+    projectDescription = builtins.get(ProjectDescription.class);
+    file = builtins.get(File.class);
     special = new Special(language);
-    warning = new BuiltinType(this, Warning.class);
+    warning = builtins.get(Warning.class);
   }
 
   /**
@@ -121,14 +123,13 @@ public class Builtins {
    * "special" builtin types have builtin methods in the scope without requiring everyone to always
    * import full stdlib
    *
-   * @param builtins List of Builtin Types
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
    */
-  private void registerBuiltinMethods(List<Type> builtins, ModuleScope scope, Language language) {
-    for (Type type : builtins) {
+  private void registerBuiltinMethods(ModuleScope scope, Language language) {
+    for (Builtin builtin : builtins.values()) {
+      var type = builtin.getType();
       String tpeName = type.getName();
-      this.builtins.put(tpeName, type);
       Map<String, Class<BuiltinRootNode>> methods = builtinMethodNodes.get(tpeName);
       if (methods != null) {
         methods.forEach(
@@ -188,7 +189,7 @@ public class Builtins {
    *
    * @param scope Builtins scope
    */
-  private List<Type> readBuiltinTypesMetadata(ModuleScope scope) {
+  private Map<Class<? extends Builtin>, Builtin> readBuiltinTypesMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
     try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
@@ -201,34 +202,32 @@ public class Builtins {
       ioe.printStackTrace();
     }
 
-    return lines.stream()
-        .map(
-            line -> {
-              String[] builtinMeta = line.split(":");
-              if (builtinMeta.length < 2 || builtinMeta.length > 4) {
-                throw new CompilerError("Invalid builtin metadata in: " + line);
-              }
-
-              return new Type(builtinMeta[0], scope, true);
-            })
-        //              builtin = new AtomConstructor(builtinMeta[0], scope, true);
-        //
-        //              if (builtinMeta.length < 3 || builtinMeta[2].isEmpty()) {
-        //                builtin = builtin.initializeFields();
-        //              } else {
-        //                // there are some type params
-        //                String[] paramNames = builtinMeta[2].split(",");
-        //                ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
-        //                for (int i = 0; i < paramNames.length; i++) {
-        //                  args[i] =
-        //                      new ArgumentDefinition(
-        //                          i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
-        //                }
-        //                builtin = builtin.initializeFields(args);
-        //              }
-        //              return builtin;
-        //            })
-        .collect(Collectors.toList());
+    Map<Class<? extends Builtin>, Builtin> builtins =
+        lines.stream()
+            .map(
+                line -> {
+                  String[] builtinMeta = line.split(":");
+                  if (builtinMeta.length != 3) {
+                    throw new CompilerError("Invalid builtin metadata in: " + line);
+                  }
+                  try {
+                    @SuppressWarnings("unchecked")
+                    var cls = (Class<? extends Builtin>) Class.forName(builtinMeta[1]);
+                    var builtin = cls.getConstructor().newInstance();
+                    builtin.setName(builtinMeta[0]);
+                    return builtin;
+                  } catch (NoSuchMethodException
+                      | InstantiationException
+                      | IllegalAccessException
+                      | InvocationTargetException
+                      | ClassNotFoundException e) {
+                    e.printStackTrace();
+                    throw new CompilerError("Invalid builtin type entry: " + builtinMeta[1]);
+                  }
+                })
+            .collect(Collectors.toMap(Builtin::getClass, b -> b));
+    builtins.values().forEach(b -> b.initialize(scope, builtins));
+    return builtins;
   }
 
   /**
@@ -325,13 +324,12 @@ public class Builtins {
     }
   }
 
-  public Type getBuiltinType(Class<? extends Builtin> clazz) {
-    String snakeCaseName = clazz.getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
-    return getBuiltinType(snakeCaseName);
+  public Builtin getBuiltinType(Class<? extends Builtin> clazz) {
+    return builtins.get(clazz);
   }
 
-  public Type getBuiltinType(String name) {
-    return builtins.get(name);
+  public Builtin getBuiltinType(String name) {
+    return builtinsByName.get(name);
   }
 
   /**
@@ -397,7 +395,7 @@ public class Builtins {
    * @return the {@code Any} atom constructor
    */
   public Type any() {
-    return any;
+    return any.getType();
   }
 
   /**
@@ -466,14 +464,14 @@ public class Builtins {
   /**
    * @return the {@code Caught_Panic} atom constructor
    */
-  public AtomConstructor caughtPanic() {
+  public Type caughtPanic() {
     return this.error.caughtPanic();
   }
 
   /**
    * @return the {@code Panic} atom constructor
    */
-  public AtomConstructor panic() {
+  public Type panic() {
     return this.error.panic();
   }
 
@@ -509,13 +507,13 @@ public class Builtins {
   }
 
   /**
-   * Convert from type-system type names to atoms.
+   * Convert from type-system type names to types.
    *
    * @param typeName the fully qualified type name of a builtin
    * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
    *     and {@code null} otherwise
    */
-  public Atom fromTypeSystem(String typeName) {
+  public Type fromTypeSystem(String typeName) {
     return TypesFromProxy.fromTypeSystem(this, typeName);
   }
 }

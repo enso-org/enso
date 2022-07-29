@@ -47,7 +47,6 @@ public class ModuleScope implements TruffleObject {
     types.put(type.getName(), type);
   }
 
-
   /**
    * @return the associated type of this module.
    */
@@ -288,7 +287,11 @@ public class ModuleScope implements TruffleObject {
     return types;
   }
 
-  /**
+  public Optional<Type> getType(String name) {
+    return Optional.ofNullable(types.get(name));
+  }
+
+   /**
    * @return the raw method map held by this module
    */
   public Map<Type, Map<String, Function>> getMethods() {

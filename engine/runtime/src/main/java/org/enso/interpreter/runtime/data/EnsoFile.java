@@ -192,7 +192,7 @@ public class EnsoFile implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().file(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().file());
     }
 
     static Context getContext() {

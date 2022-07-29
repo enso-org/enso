@@ -59,7 +59,7 @@ public class Ref implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().ref(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().ref());
     }
 
     static Context getContext() {

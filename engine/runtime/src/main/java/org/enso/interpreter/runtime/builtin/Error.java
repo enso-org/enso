@@ -8,6 +8,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 
 import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
@@ -86,11 +87,11 @@ public class Error {
     return moduleNotInPackageError.newInstance();
   }
 
-  public AtomConstructor panic() {
+  public Type panic() {
     return panic.getType();
   }
 
-  public AtomConstructor caughtPanic() {
+  public Type caughtPanic() {
     return caughtPanic.getType();
   }
 

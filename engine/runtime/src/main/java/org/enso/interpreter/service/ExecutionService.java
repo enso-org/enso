@@ -29,6 +29,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
@@ -91,20 +92,20 @@ public class ExecutionService {
   }
 
   private FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
-      Module module, String consName, String methodName)
+      Module module, String typeName, String methodName)
       throws ConstructorNotFoundException, MethodNotFoundException {
     ModuleScope scope = module.compileScope(context);
-    AtomConstructor atomConstructor =
+    Type type =
         scope
-            .getConstructor(consName)
+            .getType(typeName)
             .orElseThrow(
-                () -> new ConstructorNotFoundException(module.getName().toString(), consName));
-    Function function = scope.lookupMethodDefinition(atomConstructor, methodName);
+                () -> new ConstructorNotFoundException(module.getName().toString(), typeName));
+    Function function = scope.lookupMethodDefinition(type, methodName);
     if (function == null) {
-      throw new MethodNotFoundException(module.getName().toString(), atomConstructor, methodName);
+      throw new MethodNotFoundException(module.getName().toString(), type, methodName);
     }
     return new FunctionCallInstrumentationNode.FunctionCall(
-        function, EmptyMap.create(), new Object[] {atomConstructor.newInstance()});
+        function, EmptyMap.create(), new Object[] {type});
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
