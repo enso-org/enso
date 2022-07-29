@@ -43,9 +43,11 @@ struct Entry {
 #[derive(Clone, Debug, Default)]
 pub struct LabeledAnyModelProvider {
     /// Label of the data provided to be used as a header of the list.
-    pub label:   ImString,
+    pub label:                ImString,
     /// Content to be used to populate a list.
-    pub content: list_view::entry::AnyModelProvider<component_group::Entry>,
+    pub content:              list_view::entry::AnyModelProvider<component_group::Entry>,
+    /// The count of entries in the component group before filtering.
+    pub original_entry_count: usize,
 }
 
 
@@ -86,7 +88,7 @@ impl Model {
         let column_width = (overall_width - 2.0 * style.column_gap) / NUMBER_OF_COLUMNS as f32;
 
         let groups = content.iter().enumerate().map(|(index, provider)| {
-            let size = provider.content.original_entry_count();
+            let size = provider.original_entry_count;
             layouting::Group { index, size }
         });
         let arrangement = layouting::Layouter::new(groups).arrange();
@@ -94,7 +96,7 @@ impl Model {
         let content = content
             .iter()
             .enumerate()
-            .filter_map(|(index, LabeledAnyModelProvider { content, label })| {
+            .filter_map(|(index, LabeledAnyModelProvider { content, label, .. })| {
                 if content.entry_count() > 0 {
                     let view = self.app.new_view::<component_group::View>();
                     if let Some(layers) = self.layers.borrow().as_ref() {

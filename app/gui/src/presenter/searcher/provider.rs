@@ -193,10 +193,6 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         self.group.matched_items.get()
     }
 
-    fn original_entry_count(&self) -> usize {
-        self.group.entries.borrow().len()
-    }
-
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
         use suggestion_database::entry::for_each_kind_variant;
         let component = self.group.get_entry(id)?;
@@ -249,8 +245,9 @@ pub fn from_component_group(
     group: &controller::searcher::component::Group,
 ) -> LabeledAnyModelProvider {
     LabeledAnyModelProvider {
-        label:   group.name.clone_ref(),
-        content: Rc::new(Component::new(group.clone_ref())).into(),
+        label:                group.name.clone_ref(),
+        content:              Rc::new(Component::new(group.clone_ref())).into(),
+        original_entry_count: group.entries.borrow().len(),
     }
 }
 

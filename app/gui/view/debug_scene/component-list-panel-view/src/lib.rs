@@ -133,8 +133,9 @@ fn mock_data() -> Vec<LabeledAnyModelProvider> {
     .into_iter()
     .enumerate()
     .map(|(index, mock_entries)| LabeledAnyModelProvider {
-        content: AnyModelProvider::from(mock_entries.clone_ref()),
-        label:   format!("Header {}", index).into(),
+        content:              AnyModelProvider::from(mock_entries.clone_ref()),
+        label:                format!("Header {}", index).into(),
+        original_entry_count: mock_entries.count.get(),
     })
     .collect_vec()
 }
@@ -155,8 +156,9 @@ fn mock_data_in_favorites_section() -> Vec<LabeledAnyModelProvider> {
     .into_iter()
     .enumerate()
     .map(|(index, mock_entries)| LabeledAnyModelProvider {
-        content: AnyModelProvider::from(mock_entries.clone_ref()),
-        label:   format!("Header {}", index).into(),
+        content:              AnyModelProvider::from(mock_entries.clone_ref()),
+        label:                format!("Header {}", index).into(),
+        original_entry_count: mock_entries.count.get(),
     })
     .collect_vec()
 }
