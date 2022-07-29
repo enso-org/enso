@@ -495,13 +495,13 @@ public class Module implements TruffleObject {
   abstract static class InvokeMember {
     private static Function getMethod(ModuleScope scope, Object[] args)
         throws ArityException, UnsupportedTypeException {
-      Types.Pair<AtomConstructor, String> arguments =
-          Types.extractArguments(args, AtomConstructor.class, String.class);
-      AtomConstructor cons = arguments.getFirst();
+      Types.Pair<Type, String> arguments =
+          Types.extractArguments(args, Type.class, String.class);
+      Type type = arguments.getFirst();
       String name = arguments.getSecond();
 
       try {
-        return scope.getMethods().get(cons).get(name.toLowerCase());
+        return scope.getMethods().get(type).get(name.toLowerCase());
       } catch (NullPointerException npe) {
         TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
         logger.log(

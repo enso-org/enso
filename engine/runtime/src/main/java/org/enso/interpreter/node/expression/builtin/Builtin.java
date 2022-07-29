@@ -72,15 +72,15 @@ public abstract class Builtin {
     }
   }
 
-  public Type getType() {
+  public final Type getType() {
     return type;
   }
 
-  public AtomConstructor[] getConstructors() {
+  public final AtomConstructor[] getConstructors() {
     return constructors;
   }
 
-  public AtomConstructor getUniqueConstructor() {
+  public final AtomConstructor getUniqueConstructor() {
     return uniqueConstructor;
   }
 }

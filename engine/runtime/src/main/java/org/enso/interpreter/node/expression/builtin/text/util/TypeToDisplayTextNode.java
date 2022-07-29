@@ -50,6 +50,8 @@ public abstract class TypeToDisplayTextNode extends Node {
       return TypesGen.asAtom(value).getConstructor().getName();
     } else if (TypesGen.isAtomConstructor(value)) {
       return TypesGen.asAtomConstructor(value).getName();
+    } else if (TypesGen.isType(value)) {
+      return TypesGen.asType(value).getName();
     } else if (TypesGen.isDataflowError(value)) {
       return "Error";
     } else if (TypesGen.isUnresolvedSymbol(value)) {

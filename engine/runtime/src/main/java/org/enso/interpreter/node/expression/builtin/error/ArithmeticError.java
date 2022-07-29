@@ -4,4 +4,6 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType(params = {"message"})
-public class ArithmeticError extends Builtin {}
+public class ArithmeticError extends Builtin {
+
+}

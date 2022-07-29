@@ -1,3 +1,2 @@
-type Nothing_Tp
-    @Builtin_Type
-    type Nothing
+@Builtin_Type
+type Nothing

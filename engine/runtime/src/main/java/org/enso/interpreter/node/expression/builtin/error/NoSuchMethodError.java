@@ -3,5 +3,12 @@ package org.enso.interpreter.node.expression.builtin.error;
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
-@BuiltinType(params = {"target", "symbol"})
-public class NoSuchMethodError extends Builtin {}
+import java.util.List;
+
+@BuiltinType
+public class NoSuchMethodError extends Builtin {
+  @Override
+  protected List<Cons> getDeclaredConstructors() {
+    return List.of(new Cons("Make_No_Such_Method_Error", "target", "symbol"));
+  }
+}
