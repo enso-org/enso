@@ -271,8 +271,8 @@ spec =
             "ABCDEFGH".take (Sample 1 seed=42) . should_equal "C"
             "ABCDEFGH".take (Sample 2 seed=42) . should_equal "CG"
             "ABCDEFGH".take (Sample 4 seed=42) . should_equal "CGDB"
-            "ABCDEFGH".take (Sample 8 seed=42) . should_equal "TODO"
-            "ABCDEFGH".take (Sample 100 seed=42) . should_equal "TODO"
+            "ABCDEFGH".take (Sample 8 seed=42) . should_equal "CGDBEAHF"
+            "ABCDEFGH".take (Sample 100 seed=42) . should_equal "CGDBEAHF"
 
             "ABCDEFGH".drop (Sample 0) . should_equal "ABCDEFGH"
             "ABCDEFGH".drop (Sample 1 seed=42) . should_equal "ABDEFGH"
@@ -352,11 +352,11 @@ spec =
             "Hello World!".take (Range 12 12) . should_equal ""
             "Hello World!".take (Range 6 12 2) . should_equal "Wrd"
             "Hello World!".take (Every 2 first=6) . should_equal "Wrd"
-            "Hello World!".take (Every 3) . should_equal "Hl Wl"
+            "Hello World!".take (Every 3) . should_equal "HlWl"
             "Hello World!".take (By_Index 0) . should_equal "H"
             "Hello World!".take (By_Index [1, 0, 0, 6, 0]) . should_equal "eHHWH"
             "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) . should_equal "HelWWrd"
-            "Hello World!".take (Sample 3 seed=42) . should_equal "TODO"
+            "Hello World!".take (Sample 3 seed=42) . should_equal "HeW"
 
         Test.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
@@ -371,14 +371,18 @@ spec =
             txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
-            txt.take (By_Index [0, 1, Range 6 100]) . should_equal "He World!"
+            txt.take (By_Index [0, 1, Range 6 100]) . should_equal "HeWorld!"
+            txt.take (By_Index [0, 1, Range 6 100 2]) . should_equal "HeWrd"
             txt.take (Range 13 12) . should_equal ""
             "".take (Range 0 0) . should_equal ""
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (Range 13 20) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (Range 13 20 2) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (By_Index [Range 0 2, Range 13 20]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (By_Index [Range 0 0, Range 13 10, Range 2 2 2]) . should_equal ""
             txt.take (By_Index [Range 0 2 2, Range 13 20 2]) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index [Range 0 2 2, Range txt.length 100 2]) . should_fail_with Index_Out_Of_Bounds_Error
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
             "ABC".take (Every 5 first=4) . should_fail_with Index_Out_Of_Bounds_Error
 
@@ -482,7 +486,7 @@ spec =
             "Hello World!".drop (By_Index 0) . should_equal "ello World!"
             "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) . should_equal "llo orld!"
             "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) . should_equal "lo ol!"
-            "Hello World!".drop (Sample 3 seed=42) . should_equal "TODO"
+            "Hello World!".drop (Sample 3 seed=42) . should_equal "llo orld!"
 
         Test.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
@@ -494,8 +498,14 @@ spec =
             txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.drop (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.drop (By_Index [0, 1, Range 6 100]) . should_equal "llo "
-            txt.drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.drop (Range 13 12) . should_equal txt
+            txt.drop (Range 14 15) . should_fail_with Index_Out_Of_Bounds_Error
             "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            "".drop (Range 0 0) . should_equal ""
+            txt.drop (Range 0 0) . should_equal txt
+            txt.drop (Range 5 100) . should_equal "Hello"
+            txt.drop (Range 5 100 2) . should_equal "HelloWrd"
+            txt.drop (By_Index [0, 1, 0, Range 5 100 2]) . should_equal "lloWrd"
 
         Test.specify "drop should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'

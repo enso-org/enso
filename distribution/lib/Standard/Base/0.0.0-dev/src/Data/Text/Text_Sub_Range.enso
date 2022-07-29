@@ -96,7 +96,9 @@ find_codepoint_ranges text subrange =
             find_codepoint_ranges text (By_Index indices)
         Every step start ->
             if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                range = Range start text.length step
+                len = text.length
+                if start >= len then Error.throw (Index_Out_Of_Bounds_Error start )
+                range = Range start len step
                 find_codepoint_ranges text (By_Index range)
         Range _ _ _ ->
             find_codepoint_ranges text (By_Index subrange)
@@ -153,7 +155,7 @@ find_sub_range_end = text->predicate->
     loop 0 0 iterator.next
 
 ## PRIVATE
-resolve_index_or_range text descriptor = Panic.recover Illegal_Argument_Error <|
+resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
     iterator = BreakIterator.getCharacterInstance
     iterator.setText text
     case descriptor of
@@ -164,8 +166,11 @@ resolve_index_or_range text descriptor = Panic.recover Illegal_Argument_Error <|
             end = iterator.next
             if (start == -1) || (end == -1) then Error.throw (Index_Out_Of_Bounds_Error descriptor text.length) else
                 Range start end
-        Range _ _ _ ->
-            true_range = normalize_range descriptor text.length
+        Range _ _ _ -> if descriptor.is_empty then Range 0 0 else
+            len = text.length
+            true_range = normalize_range descriptor len
+            if true_range.start >= len then
+                Panic.throw (Index_Out_Of_Bounds_Error descriptor.start len)
             case true_range.step == 1 of
                 True -> Span_Module.range_to_char_indices text true_range
                 False ->
@@ -205,20 +210,20 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_B
     descriptors.each descriptor->
         case descriptor of
             Integer ->
-                Panic.rethrow <|
-                    ranges.append (characters.at descriptor)
+                ranges.append (Panic.rethrow <| characters.at descriptor)
             Range _ _ _ ->
-                true_range = normalize_range descriptor characters.length
-                case true_range.step == 1 of
-                    True -> if true_range.is_empty then Range 0 0 else
-                        first_grapheme = characters.at true_range.start
-                        last_grapheme = characters.at true_range.end-1
-                        Range first_grapheme.start last_grapheme.end
-                    False ->
-                        if true_range.step <= 0 then panic_on_non_positive_step
-                        true_range.to_vector.each ix->
-                            Panic.rethrow <|
-                                ranges.append (characters.at ix)
+                if descriptor.is_empty then Range 0 0 else
+                    true_range = normalize_range descriptor characters.length
+                    case true_range.step == 1 of
+                        True ->
+                            first_grapheme = Panic.rethrow <| characters.at true_range.start
+                            last_grapheme = Panic.rethrow <| characters.at true_range.end-1
+                            ranges.append (Range first_grapheme.start last_grapheme.end)
+                        False ->
+                            if true_range.start >= characters.length then
+                                Panic.throw (Index_Out_Of_Bounds_Error true_range.start characters.length)
+                            true_range.to_vector.each ix->
+                                ranges.append (Panic.rethrow <| characters.at ix)
     Codepoint_Ranges ranges.to_vector is_sorted_and_distinct=False
 
 ## PRIVATE
@@ -228,8 +233,9 @@ panic_on_non_positive_step =
 ## PRIVATE
    Ensures that the range is valid and trims it to the length of the collection.
 normalize_range range length =
+    if range.step <= 0 then panic_on_non_positive_step
     # We may add support for negative indices in the future.
-    if (range.start < 0) || (range.end < 0) then Error.throw (Illegal_Argument_Error "Currently ranges with negative indices are not supported for indexing.") else
+    if (range.start < 0) || (range.end < 0) then Panic.throw (Illegal_Argument_Error "Currently ranges with negative indices are not supported for indexing.") else
         if range.end >= length then Range range.start length range.step else
             range
 
