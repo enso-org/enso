@@ -8,6 +8,8 @@ import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.Data.Column_Selector
+import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Storage
 import Standard.Database.Data.Internal.Base_Generator
 from Standard.Database.Data.Sql import Sql_Type
@@ -125,14 +127,55 @@ type Connection
        - database: The database name to search in (default is current database).
        - schema: The schema name to search in (defaults to current schema).
        - types: The table types to search for.
-    tables : Text -> Text -> Text -> Materialized_Table
-    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing =
+       - all_fields: Return all the fields in the metadata table.
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
+    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         types_array = if types.is_nothing then Nothing else types.to_array
         wrap_sql_errors <|
             self.connection_resource.with connection->
                 metadata = connection.getMetaData
-                result_set_to_table <|
+                table = result_set_to_table <|
                     metadata.getTables database schema name_like types_array
+
+                name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
+                renamed = table.rename_columns (Column_Name_Mapping.By_Name name_map)
+                if all_fields then renamed else renamed.select_columns (Column_Selector.By_Name ["Database", "Schema", "Name", "Type", "Description"])
+
+    ## Returns the metadata of the columns for the specified table.
+
+       Arguments:
+       - table: The name of the table to get the columns of.
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+    columns_metadata_table : Text -> Text -> Text -> Materialized_Table
+    columns_metadata_table self table database=self.database schema=self.schema =
+         wrap_sql_errors <|
+             self.connection_resource.with connection->
+                 metadata = connection.getMetaData
+                 columns = result_set_to_table <|
+                     metadata.getColumns database schema table Nothing
+
+                 name_map = Map.from_vector [["COLUMN_NAME", "Name"], ["DATA_TYPE", "Java Type"], ["TYPE_NAME", "Type Name"], ["COLUMN_SIZE", "Size"], ["DECIMAL_DIGITS", "Decimal Digits"], ["IS_NULLABLE", "Nullable"], ["REMARKS", "Description"], ["COLUMN_DEF", "Default Value"], ["ORDINAL_POSITION", "Position"]]
+                 columns.rename_columns (Column_Name_Mapping.By_Name name_map) . select_columns (Column_Selector.By_Name name_map.values)
+
+    ## Returns the columns of the specified table.
+
+       Arguments:
+       - table: The name of the table to get the columns of.
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+    columns : Text -> Text -> Text -> Vector
+    columns self table database=self.database schema=self.schema =
+        metadata_table = self.columns_metadata_table table database schema
+        row_count = metadata_table.row_count
+        builder = Vector.builder row_count
+        0.up_to row_count i->
+            name = metadata_table.at 'Name' . at i
+            idx = metadata_table.at 'Position' . at i
+            default = metadata_table.at 'Default Value' . at i
+            desc = metadata_table.at 'Description' . at i
+            builder.append <| Column_Metadata name idx Nothing default desc
+        builder.to_array
 
     ## UNSTABLE
 
@@ -422,3 +465,6 @@ set_statement_values stmt holes =
         case obj.first of
             Nothing -> stmt.setNull position obj.second.typeid
             _ -> stmt.setObject position obj.first
+
+type Column_Metadata
+    type Column_Metadata name:Text position:Integer column_type:Column_Type default_value:Text description:Text

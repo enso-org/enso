@@ -1,0 +1,101 @@
+from Standard.Base import Boolean, Date, True, False, Nothing
+import Standard.Base.Runtime.Ref
+
+polyglot java import java.sql.Types
+
+## ToDo: Replace TimeStamp, Time with the native Enso types.
+
+type Data_Type
+    ## Boolean or Bit value: 0 or 1
+       ANSI SQL: BIT / BOOLEAN
+    Boolean
+
+    ## Integer value: 0 to 255
+       ANSI SQL: TINYINT
+    type Byte
+
+    ## Integer values: -32,768 to 32,767
+       ANSI SQL: SMALLINT
+    type Integer_16
+
+    ## Integer values: -2,147,483,648 to -2,147,483,648
+       ANSI SQL: INT
+    type Integer_32
+
+    ## Integer values: -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
+       ANSI SQL: BIGINT
+    type Integer_64
+
+    ## Floating point values
+       ANSI SQL: REAL
+    type Float_32
+
+    ## Floating point values
+       ANSI SQL: FLOAT, DOUBLE
+    type Float_64
+
+    ## Represent a numerical value with a scale and precision
+       ANSI SQL: NUMERIC, DECIMAL
+    type Numeric precision:Integer scale:Integer
+
+    ## Date
+       ANSI SQL: DATE
+    Date
+
+    ## Time of day
+       ANSI SQL: TIME
+    type Time with_timezone:Boolean=False
+
+    ## Timestamp
+       ANSI SQL: TIMESTAMP / DateTime
+    type Timestamp with_timezone:Boolean=False
+
+    ## Character string
+       ANSI SQL: CHAR, VARCHAR, TEXT, LONGVARCHAR, NCHAR, NVARCHAR, TEXT, CLOB, NCLOB
+    type Char size:(Integer|Nothing)=Nothing variable:Boolean=False
+
+    ## Binary object
+       ANSI SQL: BINARY, VARBINARY, LONGVARBINARY, BLOB
+    type Binary_Object size:(Integer|Nothing)=Nothing variable:Boolean=False
+
+    ## Unsupported SQL type
+    type Unsupported_Type type_name:Text=""
+
+## Given a `java.sql.Types` value (and an optional size and precision), convert
+   to a `Data_Type` value.
+from_java_sql_type : Integer -> (Integer|Nothing) -> (Integer|Nothing) -> Data_Type
+from_java_sql_type java_type size=Nothing precision=Nothing =
+    output = Ref.new Unsupported_Type
+
+    if java_type == Types.BOOLEAN then output.put Boolean
+
+    if java_type == Types.TINYINT then output.put Byte
+    if java_type == Types.SMALLINT then output.put Integer_16
+    if java_type == Types.INTEGER then output.put Integer_32
+    if java_type == Types.BIGINT then output.put Integer_64
+
+    if java_type == Types.REAL then output.put Float_32
+    if java_type == Types.DOUBLE then output.put Float_64
+    if java_type == Types.FLOAT then output.put Float_64
+    if java_type == Types.DECIMAL then output.put (Numeric size precision)
+    if java_type == Types.NUMERIC then output.put (Numeric size precision)
+
+    if java_type == Types.CHAR then output.put (Char size variable=False)
+    if java_type == Types.VARCHAR then output.put (Char size variable=True)
+    if java_type == Types.LONGVARCHAR then output.put (Char size variable=True)
+    if java_type == Types.NCHAR then output.put (Char size variable=False)
+    if java_type == Types.NVARCHAR then output.put (Char size variable=True)
+    if java_type == Types.LONGNVARCHAR then output.put (Char -1 variable=True)
+    if java_type == Types.CLOB then output.put (Char -1 variable=True)
+    if java_type == Types.NCLOB then output.put (Char -1 variable=True)
+
+    if java_type == Types.DATE then output.put Date
+    if java_type == Types.TIME then output.put (Time with_timezone=False)
+    if java_type == Types.TIME_WITH_TIMEZONE then output.put (Time with_timezone=True)
+    if java_type == Types.TIMESTAMP then output.put (Timestamp with_timezone=False)
+    if java_type == Types.TIMESTAMP_WITH_TIMEZONE then output.put (Timestamp with_timezone=True)
+
+    if java_type == Types.BIT then output.put Boolean
+    if java_type == Types.BINARY then output.put (Binary_Object -1 False)
+    if java_type == Types.VARBINARY then output.put (Binary_Object -1 True)
+    output.get
