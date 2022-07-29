@@ -424,10 +424,10 @@ class Compiler(
     val parsedAST = parse(module.getSource)
     val expr      = generateIR(parsedAST)
     val exprWithModuleExports =
-      if (module.isVirtual)
+      if (module.isSynthetic)
         expr
       else
-        injectVirtualModuleExports(expr, module.getDirectVirtualModulesRefs)
+        injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
     val discoveredModule =
       recognizeBindings(exprWithModuleExports, moduleContext)
     module.unsafeSetIr(discoveredModule)
@@ -562,7 +562,7 @@ class Compiler(
     AstToIr.translate(sourceAST)
 
   /** Enhances the provided IR with import/export statements for the provided list
-    * of fully qualified names of modules. The statements are considered to be "virtual" i.e. compiler-generated.
+    * of fully qualified names of modules. The statements are considered to be "synthetic" i.e. compiler-generated.
     * That way one can access modules using fully qualified names.
     * E.g.,
     * Given module A/B/C.enso
@@ -576,7 +576,7 @@ class Compiler(
     * ...
     *   x = A.B.C 0
     * ```
-    * because the compiler will inject virtual modules A and A.B such that
+    * because the compiler will inject synthetic modules A and A.B such that
     * A.enso:
     * ````
     *   import project.A.B
@@ -592,7 +592,7 @@ class Compiler(
     * @param modules fully qualified names of modules
     * @return enhanced
     */
-  private def injectVirtualModuleExports(
+  private def injectSyntheticModuleExports(
     ir: IR.Module,
     modules: java.util.List[QualifiedName]
   ): IR.Module = {
@@ -615,7 +615,7 @@ class Compiler(
           onlyNames   = None,
           hiddenNames = None,
           location    = None,
-          isVirtual   = true
+          isSynthetic = true
         )
       ),
       exports = ir.exports ::: moduleNames.map(m =>
@@ -626,7 +626,7 @@ class Compiler(
           onlyNames   = None,
           hiddenNames = None,
           location    = None,
-          isVirtual   = true
+          isSynthetic = true
         )
       )
     )

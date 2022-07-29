@@ -95,8 +95,8 @@ public class Module implements TruffleObject {
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
-  private boolean virtual;
-  private List<QualifiedName> directVirtualModulesRefs;
+  private boolean synthetic;
+  private List<QualifiedName> directModulesRefs;
 
   /**
    * Creates a new module.
@@ -113,7 +113,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.virtual = false;
+    this.synthetic = false;
   }
 
   /**
@@ -132,7 +132,7 @@ public class Module implements TruffleObject {
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
-    this.virtual = false;
+    this.synthetic = false;
   }
 
   /**
@@ -151,7 +151,7 @@ public class Module implements TruffleObject {
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
-    this.virtual = false;
+    this.synthetic = false;
   }
 
   /**
@@ -162,17 +162,17 @@ public class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(
-      QualifiedName name, Package<TruffleFile> pkg, boolean virtual, Rope literalSource) {
+      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
-    this.compilationStage = virtual ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
+    this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
-    this.virtual = virtual;
+    this.synthetic = synthetic;
   }
 
   /**
@@ -188,15 +188,15 @@ public class Module implements TruffleObject {
   }
 
   /**
-   * Creates a virtual module which only purpose is to export symbols of other modules.
+   * Creates a synthetic module which only purpose is to export symbols of other modules.
    *
    * @param name the qualified name of the newly created module.
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
    * @param source source of the module declaring exports of the desired modules
-   * @return the virtual module
+   * @return the synthetic module
    */
-  public static Module virtual(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
+  public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
     return new Module(name, pkg, true, source);
   }
 
@@ -212,9 +212,9 @@ public class Module implements TruffleObject {
     return sources.rope();
   }
 
-  /** @return true if this module represents a virtual (compiler-generated) module */
-  public boolean isVirtual() {
-    return virtual;
+  /** @return true if this module represents a synthetic (compiler-generated) module */
+  public boolean isSynthetic() {
+    return synthetic;
   }
 
   /**
@@ -229,11 +229,11 @@ public class Module implements TruffleObject {
   /**
    * Attaches names of submodules that should be accessible from this module
    *
-   * @param names fully qualified names of (potentially virtual) modules' names
+   * @param names fully qualified names of (potentially synthetic) modules' names
    */
-  public void setDirectVirtualModulesRefs(List<QualifiedName> names) {
-    assert directVirtualModulesRefs == null;
-    directVirtualModulesRefs = names;
+  public void setDirectModulesRefs(List<QualifiedName> names) {
+    assert directModulesRefs == null;
+    directModulesRefs = names;
   }
 
   /**
@@ -241,11 +241,11 @@ public class Module implements TruffleObject {
    *
    * @return a non-null, possibly empty, list of fully qualified names of modules
    */
-  public List<QualifiedName> getDirectVirtualModulesRefs() {
-    if (directVirtualModulesRefs == null) {
+  public List<QualifiedName> getDirectModulesRefs() {
+    if (directModulesRefs == null) {
       return Collections.emptyList();
     }
-    return directVirtualModulesRefs;
+    return directModulesRefs;
   }
 
   /**

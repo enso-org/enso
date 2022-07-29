@@ -7,7 +7,7 @@ import org.enso.compiler.pass.desugar.ComplexType
 
 import scala.annotation.unused
 
-/** Generates warnings about potential name conflicts between types and virtual modules
+/** Generates warnings about potential name conflicts between types and synthetic modules
   */
 case object ModuleNameConflicts extends IRPass {
 
@@ -20,8 +20,7 @@ case object ModuleNameConflicts extends IRPass {
   /** The passes that are invalidated by running this pass. */
   override val invalidatedPasses: Seq[IRPass] = Seq()
 
-  /** Collects comments for a module and assigns them to the commented
-    * entities as metadata.
+  /** Lints a module
     *
     * @param ir the Enso IR to process
     * @param moduleContext a context object that contains the information needed
@@ -34,7 +33,7 @@ case object ModuleNameConflicts extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module = {
     if (moduleContext.compilerConfig.warningsEnabled) {
-      val virtualExports = ir.exports.flatMap {
+      val syntheticExports = ir.exports.flatMap {
         case mod @ IR.Module.Scope.Export.Module(
               _,
               _,
@@ -48,13 +47,13 @@ case object ModuleNameConflicts extends IRPass {
             ) =>
           Some(mod)
         case mod: IR.Module.Scope.Export.Module
-            if moduleContext.module.isVirtual =>
+            if moduleContext.module.isSynthetic =>
           Some(mod)
         case _ =>
           None
       }
       ir.copy(
-        bindings = ir.bindings.map(lintBinding(_, virtualExports))
+        bindings = ir.bindings.map(lintBinding(_, syntheticExports))
       )
     } else {
       ir
@@ -82,16 +81,17 @@ case object ModuleNameConflicts extends IRPass {
 
   // === Pass Internals =======================================================
 
-  /** Resolves documentation comments in a module.
+  /** Lints a binding
     *
-    * @param ir the module to resolve comments in
+    * @param binding the binding to lint
+    * @param syntheticExports a list of compiler-added module exports in this module
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
   private def lintBinding(
     binding: IR.Module.Scope.Definition,
-    virtualExports: List[IR.Module.Scope.Export.Module]
+    syntheticExports: List[IR.Module.Scope.Export.Module]
   ): IR.Module.Scope.Definition = {
-    val exports = virtualExports.map(e => (e.name.parts.last.name, e)).toMap
+    val exports = syntheticExports.map(e => (e.name.parts.last.name, e)).toMap
 
     binding match {
       case cons: IR.Module.Scope.Definition.Atom
@@ -100,7 +100,7 @@ case object ModuleNameConflicts extends IRPass {
         val `export` = exports(atomName)
         binding.addDiagnostic(
           IR.Warning.Shadowed
-            .VirtualModule(atomName, `export`.name, `export`, cons.location)
+            .SyntheticModule(atomName, `export`.name, `export`, cons.location)
         )
       case _ =>
         binding

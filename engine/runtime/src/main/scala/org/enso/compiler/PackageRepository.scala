@@ -279,25 +279,25 @@ object PackageRepository {
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
-      val (regularModules, virtualModulesNames) = pkg.listSources
+      val (regularModules, syntheticModulesMetadata) = pkg.listSources
         .map(srcFile =>
           (
             new Module(srcFile.qualifiedName, pkg, srcFile.file),
-            inferVirtualModuleNames(srcFile)
+            inferSyntheticModules(srcFile)
           )
         )
         .unzip
 
       regularModules.foreach(registerModule)
 
-      virtualModulesNames.flatten
+      syntheticModulesMetadata.flatten
         .groupMap(_._1)(v => (v._2, v._3))
         .foreach { case (qName, modulesWithSources) =>
           val source = modulesWithSources
             .map(_._2)
             .foldLeft("")(_ ++ "\n" ++ _)
-          registerVirtualModule(
-            Module.virtual(
+          registerSyntheticModule(
+            Module.synthetic(
               qName,
               pkg,
               Rope(source)
@@ -314,7 +314,7 @@ object PackageRepository {
       loadedPackages.put(libraryName, Some(pkg))
     }
 
-    /** For any given source file, infer data necessary to generate virtual modules as well as their contents.
+    /** For any given source file, infer data necessary to generate synthetic modules as well as their contents.
       * E.g., for A/B/C.enso it infers modules
       * - A.B that exports A.B.C
       * - A that exports A.B
@@ -322,7 +322,7 @@ object PackageRepository {
       * @param srcFile Enso source file to consider
       * @return a list of triples representing the name of submodule along the path, what submodule it exports and its contents
       */
-    private def inferVirtualModuleNames(
+    private def inferSyntheticModules(
       srcFile: SourceFile[TruffleFile]
     ): List[(QualifiedName, QualifiedName, String)] = {
       def listAllIntermediateModules(
@@ -338,14 +338,14 @@ object PackageRepository {
             val pathElems = elements.reverse
             val modName =
               s"${namespace}.$name.${pathElems.mkString(".")}.$exportItem"
-            val virtualModuleSource =
+            val modSource =
               s"""|import $modName
                   |export $modName
                   |""".stripMargin
             (
               QualifiedName(namespace :: name :: parts, lastModuleName),
               QualifiedName(namespace :: name :: pathElems, exportItem),
-              virtualModuleSource
+              modSource
             ) :: listAllIntermediateModules(
               namespace,
               name,
@@ -537,27 +537,27 @@ object PackageRepository {
       loadedModules.put(module.getName.toString, module)
     }
 
-    /** Registering virtual module, unlike the non-compiler generated one, is conditional
+    /** Registering synthetic module, unlike the non-compiler generated one, is conditional
       * in a sense that if a module already exists with a given name we only update its
-      * list of virtual modules that it should export.
-      * If no module exists under the given name, we register the virtual one.
+      * list of synthetic modules that it should export.
+      * If no module exists under the given name, we register the synthetic one.
       *
-      * @param virtualModule a virtual module to register
+      * @param syntheticModule a synthetic module to register
       * @param refs list of names of modules that should be exported by the module under the given name
       */
-    private def registerVirtualModule(
-      virtualModule: Module,
+    private def registerSyntheticModule(
+      syntheticModule: Module,
       refs: List[QualifiedName]
     ): Unit = {
       import scala.jdk.CollectionConverters._
 
-      assert(virtualModule.isVirtual)
-      if (!loadedModules.contains(virtualModule.getName.toString)) {
-        loadedModules.put(virtualModule.getName.toString, virtualModule)
+      assert(syntheticModule.isSynthetic)
+      if (!loadedModules.contains(syntheticModule.getName.toString)) {
+        loadedModules.put(syntheticModule.getName.toString, syntheticModule)
       } else {
-        val loaded = loadedModules(virtualModule.getName.toString)
-        assert(!loaded.isVirtual)
-        loaded.setDirectVirtualModulesRefs(refs.asJava)
+        val loaded = loadedModules(syntheticModule.getName.toString)
+        assert(!loaded.isSynthetic)
+        loaded.setDirectModulesRefs(refs.asJava)
       }
     }
 
