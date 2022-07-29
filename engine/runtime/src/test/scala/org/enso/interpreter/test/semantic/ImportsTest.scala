@@ -92,7 +92,7 @@ class ImportsTest extends PackageTest {
       "TestSubmodulesNameConflict"
     )) should have message "Method `c_mod_method` of C could not be found."
     val outLines = consumeOut
-    outLines(2) shouldEqual
-    "B.enso[2:3-2:10]: Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
+    outLines(2) should include
+    "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
   }
 }
