@@ -290,18 +290,23 @@ spec =
             "123"*1000 . drop (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
             "123"*1000 . drop (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
             "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range 6*ix+1 6*ix+3)) . should_equal "1456"*1000
-            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range ix+1 ix+5)) . should_equal "ADABCD"
+            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range ix+1 ix+5)) . should_equal "ACDABCD"
+
+            "ABCD"*1000 . take (Range 0 4000 4) . should_equal "A"*1000
+            "ABCD"*1000 . take (Every 4) . should_equal "A"*1000
+            "ABCD"*1000 . take (By_Index [Range 0 4000 4, Range 1 4000 4]) . should_equal ("A"*1000 + "B"*1000)
+            "ABCD"*1000 . take (By_Index [Range 0 4000 4, Range 2 4000 4]) . should_equal ("A"*1000 + "C"*1000)
+
+            "ABCD"*1000 . drop (Range 0 4000 4) . should_equal "BCD"*1000
+            "ABCD"*1000 . drop (Every 4) . should_equal "BCD"*1000
+            "ABCD"*1000 . drop (By_Index [Range 0 4000 4, Range 1 4000 4]) . should_equal "CD"*1000
+            "ABCD"*1000 . drop (By_Index [Range 0 4000 4, Range 2 4000 4]) . should_equal "BD"*1000
 
             "0123456789".take (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "0123458"
             "0123456789".take (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "45012300"
-            "0123456789".drop (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "6789"
+            "0123456789".drop (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "679"
             "0123456789".drop (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "6789"
             "0123456789".drop (By_Index [Range 2 5, Range 0 3, 0, 0]) . should_equal "56789"
-
-            "0123456789".take (By_Index [Range 0 -2]) . should_equal "1234567"
-            "0123456789".take (By_Index [Range -2 -1]) . should_equal "8"
-            "0123456789".drop (By_Index [Range 0 -2]) . should_equal "89"
-            "0123456789".drop (By_Index [Range -2 -1]) . should_equal "12345679"
 
         Test.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
