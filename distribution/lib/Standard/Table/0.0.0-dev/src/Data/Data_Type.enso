@@ -85,9 +85,9 @@ from_java_sql_type java_type size=Nothing precision=Nothing =
     if java_type == Types.LONGVARCHAR then output.put (Char size variable=True)
     if java_type == Types.NCHAR then output.put (Char size variable=False)
     if java_type == Types.NVARCHAR then output.put (Char size variable=True)
-    if java_type == Types.LONGNVARCHAR then output.put (Char -1 variable=True)
-    if java_type == Types.CLOB then output.put (Char -1 variable=True)
-    if java_type == Types.NCLOB then output.put (Char -1 variable=True)
+    if java_type == Types.LONGNVARCHAR then output.put (Char size variable=True)
+    if java_type == Types.CLOB then output.put (Char size variable=True)
+    if java_type == Types.NCLOB then output.put (Char size variable=True)
 
     if java_type == Types.DATE then output.put Date
     if java_type == Types.TIME then output.put (Time with_timezone=False)
@@ -95,8 +95,9 @@ from_java_sql_type java_type size=Nothing precision=Nothing =
     if java_type == Types.TIMESTAMP then output.put (Timestamp with_timezone=False)
     if java_type == Types.TIMESTAMP_WITH_TIMEZONE then output.put (Timestamp with_timezone=True)
 
-    if java_type == Types.BIT then output.put Boolean
-    if java_type == Types.BINARY then output.put (Binary_Object -1 False)
-    if java_type == Types.VARBINARY then output.put (Binary_Object -1 True)
+    if java_type == Types.BIT then
+        if size == 1 then output.put Boolean else output.put (Binary_Object size variable=False)
+    if java_type == Types.BINARY then output.put (Binary_Object size variable=False)
+    if java_type == Types.VARBINARY then output.put (Binary_Object size variable=True)
 
     output.get

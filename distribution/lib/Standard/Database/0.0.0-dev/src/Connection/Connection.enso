@@ -11,6 +11,7 @@ import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Data.Column_Selector
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Storage
+from Standard.Table.Data.Data_Type import from_java_sql_type
 import Standard.Database.Data.Internal.Base_Generator
 from Standard.Database.Data.Sql import Sql_Type
 
@@ -45,7 +46,6 @@ type Connection
          connection specific overrides.
        - with_schema: an action returning a list of schema, allowing for
          connection specific overrides.
-       - type_mapping:
     type Connection connection_resource dialect with_database with_schema get_databases=Nothing get_schemas=Nothing
 
     ## Closes the connection releasing the underlying database resources
@@ -179,8 +179,8 @@ type Connection
         row_count = metadata_table.row_count
         builder = Vector.builder row_count
         0.up_to row_count i->
-            data_type =
-            builder.append <| Column_Metadata (names.at i) (positions.at i) Nothing (defaults.at i) (descs.at i)
+            data_type = from_java_sql_type (types.at i) (sizes.at i) (digits.at i)
+            builder.append <| Column_Metadata (names.at i) (positions.at i) data_type (defaults.at i) (descs.at i)
         builder.to_array
 
     ## UNSTABLE

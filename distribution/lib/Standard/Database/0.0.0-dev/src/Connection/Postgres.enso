@@ -108,7 +108,3 @@ default_postgres_port =
 
 ## PRIVATE
 default_postgres_database = Environment.get_or_else "PGDATABASE" ""
-
-## PRIVATE
-   Handle specific edge case types for Postgres
-
