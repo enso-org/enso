@@ -186,7 +186,7 @@ public class Warning implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().warning(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().warning());
     }
 
     static Context getContext() {

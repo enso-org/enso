@@ -162,7 +162,7 @@ public class Array implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().array(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().array());
     }
 
     static Context getContext() {

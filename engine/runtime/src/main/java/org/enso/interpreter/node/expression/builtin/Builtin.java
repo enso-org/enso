@@ -19,8 +19,8 @@ public abstract class Builtin {
       this(name, Arrays.asList(params));
     }
 
-    private AtomConstructor build(ModuleScope scope) {
-      var res = new AtomConstructor(name, scope, true);
+    private AtomConstructor build(ModuleScope scope, Type type) {
+      var res = new AtomConstructor(name, scope, type,true);
       res.initializeFields(
           IntStream.range(0, params.size())
               .mapToObj(
@@ -64,7 +64,7 @@ public abstract class Builtin {
       var conses = getDeclaredConstructors();
       constructors = new AtomConstructor[conses.size()];
       for (int i = 0; i < constructors.length; i++) {
-        constructors[i] = conses.get(i).build(scope);
+        constructors[i] = conses.get(i).build(scope, type);
       }
       if (constructors.length == 1) {
         uniqueConstructor = constructors[0];

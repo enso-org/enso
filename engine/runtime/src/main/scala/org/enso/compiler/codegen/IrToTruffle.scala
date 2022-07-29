@@ -891,7 +891,7 @@ class IrToTruffle(
                   val any         = context.getBuiltins.any
                   val array       = context.getBuiltins.array
                   val file        = context.getBuiltins.file
-                  val builtinBool = context.getBuiltins.bool.getBool
+                  val builtinBool = context.getBuiltins.bool.getType
                   val number      = context.getBuiltins.number
                   val polyglot    = context.getBuiltins.polyglot
                   val text        = context.getBuiltins.text

@@ -52,21 +52,24 @@ case object BindingAnalysis extends IRPass {
   ): IR.Module = {
     val definedSumTypes = ir.bindings.collect {
       case sumType: IR.Module.Scope.Definition.Type =>
-        BindingsMap.Type(sumType.name.name, sumType.members.map(_.name.name))
+        val isBuiltinType = sumType
+          .getMetadata(ModuleAnnotations)
+          .exists(_.annotations.exists(_.name == "@Builtin_Type"))
+        BindingsMap.Type(
+          sumType.name.name,
+          sumType.members.map(_.name.name),
+          isBuiltinType
+        )
     }
 
     val definedConstructors = ir.bindings.flatMap {
       case tp: IR.Module.Scope.Definition.Type =>
         // FIXME: move to a different pass
-        val isBuiltinType = tp
-          .getMetadata(ModuleAnnotations)
-          .exists(_.annotations.exists(_.name == "@Builtin_Type"))
         tp.members.map { cons =>
           BindingsMap.Cons(
             cons.name.name,
             cons.arguments.length,
-            cons.arguments.forall(_.defaultValue.isDefined),
-            isBuiltinType
+            cons.arguments.forall(_.defaultValue.isDefined)
           )
         }
       case _ => List()

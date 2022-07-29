@@ -98,7 +98,7 @@ public abstract class SortNode extends Node {
         return 1;
       } else {
         resultProfile.enter();
-        var ordering = context.getBuiltins().ordering().ordering();
+        var ordering = context.getBuiltins().ordering().getType();
         throw new PanicException(
             context.getBuiltins().error().makeTypeError(ordering, res, "result"), outerThis);
       }

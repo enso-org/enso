@@ -34,7 +34,7 @@ public class TypesFromProxy {
       case ConstantsGen.ARRAY:
         return builtins.array();
       case ConstantsGen.BOOLEAN:
-        return builtins.bool().getBool();
+        return builtins.bool().getType();
       case ConstantsGen.DECIMAL:
         return builtins.number.getDecimal();
       case ConstantsGen.ERROR:

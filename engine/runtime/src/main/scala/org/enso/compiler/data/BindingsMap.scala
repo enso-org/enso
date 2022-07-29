@@ -732,8 +732,7 @@ object BindingsMap {
   case class Cons(
     name: String,
     arity: Int,
-    allFieldsDefaulted: Boolean,
-    builtinType: Boolean = false
+    allFieldsDefaulted: Boolean
   )
 
   /** A representation of a sum type
@@ -741,7 +740,7 @@ object BindingsMap {
     * @param name the type name
     * @param members the member names
     */
-  case class Type(name: String, members: Seq[String])
+  case class Type(name: String, members: Seq[String], builtinType: Boolean)
 
   /** A representation of an imported polyglot symbol.
     *

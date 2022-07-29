@@ -149,7 +149,7 @@ public class TopLevelScope implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(arguments, String.class);
       scope.packageRepository.deregisterModule(name);
-      return context.getNothing().newInstance();
+      return context.getNothing();
     }
 
     private static Object leakContext(Context context) {

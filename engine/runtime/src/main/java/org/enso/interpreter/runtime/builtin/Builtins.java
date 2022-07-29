@@ -20,6 +20,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.*;
+import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.io.File;
@@ -58,7 +59,7 @@ public class Builtins {
   private final Module module;
   private final ModuleScope scope;
   public final Number number;
-  private final Bool bool;
+  private final Boolean bool;
   private final Ordering ordering;
   private final System system;
   private final Special special;
@@ -98,7 +99,7 @@ public class Builtins {
     ordering = getBuiltinType(Ordering.class);
     system = new System(this);
     number = new Number(this);
-    bool = new Bool(this);
+    bool = this.getBuiltinType(Boolean.class);
 
     any = builtins.get(Any.class);
     nothing = builtins.get(Nothing.class);
@@ -205,7 +206,8 @@ public class Builtins {
             .map(
                 line -> {
                   String[] builtinMeta = line.split(":");
-                  if (builtinMeta.length != 3) {
+                  if (builtinMeta.length < 2 || builtinMeta.length > 3) {
+                    java.lang.System.out.println(Arrays.toString(builtinMeta));
                     throw new CompilerError("Invalid builtin metadata in: " + line);
                   }
                   try {
@@ -371,7 +373,7 @@ public class Builtins {
   /**
    * @return the container for boolean constructors.
    */
-  public Bool bool() {
+  public Boolean bool() {
     return bool;
   }
 

@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
@@ -30,8 +31,6 @@ import java.util.concurrent.locks.Lock;
 public abstract class InvokeConversionNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private @Child InvokeConversionNode childDispatch;
-  private final ConditionProfile atomProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile atomConstructorProfile = ConditionProfile.createCountingProfile();
   private final int thatArgumentPosition;
 
   /**
@@ -75,15 +74,9 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object that,
       Object[] arguments);
 
-  static AtomConstructor extractConstructor(
-      Node thisNode,
-      Object self,
-      ConditionProfile atomConstructorProfile,
-      ConditionProfile atomProfile) {
-    if (atomConstructorProfile.profile(self instanceof AtomConstructor)) {
-      return (AtomConstructor) self;
-    } else if (atomProfile.profile(self instanceof Atom)) {
-      return ((Atom) self).getConstructor();
+  static Type extractConstructor(Node thisNode, Object self) {
+    if (self instanceof Type) {
+      return (Type) self;
     } else {
       throw new PanicException(
           Context.get(thisNode).getBuiltins().error().makeInvalidConversionTargetError(self),
@@ -91,8 +84,8 @@ public abstract class InvokeConversionNode extends BaseNode {
     }
   }
 
-  AtomConstructor extractConstructor(Object self) {
-    return extractConstructor(this, self, atomConstructorProfile, atomProfile);
+  Type extractConstructor(Object self) {
+    return extractConstructor(this, self);
   }
 
   @Specialization(guards = "dispatch.canConvertFrom(that)")

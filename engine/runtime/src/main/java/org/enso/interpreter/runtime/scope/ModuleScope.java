@@ -31,7 +31,7 @@ public class ModuleScope implements TruffleObject {
    */
   public ModuleScope(Module module) {
     this.module = module;
-    this.associatedType = new Type(module.getName().item(), this, false);
+    this.associatedType = new Type(module.getName().item(), this, null, false);
   }
 
   /**
@@ -291,7 +291,7 @@ public class ModuleScope implements TruffleObject {
     return Optional.ofNullable(types.get(name));
   }
 
-   /**
+  /**
    * @return the raw method map held by this module
    */
   public Map<Type, Map<String, Function>> getMethods() {

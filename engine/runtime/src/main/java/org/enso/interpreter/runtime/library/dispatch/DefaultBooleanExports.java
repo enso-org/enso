@@ -30,24 +30,10 @@ public class DefaultBooleanExports {
   @ExportMessage
   static class GetFunctionalDispatch {
     @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnPrimBoolean(UnresolvedSymbol symbol) {
+    static Function resolveMethodOnBool(UnresolvedSymbol symbol) {
       Context context = getContext();
       Builtins builtins = context.getBuiltins();
-      if (symbol.resolveFor(builtins.bool().getFalse().getType()) != null) {
-        return null;
-      }
-      if (symbol.resolveFor(builtins.bool().getTrue().getType()) != null) {
-        return null;
-      }
-      return symbol.resolveFor(builtins.bool().getBool());
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnBool(boolean self, UnresolvedSymbol symbol) {
-      Context context = getContext();
-      Builtins builtins = context.getBuiltins();
-      AtomConstructor cons = self ? builtins.bool().getTrue() : builtins.bool().getFalse();
-      return symbol.resolveFor(cons.getType());
+      return symbol.resolveFor(builtins.bool().getType());
     }
 
     static Context getContext() {
@@ -65,48 +51,14 @@ public class DefaultBooleanExports {
         Boolean self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("resolveMethodOnPrimBoolean(cachedSymbol)") Function function) {
+        @Cached("resolveMethodOnBool(cachedSymbol)") Function function) {
       return function;
     }
 
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "unbox(self)",
-          "function != null"
-        },
-        limit = "CACHE_SIZE",
-        replaces = "resolveCached")
-    static Function resolveTrueCached(
-        Boolean self,
-        UnresolvedSymbol symbol,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("resolveMethodOnBool(self, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedSymbol == symbol",
-          "!unbox(self)",
-          "function != null"
-        },
-        limit = "CACHE_SIZE",
-        replaces = "resolveCached")
-    static Function resolveFalseCached(
-        Boolean self,
-        UnresolvedSymbol symbol,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("resolveMethodOnBool(self, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = {"resolveTrueCached", "resolveFalseCached"})
+    @Specialization(replaces = {"resolveCached"})
     static Function resolve(Boolean self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = resolveMethodOnBool(self, symbol);
+      Function function = resolveMethodOnBool(symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }
@@ -127,25 +79,10 @@ public class DefaultBooleanExports {
   @ExportMessage
   static class GetConversionFunction {
     @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnPrimBoolean(Type target, UnresolvedConversion conversion) {
+    static Function resolveMethodOnBool(Type target, UnresolvedConversion conversion) {
       Context context = Context.get(null);
       Builtins builtins = context.getBuiltins();
-      if (conversion.resolveFor(target, builtins.bool().getFalse().getType()) != null) {
-        return null;
-      }
-      if (conversion.resolveFor(target, builtins.bool().getTrue().getType()) != null) {
-        return null;
-      }
-      return conversion.resolveFor(target, builtins.bool().getBool());
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnBool(
-        boolean self, Type target, UnresolvedConversion conversion) {
-      Context context = Context.get(null);
-      Builtins builtins = context.getBuiltins();
-      AtomConstructor cons = self ? builtins.bool().getTrue() : builtins.bool().getFalse();
-      return conversion.resolveFor(target, cons.getType());
+      return conversion.resolveFor(target, builtins.bool().getType());
     }
 
     static Context getContext() {
@@ -166,54 +103,14 @@ public class DefaultBooleanExports {
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("target") Type cachedTarget,
-        @Cached("resolveMethodOnPrimBoolean(cachedTarget, cachedConversion)") Function function) {
+        @Cached("resolveMethodOnBool(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedConversion == conversion",
-          "cachedTarget == target",
-          "unbox(self)",
-          "function != null"
-        },
-        limit = "CACHE_SIZE",
-        replaces = "resolveCached")
-    static Function resolveTrueCached(
-        Boolean self,
-        Type target,
-        UnresolvedConversion conversion,
-        @Cached("target") Type cachedTarget,
-        @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("resolveMethodOnBool(self, cachedTarget, cachedConversion)") Function function) {
-      return function;
-    }
-
-    @Specialization(
-        guards = {
-          "!getContext().isInlineCachingDisabled()",
-          "cachedConversion == conversion",
-          "cachedTarget == target",
-          "!unbox(self)",
-          "function != null"
-        },
-        limit = "CACHE_SIZE",
-        replaces = "resolveCached")
-    static Function resolveFalseCached(
-        Boolean self,
-        Type target,
-        UnresolvedConversion conversion,
-        @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("target") Type cachedTarget,
-        @Cached("resolveMethodOnBool(self, cachedTarget, cachedConversion)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = {"resolveTrueCached", "resolveFalseCached"})
+    @Specialization(replaces = {"resolveCached"})
     static Function resolve(Boolean self, Type target, UnresolvedConversion symbol)
         throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = resolveMethodOnBool(self, target, symbol);
+      Function function = resolveMethodOnBool(target, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
       }

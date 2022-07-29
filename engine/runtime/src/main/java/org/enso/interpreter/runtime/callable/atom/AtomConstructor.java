@@ -54,8 +54,8 @@ public final class AtomConstructor implements TruffleObject {
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
    */
-  public AtomConstructor(String name, ModuleScope definitionScope) {
-    this(name, definitionScope, false);
+  public AtomConstructor(String name, ModuleScope definitionScope, Type type) {
+    this(name, definitionScope, type, false);
   }
 
   /**
@@ -67,9 +67,10 @@ public final class AtomConstructor implements TruffleObject {
    * @param definitionScope the scope in which this constructor was defined
    * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
-  public AtomConstructor(String name, ModuleScope definitionScope, boolean builtin) {
+  public AtomConstructor(String name, ModuleScope definitionScope, Type type, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
+    this.type = type;
     this.builtin = builtin;
   }
 
@@ -157,9 +158,9 @@ public final class AtomConstructor implements TruffleObject {
 
   private void generateMethods(ArgumentDefinition[] args) {
     generateQualifiedAccessor();
-    for (ArgumentDefinition arg : args) {
-      definitionScope.registerMethod(this, arg.getName(), generateGetter(arg.getPosition()));
-    }
+    //    for (ArgumentDefinition arg : args) {
+    //      definitionScope.registerMethod(this, arg.getName(), generateGetter(arg.getPosition()));
+    //    }
   }
 
   private void generateQualifiedAccessor() {
@@ -277,16 +278,16 @@ public final class AtomConstructor implements TruffleObject {
     return "Constructor<" + name + ">";
   }
 
-  /** @return the fully qualified name of this constructor. */
+  /**
+   * @return the fully qualified name of this constructor.
+   */
   public QualifiedName getQualifiedName() {
-    if (this == this.getDefinitionScope().getAssociatedType()) {
-      return definitionScope.getModule().getName();
-    } else {
-      return definitionScope.getModule().getName().createChild(getName());
-    }
+    return definitionScope.getModule().getName().createChild(getName());
   }
 
-  /** @return the fields defined by this constructor. */
+  /**
+   * @return the fields defined by this constructor.
+   */
   public ArgumentDefinition[] getFields() {
     return constructorFunction.getSchema().getArgumentInfos();
   }
@@ -305,8 +306,8 @@ public final class AtomConstructor implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(AtomConstructor cons, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(cons, getContext().getBuiltins().any());
+    static Function doResolve(UnresolvedSymbol symbol) {
+      return symbol.resolveFor(getContext().getBuiltins().function());
     }
 
     static Context getContext() {
@@ -317,7 +318,6 @@ public final class AtomConstructor implements TruffleObject {
         guards = {
           "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
-          "self == cachedConstructor",
           "function != null"
         },
         limit = "CACHE_SIZE")
@@ -325,15 +325,14 @@ public final class AtomConstructor implements TruffleObject {
         AtomConstructor self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("self") AtomConstructor cachedConstructor,
-        @Cached("doResolve(cachedConstructor, cachedSymbol)") Function function) {
+        @Cached("doResolve(cachedSymbol)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(AtomConstructor self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(self, symbol);
+      Function function = doResolve(symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }
@@ -351,8 +350,7 @@ public final class AtomConstructor implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        Type self, Type target, UnresolvedConversion conversion) {
+    static Function doResolve(Type self, Type target, UnresolvedConversion conversion) {
       return conversion.resolveFor(target, self);
     }
 
@@ -381,8 +379,7 @@ public final class AtomConstructor implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        AtomConstructor self, Type target, UnresolvedConversion conversion)
+    static Function resolve(AtomConstructor self, Type target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(self.type, target, conversion);
       if (function == null) {
@@ -391,5 +388,4 @@ public final class AtomConstructor implements TruffleObject {
       return function;
     }
   }
-
 }

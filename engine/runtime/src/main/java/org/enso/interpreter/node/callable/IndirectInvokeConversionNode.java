@@ -26,7 +26,9 @@ import org.enso.interpreter.runtime.state.Stateful;
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class IndirectInvokeConversionNode extends Node {
 
-  /** @return a new indirect method invocation node */
+  /**
+   * @return a new indirect method invocation node
+   */
   public static IndirectInvokeConversionNode build() {
     return IndirectInvokeConversionNodeGen.create();
   }
@@ -58,16 +60,11 @@ public abstract class IndirectInvokeConversionNode extends Node {
       BaseNode.TailStatus isTail,
       int thatArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
-      @Cached ConditionProfile atomProfile,
-      @Cached ConditionProfile atomConstructorProfile,
       @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
     try {
       Function function =
           dispatch.getConversionFunction(
-              that,
-              InvokeConversionNode.extractConstructor(
-                  this, self, atomConstructorProfile, atomProfile),
-              conversion);
+              that, InvokeConversionNode.extractConstructor(this, self), conversion);
       return indirectInvokeFunctionNode.execute(
           function,
           frame,
@@ -99,16 +96,11 @@ public abstract class IndirectInvokeConversionNode extends Node {
       int thatArgumentPosition,
       @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
       @Cached BranchProfile profile,
-      @Cached ConditionProfile atomProfile,
-      @Cached ConditionProfile atomConstructorProfile,
       @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
     try {
       Function function =
           dispatch.getConversionFunction(
-              that,
-              InvokeConversionNode.extractConstructor(
-                  this, self, atomConstructorProfile, atomProfile),
-              conversion);
+              that, InvokeConversionNode.extractConstructor(this, self), conversion);
       return indirectInvokeFunctionNode.execute(
           function,
           frame,
@@ -188,18 +180,13 @@ public abstract class IndirectInvokeConversionNode extends Node {
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
       @CachedLibrary(limit = "10") InteropLibrary interop,
-      @Cached ConditionProfile atomProfile,
-      @Cached ConditionProfile atomConstructorProfile,
       @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode) {
     try {
       String str = interop.asString(that);
       Text txt = Text.create(str);
       Function function =
           textDispatch.getConversionFunction(
-              txt,
-              InvokeConversionNode.extractConstructor(
-                  this, self, atomConstructorProfile, atomProfile),
-              conversion);
+              txt, InvokeConversionNode.extractConstructor(this, self), conversion);
       arguments[0] = txt;
       return indirectInvokeFunctionNode.execute(
           function,
