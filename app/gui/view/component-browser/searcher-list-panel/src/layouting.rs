@@ -68,11 +68,11 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
 
     /// Calculate the layouting of the groups. See struct documentation for more information.
     pub fn arrange(mut self) -> [Vec<GroupIndex>; COLUMNS] {
-        let mut max_height = self.push_next_group_to(CENTER);
+        let mut max_height = self.push_next_group_to(CENTER, None);
         while self.iter.peek().is_some() {
-            self.push_next_group_to(LEFT);
-            self.push_next_group_to(RIGHT);
-            let next_max_height = max_height + self.push_next_group_to(CENTER);
+            self.push_next_group_to(LEFT, Some(max_height));
+            self.push_next_group_to(RIGHT, Some(max_height));
+            let next_max_height = max_height + self.push_next_group_to(CENTER, None);
 
             self.fill_till_height(LEFT, max_height);
             self.fill_till_height(RIGHT, max_height);
@@ -83,9 +83,15 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
     }
 
     /// Push the next group to the given column. Returns the size of the added group, 0 if no group
-    /// was added.
-    fn push_next_group_to(&mut self, column: Column) -> GroupSize {
+    /// was added. If [`max_height`] is supplied, the group is pushed only if the column's height
+    /// is less than [`max_height`] before adding new group.
+    fn push_next_group_to(&mut self, column: Column, max_height: Option<GroupSize>) -> GroupSize {
         if let Some(group) = self.iter.next() {
+            if let Some(max_height) = max_height {
+                if self.heights[column] >= max_height {
+                    return 0;
+                }
+            }
             self.columns[column].push(group.index);
             self.heights[column] += group.size;
             group.size
