@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref
 import Standard.Base.Runtime.Unsafe
 from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
 import Standard.Base.Random
@@ -676,7 +677,7 @@ type Vector
 
              [1, 2, 3, 4, 5].drop_start 1
     drop_start : Integer -> Vector Any
-    drop_start self count = self.take count self.length
+    drop_start self count = self.slice count self.length
 
     ## Creates a new vector with elements at the beginning of the vector which
        satisfy the provided predicate removed.
@@ -699,7 +700,7 @@ type Vector
                     True -> @Tail_Call find_first_false current+1
         case find_first_false 0 of
             Nothing -> []
-            first_false -> self.take first_false self.length
+            first_false -> self.slice first_false self.length
 
     ## Creates a new vector with the last `count` elements in `self` removed.
 
@@ -711,7 +712,7 @@ type Vector
 
              [1, 2, 3, 4, 5].drop_end 2
     drop_end : Integer -> Vector Any
-    drop_end self count = self.take 0 (self.length - count)
+    drop_end self count = self.slice0 (self.length - count)
 
     ## Creates a new vector with only the specified range of elements from the
        input, removing any elements outside the range.
@@ -726,14 +727,15 @@ type Vector
         Range _ _ _ -> self.take (By_Index range)
         First count ->
             if count <= 0 then empty else
-                self.slice 0 (Math.min self.length count)
+                if count >= self.length then self else
+                    self.slice 0 (Math.min self.length count)
         Last count ->
             if count <= 0 then empty else
                 if count >= self.length then self else
                     self.slice self.length-count self.length
         While predicate ->
             go ix = if ix >= self.length then ix else
-                case predicate (self.at ix) of
+                case predicate (self.unsafe_at ix) of
                     False -> ix
                     True -> @Tail_Call go (ix+1)
             end = go 0
@@ -742,39 +744,8 @@ type Vector
             indices = case one_or_many_descriptors of
                 Vector _ -> one_or_many_descriptors
                 _ -> [one_or_many_descriptors]
-            ## Ensures that a descriptor fits within the range of the current
-               vector, trimming it or reporting an error if it is invalid.
-            trim descriptor = case descriptor of
-                Integer ->
-                    actual_index = if descriptor < 0 then self.length + descriptor else descriptor
-                    if (actual_index < 0) || (actual_index >= self.length) then Panic.throw (Index_Out_Of_Bounds_Error descriptor self.length) else
-                        actual_index
-                Range start end step ->
-                    if step <= 0 then Panic.throw (Illegal_Argument_Error "Range step must be positive.") else
-                        if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
-                            if start >= self.length then Panic.throw (Index_Out_Of_Bounds_Error start self.length) else
-                                actual_end = Math.min end self.length
-                                if actual_end < start then Range start start step else
-                                    Range start actual_end step
-            trimmed = indices.map trim
-            new_length = trimmed.fold 0 acc-> descriptor-> case descriptor of
-                Integer -> acc+1
-                Range _ _ _ -> acc+descriptor.length
-            arr = Array.new new_length
-            trimmed.fold 0 start_ix-> descriptor-> case descriptor of
-                Integer ->
-                    arr.set_at start_ix (self.unsafe_at descriptor)
-                    start_ix+1
-                Range start end step -> case step == 1 of
-                    True ->
-                        len = end-start
-                        Array.copy self.to_array start arr start_ix len
-                        start_ix+len
-                    False ->
-                        descriptor.each_with_index within_range_ix-> descriptor_ix->
-                            arr.set_at start_ix+within_range_ix (self.unsafe_at descriptor_ix)
-                        start_ix+descriptor.length
-            Vector arr
+            trimmed = resolve_ranges indices
+            slice_ranges self trimmed
         Sample count seed ->
             rng = Random.new seed
             Random.sample self count rng
@@ -792,7 +763,39 @@ type Vector
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
     drop : (Index_Sub_Range | Range) -> Vector Any
-    drop range = unimplemented "TODO"
+    drop range = case range of
+        Range _ _ _ -> self.drop (By_Index range)
+        First count ->
+            if count <= 0 then self else
+                if count >= self.length then empty else
+                    self.slice count self.length
+        Last count ->
+            if count <= 0 then self else
+                if count >= self.length then empty else
+                    self.slice 0 self.length-count
+        While predicate ->
+            go ix = if ix >= self.length then ix else
+                case predicate (self.unsafe_at ix) of
+                    False -> ix
+                    True -> @Tail_Call go (ix+1)
+            end = go 0
+            self.slice end self.length
+        By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+            indices = case one_or_many_descriptors of
+                Vector _ -> one_or_many_descriptors
+                _ -> [one_or_many_descriptors]
+            trimmed = resolve_ranges indices
+            normalized = normalize_ranges trimmed
+            inverted = invert_range_selection normalized self.length needs_sorting=True
+            slice_ranges self inverted
+        Sample count seed ->
+            rng = Random.new seed
+            indices_to_drop = Random.random_indices self.length count rng
+            self.drop (By_Index indices_to_drop)
+        Every step start ->
+            if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+                range = Range start self.length step
+                self.drop (By_Index range)
 
     ## Creates a new vector, consisting of the first `count` elements on the
        left of `self`.
@@ -805,7 +808,7 @@ type Vector
 
              [1, 2, 3, 4, 5].take_start 2
     take_start : Integer -> Vector Any
-    take_start self count = self.take 0 count
+    take_start self count = self.slice0 count
 
     ## Creates a new vector, consisting of the last `count` elements on the
        right of `self`.
@@ -818,7 +821,7 @@ type Vector
 
              [1, 2, 3, 4, 5].take_end 3
     take_end : Integer -> Vector Any
-    take_end self count = self.take (self.length - count) self.length
+    take_end self count = self.slice(self.length - count) self.length
 
     ## Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.
@@ -1257,3 +1260,99 @@ type Incomparable_Values_Error
 handle_incomparable_value ~function =
     handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
     handle No_Such_Method_Error <| handle Type_Error <| handle Unsupported_Argument_Types <| function
+
+## PRIVATE
+   Resolves a vector of ranges or indices into a vector of ranges that fit
+   within a sequence.
+resolve_ranges : Vector (Integer | Range) -> Integer -> Vector Range
+resolve_ranges ranges length =
+    ## Ensures that a descriptor fits within the range of the current
+       vector, trimming it or reporting an error if it is invalid.
+    trim descriptor = case descriptor of
+        Integer ->
+            actual_index = if descriptor < 0 then length + descriptor else descriptor
+            if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error descriptor length) else
+                actual_index
+        Range start end step ->
+            if step <= 0 then Panic.throw (Illegal_Argument_Error "Range step must be positive.") else
+                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
+                    if start >= length then Panic.throw (Index_Out_Of_Bounds_Error start length) else
+                        actual_end = Math.min end length
+                        if actual_end < start then Range start start step else
+                            Range start actual_end step
+    ranges.map trim
+
+## PRIVATE
+   Creates a new vector where for each range, a corresponding section of the
+   source vector is added to the result.
+
+   Assumes that the ranges have been already bounds-checked (for example by
+   passing them through `resolve_ranges`).
+slice_ranges vector ranges =
+    new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
+        Integer -> acc+1
+        Range _ _ _ -> acc+descriptor.length
+    arr = Array.new new_length
+    ranges.fold 0 start_ix-> descriptor-> case descriptor of
+        Integer ->
+            arr.set_at start_ix (vector.unsafe_at descriptor)
+            start_ix+1
+        Range start end step -> case step == 1 of
+            True ->
+                len = end-start
+                Array.copy vector.to_array start arr start_ix len
+                start_ix+len
+            False ->
+                descriptor.each_with_index within_range_ix-> descriptor_ix->
+                    arr.set_at start_ix+within_range_ix (vector.unsafe_at descriptor_ix)
+                start_ix+descriptor.length
+    Vector arr
+
+## PRIVATE
+   Takes a list of ranges and returns a new one where ranges with non-unitary
+   step have been replaced with series of ranges covering the same set of
+   indices with step equal to 1.
+normalize_ranges ranges =
+    normalize range =
+        if range.step == 1 then [range] else
+            range.to_vector.map ix->
+                Range ix ix+1
+    ranges.flat_map normalize
+
+## PRIVATE
+   Inverts the selection determined by the input list of ranges.
+
+   The input ranges are assumed to be normalized (i.e. all of them have step
+   equal to 1).
+
+   Arguments:
+   - ranges: The list of ranges determining indices which are selected - i..e list of ranges determining indices which will not be selected by the new list.
+   - length: Length of the related sequence.
+   - needs_sorting: Determines if `ranges` need to be sorted and merged or if it
+     can be assumed that they are sorted already.
+invert_range_selection : Vector Range -> Integer -> Boolean -> Vector Range
+invert_range_selection ranges length needs_sorting =
+    sorted = if needs_sorting then sort_and_merge_ranges ranges else ranges
+    ranges_with_sentinels = [Range 0 0] + sorted + [Range length length]
+    ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
+        Range prev.end next.start
+
+## PRIVATE
+   Returns a new sorted list of ranges where intersecting ranges have been
+   merged.
+
+   Empty subranges are discarded.
+sort_and_merge_ranges ranges =
+    sorted = ranges.filter (range-> range.is_empty.not) . sort on=(.start)
+    if sorted.is_empty then [] else
+        current_ref = Ref.new sorted.first
+        builder = new_builder
+        sorted.tail.each range->
+            current = current_ref.get
+            case range.start <= current.end of
+                True -> current_ref.put (Range current.start (Math.max current.end range.end))
+                False ->
+                    builder.append current
+                    current_ref.put range
+        builder.append current_ref.get
+        builder.to_vector
