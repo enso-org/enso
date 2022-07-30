@@ -142,7 +142,7 @@ type Range
 
              (10.up_to 13).each_with_index ix-> elem-> IO.println (Pair ix elem) # Will print Pair 0 10, Pair 1 11, Pair 2 12
     each_with_index : (Integer -> Any -> Any) -> Nothing
-    each_with_index self f =
+    each_with_index self function =
         go end_condition ix current =
             if end_condition current self.end then Nothing else
                 function ix current
