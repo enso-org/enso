@@ -26,6 +26,10 @@ new length constructor =
     0.up_to length . each ix-> arr.set_at ix (constructor ix)
     Vector arr
 
+## Creates an empty vector.
+empty : Vector Any
+empty = Vector Array.empty
+
 ## Creates a new vector of the given length, filling the elements with
    the provided constant.
 
@@ -637,7 +641,8 @@ type Vector
             if self.length == 1 then prefix + self.unsafe_at 0 + suffix else
                 prefix + self.unsafe_at 0 + (1.up_to self.length . fold "" acc-> i-> acc + separator + self.unsafe_at i) + suffix
 
-    ## Creates a new vector with the skipping elements until `start` and then
+    ## PRIVATE
+       Creates a new vector with the skipping elements until `start` and then
        continuing until `end` index.
 
        Arguments:
@@ -648,11 +653,11 @@ type Vector
          Remove the first 2 elements then continue until index 5 from the vector.
 
              [1, 2, 3, 4, 5, 6, 7, 8].slice 2 5 == [3, 4, 5]
-    take : Integer -> Integer -> Vector Any
-    take self start end =
+    slice : Integer -> Integer -> Vector Any
+    slice self start end =
         slice_start = Math.max 0 start
         slice_end = Math.min self.length end
-        if slice_start >= slice_end then Vector (Array.new 0) else
+        if slice_start >= slice_end then empty else
             if (slice_start == 0) && (slice_end == self.length) then self else
                 len = slice_end - slice_start
                 arr = Array.new len
@@ -705,6 +710,87 @@ type Vector
              [1, 2, 3, 4, 5].drop_end 2
     drop_end : Integer -> Vector Any
     drop_end self count = self.take 0 (self.length - count)
+
+    ## Creates a new vector with only the specified range of elements from the
+       input, removing any elements outside the range.
+
+       Arguments:
+       - range: The section of the this Vector to return.
+         If an `Index_Sub_Range`, then the selection is interpreted following
+         the rules of that type.
+         If a `Range`, the selection is specified by two indices, from and to.
+    take : (Index_Sub_Range | Range) -> Vector Any
+    take self range = case range of
+        Range _ _ _ -> self.take (By_Index range)
+        First count ->
+            if count <= 0 then empty else
+                self.slice 0 (Math.min vector.length count)
+        Last count ->
+            if count <= 0 then empty else
+                if count >= vector.length then self else
+                    self.slice vector.length-count vector.length
+        While predicate ->
+            go ix = if ix >= vector.length then ix else
+                case predicate (vector.at ix) of
+                    False -> ix
+                    True -> @Tail_Call go (ix+1)
+            end = go 0
+            self.slice 0 end
+        By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+            indices = case one_or_many_descriptors of
+                Vector.Vector _ -> one_or_many_descriptors
+                _ -> [one_or_many_descriptors]
+            ## Ensures that a descriptor fits within the range of the current
+               vector, trimming it or reporting an error if it is invalid.
+            trim descriptor = case descriptor of
+                Integer ->
+                    actual_index = if descriptor < 0 then self.length + descriptor else descriptor
+                    if (actual_index < 0) || (actual_index >= self.length) then Panic.throw (Index_Out_Of_Bounds_Error descriptor self.length) else
+                        actual_index
+                Range start end step ->
+                    if step <= 0 then Panic.throw (Illegal_Argument_Error "Range step must be positive.") else
+                        if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
+                            if start >= self.length then Panic.throw (Index_Out_Of_Bounds_Error start self.length) else
+                                actual_end = Math.min end self.length
+                                if actual_end < start then Range start start step else
+                                    Range start actual_end step
+            trimmed = indices.map trim
+            new_length = trimmed.fold 0 acc-> descriptor-> case descriptor of
+                Integer -> acc+1
+                Range _ _ _ -> acc+descriptor.length
+            arr = Array.new new_length
+            trimmed.fold 0 start_ix-> descriptor-> case descriptor of
+                Integer ->
+                    arr.set_at start_ix (self.unsafe_at descriptor)
+                    start_ix+1
+                Range start end step -> case step == 1 of
+                    True ->
+                        len = end-start
+                        Array.copy self.to_array start arr start_ix len
+                        start_ix+len
+                    False ->
+                        descriptor.each_with_index within_range_ix-> descriptor_ix->
+                            arr.set_at start_ix+within_range_ix (self.unsafe_at descriptor_ix)
+                        start_ix+descriptor.length
+            Vector arr
+        Sample count seed ->
+            rng = Random.new seed
+            Random.sample self count rng
+        Every step start ->
+            if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+                range = Range start text.length step
+                self.take (By_Index range)
+
+    ## Creates a new vector with only the specified range of elements from the
+       input, removing any elements outside the range.
+
+       Arguments:
+       - range: The section of the this Vector to return.
+         If an `Index_Sub_Range`, then the selection is interpreted following
+         the rules of that type.
+         If a `Range`, the selection is specified by two indices, from and to.
+    drop : (Index_Sub_Range | Range) -> Vector Any
+    drop range = unimplemented "TODO"
 
     ## Creates a new vector, consisting of the first `count` elements on the
        left of `self`.
@@ -1169,3 +1255,39 @@ type Incomparable_Values_Error
 handle_incomparable_value ~function =
     handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
     handle No_Such_Method_Error <| handle Type_Error <| handle Unsupported_Argument_Types <| function
+
+## PRIVATE
+find_index_ranges : (Index_Sub_Range | Range) -> Integer -> Vector Range
+find_index_ranges range vector = case range of
+    Range _ _ _ -> find_index_ranges (By_Index range) vector.length
+    First count ->
+        if count <= 0 then (Range 0 0) else
+            Range 0 (Math.min vector.length count)
+    Last count ->
+        if count <= 0 then (Range 0 0) else
+            if count >= vector.length then Range 0 length else
+                Range vector.length-count vector.length
+    While predicate ->
+        go ix = if ix >= vector.length then ix else
+            case predicate (vector.at ix) of
+                False -> ix
+                True -> @Tail_Call go (ix+1)
+        end = go 0
+        Range 0 end
+    By_Index one_or_many_descriptors ->
+        indices = case one_or_many_descriptors of
+            Vector.Vector _ -> one_or_many_descriptors
+            _ -> [one_or_many_descriptors]
+        resolve_index_or_range descriptor = case descriptor of
+            Integer -> ???
+        case indices.length == 1 of
+            True -> resolve_index_or_range text indices.first
+            False -> indices.map resolve_index_or_range
+    Sample count seed ->
+        rng = Random.new seed
+        indices = Random.random_indices text.length count rng
+        find_codepoint_ranges text (By_Index indices)
+    Every step start ->
+        if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+            range = Range start text.length step
+            find_codepoint_ranges text (By_Index range)
