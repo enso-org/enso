@@ -405,7 +405,7 @@ fn minus_unary() {
         ("x=-1", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Number 1)))]),
         ("-1+2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "+") (Number 2))]),
         ("-1*2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "*") (Number 2))]),
-        ("-x.y", block![(UnaryOprApp "-" (OprApp (Ident x) (Ok ".") (Ident y)))]),
+        ("-1.x", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok ".") (Ident x))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }

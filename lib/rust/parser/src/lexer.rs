@@ -529,7 +529,8 @@ impl<'s> Lexer<'s> {
                 let (left, right) = token.split_at_(Bytes(1));
                 let (binary, unary) = compute_precedence(&left.code);
                 self.submit_token(left.with_variant(token::Variant::operator(binary, unary)));
-                self.submit_token(right.with_variant(token::Variant::operator(None, Some(30))));
+                let (_, unary) = compute_precedence(&right.code);
+                self.submit_token(right.with_variant(token::Variant::operator(None, unary)));
             } else {
                 let only_eq = token.code.chars().all(|t| t == '=');
                 let is_mod = token.code.ends_with('=') && !only_eq;
@@ -554,7 +555,7 @@ fn compute_precedence(token: &str) -> (Option<usize>, Option<usize>) {
     let binary = match token {
         // Special handling for tokens that can be unary.
         "~" => return (None, Some(100)),
-        "-" => return (Some(14), Some(19)),
+        "-" => return (Some(14), Some(100)),
         // "There are a few operators with the lowest precedence possible."
         "=" => 1,
         ":" => 2,
@@ -1021,7 +1022,8 @@ mod tests {
     #[test]
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
-        let unary_minus = Token("", "-", token::Variant::operator(None, Some(30)));
+        let (_, unary) = compute_precedence(&"-");
+        let unary_minus = Token("", "-", token::Variant::operator(None, unary));
         test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
     }
 
