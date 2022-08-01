@@ -103,7 +103,7 @@ impl List {
         use crate::controller::searcher::component::Group;
         const LOCAL_SCOPE_GROUP_NAME: &str = "Local Scope";
         let id = Some(module_id);
-        let local_scope = Group::from_library_name_and_id(None, LOCAL_SCOPE_GROUP_NAME, id);
+        let local_scope = Group::from_name_project_and_id(LOCAL_SCOPE_GROUP_NAME, None, id);
         Self { local_scope, ..self }
     }
 
@@ -165,13 +165,13 @@ impl List {
             .collect();
     }
 
-    pub fn insert_virtual_components_in_favorites_group(&mut self, library: project::QualifiedName, group_name: impl AsRef<str>, components: impl IntoIterator<Item = Rc<component::Virtual>>) {
+    pub fn insert_virtual_components_in_favorites_group(&mut self, name: component::group::QualifiedName, components: impl IntoIterator<Item = Rc<component::Virtual>>) {
         // FIXME: factor out common part of this and build_favorites_...
         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
         let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
 
         let group_with_matching_name = favorites_groups.iter_mut().find(|g|
-            g.library.as_ref() == Some(&library) && g.name.as_str() == group_name.as_ref());
+            g.qualified_name().as_ref() == Some(&name));
         if let Some(group) = group_with_matching_name {
             // FIXME: code duplicated with c::Group::from_name_and_virtual_components()
             let virtual_components = components.into_iter().map(|c| Component {
@@ -179,9 +179,9 @@ impl List {
                 match_info: default(),
             }).collect_vec();
             group.insert_entries(&virtual_components);
-            DEBUG!("MCDBG found library: " group.library;? " " group.name);
+            DEBUG!("MCDBG found library: " group.project;? " " group.name);
         } else {
-            let new_group = component::Group::from_name_and_virtual_components(Some(library), group_name.as_ref(), components);
+            let new_group = component::Group::from_qualified_name_and_virtual_components(name, components);
             favorites_groups.insert(0, new_group);
             DEBUG!("FIXME insert new group with virtual entries at the beginning");
         }

@@ -17,6 +17,18 @@ use std::cmp;
 
 
 
+// =====================
+// === QualifiedName ===
+// =====================
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QualifiedName {
+    pub project: project::QualifiedName,
+    pub name: ImString,
+}
+
+
+
 // ============
 // === Data ===
 // ============
@@ -25,7 +37,7 @@ use std::cmp;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Data {
-    pub library:               Option<project::QualifiedName>,
+    pub project:               Option<project::QualifiedName>,
     pub name:                  ImString,
     pub color:                 Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
@@ -40,9 +52,9 @@ pub struct Data {
 }
 
 impl Data {
-    fn from_library_name_and_id(library: Option<project::QualifiedName>, name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+    fn from_name_project_and_id(name: impl Into<ImString>, project: Option<project::QualifiedName>, component_id: Option<component::Id>) -> Self {
         Data {
-            library,
+            project,
             name: name.into(),
             color: None,
             component_id,
@@ -80,12 +92,12 @@ impl Deref for Group {
 
 impl Group {
     /// Create a named empty group referring to module with specified component ID.
-    pub fn from_library_name_and_id(
-        library: Option<project::QualifiedName>,
+    pub fn from_name_project_and_id(
         name: impl Into<ImString>,
+        project: Option<project::QualifiedName>,
         component_id: Option<component::Id>,
     ) -> Self {
-        Self { data: Rc::new(Data::from_library_name_and_id(library, name, component_id)) }
+        Self { data: Rc::new(Data::from_name_project_and_id(name, project, component_id)) }
     }
 
     /// Create empty group referring to some module component.
@@ -97,13 +109,12 @@ impl Group {
         } else {
             entry.module.name().into()
         };
-        let library = entry.module.project_name.clone();
-        Self::from_library_name_and_id(Some(library), name, Some(component_id))
+        let project_name = entry.module.project_name.clone();
+        Self::from_name_project_and_id(name, Some(project_name), Some(component_id))
     }
 
-    pub fn from_name_and_virtual_components(
-        library: Option<project::QualifiedName>,
-        group_name: impl Into<ImString>,
+    pub fn from_qualified_name_and_virtual_components(
+        qualified_name: QualifiedName,
         entries: impl IntoIterator<Item = Rc<component::Virtual>>,
     ) -> Self {
         let components = entries
@@ -114,8 +125,8 @@ impl Group {
             })
             .collect_vec();
         let group_data = Data {
-            library,
-            name:                  group_name.into(),
+            project: Some(qualified_name.project),
+            name:                  qualified_name.name,
             color:                 None,
             component_id:          None,
             matched_items:         Cell::new(components.len()),
@@ -142,7 +153,7 @@ impl Group {
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
-                library: Some(group.library.clone()),
+                project:               Some(group.project.clone()),
                 name:                  group.name.clone(),
                 color:                 group.color,
                 component_id:          None,
@@ -219,6 +230,10 @@ impl Group {
             (MatchInfo::Matches { subsequence: lhs }, MatchInfo::Matches { subsequence: rhs }) =>
                 lhs.compare_scores(rhs),
         }
+    }
+
+    pub fn qualified_name(&self) -> Option<QualifiedName> {
+        self.project.map(|p| QualifiedName { project: p.clone(), name: self.name.clone() })
     }
 
     /// Get the number of entries.
