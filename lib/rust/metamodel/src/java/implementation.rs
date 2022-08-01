@@ -138,7 +138,7 @@ pub fn quote_params<'a>(
 /// Given a model of a field ([`Field`]), create a representation of the Java syntax defining a
 /// class field with name, type, and attributes as specified in the model.
 fn quote_field(graph: &TypeGraph, field: &Field) -> syntax::Field {
-    let Field { name, data, id: _ } = field;
+    let Field { name, data, id: _, hide_in_tostring: _ } = field;
     let type_ = quote_type(graph, data);
     let name = name.clone();
     let final_ = true;
@@ -267,9 +267,13 @@ fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
 /// [2]: https://openjdk.org/jeps/395
 fn implement_to_string(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let string_builder = "stringBuilder";
-    let stringify =
-        |field: &Field| format!("{string_builder}.append(String.valueOf({}));", field.name);
-    let fields: Vec<_> = class_fields(graph, class).into_iter().map(stringify).collect();
+    let fields_ = class_fields(graph, class);
+    let mut fields = Vec::with_capacity(fields_.len());
+    for field in fields_ {
+        if !field.hide_in_tostring {
+            fields.push(format!("{string_builder}.append(String.valueOf({}));", field.name));
+        }
+    }
     let mut body = String::new();
     let ty_name = &class.name;
     writeln!(body, "StringBuilder {string_builder} = new StringBuilder();").unwrap();

@@ -14,14 +14,14 @@ import Standard.Base.System.File.Existing_File_Behavior
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
-from Standard.Database.Data.Column as Column_Module import Column, Aggregate_Column_Builder
+from Standard.Database.Data.Column import Column, Aggregate_Column_Builder
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Table import No_Such_Column_Error
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
-from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
-from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
+from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
+from Standard.Table.Data.Data_Formatter import Data_Formatter
+from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
+from Standard.Database.Error import Unsupported_Database_Operation_Error
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
 import Standard.Table.Data.Sort_Column_Selector
