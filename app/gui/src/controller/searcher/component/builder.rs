@@ -103,7 +103,7 @@ impl List {
         use crate::controller::searcher::component::Group;
         const LOCAL_SCOPE_GROUP_NAME: &str = "Local Scope";
         let id = Some(module_id);
-        let local_scope = Group::from_name_project_and_id(LOCAL_SCOPE_GROUP_NAME, None, id);
+        let local_scope = Group::from_name_and_project_and_id(LOCAL_SCOPE_GROUP_NAME, None, id);
         Self { local_scope, ..self }
     }
 

@@ -52,7 +52,7 @@ pub struct Data {
 }
 
 impl Data {
-    fn from_name_project_and_id(name: impl Into<ImString>, project: Option<project::QualifiedName>, component_id: Option<component::Id>) -> Self {
+    fn from_name_and_project_and_id(name: impl Into<ImString>, project: Option<project::QualifiedName>, component_id: Option<component::Id>) -> Self {
         Data {
             project,
             name: name.into(),
@@ -92,12 +92,12 @@ impl Deref for Group {
 
 impl Group {
     /// Create a named empty group referring to module with specified component ID.
-    pub fn from_name_project_and_id(
+    pub fn from_name_and_project_and_id(
         name: impl Into<ImString>,
         project: Option<project::QualifiedName>,
         component_id: Option<component::Id>,
     ) -> Self {
-        Self { data: Rc::new(Data::from_name_project_and_id(name, project, component_id)) }
+        Self { data: Rc::new(Data::from_name_and_project_and_id(name, project, component_id)) }
     }
 
     /// Create empty group referring to some module component.
@@ -110,7 +110,7 @@ impl Group {
             entry.module.name().into()
         };
         let project_name = entry.module.project_name.clone();
-        Self::from_name_project_and_id(name, Some(project_name), Some(component_id))
+        Self::from_name_and_project_and_id(name, Some(project_name), Some(component_id))
     }
 
     pub fn from_qualified_name_and_virtual_components(
