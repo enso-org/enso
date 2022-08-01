@@ -1,0 +1,11 @@
+from Standard.Base import Polyglot
+
+type Proxy_Polyglot_Array
+
+    type Proxy_Polyglot_Array arr
+
+    length : Number
+    length self = Polyglot.get_array_size self.arr
+
+    at : Number -> Any
+    at self index = self.arr.at index

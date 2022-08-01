@@ -300,14 +300,16 @@ class IrToTruffle(
             // and not attempt to register it in the scope (can't redefined methods).
             // For non-builtin types (or modules) that own the builtin method
             // we have to look up the function and register it in the scope.
-            val x = methodDef.body.asInstanceOf[IR.Function.Lambda].body
+            val x              = methodDef.body.asInstanceOf[IR.Function.Lambda].body
             val fullMethodName = x.asInstanceOf[IR.Literal.Text]
 
             val builtinNameElements = fullMethodName.text.split('.')
             if (builtinNameElements.length != 2) {
-              throw new CompilerError(s"Unknwon builtin method ${fullMethodName.text}")
+              throw new CompilerError(
+                s"Unknwon builtin method ${fullMethodName.text}"
+              )
             }
-            val methodName = builtinNameElements(1)
+            val methodName      = builtinNameElements(1)
             val methodOwnerName = builtinNameElements(0)
 
             val builtinFunction = context.getBuiltins

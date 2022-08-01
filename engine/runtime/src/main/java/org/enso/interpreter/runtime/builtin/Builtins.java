@@ -320,7 +320,7 @@ public class Builtins {
   }
 
   public Optional<Function> getBuiltinFunction(
-            String methodOwner, String methodName, Language language) {
+      String methodOwner, String methodName, Language language) {
     Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(methodOwner);
     if (atomNodes == null) return Optional.empty();
     Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
