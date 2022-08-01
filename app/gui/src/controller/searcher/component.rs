@@ -127,6 +127,13 @@ impl Component {
         self.to_string()
     }
 
+    pub fn id(&self) -> Option<Id> {
+        match self.kind {
+            Kind::FromDb { id, .. } => Some(*id),
+            Kind::Virtual { .. } => None,
+        }
+    }
+
     /// Checks if component is filtered out.
     pub fn is_filtered_out(&self) -> bool {
         matches!(*self.match_info.borrow(), MatchInfo::DoesNotMatch)
@@ -384,6 +391,7 @@ pub(crate) mod tests {
     ) -> Vec<crate::model::execution_context::ComponentGroup> {
         let db_entries = component_ids.iter().map(|id| db.lookup(*id).unwrap());
         let group = crate::model::execution_context::ComponentGroup {
+            project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
             name:       "Test Group 1".into(),
             color:      None,
             components: db_entries.into_iter().map(|e| e.qualified_name()).collect(),
@@ -403,7 +411,7 @@ pub(crate) mod tests {
             .borrow()
             .iter()
             .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
-            .map(|c| *c.id)
+            .filter_map(|c| c.id())
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
     }

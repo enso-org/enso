@@ -292,11 +292,11 @@ mod tests {
     }
 
     impl<'a> From<&'a component::Group> for ComparableGroupData<'a> {
-        fn from(component: &'a component::Group) -> Self {
+        fn from(group: &'a component::Group) -> Self {
             Self {
-                name:         component.name.as_str(),
-                component_id: component.component_id,
-                entries:      component.entries.borrow().iter().map(|e| *e.id).collect(),
+                name:         group.name.as_str(),
+                component_id: group.component_id,
+                entries:      group.entries.borrow().iter().filter_map(|e| e.id()).collect(),
             }
         }
     }
@@ -399,7 +399,7 @@ mod tests {
         assert_eq!(module_subgroups, expected);
 
         let local_scope_entries = &list.local_scope.entries;
-        let local_scope_ids = local_scope_entries.borrow().iter().map(|e| *e.id).collect_vec();
+        let local_scope_ids = local_scope_entries.borrow().iter().filter_map(|e| e.id()).collect_vec();
         let expected_ids = vec![5, 6];
         assert_eq!(local_scope_ids, expected_ids);
     }
