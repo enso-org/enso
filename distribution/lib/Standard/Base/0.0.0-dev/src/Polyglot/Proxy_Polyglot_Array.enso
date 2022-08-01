@@ -1,11 +1,23 @@
 from Standard.Base import Polyglot
 
+## Advanced
+
+    Wrapper for Polyglot Arrays
 type Proxy_Polyglot_Array
 
     type Proxy_Polyglot_Array arr
 
+    ## Returns the number of elements stored in this Polyglot Array.
+
+       > Example
+         Checking the length of a vector.
+
+             [1, 2, 3, 4].length
+
     length : Number
     length self = Polyglot.get_array_size self.arr
 
+    ## Gets an element from this Polyglot Array at a specified index (0-based).
+
     at : Number -> Any
-    at self index = self.arr.at index
+    at self index = Polyglot.read_array_element self.arr index
