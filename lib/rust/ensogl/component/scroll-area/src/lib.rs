@@ -111,6 +111,11 @@ impl Viewport {
     pub fn size(&self) -> Vector2 {
         Vector2(self.right - self.left, self.top - self.bottom)
     }
+
+    /// Return the central point of the viewport.
+    pub fn center_point(&self) -> Vector2 {
+        Vector2(self.left + self.right, self.top + self.bottom) / 2.0
+    }
 }
 
 

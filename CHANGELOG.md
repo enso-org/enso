@@ -64,7 +64,8 @@
 - [Added a new component: Grid View.][3588] It's parametrized by Entry object,
   display them arranged in a Grid. It does not instantiate all entries, only
   those visible, and re-use created entries during scrolling thus achieving
-  great performance.
+  great performance. There are variants of grid view with selection and
+  highlight, scrollbars, and both.
 
 #### Enso Standard Library
 
