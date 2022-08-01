@@ -412,7 +412,7 @@ pub(crate) mod tests {
             .borrow()
             .iter()
             .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
-            .filter_map(|c| c.id())
+            .map(|c| c.id().unwrap())
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
     }

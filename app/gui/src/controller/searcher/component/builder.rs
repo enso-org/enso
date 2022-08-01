@@ -296,7 +296,7 @@ mod tests {
             Self {
                 name:         group.name.as_str(),
                 component_id: group.component_id,
-                entries:      group.entries.borrow().iter().filter_map(|e| e.id()).collect(),
+                entries:      group.entries.borrow().iter().map(|e| e.id().unwrap()).collect(),
             }
         }
     }
@@ -399,7 +399,8 @@ mod tests {
         assert_eq!(module_subgroups, expected);
 
         let local_scope_entries = &list.local_scope.entries;
-        let local_scope_ids = local_scope_entries.borrow().iter().filter_map(|e| e.id()).collect_vec();
+        let component_id = |c: &Component| c.id().unwrap();
+        let local_scope_ids = local_scope_entries.borrow().iter().map(component_id).collect_vec();
         let expected_ids = vec![5, 6];
         assert_eq!(local_scope_ids, expected_ids);
     }
