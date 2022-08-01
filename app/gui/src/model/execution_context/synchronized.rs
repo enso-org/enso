@@ -327,6 +327,7 @@ pub mod test {
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
+    use double_representation::project;
     use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;
@@ -623,6 +624,7 @@ pub mod test {
 
             // Verify that the second component group was parsed and has expected contents.
             assert_eq!(groups[1], ComponentGroup {
+                project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
                 name:       "Input".into(),
                 color:      None,
                 components: vec!["Standard.Base.System.File.new".into(),],

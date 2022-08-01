@@ -1854,7 +1854,11 @@ pub mod test {
                 format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
             assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
-            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
+            let entry_name = |e: &component::Component| match &e.kind {
+                component::Kind::FromDb { suggestion, .. } => suggestion.name.clone(),
+                component::Kind::Virtual { suggestion } => suggestion.name.into(),
+            };
+            assert_matches!(entries.as_slice(), [e1, e2] if entry_name(e1) == entry1.name && entry_name(e2) == entry9.name);
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
@@ -1864,7 +1868,7 @@ pub mod test {
         assert_eq!(favorites_group.name, "Test Group 1");
         let favorites_entries = favorites_group.entries.borrow();
         assert_eq!(favorites_entries.len(), 1);
-        assert_eq!(*favorites_entries[0].id, 1);
+        assert_eq!(favorites_entries[0].id().unwrap(), 1);
     }
 
     #[wasm_bindgen_test]
