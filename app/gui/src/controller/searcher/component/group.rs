@@ -233,7 +233,7 @@ impl Group {
     }
 
     pub fn qualified_name(&self) -> Option<QualifiedName> {
-        self.project.map(|p| QualifiedName { project: p.clone(), name: self.name.clone() })
+        self.project.as_ref().map(|p| QualifiedName { project: p.clone(), name: self.name.clone() })
     }
 
     /// Get the number of entries.
