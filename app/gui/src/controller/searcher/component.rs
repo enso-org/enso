@@ -247,10 +247,11 @@ pub(crate) mod tests {
 
     pub fn mock_module(name: &str) -> model::suggestion_database::Entry {
         let ls_entry = language_server::SuggestionEntry::Module {
-            module:             name.to_owned(),
-            documentation:      default(),
-            documentation_html: default(),
-            reexport:           default(),
+            module:                 name.to_owned(),
+            documentation:          default(),
+            documentation_html:     default(),
+            documentation_sections: default(),
+            reexport:               default(),
         };
         model::suggestion_database::Entry::from_ls_entry(ls_entry).unwrap()
     }
@@ -268,6 +269,7 @@ pub(crate) mod tests {
             documentation_html: None,
             self_type:          None,
             scope:              model::suggestion_database::entry::Scope::Everywhere,
+            icon_name:          None,
         }
     }
 

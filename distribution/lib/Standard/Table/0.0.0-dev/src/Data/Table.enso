@@ -297,6 +297,8 @@ type Table
          Select columns with the same names as the ones provided.
 
              table.select_columns (By_Column [column1, column2])
+
+       Icon: select_column
     select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns self (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
@@ -812,6 +814,8 @@ type Table
 
              example_join =
                  Examples.inventory_table.join Examples.popularity_table
+
+       Icon: join
     join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
