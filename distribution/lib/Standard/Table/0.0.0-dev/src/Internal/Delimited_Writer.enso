@@ -3,16 +3,17 @@ import Standard.Table
 
 import Standard.Base.Error.Common as Errors
 import Standard.Base.System
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+from Standard.Base.Error.Problem_Behavior import Problem_Behavior
 import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+from Standard.Base.Data.Text.Encoding import Encoding, Encoding_Error
 from Standard.Table.IO.File_Format import Infer
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+from Standard.Table.Data.Data_Formatter import Data_Formatter
 import Standard.Table.Data.Storage
 import Standard.Table.IO.Quote_Style
 import Standard.Base.Data.Text.Line_Ending_Style
 from Standard.Table.Internal.Delimited_Reader import Existing_Headers, No_Headers
+import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Data.Match_Columns
 
 polyglot java import org.enso.table.write.DelimitedWriter

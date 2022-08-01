@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Database.Connection.Connection_Options as Connection_Options_Module import Connection_Options
+from Standard.Database.Connection.Connection_Options import Connection_Options
 
 import Standard.Database.Connection.Postgres
 import Standard.Database.Connection.SQLite

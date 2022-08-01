@@ -3,11 +3,12 @@ from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
+import Standard.Database.Data.Sql
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
 import Standard.Database.Data.Internal.IR
-from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
+from Standard.Database.Error import Unsupported_Database_Operation_Error
 
 ## PRIVATE
 

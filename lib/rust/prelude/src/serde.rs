@@ -19,6 +19,38 @@ where
     serde_json::from_value(json_value).or_else(|_error| Ok(Ret::default()))
 }
 
+/// Deserialize a JSON value that is either of `Ret` type or equals `null`. A `null` is converted
+/// to a default value of `Ret` type.
+///
+/// Example usage:
+/// ```
+/// # use serde::Deserialize;
+/// # use enso_prelude::deserialize_null_as_default;
+/// #[derive(Debug, Deserialize, PartialEq)]
+/// struct Foo {
+///     #[serde(default, deserialize_with = "deserialize_null_as_default")]
+///     blah: Vec<i32>,
+/// }
+/// fn check_deserialized_eq(code: &str, expected_deserialized: &Foo) {
+///     let deserialized = serde_json::from_str::<Foo>(code).unwrap();
+///     assert_eq!(&deserialized, expected_deserialized);
+/// }
+/// let empty_foo = Foo { blah: vec![] };
+/// check_deserialized_eq(r#"{"blah" : null }"#, &empty_foo);
+/// check_deserialized_eq(r#"{}"#, &empty_foo);
+/// check_deserialized_eq(r#"{"blah" : [] }"#, &empty_foo);
+/// check_deserialized_eq(r#"{"blah" : [1,2,3] }"#, &Foo { blah: vec![1, 2, 3] });
+/// ```
+#[cfg(feature = "serde_json")]
+pub fn deserialize_null_as_default<'d, Ret, D>(d: D) -> Result<Ret, D::Error>
+where
+    for<'e> Ret: Default + Deserialize<'e>,
+    D: serde::Deserializer<'d>, {
+    let option_value = Option::deserialize(d)?;
+    Ok(option_value.unwrap_or_default())
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
