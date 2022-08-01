@@ -412,6 +412,7 @@ mod tests {
         let logger = Logger::new("tests::constructing_component_group_from_names_not_found_in_db");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let ec_group = execution_context::ComponentGroup {
+            project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
             name:       "Input".into(),
             color:      None,
             components: vec!["NAME.NOT.FOUND.IN.DB".into()],

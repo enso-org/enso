@@ -321,6 +321,7 @@ pub(crate) mod tests {
     use crate::model::suggestion_database::entry::Kind;
 
     use double_representation::module;
+    use double_representation::project;
     use engine_protocol::language_server;
 
 
@@ -488,7 +489,7 @@ pub(crate) mod tests {
         // ("test.Test.TopModule1.SubModule2").
         let content = list.get_module_content(3).unwrap();
         let expected_content_ids = vec![9, 4];
-        let content_ids = content.entries.borrow().iter().map(|entry| *entry.id).collect_vec();
+        let content_ids = content.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
         assert_eq!(content_ids, expected_content_ids);
         let direct_submodules = list.submodules_of(3).unwrap();
         let expected_direct_submodules_ids = vec![Some(4)];
@@ -499,7 +500,7 @@ pub(crate) mod tests {
         // ("test.Test.TopModule1.SubModule1.SubSubModule").
         let content = list.get_module_content(4).unwrap();
         let expected_content_ids = vec![10];
-        let content_ids = content.entries.borrow().iter().map(|entry| *entry.id).collect_vec();
+        let content_ids = content.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
         assert_eq!(content_ids, expected_content_ids);
     }
 }
