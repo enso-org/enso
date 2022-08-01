@@ -219,7 +219,7 @@ type Table
         row_count = ['number_of_rows', self.row_count]
         cols = self.columns.map c->
             name = c.name
-            items = c.to_vector.take_start max_size
+            items = c.to_vector.take (First max_size)
             Json.from_pairs [['name', name], ['data', items]]
         Json.from_pairs [row_count, ['columns', cols]] . to_text
 
