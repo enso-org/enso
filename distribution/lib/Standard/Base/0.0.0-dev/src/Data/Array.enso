@@ -48,6 +48,14 @@ type Array
     length : Integer
     length self = @Builtin_Method "Array.length"
 
+    ## PRIVATE
+       Swaps two elements of the array.
+    swap : Integer -> Integer -> Array
+    swap self i j =
+        tmp = self.at i
+        self.set_at i (self.at j)
+        self.set_at j tmp
+
     ## Sorts the this array in place.
 
        Arguments:
