@@ -744,7 +744,7 @@ type Vector
             indices = case one_or_many_descriptors of
                 Vector _ -> one_or_many_descriptors
                 _ -> [one_or_many_descriptors]
-            trimmed = resolve_ranges indices
+            trimmed = resolve_ranges indices self.length
             slice_ranges self trimmed
         Sample count seed ->
             rng = Random.new seed
@@ -763,7 +763,7 @@ type Vector
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
     drop : (Index_Sub_Range | Range) -> Vector Any
-    drop range = case range of
+    drop self range = case range of
         Range _ _ _ -> self.drop (By_Index range)
         First count ->
             if count <= 0 then self else
@@ -784,7 +784,7 @@ type Vector
             indices = case one_or_many_descriptors of
                 Vector _ -> one_or_many_descriptors
                 _ -> [one_or_many_descriptors]
-            trimmed = resolve_ranges indices
+            trimmed = resolve_ranges indices self.length
             normalized = normalize_ranges trimmed
             inverted = invert_range_selection normalized self.length needs_sorting=True
             slice_ranges self inverted
@@ -808,7 +808,7 @@ type Vector
 
              [1, 2, 3, 4, 5].take_start 2
     take_start : Integer -> Vector Any
-    take_start self count = self.slice0 count
+    take_start self count = self.slice 0 count
 
     ## Creates a new vector, consisting of the last `count` elements on the
        right of `self`.
@@ -899,7 +899,7 @@ type Vector
 
              [1, 2, 3, 4].tail
     tail : Vector ! Empty_Error
-    tail self = if self.length >= 1 then self.drop_start 1 else
+    tail self = if self.length >= 1 then self.drop (First 1) else
         Error.throw Empty_Error
 
     ## Get the all elements in the vector except the last.
@@ -909,7 +909,7 @@ type Vector
 
              [1, 2, 3, 4].init
     init : Vector ! Empty_Error
-    init self = if self.length >= 1 then self.drop_end 1 else Error.throw Empty_Error
+    init self = if self.length >= 1 then self.drop (Last 1) else Error.throw Empty_Error
 
     ## Get the last element of the vector, or an `Empty_Error` if the vector is
        empty.
@@ -1065,7 +1065,7 @@ type Vector
        visualization.
     to_default_visualization_data : Text
     to_default_visualization_data self =
-        json = self.take_start 100 . to_json
+        json = self.take (First 100) . to_json
         json.to_text
 
 ## PRIVATE
