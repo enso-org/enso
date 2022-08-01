@@ -764,7 +764,9 @@ impl Searcher {
     #[profile(Debug)]
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
-        self.node_edit_guard.deref().as_ref().map(|guard| guard.prevent_revert());
+        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
+            guard.prevent_revert()
+        }
         let expr_and_method = || {
             let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
 
