@@ -131,7 +131,6 @@ impl Layers {
         let scrollbar_layer = Layer::new_with_cam(app.logger.sub("scroll_bar"), &camera);
         let selection_mask = Layer::new_with_cam(app.logger.sub("selection_mask"), &camera);
         selection.set_mask(&selection_mask);
-        // app.display.default_scene.layers.node_searcher.add_sublayer(&selection_mask);
         app.display.default_scene.layers.node_searcher.add_sublayer(&base);
         app.display.default_scene.layers.node_searcher.add_sublayer(&selection);
         app.display.default_scene.layers.node_searcher.add_sublayer(&navigator);
@@ -247,13 +246,14 @@ const SECTION_HEADER_PLACEMENT: SectionHeaderPlacement = SectionHeaderPlacement:
 ///
 /// The selection box highlights a selected entry in the component list panel view. We render the
 /// selection above the background of the component group (so it is visible) but below the entry's
-/// text (so it doesn't cover it). Headers of the component groups complicate matters. The header is
-/// displayed on top of entries when scrolling the group, so there are cases when selection covers
-/// the header background (the header is considered the entry) and cases when the header covers
-/// selection, i.e., we select a partially visible entry below the header. To allow such behavior,
-/// we render a highlighted version of each component group on top of a normal one and use a layer
-/// masking to show only a part of it. See [component_group](component_group#selection)
-/// documentation to learn more about how the component groups are implemented.
+/// text (so the text is not covered). Headers of the component groups complicate matters. The
+/// header is displayed on top of entries when scrolling the group, so there are cases when
+/// selection covers the header background (the header is considered the entry) and cases when the
+/// header covers selection, i.e., we select a partially visible entry below the header. To allow
+/// such behavior, we render a highlighted version of each component group on top of a normal one
+/// and use a layer masking to show only a part of it. See
+/// [component_group](component_group#selection) documentation to learn more about how the component
+/// groups are implemented.
 ///
 /// The selection box should never leave the borders of the component list panel. We can't use
 /// [layers masking][] as our renderer does not support hierarchical masks, so instead, we build a
@@ -294,8 +294,8 @@ pub mod selection_box {
             let quater_height = area_height.clone() / 4.0;
             let area_top = Rect((area_width.clone(),half_height.clone()));
             let area_top = area_top.translate_y(quater_height.clone());
-            // Additional padding so that the two halves of the area are overlapping without gaps.
-            // The precise size is not important, so we use 1/8 of the height.
+            // Additional padding so that the two halves of the area overlap without gaps.
+            // The precise size is unimportant, so we use 1/8 of the height.
             let padding = area_height / 8.0;
             let area_bottom = Rect((area_width, half_height + padding.clone()));
             let area_bottom = area_bottom.corners_radius(corners_radius.px());
@@ -307,7 +307,6 @@ pub mod selection_box {
             let mask = Rect(size.px()).corners_radius(corners_radius.px());
             let mask = mask.translate(pos.px());
             let mask = &mask * &area;
-            // area.fill(color::Rgba::black()).into()
             mask.fill(color::Rgba::black()).into()
         }
     }
