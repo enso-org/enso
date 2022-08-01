@@ -101,28 +101,29 @@ impl Group {
         Self::from_library_name_and_id(Some(library), name, Some(component_id))
     }
 
-    // pub fn from_name_and_virtual_entries(
-    //     name: impl Into<ImString>,
-    //     entries: impl IntoIterator<Item = Rc<component::Virtual>>,
-    // ) -> Self {
-    //     let components = entries
-    //         .into_iter()
-    //         .map(|suggestion| Component {
-    //             kind:       component::Kind::Virtual { suggestion },
-    //             match_info: default(),
-    //         })
-    //         .collect_vec();
-    //     let group_data = Data {
-    //         library: None,
-    //         name:                  name.into(),
-    //         color:                 None,
-    //         component_id:          None,
-    //         matched_items:         Cell::new(components.len()),
-    //         initial_entries_order: components.clone(),
-    //         entries:               RefCell::new(components),
-    //     };
-    //     Group { data: Rc::new(group_data) }
-    // }
+    pub fn from_name_and_virtual_components(
+        library: Option<project::QualifiedName>,
+        group_name: impl Into<ImString>,
+        entries: impl IntoIterator<Item = Rc<component::Virtual>>,
+    ) -> Self {
+        let components = entries
+            .into_iter()
+            .map(|suggestion| Component {
+                kind:       component::Kind::Virtual { suggestion },
+                match_info: default(),
+            })
+            .collect_vec();
+        let group_data = Data {
+            library,
+            name:                  group_name.into(),
+            color:                 None,
+            component_id:          None,
+            matched_items:         Cell::new(components.len()),
+            initial_entries_order: components.clone(),
+            entries:               RefCell::new(components),
+        };
+        Group { data: Rc::new(group_data) }
+    }
 
     /// Construct from [`execution_context::ComponentGroup`] components looked up in the suggestion
     /// database by their full qualified name. Returns a group containing only the successfully
