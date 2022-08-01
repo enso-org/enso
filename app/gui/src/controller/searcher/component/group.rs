@@ -373,6 +373,7 @@ mod tests {
         // order. Some of the names correspond to entries present in the suggestion database,
         // some do not.
         let ec_group = execution_context::ComponentGroup {
+            project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
             name:       "Test Group 1".into(),
             color:      color::Rgb::from_css_hex("#aabbcc"),
             components: vec![
@@ -394,15 +395,14 @@ mod tests {
         assert_eq!((color.red * 255.0) as u8, 0xaa);
         assert_eq!((color.green * 255.0) as u8, 0xbb);
         assert_eq!((color.blue * 255.0) as u8, 0xcc);
-        let entry_ids_and_names = group
+        let entry_ids = group
             .entries
             .borrow()
             .iter()
-            .map(|e| (*e.id, e.suggestion.name.to_string()))
+            .map(|e| e.id().unwrap())
             .collect_vec();
-        let expected_ids_and_names =
-            vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
-        assert_eq!(entry_ids_and_names, expected_ids_and_names);
+        let expected_ids = vec![6, 10, 5];
+        assert_eq!(entry_ids, expected_ids);
     }
 
     // Test constructing a component group from an [`execution_context::ComponentGroup`] containing

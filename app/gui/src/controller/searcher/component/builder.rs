@@ -418,6 +418,7 @@ mod tests {
         assert_eq!(db.lookup_by_qualified_name_str(QN_NOT_IN_DB), None);
         let groups = [
             execution_context::ComponentGroup {
+                project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
                 name:       "Group 1".into(),
                 color:      None,
                 components: vec![
@@ -431,6 +432,7 @@ mod tests {
                 ],
             },
             execution_context::ComponentGroup {
+                project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
                 name:       "Group 2".into(),
                 color:      None,
                 components: vec![
