@@ -5,6 +5,7 @@ import Standard.Table.Data.Column
 from Standard.Table.Errors import all
 import Standard.Table.IO.File_Read
 from Standard.Table.IO.File_Format import Delimited
+import Standard.Table.IO.File_Format
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.IO.Quote_Style
 import Standard.Base.Data.Text.Line_Ending_Style

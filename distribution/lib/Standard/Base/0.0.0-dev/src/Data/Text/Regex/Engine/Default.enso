@@ -41,7 +41,6 @@ import Standard.Base.Data.Text.Regex.Option as Global_Option
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Polyglot.Java
-from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IndexOutOfBoundsException

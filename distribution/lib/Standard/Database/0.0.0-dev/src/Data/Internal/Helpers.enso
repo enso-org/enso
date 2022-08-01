@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-from Standard.Database.Data.Table as Table_Module import Table
-from Standard.Database.Data.Column as Column_Module import Column
+from Standard.Database.Data.Table import Table
+from Standard.Database.Data.Column import Column
 
 polyglot java import java.util.regex.Pattern
 
