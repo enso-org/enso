@@ -369,8 +369,8 @@ spec =
             txt = "Hello World!"
             txt.take (Range 0 14) . should_equal txt
             txt.take (Range 6 100) . should_equal "World!"
-            txt.take (Range txt.length txt.length) . should_equal ""
             txt.take (Range txt.length-1 txt.length) . should_equal "!"
+            txt.take (Range txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (Range txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (First 100) . should_equal txt
             txt.take (Last 100) . should_equal txt
@@ -381,7 +381,7 @@ spec =
             txt.take (By_Index [0, 1, Range 6 100]) . should_equal "HeWorld!"
             txt.take (By_Index [0, 1, Range 6 100 2]) . should_equal "HeWrd"
             txt.take (Range 13 12) . should_equal ""
-            "".take (Range 0 0) . should_equal ""
+            "".take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
             "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (Range 13 20) . should_fail_with Index_Out_Of_Bounds_Error
@@ -507,10 +507,10 @@ spec =
             txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.drop (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.drop (By_Index [0, 1, Range 6 100]) . should_equal "llo "
-            txt.drop (Range 13 12) . should_equal txt
+            txt.drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
             txt.drop (Range 14 15) . should_fail_with Index_Out_Of_Bounds_Error
             "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
-            "".drop (Range 0 0) . should_equal ""
+            "".drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
             txt.drop (Range 0 0) . should_equal txt
             txt.drop (Range 5 100) . should_equal "Hello"
             txt.drop (Range 5 100 2) . should_equal "HelloWrd"
@@ -571,7 +571,7 @@ spec =
 
             "".drop (While _->True) . should_equal ""
 
-            "".drop (Range 0 0) . should_equal ""
+            "".drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
             'ABC\u{301}'.drop (Range 0 0) . should_equal 'ABC\u{301}'
 
             'ABC\u{301}'.drop (After "") . should_equal ''
