@@ -166,10 +166,6 @@ impl List {
     }
 
     pub fn insert_virtual_components_in_favorites_group(&mut self, library: project::QualifiedName, group_name: impl AsRef<str>, components: impl IntoIterator<Item = Rc<component::Virtual>>) {
-        let virtual_components = components.into_iter().map(|c| Component {
-            kind: component::Kind::Virtual { suggestion: c },
-            match_info: default(),
-        }).collect_vec();
         // FIXME: factor out common part of this and build_favorites_...
         let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
         let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
@@ -177,12 +173,15 @@ impl List {
         let group_with_matching_name = favorites_groups.iter_mut().find(|g|
             g.library.as_ref() == Some(&library) && g.name.as_str() == group_name.as_ref());
         if let Some(group) = group_with_matching_name {
-            // FIXME: insert entries to group
+            // FIXME: code duplicated with c::Group::from_name_and_virtual_components()
+            let virtual_components = components.into_iter().map(|c| Component {
+                kind: component::Kind::Virtual { suggestion: c },
+                match_info: default(),
+            }).collect_vec();
             group.insert_entries(&virtual_components);
             DEBUG!("MCDBG found library: " group.library;? " " group.name);
         } else {
-            // FIXME: create new group and insert it at beginning
-            let new_group = component::Group::from_name_and_virtual_entries(Some(library), group_name.as_str(), components);
+            let new_group = component::Group::from_name_and_virtual_components(Some(library), group_name.as_ref(), components);
             favorites_groups.insert(0, new_group);
             DEBUG!("FIXME insert new group with virtual entries at the beginning");
         }
