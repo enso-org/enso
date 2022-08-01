@@ -1236,15 +1236,18 @@ slice_ranges vector ranges =
     Vector arr
 
 ## PRIVATE
-   Takes a list of ranges and returns a new one where ranges with non-unitary
-   step have been replaced with series of ranges covering the same set of
-   indices with step equal to 1.
-normalize_ranges ranges =
-    normalize range =
-        if range.step == 1 then [range] else
-            range.to_vector.map ix->
-                Range ix ix+1
-    ranges.flat_map normalize
+   Takes a list of descriptors and returns a new one where ranges with
+   non-unitary step have been replaced with series of ranges covering the same
+   set of indices with step equal to 1, and indices have been replaced with
+   single-element ranges.
+normalize_ranges descriptors =
+    normalize descriptor = case descriptor of
+        Integer -> [Range descriptor descriptor+1]
+        Range _ _ _ ->
+            if descriptor.step == 1 then [descriptor] else
+                descriptor.to_vector.map ix->
+                    Range ix ix+1
+    descriptors.flat_map normalize
 
 ## PRIVATE
    Inverts the selection determined by the input list of ranges.
