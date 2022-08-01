@@ -1,9 +1,7 @@
 from Standard.Base import all
-
 import Standard.Base.System
 
 polyglot java import java.util.Random as Java_Random
-polyglot java import java.util.Collections as Java_Collections
 
 ## UNSTABLE
    Returns a default seed to use for random number generation.
@@ -21,6 +19,11 @@ type Random_Number_Generator
     ## A random number generator.
     type Random_Number_Generator java_random
 
+    ## Returns a random integer less than `end` and greater or equal to `start`.
+    random_integer self start end =
+        if start >= end then Error.throw (Illegal_Argument_Error "The `end` must be greater than the `start.") else
+            start + self.java_random.nextInt (end-start)
+
 ## Returns a new vector containing a random sample of the input vector, without
    replacement.
 
@@ -28,8 +31,12 @@ type Random_Number_Generator
    return a random permutation of the input vector.
 sample : Vector Any -> Integer -> Random_Number_Generator -> Vector Any
 sample vector k rng =
-    indices = random_indices vector.length k rng
-    indices.map vector.at
+    new_array = Array.new vector.length
+    Array.copy vector.to_array 0 new_array 0 vector.length
+    0.up_to (Math.min k vector.length) . each i->
+        r = rng.random_integer i vector.length
+        new_array.swap i r
+    Vector.Vector new_array . take_start k
 
 ## Returns `k` indices sampled from the range [0, n-1] without replacement.
 
@@ -39,7 +46,4 @@ random_indices n k rng =
     ## TODO while acceptable for `k` close to `n`, for `k <<< n`, this algorithm
        is not efficient, a better one should be implemented, see:
        https://www.pivotaltracker.com/story/show/182853142
-    array = Array.new n
-    0.up_to n . each ix-> array.set_at ix ix
-    Java_Collections.shuffle array rng.java_random
-    Vector.Vector array . take_start k
+    sample (Range 0 n).to_vector k rng

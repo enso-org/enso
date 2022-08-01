@@ -1091,7 +1091,7 @@ Text.repeat self count=1 =
          "Hello World!".take (By_Index 0) == "H"
          "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
          "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
-         "Hello World!".take (Sample 3 seed=42) == "TODO"
+         "Hello World!".take (Sample 3 seed=42) == "l d"
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.take self range =
     ranges = Text_Sub_Range.find_codepoint_ranges self range
@@ -1141,7 +1141,7 @@ Text.take self range =
          "Hello World!".drop (By_Index 0) == "ello World!"
          "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
          "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
-         "Hello World!".drop (Sample 3 seed=42) == "TODO"
+         "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.drop self range =
     ranges = Text_Sub_Range.find_codepoint_ranges self range

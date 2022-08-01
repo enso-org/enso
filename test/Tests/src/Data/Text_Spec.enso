@@ -268,16 +268,16 @@ spec =
             ## These tests are very brittle and can be invalidated by a valid
                implementation modification, so they may need to be updated.
             "ABCDEFGH".take (Sample 0) . should_equal ""
-            "ABCDEFGH".take (Sample 1 seed=42) . should_equal "C"
-            "ABCDEFGH".take (Sample 2 seed=42) . should_equal "CG"
-            "ABCDEFGH".take (Sample 4 seed=42) . should_equal "CGDB"
-            "ABCDEFGH".take (Sample 8 seed=42) . should_equal "CGDBEAHF"
-            "ABCDEFGH".take (Sample 100 seed=42) . should_equal "CGDBEAHF"
+            "ABCDEFGH".take (Sample 8 seed=42) . should_equal "FGCHABED"
+            "ABCDEFGH".take (Sample 4 seed=42) . should_equal "FGCH"
+            "ABCDEFGH".take (Sample 2 seed=42) . should_equal "FG"
+            "ABCDEFGH".take (Sample 1 seed=42) . should_equal "F"
+            "ABCDEFGH".take (Sample 100 seed=42) . should_equal "FGCHABED"
 
             "ABCDEFGH".drop (Sample 0) . should_equal "ABCDEFGH"
-            "ABCDEFGH".drop (Sample 1 seed=42) . should_equal "ABDEFGH"
-            "ABCDEFGH".drop (Sample 2 seed=42) . should_equal "ABDEFH"
-            "ABCDEFGH".drop (Sample 4 seed=42) . should_equal "AEFH"
+            "ABCDEFGH".drop (Sample 1 seed=42) . should_equal "ABCDEGH"
+            "ABCDEFGH".drop (Sample 2 seed=42) . should_equal "ABCDEH"
+            "ABCDEFGH".drop (Sample 4 seed=42) . should_equal "ABDE"
             "ABCDEFGH".drop (Sample 8 seed=42) . should_equal ""
             "ABCDEFGH".drop (Sample 100 seed=42) . should_equal ""
 
@@ -363,7 +363,7 @@ spec =
             "Hello World!".take (By_Index 0) . should_equal "H"
             "Hello World!".take (By_Index [1, 0, 0, 6, 0]) . should_equal "eHHWH"
             "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) . should_equal "HelWWrd"
-            "Hello World!".take (Sample 3 seed=42) . should_equal "HeW"
+            "Hello World!".take (Sample 3 seed=42) . should_equal "l d"
 
         Test.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
@@ -495,7 +495,7 @@ spec =
             "Hello World!".drop (By_Index 0) . should_equal "ello World!"
             "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) . should_equal "llo orld!"
             "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) . should_equal "lo ol!"
-            "Hello World!".drop (Sample 3 seed=42) . should_equal "llo orld!"
+            "Hello World!".drop (Sample 3 seed=42) . should_equal "HeloWorl!"
 
         Test.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
             txt = "Hello World!"
