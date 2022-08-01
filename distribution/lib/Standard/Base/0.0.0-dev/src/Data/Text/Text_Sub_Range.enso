@@ -97,7 +97,7 @@ find_codepoint_ranges text subrange =
         Every step start ->
             if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
                 len = text.length
-                if start >= len then [] else
+                if start >= len then Range 0 0 else
                     range = Range start text.length step
                     find_codepoint_ranges text (By_Index range)
         Range _ _ _ ->
@@ -242,4 +242,3 @@ normalize_range range length =
         Panic.throw (Index_Out_Of_Bounds_Error range.start length)
     if range.end >= length then Range range.start length range.step else
         range
-

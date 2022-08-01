@@ -356,7 +356,6 @@ spec =
             "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
             "Hello World!".take (Range 3 5) . should_equal "lo"
             "Hello World!".take (Range 5 12) . should_equal " World!"
-            "Hello World!".take (Range 12 12) . should_equal ""
             "Hello World!".take (Range 6 12 2) . should_equal "Wrd"
             "Hello World!".take (Every 2 first=6) . should_equal "Wrd"
             "Hello World!".take (Every 3) . should_equal "HlWl"
@@ -380,7 +379,7 @@ spec =
             txt.take (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (By_Index [0, 1, Range 6 100]) . should_equal "HeWorld!"
             txt.take (By_Index [0, 1, Range 6 100 2]) . should_equal "HeWrd"
-            txt.take (Range 13 12) . should_equal ""
+            txt.take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
             "".take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
             "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error
@@ -417,7 +416,6 @@ spec =
             txt_2.take (While c->c!='e') . should_equal txt_2
             txt_2.take (Range 3 5) . should_equal 'lo\u{308}'
             txt_2.take (Range 5 12) . should_equal ' Wo\u{308}rld!'
-            txt_2.take (Range 12 12) . should_equal ''
 
         Test.specify "take should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.take First . should_equal '✨'
@@ -448,7 +446,6 @@ spec =
 
             "".take (While _->True) . should_equal ""
 
-            "".take (Range 0 0) . should_equal ""
             'ABC\u{301}'.take (Range 0 0) . should_equal ""
 
             'ABC\u{301}'.take (After "") . should_equal 'ABC\u{301}'
@@ -488,7 +485,6 @@ spec =
             "Hello World!".drop (While c->c!="z") . should_equal ""
             "Hello World!".drop (Range 3 5) . should_equal "Hel World!"
             "Hello World!".drop (Range 5 12) . should_equal "Hello"
-            "Hello World!".drop (Range 12 12) . should_equal "Hello World!"
             "Hello World!".drop (Range 6 12 2) . should_equal "Hello ol!"
             "Hello World!".drop (Every 2 first=6) . should_equal "Hello ol!"
             "Hello World!".drop (Every 3) . should_equal "elo ord!"
@@ -541,7 +537,6 @@ spec =
             txt_2.drop (While c->c!='e') . should_equal ''
             txt_2.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
             txt_2.drop (Range 5 12) . should_equal 'He\u{302}llo\u{308}'
-            txt_2.drop (Range 12 12) . should_equal txt_2
 
         Test.specify "drop should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.drop First . should_equal '🚀🚧😍😃😎😙😉☺'
