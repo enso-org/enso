@@ -468,27 +468,4 @@ public class Context {
   public long clockTick() {
     return clock.getAndIncrement();
   }
-
-  /**
-   * Return the {@code Standard.Base.Data.Time.Date} constructor.
-   *
-   * @return optional with {@link AtomConstructor} for the date, if it can be found
-   */
-  public Optional<AtomConstructor> getDateConstructor() {
-    if (date == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      final String stdDateModuleName = "Standard.Base.Data.Time.Date";
-      final String stdDateConstructorName = "Date";
-      ensureModuleIsLoaded(stdDateModuleName);
-      Optional<Module> dateModule = findModule(stdDateModuleName);
-      if (dateModule.isPresent()) {
-        date =
-            Optional.ofNullable(
-                dateModule.get().getScope().getConstructors().get(stdDateConstructorName));
-      } else {
-        date = Optional.empty();
-      }
-    }
-    return date;
-  }
 }

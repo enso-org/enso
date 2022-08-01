@@ -28,7 +28,7 @@ type Response
 
              example_headers = Examples.get_response.headers
     headers : Vector.Vector
-    headers =
+    headers self =
         header_entries = Vector.Vector (Http_Utils.get_headers self.internal_http_response.headers)
         header_entries.map e-> Header.new e.getKey e.getValue
 
@@ -42,7 +42,7 @@ type Response
 
              example_body = Examples.get_response.body
     body : Response_Body
-    body = Response_Body.Body (Vector.Vector self.internal_http_response.body)
+    body self = Response_Body.Body (Vector.Vector self.internal_http_response.body)
 
     ## Get the response status code.
 
@@ -54,7 +54,7 @@ type Response
 
              example_code = Examples.get_response.code
     code : Status_Code
-    code = Status_Code.Status_Code self.internal_http_response.statusCode
+    code self = Status_Code.Status_Code self.internal_http_response.statusCode
 
     ## Convert the response to JSON.
 
@@ -66,5 +66,5 @@ type Response
 
              example_to_json = Examples.get_response.to_json
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Response"], ["headers", self.headers], ["body", self.body], ["code", self.code]]
+    to_json self = Json.from_pairs [["type", "Response"], ["headers", self.headers], ["body", self.body], ["code", self.code]]
 

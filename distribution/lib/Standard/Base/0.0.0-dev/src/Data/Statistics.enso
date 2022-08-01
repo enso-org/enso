@@ -11,7 +11,6 @@ polyglot java import org.enso.base.statistics.CountMinMax
 polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
 
-polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.NullPointerException
 
@@ -19,7 +18,7 @@ type Statistic
     ## PRIVATE
        Convert the Enso Statistic into Java equivalent.
     to_moment_statistic : SingleValue
-    to_moment_statistic = case self of
+    to_moment_statistic self = case self of
         Sum -> Moments.SUM
         Mean -> Moments.MEAN
         Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
@@ -185,10 +184,7 @@ wrap_java_call ~function =
     report_unsupported _ = Error.throw (Illegal_Argument_Error ("Can only compute correlations on numerical data sets."))
     handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
 
-    report_illegal caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
-    handle_illegal = Panic.catch IllegalArgumentException handler=report_illegal
-
-    handle_unsupported <| handle_illegal <| function
+    handle_unsupported <| Illegal_Argument_Error.handle_java_exception <| function
 
 
 ## PRIVATE
@@ -219,7 +215,7 @@ calculate_correlation_statistics_matrix data =
    Arguments:
    - statistic: Statistic to calculate.
 Vector.Vector.compute : Statistic -> Any
-Vector.Vector.compute statistic=Count =
+Vector.Vector.compute self statistic=Count =
     self.compute_bulk [statistic] . first
 
 
@@ -228,7 +224,7 @@ Vector.Vector.compute statistic=Count =
    Arguments:
    - statistics: Set of statistics to calculate.
 Vector.Vector.compute_bulk : [Statistic] -> [Any]
-Vector.Vector.compute_bulk statistics=[Count, Sum] =
+Vector.Vector.compute_bulk self statistics=[Count, Sum] =
     compute_bulk self statistics
 
 

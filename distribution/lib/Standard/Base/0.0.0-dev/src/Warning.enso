@@ -13,14 +13,14 @@ type Warning
 
        Returns the warning value – usually its explanation or other contents.
     value : Any
-    value = @Builtin_Method "Warning.value"
+    value self = @Builtin_Method "Warning.value"
 
     ## UNSTABLE
        ADVANCED
 
        A stack trace for the original warning creation.
     origin : Vector.Vector Stack_Trace_Element
-    origin = @Builtin_Method "Warning.origin"
+    origin self = @Builtin_Method "Warning.origin"
 
     ## UNSTABLE
        ADVANCED
@@ -39,7 +39,7 @@ type Warning
        - The standard library methods reassign warnings such that their dataflow
          nature is preserved.
     reassignments : Vector.Vector Stack_Trace_Element
-    reassignments =
+    reassignments self =
         Vector.Vector self.get_reassignments . map r->
             loc = case Polyglot.has_source_location r of
                 False -> Nothing
@@ -51,7 +51,7 @@ type Warning
        Builtin method for getting the list of locations where the warnings was reassigned.
        Should use `Warning.reassignments` instead.
     get_reassignments : Any
-    get_reassignments = @Builtin_Method "Warning.get_reassignments"
+    get_reassignments self = @Builtin_Method "Warning.get_reassignments"
 
 ## PRIVATE
 

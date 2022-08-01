@@ -1,6 +1,9 @@
 # Catch All
 * @4e6 @MichaelMauderer @PabloBuchu @jdunkerley
 
+# Github metadata
+/.github/ @4e6 @MichaelMauderer @PabloBuchu @jdunkerley @wdanilo
+
 # Change log
 CHANGELOG.md
 
@@ -11,6 +14,8 @@ Cargo.lock @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo @kazcw
 Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo @kazcw
 /lib/rust/ @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo @kazcw
 /lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon
+/lib/rust/metamodel/ @kazcw @wdanilo @jaroslavtulach
+/lib/rust/parser/ @kazcw @wdanilo @jaroslavtulach
 /lib/rust/profiler/ @kazcw @MichaelMauderer @wdanilo
 /integration-test/ @MichaelMauderer @wdanilo @farmaazon @kazcw
 /tools/build-performance/ @kazcw @mwu-tow @wdanilo

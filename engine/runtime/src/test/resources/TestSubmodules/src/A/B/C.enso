@@ -1,0 +1,4 @@
+type C
+    type C x
+
+c_mod_method a = C 42+a

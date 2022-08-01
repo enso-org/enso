@@ -15,6 +15,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import java.time.LocalDate;
 import org.enso.interpreter.epb.node.ContextRewrapExceptionNode;
 import org.enso.interpreter.epb.node.ContextRewrapNode;
 
@@ -905,6 +906,31 @@ public class PolyglotProxy implements TruffleObject {
     Object p = enterOrigin(node);
     try {
       return contextRewrapNode.execute(errors.getExceptionMessage(delegate), origin, target);
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  boolean isDate(
+      @CachedLibrary("this.delegate") InteropLibrary datum,
+      @CachedLibrary("this") InteropLibrary node) {
+    Object p = enterOrigin(node);
+    try {
+      return datum.isDate(delegate);
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  LocalDate asDate(
+      @CachedLibrary("this.delegate") InteropLibrary datume,
+      @CachedLibrary("this") InteropLibrary node)
+      throws UnsupportedMessageException {
+    Object p = enterOrigin(node);
+    try {
+      return datume.asDate(delegate);
     } finally {
       leaveOrigin(node, p);
     }

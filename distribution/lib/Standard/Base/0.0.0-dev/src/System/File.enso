@@ -2,15 +2,14 @@ from Standard.Base import all
 
 import Standard.Base.System.File.Option
 import Standard.Base.System.File.Existing_File_Behavior
+import Standard.Base.System.File.File_Permissions
 import Standard.Base.Error.Problem_Behavior
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
-from Standard.Base.Runtime.Resource import all
-from Standard.Base.Data.Time as Time_Module import Time
-
-export Standard.Base.System.File.Option
+from Standard.Base.Error.Problem_Behavior import Report_Warning
+import Standard.Base.Runtime.Resource
+from Standard.Base.Runtime.Resource import Managed_Resource
+from Standard.Base.Data.Time import Time
 
 polyglot java import org.enso.base.Array_Utils
 polyglot java import org.enso.base.Encoding_Utils
@@ -205,7 +204,7 @@ type File
                  action = stream -> stream.write_bytes "hello".utf_8
                  file.with_output_stream [Option.Create, Option.Write] action
     with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
-    with_output_stream open_options action =
+    with_output_stream self open_options action =
         Resource.bracket (self.new_output_stream open_options) (_.close) action
 
     ## PRIVATE
@@ -217,7 +216,7 @@ type File
        - options: A vector of `File.Option` objects determining how to open
          the stream. These options set the access properties of the stream.
     output_stream : Vector.Vector -> Output_Stream
-    output_stream options = @Builtin_Method "File.output_stream"
+    output_stream self options = @Builtin_Method "File.output_stream"
 
     ## PRIVATE
 
@@ -228,7 +227,7 @@ type File
        - open_options: A vector of `File.Option` objects determining how to open
          the stream. These options set the access properties of the stream.
     input_stream : Vector.Vector -> Input_Stream
-    input_stream options = @Builtin_Method "File.input_stream"
+    input_stream self options = @Builtin_Method "File.input_stream"
 
     ## Creates a new input stream for this file and runs the specified action
        on it.
@@ -253,7 +252,7 @@ type File
                  action = stream -> stream.read_all_bytes
                  file.with_input_stream [Option.Create, Option.Read] action
     with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
-    with_input_stream open_options action =
+    with_input_stream self open_options action =
         Resource.bracket (self.new_input_stream open_options) (_.close) action
 
     ## Reads all bytes in this file into a byte vector.
@@ -265,7 +264,7 @@ type File
 
              example_read_bytes = Examples.csv.read_bytes
     read_bytes : Vector.Vector ! File_Error
-    read_bytes =
+    read_bytes self =
         opts = [Option.Read]
         self.with_input_stream opts (_.read_all_bytes)
 
@@ -286,7 +285,7 @@ type File
 
              example_read = Examples.csv.read
     read_text : Encoding -> Problem_Behavior -> Text ! File_Error
-    read_text (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
+    read_text self (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
         bytes = self.read_bytes
         Text.from_bytes bytes encoding on_problems
 
@@ -302,10 +301,10 @@ type File
 
              example_append = Examples.data_dir / "scratch_file"
     / : (Text | File) -> File
-    / subpath = self.resolve subpath
+    / self subpath = self.resolve subpath
 
     resolve : (Text | File) -> File
-    resolve = @Builtin_Method "File.resolve"
+    resolve self = @Builtin_Method "File.resolve"
 
     ## A File to JSON conversion.
 
@@ -316,7 +315,7 @@ type File
 
              example_to_json = Examples.csv.to_json
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "File"], ["path", self.path]]
+    to_json self = Json.from_pairs [["type", "File"], ["path", self.path]]
 
     ## Checks whether the file exists.
 
@@ -327,7 +326,7 @@ type File
 
              example_exists = Examples.csv.exists
     exists : Boolean
-    exists = @Builtin_Method "File.exists"
+    exists self = @Builtin_Method "File.exists"
 
     ## Gets the creation time of a file.
 
@@ -338,7 +337,7 @@ type File
 
              example_exists = Examples.csv.creation_time
     creation_time : Time ! File_Error
-    creation_time =
+    creation_time self =
         handle_java_exceptions self <|
             Time (self.creation_time_builtin)
 
@@ -348,7 +347,7 @@ type File
        Recommended to use `File.creation_time` instead which handles potential
        exceptions.
     creation_time_builtin : File -> ZonedDateTime
-    creation_time_builtin = @Builtin_Method "File.creation_time_builtin"
+    creation_time_builtin self = @Builtin_Method "File.creation_time_builtin"
 
     ## Gets the last modified time of a file.
 
@@ -359,7 +358,7 @@ type File
 
              example_exists = Examples.csv.last_modified_time
     last_modified_time : Time ! File_Error
-    last_modified_time =
+    last_modified_time self =
         handle_java_exceptions self <|
             Time (self.last_modified_time_builtin)
 
@@ -368,8 +367,29 @@ type File
        Builtin method that gets this file's last modified time.
        Recommended to use `File.last_modified_time` instead which handles
        potential exceptions.
-    last_modified_time_builtin : File -> ZonedDateTime
-    last_modified_time_builtin = @Builtin_Method "File.last_modified_time_builtin"
+    last_modified_time_builtin : ZonedDateTime
+    last_modified_time_builtin self = @Builtin_Method "File.last_modified_time_builtin"
+
+    ## Gets the POSIX permissions associated with the file.
+
+       > Example
+         Check if the file is readable by the user's group.
+
+             import Standard.Examples
+
+             example_permissions = Examples.csv.posix_permissions.group_read
+    posix_permissions : File_Permissions
+    posix_permissions self =
+        File_Permissions.from_java_set self.posix_permissions_builtin
+
+    ## PRIVATE
+
+       Builtin method that gets this file's POSIX permissions as a Java Set.
+       Recommended to use `File.posix_permissions` instead which handles
+       potential exceptions and converts an Enso representation of the
+       permissions.
+    posix_permissions_builtin : Set
+    posix_permissions_builtin self = @Builtin_Method "File.posix_permissions_builtin"
 
     ## Checks whether the file exists and is a directory.
 
@@ -380,7 +400,7 @@ type File
 
              example_is_directory = Examples.csv.is_directory
     is_directory : Boolean
-    is_directory = @Builtin_Method "File.is_directory"
+    is_directory self = @Builtin_Method "File.is_directory"
 
     ## Creates the directory represented by this file if it did not exist.
 
@@ -394,7 +414,7 @@ type File
              example_is_directory =
                 (Examples.data_dir / "my_directory") . create_directory
     create_directory : Nothing
-    create_directory = @Builtin_Method "File.create_directory"
+    create_directory self = @Builtin_Method "File.create_directory"
 
     ## Checks whether the file exists and is a regular file.
 
@@ -410,7 +430,7 @@ type File
 
              example_is_regular_file = Examples.csv.is_regular_file
     is_regular_file : Boolean
-    is_regular_file = @Builtin_Method "File.is_regular_file"
+    is_regular_file self = @Builtin_Method "File.is_regular_file"
 
     ## Resolves the parent filesystem node of this file.
 
@@ -421,7 +441,7 @@ type File
 
              example_parent = Examples.csv.parent
     parent : File
-    parent = @Builtin_Method "File.parent"
+    parent self = @Builtin_Method "File.parent"
 
     ## Returns the path of this file.
 
@@ -432,7 +452,7 @@ type File
 
              example_path = Examples.csv.path
     path : Text
-    path = @Builtin_Method "File.path"
+    path self = @Builtin_Method "File.path"
 
     ## Returns the name of this file.
 
@@ -443,7 +463,7 @@ type File
 
              example_name = Examples.csv.name
     name : Text
-    name = @Builtin_Method "File.name"
+    name self = @Builtin_Method "File.name"
 
     ## Returns the extension of the file.
 
@@ -454,7 +474,7 @@ type File
 
              Examples.csv.extension == ".csv"
     extension : Text
-    extension =
+    extension self =
         name = self.name
         last_dot = name.location_of "." mode=Matching_Mode.Last
         if last_dot.is_nothing then "" else
@@ -471,7 +491,7 @@ type File
 
              example_absolute = Examples.csv.absolute
     absolute : File
-    absolute = @Builtin_Method "File.absolute"
+    absolute self = @Builtin_Method "File.absolute"
 
     ## Checks is this file's path is absolute.
 
@@ -482,7 +502,7 @@ type File
 
              example_is_absolute = Examples.csv.is_absolute
     is_absolute : Boolean
-    is_absolute = @Builtin_Method "File.is_absolute"
+    is_absolute self = @Builtin_Method "File.is_absolute"
 
     ## Normalizes the filepath.
 
@@ -493,7 +513,7 @@ type File
 
              example_normalize = Examples.csv.normalize
     normalize : File
-    normalize = @Builtin_Method "File.normalize"
+    normalize self = @Builtin_Method "File.normalize"
 
     ## Checks if this file has the same `path` as `that`.
 
@@ -504,7 +524,7 @@ type File
 
              example_eq = Examples.csv == Examples.scratch_file
     == : File -> Boolean
-    == that = @Builtin_Method "File.=="
+    == self that = @Builtin_Method "File.=="
 
     ## Deletes the file.
 
@@ -521,7 +541,7 @@ type File
                  file.write_text "hello"
                  file.delete
     delete : Nothing ! File_Error
-    delete =
+    delete self =
         handle_java_exceptions self self.delete_builtin
 
     ## PRIVATE
@@ -529,7 +549,7 @@ type File
        Builtin method that deletes the file.
        Recommended to use `File.delete` instead which handles potential exceptions.
     delete_builtin : Nothing
-    delete_builtin = @Builtin_Method "File.delete"
+    delete_builtin self = @Builtin_Method "File.delete"
 
     ## Moves the file to the specified destination.
 
@@ -538,7 +558,7 @@ type File
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
     copy_to : File -> Boolean -> Nothing ! File_Error
-    copy_to destination replace_existing=False =
+    copy_to self destination replace_existing=False =
         handle_java_exceptions self <| case replace_existing of
             True ->
               copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
@@ -550,7 +570,7 @@ type File
        Builtin method that copies this file to a new destination.
        Recommended to use `File.copy_to` instead which handles potential exceptions.
     copy_builtin : File -> Array Any -> Nothing
-    copy_builtin destination copy_options = @Builtin_Method "File.copy_builtin"
+    copy_builtin self destination copy_options = @Builtin_Method "File.copy_builtin"
 
     ## Moves the file to the specified destination.
 
@@ -559,7 +579,7 @@ type File
        - replace_existing: specifies if the operation should proceed if the
          destination file already exists. Defaults to `False`.
     move_to : File -> Boolean -> Nothing ! File_Error
-    move_to destination replace_existing=False =
+    move_to self destination replace_existing=False =
         handle_java_exceptions self <| case replace_existing of
             True ->
               copy_options = Array.new_1 StandardCopyOption.REPLACE_EXISTING
@@ -571,7 +591,7 @@ type File
        Builtin method that moves this file to a new destination.
        Recommended to use `File.move_to` instead which handles potential exceptions.
     move_builtin : File -> Array Any -> Nothing
-    move_builtin destination copy_options = @Builtin_Method "File.move_builtin"
+    move_builtin self destination copy_options = @Builtin_Method "File.move_builtin"
 
     ## Deletes the file if it exists on disk.
 
@@ -585,7 +605,7 @@ type File
 
              example_del_if_exists = Examples.scratch_file.delete_if_exists
     delete_if_exists : Nothing ! File_Error
-    delete_if_exists = if self.exists then self.delete else Nothing
+    delete_if_exists self = if self.exists then self.delete else Nothing
 
     ## ADVANCED
 
@@ -598,7 +618,7 @@ type File
        The returned stream should be closed as soon as it is not used anymore.
        The `with_input_stream` method should be preferred whenever possible.
     new_input_stream : Vector.Vector -> Input_Stream ! File_Error
-    new_input_stream open_options =
+    new_input_stream self open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = handle_java_exceptions self (self.input_stream opts)
         resource = Managed_Resource.register stream close_stream
@@ -615,12 +635,25 @@ type File
        The returned stream should be closed as soon as it is not used anymore.
        The `with_output_stream` method should be preferred whenever possible.
     new_output_stream : Vector.Vector -> Output_Stream ! File_Error
-    new_output_stream open_options =
+    new_output_stream self open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = handle_java_exceptions self <|
             self.output_stream opts
         resource = Managed_Resource.register stream close_stream
         Output_Stream self resource
+
+    ## PRIVATE
+
+       Reads last `n` bytes from the file (or less if the file is too small) and
+       returns a vector of bytes.
+    read_last_bytes : Integer -> Vector ! File_Error
+    read_last_bytes self n =
+        handle_java_exceptions self <|
+            Vector.Vector (self.read_last_bytes_builtin n)
+
+    ## PRIVATE
+    read_last_bytes_builtin : Integer -> Array
+    read_last_bytes_builtin self n = @Builtin_Method "File.read_last_bytes_builtin"
 
     ## Lists files contained in the directory denoted by this file.
 
@@ -675,7 +708,7 @@ type File
              example_list_md_files =
                  Examples.data_dir.list name_filter="**.{txt,md}" recursive=True
     list : Text -> Boolean -> Vector.Vector File
-    list name_filter=Nothing recursive=False =
+    list self name_filter=Nothing recursive=False =
         all_files = case recursive of
             True -> list_descendants self
             False -> self.list_immediate_children
@@ -693,32 +726,32 @@ type File
 
        Checks if `self` is a child path of `other`.
     is_child_of : File -> Boolean
-    is_child_of other = self.starts_with other
+    is_child_of self other = self.starts_with other
 
     ## UNSTABLE
 
        Transforms `child` to a relative path with respect to `self`.
     relativize : File -> Boolean
-    relativize child = @Builtin_Method "File.relativize"
+    relativize self child = @Builtin_Method "File.relativize"
 
 
     ## PRIVATE
 
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector.Vector File
-    list_immediate_children = Vector.Vector (self.list_immediate_children_array)
+    list_immediate_children self = Vector.Vector (self.list_immediate_children_array)
 
     ## PRIVATE
 
        Utility function that lists immediate children of a directory.
     list_immediate_children_array : Array File
-    list_immediate_children_array = @Builtin_Method "File.list_immediate_children_array"
+    list_immediate_children_array self = @Builtin_Method "File.list_immediate_children_array"
 
     ## PRIVATE
 
        Return the absolute path of this File
     to_text : Text
-    to_text = self.absolute . path
+    to_text self = self.absolute . path
 
 ## An output stream, allowing for interactive writing of contents into an
    open file.
@@ -754,7 +787,7 @@ type Output_Stream
                  out_stream.write_bytes "hello".utf_8
                  out_stream.close
     write_bytes : Vector.Vector -> Nothing ! File_Error
-    write_bytes contents = self.stream_resource . with java_stream->
+    write_bytes self contents = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             java_stream.write contents.to_array
             java_stream.flush
@@ -779,7 +812,7 @@ type Output_Stream
                  out_stream = file.new_output_stream [Option.Create]
                  out_stream.close
     close : Nothing
-    close = self.stream_resource . finalize
+    close self = self.stream_resource . finalize
 
     ## PRIVATE
 
@@ -791,13 +824,13 @@ type Output_Stream
        Useful when integrating with polyglot functions requiring an
        `OutputStream` as an argument.
     with_java_stream : (Java_Output_Stream -> Any) -> Any
-    with_java_stream f = self.stream_resource . with f
+    with_java_stream self f = self.stream_resource . with f
 
     ## PRIVATE
        Runs an action with a `ReportingStreamEncoder` encoding data to the
        output stream with the specified encoding.
     with_stream_encoder : Encoding -> Problem_Behavior -> (ReportingStreamEncoder -> Any) -> Any
-    with_stream_encoder encoding on_problems action = self.with_java_stream java_stream->
+    with_stream_encoder self encoding on_problems action = self.with_java_stream java_stream->
         ## We ignore any warnings raised by the `bytes` method, because if the
            original Unicode replacement character failed to encode, the `bytes`
            method will have replaced it with the simple `?` sign which should be
@@ -842,7 +875,7 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_all_bytes : Vector.Vector ! File_Error
-    read_all_bytes = self.stream_resource . with java_stream->
+    read_all_bytes self = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             Vector.Vector java_stream.readAllBytes
 
@@ -872,7 +905,7 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_n_bytes : Integer -> Vector.Vector ! File_Error
-    read_n_bytes n = self.stream_resource . with java_stream->
+    read_n_bytes self n = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             bytes = java_stream.readNBytes n
             Vector.Vector bytes
@@ -897,7 +930,7 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_byte : Integer ! File_Error
-    read_byte = self.stream_resource . with java_stream->
+    read_byte self = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             java_stream.read
 
@@ -920,7 +953,7 @@ type Input_Stream
                  in_stream = file.new_input_stream [Option.Read]
                  in_stream.close
     close : Nothing
-    close = self.stream_resource . finalize
+    close self = self.stream_resource . finalize
 
     ## PRIVATE
 
@@ -932,13 +965,13 @@ type Input_Stream
        Useful when integrating with polyglot functions requiring an
        `InputStream` as an argument.
     with_java_stream : (Java_Input_Stream -> Any) -> Any
-    with_java_stream f = self.stream_resource . with f
+    with_java_stream self f = self.stream_resource . with f
 
     ## PRIVATE
        Runs an action with a `ReportingStreamDecoder` decoding data from the
        input stream with the specified encoding.
     with_stream_decoder : Encoding -> Problem_Behavior -> (ReportingStreamDecoder -> Any) -> Any
-    with_stream_decoder encoding on_problems action = self.stream_resource . with java_stream->
+    with_stream_decoder self encoding on_problems action = self.stream_resource . with java_stream->
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
         problems = Vector.Vector results.problems . map Encoding_Error
@@ -955,10 +988,10 @@ handle_java_exceptions file ~action =
 
    Converts a Java `IOException` into its Enso counterpart.
 wrap_io_exception file io_exception =
-    if Java.is_instance io_exception NoSuchFileException then Error.throw (File_Not_Found file) else
-        if Java.is_instance io_exception FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
-            if Java.is_instance io_exception AccessDeniedException then Error.throw (IO_Error file "You do not have permission to access the file") else
-                Error.throw (IO_Error file "An IO error has occurred: "+io_exception.getMessage)
+    if io_exception.is_a NoSuchFileException then Error.throw (File_Not_Found file) else
+        if io_exception.is_a FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
+            if io_exception.is_a AccessDeniedException then Error.throw (IO_Error file "You do not have permission to access the file") else
+                Error.throw (IO_Error file "An IO error has occurred: "+io_exception.to_text)
 
 ## PRIVATE
 
@@ -991,7 +1024,7 @@ type File_Error
 
        Convert the File error to a human-readable format.
     to_display_text : Text
-    to_display_text = case self of
+    to_display_text self = case self of
         File_Not_Found  file -> "The file at " + file.path + " does not exist."
         IO_Error file msg -> msg.to_text + " (" + file.path + ")."
         File_Already_Exists_Error file -> "The file at "+file.path+" already exists."
@@ -1051,7 +1084,7 @@ get_file path = @Builtin_Method "File.get_file"
    If another error occurs, such as access denied, an `IO_Error` is raised.
    Otherwise, the file is created with the encoded text written to it.
 Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
-Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
+Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Report_Warning =
     bytes = self.bytes encoding on_problems
     file = new path
     on_existing_file.write file stream->
@@ -1085,7 +1118,7 @@ Text.write path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
 Vector.Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Not_Found | IO_Error | File_Already_Exists_Error
-Vector.Vector.write_bytes path on_existing_file=Existing_File_Behavior.Backup =
+Vector.Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
     Panic.catch Unsupported_Argument_Types handler=(Error.throw (Illegal_Argument_Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
         byte_array = Array_Utils.ensureByteArray self.to_array

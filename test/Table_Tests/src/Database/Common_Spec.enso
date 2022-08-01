@@ -1,17 +1,18 @@
 from Standard.Base import all
+
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
-
-from Standard.Database import all
-
 import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
+from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Data.Aggregate_Column import all
+
+from Standard.Database import all
+
 import Standard.Test
 import Standard.Test.Problems
-from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
-import project.Database.Helpers.Name_Generator
 
-from Standard.Table.Data.Aggregate_Column import all
+import project.Database.Helpers.Name_Generator
 
 spec prefix connection pending=Nothing =
     tables_to_clean = Vector.new_builder

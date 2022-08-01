@@ -37,7 +37,7 @@ type Number
 
              10 + 15
     + : Number -> Number
-    + that = @Builtin_Method "Integer.+"
+    + self that = @Builtin_Method "Integer.+"
 
     ## ALIAS Subtract
 
@@ -51,7 +51,7 @@ type Number
 
              2 - 5
     - : Number -> Number
-    - that = @Builtin_Method "Integer.-"
+    - self that = @Builtin_Method "Integer.-"
 
     ## ALIAS Multiply
 
@@ -68,7 +68,7 @@ type Number
 
              3 * 5
     * : Number -> Number
-    * that = @Builtin_Method "Integer.*"
+    * self that = @Builtin_Method "Integer.*"
 
     ## ALIAS Divide
 
@@ -85,7 +85,7 @@ type Number
 
              10 / 4
     / : Number -> Number
-    / that = @Builtin_Method "Integer./"
+    / self that = @Builtin_Method "Integer./"
 
     ## ALIAS Power
 
@@ -99,7 +99,7 @@ type Number
 
              2^3
     ^ : Number -> Number
-    ^ that = @Builtin_Method "Integer.^"
+    ^ self that = @Builtin_Method "Integer.^"
 
     ## ALIAS Inverse Sine
 
@@ -112,7 +112,7 @@ type Number
 
              1.asin
     asin : Decimal
-    asin = Math.asin self.to_decimal
+    asin self = Math.asin self.to_decimal
 
     ## ALIAS Inverse Cosine
 
@@ -125,7 +125,7 @@ type Number
 
              1.acos
     acos : Decimal
-    acos = Math.acos self.to_decimal
+    acos self = Math.acos self.to_decimal
 
     ## ALIAS Inverse Tangent
 
@@ -138,7 +138,7 @@ type Number
 
              1.atan
     atan : Decimal
-    atan = Math.atan self.to_decimal
+    atan self = Math.atan self.to_decimal
 
     ## Computes the argument (angle) in the conversion from cartesian
        to polar coordinates, taking `self` as the x coordinate.
@@ -153,7 +153,7 @@ type Number
 
              1.atan_2 2
     atan_2 : Number -> Decimal
-    atan_2 y = Math.atan2 self.to_decimal y.to_decimal
+    atan_2 self y = Math.atan2 self.to_decimal y.to_decimal
 
     ## ALIAS Sine
 
@@ -164,7 +164,7 @@ type Number
 
              2.sin
     sin : Decimal
-    sin = Math.sin self.to_decimal
+    sin self = Math.sin self.to_decimal
 
     ## ALIAS Cosine
 
@@ -175,7 +175,7 @@ type Number
 
              2.cos
     cos : Decimal
-    cos = Math.cos self.to_decimal
+    cos self = Math.cos self.to_decimal
 
     ## ALIAS Tangent
 
@@ -186,7 +186,7 @@ type Number
 
              2.tan
     tan : Decimal
-    tan = Math.tan self.to_decimal
+    tan self = Math.tan self.to_decimal
 
     ## Computes the hyperbolic sine function.
 
@@ -195,7 +195,7 @@ type Number
 
              1.sinh
     sinh : Decimal
-    sinh = Math.sinh self.to_decimal
+    sinh self = Math.sinh self.to_decimal
 
     ## Computes the hyperbolic cosine function.
 
@@ -204,7 +204,7 @@ type Number
 
              1.cosh
     cosh : Decimal
-    cosh = Math.cosh self.to_decimal
+    cosh self = Math.cosh self.to_decimal
 
     ## Computes the hyperbolic tangent function.
 
@@ -213,7 +213,7 @@ type Number
 
              1.tanh
     tanh : Decimal
-    tanh = Math.tanh self.to_decimal
+    tanh self = Math.tanh self.to_decimal
 
     ## ALIAS Exponential
 
@@ -225,7 +225,7 @@ type Number
 
              4.exp
     exp : Decimal
-    exp = Math.exp self.to_decimal
+    exp self = Math.exp self.to_decimal
 
     ## ALIAS Natural Logarithm
 
@@ -236,7 +236,7 @@ type Number
 
              2.ln
     ln : Decimal
-    ln = Math.log self.to_decimal
+    ln self = Math.log self.to_decimal
 
     ## ALIAS Square Root
 
@@ -247,7 +247,7 @@ type Number
 
              8.sqrt
     sqrt : Decimal
-    sqrt = Math.sqrt self.to_decimal
+    sqrt self = Math.sqrt self.to_decimal
 
     ## ALIAS Logarithm
 
@@ -261,7 +261,7 @@ type Number
 
              4.log 2
     log : Number -> Decimal
-    log base = self.ln / base.ln
+    log self base = self.ln / base.ln
 
     ## UNSTABLE This API is not user-friendly and will be improved in the future.
 
@@ -276,7 +276,7 @@ type Number
 
              5.format "%x"
     format : Text -> Text
-    format fmt = String.format fmt self
+    format self fmt = String.format fmt self
 
     ## Checks equality of numbers, using an `epsilon` value.
 
@@ -290,7 +290,7 @@ type Number
 
              1.equals 1.0000001 epsilon=0.001
     equals : Number -> Number -> Boolean
-    equals that epsilon=0.0 =
+    equals self that epsilon=0.0 =
         (self == that) || ((self - that).abs <= epsilon)
 
     ## Returns the smaller value of `self` and `that`.
@@ -308,7 +308,7 @@ type Number
 
              2.min 5
     min : Number -> Number
-    min that = if self < that then self else that
+    min self that = if self < that then self else that
 
     ## Returns the larger value of `self` and `that`.
 
@@ -325,7 +325,7 @@ type Number
 
              2.max 5
     max : Number -> Number
-    max that = if self > that then self else that
+    max self that = if self > that then self else that
 
     ## Number to JSON conversion.
 
@@ -334,7 +334,7 @@ type Number
 
              8.to_json
     to_json : Json.Number
-    to_json = Json.Number self
+    to_json self = Json.Number self
 
     ## A constant holding the floating-point positive infinity.
     positive_infinity : Decimal
@@ -353,13 +353,13 @@ type Number
        This is needed, because the NaN value will return `False` even when being
        compared with itself, so `x == Number.nan` would not work.
     is_nan : Boolean
-    is_nan = case self of
+    is_nan self = case self of
         Decimal -> Double.isNaN self
         _ -> False
 
     ## Returns the sign of the number.
     signum : Integer
-    signum =
+    signum self =
         if self > 0 then 1 else
             if self < 0 then -1 else 0
 
@@ -388,7 +388,7 @@ type Decimal
 
              10.1 + 15
     + : Number -> Number
-    + that = @Builtin_Method "Decimal.+"
+    + self that = @Builtin_Method "Decimal.+"
 
     ## Subtract an arbitrary number from this.
 
@@ -400,7 +400,7 @@ type Decimal
 
              2.78 - 5
     - : Number -> Number
-    - that = @Builtin_Method "Decimal.-"
+    - self that = @Builtin_Method "Decimal.-"
 
     ## Multiply a decimal by an arbitrary number.
 
@@ -415,7 +415,7 @@ type Decimal
 
              5.27 * 3
     * : Number -> Number
-    * that = @Builtin_Method "Decimal.*"
+    * self that = @Builtin_Method "Decimal.*"
 
     ## Divides a decimal by an arbitrary number.
 
@@ -430,7 +430,7 @@ type Decimal
 
              10 / 4.5
     / : Number -> Number
-    / that = @Builtin_Method "Decimal./"
+    / self that = @Builtin_Method "Decimal./"
 
     ## Computes the remainder when dividing this by that.
 
@@ -450,7 +450,7 @@ type Decimal
 
              10.5 % 1.0 == 0.5
     % : Number -> Number ! Arithmetic_Error
-    % that = @Builtin_Method "Decimal.%"
+    % self that = @Builtin_Method "Decimal.%"
 
     ## Compute the result of raising this to the power that.
 
@@ -462,7 +462,7 @@ type Decimal
 
              2.2^3
     ^ : Number -> Number
-    ^ that = @Builtin_Method "Decimal.^"
+    ^ self that = @Builtin_Method "Decimal.^"
 
     ## Compares this and that for equality.
 
@@ -474,7 +474,7 @@ type Decimal
 
              7 == 2.1
     == : Number -> Boolean
-    == that = @Builtin_Method "Decimal.=="
+    == self that = @Builtin_Method "Decimal.=="
 
     ## Checks if this is greater than that.
 
@@ -486,7 +486,7 @@ type Decimal
 
              10 > 7.3
     > : Number -> Boolean
-    > that = @Builtin_Method "Decimal.>"
+    > self that = @Builtin_Method "Decimal.>"
 
     ## Checks if this is greater than or equal to thatthat.
 
@@ -498,7 +498,7 @@ type Decimal
 
              10 >= 7.3
     >= : Number -> Boolean
-    >= that = @Builtin_Method "Decimal.>="
+    >= self that = @Builtin_Method "Decimal.>="
 
     ## Checks if this is less than that.
 
@@ -510,7 +510,7 @@ type Decimal
 
              10 < 7.3
     < : Number -> Boolean
-    < that = @Builtin_Method "Decimal.<"
+    < self that = @Builtin_Method "Decimal.<"
 
     ## Checks if this is less than or equal to thatthat.
 
@@ -522,7 +522,7 @@ type Decimal
 
              10.4 <= 7
     <= : Number -> Boolean
-    <= that = @Builtin_Method "Decimal.<="
+    <= self that = @Builtin_Method "Decimal.<="
 
     ## Computes the absolute value of this.
 
@@ -534,7 +534,7 @@ type Decimal
 
             -10.63.abs
     abs : Decimal
-    abs = @Builtin_Method "Decimal.abs"
+    abs self = @Builtin_Method "Decimal.abs"
 
     ## Computes the nearest integer above this number.
 
@@ -545,7 +545,7 @@ type Decimal
 
              4.736.ceil
     ceil : Integer
-    ceil = @Builtin_Method "Integer.ceil"
+    ceil self = @Builtin_Method "Integer.ceil"
 
     ## Compares the two operands to determine the ordering of this with
        respect to that.
@@ -558,7 +558,7 @@ type Decimal
 
              1.732.compare_to 4
     compare_to : Number -> Ordering
-    compare_to that = @Builtin_Method "Decimal.compare_to"
+    compare_to self that = @Builtin_Method "Decimal.compare_to"
 
     ## Computes the nearest integer below this decimal.
 
@@ -569,7 +569,7 @@ type Decimal
 
              4.323.floor
     floor : Integer
-    floor = @Builtin_Method "Decimal.floor"
+    floor self = @Builtin_Method "Decimal.floor"
 
     ## Compute the negation of this.
 
@@ -578,7 +578,7 @@ type Decimal
 
              5.1.negate
     negate : Decimal
-    negate = @Builtin_Method "Decimal.negate"
+    negate self = @Builtin_Method "Decimal.negate"
 
     ## Convert this to a decimal.
 
@@ -590,7 +590,7 @@ type Decimal
 
              5.0.to_decimal
     to_decimal : Decimal
-    to_decimal = @Builtin_Method "Decimal.to_decimal"
+    to_decimal self = @Builtin_Method "Decimal.to_decimal"
 
     ## ALIAS From Text
 
@@ -641,7 +641,7 @@ type Integer
 
              10 + 15
     + : Number -> Number
-    + that = @Builtin_Method "Integer.+"
+    + self that = @Builtin_Method "Integer.+"
 
     ## Subtract an arbitrary number from this.
 
@@ -653,7 +653,7 @@ type Integer
 
              2 - 5
     - : Number -> Number
-    - that = @Builtin_Method "Integer.-"
+    - self that = @Builtin_Method "Integer.-"
 
     ## Multiply an integer by an arbitrary number.
 
@@ -668,7 +668,7 @@ type Integer
 
              3 * 5
     * : Number -> Number
-    * that = @Builtin_Method "Integer.*"
+    * self that = @Builtin_Method "Integer.*"
 
     ## Divides an integer by an arbitrary number.
 
@@ -683,7 +683,7 @@ type Integer
 
              10 / 4
     / : Number -> Number
-    / that = @Builtin_Method "Integer./"
+    / self that = @Builtin_Method "Integer./"
 
     ## Computes the remainder when dividing this by that.
 
@@ -700,7 +700,7 @@ type Integer
 
              10 % 3
     % : Number -> Number ! Arithmetic_Error
-    % that = @Builtin_Method "Integer.%"
+    % self that = @Builtin_Method "Integer.%"
 
     ## Compute the result of raising this to the power that.
 
@@ -712,7 +712,7 @@ type Integer
 
              2^3
     ^ : Number -> Number
-    ^ that = @Builtin_Method "Integer.^"
+    ^ self that = @Builtin_Method "Integer.^"
 
     ## Compares this and that for equality.
 
@@ -724,7 +724,7 @@ type Integer
 
              7 == 2
     == : Number -> Boolean
-    == that = @Builtin_Method "Integer.=="
+    == self that = @Builtin_Method "Integer.=="
 
     ## Checks if this is greater than that.
 
@@ -736,7 +736,7 @@ type Integer
 
              10 > 7
     > : Number -> Boolean
-    > that = @Builtin_Method "Integer.>"
+    > self that = @Builtin_Method "Integer.>"
 
     ## Checks if this is greater than or equal to thatthat.
 
@@ -748,7 +748,7 @@ type Integer
 
              10 >= 7
     >= : Number -> Boolean
-    >= that = @Builtin_Method "Integer.>="
+    >= self that = @Builtin_Method "Integer.>="
 
     ## Checks if this is less than that.
 
@@ -760,7 +760,7 @@ type Integer
 
              10 < 7
     < : Number -> Boolean
-    < that = @Builtin_Method "Integer.<"
+    < self that = @Builtin_Method "Integer.<"
 
     ## Checks if this is less than or equal to thatthat.
 
@@ -772,7 +772,7 @@ type Integer
 
              10 <= 7
     <= : Number -> Boolean
-    <= that = @Builtin_Method "Integer.<="
+    <= self that = @Builtin_Method "Integer.<="
 
     ## Computes the absolute value of this.
 
@@ -784,7 +784,7 @@ type Integer
 
             -10.abs
     abs : Integer
-    abs = @Builtin_Method "Integer.abs"
+    abs self = @Builtin_Method "Integer.abs"
 
     ## Computes the nearest integer above this integer.
 
@@ -796,7 +796,7 @@ type Integer
 
              4.ceil
     ceil : Integer
-    ceil = @Builtin_Method "Integer.ceil"
+    ceil self = @Builtin_Method "Integer.ceil"
 
     ## Compares the two operands to determine the ordering of this with
        respect to that.
@@ -809,7 +809,7 @@ type Integer
 
              1.compare_to 4
     compare_to : Number -> Ordering
-    compare_to that = @Builtin_Method "Integer.compare_to"
+    compare_to self that = @Builtin_Method "Integer.compare_to"
 
     ## Computes the integer division of this by that.
 
@@ -825,7 +825,7 @@ type Integer
 
              10.div 3
     div : Integer -> Number ! Arithmetic_Error
-    div that = @Builtin_Method "Integer.div"
+    div self that = @Builtin_Method "Integer.div"
 
     ## Computes the nearest integer below this integer.
 
@@ -837,7 +837,7 @@ type Integer
 
              4.floor
     floor : Integer
-    floor = @Builtin_Method "Integer.floor"
+    floor self = @Builtin_Method "Integer.floor"
 
     ## Compute the negation of this.
 
@@ -846,7 +846,7 @@ type Integer
 
              5.negate
     negate : Integer
-    negate = @Builtin_Method "Integer.negate"
+    negate self = @Builtin_Method "Integer.negate"
 
     ## Convert this to a decimal.
 
@@ -855,7 +855,7 @@ type Integer
 
              5.to_decimal
     to_decimal : Decimal
-    to_decimal = @Builtin_Method "Integer.to_decimal"
+    to_decimal self = @Builtin_Method "Integer.to_decimal"
 
     ## Computes the bitwise and (conjunction) operation between this and
        that.
@@ -871,7 +871,7 @@ type Integer
 
              2_01101101.bit_and 2_11110000
     bit_and : Integer -> Integer
-    bit_and that = @Builtin_Method "Integer.bit_and"
+    bit_and self that = @Builtin_Method "Integer.bit_and"
 
     ## Computes the bitewise compliment of this.
 
@@ -882,7 +882,7 @@ type Integer
 
              2_0110.bit_not
     bit_not : Integer
-    bit_not = @Builtin_Method "Integer.bit_not"
+    bit_not self = @Builtin_Method "Integer.bit_not"
 
     ## Computes the bitwise or (disjunction) operation between this and
        that.
@@ -898,7 +898,7 @@ type Integer
 
              2_01101101.bit_or 2_11110000
     bit_or : Integer -> Integer
-    bit_or that = @Builtin_Method "Integer.bit_or"
+    bit_or self that = @Builtin_Method "Integer.bit_or"
 
     ## Computes the bitwise exclusive or between this and that.
 
@@ -913,7 +913,7 @@ type Integer
 
              2_01101101.bit_xor 2_11110000
     bit_xor : Integer -> Integer
-    bit_xor that = @Builtin_Method "Integer.bit_xor"
+    bit_xor self that = @Builtin_Method "Integer.bit_xor"
 
     ## Shifts the bits of this by the amount that.
 
@@ -932,7 +932,7 @@ type Integer
 
              1.bit_shift 4
     bit_shift : Integer -> Integer ! Arithmetic_Error
-    bit_shift that = @Builtin_Method "Integer.bit_shift"
+    bit_shift self that = @Builtin_Method "Integer.bit_shift"
 
     ## Performs a left-wise bit shift on the bits of this.
 
@@ -951,7 +951,7 @@ type Integer
 
              1.bit_shift_l 4
     bit_shift_l : Integer -> Integer ! Arithmetic_Error
-    bit_shift_l that = @Builtin_Method "Integer.bit_shift_l"
+    bit_shift_l self that = @Builtin_Method "Integer.bit_shift_l"
 
     ## Performs a right-wise bit shift on the bits of this.
 
@@ -970,7 +970,7 @@ type Integer
 
              1.bit_shift_r 4
     bit_shift_r : Integer -> Integer ! Arithmetic_Error
-    bit_shift_r that = @Builtin_Method "Integer.bpit_shift_r"
+    bit_shift_r self that = @Builtin_Method "Integer.bit_shift_r"
 
     ## ALIAS From Text
 

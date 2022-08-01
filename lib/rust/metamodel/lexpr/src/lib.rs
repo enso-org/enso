@@ -55,6 +55,7 @@ use enso_metamodel::meta::*;
 use derivative::Derivative;
 use lexpr::Value;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 
 
@@ -69,18 +70,28 @@ pub struct ToSExpr<'g> {
     graph:   &'g TypeGraph,
     #[derivative(Debug = "ignore")]
     mappers: BTreeMap<TypeId, Box<dyn Fn(Value) -> Value>>,
+    skip:    BTreeSet<TypeId>,
 }
 
 impl<'g> ToSExpr<'g> {
     #[allow(missing_docs)]
     pub fn new(graph: &'g TypeGraph) -> Self {
         let mappers = Default::default();
-        Self { graph, mappers }
+        let skip = Default::default();
+        Self { graph, mappers, skip }
     }
 
     /// Set a transformation to be applied to a type after translating to an S-expression.
     pub fn mapper(&mut self, id: TypeId, f: impl Fn(Value) -> Value + 'static) {
         self.mappers.insert(id, Box::new(f));
+    }
+
+    /// Omit a type, specified by ID, from the output, wherever it occurs. If it occurs as a field
+    /// in another struct, that field will be omitted. If the type occurs as a variant of an enum,
+    /// or as the top-level type passed to [`Self::value`], it will be represented as if it had no
+    /// fields.
+    pub fn skip(&mut self, id: TypeId) {
+        self.skip.insert(id);
     }
 
     /// Given a bincode-serialized input, use its `meta` type info to transcribe it to an
@@ -126,7 +137,10 @@ impl<'g> ToSExpr<'g> {
         let mut out = vec![];
         self.fields(&mut hierarchy, data, &mut out);
         assert_eq!(hierarchy, &[]);
-        let mut value = Value::list(out);
+        let mut value = match self.skip.contains(&id) {
+            true => Value::Null,
+            false => Value::list(out),
+        };
         if let Some(id) = child {
             if let Some(mapper) = self.mappers.get(&id) {
                 value = (mapper)(value);
@@ -157,11 +171,14 @@ impl<'g> ToSExpr<'g> {
             self.fields(hierarchy, data, out);
         }
         for (i, field) in fields.iter().enumerate() {
+            let skip = self.skip.contains(&field.type_);
             if !field.name.is_empty() {
                 let car = Value::Symbol(format!(":{}", field.name).into_boxed_str());
                 let cdr = self.value_(field.type_, data);
-                out.push(Value::cons(car, cdr));
-            } else {
+                if !skip {
+                    out.push(Value::cons(car, cdr));
+                }
+            } else if !skip {
                 out.push(self.value_(field.type_, data));
             }
             if self.graph[id].child_field == Some(i + 1) {

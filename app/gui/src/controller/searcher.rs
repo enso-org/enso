@@ -1042,7 +1042,7 @@ impl Searcher {
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
-        builder.extend(&self.database, entry_ids);
+        builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
 
@@ -1150,6 +1150,7 @@ impl Searcher {
                 documentation_html: None,
                 self_type:          Some(self_type.clone()),
                 scope:              model::suggestion_database::entry::Scope::Everywhere,
+                icon_name:          None,
             };
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);
@@ -1186,7 +1187,7 @@ fn component_list_builder_with_favorites<'a>(
     if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
         builder = builder.with_local_scope_module_id(id);
     }
-    builder.set_favorites(suggestion_db, groups);
+    builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     builder
 }
 
@@ -1492,6 +1493,7 @@ pub mod test {
             documentation_html: default(),
             self_type: None,
             scope,
+            icon_name: None,
         };
         let entry2 = model::suggestion_database::Entry {
             name: "TestVar1".to_string(),
@@ -1551,6 +1553,7 @@ pub mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
+            icon_name:          None,
         };
         let entry9 = model::suggestion_database::Entry {
             name: "testFunction2".to_string(),
@@ -1787,10 +1790,16 @@ pub mod test {
             name:    "Test Group 1".to_string(),
             color:   None,
             icon:    None,
-            exports: vec![language_server::LibraryComponent {
-                name:     module_qualified_name + ".testFunction1",
-                shortcut: None,
-            }],
+            exports: vec![
+                language_server::LibraryComponent {
+                    name:     module_qualified_name.clone() + ".testFunction1",
+                    shortcut: None,
+                },
+                language_server::LibraryComponent {
+                    name:     module_qualified_name + ".testMethod1",
+                    shortcut: None,
+                },
+            ],
         };
         // Create a test fixture with mocked Engine responses.
         let Fixture { mut test, searcher, entry1, entry9, .. } =

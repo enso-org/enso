@@ -30,6 +30,12 @@ public class System {
     return UNKNOWN;
   }
 
+  @Builtin.Method(description = "Check if the operating system is UNIX.")
+  @CompilerDirectives.TruffleBoundary
+  public static Boolean is_unix() {
+    return SystemUtils.IS_OS_UNIX;
+  }
+
   @Builtin.Method(description = "Gets the nanosecond resolution system time.")
   @CompilerDirectives.TruffleBoundary
   public static long nanoTime() {

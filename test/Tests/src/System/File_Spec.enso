@@ -1,9 +1,11 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
-import Standard.Base.System.File.Existing_File_Behavior
 from Standard.Base.System.File import File_Already_Exists_Error
 from Standard.Base.Error.Problem_Behavior import all
+import Standard.Base.System.Platform
+import Standard.Base.System.Process
+from Standard.Base.System.File.File_Permissions as File_Permissions_Module import all
+from Standard.Base.System.Process.Exit_Code import Exit_Success
 
 import Standard.Test
 import Standard.Test.Problems
@@ -62,6 +64,23 @@ spec =
             file = File.new "does_not_exist.txt"
             file.delete . should_fail_with File.File_Not_Found
 
+        if Platform.is_unix then
+            Test.specify "should allow to check file permissions" <|
+                f = enso_project.data / "transient" / "permissions.txt"
+                f.delete_if_exists
+                "foobar".write f
+
+                Process.run "chmod" ["0777", f.absolute.path] . should_equal Exit_Success
+                rwx = [Read, Write, Execute]
+                f.posix_permissions . should_equal <|
+                    File_Permissions rwx rwx rwx
+
+                Process.run "chmod" ["0421", f.absolute.path] . should_equal Exit_Success
+                f.posix_permissions . should_equal <|
+                    File_Permissions [Read] [Write] [Execute]
+
+                f.delete
+
     Test.group "read_bytes" <|
         Test.specify "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
@@ -71,6 +90,17 @@ spec =
             full_path = sample_file . path
             contents = File.read_bytes full_path
             contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+
+        Test.specify "should allow to read last n bytes from a file" <|
+            file = enso_project.data / "transient" / "bytes.txt"
+            data = [1, 0, 0, 1, 2, 100, 20]
+            data.write_bytes file
+            file.read_last_bytes 0 . should_equal []
+            file.read_last_bytes 1 . should_equal [20]
+            file.read_last_bytes 2 . should_equal [100, 20]
+            file.read_last_bytes 5 . should_equal [0, 1, 2, 100, 20]
+            file.read_last_bytes 1000 . should_equal data
+            file.delete
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"

@@ -1,11 +1,12 @@
 from Standard.Base import all
 
 import Standard.Base.Runtime.Ref
-import Standard.Test
 
 polyglot java import java.util.Random
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
+
+import Standard.Test
 
 type My_Type foo
 

@@ -77,4 +77,22 @@ class ImportsTest extends PackageTest {
     )) should have message "Compilation aborted due to errors."
     consumeOut should contain("Export statements form a cycle:")
   }
+
+  "Import statements" should "allow for importing submodules" in {
+    evalTestProject("TestSubmodules") shouldEqual 42
+    val outLines = consumeOut
+    outLines(0) shouldEqual "(Foo 10)"
+    outLines(1) shouldEqual "(C 52)"
+    outLines(2) shouldEqual "20"
+    outLines(3) shouldEqual "(C 10)"
+  }
+
+  "Compiler" should "detect name conflicts preventing users from importing submodules" in {
+    the[InterpreterException] thrownBy (evalTestProject(
+      "TestSubmodulesNameConflict"
+    )) should have message "Method `c_mod_method` of C could not be found."
+    val outLines = consumeOut
+    outLines(2) should include
+    "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
+  }
 }

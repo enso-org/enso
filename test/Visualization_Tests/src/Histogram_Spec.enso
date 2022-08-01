@@ -2,8 +2,11 @@ from Standard.Base import all
 
 import Standard.Table.Data.Column
 import Standard.Table.Data.Table
-import Standard.Test
+
 import Standard.Visualization.Histogram
+
+import Standard.Test
+
 import project
 
 spec =

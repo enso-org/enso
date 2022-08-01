@@ -426,6 +426,18 @@ case object AliasAnalysis extends IRPass {
   ): List[IR.DefinitionArgument] = {
     args.map {
       case arg @ IR.DefinitionArgument.Specified(
+            IR.Name.Self(_, true, _, _),
+            _,
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
+        // Synthetic `self` must not be added to the scope
+        val occurrenceId = graph.nextId()
+        arg.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
+      case arg @ IR.DefinitionArgument.Specified(
             name,
             _,
             value,

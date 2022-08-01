@@ -1,11 +1,11 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+from Standard.Base.Error.Problem_Behavior import Problem_Behavior
 import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.System.File.Option
 from Standard.Table.IO.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Errors as Error_Module import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Match_Columns
 
@@ -18,7 +18,6 @@ polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.error.InvalidLocationException
 
-polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IllegalStateException
 polyglot java import java.io.IOException
 polyglot java import org.apache.poi.UnsupportedFileFormatException
@@ -48,43 +47,43 @@ type Excel_Range
 
     ## Gets the name of the sheet.
     sheet_name : Text
-    sheet_name = self.java_range.getSheetName
+    sheet_name self = self.java_range.getSheetName
 
     ## Gets the index (1-based) of the top row of the range.
        Returns `Nothing` if referring to a complete column.
     top_row : Integer | Nothing
-    top_row = if self.java_range.isWholeColumn then Nothing else
+    top_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getTopRow
 
     ## Gets the index (1-based) of the bottom row of the range.
        Returns `Nothing` if referring to a complete column.
     bottom_row : Integer | Nothing
-    bottom_row = if self.java_range.isWholeColumn then Nothing else
+    bottom_row self = if self.java_range.isWholeColumn then Nothing else
         self.java_range.getBottomRow
 
     ## Gets the index (1-based) of the left column of the range.
        Returns `Nothing` if referring to a complete row.
     left_column : Integer | Nothing
-    left_column = if self.java_range.isWholeRow then Nothing else
+    left_column self = if self.java_range.isWholeRow then Nothing else
         self.java_range.getLeftColumn
 
     ## Gets the index (1-based) of the right column of the range.
        Returns `Nothing` if referring to a complete row.
     right_column : Integer | Nothing
-    right_column = if self.java_range.isWholeRow then Nothing else
+    right_column self = if self.java_range.isWholeRow then Nothing else
         self.java_range.getRightColumn
 
     ## Is the Excel_Range referring to a single cell
     is_single_cell : Boolean
-    is_single_cell = self.java_range.isSingleCell
+    is_single_cell self = self.java_range.isSingleCell
 
     ## Gets the address to this in A1 format.
     address : Text
-    address = self.java_range.getAddress
+    address self = self.java_range.getAddress
 
     ## Displays the Excel_Range.
     to_text : Text
-    to_text = "Excel_Range " + self.address
+    to_text self = "Excel_Range " + self.address
 
     ## Validates if a column index (1-based) is within the valid range for
        Excel.
@@ -92,7 +91,7 @@ type Excel_Range
        Arguments:
        - column: 1-based index to check.
     is_valid_column : Integer -> Boolean
-    is_valid_column column =
+    is_valid_column self column =
         excel_2007_column_limit = 16384
         (column > 0) && (column <= excel_2007_column_limit)
 
@@ -101,26 +100,25 @@ type Excel_Range
        Arguments:
        - row: 1-based index to check.
     is_valid_row : Integer -> Boolean
-    is_valid_row row =
+    is_valid_row self row =
         excel_2007_row_limit = 1048576
         (row > 0) && (row <= excel_2007_row_limit)
 
     ## Given a column name, parses to the index (1-based) or return index
        unchanged.
     column_index : (Text|Integer) -> Integer
-    column_index column =
+    column_index self column =
         if column.is_an Integer then column else Java_Range.parseA1Column column
 
     ## Creates a Range from an address.
     from_address : Text -> Excel_Range
     from_address address =
-        illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
-        Panic.catch IllegalArgumentException handler=illegal_argument <|
+        Illegal_Argument_Error.handle_java_exception <|
             Excel_Range (Java_Range.new address)
 
     ## Create a Range for a single cell.
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
-    for_cell sheet column row =
+    for_cell self sheet column row =
         col_index = Excel_Range.column_index column
 
         col_valid = validate (Excel_Range.is_valid_column col_index) ("Invalid column for Excel: " + column.to_text + ".")
@@ -131,7 +129,7 @@ type Excel_Range
 
     ## Create an Excel_Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
-    for_range sheet left top right bottom =
+    for_range self sheet left top right bottom =
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
@@ -145,7 +143,7 @@ type Excel_Range
 
     ## Create an Excel_Range for a set of columns.
     for_columns : Text -> (Text|Integer) -> (Text|Integer) -> Excel_Range
-    for_columns sheet left (right=left) =
+    for_columns self sheet left (right=left) =
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
@@ -157,7 +155,7 @@ type Excel_Range
 
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
-    for_rows sheet top (bottom=top) =
+    for_rows self sheet top (bottom=top) =
         top_valid = validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
         bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
@@ -281,15 +279,11 @@ handle_writer ~writer =
     throw_existing_data caught_panic = Error.throw (Existing_Data caught_panic.payload.cause.getMessage)
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
-    ## Illegal argument can occur if appending in an invalid mode
-    illegal_argument caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage  caught_panic.payload.cause)
-    handle_illegal_argument = Panic.catch IllegalArgumentException handler=illegal_argument
-
     ## Should be impossible - occurs if no fallback serializer is provided.
     throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error caught_panic.payload.cause.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
     handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|
         Column_Count_Mismatch.handle_java_exception <| handle_bad_location <|
-            handle_illegal_argument <| handle_range_exceeded <| handle_existing_data <|
+            Illegal_Argument_Error.handle_java_exception <| handle_range_exceeded <| handle_existing_data <|
                 writer

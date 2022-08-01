@@ -14,10 +14,16 @@ jobs:
       - Linux
       - engine
     steps:
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - id: changed_files
         run: "git fetch\nlist=`git diff --name-only origin/develop HEAD | tr '\\n' ' '`\necho $list\necho \"::set-output name=list::'$list'\""
       - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') || github.event.pull_request.user.login == 'dependabot' }} == false ]]; then exit 1; fi"
@@ -44,10 +50,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -78,10 +90,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -114,10 +132,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -150,10 +174,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -184,10 +214,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -220,10 +256,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -267,10 +309,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -303,10 +351,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -339,10 +393,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -378,10 +438,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -415,10 +481,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -454,10 +526,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:
@@ -490,10 +568,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - run: "\"c:\\Program Files\\Git\\bin\\bash.exe\" -c \"git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :\""
+        if: "runner.os == 'Windows'"
+        shell: cmd
+      - run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        if: "runner.os != 'Windows'"
+        shell: bash
       - name: Checking out the repository
         uses: actions/checkout@v2
         with:
-          clean: false
+          clean: true
       - name: Build Script Setup
         run: "./run --help"
         env:

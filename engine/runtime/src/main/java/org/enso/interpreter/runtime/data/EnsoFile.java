@@ -17,10 +17,15 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.CopyOption;
 import java.nio.file.OpenOption;
-import java.time.ZonedDateTime;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Set;
 
 /**
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
@@ -47,6 +52,23 @@ public class EnsoFile implements TruffleObject {
   @Builtin.ReturningGuestObject
   public InputStream inputStream(OpenOption[] opts) throws IOException {
     return this.truffleFile.newInputStream(opts);
+  }
+
+  @Builtin.Method(name = "read_last_bytes_builtin")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  public ArrayOverBuffer readLastBytes(long n) throws IOException {
+    try (SeekableByteChannel channel =
+        this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
+      int bytesToRead = Math.toIntExact(Math.min(channel.size(), n));
+      channel.position(channel.size() - bytesToRead);
+      ByteBuffer buffer = ByteBuffer.allocate(bytesToRead);
+      while (buffer.hasRemaining()) {
+        channel.read(buffer);
+      }
+
+      buffer.flip();
+      return ArrayOverBuffer.wrapBuffer(buffer);
+    }
   }
 
   @Builtin.Method(name = "resolve")
@@ -78,6 +100,13 @@ public class EnsoFile implements TruffleObject {
   @Builtin.ReturningGuestObject
   public ZonedDateTime getLastModifiedTime() throws IOException {
     return ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC);
+  }
+
+  @Builtin.Method(name = "posix_permissions_builtin")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.ReturningGuestObject
+  public Set<PosixFilePermission> getPosixPermissions() throws IOException {
+    return truffleFile.getPosixPermissions();
   }
 
   @Builtin.Method(name = "parent")

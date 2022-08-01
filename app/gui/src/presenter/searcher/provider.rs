@@ -3,15 +3,14 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action::MatchInfo;
-use crate::model::suggestion_database;
 
+use crate::presenter;
 use enso_text as text;
 use ensogl_component::list_view;
 use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view_component_group as component_group_view;
-
 
 
 // ============================
@@ -71,29 +70,15 @@ impl Action {
     /// documentation in HTML format.
     pub fn doc_placeholder_for(suggestion: &controller::searcher::action::Suggestion) -> String {
         use controller::searcher::action::Suggestion;
-        let code = match suggestion {
-            Suggestion::FromDatabase(suggestion) => {
-                let title = match suggestion.kind {
-                    suggestion_database::entry::Kind::Atom => "Atom",
-                    suggestion_database::entry::Kind::Function => "Function",
-                    suggestion_database::entry::Kind::Local => "Local variable",
-                    suggestion_database::entry::Kind::Method => "Method",
-                    suggestion_database::entry::Kind::Module => "Module",
-                };
-                let code = suggestion.code_to_insert(None, true).code;
-                format!("{} `{}`\n\nNo documentation available", title, code)
-            }
+        match suggestion {
+            Suggestion::FromDatabase(suggestion) =>
+                presenter::searcher::doc_placeholder_for(suggestion),
             Suggestion::Hardcoded(suggestion) => {
-                format!("{}\n\nNo documentation available", suggestion.name)
+                format!(
+                    "<div class=\"enso docs summary\"><p />{}<p />No documentation available</div>",
+                    suggestion.name
+                )
             }
-        };
-        let parser = parser::DocParser::new();
-        match parser {
-            Ok(p) => {
-                let output = p.generate_html_doc_pure((*code).to_string());
-                output.unwrap_or(code)
-            }
-            Err(_) => code,
         }
     }
 }
@@ -157,6 +142,12 @@ impl ide_view::searcher::DocumentationProvider for Action {
     }
 }
 
+
+
+// ===========================
+// === provider::Component ===
+// ===========================
+
 /// Component Provider getting entries from a [`controller::searcher::component::Group`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
@@ -170,22 +161,41 @@ impl Component {
     }
 }
 
+macro_rules! kind_to_icon {
+    ([ $( $variant:ident ),* ] $kind:ident) => {
+        {
+            use component_group_view::icon::Id;
+            use model::suggestion_database::entry::Kind;
+            match $kind {
+                $( Kind::$variant => Id::$variant, )*
+            }
+        }
+    }
+}
+
 impl list_view::entry::ModelProvider<component_group_view::Entry> for Component {
     fn entry_count(&self) -> usize {
         self.group.matched_items.get()
     }
 
     fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
+        use model::suggestion_database::entry::for_each_kind_variant;
         let component = self.group.get_entry(id)?;
         let match_info = component.match_info.borrow();
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
+        let kind = component.suggestion.kind;
+        let icon_name = component.suggestion.icon_name.as_ref();
+        let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());
         Some(component_group_view::entry::Model {
-            icon:             component_group_view::icon::Id::AddColumn,
+            icon:             icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind))),
             highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
         })
     }
 }
+
+
+// === Component Provider helpers ===
 
 fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
     if let MatchInfo::Matches { subsequence } = match_info {
@@ -210,6 +220,12 @@ fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Ra
         default()
     }
 }
+
+
+
+// ===========================
+// === Converter functions ===
+// ===========================
 
 /// Get [`LabeledAnyModelProvider`] for given component group.
 pub fn from_component_group(

@@ -18,7 +18,7 @@ type Boolean
 
              True == False
     == : Boolean -> Boolean
-    == that = @Builtin_Method "Boolean.=="
+    == self that = @Builtin_Method "Boolean.=="
 
     ## Computes the logical and (conjunction) of two booleans.
 
@@ -34,7 +34,7 @@ type Boolean
 
              False && True
     && : Boolean -> Boolean
-    && ~that = @Builtin_Method "Boolean.&&"
+    && self ~that = @Builtin_Method "Boolean.&&"
 
     ## Computes the logical or (disjunction) of two booleans.
 
@@ -50,7 +50,7 @@ type Boolean
 
              True || False
     || : Boolean -> Boolean
-    || ~that = @Builtin_Method "Boolean.||"
+    || self ~that = @Builtin_Method "Boolean.||"
 
     ## Computes the logical negation of this.
 
@@ -59,7 +59,20 @@ type Boolean
 
              True.not
     not : Boolean
-    not = @Builtin_Method "Boolean.not"
+    not self = @Builtin_Method "Boolean.not"
+
+    ## Compares the two operands to determine the ordering of this with
+       respect to that.
+
+       Arguments:
+       - that: The operand to order this with respect to.
+
+       > Example
+         Computing the ordering of True and False
+
+             True.compare_to False
+    compare_to : Boolean -> Ordering
+    compare_to self that = @Builtin_Method "Boolean.compare_to"
 
     ## The if-then-else control flow operator that executes one of two branches
        based on a conditional.
@@ -76,7 +89,7 @@ type Boolean
 
              if (27 % 3) == 0 then IO.println "Yes" else IO.println "No"
     if_then_else : Any -> Any -> Any
-    if_then_else ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+    if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
 
     ## The if-then control flow operator that executes a branch if the condition
        is true, and otherwise returns Nothing.
@@ -92,7 +105,7 @@ type Boolean
 
              if (27 % 3) == 0 then IO.println "Fizz"
     if_then : Any -> Any | Nothing
-    if_then ~on_true = @Builtin_Method "Boolean.if_then"
+    if_then self ~on_true = @Builtin_Method "Boolean.if_then"
 
 ## The constructor for the value True.
 @Builtin_Type

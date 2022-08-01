@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(type = "Meta", name = "is_atom", description = "Checks if the argument is an atom")
 public class IsAtomNode extends Node {
-  boolean execute(Object self, @AcceptsError Object value) {
+  boolean execute(@AcceptsError Object value) {
     return TypesGen.isAtom(value);
   }
 }

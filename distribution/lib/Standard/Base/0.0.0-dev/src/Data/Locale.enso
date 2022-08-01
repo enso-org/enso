@@ -314,7 +314,7 @@ type Locale
 
              example_language = Locale.default.language
     language : Text | Nothing
-    language =
+    language self =
         lang = self.java_locale.getLanguage
         if lang.is_empty then Nothing else lang
 
@@ -327,7 +327,7 @@ type Locale
 
              example_country = Locale.default.country
     country : Text | Nothing
-    country =
+    country self =
         place = self.java_locale.getCountry
         if place.is_empty then Nothing else place
 
@@ -340,7 +340,7 @@ type Locale
 
              example_variant = Locale.default.variant
     variant : Text | Nothing
-    variant =
+    variant self =
         var = self.java_locale.getVariant
         if var.is_empty then Nothing else var
 
@@ -354,7 +354,7 @@ type Locale
 
              example_display_language = Locale.default.display_language
     display_language : Text | Nothing
-    display_language =
+    display_language self =
         disp = self.java_locale.getDisplayLanguage
         if disp.is_empty then Nothing else disp
 
@@ -368,7 +368,7 @@ type Locale
 
              example_display_country = Locale.default.display_country
     display_country : Text | Nothing
-    display_country =
+    display_country self =
         disp = self.java_locale.getDisplayCountry
         if disp.is_empty then Nothing else disp
 
@@ -382,7 +382,7 @@ type Locale
 
              example_display_variant = Locale.default.display_variant
     display_variant : Text | Nothing
-    display_variant =
+    display_variant self =
         disp = self.java_locale.getDisplayVariant
         if disp.is_empty then Nothing else disp
 
@@ -395,7 +395,7 @@ type Locale
 
              example_to_text = Locale.default.to_text
     to_text : Text | Nothing
-    to_text = self.java_locale.toLanguageTag
+    to_text self = self.java_locale.toLanguageTag
 
     ## A Locale to Json conversion
 
@@ -406,7 +406,7 @@ type Locale
 
              example_to_json = Locale.default.to_json
     to_json : Json.Object
-    to_json =
+    to_json self =
         b = Vector.new_builder
         b.append ["type", "Locale"]
         if self.language.is_nothing.not then b.append ["language", self.language]
@@ -416,7 +416,7 @@ type Locale
 
     ## Compares two locales for equality.
     == : Any -> Boolean
-    == other = case other of
+    == self other = case other of
         Locale other_java_locale -> self.java_locale.equals other_java_locale
         _ -> False
 

@@ -180,7 +180,7 @@ trait InterpreterRunner {
   )(implicit interpreterContext: InterpreterContext): Value = {
     InterpreterException.rethrowPolyglot {
       val main = getMain(code)
-      main.mainFunction.execute(main.mainConstructor)
+      main.mainFunction.execute()
     }
   }
 

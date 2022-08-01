@@ -327,7 +327,10 @@ where T: Builder<'s>
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        self.as_mut().map(|t| Builder::add_to_span(t, span)).unwrap_or_default()
+        match self {
+            Some(t) => Builder::add_to_span(t, span),
+            None => span,
+        }
     }
 }
 

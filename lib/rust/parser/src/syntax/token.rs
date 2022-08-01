@@ -103,7 +103,7 @@ use enso_shapely_macros::tagged_enum;
 // =============
 
 /// The lexical token definition. See the module docs to learn more about its usage scenarios.
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Default, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Token<'s, T = Variant> {
     #[deref]
@@ -170,7 +170,7 @@ impl<'s, T> Token<'s, T> {
 
 impl<'s, T: Debug> Debug for Token<'s, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}:\"{}\"] ", self.left_offset.visible, self.code)?;
+        write!(f, "[{}:{:?}] ", self.left_offset.visible, self.code)?;
         Debug::fmt(&self.variant, f)
     }
 }
@@ -248,6 +248,8 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
     #[allow(missing_docs)]
     #[tagged_enum(apply_attributes_to = "variants")]
     #[reflect(inline)]
+    #[tagged_enum(apply_attributes_to = "variant-types")]
+    #[derive(Default)]
     pub enum Variant {
         Newline,
         Symbol,
@@ -260,7 +262,11 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub is_free: bool,
             pub lift_level: usize
         },
-        Operator,
+        Operator {
+            pub precedence: usize,
+            pub can_be_binary_infix: bool,
+            pub can_be_unary_prefix: bool,
+        },
         Modifier,
         Comment,
         DocComment,
@@ -271,6 +277,12 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
         TextEscape,
     }
 }}}
+
+impl Default for Variant {
+    fn default() -> Self {
+        Self::Newline(variant::Newline {})
+    }
+}
 
 macro_rules! generate_token_aliases {
     (
