@@ -12,6 +12,7 @@ from Standard.Database import all
 from Standard.Database.Connection.Connection import Sql_Error
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Database.Internal.Postgres.Pgpass import Pgpass_Entry
+import Standard.Database.Internal.Postgres.Pgpass
 
 import Standard.Test
 import Standard.Test.Test_Environment

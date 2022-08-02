@@ -4,7 +4,7 @@ from Standard.Base.Data.Numbers import Parse_Error
 
 import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection
-from Standard.Database.Connection.Credentials as Credentials_Module import Credentials
+from Standard.Database.Connection.Credentials import Credentials
 import Standard.Database.Connection.Connection_Options
 import Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.SSL_Mode import all

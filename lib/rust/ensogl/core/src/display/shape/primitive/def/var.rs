@@ -200,6 +200,10 @@ impl<T: Scalar> HasComponents for Var<Vector3<T>> {
     type Component = Var<T>;
 }
 
+impl<T: Scalar> HasComponents for Var<Vector4<T>> {
+    type Component = Var<T>;
+}
+
 impl<T: Scalar> Dim1 for Var<Vector2<T>> {
     fn x(&self) -> Var<T> {
         match self {
@@ -241,6 +245,60 @@ impl<T: Scalar> Dim3 for Var<Vector3<T>> {
         match self {
             Self::Static(t) => Var::Static(t.z.clone()),
             Self::Dynamic(t) => Var::Dynamic(format!("{}.z", t).into()),
+        }
+    }
+}
+
+impl<T: Scalar> Dim1 for Var<Vector4<T>> {
+    fn x(&self) -> Var<T> {
+        match self {
+            Self::Static(t) => Var::Static(t.x.clone()),
+            Self::Dynamic(t) => Var::Dynamic(format!("{}.x", t).into()),
+        }
+    }
+}
+
+impl<T: Scalar> Dim2 for Var<Vector4<T>> {
+    fn y(&self) -> Var<T> {
+        match self {
+            Self::Static(t) => Var::Static(t.y.clone()),
+            Self::Dynamic(t) => Var::Dynamic(format!("{}.y", t).into()),
+        }
+    }
+}
+
+impl<T: Scalar> Dim3 for Var<Vector4<T>> {
+    fn z(&self) -> Var<T> {
+        match self {
+            Self::Static(t) => Var::Static(t.z.clone()),
+            Self::Dynamic(t) => Var::Dynamic(format!("{}.z", t).into()),
+        }
+    }
+}
+
+impl<T: Scalar> Dim4 for Var<Vector4<T>> {
+    fn w(&self) -> Var<T> {
+        match self {
+            Self::Static(t) => Var::Static(t.z.clone()),
+            Self::Dynamic(t) => Var::Dynamic(format!("{}.z", t).into()),
+        }
+    }
+}
+
+impl<T: Scalar> HasDim2Version for Var<Vector4<T>> {
+    type Dim2Version = Var<Vector2<T>>;
+
+    fn xy(&self) -> Self::Dim2Version {
+        match self {
+            Self::Static(t) => Var::Static(t.xy()),
+            Self::Dynamic(t) => Var::Dynamic(format!("{}.xy", t).into()),
+        }
+    }
+
+    fn zw(&self) -> Self::Dim2Version {
+        match self {
+            Self::Static(t) => Var::Static(Vector2(t[2].clone(), t[3].clone())),
+            Self::Dynamic(t) => Var::Dynamic(format!("{}.zw", t).into()),
         }
     }
 }

@@ -56,7 +56,7 @@ spec =
                 style=setting.first
                 separator=setting.second
                 file = (enso_project.data / "transient" / "endings.csv")
-                table.write file (File_Format.Delimited ',' line_endings=style) on_problems=Report_Error . should_succeed
+                table.write file (Delimited ',' line_endings=style) on_problems=Report_Error . should_succeed
                 text = File.read_text file
                 text.should_equal (lines.join separator suffix=separator)
                 file.delete
@@ -75,7 +75,7 @@ spec =
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
             file = (enso_project.data / "transient" / "quotes1.csv")
             file.delete_if_exists
-            table.write file (File_Format.Delimited "," value_formatter=data_formatter) on_problems=Report_Error . should_succeed
+            table.write file (Delimited "," value_formatter=data_formatter) on_problems=Report_Error . should_succeed
             expected_text = normalize_lines <| """
                 "The Column ""Name""","Hello, Column?"
                 foo,"1,0"
@@ -91,7 +91,7 @@ spec =
             table = Table.new [['"A"', ["foo",'!"baz" ', 'one, two, three', "a;b; c ", "a\b"]], ["B", [1000000.5, 1000.0, 0.0, -1.2, Nothing]]]
             file = (enso_project.data / "transient" / "quotes2.csv")
             file.delete_if_exists
-            table.write file (File_Format.Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\') on_problems=Report_Error . should_succeed
+            table.write file (Delimited ";" value_formatter=data_formatter . with_quotes quote='"' quote_escape='\\') on_problems=Report_Error . should_succeed
             expected_text = normalize_lines <| """
                 "\"A\"";B
                 foo;1'000'000.5
@@ -108,7 +108,7 @@ spec =
             table = Table.new [['"A"', [Nothing,"The 'thing'.", 'one, "two", three', 'a\tb']], ["B\C", [1000000.5, 1000.0, Nothing, -1.2]]]
             file = (enso_project.data / "transient" / "quotes3.csv")
             file.delete_if_exists
-            table.write file (File_Format.Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'') on_problems=Report_Error . should_succeed
+            table.write file (Delimited '\t' value_formatter=data_formatter . with_quotes quote='\'' quote_escape='\'') on_problems=Report_Error . should_succeed
             expected_text = normalize_lines <| '''
                 "A"\tB\\C
                 \t'1''000''000.5'
@@ -143,7 +143,7 @@ spec =
             text.should_equal expected_text
             file.delete
 
-            format = File_Format.Delimited ',' . with_comments
+            format = Delimited ',' . with_comments
             table.write file format on_problems=Report_Error . should_succeed
             expected_text_2 = normalize_lines <| """
                 "#",B
@@ -155,7 +155,7 @@ spec =
             file.delete
 
         Test.specify 'should not quote values if quoting is disabled' <|
-            format = File_Format.Delimited "," value_formatter=(Data_Formatter decimal_point=",") . without_quotes
+            format = Delimited "," value_formatter=(Data_Formatter decimal_point=",") . without_quotes
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]
             file = (enso_project.data / "transient" / "quote_disabled.csv")
             file.delete_if_exists
@@ -171,7 +171,7 @@ spec =
             file.delete
 
         Test.specify 'should allow to always quote text and custom values, but for non-text primitves only if absolutely necessary' <|
-            format = File_Format.Delimited "," value_formatter=(Data_Formatter thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
+            format = Delimited "," value_formatter=(Data_Formatter thousand_separator='"' date_formats=["E, d MMM y"]) . with_quotes always_quote=True quote_escape='\\'
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["B", [1.0, 1000000.5, 2.2, -1.5]], ["C", ["foo", My_Type 44, (Date.new 2022 06 21), 42]], ["D", [1,2,3,4000]], ["E", [Nothing, (Time_Of_Day.new 13 55 . internal_local_time), Nothing, Nothing]]]
             file = (enso_project.data / "transient" / "quote_always.csv")
             file.delete_if_exists
@@ -190,7 +190,7 @@ spec =
             table = Table.new [["ąęćś", [0]], ["ß", ["żółw 🐢"]]]
             file = (enso_project.data / "transient" / "utf16.csv")
             file.delete_if_exists
-            table.write file (File_Format.Delimited "," encoding=Encoding.utf_16_be) on_problems=Report_Error . should_succeed
+            table.write file (Delimited "," encoding=Encoding.utf_16_be) on_problems=Report_Error . should_succeed
             expected_text = normalize_lines <| """
                 ąęćś,ß
                 0,żółw 🐢
@@ -202,7 +202,7 @@ spec =
             table = Table.new [["A", [0, 1]], ["B", ["słówka", "🐢"]]]
             file = (enso_project.data / "transient" / "ascii.csv")
             file.delete_if_exists
-            result = table.write file (File_Format.Delimited "," encoding=Encoding.ascii)
+            result = table.write file (Delimited "," encoding=Encoding.ascii)
             expected_text = normalize_lines <| """
                 A,B
                 0,s??wka
@@ -217,7 +217,7 @@ spec =
             file.delete
 
         Test.specify "should allow only text columns if no formatter is specified" <|
-            format = File_Format.Delimited "," value_formatter=Nothing
+            format = Delimited "," value_formatter=Nothing
             table_1 = Table.new [["A", ["x", "y"]], ["B", ["z", "w"]]]
             file_1 = (enso_project.data / "transient" / "textonly.csv")
             file_1.delete_if_exists
@@ -289,7 +289,7 @@ spec =
             file = (enso_project.data / "transient" / "append_by_name_2.csv")
             file.delete_if_exists
             existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed
-            format = File_Format.Delimited "," . with_headers
+            format = Delimited "," . with_headers
             appending_table.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             got_table = file.read format
             expected_table = Table.new [["0", [1,2,Nothing,0]], ["B1", [1.0,1.5,33,44]], ["C", ["x","y","a","BB"]]]
@@ -301,7 +301,7 @@ spec =
             appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
             file = (enso_project.data / "transient" / "append_no_header.csv")
             file.delete_if_exists
-            no_header_format = File_Format.Delimited "," . without_headers
+            no_header_format = Delimited "," . without_headers
             existing_table.write file no_header_format on_existing_file=Existing_File_Behavior.Overwrite
             appending_table.write file on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
             file.delete
@@ -311,7 +311,7 @@ spec =
             appending_table = Table.new [["B", [33,44]], ["A", [Nothing, 0]], ["C", ["a","BB"]]]
             file = (enso_project.data / "transient" / "append_no_header.csv")
             file.delete_if_exists
-            no_header_format = File_Format.Delimited "," . without_headers
+            no_header_format = Delimited "," . without_headers
             existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
             appending_table.write file no_header_format on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error
             file.delete
@@ -343,7 +343,7 @@ spec =
                 got_table.should_equal expected_table
                 file.delete
 
-            base_format = File_Format.Delimited ","
+            base_format = Delimited ","
             no_headers = base_format . without_headers
             with_headers = base_format . with_headers
 
@@ -385,7 +385,7 @@ spec =
                 style=setting.first
                 separator=setting.second
                 file = (enso_project.data / "transient" / "endings.csv")
-                initial_table.write file (File_Format.Delimited ',' line_endings=style) on_problems=Report_Error . should_succeed
+                initial_table.write file (Delimited ',' line_endings=style) on_problems=Report_Error . should_succeed
                 table_to_append.write file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
                 text = File.read_text file
                 text.should_equal (expected_lines.join separator suffix=separator)
@@ -415,7 +415,7 @@ spec =
                 separator=setting.second
                 file.delete_if_exists
                 (initial_lines.join separator suffix=separator).write file
-                format = File_Format.Delimited ',' . with_comments
+                format = Delimited ',' . with_comments
                 table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
                 text = File.read_text file
                 expected_text = expected_lines.join separator suffix=separator
@@ -431,7 +431,7 @@ spec =
                 separator=setting.second
                 file.delete_if_exists
                 (initial_lines.join separator).write file
-                format = File_Format.Delimited ',' . with_comments
+                format = Delimited ',' . with_comments
                 table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
                 text = File.read_text file
                 expected_text = expected_lines.join separator suffix=separator
@@ -443,7 +443,7 @@ spec =
             file = (enso_project.data / "transient" / "append_edge_cases.csv")
             file.delete_if_exists
 
-            format = File_Format.Delimited ',' . without_headers
+            format = Delimited ',' . without_headers
 
             # A long line but without a trailing newline
             base_line = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-ABC"
@@ -518,7 +518,7 @@ spec =
                 separator=setting.second
                 file.delete_if_exists
                 (initial_line+separator).write file
-                format = File_Format.Delimited ',' . with_comments
+                format = Delimited ',' . with_comments
                 table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
                 text = File.read_text file
                 expected_text = expected_lines.join separator suffix=separator
@@ -532,7 +532,7 @@ spec =
             file = (enso_project.data / "transient" / "endings_comments_only.csv")
             file.delete_if_exists
             (join_lines initial_lines trailing_newline=False).write file
-            format = File_Format.Delimited ',' . with_comments
+            format = Delimited ',' . with_comments
             table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
             text = File.read_text file
             expected_text = join_lines expected_lines
@@ -544,8 +544,8 @@ spec =
             table_to_append = Table.new [["a", ["x", "y"]]]
             file = (enso_project.data / "transient" / "endings_mismatch.csv")
             file.delete_if_exists
-            initial_table.write file (File_Format.Delimited ',' line_endings=Line_Ending_Style.Mac_Legacy)
-            result = table_to_append.write file (File_Format.Delimited ',' line_endings=Line_Ending_Style.Unix) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
+            initial_table.write file (Delimited ',' line_endings=Line_Ending_Style.Mac_Legacy)
+            result = table_to_append.write file (Delimited ',' line_endings=Line_Ending_Style.Unix) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
             result . should_fail_with Illegal_Argument_Error
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete

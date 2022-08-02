@@ -3,7 +3,6 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Regex import No_Such_Group_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Option as Global_Option
-from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 

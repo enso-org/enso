@@ -14,12 +14,12 @@ import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Delimited_Writer
 import Standard.Table.Internal.Problem_Builder
 
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
-from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
-from Standard.Table.Errors as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
+from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
+from Standard.Table.Data.Data_Formatter import Data_Formatter
+from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
+from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 import Standard.Table.Data.Match_Columns
 
 import Standard.Table.Data.Column_Name_Mapping
@@ -297,6 +297,8 @@ type Table
          Select columns with the same names as the ones provided.
 
              table.select_columns (By_Column [column1, column2])
+
+       Icon: select_column
     select_columns : Column_Selector -> Boolean -> Problem_Behavior -> Table
     select_columns self (columns = By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = Table_Helpers.select_columns internal_columns=self.columns selector=columns reorder=reorder on_problems=on_problems
@@ -812,6 +814,8 @@ type Table
 
              example_join =
                  Examples.inventory_table.join Examples.popularity_table
+
+       Icon: join
     join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
