@@ -676,7 +676,7 @@ type Vector
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
     take : (Index_Sub_Range | Range) -> Vector Any
-    take self range = case range of
+    take self range=(First 1) = case range of
         Range _ _ _ -> self.take (By_Index range)
         First count ->
             if count <= 0 then empty else
@@ -716,7 +716,7 @@ type Vector
          the rules of that type.
          If a `Range`, the selection is specified by two indices, from and to.
     drop : (Index_Sub_Range | Range) -> Vector Any
-    drop self range = case range of
+    drop self range=(First 1) = case range of
         Range _ _ _ -> self.drop (By_Index range)
         First count ->
             if count <= 0 then self else
