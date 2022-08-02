@@ -150,6 +150,7 @@ fn type_def_full() {
 
 #[test]
 fn type_def_nested() {
+    #[rustfmt::skip]
     let code = [
         "type Foo",
         "    type Bar",

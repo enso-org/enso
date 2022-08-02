@@ -91,7 +91,7 @@ fn group_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
         ($token:expr) => {{
             let token::Token { left_offset, code, .. } = $token;
             token::symbol(left_offset, code)
-        }}
+        }};
     }
     let (close, mut segments) = segments.pop();
     let close = into_symbol!(close.header);
