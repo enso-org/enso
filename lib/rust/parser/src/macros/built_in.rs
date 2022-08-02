@@ -54,16 +54,16 @@ fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
     for segment in segments {
         let header = segment.header;
         let body = resolve_operator_precedence_if_non_empty(segment.result.tokens());
-        match header.code.as_ref() {
-            "polyglot" => polyglot = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
-            "from" => from = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
-            "as" if import.is_none() =>
-                from_as = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
-            "import" => import = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
-            "as" => import_as = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
-            "hiding" => hiding = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
+        let field = match header.code.as_ref() {
+            "polyglot" => &mut polyglot,
+            "from" => &mut from,
+            "as" if import.is_none() => &mut from_as,
+            "import" => &mut import,
+            "as" => &mut import_as,
+            "hiding" => &mut hiding,
             _ => unreachable!(),
-        }
+        };
+        *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
     }
     let import = import.unwrap();
     syntax::Tree::import(polyglot, from, from_as, import, import_as, hiding)
