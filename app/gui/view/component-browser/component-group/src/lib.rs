@@ -366,7 +366,9 @@ impl Colors {
 // === FRP ===
 // ===========
 
-/// The type of the [`selected`] FRP output of the component group.
+/// Represents the selection state of the component group. (the [`selected`] FRP output)
+///
+/// The user can select either the header of the component group or one of the entries.
 #[derive(Clone, Copy, CloneRef, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum Selected {
@@ -797,13 +799,21 @@ impl Model {
         }
     }
 
-    /// The y position of the header. The position is restricted by the borders of the
-    /// component group.
-    fn header_y(&self, header_geometry: HeaderGeometry, size: Vector2, header_pos: f32) -> f32 {
+    /// Calculate the y position of the header of the component group.
+    ///
+    /// The position is calculated by adding the [`header_pos`] to the y coordinate at the component
+    /// group's top. The final result is also limited by the top and bottom borders of the group
+    /// in such a way that the header is always displayed inside it.
+    fn header_y(
+        &self,
+        header_geometry: HeaderGeometry,
+        group_size: Vector2,
+        header_pos: f32,
+    ) -> f32 {
         let header_height = header_geometry.height;
         let half_header_height = header_height / 2.0;
-        let top = size.y / 2.0;
-        let bottom = -size.y / 2.0;
+        let top = group_size.y / 2.0;
+        let bottom = -group_size.y / 2.0;
         let header_center_y = top - half_header_height - header_pos;
         let header_center_y = header_center_y.max(bottom + half_header_height);
         header_center_y.min(top - half_header_height)

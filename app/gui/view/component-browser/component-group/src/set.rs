@@ -137,7 +137,7 @@ propagated_events! {
     #[allow(missing_docs)]
     struct PropagatedEvents {
         mouse_in_group:            GroupId,
-        selected:            Option<(GroupId, Selected)>,
+        selected:                  Option<(GroupId, Selected)>,
         suggestion_accepted:       (GroupId, entry::Id),
         expression_accepted:       (GroupId, entry::Id),
         header_accepted:           GroupId,

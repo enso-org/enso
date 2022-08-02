@@ -257,27 +257,27 @@ const SECTION_HEADER_PLACEMENT: SectionHeaderPlacement = SectionHeaderPlacement:
 ///
 /// The selection box should never leave the borders of the component list panel. We can't use
 /// [layers masking][] as our renderer does not support hierarchical masks, so instead, we build a
-/// final shape as an intersection of the `mask` rounded rectangle and the `area` shape. The `area`
-/// covers the entire component list panel and thus limits the area in which the selection box is
-/// visible.
+/// shape of the selection box as an intersection of the `mask` rounded rectangle and the `area`
+/// shape. The `area` covers the entire component list panel and thus limits the area in which the
+/// selection box is visible.
 ///
-/// The shape of the component list panel determines the size and the position of the `area`. One
-/// should use the display object's standard `set_position` API to move the `area`. The `mask` moves
-/// freely and represents the position of the selection box itself. There are `pos` and
-/// `selection_size` parameters for the position and the size of the `mask`, respectively.
+/// The `mask` represents the selection box itself and moves in borders of `area` shape. `pos`
+/// and `selection_size` parameters represent its position and size, respectively. The shape of the
+/// component list panel determines the position and the size of the `area`. One can adjust them
+/// using a standard display object's API. (e.g. `set_position` method)
 ///
 /// The `margin_top` parameter controls the variable height of the `area`. In a scrolled
 /// component group, the user can select a partially visible entry behind the group's header. We
-/// make the selection box appear covered by the selection box by reducing the height of the `area.`
-/// It works because the header is always on top of the component list panel in a scrolled group.
+/// make the selection box appear covered by the header by reducing the height of the `area`. It's
+/// enough because headers are always on top of the component list panel in a scrolled group.
 ///
 /// We have only a single `corners_radius` parameter for the bottom corners of the `area` and the
 /// corners of the selection `mask`. In the current [design][], the corner radius of the selection
 /// box depends on whether it covers the group's header or the entries. When entries are selected, a
-/// single `corners_radius` makes total sense - both `mask` and `area` have the same roundness. When
-/// the headers are highlighted, the `corners_radius` parameter no longer matches the roundness of
-/// the component list panel. It is ok because the header sticks to the top and is never displayed
-/// near the bottom part of the component list panel, where the rounded corners are.
+/// single `corners_radius` makes total sense - both `mask` and `area` have the same roundness.
+/// When the headers are highlighted, the `corners_radius` parameter no longer matches the roundness
+/// of the component list panel. It is ok because the header sticks to the top and is never
+/// displayed near the bottom part of the component list panel, where the rounded corners are.
 ///
 /// [design]: https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md
 /// [layers masking]: ensogl::display::scene::layer::Layer#masking-layers-with-arbitrary-shapes
@@ -617,7 +617,13 @@ impl Model {
         Vector2(pos.x, y)
     }
 
-    /// Calculate the view-local position of the selection from the component group-local one.
+    /// Calculate the view-local position of the selection from the group-local one.
+    ///
+    /// A group-local position of the selection box is provided by the
+    /// [`component_group::set::Wrapper`]. We need to convert it to a view-local position to display
+    /// the selection box correctly. We do this by manually going through the hierarchy of display
+    /// objects from the scroll area to the component group that is currently selected and adding
+    /// the positions of these objects.
     fn selection_position(&self, id: GroupId, group_local_pos: Vector2, style: &Style) -> Vector2 {
         let scroll_area = &self.scroll_area;
         let scroll_area_size = style.scroll_area_size();
@@ -873,15 +879,23 @@ impl EntryId {
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Selected {
     Header(GroupId),
-    Entry(EntryId),
+    Entry(GroupId, component_group::entry::Id),
 }
 
 impl Selected {
+    /// Extract an [`EntryId`] if the selected part is an entry.
+    pub fn as_entry_id(&self) -> Option<EntryId> {
+        match *self {
+            Selected::Entry(group, entry_id) => Some(EntryId { group, entry_id }),
+            _ => None,
+        }
+    }
+
     fn from_wrapper_event(&(group, selected): &(GroupId, component_group::Selected)) -> Self {
         use component_group::Selected::*;
         match selected {
             Header => Self::Header(group),
-            Entry(entry_id) => Self::Entry(EntryId { group, entry_id }),
+            Entry(entry_id) => Self::Entry(group, entry_id),
         }
     }
 }

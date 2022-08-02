@@ -3,14 +3,15 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action::MatchInfo;
-
 use crate::presenter;
+
 use enso_text as text;
 use ensogl_component::list_view;
 use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view_component_group as component_group_view;
+
 
 
 // ============================

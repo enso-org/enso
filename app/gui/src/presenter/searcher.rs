@@ -281,10 +281,9 @@ impl Searcher {
                     new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     graph.set_node_expression <+ new_input;
 
-                    entry_selected <- list_view.selected.map(|s| match s {
-                        Some(list_panel::Selected::Entry(e)) => Some(*e),
-                        _ => None
-                    });
+                    entry_selected <- list_view.selected.filter_map(
+                        |s| s.as_ref().map(list_panel::Selected::as_entry_id)
+                    );
                     entry_docs <- all_with(
                         &action_list_changed,
                         &entry_selected,
