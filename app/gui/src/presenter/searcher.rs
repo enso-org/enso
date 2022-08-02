@@ -258,7 +258,6 @@ impl Searcher {
                     list_view.set_local_scope_section <+
                         action_list_changed.map(f_!(model.create_local_scope_provider().content));
                     new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
-                    trace new_input;
                     graph.set_node_expression <+ new_input;
 
                     current_docs <- all_with(
