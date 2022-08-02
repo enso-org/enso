@@ -119,17 +119,17 @@ impl Group {
 
     pub fn from_qualified_name_and_virtual_components(
         qualified_name: QualifiedName,
-        entries: impl IntoIterator<Item = Rc<component::Virtual>>,
+        components: impl IntoIterator<Item = Rc<component::Virtual>>,
     ) -> Self {
-        let components = entries.into_iter().map(Into::into).collect_vec();
+        let entries = components.into_iter().map(Into::into).collect_vec();
         let group_data = Data {
             project:               Some(qualified_name.project),
             name:                  qualified_name.name,
             color:                 None,
             component_id:          None,
-            matched_items:         Cell::new(components.len()),
-            initial_entries_order: components.clone(),
-            entries:               RefCell::new(components),
+            matched_items:         Cell::new(entries.len()),
+            initial_entries_order: entries.clone(),
+            entries:               RefCell::new(entries),
         };
         Group { data: Rc::new(group_data) }
     }
