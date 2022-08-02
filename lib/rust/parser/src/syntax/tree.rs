@@ -193,6 +193,14 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// It is an error for this to be empty.
             pub body: Option<Tree<'s>>,
         },
+        Import {
+            pub polyglot:  Option<MultiSegmentAppSegment<'s>>,
+            pub from:      Option<MultiSegmentAppSegment<'s>>,
+            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
+            pub import:    MultiSegmentAppSegment<'s>,
+            pub import_as: Option<MultiSegmentAppSegment<'s>>,
+            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+        },
     }
 }};}
 

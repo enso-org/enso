@@ -2,7 +2,6 @@
 
 use crate::macros::pattern::*;
 use crate::macros::*;
-
 use crate::syntax::operator;
 
 
@@ -25,19 +24,49 @@ pub fn all() -> resolver::SegmentMap<'static> {
 fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
     use crate::macro_definition;
     let defs = [
-        macro_definition! {("import", everything())},
-        macro_definition! {("import", everything(), "as", everything())},
-        macro_definition! {("import", everything(), "hiding", everything())},
-        macro_definition! {("polyglot", everything(), "import", everything())},
-        macro_definition! {("polyglot", everything(), "import", everything(), "as", everything())},
-        macro_definition! {("polyglot", everything(), "import", everything(), "hiding", everything())},
-        macro_definition! {("from", everything(), "import", everything(), "hiding", everything())},
-        macro_definition! {("from", everything(), "as", everything(), "import", everything())},
-        macro_definition! {("from", everything(), "import", everything())},
+        macro_definition! {("import", everything()) import_body},
+        macro_definition! {("import", everything(), "as", everything()) import_body},
+        macro_definition! {("import", everything(), "hiding", everything()) import_body},
+        macro_definition! {("polyglot", everything(), "import", everything()) import_body},
+        macro_definition! {
+        ("polyglot", everything(), "import", everything(), "as", everything()) import_body},
+        macro_definition! {
+        ("polyglot", everything(), "import", everything(), "hiding", everything()) import_body},
+        macro_definition! {
+        ("from", everything(), "import", everything(), "hiding", everything()) import_body},
+        macro_definition! {
+        ("from", everything(), "as", everything(), "import", everything()) import_body},
+        macro_definition! {("from", everything(), "import", everything()) import_body},
     ];
     for def in defs {
         macros.register(def);
     }
+}
+
+fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use operator::resolve_operator_precedence_if_non_empty;
+    let mut polyglot = None;
+    let mut from = None;
+    let mut from_as = None;
+    let mut import = None;
+    let mut import_as = None;
+    let mut hiding = None;
+    for segment in segments {
+        let header = segment.header;
+        let body = resolve_operator_precedence_if_non_empty(segment.result.tokens());
+        match header.code.as_ref() {
+            "polyglot" => polyglot = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
+            "from" => from = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
+            "as" if import.is_none() =>
+                from_as = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
+            "import" => import = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
+            "as" => import_as = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
+            "hiding" => hiding = Some(syntax::tree::MultiSegmentAppSegment { header, body }),
+            _ => unreachable!(),
+        }
+    }
+    let import = import.unwrap();
+    syntax::Tree::import(polyglot, from, from_as, import, import_as, hiding)
 }
 
 /// If-then-else macro definition.
