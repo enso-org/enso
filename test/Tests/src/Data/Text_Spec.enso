@@ -431,6 +431,8 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 6) . should_equal '😍😃😍'
 
         Test.specify "take should correctly handle edge cases" <|
+            "ABC".take . should_equal "A"
+
             "".take First . should_equal ""
             "".take Last . should_equal ""
 
@@ -551,6 +553,8 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 6) . should_equal '✨🚀🚧😎😙😉☺'
 
         Test.specify "drop should correctly handle edge cases" <|
+            "ABC".drop . should_equal "BC"
+
             "".drop First . should_equal ""
             "".drop Last . should_equal ""
 

@@ -10,6 +10,7 @@ import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Span as Span_Module
 import Standard.Base.Data.Text.Text_Sub_Range
+from Standard.Base.Data.Text.Text_Sub_Range import First
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
@@ -1092,7 +1093,7 @@ Text.repeat self count=1 =
          "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
          "Hello World!".take (Sample 3 seed=42) == "l d"
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
-Text.take self range =
+Text.take self range=(First 1) =
     ranges = Text_Sub_Range.find_codepoint_ranges self range
     case ranges of
         Range start end _ ->
@@ -1141,7 +1142,7 @@ Text.take self range =
          "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
 Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
-Text.drop self range =
+Text.drop self range=(First 1) =
     ranges = Text_Sub_Range.find_codepoint_ranges self range
     case ranges of
         Range start end _ ->
