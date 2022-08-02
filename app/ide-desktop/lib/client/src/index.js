@@ -26,7 +26,7 @@ const resources = path.join(root, '..')
 const project_manager_executable = path.join(
     resources,
     project_manager_bundle,
-    PROJECT_MANAGER_IN_BUNDLE_PATH // This is a define.
+    PROJECT_MANAGER_IN_BUNDLE_PATH // Placeholder for a bundler-provided define.
 )
 
 // FIXME default options parsed wrong

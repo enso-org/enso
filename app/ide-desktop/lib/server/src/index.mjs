@@ -13,7 +13,9 @@ export async function start({ root, assets, port }) {
     const parameters = {
         cors: true,
         open: false, // When false, it won't load your browser by default.
-        file: '/assets/index.html', // When set, serve this file (server root relative) for every 404 (useful for single-page applications)
+        // When set, serve this file (server root relative) for every 404 (useful for single-page
+        // applications).
+        file: '/assets/index.html',
         wait: 0, // Waits for all changes, before reloading. Defaults to 0 sec.
         logLevel: 2, // 0 = errors only, 1 = some, 2 = lots
         port: await findPort(port ?? DEFAULT_PORT),

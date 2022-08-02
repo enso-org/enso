@@ -1,5 +1,8 @@
 /**
  * Configuration for the esbuild bundler and build/watch commands.
+ *
+ * The bundler processes each entry point into a single file, each with no external dependencies and minified.
+ * This primarily involves resolving all imports and transforming them to ES5.
  */
 
 import fs from 'node:fs'
@@ -19,16 +22,18 @@ import * as copy_plugin from 'enso-copy-plugin'
 import { require_env } from '../../utils.js'
 import * as BUILD_INFO from '../../build.json' assert { type: 'json' }
 
+export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
+
 // =============================
 // === Environment variables ===
 // =============================
 
-export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
-/** Path where bundled files are output. */
-export const output_path = path.resolve(require_env('ENSO_BUILD_GUI'), 'assets')
 export const wasm_path = require_env('ENSO_BUILD_GUI_WASM')
 export const js_glue_path = require_env('ENSO_BUILD_GUI_JS_GLUE')
 export const assets_path = require_env('ENSO_BUILD_GUI_ASSETS')
+
+/** Path where bundled files are output. */
+export const output_path = path.resolve(require_env('ENSO_BUILD_GUI'), 'assets')
 
 // ===================
 // === Git process ===
@@ -41,6 +46,7 @@ export const assets_path = require_env('ENSO_BUILD_GUI_ASSETS')
  */
 function git(command: string): string {
     // TODO [mwu] Eventually this should be removed, data should be provided by the build script through `BUILD_INFO`.
+    //            The bundler configuration should not invoke git, it is not its responsibility.
     return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
 
@@ -101,7 +107,6 @@ const config: esbuild.BuildOptions = {
     watch: {
         onRebuild(error, result) {
             if (error) console.error('watch build failed:', error)
-            // else console.log('watch build succeeded:', result)
         },
     },
 }
