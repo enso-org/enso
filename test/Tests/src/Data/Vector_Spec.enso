@@ -197,15 +197,19 @@ spec = Test.group "Vectors" <|
         vec.take (Range 2 4) . should_equal [3, 4]
         vec.take (Range 0 0) . should_equal []
         vec.take (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
+        vec.take (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 6)
         vec.take (Range 0 100) . should_equal vec
         [].take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+        [].take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
         vec.take (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
 
         vec.drop (Range 2 4) . should_equal [1, 2, 5, 6]
         vec.drop (Range 0 0) . should_equal vec
         vec.drop (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
+        vec.drop (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 6)
         vec.drop (Range 0 100) . should_equal []
         [].drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+        [].drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
         vec.drop (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
 
         vec.take (First 4) . should_equal first_four
