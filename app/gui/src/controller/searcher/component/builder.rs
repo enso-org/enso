@@ -173,11 +173,7 @@ impl List {
         let group_with_matching_name = favorites_groups.iter_mut().find(|g|
             g.qualified_name().as_ref() == Some(&name));
         if let Some(group) = group_with_matching_name {
-            // FIXME: code duplicated with c::Group::from_name_and_virtual_components()
-            let virtual_components = components.into_iter().map(|c| Component {
-                kind: component::Kind::Virtual { suggestion: c },
-                match_info: default(),
-            }).collect_vec();
+            let virtual_components = components.into_iter().map(Into::into).collect_vec();
             group.insert_entries(&virtual_components);
             DEBUG!("MCDBG found library: " group.project;? " " group.name);
         } else {

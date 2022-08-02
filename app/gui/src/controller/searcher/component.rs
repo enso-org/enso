@@ -168,6 +168,15 @@ impl Component {
     }
 }
 
+impl From<Rc<Virtual>> for Component {
+    fn from(suggestion: Rc<Virtual>) -> Self {
+        Self {
+            kind: Kind::Virtual { suggestion },
+            match_info: default(),
+        }
+    }
+}
+
 impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {

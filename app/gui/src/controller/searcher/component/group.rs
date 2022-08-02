@@ -119,10 +119,7 @@ impl Group {
     ) -> Self {
         let components = entries
             .into_iter()
-            .map(|suggestion| Component {
-                kind:       component::Kind::Virtual { suggestion },
-                match_info: default(),
-            })
+            .map(Into::into)
             .collect_vec();
         let group_data = Data {
             project: Some(qualified_name.project),
