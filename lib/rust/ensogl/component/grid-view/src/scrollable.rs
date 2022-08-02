@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::header;
 use crate::selectable;
 use crate::Entry;
 
@@ -86,6 +87,15 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
     /// or jump at position.
     pub fn scroll_frp(&self) -> &ensogl_scroll_area::Frp {
         self.area.deref()
+    }
+
+    pub fn setup_headers<E>(&self) -> header::Handler<E>
+    where
+        E: Entry,
+        InnerGridView: AsRef<crate::GridView<E>>, {
+        let headers_layer = self.area.content_layer().create_sublayer();
+        let text_layer = self.area.content_layer().create_sublayer();
+        header::Handler::new(self.inner_grid.as_ref(), headers_layer, Some(text_layer))
     }
 }
 

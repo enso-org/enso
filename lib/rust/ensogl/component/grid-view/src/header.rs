@@ -19,7 +19,8 @@ use crate::Row;
 
 ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
     Input {
-        section_info(Range<Row>, Col, HeaderModel)
+        section_info(Range<Row>, Col, HeaderModel),
+        reset_sections(),
     }
     Output {
         section_info_needed(Row, Col)
@@ -130,7 +131,11 @@ impl<HeaderEntry: Entry> Model<HeaderEntry, HeaderEntry::Params> {
         use std::collections::hash_map::Entry::*;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
-        let create_new_entry = || self.entry_creation_ctx.create_entry(self.text_layer.as_ref());
+        let create_new_entry = || {
+            let entry = self.entry_creation_ctx.create_entry(self.text_layer.as_ref());
+            self.layer.add_exclusive(&entry);
+            entry
+        };
         let entry = match visible_headers.entry(col) {
             Occupied(mut entry) => {
                 entry.get_mut().section_rows = rows;
@@ -170,7 +175,7 @@ pub type Handler<HeaderEntry> =
     HandlerTemplate<HeaderEntry, <HeaderEntry as Entry>::Model, <HeaderEntry as Entry>::Params>;
 
 impl<HeaderEntry: Entry> HandlerTemplate<HeaderEntry, HeaderEntry::Model, HeaderEntry::Params> {
-    fn new<E>(grid: &crate::GridView<E>, layer: Layer, text_layer: Option<Layer>) -> Self
+    pub fn new<E>(grid: &crate::GridView<E>, layer: Layer, text_layer: Option<Layer>) -> Self
     where E: Entry<Params = HeaderEntry::Params> {
         let frp = Frp::new();
         let entry_creation_ctx = grid.model().entry_creation_ctx.clone_ref();
@@ -186,6 +191,8 @@ impl<HeaderEntry: Entry> HandlerTemplate<HeaderEntry, HeaderEntry::Model, Header
                 grid_frp.entries_size.map2(&grid_frp.properties, f!((_, props) model.update_visible_headers(*props)));
             request_sections_after_reset <=
                 grid_frp.reset_entries.map2(&grid_frp.properties, f!((_, props) model.reset_entries(*props)));
+            request_sections_after_sections_reset <=
+                frp.reset_sections.map2(&grid_frp.properties, f!((_, props) model.reset_entries(*props)));
             request_section_after_text_layer_change <=
                 grid_frp.set_text_layer.map2(&grid_frp.properties, f!((_, props) model.reset_entries(*props)));
             out.section_info_needed <+ request_sections_after_viewport_change;
