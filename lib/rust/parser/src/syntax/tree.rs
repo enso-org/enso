@@ -73,6 +73,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
     #[derive(Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
     #[tagged_enum(apply_attributes_to = "variants")]
     #[reflect(inline)]
+    #[allow(clippy::large_enum_variant)] // Inefficient. Will be fixed in #182878443.
     pub enum Variant<'s> {
         /// Invalid [`Tree`] fragment with an attached [`Error`].
         Invalid {
@@ -193,6 +194,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// It is an error for this to be empty.
             pub body: Option<Tree<'s>>,
         },
+        /// An import statement.
         Import {
             pub polyglot:  Option<MultiSegmentAppSegment<'s>>,
             pub from:      Option<MultiSegmentAppSegment<'s>>,
@@ -201,8 +203,15 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub import_as: Option<MultiSegmentAppSegment<'s>>,
             pub hiding:    Option<MultiSegmentAppSegment<'s>>,
         },
+        /// An expression grouped by matched parentheses.
+        Group {
+            pub open:  token::Symbol<'s>,
+            pub body:  Option<Tree<'s>>,
+            pub close: token::Symbol<'s>,
+        }
     }
 }};}
+
 
 macro_rules! generate_variant_constructors {
     (

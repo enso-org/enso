@@ -49,9 +49,7 @@ fn application() {
 
 #[test]
 fn parentheses_simple() {
-    let expected = block![
-        (MultiSegmentApp #(((Symbol "(") (App (Ident a) (Ident b))) ((Symbol ")") ())))
-    ];
+    let expected = block![(Group "(" (App (Ident a) (Ident b)) ")")];
     test("(a b)", expected);
 }
 
@@ -67,12 +65,11 @@ fn section_simple() {
 fn parentheses_nested() {
     #[rustfmt::skip]
     let expected = block![
-        (MultiSegmentApp #(
-         ((Symbol "(")
-          (App (MultiSegmentApp #(((Symbol "(") (App (Ident a) (Ident b))) ((Symbol ")") ())))
-               (Ident c)))
-          ((Symbol ")") ())))
-    ];
+        (Group
+         "("
+         (App (Group "(" (App (Ident a) (Ident b)) ")")
+              (Ident c))
+         ")")];
     test("((a b) c)", expected);
 }
 

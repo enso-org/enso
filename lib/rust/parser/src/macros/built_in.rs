@@ -13,8 +13,8 @@ use crate::syntax::operator;
 /// All built-in macro definitions.
 pub fn all() -> resolver::SegmentMap<'static> {
     let mut macro_map = resolver::SegmentMap::default();
-    // macro_map.register(if_then());
-    // macro_map.register(if_then_else());
+    macro_map.register(if_then());
+    macro_map.register(if_then_else());
     register_import_macros(&mut macro_map);
     macro_map.register(group());
     macro_map.register(type_def());
@@ -81,7 +81,25 @@ pub fn if_then<'s>() -> Definition<'s> {
 
 /// Group macro definition.
 pub fn group<'s>() -> Definition<'s> {
-    crate::macro_definition! {("(", everything(), ")", nothing())}
+    crate::macro_definition! {("(", everything(), ")", nothing()) group_body}
+}
+
+fn group_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use operator::resolve_operator_precedence_if_non_empty;
+    use syntax::token;
+    macro_rules! into_symbol {
+        ($token:expr) => {{
+            let token::Token { left_offset, code, .. } = $token;
+            token::symbol(left_offset, code)
+        }}
+    }
+    let (close, mut segments) = segments.pop();
+    let close = into_symbol!(close.header);
+    let segment = segments.pop().unwrap();
+    let open = into_symbol!(segment.header);
+    let body = segment.result.tokens();
+    let body = resolve_operator_precedence_if_non_empty(body);
+    syntax::Tree::group(open, body, close)
 }
 
 /// New type definition macro definition.
