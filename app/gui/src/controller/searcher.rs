@@ -60,13 +60,15 @@ thread_local! {
             // FIXME[MC]
             return_type:        None,
             imports:            vec![],
-            documentation_html: Some("<div class='enso docs summary'><p />\
+            documentation_html: Some(
+                "<div class='enso docs summary'><p />\
                 A text input node.</div>\
                 <div class='enso docs'><div><div class='synopsis'>\
                 An empty text. The value can be edited and used as an input for other nodes.\
-                </div></div></div>"),
+                </div></div></div>",
+            ),
             method_id:          None,
-            icon: ide_view_component_group::icon::Id::TextInput.as_str().into(),
+            icon:               ide_view_component_group::icon::Id::TextInput.as_str().into(),
         }),
         Rc::new(component::Virtual {
             name:               "number input",
@@ -76,16 +78,20 @@ thread_local! {
             // FIXME[MC]
             return_type:        None,
             imports:            vec![],
-            documentation_html: Some("<div class='enso docs summary'><p />\
+            documentation_html: Some(
+                "<div class='enso docs summary'><p />\
                 A number input node.</div>\
                 <div class='enso docs'><div><div class='synopsis'>\
                 A zero number. The value can be edited and used as an input for other nodes.\
-                </div></div></div>"),
+                </div></div></div>",
+            ),
             method_id:          None,
-            icon: ide_view_component_group::icon::Id::NumberInput.as_str().into(),
+            icon:               ide_view_component_group::icon::Id::NumberInput.as_str().into(),
         }),
     ];
 }
+
+
 
 // ==============
 // === Errors ===
