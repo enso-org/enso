@@ -204,6 +204,12 @@ character_ranges text =
 
 ## PRIVATE
 batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_Bounds_Error, Illegal_Argument_Error] <|
+    ## This is pre-computing the ranges for all characters in the string, which
+       may be much more than necessary, for example if all ranges reference only
+       the beginning of the string. In the future we may want to replace this
+       with a lazy data structure which advances the break iterator only on
+       demand, using a Vector.Builder to cache any prior ranges for random
+       access.
     characters = character_ranges text
     ranges = Vector.new_builder
     descriptors.each descriptor->
