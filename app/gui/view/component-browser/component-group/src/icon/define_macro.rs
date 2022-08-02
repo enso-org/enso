@@ -98,6 +98,12 @@ macro_rules! define_icons {
             pub fn for_each<F: FnMut(Self)>(mut f: F) {
                 $(f(Self::$variant);)*
             }
+
+            pub fn as_str(&self) -> &'static str {
+                match self {
+                    $(Self::$variant => stringify!($variant),)*
+                }
+            }
         }
 
         impl FromStr for Id {

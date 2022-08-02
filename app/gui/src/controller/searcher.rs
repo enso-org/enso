@@ -66,8 +66,7 @@ thread_local! {
                 An empty text. The value can be edited and used as an input for other nodes.\
                 </div></div></div>"),
             method_id:          None,
-            // FIXME[MC] possible to fix to use icon::Id?
-            icon:               "TextInput".into(),
+            icon: ide_view_component_group::icon::Id::TextInput.as_str().into(),
         }),
         Rc::new(component::Virtual {
             name:               "number input",
@@ -83,8 +82,7 @@ thread_local! {
                 A zero number. The value can be edited and used as an input for other nodes.\
                 </div></div></div>"),
             method_id:          None,
-            // FIXME[MC] possible to fix to use icon::Id?
-            icon:               "NumberInput".into(),
+            icon: ide_view_component_group::icon::Id::NumberInput.as_str().into(),
         }),
     ];
 }
