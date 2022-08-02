@@ -169,15 +169,21 @@ impl List {
         std::mem::take(&mut self.grouping_and_order_of_favorites).into_iter().collect_vec()
     }
 
-    pub fn insert_virtual_components_in_favorites_group(&mut self, group_name: component::group::QualifiedName, virtual_components: impl IntoIterator<Item = Rc<component::Virtual>>) {
+    pub fn insert_virtual_components_in_favorites_group(
+        &mut self,
+        group_name: component::group::QualifiedName,
+        virtual_components: impl IntoIterator<Item = Rc<component::Virtual>>,
+    ) {
         use component::Group;
         let mut favorites_grouping = self.take_grouping_and_order_of_favorites_as_vec();
-        let group_with_matching_name = favorites_grouping.iter_mut().find(|g|
-            g.qualified_name().as_ref() == Some(&group_name));
+        let group_with_matching_name = favorites_grouping
+            .iter_mut()
+            .find(|g| g.qualified_name().as_ref() == Some(&group_name));
         if let Some(group) = group_with_matching_name {
             group.insert_entries(&virtual_components.into_iter().map(Into::into).collect_vec());
         } else {
-            let group = Group::from_qualified_name_and_virtual_components(group_name, virtual_components);
+            let group =
+                Group::from_qualified_name_and_virtual_components(group_name, virtual_components);
             favorites_grouping.insert(0, group);
         }
         self.grouping_and_order_of_favorites = component::group::List::new(favorites_grouping);

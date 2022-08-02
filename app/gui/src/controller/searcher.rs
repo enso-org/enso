@@ -1220,7 +1220,8 @@ fn component_list_builder_with_favorites<'a>(
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
-    // FIXME[MC]: solve 'unwrap' somehow: make this a thread_local static? validate "Base" at comptime?
+    // FIXME[MC]: solve 'unwrap' somehow: make this a thread_local static? validate "Base" at
+    // comptime?
     let project = project::QualifiedName::from_segments("Standard", "Base").unwrap();
     let group_name = component::group::QualifiedName { project, name: "Input".into() };
     let components = VIRTUAL_COMPONENTS_IN_INPUT_GROUP.with(|c| c.clone());

@@ -170,10 +170,7 @@ impl Component {
 
 impl From<Rc<Virtual>> for Component {
     fn from(suggestion: Rc<Virtual>) -> Self {
-        Self {
-            kind: Kind::Virtual { suggestion },
-            match_info: default(),
-        }
+        Self { kind: Kind::Virtual { suggestion }, match_info: default() }
     }
 }
 

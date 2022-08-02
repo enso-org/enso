@@ -24,7 +24,7 @@ use std::cmp;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QualifiedName {
     pub project: project::QualifiedName,
-    pub name: ImString,
+    pub name:    ImString,
 }
 
 
@@ -52,7 +52,11 @@ pub struct Data {
 }
 
 impl Data {
-    fn from_name_and_project_and_id(name: impl Into<ImString>, project: Option<project::QualifiedName>, component_id: Option<component::Id>) -> Self {
+    fn from_name_and_project_and_id(
+        name: impl Into<ImString>,
+        project: Option<project::QualifiedName>,
+        component_id: Option<component::Id>,
+    ) -> Self {
         Data {
             project,
             name: name.into(),
@@ -117,12 +121,9 @@ impl Group {
         qualified_name: QualifiedName,
         entries: impl IntoIterator<Item = Rc<component::Virtual>>,
     ) -> Self {
-        let components = entries
-            .into_iter()
-            .map(Into::into)
-            .collect_vec();
+        let components = entries.into_iter().map(Into::into).collect_vec();
         let group_data = Data {
-            project: Some(qualified_name.project),
+            project:               Some(qualified_name.project),
             name:                  qualified_name.name,
             color:                 None,
             component_id:          None,
@@ -230,7 +231,8 @@ impl Group {
     }
 
     pub fn qualified_name(&self) -> Option<QualifiedName> {
-        self.project.as_ref().map(|p| QualifiedName { project: p.clone(), name: self.name.clone() })
+        let name = self.name.clone();
+        self.project.as_ref().map(|p| QualifiedName { project: p.clone(), name })
     }
 
     /// Get the number of entries.
@@ -392,12 +394,7 @@ mod tests {
         assert_eq!((color.red * 255.0) as u8, 0xaa);
         assert_eq!((color.green * 255.0) as u8, 0xbb);
         assert_eq!((color.blue * 255.0) as u8, 0xcc);
-        let entry_ids = group
-            .entries
-            .borrow()
-            .iter()
-            .map(|e| e.id().unwrap())
-            .collect_vec();
+        let entry_ids = group.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
         let expected_ids = vec![6, 10, 5];
         assert_eq!(entry_ids, expected_ids);
     }
