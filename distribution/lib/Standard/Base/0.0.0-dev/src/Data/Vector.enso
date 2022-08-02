@@ -704,8 +704,9 @@ type Vector
             Random.sample self count rng
         Every step start ->
             if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                range = Range start self.length step
-                self.take (By_Index range)
+                if start >= self.length then empty else
+                    range = Range start self.length step
+                    self.take (By_Index range)
 
     ## Creates a new vector with only the specified range of elements from the
        input, removing any elements outside the range.
@@ -747,8 +748,9 @@ type Vector
             self.drop (By_Index indices_to_drop)
         Every step start ->
             if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                range = Range start self.length step
-                self.drop (By_Index range)
+                if start >= self.length then self else
+                    range = Range start self.length step
+                    self.drop (By_Index range)
 
     ## Performs a pair-wise operation passed in `function` on consecutive
        elements of `self` and `that`.

@@ -240,7 +240,7 @@ spec = Test.group "Vectors" <|
         vec.drop (Every 3) . should_equal [2, 3, 5, 6]
         vec.drop (Every 3 first=1) . should_equal [1, 3, 4, 6]
         vec.drop (Every 2 first=1) . should_equal [1, 3, 5]
-        vec.drop (Every 2 first=100) . should_equal []
+        vec.drop (Every 2 first=100) . should_equal vec
         vec.drop (Every 200) . should_equal [2, 3, 4, 5, 6]
         [].drop (Every 2) . should_equal []
         vec.drop (Every 0) . should_fail_with Illegal_Argument_Error
