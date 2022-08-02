@@ -332,17 +332,20 @@ impl<E: Entry> GridView<E> {
         };
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
-            out.grid_size <+ input.resize_grid;
-            out.grid_size <+ input.reset_entries;
-            out.viewport <+ input.set_viewport;
-            out.entries_size <+ input.set_entries_size;
-            out.entries_params <+ input.set_entries_params;
+            grid_size <- any(input.resize_grid, input.reset_entries);
+            // We want to update `properties` output first, as some could listen for specific
+            // event (e.g. the `viewport` and expect the `properties` output is up to date.
             out.properties <+ all_with3(
-                &out.grid_size, &out.viewport, &out.entries_size,
+                &grid_size, &input.set_viewport, &input.set_entries_size,
                 |&(row_count, col_count), &viewport, &entries_size| {
                     Properties { row_count, col_count, viewport, entries_size }
                 }
             );
+            out.grid_size <+ grid_size;
+            out.grid_size <+ input.reset_entries;
+            out.viewport <+ input.set_viewport;
+            out.entries_size <+ input.set_entries_size;
+            out.entries_params <+ input.set_entries_params;
 
             content_size_params <- all(out.grid_size, input.set_entries_size);
             out.content_size <+ content_size_params.map(|&((rows, cols), esz)| Self::content_size(rows, cols, esz));
