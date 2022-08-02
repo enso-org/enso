@@ -99,24 +99,19 @@ impl ExecutionContext {
 
     /// Load the component groups defined in libraries imported into the execution context.
     async fn load_component_groups(&self) {
+        let log_group_parsing_error = |err: &failure::Error| {
+            let msg = iformat!(
+                "Failed to parse a component group returned by the Engine. The group will not \
+                appear in the Favorites section of the Component Browser. Error: {err}"
+            );
+            error!(self.logger, "{msg}");
+        };
         match self.language_server.get_component_groups(&self.id).await {
             Ok(ls_response) => {
                 let ls_groups = ls_response.component_groups;
                 let groups = ls_groups
                     .into_iter()
-                    .filter_map(|group| match group.try_into() {
-                        // TODO[MC] consider replacing with: .inspect_err(...).ok()
-                        Ok(g) => Some(g),
-                        Err(err) => {
-                            let msg = iformat!(
-                            "Failed to parse a component group returned by the Engine. The group \
-                            will not appear in the Favorites section of the Component Browser. \
-                            Error: {err}"
-                        );
-                            error!(self.logger, "{msg}");
-                            None
-                        }
-                    })
+                    .filter_map(|group| group.try_into().inspect_err(log_group_parsing_error).ok())
                     .collect();
                 *self.model.component_groups.borrow_mut() = Rc::new(groups);
                 info!(self.logger, "Loaded component groups.");
