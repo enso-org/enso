@@ -106,7 +106,9 @@ impl FromMeta {
         let mut fields = Vec::with_capacity(fields_.size_hint().0);
         for field in fields_ {
             let meta::Field { name, type_, hide, .. } = field;
-            let name = name.to_camel_case().expect("Unimplemented: Tuples.");
+            let mut name_ = meta::FieldName::from_snake_case("field");
+            name_.append(name.clone());
+            let name = name_.to_camel_case().expect("Unimplemented: Tuples.");
             let field = match self.primitives.get(type_) {
                 Some(primitive) => Field::primitive(name, *primitive),
                 None => Field::object(name, self.meta_to_java[type_], true),
