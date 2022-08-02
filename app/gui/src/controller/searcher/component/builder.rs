@@ -165,20 +165,22 @@ impl List {
             .collect();
     }
 
-    pub fn insert_virtual_components_in_favorites_group(&mut self, name: component::group::QualifiedName, components: impl IntoIterator<Item = Rc<component::Virtual>>) {
-        // FIXME: factor out common part of this and build_favorites_...
-        let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
-        let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
-        let group_with_matching_name = favorites_groups.iter_mut().find(|g|
-            g.qualified_name().as_ref() == Some(&name));
+    fn take_grouping_and_order_of_favorites_as_vec(&mut self) -> Vec<component::Group> {
+        std::mem::take(&mut self.grouping_and_order_of_favorites).into_iter().collect_vec()
+    }
+
+    pub fn insert_virtual_components_in_favorites_group(&mut self, group_name: component::group::QualifiedName, virtual_components: impl IntoIterator<Item = Rc<component::Virtual>>) {
+        use component::Group;
+        let mut favorites_grouping = self.take_grouping_and_order_of_favorites_as_vec();
+        let group_with_matching_name = favorites_grouping.iter_mut().find(|g|
+            g.qualified_name().as_ref() == Some(&group_name));
         if let Some(group) = group_with_matching_name {
-            let virtual_components = components.into_iter().map(Into::into).collect_vec();
-            group.insert_entries(&virtual_components);
+            group.insert_entries(&virtual_components.into_iter().map(Into::into).collect_vec());
         } else {
-            let new_group = component::Group::from_qualified_name_and_virtual_components(name, components);
-            favorites_groups.insert(0, new_group);
+            let group = Group::from_qualified_name_and_virtual_components(group_name, virtual_components);
+            favorites_grouping.insert(0, group);
         }
-        self.grouping_and_order_of_favorites = component::group::List::new(favorites_groups);
+        self.grouping_and_order_of_favorites = component::group::List::new(favorites_grouping);
     }
 
     fn lookup_module_group(
@@ -236,8 +238,7 @@ impl List {
     }
 
     fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
-        let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
-        let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
+        let mut favorites_groups = self.take_grouping_and_order_of_favorites_as_vec();
         for group in favorites_groups.iter_mut() {
             group.retain_entries(|e| match e.kind {
                 component::Kind::FromDb { id, .. } => self.allowed_favorites.contains(&id),
