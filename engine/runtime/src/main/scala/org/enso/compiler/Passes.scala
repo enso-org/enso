@@ -4,7 +4,11 @@ import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.lint.{ShadowedPatternFields, UnusedBindings}
+import org.enso.compiler.pass.lint.{
+  ModuleNameConflicts,
+  ShadowedPatternFields,
+  UnusedBindings
+}
 import org.enso.compiler.pass.optimise.{
   ApplicationSaturation,
   LambdaConsolidate,
@@ -32,7 +36,8 @@ class Passes(
       FunctionBinding,
       GenerateMethodBodies,
       BindingAnalysis,
-      GenerateDocumentation
+      GenerateDocumentation,
+      ModuleNameConflicts
     )
   )
 

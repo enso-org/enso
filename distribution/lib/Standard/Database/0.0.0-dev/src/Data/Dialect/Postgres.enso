@@ -3,39 +3,40 @@ from Standard.Base import all
 import Standard.Base.Error.Common as Errors
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
+import Standard.Database.Data.Sql
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
 import Standard.Database.Data.Internal.IR
-from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
+from Standard.Database.Error import Unsupported_Database_Operation_Error
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
-postgresql : Dialect
-postgresql =
-    Postgresql_Dialect make_internal_generator_dialect
+postgres : Dialect
+postgres =
+    Postgres_Dialect make_internal_generator_dialect
 
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
-type Postgresql_Dialect
+type Postgres_Dialect
     ## PRIVATE
 
        The dialect of PostgreSQL databases.
-    type Postgresql_Dialect internal_generator_dialect
+    type Postgres_Dialect internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name = "postgresql"
+    name self = "PostgreSQL"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> Sql.Statement
-    generate_sql query =
+    generate_sql self query =
         Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
@@ -44,7 +45,7 @@ type Postgresql_Dialect
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
-    resolve_target_sql_type aggregate = resolve_target_sql_type aggregate
+    resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -52,7 +53,7 @@ type Postgresql_Dialect
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
     prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
-    prepare_order_descriptor internal_column sort_direction text_ordering =
+    prepare_order_descriptor self internal_column sort_direction text_ordering =
         make_order_descriptor internal_column sort_direction text_ordering
 
 ## PRIVATE

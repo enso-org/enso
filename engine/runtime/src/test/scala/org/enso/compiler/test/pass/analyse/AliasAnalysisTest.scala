@@ -833,6 +833,63 @@ class AliasAnalysisTest extends CompilerTest {
     }
   }
 
+  "Alias analysis on self" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val addMethod =
+      """type Foo
+        |    type Foo a b
+        |    add x = self.a + x
+        |""".stripMargin.preprocessModule.analyse
+        .bindings(2)
+        .asInstanceOf[Method.Explicit]
+
+    val graph = addMethod
+      .unsafeGetMetadata(AliasAnalysis, "Missing aliasing info")
+      .unsafeAs[Info.Scope.Root]
+      .graph
+    val graphLinks = graph.links
+
+    val lambda = addMethod.body.asInstanceOf[IR.Function.Lambda]
+
+    "assign Info.Scope.Root metadata to the method" in {
+      val meta = addMethod.getMetadata(AliasAnalysis)
+      meta shouldBe defined
+    }
+
+    "not add self to the scope" in {
+      lambda.arguments.length shouldEqual 2
+      lambda.arguments(0).name shouldBe a[IR.Name.Self]
+      val topScope = graph.rootScope
+      val lambdaScope = lambda
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Child]
+        .scope
+
+      topScope shouldEqual lambdaScope
+      graphLinks.size shouldEqual 1
+
+      val valueDefId = lambda
+        .arguments(1)
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Occurrence]
+        .id
+      lambda.body shouldBe an[IR.Application.Prefix]
+      val app = lambda.body.asInstanceOf[IR.Application.Prefix]
+      val valueUseId = app
+        .arguments(1)
+        .value
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Occurrence]
+        .id
+      // No link between self.x and self
+      graphLinks shouldEqual Set(Link(valueUseId, 1, valueDefId))
+    }
+  }
+
   "Alias analysis on conversion methods" should {
     implicit val ctx: ModuleContext = mkModuleContext
 

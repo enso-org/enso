@@ -40,6 +40,7 @@ import project.Data.Text_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
 import project.Data.Statistics_Spec
+import project.Data.Regression_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Utils_Spec
 import project.Data.Text.Default_Regex_Engine_Spec
@@ -50,13 +51,14 @@ import project.Data.Text.Encoding_Spec
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http_Spec
-import project.Network.Uri_Spec
+import project.Network.URI_Spec
 
 import project.Resource.Bracket_Spec
 
 import project.Runtime.Stack_Traces_Spec
 import project.Runtime.Lazy_Generator_Spec
 
+import project.System.Environment_Spec
 import project.System.File_Spec
 import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
@@ -72,6 +74,7 @@ main = Test.Suite.run_main <|
     Conversion_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec
+    Environment_Spec.spec
     File_Spec.spec
     Reporting_Stream_Decoder_Spec.spec
     Reporting_Stream_Encoder_Spec.spec
@@ -113,8 +116,9 @@ main = Test.Suite.run_main <|
     Utils_Spec.spec
     Text_Spec.spec
     Time_Spec.spec
-    Uri_Spec.spec
+    URI_Spec.spec
     Vector_Spec.spec
     Statistics_Spec.spec
+    Regression_Spec.spec
     Warnings_Spec.spec
     System_Spec.spec

@@ -59,7 +59,7 @@ type Sql_Type
        - name: a database-specific type name, used for pretty printing.
     type Sql_Type typeid name
 
-    == that = case that of
+    == self that = case that of
         Sql_Type that_id _ ->
             self.typeid == that_id
         _ -> False
@@ -118,7 +118,7 @@ type Sql_Type
        It only handles the standard types so it may return false negatives for
        non-standard ones.
     is_definitely_integer : Boolean
-    is_definitely_integer =
+    is_definitely_integer self =
         [Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT].contains self.typeid
 
     ## PRIVATE
@@ -128,7 +128,7 @@ type Sql_Type
        It only handles the standard types so it may return false negatives for
        non-standard ones.
     is_definitely_boolean : Boolean
-    is_definitely_boolean =
+    is_definitely_boolean self =
         [Types.BOOLEAN, Types.BIT].contains self.typeid
 
     ## PRIVATE
@@ -138,20 +138,20 @@ type Sql_Type
        It only handles the standard types so it may return false negatives for
        non-standard ones.
     is_definitely_double : Boolean
-    is_definitely_double =
+    is_definitely_double self =
         [Types.FLOAT, Types.DOUBLE, Types.REAL].contains self.typeid
 
     ## PRIVATE
        Returns True if this type represents a Text.
     is_definitely_text : Boolean
-    is_definitely_text =
+    is_definitely_text self =
        [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains self.typeid
 
     ## PRIVATE
        Returns True if this type represents a Text, using heuristics that may
        match more possible types.
     is_likely_text : Boolean
-    is_likely_text =
+    is_likely_text self =
        self.is_definitely_text || self.name.contains "text" (Text_Matcher Case_Insensitive)
 
 
@@ -208,7 +208,7 @@ type Statement
        - Sql_Interpolation, representing objects that will be interpolated in
          between the SQL code.
     fragments : Vector Sql_Fragment
-    fragments = self.internal_fragments
+    fragments self = self.internal_fragments
 
     ## UNSAFE
        UNSTABLE
@@ -223,7 +223,7 @@ type Statement
 
        It should NEVER be used in production code.
     unsafe_to_raw_sql : Text
-    unsafe_to_raw_sql =
+    unsafe_to_raw_sql self =
         strings = self.internal_fragments . map <| case _ of
             Sql_Code_Part code -> code
             # TODO at some point we may try more sophisticated serialization based on data type
@@ -237,7 +237,7 @@ type Statement
        Returns a pair consisting of the SQL code with holes for values and
        a list for values that should be substituted.
     # prepare : [Text, Vector Any]
-    prepare =
+    prepare self =
         to_code fragment = case fragment of
             Sql_Code_Part code -> code
             Sql_Interpolation _ _ -> "?"
@@ -252,7 +252,7 @@ type Statement
 
        Returns a JSON representation of the statement.
     to_json : Json
-    to_json =
+    to_json self =
         jsonify fragment = case fragment of
             Sql_Code_Part code -> Json.from_pairs [["sql_code", code]]
             Sql_Interpolation typ obj ->
@@ -282,19 +282,19 @@ type Builder
        Arguments:
        - other: The code fragment to append to `self`.
     ++ : Builder -> Builder
-    ++ other = Builder (self.fragments ++ other.fragments)
+    ++ self other = Builder (self.fragments ++ other.fragments)
 
     ## UNSTABLE
 
        Checks if the builder represents an empty code fragment.
     is_empty : Boolean
-    is_empty = self.fragments.is_empty
+    is_empty self = self.fragments.is_empty
 
     ## UNSTABLE
 
        Builds a SQL statement.
     build : Statement
-    build =
+    build self =
         fragments = optimize_fragments self.fragments.build
         Statement fragments
 
@@ -302,7 +302,7 @@ type Builder
 
        Wraps the code fragment in parentheses.
     paren : Builder
-    paren =
+    paren self =
         l = code "("
         r = code ")"
         l ++ self ++ r
@@ -316,7 +316,7 @@ type Builder
 
        Empty fragments are unaffected.
     prefix_if_present : Text | Builder -> Builder
-    prefix_if_present prefix =
+    prefix_if_present self prefix =
         pref = case prefix of
             Builder _ -> prefix
             _ -> code prefix

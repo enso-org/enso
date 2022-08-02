@@ -31,7 +31,7 @@ type Histogram
                  histo = Examples.image.histogram 0
                  histo.to_json
     to_json : Json
-    to_json =
+    to_json self =
         bins = Json.from_pairs [["bins", self.data]]
         Json.from_pairs [["data", bins]]
 
@@ -50,6 +50,6 @@ type Histogram
 
          example_histogram = Examples.image.histogram 0
 Image.Image.histogram : Integer -> Histogram
-Image.Image.histogram channel =
+Image.Image.histogram self channel =
     hist = Java_Histogram.calculate self.opencv_mat channel
     Histogram channel (Vector.Vector hist.get_data)

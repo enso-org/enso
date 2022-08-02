@@ -61,6 +61,11 @@
   component][3385]. Use the <code>set_font</code> and
   <code>set_bold_bytes</code> respectively.
 - [Fixed a text rendering issue in nested sublayer][3486].
+- [Added a new component: Grid View.][3588] It's parametrized by Entry object,
+  display them arranged in a Grid. It does not instantiate all entries, only
+  those visible, and re-use created entries during scrolling thus achieving
+  great performance. There are variants of grid view with selection and
+  highlight, scrollbars, and both.
 
 #### Enso Standard Library
 
@@ -159,6 +164,11 @@
 - [Added `Vector.write_bytes` function and removed old `File.write_bytes`][3583]
 - [Added `line_endings` and `comment_character` options to
   `File_Format.Delimited`.][3581]
+- [Fixed the case of various type names and library paths][3590]
+- [Added support for parsing `.pgpass` file and `PG*` environment variables for
+  the Postgres connection][3593]
+- [Added `Regression` to the `Standard.Base` library and removed legacy `Model`
+  type from `Standard.Table`.][3601]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -253,6 +263,10 @@
 [3573]: https://github.com/enso-org/enso/pull/3573
 [3583]: https://github.com/enso-org/enso/pull/3583
 [3581]: https://github.com/enso-org/enso/pull/3581
+[3588]: https://github.com/enso-org/enso/pull/3588
+[3590]: https://github.com/enso-org/enso/pull/3590
+[3593]: https://github.com/enso-org/enso/pull/3593
+[3601]: https://github.com/enso-org/enso/pull/3601
 
 #### Enso Compiler
 
@@ -262,7 +276,7 @@
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
-- [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Converting Enso Date to java.time.LocalDate and back][3559]
 - [Incremental Reparsing of a Simple Edits][3508]
 - [Functions with all-defaulted arguments now execute automatically][3414]
 - [Provide `tagValues` for function arguments in the language server][3422]
@@ -282,6 +296,9 @@
 - [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
 - [Remove `here` and make method name resolution case-sensitive][3531]
+- [Explicit `self`][3569]
+- [Added benchmarking tool for the language server][3578]
+- [Support module imports using a qualified name][3608]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -290,7 +307,7 @@
 [3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
-[3374]: https://github.com/enso-org/enso/pull/3374
+[3559]: https://github.com/enso-org/enso/pull/3559
 [3508]: https://github.com/enso-org/enso/pull/3508
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414
@@ -315,6 +332,9 @@
 [3531]: https://github.com/enso-org/enso/pull/3531
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
+[3538]: https://github.com/enso-org/enso/pull/3569
+[3578]: https://github.com/enso-org/enso/pull/3578
+[3608]: https://github.com/enso-org/enso/pull/3608
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

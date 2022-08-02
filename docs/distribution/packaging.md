@@ -89,7 +89,7 @@ specified on a per-language basis, in the
 
 The `data` directory contains any data files and resources that the user needs
 quick access to. Allows referring to resource files in a location-independent
-way, by using the `Enso_Project.data` method.
+way, by using the `enso_project.data` method.
 
 ### The `package.yaml` File
 

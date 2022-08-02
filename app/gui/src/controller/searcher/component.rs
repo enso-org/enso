@@ -32,33 +32,6 @@ pub type MatchInfo = controller::searcher::action::MatchInfo;
 
 
 
-// ==============
-// === Errors ===
-// ==============
-
-// === NoSuchGroup===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "No component group with the index {} in section {}.", index, section_name)]
-pub struct NoSuchGroup {
-    section_name: CowString,
-    index:        usize,
-}
-
-
-// === NoSuchComponent ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "No component entry with the index {} in {}.", index, group_name)]
-pub struct NoSuchComponent {
-    group_name: CowString,
-    index:      usize,
-}
-
-
-
 // =============
 // === Order ===
 // =============
@@ -227,31 +200,6 @@ impl List {
         self.module_groups.get(&component).map(|mg| &mg.content)
     }
 
-    /// Get the component from Top Modules by index.
-    pub fn top_module_entry_by_index(
-        &self,
-        group_index: usize,
-        entry_index: usize,
-    ) -> FallibleResult<Component> {
-        self.top_modules().entry_by_index("Sub-modules".into(), group_index, entry_index)
-    }
-
-    /// Get the component from Favorites section by index.
-    pub fn favorites_entry_by_index(
-        &self,
-        group_index: usize,
-        entry_index: usize,
-    ) -> FallibleResult<Component> {
-        self.favorites.entry_by_index("Favorites".into(), group_index, entry_index)
-    }
-
-    /// Get the component from Local Scope section by index.
-    pub fn local_scope_entry_by_index(&self, index: usize) -> FallibleResult<Component> {
-        let error =
-            || NoSuchComponent { group_name: self.local_scope.name.to_string().into(), index };
-        self.local_scope.get_entry(index).ok_or_else(error).map_err(|e| e.into())
-    }
-
     /// Update matching info in all components according to the new filtering pattern.
     pub fn update_filtering(&self, pattern: impl AsRef<str>) {
         let pattern = pattern.as_ref();
@@ -299,10 +247,11 @@ pub(crate) mod tests {
 
     pub fn mock_module(name: &str) -> model::suggestion_database::Entry {
         let ls_entry = language_server::SuggestionEntry::Module {
-            module:             name.to_owned(),
-            documentation:      default(),
-            documentation_html: default(),
-            reexport:           default(),
+            module:                 name.to_owned(),
+            documentation:          default(),
+            documentation_html:     default(),
+            documentation_sections: default(),
+            reexport:               default(),
         };
         model::suggestion_database::Entry::from_ls_entry(ls_entry).unwrap()
     }
@@ -320,6 +269,7 @@ pub(crate) mod tests {
             documentation_html: None,
             self_type:          None,
             scope:              model::suggestion_database::entry::Scope::Everywhere,
+            icon_name:          None,
         }
     }
 
@@ -400,8 +350,8 @@ pub(crate) mod tests {
         }
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
         let mut builder = builder::List::new().with_local_scope_module_id(0);
-        builder.set_favorites(&suggestion_db, &favorites);
-        builder.extend(&suggestion_db, 0..4);
+        builder.set_grouping_and_order_of_favorites(&suggestion_db, &favorites);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..4);
         let list = builder.build();
 
         list.update_filtering("fu");
@@ -446,7 +396,7 @@ pub(crate) mod tests {
         let logger = Logger::new("test::component_list_modules_tree");
         let suggestion_db = mock_suggestion_db(logger);
         let mut builder = builder::List::new().with_local_scope_module_id(0);
-        builder.extend(&suggestion_db, 0..11);
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, 0..11);
         let list = builder.build();
 
         // Verify that we can read all top-level modules from the component list.
