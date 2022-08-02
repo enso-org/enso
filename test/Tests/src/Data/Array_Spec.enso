@@ -23,13 +23,6 @@ spec = Test.group "Arrays" <|
         arr.at 1 . should_equal 10
         Vector.from_array arr . should_equal [1, 10, 3]
 
-    Test.specify "should allow swapping elements" <|
-        arr = [1, 2, 3, 4] . to_array
-        arr.swap 1 3
-        arr.at 1 . should_equal 4
-        arr.at 3 . should_equal 2
-        Vector.from_array arr . should_equal [1, 4, 3, 2]
-
     Test.specify "should panic on out of bounds access" <|
         arr = [1, 2, 3] . to_array
         Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error
