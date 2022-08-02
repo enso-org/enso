@@ -263,7 +263,7 @@ spec =
             "ABCDEFGH".drop (Every 3 first=1) . should_equal "ACDFG"
             "ABCDEFGHI".drop (Every 3 first=1) . should_equal "ACDFGI"
 
-        Test.specify "should allow selecting a random sample of a substring"
+        Test.specify "should allow taking or dropping a random sample of a substring"
             "AAAAA".take (Sample 3) . should_equal "AAA"
             "AAAAA".drop (Sample 3) . should_equal "AA"
 
@@ -276,7 +276,7 @@ spec =
             "ABCDEFGH".take (Sample 1 seed=42) . should_equal "F"
             "ABCDEFGH".take (Sample 100 seed=42) . should_equal "FGCHABED"
 
-            samples_1 = 0.up_to 100 . map seed->
+            samples_1 = 0.up_to 10000 . map seed->
                 "ABCD".take (Sample 2 seed)
             samples_1.should_contain_the_same_elements_as ["AB", "BA", "AC", "CA", "AD", "DA", "BC", "CB", "BD", "DB", "CD", "DC"]
 
@@ -287,7 +287,7 @@ spec =
             "ABCDEFGH".drop (Sample 8 seed=42) . should_equal ""
             "ABCDEFGH".drop (Sample 100 seed=42) . should_equal ""
 
-            samples_2 = 0.up_to 100 . map seed->
+            samples_2 = 0.up_to 10000 . map seed->
                 "ABCD".drop (Sample 2 seed)
             samples_2.should_contain_the_same_elements_as ["AB", "AC", "AD", "BC", "CD", "BD"]
 
