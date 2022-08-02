@@ -60,8 +60,11 @@ thread_local! {
             // FIXME[MC]
             return_type:        None,
             imports:            vec![],
-            // FIXME[MC]
-            documentation_html: Some("This will allow you to enter some text easily."),
+            documentation_html: Some("<div class='enso docs summary'><p />\
+                A text input node.</div>\
+                <div class='enso docs'><div><div class='synopsis'>\
+                An empty text. The value can be edited and used as an input for other nodes.\
+                </div></div></div>"),
             method_id:          None,
             // FIXME[MC] possible to fix to use icon::Id?
             icon:               "TextInput".into(),
@@ -74,8 +77,11 @@ thread_local! {
             // FIXME[MC]
             return_type:        None,
             imports:            vec![],
-            // FIXME[MC]
-            documentation_html: Some("This will allow you to enter a number easily."),
+            documentation_html: Some("<div class='enso docs summary'><p />\
+                A number input node.</div>\
+                <div class='enso docs'><div><div class='synopsis'>\
+                A zero number. The value can be edited and used as an input for other nodes.\
+                </div></div></div>"),
             method_id:          None,
             // FIXME[MC] possible to fix to use icon::Id?
             icon:               "NumberInput".into(),
