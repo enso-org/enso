@@ -87,9 +87,7 @@ find_codepoint_ranges text subrange =
                 _ -> [one_or_many_descriptors]
             case indices.length == 1 of
                 True -> resolve_index_or_range text indices.first
-                False ->
-                    # TODO it may still be more efficient to use resolve_index_or_range for small lengths, so we can add a threshold here, but then we need to flat_map Codepoint_Ranges objects, so TODO for later
-                    batch_resolve_indices_or_ranges text indices
+                False -> batch_resolve_indices_or_ranges text indices
         Sample count seed ->
             rng = Random.new seed
             indices = Random.random_indices text.length count rng

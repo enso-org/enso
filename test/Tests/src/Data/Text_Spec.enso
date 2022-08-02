@@ -154,7 +154,9 @@ spec =
         Test.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.at -5 . should_fail_with Index_Out_Of_Bounds_Error
+            str.at -5 . catch . should_equal (Index_Out_Of_Bounds_Error -5 4)
             str.at 4 . should_fail_with Index_Out_Of_Bounds_Error
+            str.at 4 . catch . should_equal (Index_Out_Of_Bounds_Error 4 4)
 
         Test.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
@@ -370,6 +372,7 @@ spec =
             txt.take (Range 6 100) . should_equal "World!"
             txt.take (Range txt.length-1 txt.length) . should_equal "!"
             txt.take (Range txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (Range txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error txt.length txt.length)
             txt.take (Range txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (First 100) . should_equal txt
             txt.take (Last 100) . should_equal txt
@@ -381,6 +384,7 @@ spec =
             txt.take (By_Index [0, 1, Range 6 100 2]) . should_equal "HeWrd"
             txt.take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
             "".take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+            "".take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
             "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (Range 13 20) . should_fail_with Index_Out_Of_Bounds_Error
@@ -388,6 +392,7 @@ spec =
             txt.take (By_Index [Range 0 2, Range 13 20]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.take (By_Index [Range 0 0, Range 13 10, Range 2 2 2]) . should_equal ""
             txt.take (By_Index [Range 0 2 2, Range 13 20 2]) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index [Range 0 2 2, Range 13 20 2]) . catch . should_equal (Index_Out_Of_Bounds_Error 13 12)
             txt.take (By_Index [Range 0 2 2, Range txt.length 100 2]) . should_fail_with Index_Out_Of_Bounds_Error
             "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
 
@@ -501,6 +506,7 @@ spec =
             txt.drop (First 100) . should_equal ""
             txt.drop (Last 100) . should_equal ""
             txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 12)
             txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error
             txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error
             txt.drop (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
@@ -509,6 +515,7 @@ spec =
             txt.drop (Range 14 15) . should_fail_with Index_Out_Of_Bounds_Error
             "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
             "".drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+            "".drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
             txt.drop (Range 0 0) . should_equal txt
             txt.drop (Range 5 100) . should_equal "Hello"
             txt.drop (Range 5 100 2) . should_equal "HelloWrd"
