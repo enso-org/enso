@@ -144,11 +144,11 @@ impl Component {
     /// Currently, only modules can be entered, and then the Browser should display content and
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
-        if let Kind::FromDb { suggestion, .. } = &self.kind {
-            suggestion.kind == suggestion_database::entry::Kind::Module
-        } else {
-            false
-        }
+        use suggestion_database::entry::Kind as SuggestionKind;
+        matches!(
+            &self.kind,
+            Kind::FromDb { suggestion, .. } if suggestion.kind == SuggestionKind::Module
+        )
     }
 
     /// Update matching info.
