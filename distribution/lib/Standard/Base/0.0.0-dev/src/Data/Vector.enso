@@ -1217,7 +1217,18 @@ resolve_ranges ranges length =
 
    Assumes that the ranges have been already bounds-checked (for example by
    passing them through `resolve_ranges`).
-slice_ranges vector ranges = if ranges.length == 1 then vector.slice ranges.first.start ranges.first.end else
+slice_ranges vector ranges =
+    if ranges.length == 0 then empty else case ranges.length == 1 of
+        True -> case ranges.first of
+            Integer -> Vector (Array.new_1 (vector.unsafe_at ranges.first))
+            Range start end step -> case step == 1 of
+                True -> vector.slice start end
+                False -> slice_many_ranges vector ranges
+        False -> slice_many_ranges vector ranges
+
+## PRIVATE
+   See `slice_ranges`.
+slice_many_ranges vector ranges =
     new_length = ranges.fold 0 acc-> descriptor-> case descriptor of
         Integer -> acc+1
         Range _ _ _ -> acc+descriptor.length
