@@ -178,14 +178,14 @@ impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
             Kind::FromDb { suggestion, .. } => {
-                let self_type_not_here =
-                    suggestion.self_type.as_ref().filter(|t| *t != &suggestion.module);
+                let name = suggestion.name.from_case(Case::Snake).to_case(Case::Lower);
+                let self_type_ref = suggestion.self_type.as_ref();
+                let self_type_not_here = self_type_ref.filter(|t| *t != &suggestion.module);
                 if let Some(self_type) = self_type_not_here {
                     let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
-                    let name = suggestion.name.from_case(Case::Snake).to_case(Case::Lower);
                     write!(f, "{} {}", self_name, name)
                 } else {
-                    write!(f, "{}", suggestion.name.from_case(Case::Snake).to_case(Case::Lower))
+                    write!(f, "{}", name)
                 }
             }
             Kind::Virtual { suggestion } => write!(f, "{}", suggestion.name),
