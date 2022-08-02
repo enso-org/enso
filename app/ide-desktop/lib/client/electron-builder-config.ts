@@ -103,4 +103,15 @@ const config: Configuration = {
     // afterPack: 'tasks/prepareToSign.js',
 }
 
+/*
+`electron-builder` checks for presence of `node_modules` directory. If it is not
+present, it will install dependencies with `--production` flag (erasing all
+dev-only dependencies). This does not work sensibly with NPM workspaces. We have
+our `node_modules` in the root directory, not here.
+
+Without this workaround, `electron-builder` will end up erasing its own
+dependencies and failing because of that.
+ */
+fs.mkdirSync('node_modules', { recursive: true })
+fs.mkdirSync('node_modules', { recursive: true })
 fs.writeFileSync('electron-builder-config.json', JSON.stringify(config, null, 2))
