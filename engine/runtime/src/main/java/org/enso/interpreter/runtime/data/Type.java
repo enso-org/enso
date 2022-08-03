@@ -6,6 +6,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 @ExportLibrary(MethodDispatchLibrary.class)
+@ExportLibrary(InteropLibrary.class)
 public class Type implements TruffleObject {
   private final String name;
   private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
@@ -55,7 +57,9 @@ public class Type implements TruffleObject {
             new FunctionSchema(
                 new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(
-        definitionScope.getAssociatedType(), this.name.toLowerCase(), function); // TODO lowercase remove when merge
+        definitionScope.getAssociatedType(),
+        this.name.toLowerCase(),
+        function); // TODO lowercase remove when merge
   }
 
   public QualifiedName getQualifiedName() {
@@ -213,5 +217,10 @@ public class Type implements TruffleObject {
       }
       return function;
     }
+  }
+
+  @ExportMessage
+  String toDisplayString(boolean allowSideEffects) {
+    return name;
   }
 }

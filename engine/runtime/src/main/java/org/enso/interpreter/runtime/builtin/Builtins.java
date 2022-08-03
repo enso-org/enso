@@ -330,8 +330,8 @@ public class Builtins {
     return t;
   }
 
-  public Type getBuiltinType(String name) {
-    return builtinsByName.get(name).getType();
+  public Builtin getBuiltinType(String name) {
+    return builtinsByName.get(name);
   }
 
   /**

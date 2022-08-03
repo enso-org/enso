@@ -30,8 +30,9 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         if (builtinType == null) {
           throw new CompilerError("Unknown @BuiltinType " + tp.name)
         }
-        scope.registerType(builtinType)
-        builtinType.setShadowDefinitions(scope)
+        builtinType.getConstructors.foreach(scope.registerConstructor)
+        scope.registerType(builtinType.getType)
+        builtinType.getType.setShadowDefinitions(scope)
       } else {
         val rtp = new Type(tp.name, scope, builtins.any(), false)
         scope.registerType(rtp)
