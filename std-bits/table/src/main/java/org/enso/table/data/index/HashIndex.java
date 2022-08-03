@@ -26,6 +26,7 @@ public class HashIndex extends Index {
     this.locs = locations;
     this.items = items;
     this.name = name;
+    var list = new ArrayList();
   }
 
   public static HashIndex fromStorage(String name, Storage storage) {

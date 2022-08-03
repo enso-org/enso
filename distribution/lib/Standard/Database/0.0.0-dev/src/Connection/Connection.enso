@@ -44,7 +44,7 @@ type Connection
          connection to that schema.
        - get_databases: an action returning a list of databases, allowing for
          connection specific overrides.
-       - with_schema: an action returning a list of schema, allowing for
+       - get_schemas: an action returning a list of schema, allowing for
          connection specific overrides.
     type Connection connection_resource dialect with_database with_schema get_databases=Nothing get_schemas=Nothing
 
