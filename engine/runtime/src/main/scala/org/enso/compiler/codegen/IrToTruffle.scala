@@ -1066,8 +1066,10 @@ class IrToTruffle(
           } else if (global.isDefined) {
             val resolution = global.get.target
             resolution match {
-              case _: BindingsMap.ResolvedType =>
-                throw new CompilerError("todo")
+              case tp: BindingsMap.ResolvedType =>
+                ConstantObjectNode.build(
+                  tp.module.unsafeAsModule().getScope.getTypes.get(tp.tp.name)
+                )
               case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
                 ConstructorNode.build(
                   definitionModule

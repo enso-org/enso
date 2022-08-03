@@ -141,7 +141,33 @@ case object DataflowAnalysis extends IRPass {
         method
           .copy(body = analyseExpression(body, info))
           .updateMetadata(this -->> info)
-      case _: IR.Module.Scope.Definition.Type => binding
+      case tp @ IR.Module.Scope.Definition.Type(_, params, members, _, _, _) =>
+        val tpDep = asStatic(tp)
+        val newParams = params.map { param =>
+          val paramDep = asStatic(param)
+          info.dependents.updateAt(paramDep, Set(tpDep))
+          info.dependencies.updateAt(tpDep, Set(paramDep))
+          analyseDefinitionArgument(param, info)
+        }
+        val newMembers = members.map {
+          case data @ IR.Module.Scope.Definition.Data(_, arguments, _, _, _) =>
+            val dataDep = asStatic(data)
+            info.dependents.updateAt(dataDep, Set(tpDep))
+            info.dependencies.updateAt(tpDep, Set(dataDep))
+            arguments.foreach(arg => {
+              val argDep = asStatic(arg)
+              info.dependents.updateAt(argDep, Set(dataDep))
+              info.dependencies.updateAt(dataDep, Set(argDep))
+            })
+
+            data
+              .copy(
+                arguments = arguments.map(analyseDefinitionArgument(_, info))
+              )
+              .updateMetadata(this -->> info)
+        }
+        tp.copy(params = newParams, members = newMembers)
+          .updateMetadata(this -->> info)
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during dataflow " +
