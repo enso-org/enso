@@ -169,6 +169,8 @@
   the Postgres connection][3593]
 - [Added `Regression` to the `Standard.Base` library and removed legacy `Model`
   type from `Standard.Table`.][3601]
+- [Created `Index_Sub_Range` type and updated `Text.take` and
+  `Text.drop`.][3617]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -267,6 +269,7 @@
 [3590]: https://github.com/enso-org/enso/pull/3590
 [3593]: https://github.com/enso-org/enso/pull/3593
 [3601]: https://github.com/enso-org/enso/pull/3601
+[3617]: https://github.com/enso-org/enso/pull/3617
 
 #### Enso Compiler
 

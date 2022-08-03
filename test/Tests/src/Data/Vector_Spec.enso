@@ -55,8 +55,8 @@ spec = Test.group "Vectors" <|
         [1,2,3].at -3 . should_equal 1
 
     Test.specify "should return a dataflow error when accessing elements out of bounds" <|
-        [1,2,3].at -4 . should_fail_with Vector.Index_Out_Of_Bounds_Error
-        [1,2,3].at 3 . should_fail_with Vector.Index_Out_Of_Bounds_Error
+        [1,2,3].at -4 . should_fail_with Index_Out_Of_Bounds_Error
+        [1,2,3].at 3 . should_fail_with Index_Out_Of_Bounds_Error
 
     Test.specify "should have a well-defined length" <|
         [1,2,3].length . should_equal 3

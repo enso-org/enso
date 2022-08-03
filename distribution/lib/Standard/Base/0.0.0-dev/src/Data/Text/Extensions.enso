@@ -10,6 +10,7 @@ import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Span as Span_Module
 import Standard.Base.Data.Text.Text_Sub_Range
+from Standard.Base.Data.Text.Text_Sub_Range import First
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
@@ -24,15 +25,6 @@ polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Encoding_Utils
-
-## UNSTABLE
-
-   An error for when an index is out of bounds in a text.
-
-   Arguments:
-   - index: The requested index in the text.
-   - length: The length of the text.
-type Index_Out_Of_Bounds_Error index length
 
 ## ALIAS Length
 
@@ -1091,17 +1083,26 @@ Text.repeat self count=1 =
          "Hello World!".take (After_Last "o") == "rld!"
          "Hello World!".take (While c->c!=" ") == "Hello"
          "Hello World!".take (Range 3 5) == "lo"
-         "Hello World!".take (Range -3 -1) == "ld"
-         "Hello World!".take (Range -3 Nothing) == "ld!"
          "Hello World!".take (Range 5 Nothing) == " World!"
          "Hello World!".take (Range 5 12) == " World!"
-         "Hello World!".take (Range 12 12) == ""
-Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
-Text.take self range =
-    char_range = case range of
-        Range _ _ _ -> Span_Module.range_to_char_indices self range
-        _ -> range.to_char_range self
-    Text_Utils.substring self char_range.start char_range.end
+         "Hello World!".take (Range 6 12 2) == "Wrd"
+         "Hello World!".take (Every 2 first=6) == "Wrd"
+         "Hello World!".take (Every 3) == "Hl Wl"
+         "Hello World!".take (By_Index 0) == "H"
+         "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
+         "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
+         "Hello World!".take (Sample 3 seed=42) == "l d"
+Text.take : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.take self range=(First 1) =
+    ranges = Text_Sub_Range.find_codepoint_ranges self range
+    case ranges of
+        Range start end _ ->
+            Text_Utils.substring self start end
+        Text_Sub_Range.Codepoint_Ranges char_ranges _ ->
+            sb = StringBuilder.new
+            char_ranges.map char_range->
+               sb.append self char_range.start char_range.end
+            sb.toString
 
 ## ALIAS skip, remove
    Creates a new Text by removing the specified range of the input.
@@ -1131,20 +1132,32 @@ Text.take self range =
          "Hello World!".drop (After_Last "o") == "Hello Wo"
          "Hello World!".drop (While c->c!=" ") == " World!"
          "Hello World!".drop (Range 3 5) == "Hel World!"
-         "Hello World!".drop (Range -3 -1) == "Hello Wor!"
-         "Hello World!".drop (Range -3 Nothing) == "Hello Wor"
          "Hello World!".drop (Range 5 Nothing) == "Hello"
          "Hello World!".drop (Range 5 12) == "Hello"
-         "Hello World!".drop (Range 12 12) == "Hello World!"
-Text.drop : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
-Text.drop self range =
-    char_range = case range of
-        Range _ _ _ -> Span_Module.range_to_char_indices self range
-        _ -> range.to_char_range self
-    if char_range.start == 0 then Text_Utils.drop_first self char_range.end else
-        prefix = Text_Utils.substring self 0 char_range.start
-        if char_range.end == (Text_Utils.char_length self) then prefix else
-            prefix + Text_Utils.drop_first self char_range.end
+         "Hello World!".drop (Range 6 12 2) == "Hello ol!"
+         "Hello World!".drop (Every 2 first=6) == "Hello ol!"
+         "Hello World!".drop (Every 3) == "elo ord!"
+         "Hello World!".drop (By_Index 0) == "ello World!"
+         "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
+         "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
+         "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
+Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.drop self range=(First 1) =
+    ranges = Text_Sub_Range.find_codepoint_ranges self range
+    case ranges of
+        Range start end _ ->
+            if start == 0 then Text_Utils.drop_first self end else
+                prefix = Text_Utils.substring self 0 start
+                if end == (Text_Utils.char_length self) then prefix else
+                    prefix + Text_Utils.drop_first self end
+        Text_Sub_Range.Codepoint_Ranges _ _ ->
+            sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
+            len = Text_Utils.char_length self
+            sb = StringBuilder.new
+            ranges_with_sentinels = [Range 0 0] + sorted_char_ranges_to_remove + [Range len len]
+            ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
+                sb.append self prev.end next.start
+            sb.toString
 
 ## ALIAS lower, upper, title, proper
    Converts each character in `self` to the specified case.

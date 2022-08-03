@@ -49,9 +49,7 @@ fn application() {
 
 #[test]
 fn parentheses_simple() {
-    let expected = block![
-        (MultiSegmentApp #(((Symbol "(") (App (Ident a) (Ident b))) ((Symbol ")") ())))
-    ];
+    let expected = block![(Group "(" (App (Ident a) (Ident b)) ")")];
     test("(a b)", expected);
 }
 
@@ -67,12 +65,11 @@ fn section_simple() {
 fn parentheses_nested() {
     #[rustfmt::skip]
     let expected = block![
-        (MultiSegmentApp #(
-         ((Symbol "(")
-          (App (MultiSegmentApp #(((Symbol "(") (App (Ident a) (Ident b))) ((Symbol ")") ())))
-               (Ident c)))
-          ((Symbol ")") ())))
-    ];
+        (Group
+         "("
+         (App (Group "(" (App (Ident a) (Ident b)) ")")
+              (Ident c))
+         ")")];
     test("((a b) c)", expected);
 }
 
@@ -147,6 +144,23 @@ fn type_def_full() {
            (()))
          #((Function number #() "=" (BodyBlock #((Number 23))))
            (Function area #((Ident self)) "=" (OprApp (Number 1) (Ok "+") (Number 1)))))
+    ];
+    test(&code.join("\n"), expected);
+}
+
+#[test]
+fn type_def_nested() {
+    #[rustfmt::skip]
+    let code = [
+        "type Foo",
+        "    type Bar",
+        "    type Baz",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef (Ident type) (Ident Foo) #() #()
+         #((TypeDef (Ident type) (Ident Bar) #() #() #())
+           (TypeDef (Ident type) (Ident Baz) #() #() #())))
     ];
     test(&code.join("\n"), expected);
 }
@@ -359,6 +373,61 @@ fn plus_negative() {
         (Assignment (Ident x) "=" (OprApp (Number 4) (Ok "+") (UnaryOprApp "-" (Number 1))))
     ];
     test(&code.join("\n"), expected);
+}
+
+
+// === Import ===
+
+#[test]
+fn import() {
+    #[rustfmt::skip]
+    let cases = [
+        ("import project.IO", block![
+            (Import () () () ((Ident import) (OprApp (Ident project) (Ok ".") (Ident IO))) () ())]),
+        ("import Standard.Base as Enso_List", block![
+            (Import () () ()
+             ((Ident import) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ((Ident as) (Ident Enso_List))
+             ())]),
+        ("from Standard.Base import all", block![
+            (Import ()
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ()
+             ((Ident import) (Ident all))
+             () ())]),
+        ("from Standard.Base import all hiding Number, Boolean", block![
+            (Import ()
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base)))
+             ()
+             ((Ident import) (Ident all))
+             ()
+             ((Ident hiding)
+              (App (OprSectionBoundary (OprApp (Ident Number) (Ok ",") ())) (Ident Boolean))))]),
+        ("from Standard.Table as Column_Module import Column", block![
+            (Import ()
+             ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Table)))
+             ((Ident as) (Ident Column_Module))
+             ((Ident import) (Ident Column))
+             () ())]),
+        ("polyglot java import java.lang.Float", block![
+            (Import
+             ((Ident polyglot) (Ident java))
+             ()
+             ()
+             ((Ident import)
+              (OprApp (OprApp (Ident java) (Ok ".") (Ident lang)) (Ok ".") (Ident Float)))
+             () ())]),
+        ("polyglot java import java.net.URI as Java_URI", block![
+            (Import
+             ((Ident polyglot) (Ident java))
+             ()
+             ()
+             ((Ident import)
+              (OprApp (OprApp (Ident java) (Ok ".") (Ident net)) (Ok ".") (Ident URI)))
+             ((Ident as) (Ident Java_URI))
+             ())]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 

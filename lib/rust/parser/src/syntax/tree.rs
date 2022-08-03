@@ -71,6 +71,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
     /// [`Tree`] variants definition. See its docs to learn more.
     #[tagged_enum]
     #[derive(Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+    #[allow(clippy::large_enum_variant)] // Inefficient. Will be fixed in #182878443.
     #[tagged_enum(apply_attributes_to = "variants")]
     #[reflect(inline)]
     pub enum Variant<'s> {
@@ -193,8 +194,24 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// It is an error for this to be empty.
             pub body: Option<Tree<'s>>,
         },
+        /// An import statement.
+        Import {
+            pub polyglot:  Option<MultiSegmentAppSegment<'s>>,
+            pub from:      Option<MultiSegmentAppSegment<'s>>,
+            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
+            pub import:    MultiSegmentAppSegment<'s>,
+            pub import_as: Option<MultiSegmentAppSegment<'s>>,
+            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+        },
+        /// An expression grouped by matched parentheses.
+        Group {
+            pub open:  token::Symbol<'s>,
+            pub body:  Option<Tree<'s>>,
+            pub close: token::Symbol<'s>,
+        }
     }
 }};}
+
 
 macro_rules! generate_variant_constructors {
     (

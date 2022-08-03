@@ -153,7 +153,9 @@ spec =
         Test.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
             str.at -5 . should_fail_with Index_Out_Of_Bounds_Error
+            str.at -5 . catch . should_equal (Index_Out_Of_Bounds_Error -5 4)
             str.at 4 . should_fail_with Index_Out_Of_Bounds_Error
+            str.at 4 . catch . should_equal (Index_Out_Of_Bounds_Error 4 4)
 
         Test.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
@@ -239,12 +241,100 @@ spec =
             text_2 = '\n\t\a\b\f\r\v\e\''
             text_2.to_text.should_equal "'\n\t\a\b\f\r\v\e\''"
 
+        Test.specify "should allow taking or dropping every other character" <|
+            "ABCDE".take (Every 2) . should_equal "ACE"
+            "ABCD".take (Every 2) . should_equal "AC"
+            "ABCD".take (Every 2 first=1) . should_equal "BD"
+            "ABCDE".take (Every 2 first=1) . should_equal "BD"
+            "ABCDE".take (Every 3) . should_equal "AD"
+            "ABCDEFG".take (Every 3) . should_equal "ADG"
+            "ABCDEFG".take (Every 3 first=1) . should_equal "BE"
+            "ABCDEFG".take (Every 3 first=6) . should_equal "G"
+            "ABCDEFG".take (Every 10) . should_equal "A"
+
+            "ABCDE".drop (Every 2) . should_equal "BD"
+            "ABCD".drop (Every 2) . should_equal "BD"
+            "ABCD".drop (Every 2 first=1) . should_equal "AC"
+            "ABCDE".drop (Every 2 first=1) . should_equal "ACE"
+            "ABCDE".drop (Every 3) . should_equal "BCE"
+            "ABCDEFG".drop (Every 3) . should_equal "BCEF"
+            "ABCDEFG".drop (Every 3 first=1) . should_equal "ACDFG"
+            "ABCDEFGH".drop (Every 3 first=1) . should_equal "ACDFG"
+            "ABCDEFGHI".drop (Every 3 first=1) . should_equal "ACDFGI"
+
+        Test.specify "should allow selecting a random sample of a substring"
+            "AAAAA".take (Sample 3) . should_equal "AAA"
+            "AAAAA".drop (Sample 3) . should_equal "AA"
+
+            ## These tests are very brittle and can be invalidated by a valid
+               implementation modification, so they may need to be updated.
+            "ABCDEFGH".take (Sample 0) . should_equal ""
+            "ABCDEFGH".take (Sample 8 seed=42) . should_equal "FGCHABED"
+            "ABCDEFGH".take (Sample 4 seed=42) . should_equal "FGCH"
+            "ABCDEFGH".take (Sample 2 seed=42) . should_equal "FG"
+            "ABCDEFGH".take (Sample 1 seed=42) . should_equal "F"
+            "ABCDEFGH".take (Sample 100 seed=42) . should_equal "FGCHABED"
+
+            "ABCDEFGH".drop (Sample 0) . should_equal "ABCDEFGH"
+            "ABCDEFGH".drop (Sample 1 seed=42) . should_equal "ABCDEGH"
+            "ABCDEFGH".drop (Sample 2 seed=42) . should_equal "ABCDEH"
+            "ABCDEFGH".drop (Sample 4 seed=42) . should_equal "ABDE"
+            "ABCDEFGH".drop (Sample 8 seed=42) . should_equal ""
+            "ABCDEFGH".drop (Sample 100 seed=42) . should_equal ""
+
+        Test.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
+            "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000
+            "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
+            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range 6*ix+1 6*ix+3)) . should_equal "23"*100
+            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range ix+1 ix+5)) . should_equal "BABAABAB"*50
+
+            "123"*1000 . drop (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
+            "123"*1000 . drop (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
+            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range 6*ix+1 6*ix+3)) . should_equal "1456"*1000
+            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range ix+1 ix+5)) . should_equal "ACDABCD"
+
+            "ABCD"*1000 . take (Range 0 4000 4) . should_equal "A"*1000
+            "ABCD"*1000 . take (Every 4) . should_equal "A"*1000
+            "ABCD"*1000 . take (By_Index [Range 0 4000 4, Range 1 4000 4]) . should_equal ("A"*1000 + "B"*1000)
+            "ABCD"*1000 . take (By_Index [Range 0 4000 4, Range 2 4000 4]) . should_equal ("A"*1000 + "C"*1000)
+
+            "ABCD"*1000 . drop (Range 0 4000 4) . should_equal "BCD"*1000
+            "ABCD"*1000 . drop (Every 4) . should_equal "BCD"*1000
+            "ABCD"*1000 . drop (By_Index [Range 0 4000 4, Range 1 4000 4]) . should_equal "CD"*1000
+            "ABCD"*1000 . drop (By_Index [Range 0 4000 4, Range 2 4000 4]) . should_equal "BD"*1000
+
+            "0123456789".take (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "0123458"
+            "0123456789".take (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "45012300"
+            "0123456789".drop (By_Index [Range 0 4, Range 4 6, Range 8 9]) . should_equal "679"
+            "0123456789".drop (By_Index [Range 4 6, Range 0 4, 0, 0]) . should_equal "6789"
+            "0123456789".drop (By_Index [Range 2 5, Range 0 3, 0, 0]) . should_equal "56789"
+
         Test.specify "should allow selecting substrings by characters" <|
             txt = kshi + facepalm + accent_1 + accent_2
             txt.take (First 2) . should_equal (kshi + facepalm)
             txt.drop (First 2) . should_equal (accent_1 + accent_2)
             txt.take (Last 2) . should_equal (accent_1 + accent_2)
             txt.drop (Last 2) . should_equal (kshi + facepalm)
+            txt.take (Range 0 2) . should_equal (kshi + facepalm)
+            txt.take (By_Index (Range 0 2)) . should_equal (kshi + facepalm)
+            txt.drop (Range 0 2) . should_equal (accent_1 + accent_2)
+            txt.take (Range 2 4) . should_equal (accent_1 + accent_2)
+            txt.drop (Range 2 4) . should_equal (kshi + facepalm)
+            txt.take (Every 2) . should_equal (kshi + accent_1)
+            txt.take (Every 2 first=1) . should_equal (facepalm + accent_2)
+            txt.drop (Every 2) . should_equal (facepalm + accent_2)
+            txt.take (Range 0 4 2) . should_equal (kshi + accent_1)
+            txt.take (By_Index [0, 3]) . should_equal (kshi + accent_2)
+            txt.take (By_Index 0) . should_equal kshi
+            txt.take (By_Index 1) . should_equal facepalm
+            txt.take (By_Index 2) . should_equal accent_1
+            txt.take (By_Index 3) . should_equal accent_2
+            txt.drop (By_Index [0, 3]) . should_equal (facepalm + accent_1)
+            txt.drop (By_Index [0, 3, 0]) . should_equal (facepalm + accent_1)
+            txt.drop (By_Index [0, 3, 0, 2, 1]) . should_equal ""
+            txt.take (By_Index [0, 3, 0, 2, 1]) . should_equal (kshi + accent_2 + kshi + accent_1 + facepalm)
+            txt.take (By_Index [0, 0, Range 0 2]) . should_equal (kshi + kshi + kshi + facepalm)
+            txt.drop (By_Index [Range 2 4, Range 0 2]) . should_equal ""
 
         Test.specify "take should work as in the examples" <|
             "Hello World!".take First . should_equal "H"
@@ -266,47 +356,70 @@ spec =
             "Hello World!".take (While c->c!=" ") . should_equal "Hello"
             "Hello World!".take (While c->c!="z") . should_equal "Hello World!"
             "Hello World!".take (Range 3 5) . should_equal "lo"
-            "Hello World!".take (Range -3 -1) . should_equal "ld"
-            "Hello World!".take (Range -3 Nothing) . should_equal "ld!"
-            "Hello World!".take (Range 5 Nothing) . should_equal " World!"
             "Hello World!".take (Range 5 12) . should_equal " World!"
-            "Hello World!".take (Range 12 12) . should_equal ""
+            "Hello World!".take (Range 6 12 2) . should_equal "Wrd"
+            "Hello World!".take (Every 2 first=6) . should_equal "Wrd"
+            "Hello World!".take (Every 3) . should_equal "HlWl"
+            "Hello World!".take (By_Index 0) . should_equal "H"
+            "Hello World!".take (By_Index [1, 0, 0, 6, 0]) . should_equal "eHHWH"
+            "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) . should_equal "HelWWrd"
+            "Hello World!".take (Sample 3 seed=42) . should_equal "l d"
 
-        Test.specify "take should report errors for invalid Ranges" <|
-            "Hello World!".take (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
-            "Hello World!".take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
-            "Hello World!".take (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
-            "Hello World!".take (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
-            "Hello World!".take (Range 0 10 2) . should_fail_with Illegal_Argument_Error
-            "Hello World!".take (Range 0 10 -1) . should_fail_with Illegal_Argument_Error
+        Test.specify "take should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
+            txt = "Hello World!"
+            txt.take (Range 0 14) . should_equal txt
+            txt.take (Range 6 100) . should_equal "World!"
+            txt.take (Range txt.length-1 txt.length) . should_equal "!"
+            txt.take (Range txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (Range txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error txt.length txt.length)
+            txt.take (Range txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (First 100) . should_equal txt
+            txt.take (Last 100) . should_equal txt
+            txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index [0, 1, Range 6 100]) . should_equal "HeWorld!"
+            txt.take (By_Index [0, 1, Range 6 100 2]) . should_equal "HeWrd"
+            txt.take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            "".take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+            "".take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (Range 13 20) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (Range 13 20 2) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index [Range 0 2, Range 13 20]) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index [Range 0 0, Range 13 10, Range 2 2 2]) . should_equal ""
+            txt.take (By_Index [Range 0 2 2, Range 13 20 2]) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.take (By_Index [Range 0 2 2, Range 13 20 2]) . catch . should_equal (Index_Out_Of_Bounds_Error 13 12)
+            txt.take (By_Index [Range 0 2 2, Range txt.length 100 2]) . should_fail_with Index_Out_Of_Bounds_Error
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "take should work on grapheme clusters" <|
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 2) . should_equal 'He\u{302}'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 5) . should_equal 'He\u{302}llo\u{308}'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 6) . should_equal 'Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Last 5) . should_equal 'o\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e\u{302}') . should_equal 'H'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'ê') . should_equal 'H'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (Before 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'ö') . should_equal 'He\u{302}llo\u{308} W'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Before_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'ê') . should_equal 'llo\u{308} Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e\u{308}') . should_equal ''
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.take (After 'e') . should_equal ''
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o\u{308}') . should_equal 'rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'ö') . should_equal 'rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (After_Last 'o') . should_equal ''
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e\u{302}') . should_equal 'H'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='ê') . should_equal 'H'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (While c->c!='e') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 3 5) . should_equal 'lo\u{308}'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 -1) . should_equal 'ld'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range -3 Nothing) . should_equal 'ld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 Nothing) . should_equal ' Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 5 12) . should_equal ' Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 12 12) . should_equal ''
+            txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
+            txt_2 = 'He\u0302llo\u0308 Wo\u0308rld!'
+            txt_1.take (First 2) . should_equal 'He\u{302}'
+            txt_1.take (First 5) . should_equal 'He\u{302}llo\u{308}'
+            txt_1.take (Last 6) . should_equal 'Wo\u{301}rld!'
+            txt_1.take (Last 5) . should_equal 'o\u{301}rld!'
+            txt_1.take (Before 'e\u{302}') . should_equal 'H'
+            txt_1.take (Before 'ê') . should_equal 'H'
+            txt_1.take (Before 'e') . should_equal txt_1
+            txt_2.take (Before_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} W'
+            txt_2.take (Before_Last 'ö') . should_equal 'He\u{302}llo\u{308} W'
+            txt_2.take (Before_Last 'o') . should_equal txt_2
+            txt_1.take (After 'e\u{302}') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            txt_1.take (After 'ê') . should_equal 'llo\u{308} Wo\u{301}rld!'
+            txt_1.take (After 'e\u{308}') . should_equal ''
+            txt_1.take (After 'e') . should_equal ''
+            txt_2.take (After_Last 'o\u{308}') . should_equal 'rld!'
+            txt_2.take (After_Last 'ö') . should_equal 'rld!'
+            txt_2.take (After_Last 'o') . should_equal ''
+            txt_2.take (While c->c!='e\u{302}') . should_equal 'H'
+            txt_2.take (While c->c!='ê') . should_equal 'H'
+            txt_2.take (While c->c!='e') . should_equal txt_2
+            txt_2.take (Range 3 5) . should_equal 'lo\u{308}'
+            txt_2.take (Range 5 12) . should_equal ' Wo\u{308}rld!'
 
         Test.specify "take should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.take First . should_equal '✨'
@@ -320,11 +433,10 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.take (After_Last '😍') . should_equal '😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (While c->c!="😃") . should_equal '✨🚀🚧😍'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 6) . should_equal '😍😃😍'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range 3 Nothing) . should_equal '😍😃😍😎😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 Nothing) . should_equal '😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 -1) . should_equal '😙😉'
 
         Test.specify "take should correctly handle edge cases" <|
+            "ABC".take . should_equal "A"
+
             "".take First . should_equal ""
             "".take Last . should_equal ""
 
@@ -340,13 +452,24 @@ spec =
 
             "".take (While _->True) . should_equal ""
 
-            "".take (Range 0 0) . should_equal ""
             'ABC\u{301}'.take (Range 0 0) . should_equal ""
 
             'ABC\u{301}'.take (After "") . should_equal 'ABC\u{301}'
             'ABC\u{301}'.take (After_Last "") . should_equal ""
             'ABC\u{301}'.take (Before "") . should_equal ""
             'ABC\u{301}'.take (Before_Last "") . should_equal 'ABC\u{301}'
+
+            "ABC".take (By_Index -1) . should_equal "C"
+            "ABC".take (By_Index [-1, -1, -1, -3, 2]) . should_equal "CCCAC"
+            "ABC".take (By_Index []) . should_equal ""
+            "ABC".take (By_Index (Range -2 -1)) . should_fail_with Illegal_Argument_Error
+            "".take (Every 2) . should_equal ""
+            "".take (Every 2 first=1) . should_equal ""
+            "ABC".take (Every 5) . should_equal "A"
+            "A".take (Every 5) . should_equal "A"
+            "ABC".take (Every 5 first=4) . should_equal ""
+            "".take (Sample 0) . should_equal ""
+            "".take (Sample 100) . should_equal ""
 
         Test.specify "drop should work as in the examples" <|
             "Hello World!".drop First . should_equal "ello World!"
@@ -367,47 +490,61 @@ spec =
             "Hello World!".drop (While c->c!=" ") . should_equal " World!"
             "Hello World!".drop (While c->c!="z") . should_equal ""
             "Hello World!".drop (Range 3 5) . should_equal "Hel World!"
-            "Hello World!".drop (Range -3 -1) . should_equal "Hello Wor!"
-            "Hello World!".drop (Range -3 Nothing) . should_equal "Hello Wor"
-            "Hello World!".drop (Range 5 Nothing) . should_equal "Hello"
             "Hello World!".drop (Range 5 12) . should_equal "Hello"
-            "Hello World!".drop (Range 12 12) . should_equal "Hello World!"
+            "Hello World!".drop (Range 6 12 2) . should_equal "Hello ol!"
+            "Hello World!".drop (Every 2 first=6) . should_equal "Hello ol!"
+            "Hello World!".drop (Every 3) . should_equal "elo ord!"
+            "Hello World!".drop (By_Index 0) . should_equal "ello World!"
+            "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) . should_equal "llo orld!"
+            "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) . should_equal "lo ol!"
+            "Hello World!".drop (Sample 3 seed=42) . should_equal "HeloWorl!"
 
-        Test.specify "drop should report errors for invalid Ranges" <|
-            "Hello World!".drop (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
-            "Hello World!".drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
-            "Hello World!".drop (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
-            "Hello World!".drop (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
-            "Hello World!".drop (Range 0 10 2) . should_fail_with Illegal_Argument_Error
-            "Hello World!".drop (Range 0 10 -1) . should_fail_with Illegal_Argument_Error
+        Test.specify "drop should report errors for start indices out of bounds but just go till the end if the end index is OOB" <|
+            txt = "Hello World!"
+            txt.drop (Range 0 14) . should_equal ""
+            txt.drop (First 100) . should_equal ""
+            txt.drop (Last 100) . should_equal ""
+            txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 12)
+            txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.drop (By_Index [0, Range 14 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.drop (By_Index [0, 1, Range 6 100]) . should_equal "llo "
+            txt.drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
+            txt.drop (Range 14 15) . should_fail_with Index_Out_Of_Bounds_Error
+            "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+            "".drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+            "".drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
+            txt.drop (Range 0 0) . should_equal txt
+            txt.drop (Range 5 100) . should_equal "Hello"
+            txt.drop (Range 5 100 2) . should_equal "HelloWrd"
+            txt.drop (By_Index [0, 1, 0, Range 5 100 2]) . should_equal "lloWrd"
 
         Test.specify "drop should work on grapheme clusters" <|
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 5) . should_equal ' Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'ê') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (Before 'e') . should_equal ''
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o\u{308}') . should_equal 'o\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'ö') . should_equal 'o\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Before_Last 'o') . should_equal ''
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{302}') . should_equal 'He\u{302}'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'ê') . should_equal 'He\u{302}'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (After 'e') . should_equal 'He\u{302}llo\u{308} Wo\u{301}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'ö') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (After_Last 'o') . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='ê') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (While c->c!='e') . should_equal ''
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 -1) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r!'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range -3 Nothing) . should_equal 'He\u{302}llo\u{308} Wo\u{308}r'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 5 Nothing) . should_equal 'He\u{302}llo\u{308}'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 5 12) . should_equal 'He\u{302}llo\u{308}'
-            'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 12 12) . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
+            txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
+            txt_2 = 'He\u0302llo\u0308 Wo\u0308rld!'
+            txt_1.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'
+            txt_1.drop (First 5) . should_equal ' Wo\u{301}rld!'
+            txt_1.drop (Last 6) . should_equal 'He\u{302}llo\u{308} '
+            txt_1.drop (Last 5) . should_equal 'He\u{302}llo\u{308} W'
+            txt_1.drop (Before 'e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            txt_1.drop (Before 'ê') . should_equal 'e\u{302}llo\u{308} Wo\u{301}rld!'
+            txt_1.drop (Before 'e') . should_equal ''
+            txt_2.drop (Before_Last 'o\u{308}') . should_equal 'o\u{308}rld!'
+            txt_2.drop (Before_Last 'ö') . should_equal 'o\u{308}rld!'
+            txt_2.drop (Before_Last 'o') . should_equal ''
+            txt_1.drop (After 'e\u{302}') . should_equal 'He\u{302}'
+            txt_1.drop (After 'ê') . should_equal 'He\u{302}'
+            txt_1.drop (After 'e\u{308}') . should_equal txt_1
+            txt_1.drop (After 'e') . should_equal txt_1
+            txt_2.drop (After_Last 'o\u{308}') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            txt_2.drop (After_Last 'ö') . should_equal 'He\u{302}llo\u{308} Wo\u{308}'
+            txt_2.drop (After_Last 'o') . should_equal txt_2
+            txt_2.drop (While c->c!='e\u{302}') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            txt_2.drop (While c->c!='ê') . should_equal 'e\u{302}llo\u{308} Wo\u{308}rld!'
+            txt_2.drop (While c->c!='e') . should_equal ''
+            txt_2.drop (Range 3 5) . should_equal 'He\u{302}l Wo\u{308}rld!'
+            txt_2.drop (Range 5 12) . should_equal 'He\u{302}llo\u{308}'
 
         Test.specify "drop should work on emojis" <|
             '✨🚀🚧😍😃😎😙😉☺'.drop First . should_equal '🚀🚧😍😃😎😙😉☺'
@@ -420,11 +557,10 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (After_Last '😍') . should_equal '✨🚀🚧😍😃😍'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (While c->c!="😃") . should_equal '😃😍😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 6) . should_equal '✨🚀🚧😎😙😉☺'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range 3 Nothing) . should_equal '✨🚀🚧'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 Nothing) . should_equal '✨🚀🚧😍😃😍😎'
-            '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
 
         Test.specify "drop should correctly handle edge cases" <|
+            "ABC".drop . should_equal "BC"
+
             "".drop First . should_equal ""
             "".drop Last . should_equal ""
 
@@ -440,13 +576,23 @@ spec =
 
             "".drop (While _->True) . should_equal ""
 
-            "".drop (Range 0 0) . should_equal ""
+            "".drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
             'ABC\u{301}'.drop (Range 0 0) . should_equal 'ABC\u{301}'
 
             'ABC\u{301}'.drop (After "") . should_equal ''
             'ABC\u{301}'.drop (After_Last "") . should_equal 'ABC\u{301}'
             'ABC\u{301}'.drop (Before "") . should_equal 'ABC\u{301}'
             'ABC\u{301}'.drop (Before_Last "") . should_equal ''
+
+            "ABC".drop (By_Index -1) . should_equal "AB"
+            "ABC".drop (By_Index [-1, -1, -1, -3, 2]) . should_equal "B"
+            "ABC".drop (By_Index []) . should_equal "ABC"
+            "".drop (Every 2) . should_equal ""
+            "".drop (Every 2 first=1) . should_equal ""
+            "ABC".drop (Every 5) . should_equal "BC"
+            "ABC".drop (Every 5 first=4) . should_equal "ABC"
+            "".drop (Sample 0) . should_equal ""
+            "".drop (Sample 100) . should_equal ""
 
         Test.specify "should correctly convert character case" <|
             "FooBar Baz".to_case Case.Lower . should_equal "foobar baz"
