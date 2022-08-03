@@ -1,6 +1,5 @@
-type Panic_Tp
-    @Builtin_Type
-    type Panic
+@Builtin_Type
+type Panic
     throw payload = @Builtin_Method "Panic.throw"
     catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
 
@@ -19,9 +18,8 @@ type Inexhaustive_Pattern_Match_Error scrutinee
 @Builtin_Type
 type Arity_Error expected_min expected_max actual
 
-type Error_Tp
-    @Builtin_Type
-    type Error
+@Builtin_Type
+type Error
     throw payload = @Builtin_Method "Error.throw"
     catch_primitive handler = @Builtin_Method "Error.catch_primitive"
     catch (handler = x->x) = self.catch_primitive handler

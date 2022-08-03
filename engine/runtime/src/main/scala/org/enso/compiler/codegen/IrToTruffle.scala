@@ -76,6 +76,7 @@ import org.enso.interpreter.runtime.data.Type
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
@@ -157,10 +158,6 @@ class IrToTruffle(
         moduleScope.addExport(exp.module.unsafeAsModule().getScope)
       }
     val imports = module.imports
-    val atomDefs = module.bindings.flatMap {
-      case tp: IR.Module.Scope.Definition.Type => tp.members
-      case _                                   => List()
-    }
     val methodDefs = module.bindings.collect {
       case method: IR.Module.Scope.Definition.Method.Explicit => method
     }
@@ -179,68 +176,76 @@ class IrToTruffle(
       case _: Error =>
     }
 
-    // Register the atoms and their constructors in scope
-    val atomConstructors =
-      atomDefs.map(cons => moduleScope.getConstructors.get(cons.name.name))
+    val typeDefs = module.bindings.collect {
+      case tp: IR.Module.Scope.Definition.Type => tp
+    }
 
-    atomConstructors
-      .zip(atomDefs)
-      .foreach { case (atomCons, atomDefn) =>
-        val scopeInfo = atomDefn
-          .unsafeGetMetadata(
-            AliasAnalysis,
-            "No root scope on an atom definition."
-          )
-          .unsafeAs[AliasAnalysis.Info.Scope.Root]
-
-        val dataflowInfo = atomDefn.unsafeGetMetadata(
-          DataflowAnalysis,
-          "No dataflow information associated with an atom."
-        )
-        val localScope = new LocalScope(
-          None,
-          scopeInfo.graph,
-          scopeInfo.graph.rootScope,
-          dataflowInfo
-        )
-
-        val argFactory =
-          new DefinitionArgumentProcessor(
-            scope = localScope
-          )
-        val argDefs =
-          new Array[ArgumentDefinition](atomDefn.arguments.size)
-        val argumentExpressions =
-          new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
-
-        for (idx <- atomDefn.arguments.indices) {
-          val unprocessedArg = atomDefn.arguments(idx)
-          val arg            = argFactory.run(unprocessedArg, idx)
-          val occInfo = unprocessedArg
+    typeDefs.foreach { tpDef =>
+      // Register the atoms and their constructors in scope
+      val atomDefs = tpDef.members
+      val atomConstructors =
+        atomDefs.map(cons => moduleScope.getConstructors.get(cons.name.name))
+      atomConstructors
+        .zip(atomDefs)
+        .foreach { case (atomCons, atomDefn) =>
+          val scopeInfo = atomDefn
             .unsafeGetMetadata(
               AliasAnalysis,
-              "No occurrence on an argument definition."
+              "No root scope on an atom definition."
             )
-            .unsafeAs[AliasAnalysis.Info.Occurrence]
-          val slot = localScope.createVarSlot(occInfo.id)
-          argDefs(idx) = arg
-          val readArg =
-            ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-          val assignmentArg = AssignmentNode.build(readArg, slot)
-          val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slot))
-          argumentExpressions.append((assignmentArg, argRead))
-        }
+            .unsafeAs[AliasAnalysis.Info.Scope.Root]
 
-        val (assignments, reads) = argumentExpressions.unzip
-        if (!atomCons.isInitialized) {
-          atomCons.initializeFields(
-            localScope,
-            assignments.toArray,
-            reads.toArray,
-            argDefs: _*
+          val dataflowInfo = atomDefn.unsafeGetMetadata(
+            DataflowAnalysis,
+            "No dataflow information associated with an atom."
           )
+          val localScope = new LocalScope(
+            None,
+            scopeInfo.graph,
+            scopeInfo.graph.rootScope,
+            dataflowInfo
+          )
+
+          val argFactory =
+            new DefinitionArgumentProcessor(
+              scope = localScope
+            )
+          val argDefs =
+            new Array[ArgumentDefinition](atomDefn.arguments.size)
+          val argumentExpressions =
+            new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
+
+          for (idx <- atomDefn.arguments.indices) {
+            val unprocessedArg = atomDefn.arguments(idx)
+            val arg            = argFactory.run(unprocessedArg, idx)
+            val occInfo = unprocessedArg
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "No occurrence on an argument definition."
+              )
+              .unsafeAs[AliasAnalysis.Info.Occurrence]
+            val slot = localScope.createVarSlot(occInfo.id)
+            argDefs(idx) = arg
+            val readArg =
+              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+            val assignmentArg = AssignmentNode.build(readArg, slot)
+            val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slot))
+            argumentExpressions.append((assignmentArg, argRead))
+          }
+
+          val (assignments, reads) = argumentExpressions.unzip
+          if (!atomCons.isInitialized) {
+            atomCons.initializeFields(
+              localScope,
+              assignments.toArray,
+              reads.toArray,
+              argDefs: _*
+            )
+          }
         }
-      }
+      val tp = moduleScope.getType(tpDef.name.name).get()
+      tp.generateGetters(atomConstructors.asJava)
+    }
 
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
@@ -458,7 +463,13 @@ class IrToTruffle(
     expr.getMetadata(MethodDefinitions).map { res =>
       res.target match {
         case BindingsMap.ResolvedType(definitionModule, tp) =>
-          definitionModule.unsafeAsModule().getScope.getTypes.get(tp)
+          definitionModule
+            .unsafeAsModule()
+            .getScope
+            .getType(tp.name)
+            .orElseGet(() =>
+              throw new CompilerError(s"Type ${tp.name} not found in codegen.")
+            )
         case BindingsMap.ResolvedModule(module) =>
           module.unsafeAsModule().getScope.getAssociatedType
         case BindingsMap.ResolvedConstructor(_, _) =>
