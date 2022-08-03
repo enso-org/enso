@@ -88,8 +88,8 @@ impl Model {
         let column_width = (overall_width - 2.0 * style.column_gap) / NUMBER_OF_COLUMNS as f32;
 
         let groups = content.iter().enumerate().map(|(index, provider)| {
-            let size = provider.original_entry_count;
-            layouting::Group { index, size }
+            let height = provider.original_entry_count;
+            layouting::Group { index, height }
         });
         let arrangement = layouting::Layouter::new(groups).arrange();
 
