@@ -155,25 +155,13 @@ object AstToIr {
         }
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
-        val containsAtomDefOrInclude = translatedBody.exists {
-          case _: IR.Module.Scope.Definition.Data => true
-          case _: IR.Name.Literal                 => true
-          case _                                  => false
-        }
-        val hasArgs = args.nonEmpty
+        Module.Scope.Definition.SugaredType(
+          buildName(typeName),
+          args.map(translateArgumentDefinition(_)),
+          translatedBody,
+          getIdentifiedLocation(inputAst)
+        )
 
-        if (containsAtomDefOrInclude && !hasArgs) {
-          Module.Scope.Definition.SugaredType(
-            buildName(typeName),
-            args.map(translateArgumentDefinition(_)),
-            translatedBody,
-            getIdentifiedLocation(inputAst)
-          )
-        } else if (!containsAtomDefOrInclude) {
-          Error.Syntax(inputAst, Error.Syntax.InterfaceDefinition)
-        } else {
-          Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
-        }
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val nameId: AST.Ident = name match {
           case AST.Ident.Var.any(name) => name

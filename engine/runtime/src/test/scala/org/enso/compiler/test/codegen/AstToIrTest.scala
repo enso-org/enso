@@ -681,20 +681,6 @@ class AstToIrTest extends CompilerTest with Inside {
         .reason shouldBe an[IR.Error.Syntax.InvalidTypeDefinition.type]
     }
 
-    "disallow definitions that do not define or include an atom" in {
-      val ir =
-        """
-          |type Maybe
-          |     is_just = case this of
-          |         Just _  -> True
-          |         Nothing -> False
-          |""".stripMargin.toIrModule.bindings.head
-
-      ir shouldBe an[IR.Error.Syntax]
-      ir.asInstanceOf[IR.Error.Syntax]
-        .reason shouldBe an[IR.Error.Syntax.InterfaceDefinition.type]
-    }
-
     "allow defining methods with operator names" in {
       val body =
         """

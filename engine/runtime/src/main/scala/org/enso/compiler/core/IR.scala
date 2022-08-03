@@ -7289,11 +7289,6 @@ object IR {
           "Invalid definition of a type."
       }
 
-      case object InterfaceDefinition extends Reason {
-        override def explanation: String =
-          "Interface definitions are not supported yet."
-      }
-
       case class TypeDefinedInline(typeName: String) extends Reason {
         override def explanation: String =
           s"Cannot define $typeName, type definitions are not supported " +

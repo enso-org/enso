@@ -37,15 +37,16 @@ class TextTest extends InterpreterTest {
       val code =
         """import Standard.Base.IO
           |
-          |type My_Type a
+          |type My_Type
+          |    Mk_My_Type a
           |
           |main =
           |    IO.println 5
-          |    IO.println (My_Type (My_Type 10))
+          |    IO.println (Mk_My_Type (Mk_My_Type 10))
           |    IO.println "123"
           |""".stripMargin
       eval(code)
-      consumeOut shouldEqual List("5", "(My_Type (My_Type 10))", "123")
+      consumeOut shouldEqual List("5", "(Mk_My_Type (Mk_My_Type 10))", "123")
     }
 
     "support text creation with raw block literals" in {
