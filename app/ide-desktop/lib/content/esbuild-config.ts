@@ -109,6 +109,20 @@ const config: esbuild.BuildOptions = {
             if (error) console.error('watch build failed:', error)
         },
     },
+    logOverride: {
+        // Happens in ScalaJS-generated parser (scala-parser.js):
+        //    6 │   "fileLevelThis": this
+        'this-is-undefined-in-esm': 'silent',
+        // Happens in ScalaJS-generated parser (scala-parser.js):
+        // 1553 │   } else if ((a === (-0))) {
+        'equals-negative-zero': 'silent',
+        // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
+        //    1 │ ...typeof module!=="undefined"){module["exports"]=Module}process["o...
+        'commonjs-variable-in-esm': 'silent',
+        // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
+        //    1 │ ...y{table.grow(1)}catch(err){if(!err instanceof RangeError){throw ...
+        'suspicious-boolean-not': 'silent',
+    }
 }
 
 /**
