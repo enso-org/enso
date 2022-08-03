@@ -15,7 +15,7 @@ type Index_Sub_Range
        Selects all items  if `count` is greater than the length of the input.
     type Last (count : Integer = 1)
 
-    ## Select elements while the predicate returns `True`.
+    ## Select elements from the start while the predicate returns `True`.
     type While (predicate : (Any -> Boolean))
 
     ## Selects specific indexes (starting from 0) either as an `Integer` or a
@@ -26,7 +26,7 @@ type Index_Sub_Range
        end of the input are selected.
 
        Only ranges with positive step and positive indices are supported.
-       Standalone integer  indices can be negative which allows for indexing
+       Individual integer indices can be negative which allows for indexing
        from the end of the collection.
     type By_Index (indexes : (Integer | Range | Vector (Integer | Range)) = [0])
 

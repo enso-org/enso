@@ -79,15 +79,14 @@ find_codepoint_ranges text subrange =
         While predicate ->
             indices = find_sub_range_end text _-> start-> end->
                 predicate (Text_Utils.substring text start end) . not
-            if indices.first == -1 then (Range 0 indices.second) else
+            if indices.first.is_nothing then (Range 0 indices.second) else
                 Range 0 indices.first
-        By_Index one_or_many_descriptors ->
-            indices = case one_or_many_descriptors of
-                Vector.Vector _ -> one_or_many_descriptors
-                _ -> [one_or_many_descriptors]
-            case indices.length == 1 of
-                True -> resolve_index_or_range text indices.first
-                False -> batch_resolve_indices_or_ranges text indices
+        By_Index indices ->
+            case indices of
+                Vector.Vector _ ->
+                    if indices.length == 1 then resolve_index_or_range text indices.first else
+                        batch_resolve_indices_or_ranges text indices
+                _ -> resolve_index_or_range text indices
         Sample count seed ->
             rng = Random.new seed
             indices = Random.random_indices text.length count rng
@@ -133,7 +132,8 @@ type Codepoint_Ranges
             builder.append current_ref.get
             builder.to_vector
 
-## Utility function to find char indices for Text_Sub_Range.
+## PRIVATE
+   Utility function to find char indices for Text_Sub_Range.
    Arguments:
    - text: Text to search
    - predicate: Function to test each character, receives:
@@ -142,13 +142,13 @@ type Codepoint_Ranges
      - end: index the char array to start of next grapheme cluster
      If the predicate returns True for a given character, the loop will exit.
    Returns: either a Pair of char indices for current grapheme cluster or
-     Pair -1 (char array length) if not found.
+     Pair Nothing (char array length) if not found.
 find_sub_range_end = text->predicate->
     iterator = BreakIterator.getCharacterInstance
     iterator.setText text
 
     loop index start end =
-        if end == -1 then (Pair -1 start) else
+        if end == -1 then (Pair Nothing start) else
             if predicate index start end then (Pair start end) else
                 @Tail_Call loop (index + 1) end iterator.next
 
