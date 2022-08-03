@@ -60,7 +60,7 @@ public class UnresolvedSymbol implements TruffleObject {
   public Function resolveFor(Type type) {
     Type current = type;
     while (current != null) {
-      Function candidate = scope.lookupMethodDefinition(type, name);
+      Function candidate = scope.lookupMethodDefinition(current, name);
       if (candidate != null) {
         return candidate;
       }

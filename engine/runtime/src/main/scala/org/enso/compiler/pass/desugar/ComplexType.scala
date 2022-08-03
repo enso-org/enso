@@ -194,7 +194,11 @@ case object ComplexType extends IRPass {
       typ.location
     )
 
-    sumType :: allEntities
+    val withAnnotations = annotations
+      .map(ann => sumType.updateMetadata(ModuleAnnotations -->> ann))
+      .getOrElse(sumType)
+
+    withAnnotations :: allEntities
   }
 
   /** Generates a method definition from a definition in complex type def body.
