@@ -156,10 +156,10 @@ public class Module implements TruffleObject {
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
    */
-  private Module(QualifiedName name, Package<TruffleFile> pkg) {
+  private Module(QualifiedName name, Package<TruffleFile> pkg, Context context) {
     this.sources = ModuleSources.NONE;
     this.name = name;
-    this.scope = new ModuleScope(this);
+    this.scope = new ModuleScope(this, context);
     this.pkg = pkg;
     this.compilationStage = CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
@@ -175,8 +175,8 @@ public class Module implements TruffleObject {
    *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
-    return new Module(name, pkg);
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, Context context) {
+    return new Module(name, pkg, context);
   }
 
   /** Clears any literal source set for this module. */
@@ -272,7 +272,7 @@ public class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(Context context) {
-    ensureScopeExists();
+    ensureScopeExists(context);
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
@@ -283,9 +283,9 @@ public class Module implements TruffleObject {
   }
 
   /** Create scope if it does not exist. */
-  public void ensureScopeExists() {
+  public void ensureScopeExists(Context context) {
     if (scope == null) {
-      scope = new ModuleScope(this);
+      scope = new ModuleScope(this, context);
       compilationStage = CompilationStage.INITIAL;
     }
   }
@@ -337,7 +337,7 @@ public class Module implements TruffleObject {
   }
 
   private void compile(Context context) throws IOException {
-    ensureScopeExists();
+    ensureScopeExists(context);
     Source source = getSource();
     if (source == null) return;
     scope.reset();

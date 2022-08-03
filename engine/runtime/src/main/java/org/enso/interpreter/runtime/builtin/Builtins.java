@@ -86,7 +86,7 @@ public class Builtins {
    */
   public Builtins(Context context) {
     Language language = context.getLanguage();
-    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
+    module = Module.empty(QualifiedName.fromString(MODULE_NAME), null, null);
     scope = module.compileScope(context);
 
     builtins = readBuiltinTypesMetadata(scope);

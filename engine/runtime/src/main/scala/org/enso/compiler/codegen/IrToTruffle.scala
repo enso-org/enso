@@ -920,7 +920,10 @@ class IrToTruffle(
                   } else if (tpe == any) {
                     CatchAllBranchNode.build(branchCodeNode.getCallTarget)
                   } else {
-                    throw new CompilerError("think about this")
+                    ObjectEqualityBranchNode.build(
+                      branchCodeNode.getCallTarget,
+                      tpe
+                    )
                   }
                   Right(branch)
                 case Some(

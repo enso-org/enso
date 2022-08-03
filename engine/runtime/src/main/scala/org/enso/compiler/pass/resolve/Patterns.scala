@@ -100,6 +100,10 @@ object Patterns extends IRPass {
                   consName.updateMetadata(
                     this -->> BindingsMap.Resolution(value)
                   )
+                case Right(value: BindingsMap.ResolvedType) =>
+                  consName.updateMetadata(
+                    this -->> BindingsMap.Resolution(value)
+                  )
                 case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
                   IR.Error.Resolution(
                     consName,
@@ -111,13 +115,6 @@ object Patterns extends IRPass {
                   IR.Error.Resolution(
                     consName,
                     IR.Error.Resolution.UnexpectedMethod(
-                      "a pattern match"
-                    )
-                  )
-                case Right(_: BindingsMap.ResolvedType) =>
-                  IR.Error.Resolution(
-                    consName,
-                    IR.Error.Resolution.UnexpectedType(
                       "a pattern match"
                     )
                   )
@@ -137,11 +134,7 @@ object Patterns extends IRPass {
                   throw new CompilerError(
                     "Impossible, should be transformed into an error before."
                   )
-                case BindingsMap.ResolvedType(_, _) =>
-                  throw new CompilerError(
-                    "Impossible, should be transformed into an error before."
-                  )
-
+                case BindingsMap.ResolvedType(_, _) => 0
               }
             }
             expectedArity match {
