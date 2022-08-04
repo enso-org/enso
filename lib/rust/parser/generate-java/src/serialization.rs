@@ -16,12 +16,12 @@ use enso_metamodel::java::bincode::MaterializerInput;
 //  generated fields in Java classes by starting from a `str -> rust::FieldId` query on Rust
 //  type data, and mapping fields analogously to `rust_to_java` for types.
 const CODE_GETTER: &str = "codeRepr";
-const TREE_BEGIN: &str = "spanLeftOffsetCodeReprBegin";
-const TREE_LEN: &str = "spanLeftOffsetCodeReprLen";
-const TOKEN_BEGIN: &str = "codeReprBegin";
-const TOKEN_LEN: &str = "codeReprLen";
-const TOKEN_OFFSET_BEGIN: &str = "leftOffsetCodeReprBegin";
-//const TOKEN_OFFSET_LEN: &str = "leftOffsetCodeReprLen";
+const TREE_BEGIN: &str = "fieldSpanLeftOffsetCodeReprBegin";
+const TREE_LEN: &str = "fieldSpanLeftOffsetCodeReprLen";
+const TOKEN_BEGIN: &str = "fieldCodeReprBegin";
+const TOKEN_LEN: &str = "fieldCodeReprLen";
+const TOKEN_OFFSET_BEGIN: &str = "fieldLeftOffsetCodeReprBegin";
+//const TOKEN_OFFSET_LEN: &str = "fieldLeftOffsetCodeReprLen";
 
 /// Derive deserialization for all types in the typegraph.
 pub fn derive(graph: &mut TypeGraph, tree: ClassId, token: ClassId, unsupported: ClassId) {

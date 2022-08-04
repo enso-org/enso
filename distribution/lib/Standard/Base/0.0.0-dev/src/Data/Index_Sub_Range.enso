@@ -1,0 +1,45 @@
+from Standard.Base import all
+
+import Standard.Base.Random
+
+type Index_Sub_Range
+    ## Select the first `count` items.
+
+       Selects no items if `count` is less than or equal to 0.
+       Selects all items  if `count` is greater than the length of the input.
+    type First (count : Integer = 1)
+
+    ## Select the last `count` characters.
+
+       Selects no items if `count` is less than or equal to 0.
+       Selects all items  if `count` is greater than the length of the input.
+    type Last (count : Integer = 1)
+
+    ## Select elements from the start while the predicate returns `True`.
+    type While (predicate : (Any -> Boolean))
+
+    ## Selects specific indexes (starting from 0) either as an `Integer` or a
+       `Range`.
+
+       If the index or start of the Range is out of bounds, an error is
+       reported. If the end of the Range is out of bounds, all items until the
+       end of the input are selected.
+
+       Only ranges with positive step and positive indices are supported.
+       Individual integer indices can be negative which allows for indexing
+       from the end of the collection.
+    type By_Index (indexes : (Integer | Range | Vector (Integer | Range)) = [0])
+
+    ## Gets a random sample of entries, without repetitions.
+
+       If `count` is greater than the length of the input, a random permutation
+       of all elements from the input is selected.
+    type Sample (count:Integer) (seed:Integer=Random.get_default_seed)
+
+    ## Gets every Nth entry.
+
+       Arguments:
+       - step: The step between consecutive entries that are included.
+       - first: The first entry to include. If it is outside of bounds of the
+         input, an error is raised.
+    type Every (step:Integer) (first:Integer=0)
