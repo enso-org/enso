@@ -39,12 +39,17 @@ pub struct VisibleHeader<HeaderEntry> {
     entry:        VisibleEntry<HeaderEntry>,
 }
 
-impl<HeaderEntry: display::Object> VisibleHeader<HeaderEntry> {
-    fn update_position(&self, col: Col, entry_size: Vector2, viewport: Viewport) {
+impl<HeaderEntry> VisibleHeader<HeaderEntry> {
+    fn header_position(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> Vector2 {
         let next_section_y = entry::visible::position_y(self.section_rows.end, entry_size);
         let min_y = next_section_y + entry_size.y;
         let y = (viewport.top - entry_size.y / 2.0).max(min_y);
-        self.entry.entry.set_position_xy(Vector2(entry::visible::position_x(col, entry_size), y));
+        Vector2(entry::visible::position_x(col, entry_size), y)
+    }
+
+    fn update_position(&self, col: Col, entry_size: Vector2, viewport: Viewport)
+    where HeaderEntry: display::Object {
+        self.entry.entry.set_position_xy(self.header_position(col, entry_size, viewport));
     }
 }
 
@@ -69,6 +74,18 @@ impl<HeaderEntry, HeaderParams> Model<HeaderEntry, HeaderParams> {
         let visible_headers = default();
         let free_headers = default();
         Self { grid, visible_headers, free_headers, entry_creation_ctx, layer, text_layer }
+    }
+
+    fn header_position(
+        &self,
+        row: Row,
+        col: Col,
+        entry_size: Vector2,
+        viewport: Viewport,
+    ) -> Option<Vector2> {
+        let visible_headers = self.visible_headers.borrow();
+        let header = visible_headers.get(&col).filter(|h| h.section_rows.start == row);
+        header.map(|h| h.header_position(col, entry_size, viewport))
     }
 }
 
@@ -163,21 +180,36 @@ impl<HeaderEntry: Entry> Model<HeaderEntry, HeaderEntry::Params> {
 // ===============
 
 #[derive(CloneRef, Debug, Deref, Derivative)]
-#[derivative(Clone(bound = ""))]
-pub struct HandlerTemplate<HeaderEntry, HeaderModel: frp::node::Data, HeaderParams: frp::node::Data>
-{
+#[derivative(Clone(bound = ""), Default(bound = ""))]
+pub struct HandlerTemplate<HeaderEntry, HeaderModel: frp::node::Data, HeaderParams> {
     #[deref]
     frp:   Frp<HeaderModel>,
-    model: Rc<Model<HeaderEntry, HeaderParams>>,
+    model: Rc<RefCell<Option<Rc<Model<HeaderEntry, HeaderParams>>>>>,
 }
 
 pub type Handler<HeaderEntry> =
     HandlerTemplate<HeaderEntry, <HeaderEntry as Entry>::Model, <HeaderEntry as Entry>::Params>;
 
+impl<HeaderEntry, HeaderModel, HeaderParams> HandlerTemplate<HeaderEntry, HeaderModel, HeaderParams>
+where
+    HeaderModel: frp::node::Data,
+    HeaderParams: frp::node::Data,
+{
+    pub fn new() -> Self {
+        default()
+    }
+}
+
 impl<HeaderEntry: Entry> HandlerTemplate<HeaderEntry, HeaderEntry::Model, HeaderEntry::Params> {
-    pub fn new<E>(grid: &crate::GridView<E>, layer: Layer, text_layer: Option<Layer>) -> Self
-    where E: Entry<Params = HeaderEntry::Params> {
-        let frp = Frp::new();
+    pub fn setup_with_grid<E>(
+        &self,
+        grid: &crate::GridView<E>,
+        layer: Layer,
+        text_layer: Option<Layer>,
+    ) where
+        E: Entry<Params = HeaderEntry::Params>,
+    {
+        let frp = &self.frp;
         let entry_creation_ctx = grid.model().entry_creation_ctx.clone_ref();
         let model = Rc::new(Model::new(grid, entry_creation_ctx, layer, text_layer));
         let network = frp.network();
@@ -204,7 +236,32 @@ impl<HeaderEntry: Entry> HandlerTemplate<HeaderEntry, HeaderEntry::Model, Header
             eval section_and_props ((((rows, col, m), props): &((Range<Row>, Col, HeaderEntry::Model), Properties)) model.update_section(rows.clone(), *col, m.clone(), props.entries_size, props.viewport));
         }
 
-        Self { frp, model }
+        *self.model.borrow_mut() = Some(model);
+    }
+}
+
+impl<HeaderEntry, HeaderModel, HeaderParams> HandlerTemplate<HeaderEntry, HeaderModel, HeaderParams>
+where
+    HeaderModel: frp::node::Data,
+    HeaderParams: frp::node::Data,
+{
+    pub fn get_entry(&self, row: Row, col: Col) -> Option<HeaderEntry>
+    where HeaderEntry: CloneRef {
+        self.model.borrow().as_ref().and_then(|model| {
+            let headers = model.visible_headers.borrow();
+            let header = headers.get(&col).filter(|h| h.section_rows.start == row);
+            header.map(|e| e.entry.entry.clone_ref())
+        })
+    }
+
+    pub fn header_position(
+        &self,
+        row: Row,
+        col: Col,
+        entry_size: Vector2,
+        viewport: Viewport,
+    ) -> Option<Vector2> {
+        self.model.borrow().as_ref().and_then(|m| m.header_position(row, col, entry_size, viewport))
     }
 }
 
@@ -231,7 +288,8 @@ mod tests {
     ) -> Handler<TestEntry> {
         let headers: [BTreeMap<_, _>; COL_COUNT] = headers.map(|i| i.into_iter().collect());
         let headers_layer = app.display.default_scene.layers.main.create_sublayer();
-        let handler = Handler::<TestEntry>::new(&grid, headers_layer, None);
+        let handler = Handler::<TestEntry>::new();
+        handler.setup_with_grid(&grid, headers_layer, None);
         frp::extend! { network
             grid.model_for_entry <+ grid.model_for_entry_needed.map(|&(row, col)| (row, col, Immutable(row + col)));
             handler.section_info <+ handler.section_info_needed.map(move |&(row, col)| {
@@ -281,7 +339,8 @@ mod tests {
     }
 
     fn get_sorted_headers(handler: &Handler<TestEntry>) -> Vec<(Col, VisibleHeader<TestEntry>)> {
-        let visible_headers = handler.model.visible_headers.borrow();
+        let model = handler.model.borrow();
+        let visible_headers = model.as_ref().unwrap().visible_headers.borrow();
         visible_headers
             .iter()
             .map(|(col, header)| (*col, header.clone()))

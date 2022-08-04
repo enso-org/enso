@@ -193,7 +193,7 @@ mod tests {
                     model.selected.set(*selected);
                     model.hovered.set(*hovered);
                 });
-                out.contour <+ input.set_model.map(|m| m.contour);
+                out.highlight_contour <+ input.set_model.map(|m| m.contour);
                 out.selection_highlight_color <+ input.set_model.map(|m| m.color);
                 out.hover_highlight_color <+ input.set_model.map(|m| m.color);
             }
@@ -246,6 +246,7 @@ mod tests {
 
     #[test]
     fn covering_and_uncovering_selected_entry() {
+        init_tracing(TRACE);
         let app = Application::new("root");
         let network = frp::Network::new("selecting_entries");
         let grid_view = GridView::<TestEntry>::new(&app);

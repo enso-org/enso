@@ -54,6 +54,7 @@ use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
+use ensogl_core::display::scene::Layer;
 use ensogl_core::gui::Widget;
 
 use crate::entry::EntryFrp;
@@ -152,24 +153,29 @@ ensogl_core::define_endpoints_2! {
 
 /// The Model of [`GridView`].
 #[derive(Clone, Debug)]
-pub struct Model<Entry, EntryParams> {
+pub struct Model<Entry, EntryModel: frp::node::Data, EntryParams> {
+    //TODO[ao] Separate Header and HeaderModel?
     display_object:         display::object::Instance,
     visible_entries:        RefCell<HashMap<(Row, Col), entry::visible::VisibleEntry<Entry>>>,
     free_entries:           RefCell<Vec<entry::visible::VisibleEntry<Entry>>>,
     pub entry_creation_ctx: entry::visible::CreationCtx<EntryParams>,
+    pub headers:            header::HandlerTemplate<Entry, EntryModel, EntryParams>,
 }
 
-impl<Entry, EntryParams> Model<Entry, EntryParams> {
+impl<Entry, EntryModel: frp::node::Data, EntryParams> Model<Entry, EntryModel, EntryParams> {
     fn new(entry_creation_ctx: entry::visible::CreationCtx<EntryParams>) -> Self {
         let logger = Logger::new("GridView");
         let display_object = display::object::Instance::new(&logger);
         let visible_entries = default();
         let free_entries = default();
-        Model { display_object, visible_entries, free_entries, entry_creation_ctx }
+        let headers = default();
+        Model { display_object, visible_entries, free_entries, entry_creation_ctx, headers }
     }
 }
 
-impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
+impl<Entry: display::Object, EntryModel: frp::node::Data, EntryParams>
+    Model<Entry, EntryModel, EntryParams>
+{
     fn update_entries_visibility(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { viewport, entries_size, row_count, col_count } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
@@ -215,7 +221,7 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
     }
 }
 
-impl<E: Entry> Model<E, E::Params> {
+impl<E: Entry> Model<E, E::Model, E::Params> {
     fn update_entry(
         &self,
         row: Row,
@@ -232,16 +238,18 @@ impl<E: Entry> Model<E, E::Params> {
             self.entry_creation_ctx.create_entry(text_layer.as_ref())
         };
         let entry = match visible_entries.entry((row, col)) {
-            Occupied(entry) => entry.into_mut(),
+            Occupied(entry) => entry.get().entry.clone_ref(),
             Vacant(lack_of_entry) => {
                 let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
                 entry::visible::set_position(&new_entry, row, col, entry_size);
-                new_entry.entry.frp().set_location((row, col));
                 self.display_object.add_child(&new_entry);
-                lack_of_entry.insert(new_entry)
+                lack_of_entry.insert(new_entry).entry.clone_ref()
             }
         };
-        entry.entry.frp().set_model(model);
+        drop(visible_entries);
+        drop(free_entries);
+        entry.frp().set_location((row, col));
+        entry.frp().set_model(model);
     }
 }
 
@@ -265,7 +273,7 @@ pub struct GridViewTemplate<
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
 > {
-    widget: Widget<Model<Entry, EntryParams>, Frp<EntryModel, EntryParams>>,
+    widget: Widget<Model<Entry, EntryModel, EntryParams>, Frp<EntryModel, EntryParams>>,
 }
 
 /// Grid View Component.
@@ -398,18 +406,43 @@ impl<E: Entry> GridView<E> {
         let y = row_count as f32 * entries_size.y;
         Vector2(x, y)
     }
+
+    pub fn setup_sections_and_headers(
+        &self,
+        headers_layer: Layer,
+        headers_text_layer: Option<Layer>,
+    ) {
+        self.widget.model().headers.setup_with_grid(self, headers_layer, headers_text_layer);
+    }
+
+    pub fn headers_frp(&self) -> &header::Frp<E::Model> {
+        &*self.widget.model().headers
+    }
 }
 
 impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>
 where
-    Entry: CloneRef,
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
 {
-    fn get_entry(&self, row: Row, column: Col) -> Option<Entry> {
-        let entries = self.widget.model().visible_entries.borrow();
-        let entry = entries.get(&(row, column));
-        entry.map(|e| e.entry.clone_ref())
+    fn get_entry(&self, row: Row, column: Col) -> Option<Entry>
+    where Entry: CloneRef {
+        self.widget.model().headers.get_entry(row, column).or_else(|| {
+            if let Err(err) = self.widget.model().visible_entries.try_borrow() {
+                tracing::trace!("Double Borrow {}", backtrace());
+            }
+            let entries = self.widget.model().visible_entries.borrow();
+            let entry = entries.get(&(row, column));
+            entry.map(|e| e.entry.clone_ref())
+        })
+    }
+
+    fn entry_position(&self, row: Row, column: Col) -> Vector2 {
+        self.widget
+            .model()
+            .headers
+            .header_position(row, column, self.entries_size.value(), self.viewport.value())
+            .unwrap_or_else(|| entry::visible::position(row, column, self.entries_size.value()))
     }
 }
 

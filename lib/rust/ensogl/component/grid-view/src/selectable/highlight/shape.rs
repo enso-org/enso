@@ -40,17 +40,26 @@ ensogl_core::define_shape_system! {
         highlights_sizes: Vector4,
         hover_color: Vector4,
         selection_color: Vector4,
+        highlights_y_clip: Vector4,
     ) {
         let viewport_width = Var::<Pixels>::from("input_size.x");
         let viewport_height = Var::<Pixels>::from("input_size.y");
-        let viewport = Rect((viewport_width, viewport_height));
+        let viewport = Rect((&viewport_width, &viewport_height));
         let viewport = viewport.corners_radius(corners_radii.x().px());
+        let hover_clip_height = &viewport_height - highlights_y_clip.x().px() - highlights_y_clip.y().px();
+        let hover_clip_y_pos = (highlights_y_clip.y().px() - highlights_y_clip.x().px()) / 2.0;
+        let hover_clip = Rect((&viewport_width, hover_clip_height));
+        let hover_clip = hover_clip.translate((0.0.px(), hover_clip_y_pos));
         let hover = Rect(highlights_sizes.xy().px()).corners_radius(corners_radii.y().px());
         let hover = hover.translate(highlights_pos.xy().px());
-        let hover = (&hover * &viewport).fill(hover_color);
+        let hover = (&hover * &viewport * &hover_clip).fill(hover_color);
+        let selection_clip_height = viewport_height - highlights_y_clip.z().px() - highlights_y_clip.w().px();
+        let selection_clip_y_pos = (highlights_y_clip.w().px() - highlights_y_clip.z().px()) / 2.0;
+        let selection_clip = Rect((viewport_width, selection_clip_height));
+        let selection_clip = selection_clip.translate((0.0.px(), selection_clip_y_pos));
         let selection = Rect(highlights_sizes.zw().px()).corners_radius(corners_radii.z().px());
         let selection = selection.translate(highlights_pos.zw().px());
-        let selection = (&selection * &viewport).fill(selection_color);
+        let selection = (&selection * &viewport * &selection_clip).fill(selection_color);
         let highlights = &hover + &selection;
         highlights.into()
     }
@@ -81,6 +90,7 @@ pub trait AttrSetter {
     fn set_size(shape: &View, size: Vector2);
     fn set_corners_radius(shape: &View, radius: f32);
     fn set_color(shape: &View, color: color::Rgba);
+    fn set_y_clip_range(shape: &View, range: Range<f32>, viewport: Viewport);
 }
 
 
@@ -108,13 +118,21 @@ impl AttrSetter for HoverAttrSetter {
     }
 
     fn set_corners_radius(shape: &View, radius: f32) {
-        let mut old_radii = shape.corners_radii.get();
-        old_radii.y = radius;
-        shape.corners_radii.set(old_radii);
+        let mut attr = shape.corners_radii.get();
+        attr.y = radius;
+        shape.corners_radii.set(attr);
     }
 
     fn set_color(shape: &View, color: color::Rgba) {
         shape.hover_color.set(color.into())
+    }
+
+    fn set_y_clip_range(shape: &View, range: Range<f32>, viewport: Viewport) {
+        let mut attr = shape.highlights_y_clip.get();
+        let viewport_y = viewport.center_point().y;
+        attr.x = range.start - viewport_y;
+        attr.y = range.end - viewport_y;
+        shape.highlights_y_clip.set(attr);
     }
 }
 
@@ -143,12 +161,20 @@ impl AttrSetter for SelectionAttrSetter {
     }
 
     fn set_corners_radius(shape: &View, radius: f32) {
-        let mut old_radii = shape.corners_radii.get();
-        old_radii.z = radius;
-        shape.corners_radii.set(old_radii);
+        let mut attr = shape.corners_radii.get();
+        attr.z = radius;
+        shape.corners_radii.set(attr);
     }
 
     fn set_color(shape: &View, color: color::Rgba) {
         shape.selection_color.set(color.into())
+    }
+
+    fn set_y_clip_range(shape: &View, range: Range<f32>, viewport: Viewport) {
+        let mut attr = shape.highlights_y_clip.get();
+        let viewport_y = viewport.center_point().y;
+        attr.z = range.start - viewport_y;
+        attr.w = range.end - viewport_y;
+        shape.highlights_y_clip.set(attr);
     }
 }

@@ -171,6 +171,7 @@ impl crate::Entry for Entry {
             data.label.set_content_truncated <+ all(&content, &max_width_px);
 
             out.contour <+ contour;
+            out.highlight_contour <+ contour.map(|c| entry::Contour {size: c.size + Vector2(4.0, 4.0), corners_radius: 2.0});
             out.disabled <+ disabled;
             out.hover_highlight_color <+ hover_color;
             out.selection_highlight_color <+ selection_color;

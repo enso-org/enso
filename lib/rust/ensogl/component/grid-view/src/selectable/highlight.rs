@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::entry;
+use crate::header;
 use crate::selectable::highlight::shape::HoverAttrSetter;
 use crate::selectable::highlight::shape::SelectionAttrSetter;
 use crate::Col;
@@ -104,11 +105,11 @@ impl Animations {
 /// set back to `false` on drop.
 #[derive(Debug)]
 struct ConnectedEntryGuard {
-    network:           frp::Network,
-    /// An event emitted when we should drop this guard, for example when the Entry instance is
-    /// re-used in another location.
-    should_be_dropped: frp::Stream,
-    dropped:           frp::Source,
+    network:             frp::Network,
+    /// An event emitted when we should drop this guard and try to create new with the same
+    /// location, for example when the Entry instance is re-used in another location.
+    should_be_recreated: frp::Stream,
+    dropped:             frp::Source,
 }
 
 impl ConnectedEntryGuard {
@@ -130,10 +131,10 @@ impl ConnectedEntryGuard {
             frp.contour <+ contour;
             frp.color <+ color;
             location_change <- entry_frp.location.filter(move |loc| *loc != (row, col));
-            should_be_dropped <- location_change.constant(());
+            should_be_recreated <- location_change.constant(());
         }
         init.emit(());
-        Self { network, dropped, should_be_dropped }
+        Self { network, dropped, should_be_recreated }
     }
 }
 
@@ -224,9 +225,15 @@ impl<E: Entry> Data<E, E::Model, E::Params> {
             let network = &guard.network;
             let this = self;
             frp::extend! { network
-                eval_ guard.should_be_dropped (this.drop_guard());
+                eval_ guard.should_be_recreated (this.reconnect_highlighted_entry());
             }
         }
+    }
+
+    fn reconnect_highlighted_entry(self: &Rc<Self>) {
+        let location = self.connected_entry.take();
+        self.guard.take();
+        self.connect_new_highlighted_entry(location);
     }
 
     fn setup_masked_layer(&self, layer: Option<&WeakLayer>) -> bool {
@@ -346,9 +353,8 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             eval should_reconnect ((loc) model.connect_new_highlighted_entry(*loc));
 
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
-            out.position <+ became_highlighted.all_with(
-                &grid_frp.entries_size,
-                |&(row, col), &es| entry::visible::position(row, col, es)
+            out.position <+ all(became_highlighted, grid_frp.viewport).map(
+                f!((((row, col), _)) grid.entry_position(*row, *col))
             );
             none_highlightd <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
             out.contour <+ none_highlightd.constant(default());
@@ -385,7 +391,7 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         EntryEndpoints {
             flag:     frp.set_selected.clone_ref(),
             location: frp.set_location.clone_ref().into(),
-            contour:  frp.contour.clone_ref().into(),
+            contour:  frp.highlight_contour.clone_ref().into(),
             color:    frp.selection_highlight_color.clone_ref().into(),
         }
     }
@@ -395,7 +401,7 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         EntryEndpoints {
             flag:     frp.set_hovered.clone_ref(),
             location: frp.set_location.clone_ref().into(),
-            contour:  frp.contour.clone_ref().into(),
+            contour:  frp.highlight_contour.clone_ref().into(),
             color:    frp.hover_highlight_color.clone_ref().into(),
         }
     }

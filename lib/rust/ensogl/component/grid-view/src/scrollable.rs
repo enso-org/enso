@@ -89,13 +89,13 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         self.area.deref()
     }
 
-    pub fn setup_headers<E>(&self) -> header::Handler<E>
+    pub fn setup_headers<E>(&self)
     where
         E: Entry,
         InnerGridView: AsRef<crate::GridView<E>>, {
         let headers_layer = self.area.content_layer().create_sublayer();
         let text_layer = self.area.content_layer().create_sublayer();
-        header::Handler::new(self.inner_grid.as_ref(), headers_layer, Some(text_layer))
+        self.inner_grid.as_ref().setup_sections_and_headers(headers_layer, Some(text_layer));
     }
 }
 
