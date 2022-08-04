@@ -91,7 +91,7 @@ public final class EnsoDate implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(InteropLibrary my, UnresolvedSymbol symbol) {
       Context context = Context.get(my);
-      return symbol.resolveFor(context.getBuiltins().date(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().date());
     }
 
     @Specialization(

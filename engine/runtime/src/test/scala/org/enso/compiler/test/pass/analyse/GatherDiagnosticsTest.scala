@@ -86,12 +86,13 @@ class GatherDiagnosticsTest extends CompilerTest {
         List(),
         List(),
         List(
-          IR.Module.Scope.Definition.Atom(
+          IR.Module.Scope.Definition.Type(
             typeName,
             List(
               IR.DefinitionArgument
                 .Specified(fooName, None, Some(error2), suspended = false, None)
             ),
+            List(),
             None
           ),
           IR.Module.Scope.Definition.Method

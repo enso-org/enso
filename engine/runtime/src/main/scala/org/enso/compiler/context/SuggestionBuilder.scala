@@ -60,7 +60,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               case Some(typePtr) =>
                 typePtr.getMetadata(MethodDefinitions).map(_.target.qualifiedName)
               case None =>
-                Some(module.qualifiedName)
+                Some(module)
             }
             val methodOpt = selfTypeOpt.map { selfType =>
               buildMethod(

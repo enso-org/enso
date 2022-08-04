@@ -56,10 +56,7 @@ public class Type implements TruffleObject {
             null,
             new FunctionSchema(
                 new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
-    definitionScope.registerMethod(
-        definitionScope.getAssociatedType(),
-        this.name.toLowerCase(),
-        function); // TODO lowercase remove when merge
+    definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
   public QualifiedName getQualifiedName() {

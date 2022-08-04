@@ -425,8 +425,8 @@ public class Builtins {
    *
    * @return the {@code Date} atom constructor
    */
-  public AtomConstructor date() {
-    return date.constructor();
+  public Type date() {
+    return date.getType();
   }
 
   /**

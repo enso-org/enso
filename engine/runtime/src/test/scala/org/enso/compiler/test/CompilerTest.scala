@@ -192,7 +192,7 @@ trait CompilerRunner {
       * @return an atom with one argument `arg` with default value `ir`
       */
     def asAtomDefaultArg: IR.Module.Scope.Definition.Data = {
-      IR.Module.Scope.Definition.Atom(
+      IR.Module.Scope.Definition.Data(
         IR.Name.Literal("TestAtom", isMethod = false, None),
         List(
           IR.DefinitionArgument

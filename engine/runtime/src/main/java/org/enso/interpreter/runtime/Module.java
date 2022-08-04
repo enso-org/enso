@@ -164,7 +164,11 @@ public class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(
-      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
+      QualifiedName name,
+      Package<TruffleFile> pkg,
+      boolean synthetic,
+      Rope literalSource,
+      Context context) {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
@@ -185,8 +189,8 @@ public class Module implements TruffleObject {
    *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
-    return new Module(name, pkg, false, null);
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, Context context) {
+    return new Module(name, pkg, false, null, context);
   }
 
   /**
@@ -198,8 +202,9 @@ public class Module implements TruffleObject {
    * @param source source of the module declaring exports of the desired modules
    * @return the synthetic module
    */
-  public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
-    return new Module(name, pkg, true, source);
+  public static Module synthetic(
+      QualifiedName name, Package<TruffleFile> pkg, Rope source, Context context) {
+    return new Module(name, pkg, true, source, context);
   }
 
   /** Clears any literal source set for this module. */
@@ -216,7 +221,9 @@ public class Module implements TruffleObject {
     return sources.rope();
   }
 
-  /** @return true if this module represents a synthetic (compiler-generated) module */
+  /**
+   * @return true if this module represents a synthetic (compiler-generated) module
+   */
   public boolean isSynthetic() {
     return synthetic;
   }
@@ -545,8 +552,7 @@ public class Module implements TruffleObject {
   abstract static class InvokeMember {
     private static Function getMethod(ModuleScope scope, Object[] args)
         throws ArityException, UnsupportedTypeException {
-      Types.Pair<Type, String> arguments =
-          Types.extractArguments(args, Type.class, String.class);
+      Types.Pair<Type, String> arguments = Types.extractArguments(args, Type.class, String.class);
       Type type = arguments.getFirst();
       String name = arguments.getSecond();
 
@@ -612,7 +618,10 @@ public class Module implements TruffleObject {
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
       return callOptimiserNode
           .executeDispatch(
-              eval, callerInfo, EmptyMap.create(), new Object[] {builtins.debug(), Text.create(expr)})
+              eval,
+              callerInfo,
+              EmptyMap.create(),
+              new Object[] {builtins.debug(), Text.create(expr)})
           .getValue();
     }
 
