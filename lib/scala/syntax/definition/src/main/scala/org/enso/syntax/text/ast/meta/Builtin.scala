@@ -289,7 +289,7 @@ object Builtin {
         (name, rename)
       }
 
-      def consOrVar: PartialFunction[AST, AST.Ident] = {
+      val consOrVar: PartialFunction[AST, AST.Ident] = {
         case AST.Ident.Var.any(v)  => v: AST.Ident
         case AST.Ident.Cons.any(c) => c: AST.Ident
       }
