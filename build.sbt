@@ -450,7 +450,7 @@ val zio = Seq(
 val bcpkixJdk15Version      = "1.70"
 val bumpVersion             = "0.1.3"
 val declineVersion          = "2.3.0"
-val directoryWatcherVersion = "0.16.0"
+val directoryWatcherVersion = "0.16.1"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "31.1-jre"
 val jlineVersion            = "3.21.0"
@@ -472,6 +472,7 @@ val sqliteVersion           = "3.36.0.3"
 val tikaVersion             = "2.4.1"
 val typesafeConfigVersion   = "1.4.2"
 val junitVersion            = "4.13.2"
+val netbeansApiVersion      = "RELEASE140"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -707,15 +708,14 @@ lazy val `profiling-utils` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130"
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
       exclude ("org.netbeans.api", "org-openide-loaders")
       exclude ("org.netbeans.api", "org-openide-nodes")
-      // exclude following when RELEASE140 is out:
-      //   exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
-      //   exclude("org.netbeans.api", "org-netbeans-api-progress")
-      //   exclude("org.netbeans.api", "org-openide-util-lookup")
-      //   exclude("org.netbeans.api", "org-openide-util")
-      //   exclude("org.netbeans.api", "org-openide-dialogs")
+      exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
+      exclude("org.netbeans.api", "org-netbeans-api-progress")
+      exclude("org.netbeans.api", "org-openide-util-lookup")
+      exclude("org.netbeans.api", "org-openide-util")
+      exclude("org.netbeans.api", "org-openide-dialogs")
       exclude ("org.netbeans.api", "org-openide-filesystems")
       exclude ("org.netbeans.api", "org-openide-util-ui")
       exclude ("org.netbeans.api", "org-openide-awt")
@@ -983,7 +983,7 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     )),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
-      "org.netbeans.api"   % "org-openide-util-lookup" % "RELEASE140",
+      "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion,
       "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305")
     )
   )
