@@ -1,8 +1,12 @@
 /**
  * Configuration for the esbuild bundler and build/watch commands.
  *
- * The bundler processes each entry point into a single file, each with no external dependencies and minified.
- * This primarily involves resolving all imports and transforming them to ES5.
+ * The bundler processes each entry point into a single file, each with no external dependencies and
+ * minified. This primarily involves resolving all imports, along with some other transformations
+ * (like TypeScript compilation).
+ *
+ * See the bundlers documentation for more information:
+ * https://esbuild.github.io/getting-started/#bundling-for-node
  */
 
 import fs from 'node:fs'

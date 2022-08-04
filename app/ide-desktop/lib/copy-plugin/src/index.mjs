@@ -1,9 +1,10 @@
 /** This plugin copies files to the esbuild's output directory while registering them for watching.
  *
- * This plugin registers faux entry point and then intercepts it during resolution and then copies the files and
- * registers them for watching.
+ * This plugin registers faux entry point and then intercepts it during resolution and then copies
+ * the files and registers them for watching.
  *
- * This is a workaround-ish solution. Unfortunately, only resolve/load plugin APIs allow adding new watch files.
+ * This is a workaround-ish solution. Unfortunately, only resolve/load plugin APIs allow adding new
+ * watch files.
  *
  */
 
