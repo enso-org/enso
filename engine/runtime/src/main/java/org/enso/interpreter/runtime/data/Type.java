@@ -105,6 +105,7 @@ public class Type implements TruffleObject {
 
   public void generateGetters(List<AtomConstructor> constructors) {
     if (gettersGenerated) return;
+    gettersGenerated = true;
     if (constructors.size() != 1) return; // TODO
     var cons = constructors.get(0);
     Arrays.stream(cons.getFields())

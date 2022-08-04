@@ -3,9 +3,3 @@ type Boolean
     True
     False
     if_then_else ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
-
-#@Builtin_Type
-#type True
-#
-#@Builtin_Type
-#type False

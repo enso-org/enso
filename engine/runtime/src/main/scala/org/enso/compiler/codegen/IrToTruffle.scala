@@ -36,7 +36,10 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow.caseexpr._
-import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
+import org.enso.interpreter.node.expression.atom.{
+  ConstantNode,
+  QualifiedAccessorNode
+}
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
@@ -561,6 +564,22 @@ class IrToTruffle(
       )
     }
 
+    def mkTypeGetter(tp: Type): RuntimeFunction = {
+      new RuntimeFunction(
+        Truffle.getRuntime.createCallTarget(
+          new ConstantNode(language, tp)
+        ),
+        null,
+        new FunctionSchema(
+          new ArgumentDefinition(
+            0,
+            Constants.Names.SELF_ARGUMENT,
+            ArgumentDefinition.ExecutionMode.EXECUTE
+          )
+        )
+      )
+    }
+
     val bindingsMap = module.unsafeGetMetadata(
       BindingAnalysis,
       "No binding analysis at the point of codegen."
@@ -569,7 +588,15 @@ class IrToTruffle(
       case (name, resolution :: _) =>
         if (resolution.module.unsafeAsModule() != moduleScope.getModule) {
           resolution match {
-            case _: BindingsMap.ResolvedType => //throw new CompilerError("todo")
+            case BindingsMap.ResolvedType(module, tp) =>
+              val runtimeTp =
+                module.unsafeAsModule().getScope.getType(tp.name).get()
+              val fun = mkTypeGetter(runtimeTp)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
             case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
               val runtimeCons = definitionModule
                 .unsafeAsModule()
@@ -582,16 +609,15 @@ class IrToTruffle(
                 name,
                 fun
               )
-            case BindingsMap.ResolvedModule( /*module*/ _) =>
-              throw new CompilerError("todo")
-//              val runtimeCons =
-//                module.unsafeAsModule().getScope.getAssociatedType
-//              val fun = mkConsGetter(runtimeCons)
-//              moduleScope.registerMethod(
-//                moduleScope.getAssociatedType,
-//                name,
-//                fun
-//              )
+            case BindingsMap.ResolvedModule(module) =>
+              val runtimeCons =
+                module.unsafeAsModule().getScope.getAssociatedType
+              val fun = mkTypeGetter(runtimeCons)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
             case BindingsMap.ResolvedMethod(module, method) =>
               val actualModule = module.unsafeAsModule()
               val fun = actualModule.getScope.getMethods
@@ -870,12 +896,14 @@ class IrToTruffle(
                 case None =>
                   Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
                 case Some(
-                      BindingsMap.Resolution(
-                        BindingsMap.ResolvedModule(_ /*mod*/ )
-                      )
+                      BindingsMap.Resolution(BindingsMap.ResolvedModule(mod))
                     ) =>
-                  throw new CompilerError("todo")
-                //Right(mod.unsafeAsModule().getScope.getAssociatedType)
+                  Right(
+                    ObjectEqualityBranchNode.build(
+                      branchCodeNode.getCallTarget,
+                      mod.unsafeAsModule().getScope.getAssociatedType
+                    )
+                  )
                 case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedConstructor(mod, cons)
