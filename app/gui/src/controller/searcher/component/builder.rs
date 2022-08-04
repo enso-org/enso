@@ -511,5 +511,8 @@ mod tests {
         let group_at_0 = &favorites[0];
         assert_eq!(group_at_0.name, "Group 2");
         check_names_and_order_of_group_entries(group_at_0, &["Virtual Component"]);
+        let group_at_1 = &favorites[1];
+        assert_eq!(group_at_1.name, "Group 1");
+        check_names_and_order_of_group_entries(group_at_1, &["TopModule1"]);
     }
 }
