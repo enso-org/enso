@@ -33,15 +33,15 @@ public abstract class Builtin {
     }
   }
 
-  private String name;
+  private final String name;
+
+  public Builtin() {
+    name = this.getClass().getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
+
+  }
 
   private @CompilerDirectives.CompilationFinal Type type;
   private @CompilerDirectives.CompilationFinal(dimensions = 1) AtomConstructor[] constructors;
-  private @CompilerDirectives.CompilationFinal AtomConstructor uniqueConstructor;
-
-  public final void setName(String name) {
-    this.name = name;
-  }
 
   protected Class<? extends Builtin> getSuperType() {
     return Any.class;
@@ -67,11 +67,15 @@ public abstract class Builtin {
       for (int i = 0; i < constructors.length; i++) {
         constructors[i] = conses.get(i).build(scope, type);
       }
-      if (constructors.length == 1) {
-        uniqueConstructor = constructors[0];
-      }
     }
     type.generateGetters(Arrays.asList(constructors));
+    postInitialize();
+  }
+
+  protected void postInitialize() {}
+
+  protected String getName() {
+    return name;
   }
 
   public final Type getType() {
@@ -82,7 +86,4 @@ public abstract class Builtin {
     return constructors;
   }
 
-  public final AtomConstructor getUniqueConstructor() {
-    return uniqueConstructor;
-  }
 }

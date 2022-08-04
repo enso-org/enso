@@ -17,17 +17,14 @@ public abstract class MethodNodeClassGenerator {
   ClassName builtinNode;
   ClassName ownerClazz;
   ClassName stdlibOwner;
-  Map<String, Integer> builtinTypesParamCount;
 
   public MethodNodeClassGenerator(
       ClassName builtinNode,
       ClassName ownerClazz,
-      ClassName stdlibOwner,
-      Map<String, Integer> builtinTypesParamCount) {
+      ClassName stdlibOwner) {
     this.builtinNode = builtinNode;
     this.ownerClazz = ownerClazz;
     this.stdlibOwner = stdlibOwner;
-    this.builtinTypesParamCount = builtinTypesParamCount;
   }
 
   /**
@@ -82,7 +79,7 @@ public abstract class MethodNodeClassGenerator {
       for (String line :
           methodsGen()
               .generate(
-                  processingEnv, ownerMethodName, ownerClazz.name(), builtinTypesParamCount)) {
+                  processingEnv, ownerMethodName, ownerClazz.name())) {
         out.println("  " + line);
       }
       out.println();

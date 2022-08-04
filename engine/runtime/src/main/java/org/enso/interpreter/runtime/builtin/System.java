@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 /** A container class for all System-related stdlib builtins. */
 public class System {
 
-  private final Builtin systemProcessResult;
+  private final SystemProcessResult systemProcessResult;
 
   /** Create builders for all {@code System} atom constructors. */
   public System(Builtins builtins) {
@@ -18,6 +18,6 @@ public class System {
    * @return the atom constructor for {@code Process_Result}.
    */
   public Atom makeSystemResult(Object exitCode, Object stdout, Object stderr) {
-    return systemProcessResult.getUniqueConstructor().newInstance(exitCode, stdout, stderr);
+    return systemProcessResult.newInstance(exitCode, stdout, stderr);
   }
 }

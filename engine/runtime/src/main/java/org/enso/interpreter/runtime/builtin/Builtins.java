@@ -22,6 +22,7 @@ import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.*;
 import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
+import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
@@ -75,7 +76,7 @@ public class Builtins {
   private final Builtin ref;
   private final Builtin managedResource;
   private final Builtin debug;
-  private final Builtin projectDescription;
+  private final ProjectDescription projectDescription;
   private final Builtin file;
   private final Builtin date;
   private final Builtin warning;
@@ -112,7 +113,7 @@ public class Builtins {
     ref = builtins.get(Ref.class);
     managedResource = builtins.get(ManagedResource.class);
     debug = builtins.get(Debug.class);
-    projectDescription = builtins.get(ProjectDescription.class);
+    projectDescription = getBuiltinType(ProjectDescription.class);
     file = builtins.get(File.class);
     date = builtins.get(org.enso.interpreter.node.expression.builtin.date.Date.class);
     special = new Special(language);
@@ -215,9 +216,7 @@ public class Builtins {
                   try {
                     @SuppressWarnings("unchecked")
                     var cls = (Class<? extends Builtin>) Class.forName(builtinMeta[1]);
-                    var builtin = cls.getConstructor().newInstance();
-                    builtin.setName(builtinMeta[0]);
-                    return builtin;
+                    return cls.getConstructor().newInstance();
                   } catch (NoSuchMethodException
                       | InstantiationException
                       | IllegalAccessException
@@ -442,7 +441,7 @@ public class Builtins {
   /**
    * @return the {@code Project_Description} atom constructor
    */
-  public Builtin getProjectDescription() {
+  public ProjectDescription getProjectDescription() {
     return projectDescription;
   }
 
@@ -477,7 +476,7 @@ public class Builtins {
   /**
    * @return the {@code Caught_Panic} atom constructor
    */
-  public Builtin caughtPanic() {
+  public CaughtPanic caughtPanic() {
     return this.error.caughtPanic();
   }
 

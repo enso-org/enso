@@ -14,7 +14,6 @@ import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndexError
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
@@ -25,6 +24,24 @@ import java.util.Arrays;
 @ExportLibrary(MethodDispatchLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public class Array implements TruffleObject {
+  public static class InvalidIndexException extends RuntimeException {
+    private final long index;
+    private final Array array;
+
+    public InvalidIndexException(long index, Array array) {
+      this.index = index;
+      this.array = array;
+    }
+
+    public long getIndex() {
+      return index;
+    }
+
+    public Array getArray() {
+      return array;
+    }
+  }
+
   private final Object[] items;
 
   /**
@@ -47,7 +64,9 @@ public class Array implements TruffleObject {
     this.items = new Object[(int) size];
   }
 
-  /** @return the elements of this array as a java array. */
+  /**
+   * @return the elements of this array as a java array.
+   */
   public Object[] getItems() {
     return items;
   }
@@ -77,19 +96,25 @@ public class Array implements TruffleObject {
     return items[(int) index];
   }
 
-  /** @return the size of this array */
+  /**
+   * @return the size of this array
+   */
   @Builtin.Method(description = "Returns the size of this array.")
   public long length() {
     return this.getItems().length;
   }
 
-  /** @return an empty array */
+  /**
+   * @return an empty array
+   */
   @Builtin.Method(description = "Creates an empty Array")
   public static Object empty() {
     return new Array();
   }
 
-  /** @return an identity array */
+  /**
+   * @return an identity array
+   */
   @Builtin.Method(description = "Identity on arrays, implemented for protocol completeness.")
   public Object toArray() {
     return this;
@@ -106,14 +131,20 @@ public class Array implements TruffleObject {
   }
 
   @Builtin.Method(name = "at", description = "Gets an array element at the given index.")
-  @Builtin.WrapException(from = IndexOutOfBoundsException.class, to = InvalidArrayIndexError.class)
+  @Builtin.WrapException(from = InvalidIndexException.class, to = InvalidArrayIndexError.class)
   public Object get(long index) {
+    if (index < 0 || index >= items.length) {
+      throw new InvalidIndexException(index, this);
+    }
     return getItems()[(int) index];
   }
 
   @Builtin.Method(name = "setAt", description = "Gets an array element at the given index.")
-  @Builtin.WrapException(from = IndexOutOfBoundsException.class, to = InvalidArrayIndexError.class)
+  @Builtin.WrapException(from = InvalidIndexException.class, to = InvalidArrayIndexError.class)
   public Object set(long index, @AcceptsError Object value) {
+    if (index < 0 || index >= items.length) {
+      throw new InvalidIndexException(index, this);
+    }
     getItems()[(int) index] = value;
     return this;
   }
@@ -212,8 +243,7 @@ public class Array implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(Type target, UnresolvedConversion conversion) {
       Context context = getContext();
-      return conversion.resolveFor(
-          target, context.getBuiltins().array());
+      return conversion.resolveFor(target, context.getBuiltins().array());
     }
 
     static Context getContext() {

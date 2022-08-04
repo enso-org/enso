@@ -12,11 +12,4 @@ public @interface BuiltinType {
 
   /** Fully qualified name as available in stdlib */
   String name() default "";
-
-  /**
-   * Comma-separated list of parameters of builting type
-   *
-   * @return list of params
-   */
-  String[] params() default {};
 }

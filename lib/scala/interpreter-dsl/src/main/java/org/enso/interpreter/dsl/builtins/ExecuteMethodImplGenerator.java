@@ -139,8 +139,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
   public List<String> generate(
       ProcessingEnvironment processingEnv,
       String name,
-      String owner,
-      Map<String, Integer> builtinTypesParameterCounts) {
+      String owner) {
 
     SafeWrapException[] exceptionWrappers = wrapExceptions(processingEnv, method);
     boolean wrapsExceptions = exceptionWrappers.length != 0;
@@ -170,7 +169,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
         method.add("  " + statement);
       }
       for (int i = 0; i < exceptionWrappers.length; i++) {
-        method.addAll(exceptionWrappers[i].toCatchClause(params, builtinTypesParameterCounts));
+        method.addAll(exceptionWrappers[i].toCatchClause());
       }
       method.add("  }");
       method.add("}");

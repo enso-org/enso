@@ -1,51 +1,39 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.*;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethodError;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 
 import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
-import com.oracle.truffle.api.exception.AbstractTruffleException;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.runtime.Context;
 
 /** Container for builtin Error types */
 public class Error {
   private final Context context;
-  private final Builtin syntaxError;
-  private final Builtin typeError;
-  private final Builtin compileError;
-  private final Builtin inexhaustivePatternMatchError;
-  private final Builtin uninitializedState;
-  private final Builtin noSuchMethodError;
-  private final Builtin noSuchConversionError;
-  private final Builtin polyglotError;
-  private final Builtin moduleNotInPackageError;
-  private final Builtin arithmeticError;
-  private final Builtin invalidArrayIndexError;
-  private final Builtin arityError;
-  private final Builtin unsupportedArgumentsError;
-  private final Builtin moduleDoesNotExistError;
-  private final Builtin notInvokableError;
-  private final Builtin invalidConversionTargetError;
-  private final Builtin panic;
-  private final Builtin caughtPanic;
+  private final SyntaxError syntaxError;
+  private final TypeError typeError;
+  private final CompileError compileError;
+  private final InexhaustivePatternMatchError inexhaustivePatternMatchError;
+  private final UninitializedState uninitializedState;
+  private final NoSuchMethodError noSuchMethodError;
+  private final NoSuchConversionError noSuchConversionError;
+  private final PolyglotError polyglotError;
+  private final ModuleNotInPackageError moduleNotInPackageError;
+  private final ArithmeticError arithmeticError;
+  private final InvalidArrayIndexError invalidArrayIndexError;
+  private final ArityError arityError;
+  private final UnsupportedArgumentTypes unsupportedArgumentsError;
+  private final ModuleDoesNotExist moduleDoesNotExistError;
+  private final NotInvokableError notInvokableError;
+  private final InvalidConversionTargetError invalidConversionTargetError;
+  private final Panic panic;
+  private final CaughtPanic caughtPanic;
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
@@ -78,30 +66,30 @@ public class Error {
   }
 
   public Atom makeSyntaxError(Object message) {
-    return syntaxError.getUniqueConstructor().newInstance(message);
+    return syntaxError.newInstance(message);
   }
 
   public Atom makeCompileError(Object message) {
-    return compileError.getUniqueConstructor().newInstance(message);
+    return compileError.newInstance(message);
   }
 
   public Atom makeInexhaustivePatternMatchError(Object message) {
-    return inexhaustivePatternMatchError.getUniqueConstructor().newInstance(message);
+    return inexhaustivePatternMatchError.newInstance(message);
   }
 
   public Atom makeUninitializedStateError(Object key) {
-    return uninitializedState.getUniqueConstructor().newInstance(key);
+    return uninitializedState.newInstance(key);
   }
 
-  public Atom makeModuleNotInPackageError() {
-    return moduleNotInPackageError.getUniqueConstructor().newInstance();
+  public Type makeModuleNotInPackageError() {
+    return moduleNotInPackageError.getType();
   }
 
   public Type panic() {
     return panic.getType();
   }
 
-  public Builtin caughtPanic() {
+  public CaughtPanic caughtPanic() {
     return caughtPanic;
   }
 
@@ -113,16 +101,16 @@ public class Error {
    * @return a runtime representation of the error
    */
   public Atom makeNoSuchMethodError(Object target, UnresolvedSymbol symbol) {
-    return noSuchMethodError.getUniqueConstructor().newInstance(target, symbol);
+    return noSuchMethodError.newInstance(target, symbol);
   }
 
   public Atom makeNoSuchConversionError(
       Object target, Object that, UnresolvedConversion conversion) {
-    return noSuchConversionError.getUniqueConstructor().newInstance(target, that, conversion);
+    return noSuchConversionError.newInstance(target, that, conversion);
   }
 
   public Atom makeInvalidConversionTargetError(Object target) {
-    return invalidConversionTargetError.getUniqueConstructor().newInstance(target);
+    return invalidConversionTargetError.newInstance(target);
   }
 
   /**
@@ -134,17 +122,11 @@ public class Error {
    * @return a runtime representation of the error.
    */
   public Atom makeTypeError(Object expected, Object actual, String name) {
-    return typeError.getUniqueConstructor().newInstance(expected, actual, Text.create(name));
+    return typeError.newInstance(expected, actual, Text.create(name));
   }
 
-  /**
-   * Creates an instance of the runtime representation of a {@code Polyglot_Error}.
-   *
-   * @param cause the cause of the error.
-   * @return a runtime representation of the polyglot error.
-   */
-  public Atom makePolyglotError(Throwable cause) {
-    return polyglotError.getUniqueConstructor().newInstance(WrapPlainException.wrap(cause, context));
+  public PolyglotError getPolyglotError() {
+    return polyglotError;
   }
 
   /**
@@ -154,7 +136,7 @@ public class Error {
    * @return a runtime representation of the arithmetic error
    */
   private Atom makeArithmeticError(Text reason) {
-    return arithmeticError.getUniqueConstructor().newInstance(reason);
+    return arithmeticError.newInstance(reason);
   }
 
   /**
@@ -185,7 +167,11 @@ public class Error {
    * @return An error representing that the {@code index} is not valid in {@code array}
    */
   public Atom makeInvalidArrayIndexError(Object array, Object index) {
-    return invalidArrayIndexError.getUniqueConstructor().newInstance(array, index);
+    return invalidArrayIndexError.newInstance(array, index);
+  }
+
+  public InvalidArrayIndexError getInvalidArrayIndexError() {
+    return invalidArrayIndexError;
   }
 
   /**
@@ -195,7 +181,7 @@ public class Error {
    * @return an error informing about the arity being mismatched
    */
   public Atom makeArityError(long expected_min, long expected_max, long actual) {
-    return arityError.getUniqueConstructor().newInstance(expected_min, expected_max, actual);
+    return arityError.newInstance(expected_min, expected_max, actual);
   }
 
   /**
@@ -204,7 +190,7 @@ public class Error {
    *     given method callp
    */
   public Atom makeUnsupportedArgumentsError(Object[] args) {
-    return unsupportedArgumentsError.getUniqueConstructor().newInstance(new Array(args));
+    return unsupportedArgumentsError.newInstance(new Array(args));
   }
 
   /**
@@ -212,7 +198,7 @@ public class Error {
    * @return a module does not exist error
    */
   public Atom makeModuleDoesNotExistError(String name) {
-    return moduleDoesNotExistError.getUniqueConstructor().newInstance(Text.create(name));
+    return moduleDoesNotExistError.newInstance(Text.create(name));
   }
 
   /**
@@ -220,133 +206,7 @@ public class Error {
    * @return a not invokable error
    */
   public Atom makeNotInvokableError(Object target) {
-    return notInvokableError.getUniqueConstructor().newInstance(target);
+    return notInvokableError.newInstance(target);
   }
 
-  /** Represents plain Java exception as a {@link TruffleObject}.
-   */
-  @ExportLibrary(InteropLibrary.class)
-  static final class WrapPlainException extends AbstractTruffleException {
-    private final AbstractTruffleException prototype;
-    private final Throwable original;
-
-    private WrapPlainException(Throwable cause) {
-      super(cause.getMessage(), cause, AbstractTruffleException.UNLIMITED_STACK_TRACE, null);
-      this.prototype = null;
-      this.original = cause;
-    }
-
-    private WrapPlainException(AbstractTruffleException prototype, Throwable original) {
-      super(prototype);
-      this.prototype = prototype;
-      this.original = original;
-    }
-
-    static AbstractTruffleException wrap(Throwable cause, Context ctx) {
-      var env = ctx.getEnvironment();
-      if (env.isHostException(cause)) {
-        var orig = env.asHostException(cause);
-        return new WrapPlainException((AbstractTruffleException) cause, orig);
-      } else if (cause instanceof AbstractTruffleException truffleEx) {
-        return truffleEx;
-      } else {
-        return new WrapPlainException(cause);
-      }
-    }
-
-    @ExportMessage
-    boolean hasExceptionMessage() {
-      return true;
-    }
-
-    @ExportMessage
-    public Object getExceptionMessage() {
-      if (getMessage() != null) {
-        return Text.create(getMessage());
-      } else {
-        return Text.create(original.getClass().getName());
-      }
-    }
-
-    @ExportMessage
-    String toDisplayString(boolean sideEffects) {
-      return original.toString();
-    }
-
-    @ExportMessage
-    Object getMembers(boolean includeInternal) {
-      return Array.empty();
-    }
-
-    @ExportMessage
-    boolean hasMembers() {
-      return true;
-    }
-
-    @ExportMessage
-    boolean isMemberInvocable(String member, @CachedLibrary(limit="1") InteropLibrary delegate) {
-      boolean knownMembers = "is_a".equals(member) || "getMessage".equals(member);
-      return knownMembers || (prototype != null && delegate.isMemberInvocable(prototype, member));
-    }
-
-    @ExportMessage
-    Object invokeMember(String name, Object[] args, @CachedLibrary(limit="2") InteropLibrary iop) throws ArityException, UnknownIdentifierException, UnsupportedTypeException, UnsupportedMessageException {
-      if ("is_a".equals(name)) {
-        if (args.length != 1) {
-          throw ArityException.create(1,1,  args.length);
-        }
-        Object meta;
-        if (iop.isString(args[0])) {
-          meta = args[0];
-        } else {
-          try {
-            meta = iop.getMetaQualifiedName(args[0]);
-          } catch (UnsupportedMessageException e) {
-            meta = args[0];
-          }
-        }
-        if (!iop.isString(meta)) {
-          throw UnsupportedTypeException.create(args, "Provide class or fully qualified name of class to check");
-        }
-
-        return hasType(iop.asString(meta), original.getClass());
-      }
-      if ("getMessage".equals(name)) {
-        return getExceptionMessage();
-      }
-      return iop.invokeMember(this.prototype, name, args);
-    }
-
-    @ExportMessage
-    boolean isMemberReadable(String member, @CachedLibrary(limit="1") InteropLibrary delegate) {
-      if (prototype == null) {
-        return false;
-      }
-      return delegate.isMemberReadable(prototype, member);
-    }
-
-    @ExportMessage
-    Object readMember(String name, @CachedLibrary(limit="2") InteropLibrary iop) throws UnsupportedMessageException, UnknownIdentifierException {
-      return iop.readMember(this.prototype, name);
-    }
-
-    @CompilerDirectives.TruffleBoundary
-    private static boolean hasType(String fqn, Class<?> type) {
-      if (type == null) {
-        return false;
-      }
-      if (type.getName().equals(fqn)) {
-        return true;
-      }
-      if (hasType(fqn, type.getSuperclass())) {
-        return true;
-      }
-      for (Class<?> interfaceType : type.getInterfaces()) {
-        if (hasType(fqn, interfaceType)) {
-          return true;
-        }
-      }
-      return false;
-    }
-  }
 }

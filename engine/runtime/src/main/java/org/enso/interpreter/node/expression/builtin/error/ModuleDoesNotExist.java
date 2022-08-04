@@ -2,6 +2,13 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 
-@BuiltinType(params = {"name"})
-public class ModuleDoesNotExist extends Builtin {}
+import java.util.List;
+
+public class ModuleDoesNotExist extends UniquelyConstructibleBuiltin {
+  @Override
+  protected List<String> getConstructorParamNames() {
+    return List.of("name");
+  }
+}

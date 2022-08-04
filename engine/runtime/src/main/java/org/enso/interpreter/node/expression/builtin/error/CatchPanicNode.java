@@ -60,7 +60,7 @@ public abstract class CatchPanicNode extends Node {
     } catch (AbstractTruffleException e) {
       otherExceptionBranchProfile.enter();
       Builtins builtins = Context.get(this).getBuiltins();
-      Object payload = builtins.error().makePolyglotError(e);
+      Object payload = builtins.error().getPolyglotError().wrap(e);
       return executeCallback(frame, state, handler, payload, e);
     }
   }

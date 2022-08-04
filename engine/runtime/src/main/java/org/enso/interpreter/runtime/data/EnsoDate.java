@@ -39,7 +39,7 @@ public final class EnsoDate implements TruffleObject {
 
   @Builtin.Method(name = "internal_parse", description = "Constructs a new Date from text with optional pattern")
   @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
   public static EnsoDate parse(Text text, Object noneOrPattern) {
     var str = text.getContents().toString();
     if (noneOrPattern instanceof Text pattern) {
@@ -51,7 +51,7 @@ public final class EnsoDate implements TruffleObject {
   }
 
   @Builtin.Method(name = "internal_new", description = "Constructs a new Date from a year, month, and day")
-  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   public static EnsoDate create(long year, long month, long day) {
     return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
   }

@@ -2,13 +2,14 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 
 import java.util.List;
 
 @BuiltinType
-public class NotInvokableError extends Builtin {
+public class NotInvokableError extends UniquelyConstructibleBuiltin {
   @Override
-  protected List<Cons> getDeclaredConstructors() {
-    return List.of(new Cons("Make_Not_Invokable_Error", "target"));
+  protected List<String> getConstructorParamNames() {
+    return List.of("target");
   }
 }

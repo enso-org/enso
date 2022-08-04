@@ -41,21 +41,21 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public OutputStream outputStream(OpenOption[] opts) throws IOException {
     return this.truffleFile.newOutputStream(opts);
   }
 
   @Builtin.Method
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public InputStream inputStream(OpenOption[] opts) throws IOException {
     return this.truffleFile.newInputStream(opts);
   }
 
   @Builtin.Method(name = "read_last_bytes_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public ArrayOverBuffer readLastBytes(long n) throws IOException {
     try (SeekableByteChannel channel =
         this.truffleFile.newByteChannel(Set.of(StandardOpenOption.READ))) {
@@ -89,21 +89,21 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "creation_time_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public ZonedDateTime getCreationTime() throws IOException {
     return ZonedDateTime.ofInstant(truffleFile.getCreationTime().toInstant(), ZoneOffset.UTC);
   }
 
   @Builtin.Method(name = "last_modified_time_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public ZonedDateTime getLastModifiedTime() throws IOException {
     return ZonedDateTime.ofInstant(truffleFile.getLastModifiedTime().toInstant(), ZoneOffset.UTC);
   }
 
   @Builtin.Method(name = "posix_permissions_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   @Builtin.ReturningGuestObject
   public Set<PosixFilePermission> getPosixPermissions() throws IOException {
     return truffleFile.getPosixPermissions();
@@ -144,7 +144,7 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "list_immediate_children_array")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public EnsoFile[] list() throws IOException {
     return this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new);
   }
@@ -178,19 +178,19 @@ public class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "delete_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public void delete() throws IOException {
     truffleFile.delete();
   }
 
   @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public void copy(EnsoFile target, CopyOption[] options) throws IOException {
     truffleFile.copy(target.truffleFile, options);
   }
 
   @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
   public void move(EnsoFile target, CopyOption[] options) throws IOException {
     truffleFile.move(target.truffleFile, options);
   }
