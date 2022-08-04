@@ -367,7 +367,7 @@ val cats = {
 val circeVersion              = "0.14.2"
 val circeYamlVersion          = "0.14.1"
 val enumeratumCirceVersion    = "1.7.0"
-val circeGenericExtrasVersion = "0.14.1"
+val circeGenericExtrasVersion = "0.14.2"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 
