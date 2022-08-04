@@ -379,7 +379,7 @@ mod tests {
         // order. Some of the names correspond to entries present in the suggestion database,
         // some do not.
         let ec_group = execution_context::ComponentGroup {
-            project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
+            project:    project::QualifiedName::of_standard_base_library(),
             name:       "Test Group 1".into(),
             color:      color::Rgb::from_css_hex("#aabbcc"),
             components: vec![
@@ -413,7 +413,7 @@ mod tests {
         let logger = Logger::new("tests::constructing_component_group_from_names_not_found_in_db");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let ec_group = execution_context::ComponentGroup {
-            project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
+            project:    project::QualifiedName::of_standard_base_library(),
             name:       "Input".into(),
             color:      None,
             components: vec!["NAME.NOT.FOUND.IN.DB".into()],

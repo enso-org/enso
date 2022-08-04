@@ -619,7 +619,7 @@ pub mod test {
 
             // Verify that the second component group was parsed and has expected contents.
             assert_eq!(groups[1], ComponentGroup {
-                project:    project::QualifiedName::from_segments("Standard", "Base").unwrap(),
+                project:    project::QualifiedName::of_standard_base_library(),
                 name:       "Input".into(),
                 color:      None,
                 components: vec!["Standard.Base.System.File.new".into(),],
