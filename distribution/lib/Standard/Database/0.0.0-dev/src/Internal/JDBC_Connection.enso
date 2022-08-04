@@ -4,7 +4,7 @@ import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
 
 import Standard.Database.Data.Sql
-from Standard.Database.Data.Sql import Sql_Type, Statement, code, join
+from Standard.Database.Data.Sql import Sql_Type, Statement
 from Standard.Database.Error import Sql_Error, Sql_Timeout_Error
 import Standard.Database.Data.Internal.Base_Generator
 import Standard.Table.Data.Storage
@@ -58,7 +58,7 @@ type JDBC_Connection
        information to any thrown SQL errors.
     with_prepared_statement : Text  | Statement -> (PreparedStatement -> Any) -> Any
     with_prepared_statement self query action =
-        prepare template holes = self.with_connection java_connection->
+        prepare template holes = self.connection_resource.with java_connection->
             stmt = java_connection.prepareStatement template
             Panic.catch Any (set_statement_values stmt holes) caught_panic->
                 stmt.close
@@ -66,7 +66,7 @@ type JDBC_Connection
             stmt
 
         go template holes =
-            wrap_sql_errors related_query=template <|
+            handle_sql_errors related_query=template <|
                 Resource.bracket (prepare template holes) .close action
 
         case query of
@@ -152,7 +152,7 @@ create_table_statement name table temporary =
     col_makers = column_names.zip column_types name-> typ->
         Base_Generator.wrap_in_quotes name ++ Sql.code " " ++ Sql.code typ.name
     create_prefix = if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
-    (code create_prefix ++ Base_Generator.wrap_in_quotes name ++ Sql.code " (" ++ (join ", " col_makers) ++ code ")").build
+    (Sql.code create_prefix ++ Base_Generator.wrap_in_quotes name ++ Sql.code " (" ++ (Sql.join ", " col_makers) ++ Sql.code ")").build
 
 ## PRIVATE
    Returns the default database type corresponding to an in-memory storage type.

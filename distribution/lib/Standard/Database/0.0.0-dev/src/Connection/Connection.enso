@@ -52,21 +52,18 @@ type Connection
     databases : [Text]
     databases self =
         self.jdbc_connection.with_metadata metadata->
-            database_result_set = metadata.getCatalogs
-            read_column database_result_set "TABLE_CAT"
+            read_column metadata.getCatalogs "TABLE_CAT"
 
     ## Returns the name of the current database (or catalog).
     database : Text
     database self =
-        self.jdbc_connection.with_connection connection->
-            connection.getCatalog
+        self.jdbc_connection.with_connection connection->connection.getCatalog
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
     schemas self =
         self.jdbc_connection.with_metadata metadata->
-            schema_result_set = metadata.getSchemas
-            read_column schema_result_set "TABLE_SCHEM"
+            read_column metadata.getSchemas "TABLE_SCHEM"
 
     ## Returns the name of the current schema.
     schema : Text
