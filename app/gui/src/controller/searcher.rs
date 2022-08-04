@@ -13,6 +13,7 @@ use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
+use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::module::QualifiedName;
@@ -49,6 +50,18 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 /// See also [`Searcher::add_enso_project_entries`].
 const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
 
+macro_rules! doc_html_with_summary_and_synopsis {
+    ($summary_html:literal, $synopsis_html:literal) => {
+        concatcp!(
+            "<div class='enso docs summary'><p />",
+            $summary_html,
+            "</div><div class='enso docs'><div><div class='synopsis'>",
+            $synopsis_html,
+            "</div></div></div>"
+        )
+    }
+}
+
 thread_local! {
     static VIRTUAL_COMPONENTS_IN_INPUT_GROUP: Vec<Rc<component::Virtual>> = vec![
         Rc::new(component::Virtual {
@@ -56,16 +69,12 @@ thread_local! {
             code:               "\"\"",
             this_arg:           None,
             argument_types:     vec![],
-            // FIXME[MC]
-            return_type:        None,
+            return_type:        Some("Standard.Base.Data.Text.Text".try_into().unwrap()),
             imports:            vec![],
-            documentation_html: Some(
-                "<div class='enso docs summary'><p />\
-                A text input node.</div>\
-                <div class='enso docs'><div><div class='synopsis'>\
-                An empty text. The value can be edited and used as an input for other nodes.\
-                </div></div></div>",
-            ),
+            documentation_html: Some(doc_html_with_summary_and_synopsis!(
+                "A text input node.",
+                "An empty text. The value can be edited and used as an input for other nodes."
+            )),
             method_id:          None,
             icon:               ide_view_component_group::icon::Id::TextInput.as_str().into(),
         }),
@@ -74,20 +83,43 @@ thread_local! {
             code:               "0",
             this_arg:           None,
             argument_types:     vec![],
-            // FIXME[MC]
-            return_type:        None,
+            return_type:        Some("Standard.Base.Data.Numbers.Number".try_into().unwrap()),
             imports:            vec![],
-            documentation_html: Some(
-                "<div class='enso docs summary'><p />\
-                A number input node.</div>\
-                <div class='enso docs'><div><div class='synopsis'>\
-                A zero number. The value can be edited and used as an input for other nodes.\
-                </div></div></div>",
-            ),
+            documentation_html: Some(doc_html_with_summary_and_synopsis!(
+                "A number input node.",
+                "A zero number. The value can be edited and used as an input for other nodes."
+            )),
             method_id:          None,
             icon:               ide_view_component_group::icon::Id::NumberInput.as_str().into(),
         }),
     ];
+}
+
+
+
+// ================================
+// === ConstantVirtualComponent ===
+// ================================
+
+struct ConstantVirtualComponent {
+    pub name:               &'static str,
+    pub code:               &'static str,
+    pub return_type:        tp::QualifiedName,
+    pub documentation_html: &'static str,
+    pub icon:               ide_view_component_group::icon::Id,
+}
+
+impl From<ConstantVirtualComponent> for component::Virtual {
+    fn from(constant: ConstantVirtualComponent) -> component::Virtual {
+        component::Virtual {
+            name: constant.name, code: constant.code, this_arg: None, argument_types: vec![],
+            return_type: Some(constant.return_type),
+            imports: vec![],
+            documentation_html: Some(constant.documentation_html),
+            method_id: None,
+            icon: constant.icon.as_str().into(),
+        }
+    }
 }
 
 
