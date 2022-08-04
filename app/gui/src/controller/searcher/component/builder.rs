@@ -477,10 +477,7 @@ mod tests {
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 1, "Expected one group of favorites, got: {:?}.", favorites);
-        let expected_entry_names = [
-            "Virtual Component",
-            "TopModule1",
-        ];
+        let expected_entry_names = ["Virtual Component", "TopModule1"];
         check_names_and_order_of_group_entries(&favorites[0], &expected_entry_names);
     }
 

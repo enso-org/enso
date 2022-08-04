@@ -59,7 +59,7 @@ macro_rules! doc_html_with_summary_and_synopsis {
             $synopsis_html,
             "</div></div></div>"
         )
-    }
+    };
 }
 
 thread_local! {
@@ -104,12 +104,15 @@ struct VirtualComponentWithLiteral {
 impl From<VirtualComponentWithLiteral> for component::Virtual {
     fn from(literal: VirtualComponentWithLiteral) -> component::Virtual {
         component::Virtual {
-            name: literal.name, code: literal.code, this_arg: None, argument_types: vec![],
-            return_type: Some(literal.return_type.try_into().unwrap()),
-            imports: vec![],
+            name:               literal.name,
+            code:               literal.code,
+            this_arg:           None,
+            argument_types:     vec![],
+            return_type:        Some(literal.return_type.try_into().unwrap()),
+            imports:            vec![],
             documentation_html: Some(literal.documentation_html),
-            method_id: None,
-            icon: literal.icon.as_str().into(),
+            method_id:          None,
+            icon:               literal.icon.as_str().into(),
         }
     }
 }
