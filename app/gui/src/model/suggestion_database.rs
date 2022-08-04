@@ -473,13 +473,14 @@ mod test {
 
         // Non-empty db
         let entry = SuggestionEntry::Atom {
-            name:               "TextAtom".to_string(),
-            module:             "TestProject.TestModule".to_string(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "TextAtom".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let db_entry = SuggestionsDatabaseEntry { id: 12, suggestion: entry };
         let response = language_server::response::GetSuggestionDatabase {
@@ -498,31 +499,34 @@ mod test {
     fn applying_update() {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
         let entry1 = SuggestionEntry::Atom {
-            name:               "Entry1".to_owned(),
-            module:             "TestProject.TestModule".to_owned(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_owned(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "Entry1".to_owned(),
+            module:                 "TestProject.TestModule".to_owned(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_owned(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let entry2 = SuggestionEntry::Atom {
-            name:               "Entry2".to_owned(),
-            module:             "TestProject.TestModule".to_owned(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_owned(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "Entry2".to_owned(),
+            module:                 "TestProject.TestModule".to_owned(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_owned(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let new_entry2 = SuggestionEntry::Atom {
-            name:               "NewEntry2".to_owned(),
-            module:             "TestProject.TestModule".to_owned(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_owned(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "NewEntry2".to_owned(),
+            module:                 "TestProject.TestModule".to_owned(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_owned(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let arg1 = SuggestionEntryArgument {
             name:          "Argument1".to_owned(),
@@ -791,29 +795,32 @@ mod test {
     fn lookup_by_fully_qualified_name_in_db_created_from_ls_response() {
         // Initialize a suggestion database with sample entries.
         let entry1 = SuggestionEntry::Atom {
-            name:               "TextAtom".to_string(),
-            module:             "TestProject.TestModule".to_string(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "TextAtom".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let entry2 = SuggestionEntry::Method {
-            name:               "create_process".to_string(),
-            module:             "Standard.Builtins.Main".to_string(),
-            self_type:          "Standard.Builtins.Main.System".to_string(),
-            arguments:          vec![],
-            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "create_process".to_string(),
+            module:                 "Standard.Builtins.Main".to_string(),
+            self_type:              "Standard.Builtins.Main.System".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let entry3 = SuggestionEntry::Module {
-            module:             "local.Unnamed_6.Main".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            reexport:           None,
+            module:                 "local.Unnamed_6.Main".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            reexport:               None,
         };
         let entry4 = SuggestionEntry::Local {
             module:      "local.Unnamed_6.Main".to_string(),
@@ -873,13 +880,14 @@ mod test {
     fn initialize_database_with_invalid_entries() {
         // Prepare some nonsense inputs from the Engine.
         let entry_with_empty_name = SuggestionEntry::Atom {
-            name:               "".to_string(),
-            module:             "Empty.Entry".to_string(),
-            arguments:          vec![],
-            return_type:        "".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "".to_string(),
+            module:                 "Empty.Entry".to_string(),
+            arguments:              vec![],
+            return_type:            "".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let empty_entry = SuggestionEntry::Local {
             module:      "".to_string(),
@@ -889,10 +897,11 @@ mod test {
             scope:       (default()..=default()).into(),
         };
         let gibberish_entry = SuggestionEntry::Module {
-            module:             GIBBERISH_MODULE_NAME.to_string(),
-            documentation:      None,
-            documentation_html: None,
-            reexport:           None,
+            module:                 GIBBERISH_MODULE_NAME.to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            reexport:               None,
         };
 
         let ls_response = language_server::response::GetSuggestionDatabase {
@@ -913,23 +922,25 @@ mod test {
     fn lookup_by_fully_qualified_name_after_db_update() {
         // Initialize a suggestion database with a few sample entries.
         let entry1 = SuggestionEntry::Atom {
-            name:               "TextAtom".to_string(),
-            module:             "TestProject.TestModule".to_string(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "TextAtom".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let entry2 = SuggestionEntry::Method {
-            name:               "create_process".to_string(),
-            module:             "Standard.Builtins.Main".to_string(),
-            self_type:          "Standard.Builtins.Main.System".to_string(),
-            arguments:          vec![],
-            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "create_process".to_string(),
+            module:                 "Standard.Builtins.Main".to_string(),
+            self_type:              "Standard.Builtins.Main.System".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
             SuggestionsDatabaseEntry { id, suggestion }
@@ -953,10 +964,11 @@ mod test {
             scope:              None,
         });
         let entry3 = SuggestionEntry::Module {
-            module:             "local.Unnamed_6.Main".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            reexport:           None,
+            module:                 "local.Unnamed_6.Main".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            reexport:               None,
         };
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![
@@ -987,13 +999,14 @@ mod test {
     fn lookup_by_fully_qualified_name_after_db_update_reuses_id() {
         // Initialize a suggestion database with a sample entry.
         let entry1 = SuggestionEntry::Atom {
-            name:               "TextAtom".to_string(),
-            module:             "TestProject.TestModule".to_string(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "TextAtom".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         let id = 1;
         let response = language_server::response::GetSuggestionDatabase {
@@ -1011,10 +1024,11 @@ mod test {
 
         // Apply a DB update adding a different entry at the same `id`.
         let entry2 = SuggestionEntry::Module {
-            module:             "local.Unnamed_6.Main".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            reexport:           None,
+            module:                 "local.Unnamed_6.Main".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            reexport:               None,
         };
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![entry::Update::Add { id, suggestion: entry2 }],

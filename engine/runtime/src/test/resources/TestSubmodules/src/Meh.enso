@@ -1,0 +1,5 @@
+type Meh
+    type Foo a
+    type Bar b
+
+    create a = Bar a

@@ -457,6 +457,7 @@ object IR {
           * @param onlyNames exported names selected from the exported module
           * @param hiddenNames exported names hidden from the exported module
           * @param location the source location that the node corresponds to
+          * @param isSynthetic is this export compiler-generated
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
@@ -467,6 +468,7 @@ object IR {
           onlyNames: Option[List[IR.Name.Literal]],
           hiddenNames: Option[List[IR.Name.Literal]],
           override val location: Option[IdentifiedLocation],
+          isSynthetic: Boolean                        = false,
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
         ) extends IR
@@ -482,6 +484,7 @@ object IR {
             * @param onlyNames exported names selected from the exported module
             * @param hiddenNames exported names hidden from the exported module
             * @param location the source location that the node corresponds to
+            * @param isSynthetic is this import compiler-generated
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
             * @param id the identifier for the new node
@@ -494,6 +497,7 @@ object IR {
             onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
             hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
             location: Option[IdentifiedLocation]       = location,
+            isSynthetic: Boolean                       = isSynthetic,
             passData: MetadataStorage                  = passData,
             diagnostics: DiagnosticStorage             = diagnostics,
             id: Identifier                             = id
@@ -505,6 +509,7 @@ object IR {
               onlyNames,
               hiddenNames,
               location,
+              isSynthetic,
               passData,
               diagnostics
             )
@@ -637,6 +642,7 @@ object IR {
           * @param onlyNames exported names selected from the imported module
           * @param hiddenNames exported names hidden from the imported module
           * @param location the source location that the node corresponds to
+          * @param isSynthetic is this import compiler-generated
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
@@ -647,6 +653,7 @@ object IR {
           onlyNames: Option[List[IR.Name.Literal]],
           hiddenNames: Option[List[IR.Name.Literal]],
           override val location: Option[IdentifiedLocation],
+          isSynthetic: Boolean                        = false,
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
         ) extends Import
@@ -661,6 +668,7 @@ object IR {
             * @param onlyNames exported names selected from the imported module
             * @param hiddenNames exported names hidden from the imported module
             * @param location the source location that the node corresponds to
+            * @param isSynthetic is this import compiler-generated
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
             * @param id the identifier for the new node
@@ -673,6 +681,7 @@ object IR {
             onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
             hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
             location: Option[IdentifiedLocation]       = location,
+            isSynthetic: Boolean                       = isSynthetic,
             passData: MetadataStorage                  = passData,
             diagnostics: DiagnosticStorage             = diagnostics,
             id: Identifier                             = id
@@ -684,6 +693,7 @@ object IR {
               onlyNames,
               hiddenNames,
               location,
+              isSynthetic,
               passData,
               diagnostics
             )
@@ -6483,6 +6493,27 @@ object IR {
 
         override def diagnosticKeys(): Array[Any] =
           Array(shadowedName, shadower)
+      }
+
+      /** A warning that a submodule is being shadowed by the type of the same name
+        * therefore preventing the user from accessing the module via a qualified name.
+        *
+        * @param typename the type name shadowing the module
+        * @param moduleName the module being shadowed
+        * @param shadower the expression shadowing `moduleName`
+        * @param location the location at which the shadowing takes place
+        */
+      sealed case class SyntheticModule(
+        typeName: String,
+        moduleName: IR.Name.Qualified,
+        override val shadower: IR,
+        override val location: Option[IdentifiedLocation]
+      ) extends Shadowed {
+        override def message: String =
+          s"""Declaration of type $typeName shadows module ${moduleName.name} making it inaccessible via a qualified name."""
+        override def diagnosticKeys(): Array[Any] =
+          Array(typeName, moduleName, shadower)
+
       }
     }
 

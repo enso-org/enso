@@ -33,7 +33,6 @@ import project.IO
 import project.Nothing
 import project.Math
 import project.Meta
-import project.Meta.Enso_Project
 import project.Polyglot
 import project.Polyglot.Java
 import project.Runtime
@@ -89,13 +88,12 @@ from project.Data.Range export all
    https://www.pivotaltracker.com/story/show/181309938
 from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location
 from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher, No_Matches_Found
-from project.Data.Text export all
+from project.Data.Text export all hiding Encoding, Span, Text_Ordering
 from project.Data.Text.Encoding export Encoding, Encoding_Error
 from project.Data.Text.Text_Ordering export all
 from project.Data.Text.Span export all
 from project.Error.Common export all
 from project.Function export all
-from project.Meta.Enso_Project export all
 from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all

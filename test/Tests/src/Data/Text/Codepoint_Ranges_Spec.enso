@@ -1,0 +1,38 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Text.Text_Sub_Range import all
+
+import Standard.Test
+
+spec = Test.group "Text_Sub_Range.Codepoint_Ranges" <|
+    run ranges =
+        Codepoint_Ranges ranges False . sorted_and_distinct_ranges
+    Test.specify "should be able to sort correctly merge neighboring sequences" <|
+        run [] . should_equal []
+        run [Range 0 0] . should_equal []
+        run [Range 0 10] . should_equal [Range 0 10]
+        run [Range 0 10, Range 2 4] . should_equal [Range 0 10]
+        run [Range 0 5, Range 5 10] . should_equal [Range 0 10]
+        run [Range 5 10, Range 0 0, Range 0 1, Range 1 5] . should_equal [Range 0 10]
+        run [Range 0 1, Range 1 2] . should_equal [Range 0 2]
+        run [Range 6 7, Range 7 8, Range 5 5, Range 0 1, Range 2 3] . should_equal [Range 0 1, Range 2 3, Range 6 8]
+        run [Range 5 10, Range 3 6, Range 3 6, Range 3 5, Range 3 7, Range 0 1] . should_equal [Range 0 1, Range 3 10]
+        run [Range 0 1, Range 0 1] . should_equal [Range 0 1]
+        run [Range 0 1, Range 1 2] . should_equal [Range 0 2]
+    Test.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
+        character_ranges "" . should_equal []
+        character_ranges "A" . should_equal [Range 0 1]
+        character_ranges "abc" . should_equal [Range 0 1, Range 1 2, Range 2 3]
+        character_ranges 'śs\u0301S' . should_equal [Range 0 1, Range 1 3, Range 3 4]
+
+        kshi = '\u0915\u094D\u0937\u093F'
+        facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
+        accent_1 = '\u00E9'
+        accent_2 = '\u0065\u{301}'
+        character_ranges kshi . should_equal [Range 0 4]
+        character_ranges facepalm . should_equal [Range 0 7]
+        character_ranges accent_1 . should_equal [Range 0 1]
+        character_ranges accent_2 . should_equal [Range 0 2]
+        character_ranges kshi+facepalm+accent_1+accent_2 . should_equal [Range 0 4, Range 4 11, Range 11 12, Range 12 14]
+
+main = Test.Suite.run_main spec

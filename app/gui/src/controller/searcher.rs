@@ -1150,6 +1150,7 @@ impl Searcher {
                 documentation_html: None,
                 self_type:          Some(self_type.clone()),
                 scope:              model::suggestion_database::entry::Scope::Everywhere,
+                icon_name:          None,
             };
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);
@@ -1492,6 +1493,7 @@ pub mod test {
             documentation_html: default(),
             self_type: None,
             scope,
+            icon_name: None,
         };
         let entry2 = model::suggestion_database::Entry {
             name: "TestVar1".to_string(),
@@ -1551,6 +1553,7 @@ pub mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
+            icon_name:          None,
         };
         let entry9 = model::suggestion_database::Entry {
             name: "testFunction2".to_string(),

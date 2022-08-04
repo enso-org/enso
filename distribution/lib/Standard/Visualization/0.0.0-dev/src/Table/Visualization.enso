@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
+from Standard.Table.Data.Column_Selector import By_Name
 
 import Standard.Table.Data.Table as Dataframe_Table
 import Standard.Table.Data.Column as Dataframe_Column

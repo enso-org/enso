@@ -776,6 +776,63 @@ pub enum RegisterOptions {
 }
 
 
+
+// ===================
+// === Doc Section ===
+// ===================
+
+/// Text rendered as HTML (may contain HTML tags).
+pub type HtmlString = String;
+
+/// Documentation section mark.
+#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub enum Mark {
+    Important,
+    Info,
+    Example,
+}
+
+/// A single section of the documentation.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(missing_docs)]
+#[serde(tag = "type")]
+#[serde(rename_all = "camelCase")]
+pub enum DocSection {
+    /// The documentation tag.
+    #[serde(rename_all = "camelCase")]
+    Tag {
+        /// The tag name.
+        name: String,
+        /// The tag text.
+        body: HtmlString,
+    },
+    /// The paragraph of the text.
+    #[serde(rename_all = "camelCase")]
+    Paragraph {
+        /// The elements that make up this paragraph.
+        body: HtmlString,
+    },
+    /// The section that starts with the key followed by the colon and the body.
+    #[serde(rename_all = "camelCase")]
+    Keyed {
+        /// The section key.
+        key:  String,
+        /// The elements that make up the body of the section.
+        body: HtmlString,
+    },
+    /// The section that starts with the mark followed by the header and the body.
+    #[serde(rename_all = "camelCase")]
+    Marked {
+        /// The section mark.
+        mark:   Mark,
+        /// The section header.
+        header: Option<String>,
+        /// The elements that make up the body of the section.
+        body:   HtmlString,
+    },
+}
+
 // ===========================
 // === Suggestion Database ===
 // ===========================
@@ -844,24 +901,28 @@ pub enum SuggestionEntryType {
 pub enum SuggestionEntry {
     #[serde(rename_all = "camelCase")]
     Atom {
-        external_id:        Option<Uuid>,
-        name:               String,
-        module:             String,
-        arguments:          Vec<SuggestionEntryArgument>,
-        return_type:        String,
-        documentation:      Option<String>,
-        documentation_html: Option<String>,
+        external_id:            Option<Uuid>,
+        name:                   String,
+        module:                 String,
+        arguments:              Vec<SuggestionEntryArgument>,
+        return_type:            String,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
     },
     #[serde(rename_all = "camelCase")]
     Method {
-        external_id:        Option<Uuid>,
-        name:               String,
-        module:             String,
-        arguments:          Vec<SuggestionEntryArgument>,
-        self_type:          String,
-        return_type:        String,
-        documentation:      Option<String>,
-        documentation_html: Option<String>,
+        external_id:            Option<Uuid>,
+        name:                   String,
+        module:                 String,
+        arguments:              Vec<SuggestionEntryArgument>,
+        self_type:              String,
+        return_type:            String,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
     },
     #[serde(rename_all = "camelCase")]
     Function {
@@ -882,10 +943,12 @@ pub enum SuggestionEntry {
     },
     #[serde(rename_all = "camelCase")]
     Module {
-        module:             String,
-        documentation:      Option<String>,
-        documentation_html: Option<String>,
-        reexport:           Option<String>,
+        module:                 String,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        reexport:               Option<String>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
     },
 }
 
