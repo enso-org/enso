@@ -458,14 +458,12 @@ mod tests {
         let base_project_qn = project::QualifiedName::from_segments("Standard", "Base").unwrap();
         let qn_of_group_1 = group::QualifiedName::new(base_project_qn.clone(), "Group 1");
         let qn_of_group_2 = group::QualifiedName::new(base_project_qn, "Group 2");
-        let groups = [
-            execution_context::ComponentGroup {
-                project:    qn_of_group_1.project.clone(),
-                name:       qn_of_group_1.name.clone(),
-                color:      None,
-                components: vec![ qn_of_db_entry_0 ],
-            },
-        ];
+        let groups = [execution_context::ComponentGroup {
+            project:    qn_of_group_1.project.clone(),
+            name:       qn_of_group_1.name.clone(),
+            color:      None,
+            components: vec![qn_of_db_entry_0.clone()],
+        }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let virtual_component_1 = component::Virtual { name: "Virtual Component 1", ..default() };
         let vc1_iter = std::iter::once(Rc::new(virtual_component_1));
@@ -474,10 +472,12 @@ mod tests {
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 1, "Expected 1 group in favorites, got: {:?}.", favorites);
-        let components_names = favorites[0].entries.borrow().iter().map(|c| c.name()).collect_vec();
-        // let expected_components_names = vec![
-
-        // ];
-        // assert_eq!(favorite_components_names, expected_components_names);
+        let entries = favorites[0].entries.borrow();
+        let entry_names = entries.iter().map(|c| c.name()).collect_vec();
+        let expected_entry_names = vec![
+            "Virtual Component 1",
+            "TopModule1",
+        ];
+        assert_eq!(entry_names, expected_entry_names);
     }
 }
