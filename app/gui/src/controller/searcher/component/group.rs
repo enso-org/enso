@@ -27,6 +27,12 @@ pub struct QualifiedName {
     pub name:    ImString,
 }
 
+impl QualifiedName {
+    /// Construct.
+    fn new(project: project::QualifiedName, name: impl Into<ImString>) -> Self {
+        Self { project, name: name.into() }
+    }
+
 
 
 // ============
