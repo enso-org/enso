@@ -1,17 +1,18 @@
 from Standard.Base import all
 
+import Standard.Base.Runtime.Resource
+
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
-import Standard.Table.Data.Storage
-import Standard.Table.Internal.Java_Exports
-import Standard.Database.Data.Internal.Base_Generator
+
 from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
+from Standard.Database.Internal.JDBC_Connection import create_table_statement
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
 
 polyglot java import java.lang.UnsupportedOperationException
-polyglot java import java.sql.PreparedStatement
+
 
 type Connection
 
@@ -151,13 +152,7 @@ type Connection
          batch.
     upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
     upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error_Data <|
-        column_types = table.columns.map col-> default_storage_type col.storage_type
-        column_names = table.columns.map .name
-        col_makers = column_names.zip column_types name-> typ->
-            Base_Generator.wrap_in_quotes name ++ Sql.code " " ++ Sql.code typ.name
-        create_prefix = if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
-        create_sql = (Sql.code create_prefix ++ Base_Generator.wrap_in_quotes name ++ Sql.code " (" ++ (Sql.join ", " col_makers) ++ Sql.code ")").build
-
+        create_sql = create_table_statement name table temporary
         create_table = self.execute_update create_sql
         db_table = if create_table.is_error then create_table else self.access_table name
 
@@ -190,115 +185,3 @@ type Connection
 
         db_table
 
-## PRIVATE
-
-   Creates a builder for a column based on a provided SQL type, trying to infer
-   the best type for the builder.
-
-   Arguments:
-   - sql_type: The SQL type of the column to create a builder for.
-create_builder : Sql_Type -> Builder
-create_builder sql_type =
-    initial_size = 10
-    if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
-        if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
-            if sql_type.is_definitely_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
-                Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
-
-type Builder
-
-    ## PRIVATE
-
-       A builder that has an inferred column type at runtime.
-
-       Arguments:
-       - java_builder: The underlying builder object.
-    Builder_Inferred java_builder
-
-    ## PRIVATE
-
-       A builder that has an inferred column type at runtime.
-
-       Arguments:
-       - java_builder: The underlying builder object.
-    Builder_Double java_builder
-
-    ## PRIVATE
-
-       A builder that has an inferred column type at runtime.
-
-       Arguments:
-       - java_builder: The underlying builder object.
-    Builder_Long java_builder
-
-    ## PRIVATE
-
-       A builder that has an inferred column type at runtime.
-
-       Arguments:
-       - java_builder: The underlying builder object.
-    Builder_Boolean java_builder
-
-    ## PRIVATE
-
-       Fetches the value of ith column from the current row of the result set
-       and appends it to the builder.
-
-       Arguments:
-       - rs: the Java ResultSet from which the value will be fetched.
-       - i: the index of the column to fetch from (starting from 1 as is the
-         ResultSet convention).
-    fetch_and_append : ResultSet -> Integer -> Nothing
-    fetch_and_append self rs i = case self of
-        Builder_Inferred _ ->
-            obj = rs.getObject i
-            self.java_builder.append obj
-        Builder_Boolean _ ->
-            bool = rs.getBoolean i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendBoolean bool
-        Builder_Long _ ->
-            long = rs.getLong i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendLong long
-        Builder_Double _ ->
-            double = rs.getDouble i
-            case rs.wasNull of
-                True -> self.java_builder.appendNulls 1
-                False -> self.java_builder.appendDouble double
-
-    ## PRIVATE
-
-       Seals the builder and returns a built Java-column.
-
-       Argument:
-       - name: The name of the column.
-    make_column : Text -> Java_Exports.Column
-    make_column self name =
-        storage = self.java_builder.seal
-        Java_Exports.make_column name storage
-
-## PRIVATE
-   Returns the default database type corresponding to an in-memory storage
-   type.
-default_storage_type : Storage.Type -> Sql_Type
-default_storage_type storage_type = case storage_type of
-    Storage.Text -> Sql_Type.text
-    Storage.Integer -> Sql_Type.integer
-    Storage.Decimal -> Sql_Type.double
-    Storage.Boolean -> Sql_Type.boolean
-    ## Support for mixed type columns in Table upload is currently very limited,
-       falling back to treating everything as text.
-    Storage.Any -> Sql_Type.text
-
-## PRIVATE
-   Sets values inside of a prepared statement.
-set_statement_values : PreparedStatement -> Vector (Pair Any Sql_Type) -> Nothing
-set_statement_values stmt holes =
-    holes.map_with_index ix-> obj->
-        position = ix + 1
-        case obj.first of
-            Nothing -> stmt.setNull position obj.second.typeid
-            _ -> stmt.setObject position obj.first
