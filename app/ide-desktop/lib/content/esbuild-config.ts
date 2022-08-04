@@ -122,7 +122,7 @@ const config: esbuild.BuildOptions = {
         // Happens in Emscripten-generated MSDF (msdfgen_wasm.js):
         //    1 │ ...y{table.grow(1)}catch(err){if(!err instanceof RangeError){throw ...
         'suspicious-boolean-not': 'silent',
-    }
+    },
 }
 
 /**
