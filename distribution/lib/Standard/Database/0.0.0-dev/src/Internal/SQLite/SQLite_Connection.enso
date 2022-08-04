@@ -1,37 +1,29 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 
-from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
-from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
-from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
 from Standard.Database.Error import Sql_Error
 
-polyglot java import java.lang.UnsupportedOperationException
-
-type Connection
+type SQLite_Connection
 
     ## PRIVATE
 
-       A Database connection using a JDBC driver.
+       A SQLite database connection.
 
        Arguments:
-       - jdbc_connection: the resource managing the underlying JDBC
-         connection.
-       - dialect: the dialect associated with the database we are connected to.
+       - connection: the underlying connection.
 
        Allows accessing tables from a database.
-    Connection_Data jdbc_connection dialect
+    type SQLite_Connection connection
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
 
        The connection is not usable afterwards.
     close : Nothing
-    close self = self.jdbc_connection.close
+    close self = self.connection.close
 
     ## UNSTABLE
 
@@ -41,70 +33,55 @@ type Connection
        Arguments:
        - name: name of the table to access
     access_table : Text -> Database_Table
-    access_table self name = handle_sql_errors <|
-        columns = self.fetch_columns name
-        Database_Table.make_table self name columns
+    access_table self name = self.connection.access_table name
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : [Text]
-    databases self =
-        self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getCatalogs "TABLE_CAT"
+    databases self = [Nothing]
 
     ## Returns the name of the current database (or catalog).
     database : Text
-    database self =
-        self.jdbc_connection.with_connection connection->connection.getCatalog
+    database self = self.connection.database
 
     ## Returns a new Connection with the specified database set as default.
 
        Arguments:
         - database: The name of the database to connect to.
     set_database : Text -> Connection ! Sql_Error
-    set_database self database =
-        if database == self.database then self else
-            Sql_Error.throw_sql_error "Changing database is not supported."
+    set_database self database = self.connection.set_database database
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
-    schemas self =
-        self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getSchemas "TABLE_SCHEM"
+    schemas self = [Nothing]
 
     ## Returns the name of the current schema.
     schema : Text
-    schema self =
-        self.jdbc_connection.with_connection connection->
-            connection.getSchema
+    schema self = self.connection.schema
 
     ## Returns a new Connection with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
     set_schema : Text -> Connection ! Sql_Error
-    set_schema self schema =
-        if schema == self.schema then self else
-            Sql_Error.throw_sql_error "Changing schema is not supported."
+    set_schema self schema = self.schema.set_schema schema
 
     ## Gets a list of the table types
     table_types : [Text]
-    table_types self =
-        self.jdbc_connection.with_metadata metadata->
-            read_column metadata.getTableTypes "TABLE_TYPE"
+    table_types self = self.connection.table_types
 
     ## ADVANCED
 
        Executes a raw query and returns the result as an in-memory Table.
 
        Arguments:
-       - query: either raw SQL code as Text or an instance of Sql.Statement
+       - query: either raw SQL code as Text or an instance of
+       .Statement
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
     execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
     execute_query self query expected_types=Nothing =
-        self.jdbc_connection.with_prepared_statement query stmt->
-            result_set_to_table stmt.executeQuery expected_types
+        self.connection.execute_query query expected_types
 
     ## ADVANCED
 
@@ -117,9 +94,7 @@ type Connection
          representing the query to execute.
     execute_update : Text | Sql.Statement -> Integer
     execute_update self query =
-        self.jdbc_connection.with_prepared_statement query stmt->
-            Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
-                stmt.executeUpdate
+        self.connection.execute_update query
 
     ## PRIVATE
 
@@ -131,9 +106,7 @@ type Connection
     # fetch_columns : Text -> Vector [Text, Sql.Sql_Type]
     fetch_columns : Text -> Vector Any
     fetch_columns self table_name =
-        query = IR.Select_All (IR.make_ctx_from table_name)
-        compiled = self.dialect.generate_sql query
-        self.jdbc_connection.fetch_columns compiled
+        self.connection.fetch_columns table_name
 
     ## PRIVATE
        UNSTABLE
@@ -153,15 +126,5 @@ type Connection
        - batch_size: Specifies how many rows should be uploaded in a single
          batch.
     upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
-    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error_Data <|
-        create_sql = create_table_statement name table temporary
-        create_table = self.execute_update create_sql
-
-        db_table = if create_table.is_error then create_table else self.access_table name
-        if db_table.is_error.not then
-            pairs = db_table.internal_columns.map col->[col.name, IR.Constant col.sql_type Nothing]
-            insert_query = self.dialect.generate_sql <| IR.Insert name pairs
-            insert_template = insert_query.prepare.first
-            self.jdbc_connection.load_table insert_template db_table table batch_size
-
-        db_table
+    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error <|
+        self.connection.upload_table name table temporary batch_size

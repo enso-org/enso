@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Database.Internal.JDBC_Connection
+from Standard.Database.Internal.SQLite.SQLite_Connection import SQLite_Connection
 import Standard.Database.Data.Dialect
 import Standard.Database.Connection.Connection_Options
 from Standard.Database.Connection.Connection import Connection
@@ -15,7 +16,7 @@ type SQLite
     connect self options =
         properties = options.merge self.jdbc_properties
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
-        Connection jdbc_connection self.dialect
+        SQLite_Connection (Connection jdbc_connection self.dialect)
 
     ## Provides the jdbc url for the connection.
     jdbc_url : Text

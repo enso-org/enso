@@ -81,7 +81,7 @@ type JDBC_Connection
        Given a prepared statement, gets the column names and types for the
        result set.
     fetch_columns : PreparedStatement -> Any
-    fetch_columns statement =
+    fetch_columns self statement =
         self.with_prepared_statement statement stmt->
             metadata = stmt.executeQuery.getMetaData
 
@@ -95,15 +95,11 @@ type JDBC_Connection
 
     ## PRIVATE
 
-       Given a Database_Table and a Materialized_Table, load the data to the
-       database.
-    load_table : Database_Table -> Materialized_Table -> Integer -> Nothing
-    load_table db_table table batch_size =
-        pairs = db_table.internal_columns.map col->[col.name, IR.Constant col.sql_type Nothing]
-        db_types = pairs.map p-> p.second.sql_type
-        insert_query = self.dialect.generate_sql <| IR.Insert name pairs
-        insert_template = insert_query.prepare.first
-
+       Given an insert query template and the associated Database_Table, and a
+       Materialized_Table of data, load to the database.
+    load_table : Text -> Database_Table -> Materialized_Table -> Integer -> Nothing
+    load_table self insert_template db_table table batch_size =
+        db_types = db_table.internal_columns.map .sql_type
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False
@@ -164,25 +160,11 @@ close_connection connection =
    - action: The computation to execute. This computation may throw SQL errors.
 handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
 handle_sql_errors ~action related_query=Nothing =
-    Panic.recover [Sql_Error, Sql_Timeout_Error] <|
-        wrap_sql_errors action related_query
-
-## PRIVATE
-
-   Executes `action` and returns its result, converting any SQL exceptions into
-   Enso panics.
-
-   Arguments:
-   - action: The computation to execute. This computation may throw SQL errors.
-   - related_query: A related query that is currently being run, to enrich the
-     error metadata.
-wrap_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
-wrap_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
         exc = caught_panic.payload.cause
         case Java.is_instance exc SQLTimeoutException of
-            True -> Panic.throw (Sql_Timeout_Error exc related_query)
-            False -> Panic.throw (Sql_Error exc related_query)
+            True -> Error.throw (Sql_Timeout_Error exc related_query)
+            False -> Error.throw (Sql_Error exc related_query)
 
 ## PRIVATE
    Sets values inside of a prepared statement.
