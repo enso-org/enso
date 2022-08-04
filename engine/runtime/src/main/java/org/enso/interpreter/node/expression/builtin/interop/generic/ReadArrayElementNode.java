@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.epb.node.CoercePrimitiveNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -19,11 +20,15 @@ public class ReadArrayElementNode extends Node {
     private @Child
     InteropLibrary library =
             InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+
+    private @Child
+    CoercePrimitiveNode coercion = CoercePrimitiveNode.build();
     private final BranchProfile err = BranchProfile.create();
 
     Object execute(Object array, long index) {
         try {
-            return library.readArrayElement(array, index);
+            Object elem = library.readArrayElement(array, index);
+            return coercion.execute(elem);
         } catch (UnsupportedMessageException e) {
             err.enter();
             Builtins builtins = Context.get(this).getBuiltins();

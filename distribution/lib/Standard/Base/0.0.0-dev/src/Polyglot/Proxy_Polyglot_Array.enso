@@ -1,4 +1,4 @@
-from Standard.Base import Polyglot
+from Standard.Base import Polyglot, Array
 
 ## Advanced
 
@@ -9,15 +9,19 @@ type Proxy_Polyglot_Array
 
     ## Returns the number of elements stored in this Polyglot Array.
 
-       > Example
-         Checking the length of a vector.
-
-             [1, 2, 3, 4].length
-
     length : Number
-    length self = Polyglot.get_array_size self.arr
+    length self =
+        Polyglot.get_array_size self.arr
 
     ## Gets an element from this Polyglot Array at a specified index (0-based).
 
     at : Number -> Any
-    at self index = Polyglot.read_array_element self.arr index
+    at self index =
+        Polyglot.read_array_element self.arr index
+
+    to_array : Array Any
+    to_array self =
+        len = self.length
+        a = Array.new len
+        0.up_to len . each ix-> a.set_at ix (self.at ix)
+        a

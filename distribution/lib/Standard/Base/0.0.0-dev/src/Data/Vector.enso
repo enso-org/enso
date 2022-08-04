@@ -98,7 +98,7 @@ type Vector
        The basic, immutable, vector type.
 
        Arguments:
-       - to_array: The underlying array.
+       - storage: The underlying storage.
 
        A vector allows to store an arbitrary number of elements, in linear memory.
        It is the recommended data structure for most applications.
@@ -111,7 +111,10 @@ type Vector
          A vector containing 50 elements, each being the number `42`, can be
          created by:
              Vector.fill length=50 item=42
-    type Vector to_array
+    type Vector storage
+
+    to_array self =
+        self.storage.to_array
 
     ## Returns the number of elements stored in this vector.
 
@@ -121,7 +124,7 @@ type Vector
              [1, 2, 3, 4].length
     length : Number
     length self =
-        self.to_array.length
+        self.storage.length
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -154,7 +157,7 @@ type Vector
        bounds or with additional error handling.
     unsafe_at : Integer -> Any
     unsafe_at self index =
-        self.to_array.at index
+        self.storage.at index
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -174,8 +177,7 @@ type Vector
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
-        arr = self.to_array
-        f = acc -> ix -> function acc (arr.at ix)
+        f = acc -> ix -> function acc (self.storage.at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
@@ -189,11 +191,10 @@ type Vector
        > Example
          Compute the sum of all of the elements and indexes in a vector.
 
-             [0, 1, 2] . fold 0 (s->i->e->s+i+e)
+             [0, 1, 2] . fold_with_index 0 (s->i->e->s+i+e)
     fold_with_index : Any -> (Any -> Integer -> Any -> Any) -> Any
     fold_with_index self init function =
-        arr = self.to_array
-        f = acc -> ix -> function acc ix (arr.at ix)
+        f = acc -> ix -> function acc ix (self.storage.at ix)
         0.up_to self.length . fold init f
 
     ## Combines all the elements of a non-empty vector using a binary operation.
@@ -211,8 +212,7 @@ type Vector
     reduce self function =
         case self.not_empty of
             True -> if self.length == 1 then self.unsafe_at 0 else
-                arr = self.to_array
-                f = acc -> ix -> function acc (arr.at ix)
+                f = acc -> ix -> function acc (self.storage.at ix)
                 1.up_to self.length . fold (self.unsafe_at 0) f
             False -> Error.throw Empty_Error
 
