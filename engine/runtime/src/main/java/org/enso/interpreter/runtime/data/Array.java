@@ -111,13 +111,6 @@ public class Array implements TruffleObject {
     return getItems()[(int) index];
   }
 
-  @Builtin.Method(name = "setAt", description = "Gets an array element at the given index.")
-  @Builtin.WrapException(from = IndexOutOfBoundsException.class, to = InvalidArrayIndexError.class)
-  public Object set(long index, @AcceptsError Object value) {
-    getItems()[(int) index] = value;
-    return this;
-  }
-
   /**
    * Exposes an index validity check through the polyglot API.
    *
