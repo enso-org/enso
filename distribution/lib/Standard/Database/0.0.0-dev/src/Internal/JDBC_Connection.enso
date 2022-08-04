@@ -1,0 +1,131 @@
+from Standard.Base import all
+
+import Standard.Base.Runtime.Resource
+from Standard.Base.Runtime.Resource import Managed_Resource
+
+from Standard.Database.Error import Sql_Error, Sql_Timeout_Error
+
+polyglot java import java.util.Properties
+polyglot java import java.sql.Connection
+polyglot java import java.sql.DatabaseMetaData
+polyglot java import java.sql.SQLException
+polyglot java import java.sql.SQLTimeoutException
+polyglot java import org.enso.database.JDBCProxy
+
+type JDBC_Connection
+    ## PRIVATE
+    type JDBC_Connection connection_resource
+
+    ## PRIVATE
+       Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+
+       The connection is not usable afterwards.
+    close : Nothing
+    close self =
+        self.connection_resource . finalize
+
+    ## PRIVATE
+    handle_errors : Any -> Any
+    handle_errors ~action =
+        handle_sql_errors action
+
+    ## PRIVATE
+       Open the connection to the database, then run the action wrapping any
+       SQL errors.
+    with_connection : (Connection -> Any) -> Any
+    with_connection self ~action =
+        handle_sql_errors <|
+            self.connection_resource.with action
+
+    ## PRIVATE
+       Open the connection to the database, then run the action passing the
+       database's metadata wrapping any SQL errors.
+    with_metadata : (DatabaseMetaData -> Any) -> Any
+    with_metadata self ~action =
+        handle_sql_errors <|
+            self.connection_resource.with connection->
+                metadata = connection.getMetaData
+                action metadata
+
+    ## PRIVATE
+
+       Runs the provided action with a prepared statement, adding contextual
+       information to any thrown SQL errors.
+    with_prepared_statement : Text  | Sql.Statement -> (PreparedStatement -> Any) -> Any
+    with_prepared_statement self query action =
+        prepare template holes = self.with_connection java_connection->
+            stmt = java_connection.prepareStatement template
+            Panic.catch Any (set_statement_values stmt holes) caught_panic->
+                stmt.close
+                Panic.throw caught_panic
+            stmt
+
+        go template holes =
+            wrap_sql_errors related_query=template <|
+                Resource.bracket (prepare template holes) .close action
+
+        case query of
+            Text -> go query []
+            Sql.Statement _ ->
+                compiled = query.prepare
+                go compiled.first compiled.second
+
+## PRIVATE
+
+   Creates a JDBC connection based on a URL and optionally username and
+   password.
+
+   Arguments:
+   - url: The URL to connect to.
+   - properties: A vector of properties for the connection.
+create : Text -> Vector -> JDBC_Connection
+create url properties = handle_sql_errors <|
+    java_props = Properties.new
+    properties.each pair->
+        java_props.setProperty pair.first pair.second
+    java_connection = JDBCProxy.getConnection url java_props
+
+    resource = Managed_Resource.register java_connection close_connection
+    JDBC_Connection resource
+
+## PRIVATE
+
+   This cannot be a closure due to limitations of Managed_Resource.
+
+   Arguments:
+   - connection: The connection to close.
+close_connection : Connection -> Nothing
+close_connection connection =
+    connection.close
+
+## PRIVATE
+
+   Executes `action` and returns its result, catching any panics and if they are
+   coming from JDBC, wraps them with our own error types and returns as regular
+   data-flow errors.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+handle_sql_errors ~action related_query=Nothing =
+    Panic.recover [Sql_Error, Sql_Timeout_Error] <|
+        wrap_sql_errors action related_query
+
+
+## PRIVATE
+
+   Executes `action` and returns its result, converting any SQL exceptions into
+   Enso panics.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
+   - related_query: A related query that is currently being run, to enrich the
+     error metadata.
+wrap_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+wrap_sql_errors ~action related_query=Nothing =
+    Panic.catch SQLException action caught_panic->
+        exc = caught_panic.payload.cause
+        case Java.is_instance exc SQLTimeoutException of
+            True -> Panic.throw (Sql_Timeout_Error exc related_query)
+            False -> Panic.throw (Sql_Error exc related_query)
