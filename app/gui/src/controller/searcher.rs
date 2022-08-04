@@ -63,61 +63,53 @@ macro_rules! doc_html_with_summary_and_synopsis {
 }
 
 thread_local! {
-    static VIRTUAL_COMPONENTS_IN_INPUT_GROUP: Vec<Rc<component::Virtual>> = vec![
-        Rc::new(component::Virtual {
+    static VIRTUAL_COMPONENTS_IN_INPUT_GROUP: Vec<Rc<component::Virtual>> = [
+        VirtualComponentWithLiteral {
             name:               "text input",
             code:               "\"\"",
-            this_arg:           None,
-            argument_types:     vec![],
-            return_type:        Some("Standard.Base.Data.Text.Text".try_into().unwrap()),
-            imports:            vec![],
-            documentation_html: Some(doc_html_with_summary_and_synopsis!(
+            return_type:        "Standard.Base.Data.Text.Text",
+            documentation_html: doc_html_with_summary_and_synopsis!(
                 "A text input node.",
                 "An empty text. The value can be edited and used as an input for other nodes."
-            )),
-            method_id:          None,
-            icon:               ide_view_component_group::icon::Id::TextInput.as_str().into(),
-        }),
-        Rc::new(component::Virtual {
+            ),
+            icon:               ide_view_component_group::icon::Id::TextInput,
+        },
+        VirtualComponentWithLiteral {
             name:               "number input",
             code:               "0",
-            this_arg:           None,
-            argument_types:     vec![],
-            return_type:        Some("Standard.Base.Data.Numbers.Number".try_into().unwrap()),
-            imports:            vec![],
-            documentation_html: Some(doc_html_with_summary_and_synopsis!(
+            return_type:        "Standard.Base.Data.Numbers.Number",
+            documentation_html: doc_html_with_summary_and_synopsis!(
                 "A number input node.",
                 "A zero number. The value can be edited and used as an input for other nodes."
-            )),
-            method_id:          None,
-            icon:               ide_view_component_group::icon::Id::NumberInput.as_str().into(),
-        }),
-    ];
+            ),
+            icon:               ide_view_component_group::icon::Id::NumberInput,
+        },
+    ].into_iter().map(|c| Rc::new(c.into())).collect_vec();
 }
 
 
 
-// ================================
-// === ConstantVirtualComponent ===
-// ================================
+// ===================================
+// === VirtualComponentWithLiteral ===
+// ===================================
 
-struct ConstantVirtualComponent {
+struct VirtualComponentWithLiteral {
     pub name:               &'static str,
     pub code:               &'static str,
-    pub return_type:        tp::QualifiedName,
+    pub return_type:        &'static str,
     pub documentation_html: &'static str,
     pub icon:               ide_view_component_group::icon::Id,
 }
 
-impl From<ConstantVirtualComponent> for component::Virtual {
-    fn from(constant: ConstantVirtualComponent) -> component::Virtual {
+impl From<VirtualComponentWithLiteral> for component::Virtual {
+    fn from(literal: VirtualComponentWithLiteral) -> component::Virtual {
         component::Virtual {
-            name: constant.name, code: constant.code, this_arg: None, argument_types: vec![],
-            return_type: Some(constant.return_type),
+            name: literal.name, code: literal.code, this_arg: None, argument_types: vec![],
+            return_type: Some(literal.return_type.try_into().unwrap()),
             imports: vec![],
-            documentation_html: Some(constant.documentation_html),
+            documentation_html: Some(literal.documentation_html),
             method_id: None,
-            icon: constant.icon.as_str().into(),
+            icon: literal.icon.as_str().into(),
         }
     }
 }
