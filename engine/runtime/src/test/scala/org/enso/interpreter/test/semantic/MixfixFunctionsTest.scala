@@ -30,7 +30,7 @@ class MixfixFunctionsTest extends InterpreterTest {
           |type Foo
           |    Mk_Foo a b
           |
-          |Foo.if_then_else = a -> b -> case self of
+          |Foo.if_then_else self = a -> b -> case self of
           |    Mk_Foo x y -> x + y + a + b
           |
           |main = if (Mk_Foo 1 2) then 3 else 4

@@ -6,20 +6,26 @@ type Panic
     catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
 
 @Builtin_Type
-type Syntax_Error message
+type Syntax_Error
+    Make_Syntax_Error message
 @Builtin_Type
 type Polyglot_Error
     Make_Polyglot_Error cause
 @Builtin_Type
-type Arithmetic_Error message
+type Arithmetic_Error
+    Make_Arithmetic_Error message
 @Builtin_Type
-type Type_Error expected actual name
+type Type_Error
+    Make_Type_Error expected actual name
 @Builtin_Type
-type Compile_Error message
+type Compile_Error
+    Make_Compile_Error message
 @Builtin_Type
-type Inexhaustive_Pattern_Match_Error scrutinee
+type Inexhaustive_Pattern_Match_Error
+    Make_Inexhaustive_Pattern_Match_Error scrutinee
 @Builtin_Type
-type Arity_Error expected_min expected_max actual
+type Arity_Error
+    Make_Arity_Error expected_min expected_max actual
 
 @Builtin_Type
 type Error
