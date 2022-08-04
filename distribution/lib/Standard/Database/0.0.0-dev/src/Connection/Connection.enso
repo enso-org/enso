@@ -13,7 +13,6 @@ from Standard.Database.Error import Sql_Error
 polyglot java import java.lang.UnsupportedOperationException
 
 type Connection
-
     ## PRIVATE
 
        A Database connection using a JDBC driver.
@@ -22,8 +21,6 @@ type Connection
        - jdbc_connection: the resource managing the underlying JDBC
          connection.
        - dialect: the dialect associated with the database we are connected to.
-
-       Allows accessing tables from a database.
     Connection_Data jdbc_connection dialect
 
     ## Closes the connection releasing the underlying database resources

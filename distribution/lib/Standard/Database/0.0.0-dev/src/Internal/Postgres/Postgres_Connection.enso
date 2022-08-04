@@ -6,14 +6,18 @@ import Standard.Table.Data.Table as Materialized_Table
 
 from Standard.Database.Error import Sql_Error
 
-type SQLite_Connection
+from Standard.Database.Internal.Result_Set import read_column
+
+type Postgres_Connection
+
     ## PRIVATE
 
-       A SQLite database connection.
+       A Postgres database connection.
 
        Arguments:
        - connection: the underlying connection.
-    type SQLite_Connection connection
+       - make_new: a function that returns a new connection.
+    type Postgres_Connection connection make_new
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
@@ -34,7 +38,10 @@ type SQLite_Connection
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : [Text]
-    databases self = [Nothing]
+    databases self =
+        self.connection.jdbc_connection.with_connection connection->
+            result_set = connection.createStatement.executeQuery "select datname from pg_database where datname not in ('template0', 'template1')"
+            read_column result_set "datname"
 
     ## Returns the name of the current database (or catalog).
     database : Text
@@ -45,11 +52,13 @@ type SQLite_Connection
        Arguments:
         - database: The name of the database to connect to.
     set_database : Text -> Connection ! Sql_Error
-    set_database self database = self.connection.set_database database
+    set_database self database =
+        if database == self.database then self else
+            self.make_new database=database
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
-    schemas self = [Nothing]
+    schemas self = self.connection.schemas
 
     ## Returns the name of the current schema.
     schema : Text
@@ -60,7 +69,9 @@ type SQLite_Connection
        Arguments:
         - schema: The name of the schema to connect to.
     set_schema : Text -> Connection ! Sql_Error
-    set_schema self schema = self.schema.set_schema schema
+    set_schema self schema =
+        if schema == self.schema then self else
+            self.make_new schema=schema
 
     ## Gets a list of the table types
     table_types : [Text]
