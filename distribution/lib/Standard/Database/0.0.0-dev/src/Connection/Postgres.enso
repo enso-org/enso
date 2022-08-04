@@ -43,8 +43,9 @@ type Postgres
         properties = options.merge self.jdbc_properties
         jdbc_connection = JDBC_Connection.create self.jdbc_url properties
 
-        make_new database=self.database schema=self.schema =
-            Postgres self.host self.port database schema self.credentials self.use_ssl self.client_cert . connect options
+        ## Cannot use default argument values as gets in an infinite loop if you do.
+        make_new database schema =
+            Postgres self.host self.port (database.if_nothing self.database) (schema.if_nothing self.schema) self.credentials self.use_ssl self.client_cert . connect options
 
         Postgres_Connection (Connection jdbc_connection self.dialect) make_new
 

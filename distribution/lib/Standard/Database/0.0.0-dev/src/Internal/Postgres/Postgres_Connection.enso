@@ -54,7 +54,7 @@ type Postgres_Connection
     set_database : Text -> Connection ! Sql_Error
     set_database self database =
         if database == self.database then self else
-            self.make_new database=database
+            self.make_new database Nothing
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
@@ -71,7 +71,7 @@ type Postgres_Connection
     set_schema : Text -> Connection ! Sql_Error
     set_schema self schema =
         if schema == self.schema then self else
-            self.make_new schema=schema
+            self.make_new Nothing schema
 
     ## Gets a list of the table types
     table_types : [Text]
