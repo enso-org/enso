@@ -21,7 +21,8 @@ type Span
     ## A representation of a span of characters in Enso's `Text` type.
 
        Arguments:
-       - range: The range of characters over which the span exists.
+       - range: The range of characters over which the span exists. The range is
+         assumed to have `step` equal to 1.
        - text: The text over which the span exists.
 
        ! What is a Character?
@@ -85,7 +86,8 @@ type Utf_16_Span
     ## A representation of a span of UTF-16 code units in Enso's `Text` type.
 
        Arguments:
-       - range: The range of code units over which the span exists.
+       - range: The range of code units over which the span exists. The range is
+         assumed to have `step` equal to 1.
        - text: The text over which the span exists.
 
        > Example

@@ -13,6 +13,9 @@ public abstract class ConstructorNode extends ExpressionNode {
   private final AtomConstructor constructor;
 
   ConstructorNode(AtomConstructor constructor) {
+    if (constructor == null) {
+      throw new NullPointerException("Constructor cannot be null");
+    }
     this.constructor = constructor;
   }
 

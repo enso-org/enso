@@ -2,7 +2,6 @@
 
 use crate::macros::pattern::*;
 use crate::macros::*;
-
 use crate::syntax::operator;
 
 
@@ -14,11 +13,60 @@ use crate::syntax::operator;
 /// All built-in macro definitions.
 pub fn all() -> resolver::SegmentMap<'static> {
     let mut macro_map = resolver::SegmentMap::default();
-    // macro_map.register(if_then());
-    // macro_map.register(if_then_else());
+    macro_map.register(if_then());
+    macro_map.register(if_then_else());
+    register_import_macros(&mut macro_map);
     macro_map.register(group());
     macro_map.register(type_def());
     macro_map
+}
+
+fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
+    use crate::macro_definition;
+    let defs = [
+        macro_definition! {("import", everything()) import_body},
+        macro_definition! {("import", everything(), "as", everything()) import_body},
+        macro_definition! {("import", everything(), "hiding", everything()) import_body},
+        macro_definition! {("polyglot", everything(), "import", everything()) import_body},
+        macro_definition! {
+        ("polyglot", everything(), "import", everything(), "as", everything()) import_body},
+        macro_definition! {
+        ("polyglot", everything(), "import", everything(), "hiding", everything()) import_body},
+        macro_definition! {
+        ("from", everything(), "import", everything(), "hiding", everything()) import_body},
+        macro_definition! {
+        ("from", everything(), "as", everything(), "import", everything()) import_body},
+        macro_definition! {("from", everything(), "import", everything()) import_body},
+    ];
+    for def in defs {
+        macros.register(def);
+    }
+}
+
+fn import_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use operator::resolve_operator_precedence_if_non_empty;
+    let mut polyglot = None;
+    let mut from = None;
+    let mut from_as = None;
+    let mut import = None;
+    let mut import_as = None;
+    let mut hiding = None;
+    for segment in segments {
+        let header = segment.header;
+        let body = resolve_operator_precedence_if_non_empty(segment.result.tokens());
+        let field = match header.code.as_ref() {
+            "polyglot" => &mut polyglot,
+            "from" => &mut from,
+            "as" if import.is_none() => &mut from_as,
+            "import" => &mut import,
+            "as" => &mut import_as,
+            "hiding" => &mut hiding,
+            _ => unreachable!(),
+        };
+        *field = Some(syntax::tree::MultiSegmentAppSegment { header, body });
+    }
+    let import = import.unwrap();
+    syntax::Tree::import(polyglot, from, from_as, import, import_as, hiding)
 }
 
 /// If-then-else macro definition.
@@ -33,7 +81,25 @@ pub fn if_then<'s>() -> Definition<'s> {
 
 /// Group macro definition.
 pub fn group<'s>() -> Definition<'s> {
-    crate::macro_definition! {("(", everything(), ")", nothing())}
+    crate::macro_definition! {("(", everything(), ")", nothing()) group_body}
+}
+
+fn group_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use operator::resolve_operator_precedence_if_non_empty;
+    use syntax::token;
+    macro_rules! into_symbol {
+        ($token:expr) => {{
+            let token::Token { left_offset, code, .. } = $token;
+            token::symbol(left_offset, code)
+        }};
+    }
+    let (close, mut segments) = segments.pop();
+    let close = into_symbol!(close.header);
+    let segment = segments.pop().unwrap();
+    let open = into_symbol!(segment.header);
+    let body = segment.result.tokens();
+    let body = resolve_operator_precedence_if_non_empty(body);
+    syntax::Tree::group(open, body, close)
 }
 
 /// New type definition macro definition.

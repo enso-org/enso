@@ -36,17 +36,19 @@ import project.Data.Ordering.Natural_Order_Spec
 import project.Data.Ordering.Vector_Lexicographic_Order_Spec
 import project.Data.Range_Spec
 import project.Data.Ref_Spec
-import project.Data.Text_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
 import project.Data.Statistics_Spec
 import project.Data.Regression_Spec
-import project.Data.Text.Regex_Spec
-import project.Data.Text.Utils_Spec
+
+import project.Data.Text_Spec
+import project.Data.Text.Codepoint_Ranges_Spec
 import project.Data.Text.Default_Regex_Engine_Spec
-import project.Data.Text.Matching_Spec
-import project.Data.Text.Span_Spec
 import project.Data.Text.Encoding_Spec
+import project.Data.Text.Matching_Spec
+import project.Data.Text.Regex_Spec
+import project.Data.Text.Span_Spec
+import project.Data.Text.Utils_Spec
 
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
@@ -64,6 +66,8 @@ import project.System.Process_Spec
 import project.System.Reporting_Stream_Decoder_Spec
 import project.System.Reporting_Stream_Encoder_Spec
 import project.System.System_Spec
+
+import project.Random_Spec
 
 main = Test.Suite.run_main <|
     Any_Spec.spec
@@ -110,6 +114,7 @@ main = Test.Suite.run_main <|
     Runtime_Spec.spec
     Span_Spec.spec
     Encoding_Spec.spec
+    Codepoint_Ranges_Spec.spec
     Bracket_Spec.spec
     Lazy_Generator_Spec.spec
     Stack_Traces_Spec.spec
@@ -122,3 +127,4 @@ main = Test.Suite.run_main <|
     Regression_Spec.spec
     Warnings_Spec.spec
     System_Spec.spec
+    Random_Spec.spec
