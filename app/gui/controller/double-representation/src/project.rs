@@ -76,6 +76,11 @@ impl QualifiedName {
         }
     }
 
+    /// Return the qualified name of the "Standard.Base" library project.
+    pub fn of_standard_base_library() -> Self {
+        Self::from_segments("Standard", "Base").unwrap()
+    }
+
     /// The iterator over name's segments: the namespace and project name.
     pub fn segments(&self) -> impl Iterator<Item = &str> {
         std::iter::once(self.namespace.as_ref()).chain(std::iter::once(self.project.as_ref()))
