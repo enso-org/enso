@@ -8,12 +8,16 @@ from Standard.Database.Data.Sql import Sql_Type, Statement
 from Standard.Database.Error import Sql_Error, Sql_Timeout_Error
 import Standard.Database.Data.Internal.Base_Generator
 import Standard.Table.Data.Storage
+import Standard.Database.Data.Table as Database_Table
+import Standard.Table.Data.Table as Materialized_Table
 
 polyglot java import java.util.Properties
+
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
+
 polyglot java import org.enso.database.JDBCProxy
 
 type JDBC_Connection
@@ -71,6 +75,56 @@ type JDBC_Connection
             Statement _ ->
                 compiled = query.prepare
                 go compiled.first compiled.second
+
+    ## PRIVATE
+
+       Given a prepared statement, gets the column names and types for the
+       result set.
+    fetch_columns : PreparedStatement -> Any
+    fetch_columns statement =
+        self.with_prepared_statement statement stmt->
+            metadata = stmt.executeQuery.getMetaData
+
+            resolve_column ix =
+                name = metadata.getColumnName ix+1
+                typeid = metadata.getColumnType ix+1
+                typename = metadata.getColumnTypeName ix+1
+                [name, Sql_Type typeid typename]
+
+            Vector.new metadata.getColumnCount resolve_column
+
+    ## PRIVATE
+
+       Given a Database_Table and a Materialized_Table, load the data to the
+       database.
+    load_table : Database_Table -> Materialized_Table -> Integer -> Nothing
+    load_table db_table table batch_size =
+        pairs = db_table.internal_columns.map col->[col.name, IR.Constant col.sql_type Nothing]
+        db_types = pairs.map p-> p.second.sql_type
+        insert_query = self.dialect.generate_sql <| IR.Insert name pairs
+        insert_template = insert_query.prepare.first
+
+        self.with_connection java_connection->
+            default_autocommit = java_connection.getAutoCommit
+            java_connection.setAutoCommit False
+            Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
+                Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
+                    num_rows = table.row_count
+                    columns = table.columns
+                    check_rows updates_array expected_size =
+                        updates = Vector.Vector updates_array
+                        if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
+                            updates.each affected_rows->
+                                if affected_rows != 1 then
+                                    Panic.throw <| Illegal_State_Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
+                    0.up_to num_rows . each row_id->
+                        values = columns.map col-> col.at row_id
+                        holes = values.zip db_types
+                        set_statement_values stmt holes
+                        stmt.addBatch
+                        if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
+                    if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+                java_connection.commit
 
 ## PRIVATE
 
