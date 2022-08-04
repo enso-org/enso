@@ -8,8 +8,9 @@ import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 
 from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
-from Standard.Database.Internal.JDBC_Connection import create_table_statement
+from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
+from Standard.Database.Error import Sql_Error
 
 polyglot java import java.lang.UnsupportedOperationException
 
@@ -43,10 +44,9 @@ type Connection
        Arguments:
        - name: name of the table to access
     access_table : Text -> Database_Table
-    access_table self name =
-        self.jdbc_connection.handle_errors <|
-            columns = self.fetch_columns name
-            Database_Table.make_table self name columns
+    access_table self name = handle_sql_errors <|
+        columns = self.fetch_columns name
+        Database_Table.make_table self name columns
 
     ## Returns the list of databases (or catalogs) for the connection.
     databases : [Text]
@@ -58,6 +58,15 @@ type Connection
     database : Text
     database self =
         self.jdbc_connection.with_connection connection->connection.getCatalog
+
+    ## Returns a new Connection with the specified database set as default.
+
+       Arguments:
+        - database: The name of the database to connect to.
+    set_database : Text -> Connection ! Sql_Error
+    set_database self database =
+        if database == self.database then self else
+            Sql_Error.throw_sql_error "Changing database is not supported."
 
     ## Returns the list of schemas for the connection within the current database (or catalog).
     schemas : [Text]
@@ -71,12 +80,20 @@ type Connection
         self.jdbc_connection.with_connection connection->
             connection.getSchema
 
+    ## Returns a new Connection with the specified schema set as default.
+
+       Arguments:
+        - schema: The name of the schema to connect to.
+    set_schema : Text -> Connection ! Sql_Error
+    set_schema self schema =
+        if schema == self.schema then self else
+            Sql_Error.throw_sql_error "Changing schema is not supported."
+
     ## Gets a list of the table types
     table_types : [Text]
     table_types self =
         self.jdbc_connection.with_metadata metadata->
-            types_result_set = metadata.getTableTypes
-            read_column types_result_set "TABLE_TYPE"
+            read_column metadata.getTableTypes "TABLE_TYPE"
 
     ## ADVANCED
 
@@ -181,4 +198,3 @@ type Connection
                     java_connection.commit
 
         db_table
-

@@ -45,6 +45,13 @@ type Sql_Error
     to_display_text : Text
     to_display_text self = self.to_text
 
+    ## PRIVATE
+
+       Throws an error as if a SQL Exception was thrown.
+    throw_sql_error : Text -> Sql_Error
+    throw_sql_error message =
+        Error.throw (Sql_Error (SQLException.new message))
+
 type Sql_Timeout_Error
     ## UNSTABLE
 

@@ -30,11 +30,7 @@ type JDBC_Connection
         self.connection_resource . finalize
 
     ## PRIVATE
-    handle_errors : Any -> Any
-    handle_errors ~action =
-        handle_sql_errors action
 
-    ## PRIVATE
        Open the connection to the database, then run the action wrapping any
        SQL errors.
     with_connection : (Connection -> Any) -> Any
@@ -43,6 +39,7 @@ type JDBC_Connection
             self.connection_resource.with action
 
     ## PRIVATE
+
        Open the connection to the database, then run the action passing the
        database's metadata wrapping any SQL errors.
     with_metadata : (DatabaseMetaData -> Any) -> Any
