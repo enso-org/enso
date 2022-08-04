@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::NewNodeInfo;
 use crate::model::module::MethodId;
+use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
 use crate::model::suggestion_database;
@@ -493,6 +494,7 @@ pub struct Searcher {
     /// [`controller::ExecutedGraph::component_groups`]. Stored to reduce the number of
     /// [`database`] lookups performed when updating [`Data::components`].
     list_builder_with_favorites: Rc<component::builder::List>,
+    node_metadata_guard: Rc<Option<EditMetadataGuard>>,
 }
 
 impl Searcher {
@@ -530,6 +532,11 @@ impl Searcher {
         } else {
             default()
         };
+        let node_metadata_guard = if let Mode::EditNode { node_id } = mode {
+            Rc::new(Some(EditMetadataGuard::new(node_id, graph.clone_ref())))
+        } else {
+            default()
+        };
         let module_ast = graph.graph().module.ast();
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
@@ -540,7 +547,9 @@ impl Searcher {
             _ => None,
         });
         let favorites = graph.component_groups();
-        let list_builder_with_favs = component_list_builder_with_favorites(&database, &*favorites);
+        let module_name = graph.module_qualified_name(&*project);
+        let list_builder_with_favs =
+            component_list_builder_with_favorites(&database, &module_name, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -554,6 +563,7 @@ impl Searcher {
             position_in_code: Immutable(position),
             project,
             list_builder_with_favorites: Rc::new(list_builder_with_favs),
+            node_metadata_guard,
         };
         ret.reload_list();
         Ok(ret)
@@ -1032,7 +1042,7 @@ impl Searcher {
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
-        builder.extend(&self.database, entry_ids);
+        builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
 
@@ -1113,7 +1123,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        self.graph.graph().module.path().qualified_module_name(self.project.qualified_name())
+        self.graph.module_qualified_name(&*self.project)
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1140,6 +1150,7 @@ impl Searcher {
                 documentation_html: None,
                 self_type:          Some(self_type.clone()),
                 scope:              model::suggestion_database::entry::Scope::Everywhere,
+                icon_name:          None,
             };
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);
@@ -1169,12 +1180,74 @@ impl Searcher {
 
 fn component_list_builder_with_favorites<'a>(
     suggestion_db: &model::SuggestionDatabase,
+    local_scope_module: &QualifiedName,
     groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
 ) -> component::builder::List {
     let mut builder = component::builder::List::new();
-    builder.set_favorites(suggestion_db, groups);
+    if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
+        builder = builder.with_local_scope_module_id(id);
+    }
+    builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     builder
 }
+
+
+// === Node Edit Metadata Guard ===
+
+/// On creation the `EditMetadataGuard` saves the current expression of the node to its metadata.
+/// When dropped the metadata is cleared again.
+#[derive(Debug)]
+struct EditMetadataGuard {
+    node_id: ast::Id,
+    graph:   controller::ExecutedGraph,
+}
+
+impl EditMetadataGuard {
+    pub fn new(node_id: ast::Id, graph: controller::ExecutedGraph) -> Self {
+        let ret = Self { node_id, graph };
+        ret.save_node_expression_to_metadata().unwrap_or_else(|e| {
+            tracing::error!("Failed to save the node edit metadata due to error: {}", e)
+        });
+        ret
+    }
+
+    /// Mark the node as edited in its metadata and save the current expression, so it can later be
+    /// restored.
+    fn save_node_expression_to_metadata(&self) -> FallibleResult {
+        let node = self.graph.graph().node(self.node_id)?;
+        let previous_expression = node.info.main_line.expression().to_string();
+        let module = &self.graph.graph().module;
+        module.with_node_metadata(
+            self.node_id,
+            Box::new(|m| {
+                m.edit_status = Some(NodeEditStatus::Edited { previous_expression });
+            }),
+        )
+    }
+
+    /// Mark the node as no longer edited and discard the edit metadata.
+    fn clear_node_edit_metadata(&self) -> FallibleResult {
+        let module = &self.graph.graph().module;
+        module.with_node_metadata(
+            self.node_id,
+            Box::new(|m| {
+                m.edit_status = None;
+            }),
+        )
+    }
+}
+
+impl Drop for EditMetadataGuard {
+    fn drop(&mut self) {
+        self.clear_node_edit_metadata().unwrap_or_else(|e| {
+            tracing::error!(
+                "Failed to clear node edit metadata after editing ended because of an error: {}",
+                e
+            )
+        });
+    }
+}
+
 
 
 // === SimpleFunctionCall ===
@@ -1360,7 +1433,10 @@ pub mod test {
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
             let favorites = graph.component_groups();
-            let list_bldr_with_favs = component_list_builder_with_favorites(&database, &*favorites);
+            let module_qn = graph.module_qualified_name(&*project);
+            let list_builder_with_favs =
+                component_list_builder_with_favorites(&database, &module_qn, &*favorites);
+            let node_metadata_guard = default();
             let searcher = Searcher {
                 graph,
                 logger,
@@ -1373,7 +1449,8 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
-                list_builder_with_favorites: Rc::new(list_bldr_with_favs),
+                list_builder_with_favorites: Rc::new(list_builder_with_favs),
+                node_metadata_guard,
             };
             let entry1 = searcher.database.lookup(1).unwrap();
             let entry2 = searcher.database.lookup(2).unwrap();
@@ -1416,6 +1493,7 @@ pub mod test {
             documentation_html: default(),
             self_type: None,
             scope,
+            icon_name: None,
         };
         let entry2 = model::suggestion_database::Entry {
             name: "TestVar1".to_string(),
@@ -1475,6 +1553,7 @@ pub mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
+            icon_name:          None,
         };
         let entry9 = model::suggestion_database::Entry {
             name: "testFunction2".to_string(),
@@ -1711,10 +1790,16 @@ pub mod test {
             name:    "Test Group 1".to_string(),
             color:   None,
             icon:    None,
-            exports: vec![language_server::LibraryComponent {
-                name:     module_qualified_name + ".testFunction1",
-                shortcut: None,
-            }],
+            exports: vec![
+                language_server::LibraryComponent {
+                    name:     module_qualified_name.clone() + ".testFunction1",
+                    shortcut: None,
+                },
+                language_server::LibraryComponent {
+                    name:     module_qualified_name + ".testMethod1",
+                    shortcut: None,
+                },
+            ],
         };
         // Create a test fixture with mocked Engine responses.
         let Fixture { mut test, searcher, entry1, entry9, .. } =
@@ -1730,7 +1815,9 @@ pub mod test {
         // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
         if let [module_group] = &components.top_modules()[..] {
-            assert_eq!(module_group.name, entry1.module.to_string());
+            let expected_group_name =
+                format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
+            assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
             assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
         } else {
@@ -2188,5 +2275,42 @@ pub mod test {
         searcher.add_example(&example, None).unwrap();
         searcher.add_example(&example, None).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
+    }
+
+    #[wasm_bindgen_test]
+    fn metadata_guard() {
+        let Fixture { test: _test, mut searcher, .. } = Fixture::new();
+        let node = searcher.graph.graph().nodes().unwrap().last().unwrap().clone();
+        let node_id = node.info.id();
+        searcher.mode = Immutable(Mode::EditNode { node_id });
+        searcher.node_metadata_guard =
+            Rc::new(Some(EditMetadataGuard::new(node_id, searcher.graph.clone_ref())));
+
+        // Verify the metadata was initialised after the guard creation.
+        let module = searcher.graph.graph().module.clone_ref();
+        module
+            .with_node_metadata(
+                node_id,
+                Box::new(|m| {
+                    assert_eq!(
+                        m.edit_status,
+                        Some(NodeEditStatus::Edited {
+                            previous_expression: node.info.expression().to_string(),
+                        })
+                    );
+                }),
+            )
+            .unwrap();
+
+        // Verify the metadata is cleared after the searcher is dropped.
+        drop(searcher);
+        module
+            .with_node_metadata(
+                node_id,
+                Box::new(|m| {
+                    assert_eq!(m.edit_status, None);
+                }),
+            )
+            .unwrap();
     }
 }

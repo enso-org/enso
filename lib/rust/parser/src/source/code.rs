@@ -9,10 +9,13 @@ use crate::prelude::*;
 // ============
 
 /// A code representation. It can either be a borrowed source code or a modified owned one.
-#[derive(Clone, Default, Eq, PartialEq, From, Into, Shrinkwrap)]
+#[derive(Clone, Default, Eq, PartialEq, From, Into, Shrinkwrap, Serialize, Reflect, Deserialize)]
 #[shrinkwrap(mutable)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
+    #[serde(serialize_with = "crate::serialization::serialize_cow")]
+    #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
+    #[reflect(as = "crate::serialization::Code", flatten)]
     pub repr: Cow<'s, str>,
 }
 
@@ -62,5 +65,19 @@ impl std::borrow::Borrow<str> for Code<'_> {
     #[inline(always)]
     fn borrow(&self) -> &str {
         &self.repr
+    }
+}
+
+impl<'s> std::ops::AddAssign<Code<'s>> for Code<'s> {
+    #[inline(always)]
+    fn add_assign(&mut self, other: Code<'s>) {
+        self.repr.add_assign(other.repr);
+    }
+}
+
+impl<'s> std::ops::AddAssign<&Code<'s>> for Code<'s> {
+    #[inline(always)]
+    fn add_assign(&mut self, other: &Code<'s>) {
+        self.repr.add_assign(other.repr.clone());
     }
 }

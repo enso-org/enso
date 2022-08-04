@@ -1,7 +1,8 @@
 from Standard.Base import all
-import Standard.Test
 
 polyglot java import java.util.Random
+
+import Standard.Test
 
 spec = Test.group "Pattern Matches" <|
     Test.specify "should be able to match on the Boolean type" <|
@@ -88,4 +89,4 @@ spec = Test.group "Pattern Matches" <|
             Any -> Nothing
             _ -> Test.fail "Expected the Any constructor to match."
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

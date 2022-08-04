@@ -20,7 +20,7 @@ class StateTest extends InterpreterTest {
           |    State.put Number x+1
           |    State.get Number
           |
-          |main = State.run Number 0 here.stateful
+          |main = State.run Number 0 stateful
           |""".stripMargin
 
       eval(code) shouldEqual 11
@@ -36,14 +36,14 @@ class StateTest extends InterpreterTest {
           |  State.put Number x+1
           |
           |run =
-          |    here.inc_state
-          |    here.inc_state
-          |    here.inc_state
-          |    here.inc_state
-          |    here.inc_state
+          |    inc_state
+          |    inc_state
+          |    inc_state
+          |    inc_state
+          |    inc_state
           |    State.get Number
           |
-          |main = State.run Number 0 here.run
+          |main = State.run Number 0 run
           |""".stripMargin
 
       eval(code) shouldEqual 5
@@ -89,7 +89,7 @@ class StateTest extends InterpreterTest {
           |    IO.println (State.get Number)
           |    0
           |
-          |main = State.run Number 0 here.run
+          |main = State.run Number 0 run
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("11", "16")
@@ -106,10 +106,10 @@ class StateTest extends InterpreterTest {
           |
           |stater =
           |    State.put Number 5
-          |    Panic.catch_primitive here.panicker x->x
+          |    Panic.catch_primitive panicker x->x
           |    State.get Number
           |
-          |main = State.run Number 0 here.stater
+          |main = State.run Number 0 stater
           |""".stripMargin
       eval(code) shouldEqual 5
     }
@@ -123,10 +123,10 @@ class StateTest extends InterpreterTest {
           |
           |outer =
           |    State.put Number 1
-          |    State.run Number 2 here.inner
+          |    State.run Number 2 inner
           |    State.get Number
           |
-          |main = State.run Number 3 here.outer
+          |main = State.run Number 3 outer
           |""".stripMargin
       eval(code) shouldEqual 1
     }
@@ -144,10 +144,10 @@ class StateTest extends InterpreterTest {
           |
           |outer =
           |    State.put S1 1
-          |    State.run S2 2 here.inner
+          |    State.run S2 2 inner
           |    State.get S1
           |
-          |main = State.run S1 3 here.outer
+          |main = State.run S1 3 outer
           |
           |""".stripMargin
       eval(code) shouldEqual 0
@@ -168,10 +168,10 @@ class StateTest extends InterpreterTest {
           |outer =
           |    State.put S1 1
           |    State.put S3 2
-          |    State.run S2 2 here.inner
+          |    State.run S2 2 inner
           |    State.get S1 + State.get S2 + State.get S3
           |
-          |main = State.run S3 0 (State.run S2 5 (State.run S1 3 here.outer))
+          |main = State.run S3 0 (State.run S2 5 (State.run S1 3 outer))
           |
           |""".stripMargin
       eval(code) shouldEqual 7 // S1 = 0, S2 = 5, S3 = 2

@@ -25,10 +25,10 @@ label_field = 'label'
 ## PRIVATE
 
    Represents a recognized point data field for a scatter plot visualization.
-type PointData
+type Point_Data
 
     ## PRIVATE
-    type PointData
+    type Point_Data
 
     ## PRIVATE
     type X
@@ -56,19 +56,19 @@ type PointData
 
     ## PRIVATE
     recognized_names : Vector
-    recognized_names = self.all_fields.map _.name
+    recognized_names self = self.all_fields.map _.name
 
     ## PRIVATE
     is_recognized : Column -> Boolean
-    is_recognized column = self.recognized_names.contains column.name
+    is_recognized self column = self.recognized_names.contains column.name
 
     ## PRIVATE
     name : Text
-    name = self.to_text.to_case Case.Lower
+    name self = self.to_text.to_case Case.Lower
 
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
-    fallback_column table = case self of
+    fallback_column self table = case self of
         X -> table.index.catch_ <| self.iota table.row_count
         Y ->
             x_column = X.lookup_in table
@@ -85,11 +85,11 @@ type PointData
     iota : Number -> Vector
     iota count =
         range = 0.up_to count
-        Column.from_vector here.index_name range.to_vector
+        Column.from_vector index_name range.to_vector
 
     ## PRIVATE
     lookup_in : Table -> Column
-    lookup_in table =
+    lookup_in self table =
         named = table.lookup_ignore_case self.name
         named.catch_ <| self.fallback_column table
 
@@ -98,16 +98,16 @@ type No_Fallback_Column
 
 ## PRIVATE
 No_Fallback_Column.to_display_text : Text
-No_Fallback_Column.to_display_text =
+No_Fallback_Column.to_display_text self =
     "No fallback column found for the scatter plot."
 
 ## PRIVATE
 
    Generates JSON that describes points data.
 Table.Table.point_data : Table -> Object
-Table.Table.point_data =
+Table.Table.point_data self =
     get_point_data field = field.lookup_in self . rename field.name
-    columns = PointData.all_fields.filter_map get_point_data
+    columns = Point_Data.all_fields.filter_map get_point_data
     (0.up_to self.row_count).to_vector.map <| row_n->
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing
@@ -118,10 +118,10 @@ Table.Table.point_data =
 
    Generates JSON that describes plot axes.
 Table.Table.axes : Table -> Object
-Table.Table.axes =
+Table.Table.axes self =
     describe_axis field =
         col_name = field.lookup_in self . name
-        label = Json.from_pairs [[here.label_field, col_name]]
+        label = Json.from_pairs [[label_field, col_name]]
         [field.name, label]
     x_axis = describe_axis X
     y_axis = describe_axis Y
@@ -133,7 +133,7 @@ Table.Table.axes =
 
 ## PRIVATE
 Vector.Vector.point_data : Vector -> Object
-Vector.Vector.point_data =
+Vector.Vector.point_data self =
         self.map_with_index <| i-> elem->
             Json.from_pairs [[X.name,i],[Y.name,elem]]
 
@@ -142,13 +142,13 @@ json_from_table : Table -> Json
 json_from_table table =
     data = table.point_data
     axes = table.axes
-    Json.from_pairs <| [[here.data_field,data], [here.axis_field, axes]]
+    Json.from_pairs <| [[data_field,data], [axis_field, axes]]
 
 ## PRIVATE
 json_from_vector : Vector Any -> Json
 json_from_vector vec =
-    data = [here.data_field, vec.point_data]
-    axes = [here.axis_field, Nothing]
+    data = [data_field, vec.point_data]
+    axes = [axis_field, Nothing]
     Json.from_pairs [data, axes]
 
 ## PRIVATE
@@ -162,10 +162,10 @@ json_from_vector vec =
 process_to_json_text : Any -> Text
 process_to_json_text value =
     json = case value of
-        Column.Column _ -> here.json_from_table  value.to_table
-        Table.Table _   -> here.json_from_table  value
-        Vector.Vector _ -> here.json_from_vector value
-        _               -> here.json_from_vector value.to_vector
+        Column.Column _ -> json_from_table  value.to_table
+        Table.Table _   -> json_from_table  value
+        Vector.Vector _ -> json_from_vector value
+        _               -> json_from_vector value.to_vector
 
     json.to_text
 

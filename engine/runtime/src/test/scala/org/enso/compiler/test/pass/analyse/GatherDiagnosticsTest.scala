@@ -16,7 +16,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       AST.Invalid.Unrecognized("@@"),
       IR.Error.Syntax.UnrecognizedToken
     )
-    val plusOp = IR.Name.Literal("+", isReferent = false, isMethod = true, None)
+    val plusOp = IR.Name.Literal("+", isMethod = true, None)
     val plusApp = IR.Application.Prefix(
       plusOp,
       List(
@@ -29,7 +29,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       List(
         IR.DefinitionArgument
           .Specified(
-            IR.Name.Literal("bar", isReferent = false, isMethod = false, None),
+            IR.Name.Literal("bar", isMethod = false, None),
             None,
             None,
             suspended = false,
@@ -49,66 +49,66 @@ class GatherDiagnosticsTest extends CompilerTest {
       errors.toSet shouldEqual Set(error1)
     }
 
-//    "work with module flow" in {
-//      val error2 = IR.Error.Syntax(
-//        AST.Invalid.Unexpected("whoa, that was not expected", List()),
-//        IR.Error.Syntax.UnexpectedExpression
-//      )
-//
-//      val error3 = IR.Error.Syntax(
-//        AST.Invalid.Unexpected("whoa, that was also not expected", List()),
-//        IR.Error.Syntax.AmbiguousExpression
-//      )
-//
-//      val typeName =
-//        IR.Name.Literal("Foo", isReferent = false, isMethod = false, None)
-//      val method1Name =
-//        IR.Name.Literal("bar", isReferent = false, isMethod = false, None)
-//      val method2Name =
-//        IR.Name.Literal("baz", isReferent = false, isMethod = false, None)
-//      val fooName =
-//        IR.Name.Literal("foo", isReferent = false, isMethod = false, None)
-//
-//      val method1Ref =
-//        IR.Name.MethodReference(
-//          IR.Name.Qualified(List(typeName), None),
-//          method1Name,
-//          None
-//        )
-//      val method2Ref =
-//        IR.Name.MethodReference(
-//          IR.Name.Qualified(List(typeName), None),
-//          method2Name,
-//          None
-//        )
-//
-//      val module = IR.Module(
-//        List(),
-//        List(),
-//        List(
-//          IR.Module.Scope.Definition.Data(
-//            typeName,
-//            List(
-//              IR.DefinitionArgument
-//                .Specified(fooName, None, Some(error2), suspended = false, None)
-//            ),
-//            None
-//          ),
-//          IR.Module.Scope.Definition.Method
-//            .Explicit(method1Ref, lam, None),
-//          IR.Module.Scope.Definition.Method
-//            .Explicit(method2Ref, error3, None)
-//        ),
-//        None
-//      )
-//
-//      val result = GatherDiagnostics.runModule(module, buildModuleContext())
-//      val errors = result
-//        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
-//        .diagnostics
-//
-//      errors.toSet shouldEqual Set(error1, error2, error3)
-//    }
+    "work with module flow" in {
+      val error2 = IR.Error.Syntax(
+        AST.Invalid.Unexpected("whoa, that was not expected", List()),
+        IR.Error.Syntax.UnexpectedExpression
+      )
+
+      val error3 = IR.Error.Syntax(
+        AST.Invalid.Unexpected("whoa, that was also not expected", List()),
+        IR.Error.Syntax.AmbiguousExpression
+      )
+
+      val typeName =
+        IR.Name.Literal("Foo", isMethod = false, None)
+      val method1Name =
+        IR.Name.Literal("bar", isMethod = false, None)
+      val method2Name =
+        IR.Name.Literal("baz", isMethod = false, None)
+      val fooName =
+        IR.Name.Literal("foo", isMethod = false, None)
+
+      val method1Ref =
+        IR.Name.MethodReference(
+          Some(IR.Name.Qualified(List(typeName), None)),
+          method1Name,
+          None
+        )
+      val method2Ref =
+        IR.Name.MethodReference(
+          Some(IR.Name.Qualified(List(typeName), None)),
+          method2Name,
+          None
+        )
+
+      val module = IR.Module(
+        List(),
+        List(),
+        List(
+          IR.Module.Scope.Definition.Atom(
+            typeName,
+            List(
+              IR.DefinitionArgument
+                .Specified(fooName, None, Some(error2), suspended = false, None)
+            ),
+            None
+          ),
+          IR.Module.Scope.Definition.Method
+            .Explicit(method1Ref, lam, None),
+          IR.Module.Scope.Definition.Method
+            .Explicit(method2Ref, error3, None)
+        ),
+        None
+      )
+
+      val result = GatherDiagnostics.runModule(module, buildModuleContext())
+      val errors = result
+        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
+        .diagnostics
+
+      errors.toSet shouldEqual Set(error1, error2, error3)
+    }
 
     "avoid duplication" in {
       implicit val passManager: PassManager =

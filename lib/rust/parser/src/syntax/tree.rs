@@ -9,6 +9,8 @@ use crate::span_builder;
 use enso_parser_syntax_tree_visitor::Visitor;
 use enso_shapely_macros::tagged_enum;
 
+pub mod block;
+
 
 
 // ============
@@ -16,12 +18,14 @@ use enso_shapely_macros::tagged_enum;
 // ============
 
 /// The Abstract Syntax Tree of the language.
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq)]
+#[derive(Clone, Deref, DerefMut, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[deref]
     #[deref_mut]
+    #[reflect(subtype)]
     pub variant: Box<Variant<'s>>,
+    #[reflect(flatten)]
     pub span:    Span<'s>,
 }
 
@@ -51,22 +55,74 @@ impl<'s> AsRef<Span<'s>> for Tree<'s> {
     }
 }
 
+impl<'s> Default for Tree<'s> {
+    fn default() -> Self {
+        Self {
+            variant: Box::new(Variant::Ident(Ident { token: Default::default() })),
+            span:    Default::default(),
+        }
+    }
+}
+
 /// Macro providing [`Tree`] type definition. It is used to both define the ast [`Variant`], and to
 /// define impls for every token type in other modules.
 #[macro_export]
 macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
     /// [`Tree`] variants definition. See its docs to learn more.
     #[tagged_enum]
-    #[derive(Clone, Eq, PartialEq, Visitor)]
+    #[derive(Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+    #[allow(clippy::large_enum_variant)] // Inefficient. Will be fixed in #182878443.
+    #[tagged_enum(apply_attributes_to = "variants")]
+    #[reflect(inline)]
     pub enum Variant<'s> {
         /// Invalid [`Tree`] fragment with an attached [`Error`].
         Invalid {
             pub error: Error,
             pub ast: Tree<'s>,
         },
+        /// Indicates a subtree in which an unimplemented case was reached.
+        Unsupported {
+            pub error: String,
+            pub ast: Tree<'s>,
+        },
+        /// A sequence of lines introduced by a line ending in an operator.
+        BodyBlock {
+            /// The lines of the block.
+            pub statements: Vec<block::Line<'s>>,
+        },
+        /// A sequence of lines comprising the arguments of a function call.
+        ArgumentBlockApplication {
+            /// The expression for the value to which the arguments are to be applied.
+            pub lhs: Option<Tree<'s>>,
+            /// The lines of the block.
+            pub arguments: Vec<block::Line<'s>>,
+        },
+        /// A sequence of lines comprising a tree of operator expressions.
+        OperatorBlockApplication {
+            /// The expression preceding the block; this will be the leftmost-leaf of the binary
+            /// tree.
+            pub lhs: Option<Tree<'s>>,
+            /// The lines of the block.
+            pub expressions: Vec<block::OperatorLine<'s>>,
+            /// Lines that appear lexically within the block, but are not syntactically consistent
+            /// with an operator block.
+            pub excess: Vec<block::Line<'s>>,
+        },
         /// A simple identifier, like `foo` or `bar`.
         Ident {
             pub token: token::Ident<'s>,
+        },
+        /// A numeric literal, like `10`.
+        Number {
+            pub token: token::Number<'s>,
+        },
+        /// A comment.
+        Comment {
+            pub token: token::Comment<'s>,
+        },
+        /// A text section.
+        TextSection {
+            pub token: token::TextSection<'s>,
         },
         /// A simple application, like `print "hello"`.
         App {
@@ -79,6 +135,12 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         OprApp {
             pub lhs: Option<Tree<'s>>,
             pub opr: OperatorOrError<'s>,
+            pub rhs: Option<Tree<'s>>,
+        },
+        /// Application of a unary operator, like `-a` or `~handler`. It is a syntax error for `rhs`
+        /// to be `None`.
+        UnaryOprApp {
+            pub opr: token::Operator<'s>,
             pub rhs: Option<Tree<'s>>,
         },
         /// Defines the point where operator sections should be expanded to lambdas. Let's consider
@@ -97,11 +159,59 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// `x + y + z` is the section body, and `Vector x y z` is the prefix of this function
         /// application.
         MultiSegmentApp {
-            pub prefix: Option<Tree<'s>>,
             pub segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
+        },
+        /// A type definition; introduced by a line consisting of the keyword `type`, an identifier
+        /// to be used as the name of the type, and zero or more specifications of type parameters.
+        /// The following indented block contains two types of lines:
+        /// - First zero or more type constructors, and their subordinate blocks.
+        /// - Then a block of statements, which may define methods or type methods.
+        TypeDef {
+            pub keyword: Token<'s>,
+            pub name: Tree<'s>,
+            pub params: Vec<Tree<'s>>,
+            pub constructors: Vec<TypeConstructorLine<'s>>,
+            pub block: Vec<block::Line<'s>>,
+        },
+        /// A variable assignment, like `foo = bar 23`.
+        Assignment {
+            /// The pattern which should be unified with the expression.
+            pub pattern: Tree<'s>,
+            /// The `=` token.
+            pub equals: token::Operator<'s>,
+            /// The expression initializing the value(s) in the pattern.
+            pub expr: Tree<'s>,
+        },
+        /// A function definition, like `add x y = x + y`.
+        Function {
+            /// The identifier to which the function should be bound.
+            pub name: token::Ident<'s>,
+            /// The argument patterns.
+            pub args: Vec<Tree<'s>>,
+            /// The `=` token.
+            pub equals: token::Operator<'s>,
+            /// The body, which will typically be an inline expression or a `BodyBlock` expression.
+            /// It is an error for this to be empty.
+            pub body: Option<Tree<'s>>,
+        },
+        /// An import statement.
+        Import {
+            pub polyglot:  Option<MultiSegmentAppSegment<'s>>,
+            pub from:      Option<MultiSegmentAppSegment<'s>>,
+            pub from_as:   Option<MultiSegmentAppSegment<'s>>,
+            pub import:    MultiSegmentAppSegment<'s>,
+            pub import_as: Option<MultiSegmentAppSegment<'s>>,
+            pub hiding:    Option<MultiSegmentAppSegment<'s>>,
+        },
+        /// An expression grouped by matched parentheses.
+        Group {
+            pub open:  token::Symbol<'s>,
+            pub body:  Option<Tree<'s>>,
+            pub close: token::Symbol<'s>,
         }
     }
 }};}
+
 
 macro_rules! generate_variant_constructors {
     (
@@ -109,7 +219,7 @@ macro_rules! generate_variant_constructors {
         pub enum $enum:ident<'s> {
             $(
                 $(#$variant_meta:tt)*
-                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
+                $variant:ident $({$($(#$field_meta:tt)* pub $field:ident : $field_ty:ty),* $(,)? })?
             ),* $(,)?
         }
     ) => { paste! {
@@ -138,30 +248,80 @@ with_ast_definition!(generate_ast_definition());
 // === Invalid ===
 
 /// Error of parsing attached to an [`Tree`] node.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
+#[reflect(transparent)]
+#[serde(from = "crate::serialization::Error")]
 pub struct Error {
-    pub message: &'static str,
+    #[serde(skip_deserializing)]
+    pub message: Cow<'static, str>,
 }
 
 impl Error {
     /// Constructor.
-    pub fn new(message: &'static str) -> Self {
+    pub fn new(message: impl Into<Cow<'static, str>>) -> Self {
+        let message = message.into();
         Self { message }
     }
 }
 
 impl<'s> Tree<'s> {
     /// Constructor.
-    pub fn with_error(self, message: &'static str) -> Self {
+    pub fn with_error(self, message: impl Into<Cow<'static, str>>) -> Self {
         Tree::invalid(Error::new(message), self)
+    }
+
+    /// Constructor.
+    pub fn with_unsupported(self, message: String) -> Self {
+        eprintln!("Unsupported syntax: {}", &message);
+        Tree::unsupported(message, self)
     }
 }
 
-impl<S> span::Build<S> for Error {
-    type Output = S;
-    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
-        builder.span
+impl<'s> span::Builder<'s> for Error {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span
+    }
+}
+
+
+// === Type Definitions ===
+
+/// A line within a type definition, containing a type constructor definition.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct TypeConstructorLine<'s> {
+    /// The token beginning the line.
+    pub newline:    token::Newline<'s>,
+    /// The type constructor definition, unless this is an empty line.
+    pub expression: Option<TypeConstructorDef<'s>>,
+}
+
+impl<'s> span::Builder<'s> for TypeConstructorLine<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.newline).add(&mut self.expression)
+    }
+}
+
+impl<'s> From<token::Newline<'s>> for TypeConstructorLine<'s> {
+    fn from(newline: token::Newline<'s>) -> Self {
+        Self { newline, expression: None }
+    }
+}
+
+/// A type constructor definition within a type definition.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct TypeConstructorDef<'s> {
+    /// The identifier naming the type constructor.
+    pub constructor: token::Ident<'s>,
+    /// The arguments the type constructor accepts, specified inline.
+    pub arguments:   Vec<Tree<'s>>,
+    /// The arguments the type constructor accepts, specified on their own lines.
+    pub block:       Vec<block::Line<'s>>,
+}
+
+impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.constructor).add(&mut self.arguments).add(&mut self.block)
     }
 }
 
@@ -172,18 +332,38 @@ impl<S> span::Build<S> for Error {
 pub type OperatorOrError<'s> = Result<token::Operator<'s>, MultipleOperatorError<'s>>;
 
 /// Error indicating multiple operators found next to each other, like `a + * b`.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultipleOperatorError<'s> {
     pub operators: NonEmptyVec<token::Operator<'s>>,
 }
 
-impl<'s, S> span::Build<S> for MultipleOperatorError<'s>
-where NonEmptyVec<token::Operator<'s>>: span::Build<S>
-{
-    type Output = <NonEmptyVec<token::Operator<'s>> as span::Build<S>>::Output;
-    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
-        self.operators.build(builder)
+impl<'s> span::Builder<'s> for MultipleOperatorError<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        self.operators.add_to_span(span)
+    }
+}
+
+/// A sequence of one or more operators.
+pub trait NonEmptyOperatorSequence<'s> {
+    /// Return a reference to the first operator.
+    fn first_operator(&self) -> &token::Operator<'s>;
+    /// Return a mutable reference to the first operator.
+    fn first_operator_mut(&mut self) -> &mut token::Operator<'s>;
+}
+
+impl<'s> NonEmptyOperatorSequence<'s> for OperatorOrError<'s> {
+    fn first_operator(&self) -> &token::Operator<'s> {
+        match self {
+            Ok(opr) => opr,
+            Err(oprs) => oprs.operators.first(),
+        }
+    }
+    fn first_operator_mut(&mut self) -> &mut token::Operator<'s> {
+        match self {
+            Ok(opr) => opr,
+            Err(oprs) => oprs.operators.first_mut(),
+        }
     }
 }
 
@@ -191,20 +371,69 @@ where NonEmptyVec<token::Operator<'s>>: span::Build<S>
 // === MultiSegmentApp ===
 
 /// A segment of [`MultiSegmentApp`], like `if cond` in the `if cond then ok else fail` expression.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultiSegmentAppSegment<'s> {
     pub header: Token<'s>,
     pub body:   Option<Tree<'s>>,
 }
 
-impl<'s, S> span::Build<S> for MultiSegmentAppSegment<'s>
-where Token<'s>: span::Build<S, Output = Span<'s>>
-{
-    type Output = Span<'s>;
-    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
-        builder.add(&mut self.header).add(&mut self.body).span
+impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span.add(&mut self.header).add(&mut self.body)
     }
+}
+
+
+
+// ====================================
+// === Tree-construction operations ===
+// ====================================
+
+/// Join two nodes with a new node appropriate for their types.
+///
+/// For most input types, this simply constructs an `App`; however, for some block type operands
+/// application has special semantics.
+pub fn apply<'s>(func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
+    match &mut *arg.variant {
+        Variant::ArgumentBlockApplication(block) if block.lhs.is_none() => {
+            block.lhs = Some(func);
+            arg
+        }
+        Variant::OperatorBlockApplication(block) if block.lhs.is_none() => {
+            block.lhs = Some(func);
+            arg
+        }
+        _ => Tree::app(func, arg),
+    }
+}
+
+/// Join two nodes with an operator, in a way appropriate for their types.
+///
+/// For most operands this will simply construct an `OprApp`; however, a non-operator block (i.e. an
+/// `ArgumentBlock`) is reinterpreted as a `BodyBlock` when it appears in the RHS of an operator
+/// expression.
+pub fn apply_operator<'s>(
+    lhs: Option<Tree<'s>>,
+    opr: Vec<token::Operator<'s>>,
+    mut rhs: Option<Tree<'s>>,
+) -> Tree<'s> {
+    let opr = match opr.len() {
+        0 => return apply(lhs.unwrap(), rhs.unwrap()),
+        1 => Ok(opr.into_iter().next().unwrap()),
+        _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
+    };
+    if let Some(rhs_) = rhs.as_mut() {
+        if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
+            if block.lhs.is_none() {
+                let ArgumentBlockApplication { lhs: _, arguments } = block;
+                let arguments = mem::take(arguments);
+                let rhs_ = block::body_from_lines(arguments);
+                rhs = Some(rhs_);
+            }
+        }
+    }
+    Tree::opr_app(lhs, opr, rhs)
 }
 
 
@@ -373,7 +602,10 @@ macro_rules! define_visitor_for_tokens {
     (
         $(#$kind_meta:tt)*
         pub enum $kind:ident {
-            $( $variant:ident $({$($args:tt)*})? ),* $(,)?
+            $(
+              $(#$variant_meta:tt)*
+              $variant:ident $({$($args:tt)*})?
+            ),* $(,)?
         }
     ) => {
         impl<'s, 'a> TreeVisitable<'s, 'a> for token::$kind {}
@@ -464,6 +696,31 @@ where &'a Token<'s, T>: Into<token::Ref<'s, 'a>>
 {
     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         visitor.visit_item(item::Ref::Token(self.into()));
+    }
+}
+
+
+// === String ===
+
+impl<'s, 'a> TreeVisitable<'s, 'a> for String {}
+impl<'s, 'a> TreeVisitableMut<'s, 'a> for String {}
+impl<'a, 't, 's> SpanVisitable<'s, 'a> for String {}
+impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for String {}
+impl<'a, 't, 's> ItemVisitable<'s, 'a> for String {}
+impl<'s> span::Builder<'s> for String {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span
+    }
+}
+
+impl<'s, 'a> TreeVisitable<'s, 'a> for Cow<'static, str> {}
+impl<'s, 'a> TreeVisitableMut<'s, 'a> for Cow<'static, str> {}
+impl<'a, 't, 's> SpanVisitable<'s, 'a> for Cow<'static, str> {}
+impl<'a, 't, 's> SpanVisitableMut<'s, 'a> for Cow<'static, str> {}
+impl<'a, 't, 's> ItemVisitable<'s, 'a> for Cow<'static, str> {}
+impl<'s> span::Builder<'s> for Cow<'static, str> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        span
     }
 }
 

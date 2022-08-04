@@ -24,7 +24,7 @@ public abstract class ThrowPanicNode extends Node {
     return ThrowPanicNodeGen.create();
   }
 
-  abstract Stateful execute(Object self, Object payload);
+  abstract Stateful execute(Object payload);
 
   Context getContext() {
     return Context.get(this);
@@ -35,7 +35,6 @@ public abstract class ThrowPanicNode extends Node {
         "payload.getConstructor().getType() == getContext().getBuiltins().caughtPanic().getType()"
       })
   Stateful doCaughtPanic(
-      Object self,
       Atom payload,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
       @Cached BranchProfile typeErrorProfile) {
@@ -61,7 +60,7 @@ public abstract class ThrowPanicNode extends Node {
 
   @Specialization(guards = "interopLibrary.isException(payload)")
   Stateful doOtherException(
-      Object self, Object payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
+      Object payload, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
     try {
       throw interopLibrary.throwException(payload);
     } catch (UnsupportedMessageException e) {
@@ -70,7 +69,7 @@ public abstract class ThrowPanicNode extends Node {
   }
 
   @Fallback
-  Stateful doFallback(Object self, Object payload) {
+  Stateful doFallback(Object payload) {
     throw new PanicException(payload, this);
   }
 }

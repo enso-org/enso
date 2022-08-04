@@ -210,7 +210,7 @@ case object IgnoredBindings extends IRPass {
   ): IR.DefinitionArgument = {
     arg match {
       case spec @ IR.DefinitionArgument.Specified(
-            IR.Name.Self(_, _, _),
+            IR.Name.Self(_, _, _, _),
             _,
             _,
             _,
@@ -272,9 +272,9 @@ case object IgnoredBindings extends IRPass {
     */
   def isIgnore(ir: IR.Name): Boolean = {
     ir match {
-      case _: IR.Name.Blank                     => true
-      case IR.Name.Literal(name, _, _, _, _, _) => name == "_"
-      case _                                    => false
+      case _: IR.Name.Blank                  => true
+      case IR.Name.Literal(name, _, _, _, _) => name == "_"
+      case _                                 => false
     }
   }
 

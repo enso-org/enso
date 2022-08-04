@@ -1,17 +1,13 @@
 from Standard.Base import all
-import Standard.Base.Error.Problem_Behavior
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 
-import Standard.Table
-import Standard.Table.Data.Column
-from Standard.Table.Error import all
-
-import Standard.Base.Data.Time.Date
 import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Time_Of_Day
 
+import Standard.Table
+import Standard.Table.Data.Column
+from Standard.Table.Errors import all
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Table.Io.Quote_Style
+import Standard.Table.IO.Quote_Style
 
 import Standard.Test
 import Standard.Test.Problems
@@ -23,19 +19,19 @@ type Custom_Type_With_To_Text
     type Custom_Type_With_To_Text field
 
     to_text : Text
-    to_text = "[CUSTOM = " + self.field.to_text + "]"
+    to_text self = "[CUSTOM = " + self.field.to_text + "]"
 
 type Custom_Type_With_Error
     type Custom_Type_With_Error
 
     to_text : Text
-    to_text = Error.throw (Illegal_State_Error "foo_error")
+    to_text self = Error.throw (Illegal_State_Error "foo_error")
 
 type Custom_Type_With_Panic
     type Custom_Type_With_Panic
 
     to_text : Text
-    to_text = Panic.throw (Illegal_State_Error "foo_panic")
+    to_text self = Panic.throw (Illegal_State_Error "foo_panic")
 
 spec =
     Test.group "DataFormatter.parse" <|
@@ -143,13 +139,13 @@ spec =
 
         Test.specify "should format dates" <|
             formatter = Data_Formatter
-            formatter.format (Date.new 2022 . internal_local_date) . should_equal "2022-01-01"
+            formatter.format (Date.new 2022) . should_equal "2022-01-01"
             formatter.format (Time.new 1999 . internal_zoned_date_time) . should_equal "1999-01-01 00:00:00"
             formatter.format (Time_Of_Day.new . internal_local_time) . should_equal "00:00:00"
 
         Test.specify "should allow custom date formats" <|
             formatter = Data_Formatter date_formats=["E, d MMM y", "d MMM y[ G]"] datetime_formats=["dd/MM/yyyy HH:mm"] time_formats=["h:mma"] datetime_locale=Locale.uk
-            formatter.format (Date.new 2022 06 21 . internal_local_date) . should_equal "Tue, 21 Jun 2022"
+            formatter.format (Date.new 2022 06 21) . should_equal "Tue, 21 Jun 2022"
             formatter.format (Time.new 1999 02 03 04 56 11 . internal_zoned_date_time) . should_equal "03/02/1999 04:56"
             formatter.format (Time_Of_Day.new 13 55 . internal_local_time) . should_equal "1:55pm"
 
@@ -256,4 +252,4 @@ spec =
             formatter_3.true_values . should_equal []
             formatter_3.false_values . should_equal []
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

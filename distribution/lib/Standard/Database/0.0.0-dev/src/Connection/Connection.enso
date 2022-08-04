@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Runtime.Resource
+from Standard.Base.Runtime.Resource import Managed_Resource
 
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Internal.IR
@@ -44,7 +45,7 @@ type Connection
        Arguments:
        - name: name of the table to access
     access_table : Text -> Database_Table
-    access_table name = here.handle_sql_errors <|
+    access_table self name = handle_sql_errors <|
         columns = self.fetch_columns name
         Database_Table.make_table self name columns
 
@@ -53,8 +54,26 @@ type Connection
 
        The connection is not usable afterwards.
     close : Nothing
-    close =
+    close self =
         self.connection_resource . finalize
+
+    ## Returns the list of databases (or catalogs) for the connection.
+    databases : [Text]
+    databases self =
+        wrap_sql_errors <|
+            self.connection_resource.with connection->
+                metadata = connection.getMetaData
+                schema_result_set = metadata.getCatalogs
+                Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_CAT")
+
+    ## Returns the list of schemas for the connection within the current database (or catalog).
+    schemas : [Text]
+    schemas self =
+        wrap_sql_errors <|
+            self.connection_resource.with connection->
+                metadata = connection.getMetaData
+                schema_result_set = metadata.getSchemas
+                Vector.Vector (JDBCProxy.getStringColumn schema_result_set "TABLE_SCHEM")
 
     ## ADVANCED
 
@@ -66,7 +85,7 @@ type Connection
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
     execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
-    execute_query query expected_types=Nothing = here.handle_sql_errors <|
+    execute_query self query expected_types=Nothing = handle_sql_errors <|
         self.with_prepared_statement query stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
@@ -78,7 +97,7 @@ type Connection
                     name = metadata.getColumnTypeName ix+1
                     Sql_Type typeid name
             column_builders = column_types.map typ->
-                here.create_builder typ
+                create_builder typ
             go has_next = if has_next.not then Nothing else
                 column_builders.map_with_index ix-> builder->
                     builder.fetch_and_append rs ix+1
@@ -98,7 +117,7 @@ type Connection
        - query: either raw SQL code as Text or an instance of Sql.Statement
          representing the query to execute.
     execute_update : Text | Sql.Statement -> Integer
-    execute_update query = here.handle_sql_errors <|
+    execute_update self query = handle_sql_errors <|
         self.with_prepared_statement query stmt->
             Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
                 stmt.executeUpdate
@@ -108,16 +127,16 @@ type Connection
        Runs the provided action with a prepared statement, adding contextual
        information to any thrown SQL errors.
     with_prepared_statement : Text  | Sql.Statement -> (PreparedStatement -> Any) -> Any
-    with_prepared_statement query action =
+    with_prepared_statement self query action =
         prepare template holes = self.connection_resource . with java_connection->
             stmt = java_connection.prepareStatement template
-            Panic.catch Any (here.set_statement_values stmt holes) caught_panic->
+            Panic.catch Any (set_statement_values stmt holes) caught_panic->
                 stmt.close
                 Panic.throw caught_panic
             stmt
 
         go template holes =
-            here.wrap_sql_errors related_query=template <|
+            wrap_sql_errors related_query=template <|
                 Resource.bracket (prepare template holes) .close action
 
         case query of
@@ -135,7 +154,7 @@ type Connection
        - table_name: The name of the table to fetch the column metadata for.
     # fetch_columns : Text -> Vector [Text, Sql_Type]
     fetch_columns : Text -> Vector Any
-    fetch_columns table_name =
+    fetch_columns self table_name =
         query = IR.Select_All (IR.make_ctx_from table_name)
         compiled = self.dialect.generate_sql query
         self.with_prepared_statement compiled stmt->
@@ -167,8 +186,8 @@ type Connection
        - batch_size: Specifies how many rows should be uploaded in a single
          batch.
     upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
-    upload_table name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error <| here.handle_sql_errors <|
-        column_types = table.columns.map col-> here.default_storage_type col.storage_type
+    upload_table self name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error <| handle_sql_errors <|
+        column_types = table.columns.map col-> default_storage_type col.storage_type
         column_names = table.columns.map .name
         col_makers = column_names.zip column_types name-> typ->
             Base_Generator.wrap_in_quotes name ++ Sql.code " " ++ Sql.code typ.name
@@ -198,7 +217,7 @@ type Connection
                     0.up_to num_rows . each row_id->
                         values = columns.map col-> col.at row_id
                         holes = values.zip db_types
-                        here.set_statement_values stmt holes
+                        set_statement_values stmt holes
                         stmt.addBatch
                         if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
                     if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
@@ -265,7 +284,7 @@ type Builder
        - i: the index of the column to fetch from (starting from 1 as is the
          ResultSet convention).
     fetch_and_append : ResultSet -> Integer -> Nothing
-    fetch_and_append rs i = case self of
+    fetch_and_append self rs i = case self of
         Builder_Inferred _ ->
             obj = rs.getObject i
             self.java_builder.append obj
@@ -292,9 +311,10 @@ type Builder
        Argument:
        - name: The name of the column.
     make_column : Text -> Java_Exports.Column
-    make_column name =
+    make_column self name =
         storage = self.java_builder.seal
         Java_Exports.make_column name storage
+
 
 ## An error indicating that a supported dialect could not be deduced for the
    provided URL.
@@ -305,7 +325,7 @@ type Unsupported_Dialect url
 
 ## Pretty print the error about unsupported SQL dialects.
 Unsupported_Dialect.to_display_text : Text
-Unsupported_Dialect.to_display_text =
+Unsupported_Dialect.to_display_text self =
     "Could not infer the SQL dialect for the database at " + self.url + "."
 
 ## PRIVATE
@@ -316,21 +336,14 @@ Unsupported_Dialect.to_display_text =
    Arguments:
    - url: The URL to connect to.
    - properties: A vector of properties for the connection.
-create_jdbc_connection : Text -> Vector -> Connection
-create_jdbc_connection url properties = here.handle_sql_errors <|
+   - dialect: A Dialect object that will be used to generate SQL.
+create_jdbc_connection : Text -> Vector -> Dialect -> Connection
+create_jdbc_connection url properties dialect = handle_sql_errors <|
     java_props = Properties.new
     properties.each pair->
         java_props.setProperty pair.first pair.second
-    ## This is a workaround for the Redshift driver - it looks for an ini file
-       by looking at the jar file location, which is not available in the Graal
-       class loader. This block may be removed when migrated to a Graal version
-       with https://github.com/oracle/graal/issues/3744 fixed.
-    if url.starts_with 'jdbc:redshift:' && (java_props.getProperty 'IniFile' . is_nothing) then
-        path = Enso_Project.data/'empty.ini' . absolute . path
-        java_props.setProperty 'IniFile' path
-    dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
     java_connection = JDBCProxy.getConnection url java_props
-    resource = Managed_Resource.register java_connection here.close_connection
+    resource = Managed_Resource.register java_connection close_connection
     Connection resource dialect
 
 ## PRIVATE
@@ -360,7 +373,7 @@ type Sql_Error
 
        Convert the SQL error to a textual representation.
     to_text : Text
-    to_text =
+    to_text self =
         query = if self.related_query.is_nothing.not then " [Query was: " + self.related_query + "]" else ""
         "There was an SQL error: " + self.java_exception.getMessage.to_text + "." + query
 
@@ -368,7 +381,7 @@ type Sql_Error
 
        Pretty print the SQL error.
     to_display_text : Text
-    to_display_text = self.to_text
+    to_display_text self = self.to_text
 
 type Sql_Timeout_Error
 
@@ -386,7 +399,7 @@ type Sql_Timeout_Error
 
        Convert the timeout error to a textual representation.
     to_text : Text
-    to_text =
+    to_text self =
         query = if self.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
         "The SQL connection timed out: " + self.java_exception.getMessage + "." + query
 
@@ -394,7 +407,7 @@ type Sql_Timeout_Error
 
        Pretty print the timeout error.
     to_display_text : Text
-    to_display_text = self.to_text
+    to_display_text self = self.to_text
 
 ## PRIVATE
 
@@ -407,7 +420,7 @@ type Sql_Timeout_Error
 handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
 handle_sql_errors ~action related_query=Nothing =
     Panic.recover [Sql_Error, Sql_Timeout_Error] <|
-        here.wrap_sql_errors action related_query
+        wrap_sql_errors action related_query
 
 ## PRIVATE
 

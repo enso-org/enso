@@ -19,6 +19,8 @@ import buildCfg from '../../../build.json'
 import firebase from 'firebase/app'
 // @ts-ignore
 import 'firebase/auth'
+// @ts-ignore
+import firebase_config from '../firebase.yaml'
 
 import * as semver from 'semver'
 import { SemVer, Comparator } from 'semver'
@@ -560,7 +562,7 @@ class FirebaseAuthentication {
 
     constructor(authCallback: any) {
         this.firebaseui = require('firebaseui')
-        this.config = require('../firebase.yaml')
+        this.config = firebase_config
         // initialize Firebase
         firebase.initializeApp(this.config)
         // create HTML markup
@@ -776,6 +778,7 @@ class Config {
     public test_workflow: string
     public skip_min_version_check: boolean
     public preferred_engine_version: SemVer
+    public enable_new_component_browser: boolean
 
     static default() {
         let config = new Config()
@@ -786,11 +789,12 @@ class Config {
         config.data_gathering = true
         config.is_in_cloud = false
         config.entry = null
-        config.authentication_enabled = !Versions.isDevVersion()
+        config.authentication_enabled = true
         config.application_config_url =
             'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
         config.skip_min_version_check = Versions.isDevVersion()
         config.preferred_engine_version = Versions.ideVersion
+        config.enable_new_component_browser = false
         return config
     }
 
@@ -848,6 +852,8 @@ class Config {
             : this.skip_min_version_check
         this.preferred_engine_version =
             semver.parse(other.preferred_engine_version) ?? this.preferred_engine_version
+        this.enable_new_component_browser =
+            parseBoolean(other.enable_new_component_browser) ?? this.enable_new_component_browser
     }
 }
 

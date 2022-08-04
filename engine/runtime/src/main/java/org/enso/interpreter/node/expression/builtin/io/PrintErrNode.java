@@ -30,13 +30,12 @@ public abstract class PrintErrNode extends Node {
   }
 
   abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Object self, @AcceptsError Object message);
+      VirtualFrame frame, @MonadicState Object state, @AcceptsError Object message);
 
   @Specialization(guards = "strings.isString(message)")
   Stateful doPrintText(
       VirtualFrame frame,
       Object state,
-      Object self,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings) {
     Context ctx = Context.get(this);
@@ -52,7 +51,6 @@ public abstract class PrintErrNode extends Node {
   Stateful doPrint(
       VirtualFrame frame,
       Object state,
-      Object self,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,

@@ -46,7 +46,7 @@ type Managed_Resource
        Forces finalization of a managed resource using the registered finalizer,
        even if the resource is still reachable.
     finalize : Nothing
-    finalize = @Builtin_Method "Managed_Resource.finalize"
+    finalize self = @Builtin_Method "Managed_Resource.finalize"
 
     ## ADVANCED
 
@@ -57,7 +57,7 @@ type Managed_Resource
        - action: The action that will be applied to the resource managed by
          resource.
     with : (Any -> Any) -> Any
-    with ~action = @Builtin_Method "Managed_Resource.with"
+    with self ~action = @Builtin_Method "Managed_Resource.with"
 
     ## ADVANCED
 
@@ -65,4 +65,4 @@ type Managed_Resource
        finalization step for this resource, effectively removing it from the
        managed resources system.
     take : Managed_Resource -> Any
-    take = @Builtin_Method "Managed_Resource.take"
+    take self = @Builtin_Method "Managed_Resource.take"

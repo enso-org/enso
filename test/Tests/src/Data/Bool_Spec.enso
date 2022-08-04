@@ -1,9 +1,8 @@
 from Standard.Base import all
 
 import Standard.Test
-from Standard.Base.Data.Ordering import Equal, Less, Greater
 
-Boolean.method = self
+Boolean.method self = self
 
 type My_Error a
 
@@ -17,29 +16,28 @@ spec =
             False.to_text . should_equal "False"
 
         Test.specify "should allow for comparing Bools" <|
-            True.compare_to True . should_equal Equal
-            False.compare_to False . should_equal Equal
-            True.compare_to False . should_equal Greater
-            False.compare_to True . should_equal Less
+            True.compare_to True . should_equal Ordering.Equal
+            False.compare_to False . should_equal Ordering.Equal
+            True.compare_to False . should_equal Ordering.Greater
+            False.compare_to True . should_equal Ordering.Less
 
         Test.specify "should allow for extending Bools in a local module" <|
             test = 1 == 2
             test.method . should_equal test
 
         Test.specify "should short-circuit ||" <|
-            (1 == 1) || (here.crash) . should_equal True
+            (1 == 1) || (crash) . should_equal True
             (1 == 0) || (1 == 1) . should_equal True
-            (1 == 0) || (here.crash) . should_fail_with My_Error
+            (1 == 0) || (crash) . should_fail_with My_Error
             (1 == 1) || "foo" . should_equal True
             (1 == 0) || "foo" . should_equal "foo"
 
         Test.specify "should short-circuit &&" <|
-            (1 == 0) && (here.crash) . should_equal False
+            (1 == 0) && (crash) . should_equal False
             (1 == 1) && (1 == 0) . should_equal False
             (1 == 1) && (1 == 1) . should_equal True
-            (1 == 1) && (here.crash) . should_fail_with My_Error
+            (1 == 1) && (crash) . should_fail_with My_Error
             (1 == 0) && "foo" . should_equal False
             (1 == 1) && "foo" . should_equal "foo"
 
-
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

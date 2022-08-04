@@ -72,8 +72,8 @@ class OverloadsResolutionTest extends CompilerTest {
       val redef1 = ir.bindings(1).asInstanceOf[IR.Error.Redefined.Method]
       val redef2 = ir.bindings(2).asInstanceOf[IR.Error.Redefined.Method]
 
-      redef1.atomName.name shouldEqual atomName
-      redef2.atomName.name shouldEqual atomName
+      redef1.atomName.get.name shouldEqual atomName
+      redef2.atomName.get.name shouldEqual atomName
 
       redef1.methodName.name shouldEqual methodName
       redef2.methodName.name shouldEqual methodName

@@ -1,4 +1,5 @@
 from Standard.Base import all
+
 import Standard.Test
 
 type Box
@@ -13,6 +14,9 @@ type D a=4 b=(Bar 1)
 type E a=5 b=a c=(b+1)
 type F a=6 b=(Foo False) c=(b.v)
 type G a=4 b=Bar
+
+local_fun a b=1 c=local_const = a + b + c
+local_const = 42
 
 spec =
     Test.group "Atom Constructors" <|
@@ -43,4 +47,8 @@ spec =
         Test.specify "apply defaulted arguments that are themselves fully defaulted" <|
             G.should_equal (G 4 (Bar 1 (Foo False) False))
 
-main = Test.Suite.run_main here.spec
+    Test.group "Functions" <|
+        Test.specify "should apply default arguments that involve local functions" <|
+            local_fun 0 . should_equal 43
+
+main = Test.Suite.run_main spec

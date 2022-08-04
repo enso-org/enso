@@ -15,7 +15,7 @@ class MixfixFunctionsTest extends InterpreterTest {
           |type Foo
           |    Mk_Foo a
           |
-          |Foo.if_then = x -> case self of
+          |Foo.if_then self = x -> case self of
           |    Mk_Foo a -> a + x
           |
           |main = if Mk_Foo 2 then 8

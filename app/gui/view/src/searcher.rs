@@ -233,7 +233,7 @@ impl View {
             source.selected_entry <+ model.list.selected_entry;
             source.size           <+ height.value.map(|h| Vector2(SEARCHER_WIDTH,*h));
             source.is_visible     <+ model.list.size.map(|size| size.x*size.y > std::f32::EPSILON);
-            source.is_selected    <+ model.documentation.frp.is_selected.map(|&value|value);
+            // source.is_selected    <+ model.documentation.frp.is_selected.map(|&value|value);
             source.is_empty       <+ frp.set_actions.map(|(entries,_)| entries.entry_count() == 0);
 
             eval height.value ((h)  model.set_height(*h));
@@ -252,6 +252,11 @@ impl View {
         };
 
         self
+    }
+
+    /// The Documentation Panel View.
+    pub fn documentation(&self) -> &documentation::View {
+        &self.model.documentation
     }
 
     /// Set the action list displayed in searcher.

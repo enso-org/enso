@@ -1470,6 +1470,95 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
 
   }
 
+  "text/applyExpressionValue" must {
+
+    "apply changes at a buffer" in {
+      val client = getInitialisedWsClient()
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "text/canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyExpressionValue",
+            "id": 2,
+            "params": {
+              "expressionId": "6f7d58dd-8ee8-44cf-9ab7-9f0454033641",
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+              "newVersion": "7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5",
+              "edit": {
+                "range": {
+                  "start": { "line": 0, "character": 0 },
+                  "end": { "line": 0, "character": 0 }
+                },
+                "text": "bar"
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+    }
+  }
+
   "text/save" must {
 
     "fail when a client didn't open it" in {

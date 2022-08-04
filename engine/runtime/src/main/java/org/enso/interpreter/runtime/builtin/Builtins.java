@@ -77,6 +77,7 @@ public class Builtins {
   private final Builtin debug;
   private final Builtin projectDescription;
   private final Builtin file;
+  private final Builtin date;
   private final Builtin warning;
 
   /**
@@ -95,7 +96,7 @@ public class Builtins {
     builtinMethodNodes = readBuiltinMethodsMetadata(scope);
     registerBuiltinMethods(scope, language);
 
-    error = new Error(this);
+    error = new Error(this, context);
     ordering = getBuiltinType(Ordering.class);
     system = new System(this);
     number = new Number(this);
@@ -113,6 +114,7 @@ public class Builtins {
     debug = builtins.get(Debug.class);
     projectDescription = builtins.get(ProjectDescription.class);
     file = builtins.get(File.class);
+    date = builtins.get(org.enso.interpreter.node.expression.builtin.date.Date.class);
     special = new Special(language);
     warning = builtins.get(Warning.class);
   }
@@ -416,6 +418,15 @@ public class Builtins {
    */
   public Type file() {
     return file.getType();
+  }
+
+  /**
+   * Returns the {@code Date} atom constructor.
+   *
+   * @return the {@code Date} atom constructor
+   */
+  public AtomConstructor date() {
+    return date.constructor();
   }
 
   /**

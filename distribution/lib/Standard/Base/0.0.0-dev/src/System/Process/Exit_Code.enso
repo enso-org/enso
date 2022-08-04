@@ -21,7 +21,7 @@ type Exit_Code
 
              example_to_number = Exit_Code.Exit_Success.to_number
     to_number : Integer
-    to_number = case self of
+    to_number self = case self of
         Exit_Success -> 0
         Exit_Failure code -> code
 

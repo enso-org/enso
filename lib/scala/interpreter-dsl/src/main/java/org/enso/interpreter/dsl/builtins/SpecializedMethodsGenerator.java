@@ -228,10 +228,11 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
             .map(p -> SpecializedMethodParameter.paramOfSpecializedMethod(p, specializedParam))
             .collect(Collectors.toList());
     String paramsDef = "";
+    boolean includeSelf = !(isStatic || isConstructor);
     if (!params1.isEmpty()) {
       Object[] allParamDef = params1.stream().flatMap(x -> x.declaredParameter()).toArray();
       if (allParamDef.length > 0) {
-        paramsDef = ", " + StringUtils.join(allParamDef, ", ");
+        paramsDef = (includeSelf ? ", " : "") + StringUtils.join(allParamDef, ", ");
       }
     }
     String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
@@ -241,15 +242,9 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     Builtin.Specialize specializeAnnotation =
         methodInfo.origin.getAnnotation(Builtin.Specialize.class);
     String targetAnnotation = specializeAnnotation.fallback() ? "@Fallback" : "@Specialization";
+    String selfParamDecl = includeSelf ? thisParamTpe + " self" : "";
     String methodSig =
-        targetReturnType(returnTpe)
-            + " do"
-            + suffix
-            + "("
-            + thisParamTpe
-            + " self"
-            + paramsDef
-            + ")";
+        targetReturnType(returnTpe) + " do" + suffix + "(" + selfParamDecl + paramsDef + ")";
     String paramsApplied;
     if (params1.isEmpty()) {
       paramsApplied = "";

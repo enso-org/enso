@@ -1,28 +1,28 @@
 from Standard.Base import all
 from Standard.Table import all
+
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
-
 from Standard.Table.Data.Table as Table_Internal import Empty_Error
-
-import Standard.Base.Data.Time.Date
+from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
 import Standard.Table.Data.Storage
+
+import Standard.Visualization
+
 import Standard.Test
 import Standard.Test.Problems
-import Standard.Visualization
-from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
 
 import project.Common_Table_Spec
 
 type My x y
 
-My.== that = case that of
+My.== self that = case that of
     My x1 y1 -> (self.x + self.y) == (x1 + y1)
     _ -> False
 
-My.compare_to that = self.x+self.y . compare_to that.x+that.y
+My.compare_to self that = self.x+self.y . compare_to that.x+that.y
 
-My.frobnicate = case self of
+My.frobnicate self = case self of
     My x1 y1 -> My y1 x1
 
 spec =
@@ -162,19 +162,19 @@ spec =
 
     Test.group "Masking Tables" <|
         Test.specify "should allow selecting table rows based on a boolean column" <|
-            df = (Enso_Project.data / "simple_empty.csv").read
+            df = (enso_project.data / "simple_empty.csv").read
             r = df.where (Column.from_vector 'x' [True, False, False, True])
             r.at "a" . to_vector . should_equal ["1", "10"]
             r.at "b" . to_vector . should_equal [2, 11]
             r.at "c" . to_vector . should_equal [Nothing, 12]
         Test.specify "should treat NA values in the mask as false and extend the mask with NAs" <|
-            df = (Enso_Project.data / "simple_empty.csv").read
+            df = (enso_project.data / "simple_empty.csv").read
             r = df.where (Column.from_vector 'x' [Nothing, True, False])
             r.at "a" . to_vector . should_equal ["4"]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
         Test.specify "should work correctly if a mask is bigger than the table itself" <|
-            df = (Enso_Project.data / "simple_empty.csv").read
+            df = (enso_project.data / "simple_empty.csv").read
             r = df.where (Column.from_vector 'x' [True, False, False, False, True])
             r.at "a" . to_vector . should_equal ["1"]
             r.at "b" . to_vector . should_equal [2]
@@ -182,7 +182,7 @@ spec =
 
     Test.group "Masking Columns" <|
         Test.specify "should allow selecting column rows based on a boolean column" <|
-            df = (Enso_Project.data / "simple_empty.csv").read
+            df = (enso_project.data / "simple_empty.csv").read
             mask = Column.from_vector 'x' [True, False, False, True]
             df.at "a" . where mask . to_vector . should_equal ["1", "10"]
             df.at "c" . where mask . to_vector . should_equal [Nothing, 12]
@@ -332,7 +332,7 @@ spec =
             price.mean.should_equal 26.9
 
     Test.group "Sorting Tables" <|
-        df = (Enso_Project.data / "clothes.csv").read
+        df = (enso_project.data / "clothes.csv").read
 
         Test.specify "should allow sorting by a single column name" <|
             r_1 = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Quantity"])
@@ -641,4 +641,4 @@ spec =
             problems = [Duplicate_Output_Column_Names ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
 
-main = Test.Suite.run_main here.spec
+main = Test.Suite.run_main spec

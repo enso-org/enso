@@ -98,7 +98,7 @@ public class ForeignEvalNode extends RootNode {
       // call one with the correct semantics.
       CallTarget ct = EpbContext.get(this).getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
-      foreign = insert(JsForeignNode.build(argNames.length, fn));
+      foreign = insert(JsForeignNode.build(fn, argNames.length));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
         parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
@@ -112,10 +112,7 @@ public class ForeignEvalNode extends RootNode {
 
   private void parsePy() {
     try {
-      String args =
-          Arrays.stream(argNames)
-              .map(arg -> arg.equals("this") ? "self" : arg)
-              .collect(Collectors.joining(","));
+      String args = Arrays.stream(argNames).collect(Collectors.joining(","));
       String head =
           "import polyglot\n"
               + "@polyglot.export_value\n"

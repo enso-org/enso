@@ -42,7 +42,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |    x = 1
           |    x = 2
           |
-          |main = Panic.catch_primitive here.foo caught_panic->caught_panic.payload.to_text
+          |main = Panic.catch_primitive foo caught_panic->caught_panic.payload.to_text
           |""".stripMargin
       eval(code) shouldEqual "(Compile_Error 'Variable x is being redefined.')"
     }
@@ -55,11 +55,11 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |    my_var = 10
           |    my_vra
           |
-          |main = Panic.catch_primitive here.foo caught_panic-> caught_panic.payload.to_text
+          |main = Panic.catch_primitive foo caught_panic-> caught_panic.payload.to_text
           |""".stripMargin
       eval(
         code
-      ) shouldEqual "(Compile_Error 'Variable `my_vra` is not defined.')"
+      ) shouldEqual "(Compile_Error 'The name `my_vra` could not be found.')"
     }
   }
 }

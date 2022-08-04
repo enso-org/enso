@@ -14,6 +14,8 @@
 #![warn(missing_debug_implementations)]
 
 use ensogl_core::prelude::ImString;
+use ensogl_text_embedded_fonts::DefaultFamily as DefaultFontFamily;
+use ensogl_text_embedded_fonts::Family;
 
 
 
@@ -180,6 +182,10 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 150.0, 150.0;
         }
         component_browser {
+            panels_gap = 3.0, 3.0;
+            documentation {
+                width = 369.0, 369.0;
+            }
             searcher {
                 list_panel {
                     content_width = 400.0, 400.0;
@@ -190,6 +196,8 @@ define_themes! { [light:0, dark:1]
 
                     section_divider_height = 2.0, 2.0;
                     section_heading_size = 16.0, 16.0;
+                    section_heading_offset = 50.0, 50.0;
+                    section_heading_text_offset = 13.0, 13.0;
                     section_heading_font = "Causten-Semibold", "Causten-Semibold";
                     section_heading_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
                     section_divider_color = Rgb(0.4510, 0.4510, 0.4510), Rgb(0.4510, 0.4510, 0.4510);
@@ -198,15 +206,36 @@ define_themes! { [light:0, dark:1]
                     menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                     menu_divider_height = 0.5,0.5;
 
+                    navigator_width = 37.0, 37.0;
+                    navigator_icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                    navigator_icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
+                    navigator_top_padding = -3.0, -3.0;
+                    navigator_bottom_padding = 7.0, 7.0;
+                    navigator_list_view_width = 39.0, 39.0;
+                    navigator_list_view {
+                        background = Rgba::transparent() , Rgba::transparent();
+                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
+                        highlight {
+                            height = 29.0, 29.0;
+                            corner_radius = 10.0, 10.0;
+                        }
+                        entry {
+                            padding = 14.5, 14.5;
+                        }
+                        padding = 5.0, 5.0;
+                    }
+
                     favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
 
                     section {
                         column_grid {
-                            column_gap = 2.0, 2.0;
-                            entry_color_0 = Rgba(0.527, 0.554, 0.18, 1.0),Rgba(0.527, 0.554, 0.18, 1.0);
-                            entry_color_1 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
-                            entry_color_2 = Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
-                            entry_color_3 = Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
+                            column_gap = 3.0, 3.0;
+                            entry_color_0 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
+                            entry_color_1 = Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
+                            entry_color_2 = Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
+                            entry_color_3 = Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0);
+                            entry_color_4 = Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0);
+                            entry_color_5 = Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0),Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0);
                         }
                     }
                 }
@@ -214,7 +243,7 @@ define_themes! { [light:0, dark:1]
             component_group {
                 header {
                     text {
-                        font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                        font = DefaultFontFamily::bold(), DefaultFontFamily::bold();
                         size = 12.0, 12.0;
                         color_intensity = 1.0, 1.0;
                     }
@@ -236,8 +265,11 @@ define_themes! { [light:0, dark:1]
                 }
                 selection {
                     corners_radius = 10.0, 10.0;
-                    horizontal_padding = 10.0, 10.0;
-                    vertical_padding = 3.0, 3.0;
+                    header_corners_radius = 5.0, 5.0;
+                    horizontal_padding = 3.0, 3.0;
+                    height = 30.0, 30.0;
+                    wide_group_column_padding = 18.0, 18.0;
+                    header_height = 21.0, 21.0;
                 }
                 background_color_intensity = 0.2, 0.2;
                 selection_color_intensity = 1.0, 1.0;
@@ -247,7 +279,7 @@ define_themes! { [light:0, dark:1]
                     highlight = Rgba::new(1.0, 0.0, 0.0, 0.5), Rgba::new(1.0, 0.0, 0.0, 0.5);
                     selected_color = Rgba::white(), Rgba::white();
                     text {
-                        font = "DejaVuSans", "DejaVuSans";
+                        font = DefaultFontFamily::regular(), DefaultFontFamily::regular();
                         size = 12.0, 12.0;
                         color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
                         highlight_bold = 0.02, 0.02;
@@ -273,53 +305,18 @@ define_themes! { [light:0, dark:1]
             padding         = 5.0, 5.0;
             icons {
                 favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
-                io {
-                    strong = Rgba(0.475,0.494,0.145,1.0) , Rgba(0.475,0.494,0.145,1.0);
-                    weak   = Rgba(0.612,0.627,0.388,1.0) , Rgba(0.612,0.627,0.388,1.0);
-                }
-                preparation {
-                    strong = Rgba(0.243,0.545,0.161,1.0) , Rgba(0.243,0.545,0.161,1.0);
-                    weak   = Rgba(0.69,0.816,0.663,1.0)  , Rgba(0.69,0.816,0.663,1.0);
-                }
-                join {
-                    strong = Rgba(0.239,0.573,0.808,1.0) , Rgba(0.239,0.573,0.808,1.0);
-                    weak   = Rgba(0.612,0.784,0.902,1.0) , Rgba(0.612,0.784,0.902,1.0);
-                    medium = Rgba(0.42,0.678,0.855,1.0)  , Rgba(0.42,0.678,0.855,1.0);
-                }
-                transform = Rgba(0.169,0.459,0.937,1.0) , Rgba(0.169,0.459,0.937,1.0);
-                text {
-                    strong = Rgba(0.753,0.278,0.671,1.0) , Rgba(0.753,0.278,0.671,1.0);
-                    weak   = Rgba(0.871,0.635,0.831,1.0) , Rgba(0.871,0.635,0.831,1.0);
-                }
-                date_and_time    = Rgba(0.753,0.278,0.671,1.0) , Rgba(0.753,0.278,0.671,1.0);
-                spatial          = Rgba(0.827,0.267,0.255,1.0) , Rgba(0.827,0.267,0.255,1.0);
-                predictive       = Rgba(0.71,0.38,0.137,1.0)   , Rgba(0.71,0.38,0.137,1.0);
-                machine_learning = Rgba(0.71,0.38,0.137,1.0)   , Rgba(0.71,0.38,0.137,1.0);
                 computer_vision {
-                    strong    = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
-                    weak      = Rgba(0.514,0.518,0.518,1.0) , Rgba(0.514,0.518,0.518,1.0);
                     highlight = Rgba(0.872,0.267,0.255,1.0) , Rgba(0.872,0.267,0.255,1.0);
-                }
-                data_science {
-                    red  = Rgba(0.847,0.212,0.435,1.0) , Rgba(0.847,0.212,0.435,1.0);
-                    blue = Rgba(0.235,0.565,0.886,1.0) , Rgba(0.235,0.565,0.886,1.0);
-                    gray = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
-                }
-                network {
-                    _0 = Rgba(0.12,0.451,0.973,1.0)  , Rgba(0.12,0.451,0.973,1.0);
-                    _1 = Rgba(0.114,0.506,0.976,1.0) , Rgba(0.114,0.506,0.976,1.0);
-                    _2 = Rgba(0.255,0.588,0.98,1.0)  , Rgba(0.255,0.588,0.98,1.0);
-                    _3 = Rgba(0.404,0.671,0.984,1.0) , Rgba(0.404,0.671,0.984,1.0);
                 }
                 system {
                     background = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
                     content    = Rgba(0.988,0.996,1.0,1.0)   , Rgba(0.988,0.996,1.0,1.0);
                 }
                 libraries {
-                    _0 = Rgba(0.12,0.451,0.973,1.0)  , Rgba(0.12,0.451,0.973,1.0);
-                    _1 = Rgba(0.204,0.561,0.976,1.0) , Rgba(0.204,0.561,0.976,1.0);
-                    _2 = Rgba(0.404,0.671,0.984,1.0) , Rgba(0.404,0.671,0.984,1.0);
-                    _3 = Rgba(0.596,0.776,0.988,1.0) , Rgba(0.596,0.776,0.988,1.0);
+                    _0 = Rgba(0.541,0.545,0.545,1.0)  , Rgba(0.541,0.545,0.545,1.0);
+                    _1 = Rgba(0.675,0.675,0.675,1.0) , Rgba(0.675,0.675,0.675,1.0);
+                    _2 = Rgba(0.713,0.713,0.713,1.0) , Rgba(0.713,0.713,0.713,1.0);
+                    _3 = Rgba(0.8,0.8,0.8,1.0) , Rgba(0.8,0.8,0.8,1.0);
                 }
             }
         }
@@ -465,6 +462,12 @@ define_themes! { [light:0, dark:1]
             to_the_left_of_node  = 25.0  , 25.0;
             to_the_right_of_node = 25.0  , 25.0;
         }
+        screen_margin_when_panning_camera_to_node {
+            top = 40.0, 40.0;
+            bottom = 80.0, 80.0;
+            left = 80.0, 80.0;
+            right = 300.0, 300.0;
+        }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
             // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)
@@ -606,7 +609,7 @@ define_themes! { [light:0, dark:1]
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-                font      = "DejaVuSansMono", "DejaVuSansMono";
+                font      = DefaultFontFamily::mono(), DefaultFontFamily::mono();
                 size      = 12.0, 12.0;
                 highlight_bold = 0.02, 0.02;
             }
@@ -633,6 +636,7 @@ define_themes! { [light:0, dark:1]
             text {
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
+                font   = "DejaVuSans", "DejaVuSans";
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;
@@ -645,8 +649,12 @@ define_themes! { [light:0, dark:1]
                 color = Lcha(0.3,0.0,0.0,1.0), Lcha(0.7,0.0,0.0,1.0);
             }
             track {
-                color       = Lcha(0.7,0.0,0.0,1.0), Lcha(0.3,0.0,0.0,1.0);
-                hover_color = Lcha(0.6,0.0,0.0,1.0), Lcha(0.4,0.0,0.0,1.0);
+                color       = Lcha(0.75,0.0,0.0,1.0), Lcha(0.3,0.0,0.0,1.0);
+                hover_color = Lcha(0.75,0.0,0.0,1.0), Lcha(0.4,0.0,0.0,1.0);
+            }
+            background {
+                color       = Lcha(1.0,0.0,0.0,0.5), Lcha(0.3,0.0,0.0,0.5);
+                hover_color = Lcha(1.0,0.0,0.0,0.5), Lcha(0.4,0.0,0.0,0.5);
             }
             overflow {
                 color = Lcha(0.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,1.0);

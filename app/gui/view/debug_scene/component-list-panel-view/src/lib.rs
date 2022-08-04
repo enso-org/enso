@@ -46,9 +46,10 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ide_view_component_group as component_group;
+use ide_view_component_list_panel::ComponentBrowserPanel;
+use ide_view_component_list_panel::LabeledAnyModelProvider;
+use js_sys::Math;
 use list_view::entry::AnyModelProvider;
-use searcher_list_panel::ComponentBrowserPanel;
-use searcher_list_panel::LabeledAnyModelProvider;
 
 
 
@@ -113,41 +114,44 @@ impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
 // === Initialisation Helpers ===
 // ===============================
 
+fn mock_data() -> Vec<LabeledAnyModelProvider> {
+    // Items with random length but somewhat controlled distribution to get shorter and longer
+    // entries.
+    let random_entry = |n: usize| MockEntries::new(n + (Math::random() * 5.0) as usize);
+    vec![
+        // Three empty lists to check they are filtered correctly.
+        MockEntries::new(0),
+        MockEntries::new(0),
+        MockEntries::new(0),
+        random_entry(1),
+        random_entry(1),
+        random_entry(3),
+        random_entry(3),
+        random_entry(6),
+        random_entry(6),
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(index, mock_entries)| LabeledAnyModelProvider {
+        content: AnyModelProvider::from(mock_entries.clone_ref()),
+        label:   format!("Header {}", index).into(),
+    })
+    .collect_vec()
+}
+
 fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
-    let sub_module_data = vec![
-        MockEntries::new(4),
-        MockEntries::new(6),
-        MockEntries::new(8),
-        MockEntries::new(6),
-        MockEntries::new(4),
-        MockEntries::new(4),
-    ];
-    let sub_module_data = sub_module_data
-        .into_iter()
-        .map(|mock_entries| LabeledAnyModelProvider {
-            content: AnyModelProvider::from(mock_entries.clone_ref()),
-            label:   "Header".into(),
-        })
-        .collect_vec();
+    let sub_module_data = mock_data();
+    searcher_list_panel.set_sub_modules_section(sub_module_data);
+    // Doing this twice to reveal potential issues with setting new data.
+    let sub_module_data = mock_data();
     searcher_list_panel.set_sub_modules_section(sub_module_data);
 }
 
 fn init_favourites_section(searcher_list_panel: &ComponentBrowserPanel) {
-    let local_scope_data = vec![
-        MockEntries::new(6),
-        MockEntries::new(4),
-        MockEntries::new(3),
-        MockEntries::new(6),
-        MockEntries::new(3),
-        MockEntries::new(6),
-    ];
-    let local_scope_data = local_scope_data
-        .into_iter()
-        .map(|mock_entries| LabeledAnyModelProvider {
-            content: AnyModelProvider::from(mock_entries.clone_ref()),
-            label:   "Header".into(),
-        })
-        .collect_vec();
+    let local_scope_data = mock_data();
+    searcher_list_panel.set_favourites_section(local_scope_data);
+    // Doing this twice to reveal potential issues with setting new data.
+    let local_scope_data = mock_data();
     searcher_list_panel.set_favourites_section(local_scope_data);
 }
 
@@ -167,6 +171,7 @@ fn init_local_cope_section(searcher_list_panel: &ComponentBrowserPanel) {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
+    init_tracing(WARN);
     ensogl_text_msdf_sys::run_once_initialized(|| {
         let app = &Application::new("root");
         theme::builtin::light::register(&app);
@@ -176,12 +181,13 @@ pub fn main() {
         let scene = &world.default_scene;
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
-        navigator.disable_wheel_panning();
 
         let searcher_list_panel = ComponentBrowserPanel::new(app);
+        app.display.default_scene.layers.node_searcher.add_exclusive(&searcher_list_panel);
+        searcher_list_panel.model().set_navigator(Some(navigator.clone()));
 
-        init_local_cope_section(&searcher_list_panel);
         init_favourites_section(&searcher_list_panel);
+        init_local_cope_section(&searcher_list_panel);
         init_sub_modules_section(&searcher_list_panel);
 
         world.add_child(&searcher_list_panel);

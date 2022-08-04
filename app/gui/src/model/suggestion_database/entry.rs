@@ -5,6 +5,8 @@ use crate::prelude::*;
 use crate::model::module::MethodId;
 
 use ast::constants::keywords;
+use convert_case::Case;
+use convert_case::Casing;
 use double_representation::module;
 use double_representation::tp;
 use engine_protocol::language_server;
@@ -22,6 +24,16 @@ use std::collections::BTreeSet;
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionId as Id;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// Key of the keyed [`language_server::types::DocSection`] containing a name of an icon in its
+/// body.
+const ICON_DOC_SECTION_KEY: &str = "Icon";
 
 
 
@@ -127,12 +139,44 @@ impl<'a> IntoIterator for &'a QualifiedName {
 
 
 
+// ================
+// === IconName ===
+// ================
+
+/// Name of an icon. The name is composed of words with unspecified casing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IconName {
+    /// Internally the name is kept in PascalCase to optimize converting into
+    /// [`component_group_view::icon::Id`].
+    pascal_cased: ImString,
+}
+
+impl IconName {
+    /// Construct from a name formatted in snake_case.
+    pub fn from_snake_case(s: impl AsRef<str>) -> Self {
+        let pascal_cased = s.as_ref().from_case(Case::Snake).to_case(Case::Pascal).into();
+        Self { pascal_cased }
+    }
+
+    /// Convert to a name formatted in snake_case.
+    pub fn to_snake_case(&self) -> ImString {
+        self.pascal_cased.from_case(Case::Pascal).to_case(Case::Snake).into()
+    }
+
+    /// Convert to a name formatted in PascalCase.
+    pub fn to_pascal_case(&self) -> ImString {
+        self.pascal_cased.clone()
+    }
+}
+
+
+
 // =============
 // === Entry ===
 // =============
 
 /// A type of suggestion entry.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ForEachVariant)]
 #[allow(missing_docs)]
 pub enum Kind {
     Atom,
@@ -188,6 +232,8 @@ pub struct Entry {
     pub self_type:          Option<tp::QualifiedName>,
     /// A scope where this suggestion is visible.
     pub scope:              Scope,
+    /// A name of a custom icon to use when displaying the entry.
+    pub icon_name:          Option<IconName>,
 }
 
 impl Entry {
@@ -351,16 +397,18 @@ impl Entry {
                 return_type,
                 documentation,
                 documentation_html,
+                documentation_sections,
                 ..
             } => Self {
                 name,
                 arguments,
                 return_type,
-                documentation_html,
+                documentation_html: Self::make_html_docs(documentation, documentation_html),
                 module: module.try_into()?,
                 self_type: None,
                 kind: Kind::Atom,
                 scope: Scope::Everywhere,
+                icon_name: find_icon_name_in_doc_sections(&documentation_sections),
             },
             #[allow(unused)]
             Method {
@@ -371,16 +419,18 @@ impl Entry {
                 return_type,
                 documentation,
                 documentation_html,
+                documentation_sections,
                 ..
             } => Self {
                 name,
                 arguments,
                 return_type,
-                documentation_html,
+                documentation_html: Self::make_html_docs(documentation, documentation_html),
                 module: module.try_into()?,
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
                 scope: Scope::Everywhere,
+                icon_name: find_icon_name_in_doc_sections(&documentation_sections),
             },
             Function { name, module, arguments, return_type, scope, .. } => Self {
                 name,
@@ -391,6 +441,7 @@ impl Entry {
                 documentation_html: default(),
                 kind: Kind::Function,
                 scope: Scope::InModule { range: scope.into() },
+                icon_name: None,
             },
             Local { name, module, return_type, scope, .. } => Self {
                 name,
@@ -401,22 +452,49 @@ impl Entry {
                 documentation_html: default(),
                 kind: Kind::Local,
                 scope: Scope::InModule { range: scope.into() },
+                icon_name: None,
             },
-            Module { module, documentation_html, .. } => {
+            Module {
+                module, documentation, documentation_html, documentation_sections, ..
+            } => {
                 let module_name: module::QualifiedName = module.clone().try_into()?;
                 Self {
-                    documentation_html,
-                    name: module_name.id().name().into(),
-                    arguments: default(),
-                    module: module_name,
-                    self_type: None,
-                    kind: Kind::Module,
-                    scope: Scope::Everywhere,
-                    return_type: module,
+                    documentation_html: Self::make_html_docs(documentation, documentation_html),
+                    name:               module_name.id().name().into(),
+                    arguments:          default(),
+                    module:             module_name,
+                    self_type:          None,
+                    kind:               Kind::Module,
+                    scope:              Scope::Everywhere,
+                    return_type:        module,
+                    icon_name:          find_icon_name_in_doc_sections(&documentation_sections),
                 }
             }
         };
         Ok(this)
+    }
+
+    /// Returns the documentation in html depending on the information received from the Engine.
+    ///
+    /// Depending on the engine version, we may receive the documentation in HTML format already,
+    /// or the raw text which needs to be parsed. This function takes two fields of
+    /// [`language_server::types::SuggestionEntry`] and depending on availability, returns the
+    /// HTML docs fields, or parsed raw docs field.
+    fn make_html_docs(docs: Option<String>, docs_html: Option<String>) -> Option<String> {
+        if docs_html.is_some() {
+            docs_html
+        } else {
+            docs.map(|docs| {
+                let parser = parser::DocParser::new();
+                match parser {
+                    Ok(p) => {
+                        let output = p.generate_html_doc_pure((*docs).to_string());
+                        output.unwrap_or(docs)
+                    }
+                    Err(_) => docs,
+                }
+            })
+        }
     }
 
     /// Apply modification to the entry.
@@ -606,6 +684,27 @@ fn chain_iter_and_entry_name<'a>(
     iter.into_iter().chain(iter::once(entry.name.as_str()))
 }
 
+fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<IconName>
+where I: IntoIterator<Item = &'a language_server::types::DocSection> {
+    use language_server::types::DocSection;
+    doc_sections.into_iter().find_map(|section| match section {
+        DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
+            let icon_name = IconName::from_snake_case(&body);
+            let as_snake_case = icon_name.to_snake_case();
+            if as_snake_case.as_str() != body.as_str() || !body.is_case(Case::Snake) {
+                let msg = format!(
+                    "The icon name {body} used in the {ICON_DOC_SECTION_KEY} section of the \
+                    documentation of a component is not a valid, losslessly-convertible snake_case \
+                    identifier. The component may be displayed with a different icon than expected."
+                );
+                event!(WARN, "{msg}");
+            }
+            Some(icon_name)
+        }
+        _ => None,
+    })
+}
+
 
 
 // =============
@@ -642,6 +741,7 @@ mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
+            icon_name:          None,
         };
         let method = Entry {
             name: "method".to_string(),
@@ -744,6 +844,7 @@ mod test {
             documentation_html: None,
             self_type:          None,
             scope:              Scope::Everywhere,
+            icon_name:          None,
         };
         let method = Entry {
             name: "method".to_string(),
@@ -772,31 +873,34 @@ mod test {
             assert_eq!(entry_qualified_name, expected_qualified_name);
         }
         let atom = language_server::SuggestionEntry::Atom {
-            name:               "TextAtom".to_string(),
-            module:             "TestProject.TestModule".to_string(),
-            arguments:          vec![],
-            return_type:        "TestAtom".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "TextAtom".to_string(),
+            module:                 "TestProject.TestModule".to_string(),
+            arguments:              vec![],
+            return_type:            "TestAtom".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         expect(atom, "TestProject.TestModule.TextAtom");
         let method = language_server::SuggestionEntry::Method {
-            name:               "create_process".to_string(),
-            module:             "Standard.Builtins.Main".to_string(),
-            self_type:          "Standard.Builtins.Main.System".to_string(),
-            arguments:          vec![],
-            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            external_id:        None,
+            name:                   "create_process".to_string(),
+            module:                 "Standard.Builtins.Main".to_string(),
+            self_type:              "Standard.Builtins.Main.System".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            external_id:            None,
         };
         expect(method, "Standard.Builtins.Main.System.create_process");
         let module = language_server::SuggestionEntry::Module {
-            module:             "local.Unnamed_6.Main".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            reexport:           None,
+            module:                 "local.Unnamed_6.Main".to_string(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
+            reexport:               None,
         };
         expect(module, "local.Unnamed_6.Main");
         let local = language_server::SuggestionEntry::Local {
@@ -824,5 +928,32 @@ mod test {
         let qualified_name = QualifiedName::from_iter(&["Foo", "Bar"]);
         assert_eq!(qualified_name.to_string(), "Foo.Bar".to_string());
         assert_eq!(String::from(qualified_name), "Foo.Bar".to_string());
+    }
+
+    /// Test [`find_icon_name_in_doc_sections`] function extracting a name of an icon from the body
+    /// of a keyed [`DocSection`] which has its key equal to the `Icon` string.
+    #[test]
+    fn find_icon_name_in_doc_section_with_icon_key() {
+        use language_server::types::DocSection;
+        let doc_sections = [
+            DocSection::Paragraph { body: "Some paragraph.".into() },
+            DocSection::Keyed { key: "NotIcon".into(), body: "example_not_icon_body".into() },
+            DocSection::Keyed { key: "Icon".into(), body: "example_icon_name".into() },
+            DocSection::Paragraph { body: "Another paragraph.".into() },
+        ];
+        let icon_name = find_icon_name_in_doc_sections(&doc_sections).unwrap();
+        assert_eq!(icon_name.to_pascal_case(), "ExampleIconName");
+    }
+
+    /// Test case-insensitive comparison of [`IconName`] values and case-insensitiveness when
+    /// converting [`IconName`] values to PascalCase.
+    #[test]
+    fn icon_name_case_insensitiveness() {
+        let name_from_small_snake_case = IconName::from_snake_case("an_example_name");
+        let name_from_mixed_snake_case = IconName::from_snake_case("aN_EXAMPLE_name");
+        const PASCAL_CASE_NAME: &str = "AnExampleName";
+        assert_eq!(name_from_small_snake_case, name_from_mixed_snake_case);
+        assert_eq!(name_from_small_snake_case.to_pascal_case(), PASCAL_CASE_NAME);
+        assert_eq!(name_from_mixed_snake_case.to_pascal_case(), PASCAL_CASE_NAME);
     }
 }

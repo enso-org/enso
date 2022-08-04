@@ -15,6 +15,8 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
@@ -95,6 +97,8 @@ public class Module implements TruffleObject {
   private final ModuleCache cache;
   private boolean wasLoadedFromCache;
   private boolean hasCrossModuleLinks;
+  private boolean synthetic;
+  private List<QualifiedName> directModulesRefs;
 
   /**
    * Creates a new module.
@@ -111,6 +115,7 @@ public class Module implements TruffleObject {
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
+    this.synthetic = false;
   }
 
   /**
@@ -129,6 +134,7 @@ public class Module implements TruffleObject {
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
+    this.synthetic = false;
   }
 
   /**
@@ -147,6 +153,7 @@ public class Module implements TruffleObject {
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
     this.patchedValues = new PatchedModuleValues(this);
+    this.synthetic = false;
   }
 
   /**
@@ -156,15 +163,18 @@ public class Module implements TruffleObject {
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
    */
-  private Module(QualifiedName name, Package<TruffleFile> pkg, Context context) {
-    this.sources = ModuleSources.NONE;
+  private Module(
+      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
+    this.sources =
+        literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
     this.scope = new ModuleScope(this, context);
     this.pkg = pkg;
-    this.compilationStage = CompilationStage.AFTER_CODEGEN;
+    this.compilationStage = synthetic ? CompilationStage.INITIAL : CompilationStage.AFTER_CODEGEN;
     this.cache = new ModuleCache(this);
     this.wasLoadedFromCache = false;
     this.hasCrossModuleLinks = false;
+    this.synthetic = synthetic;
   }
 
   /**
@@ -175,8 +185,21 @@ public class Module implements TruffleObject {
    *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, Context context) {
-    return new Module(name, pkg, context);
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
+    return new Module(name, pkg, false, null);
+  }
+
+  /**
+   * Creates a synthetic module which only purpose is to export symbols of other modules.
+   *
+   * @param name the qualified name of the newly created module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
+   * @param source source of the module declaring exports of the desired modules
+   * @return the synthetic module
+   */
+  public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
+    return new Module(name, pkg, true, source);
   }
 
   /** Clears any literal source set for this module. */
@@ -193,6 +216,11 @@ public class Module implements TruffleObject {
     return sources.rope();
   }
 
+  /** @return true if this module represents a synthetic (compiler-generated) module */
+  public boolean isSynthetic() {
+    return synthetic;
+  }
+
   /**
    * Sets new literal sources for the module.
    *
@@ -200,6 +228,28 @@ public class Module implements TruffleObject {
    */
   public void setLiteralSource(String source) {
     setLiteralSource(Rope.apply(source), null);
+  }
+
+  /**
+   * Attaches names of submodules that should be accessible from this module
+   *
+   * @param names fully qualified names of (potentially synthetic) modules' names
+   */
+  public void setDirectModulesRefs(List<QualifiedName> names) {
+    assert directModulesRefs == null;
+    directModulesRefs = names;
+  }
+
+  /**
+   * Return a list of directly referencing submodules of this one, if any.
+   *
+   * @return a non-null, possibly empty, list of fully qualified names of modules
+   */
+  public List<QualifiedName> getDirectModulesRefs() {
+    if (directModulesRefs == null) {
+      return Collections.emptyList();
+    }
+    return directModulesRefs;
   }
 
   /**
@@ -501,7 +551,7 @@ public class Module implements TruffleObject {
       String name = arguments.getSecond();
 
       try {
-        return scope.getMethods().get(type).get(name.toLowerCase());
+        return scope.getMethods().get(type).get(name);
       } catch (NullPointerException npe) {
         TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Module.class);
         logger.log(

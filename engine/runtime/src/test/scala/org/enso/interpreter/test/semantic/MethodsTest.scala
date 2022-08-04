@@ -90,7 +90,7 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Any import all
           |
-          |Any.Any.method =
+          |Any.Any.method self =
           |    x = self * self
           |    y = x * 2
           |    y + 1
@@ -120,7 +120,7 @@ class MethodsTest extends InterpreterTest {
           |type Bar
           |type Baz
           |
-          |Any.Any.method = case self of
+          |Any.Any.method self = case self of
           |    Foo -> 1
           |    Bar -> 2
           |    Baz -> 3

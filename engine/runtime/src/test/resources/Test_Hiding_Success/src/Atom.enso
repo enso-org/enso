@@ -4,4 +4,4 @@ type X
 type Y
     Mk_Y b
 
-X.method = 20
+X.method self = 20

@@ -4,6 +4,6 @@ bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 @Builtin_Type
 type Managed_Resource
     register resource function = @Builtin_Method "Managed_Resource.register"
-    finalize = @Builtin_Method "Managed_Resource.finalize"
-    with ~action = @Builtin_Method "Managed_Resource.with"
-    take = @Builtin_Method "Managed_Resource.take"
+    finalize self = @Builtin_Method "Managed_Resource.finalize"
+    with self ~action = @Builtin_Method "Managed_Resource.with"
+    take self = @Builtin_Method "Managed_Resource.take"

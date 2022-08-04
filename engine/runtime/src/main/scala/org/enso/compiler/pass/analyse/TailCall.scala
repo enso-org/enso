@@ -8,7 +8,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.resolve.ExpressionAnnotations
+import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
 
 import scala.annotation.unused
 
@@ -34,7 +34,8 @@ case object TailCall extends IRPass {
     GenerateMethodBodies,
     SectionsToBinOp,
     OperatorToFunction,
-    LambdaShorthandToLambda
+    LambdaShorthandToLambda,
+    GlobalNames
   )
 
   override val invalidatedPasses: Seq[IRPass] = List()

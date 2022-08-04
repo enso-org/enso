@@ -77,15 +77,15 @@ class ReplTest
           |
           |type Foo a b
           |
-          |Foo.to_text = "{" + self.a.to_text + ": " + self.b + "}"
+          |Foo.to_text self = "{" + self.a.to_text + ": " + self.b + "}"
           |
           |type Bar x
           |
-          |Bar.to_text = 42
+          |Bar.to_text self = 42
           |
           |type Baz x
           |
-          |Baz.to_text a b c = a+b+c
+          |Baz.to_text self a b c = a+b+c
           |
           |main =
           |    x = Debug.breakpoint
@@ -160,7 +160,7 @@ class ReplTest
           |    Debug.breakpoint
           |    State.get Number
           |
-          |main = State.run Number 0 here.run
+          |main = State.run Number 0 run
           |""".stripMargin
       setSessionManager { executor =>
         executor.evaluate("x = State.get Number")
@@ -189,10 +189,9 @@ class ReplTest
       }
       eval(code)
       scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
-        "self" -> "Test",
-        "x"    -> "10",
-        "y"    -> "20",
-        "z"    -> "30"
+        "x" -> "10",
+        "y" -> "20",
+        "z" -> "30"
       )
     }
 
@@ -216,10 +215,9 @@ class ReplTest
       }
       eval(code)
       scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
-        "self" -> "Test",
-        "x"    -> "50",
-        "y"    -> "20",
-        "z"    -> "30"
+        "x" -> "50",
+        "y" -> "20",
+        "z" -> "30"
       )
     }
 
@@ -289,7 +287,7 @@ class ReplTest
       }
       eval(code)
       val errorMsg =
-        "Compile error: Variable `undefined` is not defined."
+        "Compile error: The name `undefined` could not be found."
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 

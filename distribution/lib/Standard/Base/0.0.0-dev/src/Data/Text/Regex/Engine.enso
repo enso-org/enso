@@ -42,7 +42,7 @@ type Engine
        - options: The options to configure the matching process with. These are
          merged with the specific `engine_opts`.
     compile : Text -> Vector Global_Option.Option -> Pattern ! (Regex.Compile_Error | Invalid_Option_Error)
-    compile _ _ = Errors.unimplemented "This is an interface only."
+    compile self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -52,7 +52,7 @@ type Engine
        Arguments:
        - expression: The expression to escape metacharacters in.
     escape : Text -> Text
-    escape _ = Errors.unimplemented "This is an interface only."
+    escape self _ = Errors.unimplemented "This is an interface only."
 
 ## The `Data.Text.Regex.Engine.Pattern` interface.
 type Pattern
@@ -80,7 +80,7 @@ type Pattern
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
     match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
-    match _ _ = Errors.unimplemented "This is an interface only."
+    match self _ _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -90,7 +90,7 @@ type Pattern
        Arguments:
        - input: The text to check for matching.
     matches : Text -> Boolean
-    matches _ = Errors.unimplemented "This is an interface only."
+    matches self _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -110,7 +110,7 @@ type Pattern
          mode that permits multiple matches, it will always return a `Vector`,
          even if only a single match is found.
     find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
-    find _ _ = Errors.unimplemented "This is an interface only."
+    find self _ _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -123,7 +123,7 @@ type Pattern
        This method will _always_ return a vector. If no splits take place, the
        vector will contain a single element.
     split : Text -> (Mode.First | Integer | Mode.All) -> Vector.Vector Text
-    split _ _ = Errors.unimplemented "This is an interface only."
+    split self _ _ _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -139,7 +139,7 @@ type Pattern
        If this method performs no replacements it will return the `input` text
        unchanged.
     replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
-    replace _ _ _ = Errors.unimplemented "This is an interface only."
+    replace self _ _ _ _ = Errors.unimplemented "This is an interface only."
 
 ## The `Data.Text.Regex.Engine.Match` interface.
 type Match
@@ -167,7 +167,7 @@ type Match
          If the regex contained named groups, these may also be accessed by
          index based on their position in the pattern.
     group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
-    group _ = Errors.unimplemented "This is an interface only."
+    group self _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -187,7 +187,7 @@ type Match
          If the regex contained named groups, these may also be accessed by
          index based on their position in the pattern.
     groups : (a : Any) -> Vector.Vector (Text | a)
-    groups _ = Errors.unimplemented "This is an interface only."
+    groups self _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -200,7 +200,7 @@ type Match
          index did not participate in the match. This should default to
          `Nothing`.
     named_groups : (a : Any) -> Map Text (Text | a)
-    named_groups _ = Errors.unimplemented "This is an interface only."
+    named_groups self _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -211,7 +211,7 @@ type Match
        Arguments:
        - id: The identifier for the group to fetch the start index for.
     start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
-    start _ = Errors.unimplemented "This is an interface only."
+    start self _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
@@ -222,7 +222,7 @@ type Match
        Arguments:
        - id: The identifier for the group to fetch the end index for.
     end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
-    end _ = Errors.unimplemented "This is an intercace only."
+    end self _ = Errors.unimplemented "This is an intercace only."
 
     ## PRIVATE
 
@@ -232,15 +232,15 @@ type Match
        Arguments:
        - id: The identifier for the group to fetch the end index for.
     span : Integer | Text -> Span | Nothing ! Regex.No_Such_Group_Error
-    span _ = Errors.unimplemented "This is an interface only."
+    span self _ = Errors.unimplemented "This is an interface only."
 
     ## PRIVATE
 
        Returns the start character index of the match's region.
     start_position : Integer
-    start_position = Errors.unimplemented "This is an interface only."
+    start_position self = Errors.unimplemented "This is an interface only."
 
     ## Returns the end character index of the match's region.
     end_position : Integer
-    end_position = Errors.unimplemented "This is an interface only."
+    end_position self = Errors.unimplemented "This is an interface only."
 

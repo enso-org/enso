@@ -9,5 +9,5 @@ prep_json size =
     str
 
 main =
-    large_json = here.prep_json 1000000
+    large_json = prep_json 1000000
     Bench.measure (Base.Json.parse large_json) "parse json" 10 10

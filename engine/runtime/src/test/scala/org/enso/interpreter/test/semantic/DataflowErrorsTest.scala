@@ -88,7 +88,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |type My_Error
           |    Mk_My_Error x
           |
-          |My_Error.recover = case self of
+          |My_Error.recover self = case self of
           |    Mk_My_Error x -> Mk_My_Recovered x
           |
           |main =
@@ -200,7 +200,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |main =
           |    x = Panic.catch_primitive @ .convert_to_dataflow_error
           |    IO.println x
-          |    IO.println (x.catch .to_text)
+          |    IO.println (x.catch Any .to_text)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(

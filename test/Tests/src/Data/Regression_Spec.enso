@@ -1,0 +1,108 @@
+from Standard.Base import Nothing, Vector, Number, Decimal, True, Illegal_Argument_Error, False, Regression
+
+import Standard.Test
+
+spec =
+    ## Regression test data produced using an Excel spreadsheet.
+       https://github.com/enso-org/enso/files/9160145/Regression.tests.xlsx
+
+    double_error = 0.000001
+
+    vector_compare values expected =
+        values.zip expected v->e->
+            case v of
+                Decimal -> v.should_equal e epsilon=double_error
+                _ -> v.should_equal e
+
+    Test.group "Regression" <|
+        Test.specify "return an error if the vector lengths do not match" <|
+            known_xs = [2, 3, 5, 7, 9]
+            known_ys = [4, 5, 7, 10]
+            Regression.fit_least_squares known_xs known_ys . should_fail_with Illegal_Argument_Error
+
+        Test.specify "return an error if the X values are all the same" <|
+            known_xs = [2, 2, 2, 2]
+            known_ys = [4, 5, 7, 10]
+            Regression.fit_least_squares known_xs known_ys . should_fail_with Regression.Fit_Error
+
+        Test.specify "compute the linear trend line" <|
+            known_xs = [2, 3, 5, 7, 9]
+            known_ys = [4, 5, 7, 10, 15]
+            fitted = Regression.fit_least_squares known_xs known_ys
+            fitted.slope . should_equal 1.518292683 epsilon=double_error
+            fitted.intercept . should_equal 0.304878049 epsilon=double_error
+            fitted.r_squared . should_equal 0.959530147 epsilon=double_error
+
+        Test.specify "predict values on a linear trend line" <|
+            known_xs = [2, 3, 5, 7, 9]
+            known_ys = [4, 5, 7, 10, 15]
+            fitted = Regression.fit_least_squares known_xs known_ys
+            test_xs = [1, 4, 6, 8, 10]
+            expected_ys = [1.823171, 6.378049, 9.414634, 12.45122, 15.487805]
+            vector_compare (test_xs.map fitted.predict) expected_ys
+
+        Test.specify "compute the linear trend line with an intercept" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [8.02128, 11.02421, 13.99566, 17.02678, 20.00486, 22.95283, 26.0143, 29.03238, 31.96427, 35.03896]
+            fitted = Regression.fit_least_squares known_xs known_ys (Regression.Linear_Model 100)
+            fitted.slope . should_equal -10.57056558 epsilon=double_error
+            fitted.intercept . should_equal 100.0 epsilon=double_error
+            fitted.r_squared . should_equal 0.9999900045 epsilon=double_error
+
+        Test.specify "compute the exponential trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.28652, 0.31735, 0.31963, 0.38482, 0.40056, 0.39013, 0.4976, 0.5665, 0.55457, 0.69135]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Exponential_Model
+            fitted.a . should_equal 0.25356436 epsilon=double_error
+            fitted.b . should_equal 0.09358242 epsilon=double_error
+            fitted.r_squared . should_equal 0.9506293649 epsilon=double_error
+
+        Test.specify "predict values on a exponential trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.28652, 0.31735, 0.31963, 0.38482, 0.40056, 0.39013, 0.4976, 0.5665, 0.55457, 0.69135]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Exponential_Model
+            test_xs = [0, 11, 12, 15]
+            expected_ys = [0.253564, 0.709829, 0.779464, 1.032103]
+            vector_compare (test_xs.map fitted.predict) expected_ys
+
+        Test.specify "compute the exponential trend line with an intercept" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.28652, 0.31735, 0.31963, 0.38482, 0.40056, 0.39013, 0.4976, 0.5665, 0.55457, 0.69135]
+            fitted = Regression.fit_least_squares known_xs known_ys (Regression.Exponential_Model 0.2)
+            fitted.a . should_equal 0.2 epsilon=double_error
+            fitted.b . should_equal 0.127482464 epsilon=double_error
+            fitted.r_squared . should_equal 0.9566066546 epsilon=double_error
+
+        Test.specify "compute the logarithmic trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.12128, 0.29057, 0.35933, 0.45949, 0.49113, 0.48285, 0.58132, 0.63144, 0.5916, 0.69158]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Logarithmic_Model
+            fitted.a . should_equal 0.232702284 epsilon=double_error
+            fitted.b . should_equal 0.11857587 epsilon=double_error
+            fitted.r_squared . should_equal 0.9730840179 epsilon=double_error
+
+        Test.specify "predict values on a logarithmic trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.12128, 0.29057, 0.35933, 0.45949, 0.49113, 0.48285, 0.58132, 0.63144, 0.5916, 0.69158]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Logarithmic_Model
+            test_xs = [0.1, 11, 12, 15]
+            expected_ys = [-0.417241, 0.676572, 0.696819, 0.748745]
+            vector_compare (test_xs.map fitted.predict) expected_ys
+
+        Test.specify "compute the power trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.26128, 0.28144, 0.26353, 0.30247, 0.28677, 0.23992, 0.30586, 0.32785, 0.26324, 0.3411]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Power_Model
+            fitted.a . should_equal 0.258838019 epsilon=double_error
+            fitted.b . should_equal 0.065513849 epsilon=double_error
+            fitted.r_squared . should_equal 0.2099579581 epsilon=double_error
+
+        Test.specify "predict values on a power trend line" <|
+            known_xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            known_ys = [0.26128, 0.28144, 0.26353, 0.30247, 0.28677, 0.23992, 0.30586, 0.32785, 0.26324, 0.3411]
+            fitted = Regression.fit_least_squares known_xs known_ys Regression.Power_Model
+            test_xs = [0.1, 11, 12, 15]
+            expected_ys = [0.222594, 0.302868, 0.3046, 0.309085]
+            vector_compare (test_xs.map fitted.predict) expected_ys
+
+main = Test.Suite.run_main spec

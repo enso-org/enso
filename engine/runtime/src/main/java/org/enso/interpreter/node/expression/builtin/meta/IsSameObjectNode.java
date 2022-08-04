@@ -9,7 +9,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     name = "is_same_object",
     description = "Checks if the two arguments share an underlying reference.")
 public class IsSameObjectNode extends Node {
-  boolean execute(Object self, @AcceptsError Object value_1, @AcceptsError Object value_2) {
+  boolean execute(@AcceptsError Object value_1, @AcceptsError Object value_2) {
     return value_1 == value_2;
   }
 }

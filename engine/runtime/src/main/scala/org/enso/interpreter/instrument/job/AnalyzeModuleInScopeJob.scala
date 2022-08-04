@@ -57,9 +57,6 @@ final class AnalyzeModuleInScopeJob(
     }
   }
 
-  override def toString: String =
-    s"${getClass.getSimpleName}($moduleName, ${modules.map(_.getName)})"
-
   private def analyzeModuleInScope(module: Module)(implicit
     ctx: RuntimeContext
   ): Unit = {

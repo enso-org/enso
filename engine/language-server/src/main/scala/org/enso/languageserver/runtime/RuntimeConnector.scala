@@ -9,6 +9,7 @@ import org.enso.languageserver.runtime.RuntimeConnector.{
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.lockmanager.server.LockManagerService
+import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -21,6 +22,7 @@ class RuntimeConnector(
   eventsMonitor: EventsMonitor
 ) extends Actor
     with LazyLogging
+    with ActorMessageLogging
     with UnhandledLogging
     with Stash {
 
@@ -70,7 +72,7 @@ class RuntimeConnector(
   def initialized(
     engine: MessageEndpoint,
     senders: Map[Runtime.Api.RequestId, ActorRef]
-  ): Receive = registerEvent.andThen {
+  ): Receive = registerEvent.andThen(LoggingReceive {
     case Destroy => context.stop(self)
 
     case msg: Runtime.ApiEnvelope =>
@@ -110,7 +112,7 @@ class RuntimeConnector(
           )
       }
       context.become(initialized(engine, senders - correlationId))
-  }
+  })
 }
 
 object RuntimeConnector {

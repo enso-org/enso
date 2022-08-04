@@ -214,10 +214,9 @@ branches:
         # Require branches to be up-to-date before merging.
         strict: true
         contexts:
-          - "Engine (Linux)"
-          - "Engine (Windows)"
+          - "Engine (linux)"
+          - "Engine (windows)"
           # The macOS job is intentionally omitted.
-          - "Docs Check"
           - "Verify Notice Package"
           - "Test Formatting"
           - "license/cla"
@@ -232,10 +231,10 @@ branches:
           - "Build GUI (WASM) (linux)"
           - "Lint (linux)"
           - "Build GUI (WASM) (windows)"
-          - "Build Project Manager (windows)"
+          - "Build Backend (windows)"
           - "Assert if CHANGELOG.md was updated (on pull request)"
           - "WASM GUI tests (linux)"
-          - "Build Project Manager (linux)"
+          - "Build Backend (linux)"
           - "Package IDE (windows)"
           - "Package IDE (linux)"
           # Integration tests are currently not reliable.
@@ -258,7 +257,6 @@ branches:
           - "Build and Test (macOS-latest)"
           - "Build and Test (ubuntu-18.04)"
           - "Build and Test (windows-latest)"
-          - "Docs Check"
           - "Build Engine"
           - "Rust Check"
           - "Rust Lint"

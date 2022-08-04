@@ -110,24 +110,24 @@ class ComplexTypeTest extends CompilerTest {
       ir.bindings(4) shouldBe an[Definition.Method.Binding]
       val justIsJust = ir.bindings(4).asInstanceOf[Definition.Method.Binding]
       justIsJust.methodName.name shouldEqual "is_just"
-      justIsJust.typeName.name shouldEqual "Nothing"
+      justIsJust.typeName.get.name shouldEqual "Nothing"
 
       ir.bindings(8) shouldBe an[Definition.Method.Binding]
       val justF = ir.bindings(8).asInstanceOf[Definition.Method.Binding]
       justF.methodName.name shouldEqual "f"
-      justF.typeName.name shouldEqual "Nothing"
+      justF.typeName.get.name shouldEqual "Nothing"
     }
 
     "have their methods desugared to methods on the defined atoms" in {
       ir.bindings(6) shouldBe an[Definition.Method.Binding]
       val justIsJust = ir.bindings(6).asInstanceOf[Definition.Method.Binding]
       justIsJust.methodName.name shouldEqual "is_just"
-      justIsJust.typeName.name shouldEqual "Just"
+      justIsJust.typeName.get.name shouldEqual "Just"
 
       ir.bindings(10) shouldBe an[Definition.Method.Binding]
       val justF = ir.bindings(10).asInstanceOf[Definition.Method.Binding]
       justF.methodName.name shouldEqual "f"
-      justF.typeName.name shouldEqual "Just"
+      justF.typeName.get.name shouldEqual "Just"
     }
 
     "have type signatures copied to above each method" in {
@@ -245,9 +245,9 @@ class ComplexTypeTest extends CompilerTest {
       ir.bindings(3) shouldBe a[Definition.Method.Binding]
       val methodOnBar = ir.bindings(2).asInstanceOf[Definition.Method.Binding]
       val methodOnBaz = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
-      methodOnBar.typeName.name shouldEqual "Bar"
+      methodOnBar.typeName.get.name shouldEqual "Bar"
       methodOnBar.methodName.name shouldEqual "g"
-      methodOnBaz.typeName.name shouldEqual "Baz"
+      methodOnBaz.typeName.get.name shouldEqual "Baz"
       methodOnBaz.methodName.name shouldEqual "g"
     }
   }

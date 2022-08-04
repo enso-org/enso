@@ -42,6 +42,7 @@ import org.enso.polyglot.data.TypeGraph;
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
   Array.class,
+  ArrayOverBuffer.class,
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,
@@ -49,7 +50,8 @@ import org.enso.polyglot.data.TypeGraph;
   PanicException.class,
   PanicSentinel.class,
   Warning.class,
-  EnsoFile.class
+  EnsoFile.class,
+  EnsoDate.class
 })
 public class Types {
 
@@ -128,7 +130,7 @@ public class Types {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
       return ConstantsGen.MANAGED_RESOURCE;
-    } else if (TypesGen.isArray(value)) {
+    } else if (TypesGen.isArray(value) || TypesGen.isArrayOverBuffer(value)) {
       return ConstantsGen.ARRAY;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;

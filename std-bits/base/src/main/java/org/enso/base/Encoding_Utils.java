@@ -1,21 +1,20 @@
 package org.enso.base;
 
+import org.enso.base.encoding.ReportingStreamDecoder;
+import org.enso.base.encoding.ReportingStreamEncoder;
+import org.enso.base.text.ResultWithWarnings;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
-import java.nio.charset.CodingErrorAction;
+import java.nio.charset.*;
 import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
-import org.enso.base.encoding.ReportingStreamDecoder;
-import org.enso.base.text.ResultWithWarnings;
 
 public class Encoding_Utils {
   /** The replacement character used for characters that could not have been decoded. */
@@ -164,13 +163,55 @@ public class Encoding_Utils {
 
   /**
    * A helper function which runs an action with a created stream decoder and closes it afterwards.
+   *
+   * <p>It returns the result returned from the executed action and any encoding problems that
+   * occurred when processing it.
    */
-  public static <R> R with_stream_decoder(
+  public static <R> WithProblems<R, String> with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, R> action)
       throws IOException {
-    try (ReportingStreamDecoder decoder = create_stream_decoder(stream, charset)) {
-      return action.apply(decoder);
+    R result;
+    ReportingStreamDecoder decoder = create_stream_decoder(stream, charset);
+    try {
+      result = action.apply(decoder);
+    } finally {
+      decoder.close();
     }
+    return new WithProblems<>(result, decoder.getReportedProblems());
+  }
+
+  /** Creates a new instance of {@code ReportingStreamEncoder} encoding a given charset. */
+  private static ReportingStreamEncoder create_stream_encoder(
+      OutputStream stream, Charset charset, byte[] replacementSequence) {
+    CharsetEncoder encoder =
+        charset
+            .newEncoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .reset();
+    return new ReportingStreamEncoder(stream, encoder, replacementSequence);
+  }
+
+  /**
+   * A helper function which runs an action with a created stream encoder and closes it afterwards.
+   *
+   * <p>It returns the result returned from the executed action and any encoding problems that
+   * occurred when processing it.
+   */
+  public static <R> WithProblems<R, String> with_stream_encoder(
+      OutputStream stream,
+      Charset charset,
+      byte[] replacementSequence,
+      Function<ReportingStreamEncoder, R> action)
+      throws IOException {
+    R result;
+    ReportingStreamEncoder encoder = create_stream_encoder(stream, charset, replacementSequence);
+    try {
+      result = action.apply(encoder);
+    } finally {
+      encoder.close();
+    }
+    return new WithProblems<>(result, encoder.getReportedProblems());
   }
 
   /**
