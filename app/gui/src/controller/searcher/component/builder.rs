@@ -450,13 +450,14 @@ mod tests {
 
     #[test]
     fn building_component_list_with_virtual_components_in_favorites() {
+        use component::group;
         let logger = Logger::new("tests::building_component_list_with_favorites");
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
         let base_project_qn = project::QualifiedName::from_segments("Standard", "Base").unwrap();
-        let qn_of_group_1 = component::group::QualifiedName::new(base_project_qn, "Group 1");
-        let qn_of_group_2 = component::group::QualifiedName::new(base_project_qn, "Group 2");
+        let qn_of_group_1 = group::QualifiedName::new(base_project_qn.clone(), "Group 1");
+        let qn_of_group_2 = group::QualifiedName::new(base_project_qn, "Group 2");
         let groups = [
             execution_context::ComponentGroup {
                 project:    qn_of_group_1.project.clone(),
@@ -467,8 +468,11 @@ mod tests {
         ];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let virtual_component_1 = component::Virtual { name: "Virtual Component 1", ..default() };
-        let vc1_iter = std::iter::once(Rc::new(virtual_components));
+        let vc1_iter = std::iter::once(Rc::new(virtual_component_1));
         builder.insert_virtual_components_in_favorites_group(qn_of_group_1.clone(), vc1_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
+        let list = builder.build();
+        let favorites = list.favorites;
+        assert_eq!(favorites.len(), 1, "Expected 1 group in favorites, got: {:?}.", favorites);
     }
 }
