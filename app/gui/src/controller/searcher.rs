@@ -50,7 +50,6 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
 
 thread_local! {
-    // TODO[MC]: can it be just slice? `[Rc<component::Virtual>]`
     static VIRTUAL_COMPONENTS_IN_INPUT_GROUP: Vec<Rc<component::Virtual>> = vec![
         Rc::new(component::Virtual {
             name:               "text input",
