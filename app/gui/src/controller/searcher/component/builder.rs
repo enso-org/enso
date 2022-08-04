@@ -474,5 +474,10 @@ mod tests {
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 1, "Expected 1 group in favorites, got: {:?}.", favorites);
+        let components_names = favorites[0].entries.borrow().iter().map(|c| c.name()).collect_vec();
+        // let expected_components_names = vec![
+
+        // ];
+        // assert_eq!(favorite_components_names, expected_components_names);
     }
 }

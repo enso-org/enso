@@ -127,6 +127,13 @@ impl Component {
         self.to_string()
     }
 
+    pub fn name(&self) -> &str {
+        match &self.kind {
+            Kind::FromDb { suggestion, .. } => suggestion.name.as_str(),
+            Kind::Virtual { suggestion } => suggestion.name,
+        }
+    }
+
     pub fn id(&self) -> Option<Id> {
         match self.kind {
             Kind::FromDb { id, .. } => Some(*id),
