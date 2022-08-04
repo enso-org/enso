@@ -1865,11 +1865,7 @@ pub mod test {
                 format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
             assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
-            let entry_name = |e: &component::Component| match &e.kind {
-                component::Kind::FromDb { suggestion, .. } => suggestion.name.clone(),
-                component::Kind::Virtual { suggestion } => suggestion.name.into(),
-            };
-            assert_matches!(entries.as_slice(), [e1, e2] if entry_name(e1) == entry1.name && entry_name(e2) == entry9.name);
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry1.name && e2.name() == entry9.name);
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
