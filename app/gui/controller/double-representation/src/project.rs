@@ -157,4 +157,9 @@ mod test {
         invalid_case("namespace.");
         invalid_case(".");
     }
+
+    #[test]
+    fn qualified_name_of_standard_base_library_does_not_panic() {
+        let _ = QualifiedName::of_standard_base_library();
+    }
 }
