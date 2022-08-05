@@ -232,8 +232,9 @@ pub fn from_component_group(
     group: &controller::searcher::component::Group,
 ) -> LabeledAnyModelProvider {
     LabeledAnyModelProvider {
-        label:   group.name.clone_ref(),
-        content: Rc::new(Component::new(group.clone_ref())).into(),
+        label:                group.name.clone_ref(),
+        content:              Rc::new(Component::new(group.clone_ref())).into(),
+        original_entry_count: group.entries.borrow().len(),
     }
 }
 
