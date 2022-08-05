@@ -113,7 +113,25 @@ object ExecutionContextJsonMessages {
     expressionId: Api.ExpressionId,
     configuration: VisualisationConfiguration
   ) =
-    json"""
+    configuration.expression match {
+      case VisualisationExpression.Text(module, expression) =>
+        json"""
+              { "jsonrpc": "2.0",
+                "method": "executionContext/executeExpression",
+                "id": $reqId,
+                "params": {
+                  "visualisationId": $visualisationId,
+                  "expressionId": $expressionId,
+                  "visualisationConfig": {
+                    "executionContextId": ${configuration.executionContextId},
+                    "visualisationModule": $module,
+                    "expression": $expression
+                  }
+                }
+              }
+              """
+      case VisualisationExpression.ModuleMethod(methodPointer) =>
+        json"""
           { "jsonrpc": "2.0",
             "method": "executionContext/executeExpression",
             "id": $reqId,
@@ -122,12 +140,16 @@ object ExecutionContextJsonMessages {
               "expressionId": $expressionId,
               "visualisationConfig": {
                 "executionContextId": ${configuration.executionContextId},
-                "visualisationModule": ${configuration.visualisationModule},
-                "expression": ${configuration.expression}
+                "expression": {
+                  "module": ${methodPointer.module},
+                  "definedOnType": ${methodPointer.definedOnType},
+                  "name": ${methodPointer.name}
+                }
               }
             }
           }
           """
+    }
 
   def executionContextAttachVisualisationRequest(
     reqId: Int,
