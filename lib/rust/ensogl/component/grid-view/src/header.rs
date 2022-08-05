@@ -23,7 +23,8 @@ ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
         reset_sections(),
     }
     Output {
-        section_info_needed(Row, Col)
+        section_info_needed(Row, Col),
+        header_position_changed(Row, Col, Vector2),
     }
 }
 
@@ -45,11 +46,6 @@ impl<HeaderEntry> VisibleHeader<HeaderEntry> {
         let min_y = next_section_y + entry_size.y;
         let y = (viewport.top - entry_size.y / 2.0).max(min_y);
         Vector2(entry::visible::position_x(col, entry_size), y)
-    }
-
-    fn update_position(&self, col: Col, entry_size: Vector2, viewport: Viewport)
-    where HeaderEntry: display::Object {
-        self.entry.entry.set_position_xy(self.header_position(col, entry_size, viewport));
     }
 }
 
@@ -105,13 +101,25 @@ impl<HeaderEntry: display::Object, HeaderParams> Model<HeaderEntry, HeaderParams
             header.entry
         });
         free_headers.extend(detached);
-        for (col, header) in &*visible_headers {
-            header.update_position(*col, entries_size, viewport);
-        }
         let uncovered = cols_range.filter_map(|col| {
             (!visible_headers.contains_key(&col)).as_some((highest_visible_row, col))
         });
         uncovered.collect()
+    }
+
+    fn update_headers_positions(&self, properties: Properties) -> Vec<(Row, Col, Vector2)> {
+        let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let visible_headers = self.visible_headers.borrow();
+        visible_headers
+            .iter()
+            .filter_map(|(col, header)| {
+                let new_position = header.header_position(*col, entries_size, viewport);
+                (header.entry.position().xy() != new_position).as_some_from(|| {
+                    header.entry.set_position_xy(new_position);
+                    (header.section_rows.start, *col, new_position)
+                })
+            })
+            .collect()
     }
 
     fn reset_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
@@ -144,7 +152,7 @@ impl<HeaderEntry: Entry> Model<HeaderEntry, HeaderEntry::Params> {
         model: HeaderEntry::Model,
         entry_size: Vector2,
         viewport: Viewport,
-    ) {
+    ) -> (Row, Col, Vector2) {
         use std::collections::hash_map::Entry::*;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
@@ -169,7 +177,9 @@ impl<HeaderEntry: Entry> Model<HeaderEntry, HeaderEntry::Params> {
         let entry_frp = entry.entry.entry.frp();
         entry_frp.set_model(model);
         entry_frp.set_location((entry.section_rows.start, col));
-        entry.update_position(col, entry_size, viewport);
+        let position = entry.header_position(col, entry_size, viewport);
+        entry.entry.set_position_xy(position);
+        (entry.section_rows.start, col, position)
     }
 }
 
@@ -232,8 +242,11 @@ impl<HeaderEntry: Entry> HandlerTemplate<HeaderEntry, HeaderEntry::Model, Header
             out.section_info_needed <+ request_sections_after_reset;
             out.section_info_needed <+ request_section_after_text_layer_change;
 
-            section_and_props <- all(input.section_info, grid_frp.properties);
-            eval section_and_props ((((rows, col, m), props): &((Range<Row>, Col, HeaderEntry::Model), Properties)) model.update_section(rows.clone(), *col, m.clone(), props.entries_size, props.viewport));
+            position_update <= grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.update_headers_positions(*props)));
+            out.header_position_changed <+ position_update;
+            out.header_position_changed <+ input.section_info.map2(&grid_frp.properties,
+                f!(((rows, col, m), props) model.update_section(rows.clone(), *col, m.clone(), props.entries_size, props.viewport))
+            );
         }
 
         *self.model.borrow_mut() = Some(model);

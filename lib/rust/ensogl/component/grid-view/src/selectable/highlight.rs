@@ -58,7 +58,8 @@ pub struct EntryEndpoints {
 /// All highlight animations.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Animations {
-    position:       Animation<Vector2>,
+    position_jump:  Animation<Vector2>,
+    position:       frp::Stream<Vector2>,
     size:           Animation<Vector2>,
     corners_radius: Animation<f32>,
     color:          Animation<color::Rgba>,
@@ -68,14 +69,14 @@ impl Animations {
     /// Set up the animations and connect their targets with handler's FRP.
     fn new<EntryParams: frp::node::Data>(frp: &Frp<EntryParams>) -> Self {
         let network = frp.network();
-        let position = Animation::<Vector2>::new(network);
+        let position_jump = Animation::<Vector2>::new(network);
         let size = Animation::<Vector2>::new(network);
         let corners_radius = Animation::<f32>::new(network);
         let color = Animation::<color::Rgba>::new(network);
 
         frp::extend! { network
             init <- source_();
-            position.target <+ frp.position;
+            position <- all_with(&position_jump.value, &frp.position, |jump, pos| pos + jump);
             size.target <+ frp.contour.map(|&c| c.size);
             corners_radius.target <+ frp.contour.map(|&c| c.corners_radius);
             color.target <+ frp.color;
@@ -84,11 +85,11 @@ impl Animations {
             size_val <- all(init, size.value)._1();
             not_visible <- size_val.map(|sz| sz.x < f32::EPSILON || sz.y < f32::EPSILON);
             corners_radius.skip <+ frp.color.gate(&not_visible).constant(());
-            position.skip <+ frp.position.gate(&not_visible).constant(());
+            position_jump.skip <+ frp.position.gate(&not_visible).constant(());
             color.skip <+ frp.color.gate(&not_visible).constant(());
         }
         init.emit(());
-        Self { position, size, corners_radius, color }
+        Self { position_jump, position, size, corners_radius, color }
     }
 }
 
@@ -231,6 +232,7 @@ impl<E: Entry> Data<E, E::Model, E::Params> {
     }
 
     fn reconnect_highlighted_entry(self: &Rc<Self>) {
+        tracing::debug!("Reconnecting highlighted entry");
         let location = self.connected_entry.take();
         self.guard.take();
         self.connect_new_highlighted_entry(location);
@@ -272,7 +274,7 @@ impl<E: Entry> Data<E, E::Model, E::Params> {
         let grid_frp = self.grid.frp();
         frp::extend! { network
             init <- source_();
-            position <- all(init, self.animations.position.value)._1();
+            position <- all(init, self.animations.position)._1();
             size <- all(init, self.animations.size.value)._1();
             corners_radius <- all(init, self.animations.corners_radius.value)._1();
         }
@@ -341,9 +343,11 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         let frp = Frp::new();
         let animations = Animations::new(&frp);
         let out = &frp.private.output;
-        let model = Rc::new(Data::new(app, grid, out, animations, entry_endpoints_getter));
+        let model =
+            Rc::new(Data::new(app, grid, out, animations.clone_ref(), entry_endpoints_getter));
         let network = frp.network();
         let grid_frp = grid.frp();
+        let headers_frp = grid.headers_frp();
         frp::extend! {network
             shown_with_highlighted <-
                 grid_frp.entry_shown.map2(&frp.entry_highlighted, |a, b| (*a, *b));
@@ -352,10 +356,28 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             should_reconnect <- any(frp.entry_highlighted, highlighted_is_shown);
             eval should_reconnect ((loc) model.connect_new_highlighted_entry(*loc));
 
+            trace frp.entry_highlighted;
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
-            out.position <+ all(became_highlighted, grid_frp.viewport).map(
-                f!((((row, col), _)) grid.entry_position(*row, *col))
+            position_after_highlight <- became_highlighted.map(
+                f!((&(row, col)) model.grid.entry_position(row, col))
             );
+            highligthed_header_pos_change <- headers_frp.header_position_changed.map2(
+                &frp.entry_highlighted,
+                |&(row, col, pos), h| {
+                    tracing::debug!("{row} {col} {pos} {h:?}");
+                    h.contains(&(row, col)).as_some(pos)
+                }
+            );
+            highligthed_header_pos_change <- highligthed_header_pos_change.filter_map(|p| *p);
+            out.position <+ position_after_highlight;
+            out.position <+ highligthed_header_pos_change;
+            prev_position <- out.position.previous();
+            new_jump <- position_after_highlight.map2(&prev_position, |pos, prev| prev - pos);
+            animations.position_jump.target <+ new_jump;
+            animations.position_jump.skip <+ new_jump.constant(());
+            animations.position_jump.target <+ new_jump.constant(Vector2(0.0, 0.0));
+
+
             none_highlightd <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
             out.contour <+ none_highlightd.constant(default());
 

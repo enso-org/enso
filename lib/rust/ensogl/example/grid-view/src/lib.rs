@@ -112,7 +112,7 @@ fn init(app: &Application) {
     let hover_layer = main_layer.create_sublayer();
     let selection_layer = main_layer.create_sublayer();
 
-    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(1).collect_vec();
+    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
     let with_hover_mask = [&grid_views[2]];
     let with_selection_mask = [&grid_views[1], &grid_views[2]];
     let positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]);
@@ -122,29 +122,29 @@ fn init(app: &Application) {
         view.set_position_xy(Vector2(x, y));
     }
 
-    // for view in with_hover_mask {
-    //     view.hover_highlight_frp().setup_masked_layer(Some(hover_layer.downgrade()));
-    //     let params = grid_view::simple::EntryParams {
-    //         bg_color: color::Rgba(0.7, 0.7, 0.9, 1.0),
-    //         bg_margin: 0.0,
-    //         text_offset: 8.0,
-    //         text_color: color::Rgba(0.9, 0.9, 0.9, 1.0),
-    //         ..default()
-    //     };
-    //     view.hover_highlight_frp().set_entries_params(params);
-    // }
-    //
-    // for view in with_selection_mask {
-    //     view.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
-    //     let params = grid_view::simple::EntryParams {
-    //         bg_color: color::Rgba(0.5, 0.5, 0.5, 1.0),
-    //         bg_margin: 0.0,
-    //         text_color: color::Rgba(1.0, 1.0, 1.0, 1.0),
-    //         text_offset: 8.0,
-    //         ..default()
-    //     };
-    //     view.selection_highlight_frp().set_entries_params(params);
-    // }
+    for view in with_hover_mask {
+        view.hover_highlight_frp().setup_masked_layer(Some(hover_layer.downgrade()));
+        let params = grid_view::simple::EntryParams {
+            bg_color: color::Rgba(0.7, 0.7, 0.9, 1.0),
+            bg_margin: 0.0,
+            text_offset: 8.0,
+            text_color: color::Rgba(0.9, 0.9, 0.9, 1.0),
+            ..default()
+        };
+        view.hover_highlight_frp().set_entries_params(params);
+    }
+
+    for view in with_selection_mask {
+        view.selection_highlight_frp().setup_masked_layer(Some(selection_layer.downgrade()));
+        let params = grid_view::simple::EntryParams {
+            bg_color: color::Rgba(0.5, 0.5, 0.5, 1.0),
+            bg_margin: 0.0,
+            text_color: color::Rgba(1.0, 1.0, 1.0, 1.0),
+            text_offset: 8.0,
+            ..default()
+        };
+        view.selection_highlight_frp().set_entries_params(params);
+    }
 
     let navigator = Navigator::new(
         &app.display.default_scene,

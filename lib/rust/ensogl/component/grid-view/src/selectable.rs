@@ -246,7 +246,6 @@ mod tests {
 
     #[test]
     fn covering_and_uncovering_selected_entry() {
-        init_tracing(TRACE);
         let app = Application::new("root");
         let network = frp::Network::new("selecting_entries");
         let grid_view = GridView::<TestEntry>::new(&app);
@@ -277,5 +276,52 @@ mod tests {
         grid_view.set_viewport(viewport_showing_last_two);
         assert!(!entries[1].selected.get());
         assert!(entries[2].selected.get());
+    }
+
+    #[test]
+    fn selecting_header() {
+        init_tracing(TRACE);
+        let app = Application::new("root");
+        let network = frp::Network::new("selecting_header");
+        let grid_view = GridView::<TestEntry>::new(&app);
+        let headers_layer = app.display.default_scene.layers.main.create_sublayer();
+        grid_view.setup_sections_and_headers(headers_layer, None);
+        let entries = (0..3).map(|i| Rc::new(TestEntryModel::new(i, 0))).collect_vec();
+        let models = entries.clone();
+        let header_model = entries[1].clone_ref();
+        let selection_state = || entries.iter().map(|e| e.selected.get()).collect_vec();
+        let headers = grid_view.headers_frp();
+        frp::extend! { network
+            grid_view.model_for_entry <+
+                grid_view.model_for_entry_needed.map(move |&(r, c)| (r, c, models[r].clone_ref()));
+            headers.section_info <+
+                headers.section_info_needed.filter_map(move |&(r, c)| (r > 0).as_some(((1..3), 0, header_model.clone_ref())));
+        }
+        grid_view.set_entries_size(Vector2(20.0, 20.0));
+        let viewport_having_header_pushed_down =
+            Viewport { left: 1.0, top: -21.0, right: 19.0, bottom: -51.0 };
+        let viewport_having_header_pushed_down_further =
+            Viewport { left: 1.0, top: -30.0, right: 19.0, bottom: -60.0 };
+        let viewport_with_no_pushed_header =
+            Viewport { left: 1.0, top: -15.0, right: 19.0, bottom: -45.0 };
+
+        grid_view.set_viewport(viewport_having_header_pushed_down);
+        grid_view.reset_entries(3, 1);
+        grid_view.select_entry(Some((1, 0)));
+        assert_eq!(selection_state(), vec![false, true, false]);
+        assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -31.0));
+
+        grid_view.set_viewport(viewport_having_header_pushed_down_further);
+        assert_eq!(selection_state(), vec![false, true, false]);
+        assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -40.0));
+
+        tracing::debug!("About to go up");
+        grid_view.set_viewport(viewport_with_no_pushed_header);
+        assert_eq!(selection_state(), vec![false, true, false]);
+        assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -30.0));
+
+        grid_view.set_viewport(viewport_having_header_pushed_down);
+        assert_eq!(selection_state(), vec![false, true, false]);
+        assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -31.0));
     }
 }
