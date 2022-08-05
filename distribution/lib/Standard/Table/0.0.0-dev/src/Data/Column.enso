@@ -1281,15 +1281,6 @@ type Aggregate_Column
 
 ## UNSTABLE
 
-   A type representing an error for an out-of-bounds index in a column.
-
-   Arguments:
-   - index: The index of the element requested.
-   - length: The length of the column in which `index` was out of bounds.
-type Index_Out_Of_Bounds_Error index length
-
-## UNSTABLE
-
    Pretty-prints the index out of bounds error.
 Index_Out_Of_Bounds_Error.to_display_text : Text
 Index_Out_Of_Bounds_Error.to_display_text self =
