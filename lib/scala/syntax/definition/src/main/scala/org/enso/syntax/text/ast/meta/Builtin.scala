@@ -310,6 +310,7 @@ object Builtin {
                 case Match.Or(_, Left(hidden)) =>
                   val hiddenItems = hidden.toStream
                     .map(_.wrapped)
+                    .drop(2)
                     .collect(consOrVar)
                   (List1(hiddenItems), None)
 
