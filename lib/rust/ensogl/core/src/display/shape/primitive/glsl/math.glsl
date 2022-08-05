@@ -183,8 +183,33 @@ float neg(float a) {
     return -a;
 }
 
+vec2 add(vec2 a, vec2 b) {
+    return a + b;
+}
 
-// === Encode ===
+vec2 sub(vec2 a, vec2 b) {
+    return a - b;
+}
+
+vec2 div(vec2 a, vec2 b) {
+    return a / b;
+}
+
+vec2 mul(vec2 a, vec2 b) {
+    return a * b;
+}
+
+vec2 rem(vec2 a, vec2 b) {
+    return mod(a,b);
+}
+
+vec2 neg(vec2 a) {
+    return -a;
+}
+
+
+
+    // === Encode ===
 
 /// Enables check for ID encoding.
 #define ID_ENCODING_OVERFLOW_CHECK

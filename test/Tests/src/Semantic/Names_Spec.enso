@@ -4,7 +4,7 @@ from project.Semantic.Names.Definitions import another_method, another_constant,
 
 import Standard.Test
 
-Definitions.Foo.my_method = case self of
+Definitions.Foo.my_method self = case self of
     Definitions.Foo x y z -> x * y * z
 
 get_foo module = module.Foo
@@ -42,3 +42,10 @@ spec =
             v 10 . should_equal 10
         Test.specify "should be resolved correctly in the presence of variables with the same name" <|
             method_with_local_vars 1 . should_equal 13
+    Test.group "Methods" <|
+        Test.specify "should be correctly resolved on instances" <|
+            b = Bar 1
+            b.meh 2 . should_equal 3
+        Test.specify "should be allowed to be called statically" pending="Needs changes to method dispatch logic" <|
+            b = Bar 1
+            Bar.meh b 2 . should_equal 3

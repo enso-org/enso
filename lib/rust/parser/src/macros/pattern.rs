@@ -217,22 +217,29 @@ impl<'s> Match<'s> {
         Self::Named(label.into(), Box::new(second))
     }
 
-    /// Get all tokens of the match.
-    pub fn tokens(self) -> Vec<syntax::Item<'s>> {
+    /// Get all tokens of the match; append them to an existing sequence.
+    pub fn get_tokens(self, out: &mut Vec<syntax::Item<'s>>) {
         match self {
-            Self::Everything(tokens) => tokens.into(),
-            Self::Nothing => default(),
-            Self::Seq(fst, snd) => fst.tokens().extended(snd.tokens()),
-            Self::Many(t) => t.into_iter().flat_map(|s| s.tokens()).collect(),
-            Self::Identifier(ident) => vec![ident],
-            Self::Expected(_, item) => item.tokens(),
-            Self::Named(_, item) => item.tokens(),
-            Self::NotBlock(item) => vec![item],
-            Self::Or(t) => match *t {
-                OrMatch::First(fst) => fst.tokens(),
-                OrMatch::Second(snd) => snd.tokens(),
-            },
+            Self::Nothing => (),
+            Self::Identifier(item) | Self::NotBlock(item) => out.push(item),
+            Self::Everything(tokens) => out.extend(tokens),
+            Self::Seq(fst, snd) => {
+                fst.get_tokens(out);
+                snd.get_tokens(out);
+            }
+            Self::Expected(_, box item)
+            | Self::Named(_, box item)
+            | Self::Or(box OrMatch::First(item) | box OrMatch::Second(item)) =>
+                item.get_tokens(out),
+            Self::Many(matches) => matches.into_iter().for_each(|match_| match_.get_tokens(out)),
         }
+    }
+
+    /// Get all tokens of the match; return them in a newly-allocated vector.
+    pub fn tokens(self) -> Vec<syntax::Item<'s>> {
+        let mut out = vec![];
+        self.get_tokens(&mut out);
+        out
     }
 }
 
@@ -349,8 +356,7 @@ impl Pattern {
                     },
             },
             PatternData::Block(body) => match input.pop_front() {
-                Some(syntax::Item::Block(tokens)) =>
-                    body.resolve(tokens.into_iter().rev().map_into().collect()),
+                Some(syntax::Item::Block(tokens)) => body.resolve(tokens.into()),
                 Some(t) => {
                     input.push_front(t);
                     Err(input)

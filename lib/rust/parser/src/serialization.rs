@@ -73,8 +73,9 @@ where D: serde::Deserializer<'de> {
 pub(crate) struct Error(String);
 
 impl From<Error> for crate::syntax::tree::Error {
-    fn from(_: Error) -> Self {
-        crate::syntax::tree::Error { message: "" }
+    fn from(error: Error) -> Self {
+        let message = error.0.into();
+        crate::syntax::tree::Error { message }
     }
 }
 

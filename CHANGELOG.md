@@ -64,7 +64,8 @@
 - [Added a new component: Grid View.][3588] It's parametrized by Entry object,
   display them arranged in a Grid. It does not instantiate all entries, only
   those visible, and re-use created entries during scrolling thus achieving
-  great performance.
+  great performance. There are variants of grid view with selection and
+  highlight, scrollbars, and both.
 
 #### Enso Standard Library
 
@@ -168,6 +169,8 @@
   the Postgres connection][3593]
 - [Added `Regression` to the `Standard.Base` library and removed legacy `Model`
   type from `Standard.Table`.][3601]
+- [Created `Index_Sub_Range` type and updated `Text.take` and
+  `Text.drop`.][3617]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -266,6 +269,7 @@
 [3590]: https://github.com/enso-org/enso/pull/3590
 [3593]: https://github.com/enso-org/enso/pull/3593
 [3601]: https://github.com/enso-org/enso/pull/3601
+[3617]: https://github.com/enso-org/enso/pull/3617
 
 #### Enso Compiler
 
@@ -295,7 +299,9 @@
 - [Replace `this` with `self`][3524]
 - [Introduce a smaller version of the standard library, just for testing][3531]
 - [Remove `here` and make method name resolution case-sensitive][3531]
+- [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
+- [Support module imports using a qualified name][3608]
 - [Enable caching in visualisation functions][3618]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -330,6 +336,7 @@
 [3531]: https://github.com/enso-org/enso/pull/3531
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
+[3538]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
 [3618]: https://github.com/enso-org/enso/pull/3618
 

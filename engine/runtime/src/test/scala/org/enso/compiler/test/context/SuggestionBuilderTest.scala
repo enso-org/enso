@@ -453,7 +453,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
         """type MyAtom
           |
           |MyAtom.apply : (Number -> Number) -> Number
-          |MyAtom.apply f = f self
+          |MyAtom.apply self f = f self
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -497,7 +497,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
         """type MyAtom
           |
           |MyAtom.apply : (Number | Text | MyAtom) -> Number
-          |MyAtom.apply f = f self
+          |MyAtom.apply self f = f self
           |""".stripMargin
       val module = code.preprocessModule
 
@@ -793,12 +793,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -842,12 +840,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -904,12 +900,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -964,12 +958,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1011,12 +1003,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1056,12 +1046,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1114,12 +1102,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1171,12 +1157,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1515,7 +1499,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           |    type Nothing
           |    type Just a
           |
-          |    map f = case self of
+          |    map self f = case self of
           |        Just a  -> Just (f a)
           |        Nothing -> Nothing""".stripMargin
       val module = code.preprocessModule
@@ -1659,12 +1643,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1716,12 +1698,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1737,7 +1717,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
         """type A
           |    type A
           |    quux : A -> A
-          |    quux x = x
+          |    quux self x = x
           |
           |quux : A -> A
           |quux x = x
@@ -1809,12 +1789,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ),
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = List(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = List(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1843,11 +1821,9 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
             Suggestion.Method(
               externalId =
                 Some(UUID.fromString("4083ce56-a5e5-4ecd-bf45-37ddf0b58456")),
-              module = "Unnamed.Test",
-              name   = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1876,12 +1852,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
@@ -1930,12 +1904,10 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
           ModuleNode,
           Tree.Node(
             Suggestion.Method(
-              externalId = None,
-              module     = "Unnamed.Test",
-              name       = "main",
-              arguments = Seq(
-                Suggestion.Argument("self", "Unnamed.Test", false, false, None)
-              ),
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
               selfType      = "Unnamed.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None

@@ -18,7 +18,7 @@ type Statistic
     ## PRIVATE
        Convert the Enso Statistic into Java equivalent.
     to_moment_statistic : SingleValue
-    to_moment_statistic = case self of
+    to_moment_statistic self = case self of
         Sum -> Moments.SUM
         Mean -> Moments.MEAN
         Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
@@ -215,7 +215,7 @@ calculate_correlation_statistics_matrix data =
    Arguments:
    - statistic: Statistic to calculate.
 Vector.Vector.compute : Statistic -> Any
-Vector.Vector.compute statistic=Count =
+Vector.Vector.compute self statistic=Count =
     self.compute_bulk [statistic] . first
 
 
@@ -224,7 +224,7 @@ Vector.Vector.compute statistic=Count =
    Arguments:
    - statistics: Set of statistics to calculate.
 Vector.Vector.compute_bulk : [Statistic] -> [Any]
-Vector.Vector.compute_bulk statistics=[Count, Sum] =
+Vector.Vector.compute_bulk self statistics=[Count, Sum] =
     compute_bulk self statistics
 
 

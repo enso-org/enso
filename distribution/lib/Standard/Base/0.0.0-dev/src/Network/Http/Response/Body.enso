@@ -20,7 +20,7 @@ type Body
 
              example_to_text = Examples.get_geo_data.to_text
     to_text : Text
-    to_text = Text.from_utf_8 self.bytes
+    to_text self = Text.from_utf_8 self.bytes
 
     ## Convert response body to Json.
 
@@ -31,7 +31,7 @@ type Body
 
              example_to_text = Examples.get_geo_data.to_json
     to_json : Json
-    to_json = Json.parse self.to_text
+    to_json self = Json.parse self.to_text
 
     ## Write response body to a File.
 
@@ -48,7 +48,7 @@ type Body
              example_to_file =
                 Examples.get_geo_data.to_file Examples.scratch_file
     to_file : File -> File
-    to_file file =
+    to_file self file =
         self.bytes.write_bytes file
         file
 

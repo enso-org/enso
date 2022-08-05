@@ -18,10 +18,10 @@ public abstract class GetPolyglotLanguageNode extends Node {
   private final Text java = Text.create("java");
   private final Text unknown = Text.create("unknown");
 
-  abstract Text execute(Object self, Object value);
+  abstract Text execute(Object value);
 
   @Specialization
-  Text doExecute(Object self, Object value) {
+  Text doExecute(Object value) {
     if (Context.get(this).getEnvironment().isHostObject(value)) {
       return java;
     } else {

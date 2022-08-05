@@ -5,6 +5,7 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::layouting;
 use crate::searcher_theme;
 use crate::GroupId;
 use crate::Layers;
@@ -42,9 +43,11 @@ struct Entry {
 #[derive(Clone, Debug, Default)]
 pub struct LabeledAnyModelProvider {
     /// Label of the data provided to be used as a header of the list.
-    pub label:   ImString,
+    pub label:                ImString,
     /// Content to be used to populate a list.
-    pub content: list_view::entry::AnyModelProvider<component_group::Entry>,
+    pub content:              list_view::entry::AnyModelProvider<component_group::Entry>,
+    /// The count of entries in the component group before filtering.
+    pub original_entry_count: usize,
 }
 
 
@@ -77,16 +80,23 @@ impl Model {
         style: &Style,
         (section, group_wrapper): &(SectionId, component_group::set::Wrapper),
     ) -> Vector2 {
-        // Ensure we do not keept the old entries in the group_wrapper.
+        // Ensure we do not keep the old entries in the group_wrapper.
         group_wrapper.remove_section(*section);
 
         const NUMBER_OF_COLUMNS: usize = 3;
         let overall_width = style.content_width - 2.0 * style.content_padding;
         let column_width = (overall_width - 2.0 * style.column_gap) / NUMBER_OF_COLUMNS as f32;
+
+        let groups = content.iter().enumerate().map(|(index, provider)| {
+            let height = provider.original_entry_count;
+            layouting::Group { index, height }
+        });
+        let arrangement = layouting::Layouter::new(groups).arrange();
+
         let content = content
             .iter()
             .enumerate()
-            .filter_map(|(index, LabeledAnyModelProvider { content, label })| {
+            .filter_map(|(index, LabeledAnyModelProvider { content, label, .. })| {
                 if content.entry_count() > 0 {
                     let view = self.app.new_view::<component_group::View>();
                     if let Some(layers) = self.layers.borrow().as_ref() {
@@ -115,7 +125,10 @@ impl Model {
         let mut heights = [-style.column_gap; NUMBER_OF_COLUMNS];
 
         for entry in content.iter() {
-            let column_index = entry.index % NUMBER_OF_COLUMNS;
+            const DEFAULT_COLUMN_INDEX: usize = 1;
+            let mut arranged = arrangement.iter().enumerate();
+            let column_index = arranged.find_map(|(i, c)| c.contains(&entry.index).then_some(i));
+            let column_index = column_index.unwrap_or(DEFAULT_COLUMN_INDEX);
             columns[column_index].push(&entry.content);
             heights[column_index] += entry.content.size.value().y + style.column_gap;
         }

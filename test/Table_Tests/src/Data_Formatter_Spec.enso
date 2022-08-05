@@ -19,19 +19,19 @@ type Custom_Type_With_To_Text
     type Custom_Type_With_To_Text field
 
     to_text : Text
-    to_text = "[CUSTOM = " + self.field.to_text + "]"
+    to_text self = "[CUSTOM = " + self.field.to_text + "]"
 
 type Custom_Type_With_Error
     type Custom_Type_With_Error
 
     to_text : Text
-    to_text = Error.throw (Illegal_State_Error "foo_error")
+    to_text self = Error.throw (Illegal_State_Error "foo_error")
 
 type Custom_Type_With_Panic
     type Custom_Type_With_Panic
 
     to_text : Text
-    to_text = Panic.throw (Illegal_State_Error "foo_panic")
+    to_text self = Panic.throw (Illegal_State_Error "foo_panic")
 
 spec =
     Test.group "DataFormatter.parse" <|

@@ -55,7 +55,7 @@ type Fitted_Model
 
     ## Display the fitted line.
     to_text : Text
-    to_text =
+    to_text self =
         equation = case self of
             Fitted_Linear_Model slope intercept _ -> slope.to_text + " * X + " + intercept.to_text
             Fitted_Exponential_Model a b _ -> a.to_text + " * (" + b.to_text + " * X).exp"
@@ -65,7 +65,7 @@ type Fitted_Model
 
     ## Use the model to predict a value.
     predict : Number -> Number
-    predict x = case self of
+    predict self x = case self of
         Fitted_Linear_Model slope intercept _ -> slope * x + intercept
         Fitted_Exponential_Model a b _ -> a * (b * x).exp
         Fitted_Logarithmic_Model a b _ -> a * x.ln + b
@@ -101,7 +101,7 @@ type Fit_Error message
 
    Converts the `Fit_Error` to a human-readable representation.
 Fit_Error.to_display_text : Text
-Fit_Error.to_display_text = "Could not fit the model: " + self.message.to_text
+Fit_Error.to_display_text self = "Could not fit the model: " + self.message.to_text
 
 ## PRIVATE
 Fit_Error.handle_java_exception =

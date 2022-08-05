@@ -47,7 +47,7 @@ type Option
 
        Convert this object into a representation understandable by the JVM.
     to_java : StandardOpenOption
-    to_java = case self of
+    to_java self = case self of
         Append            -> StandardOpenOption.APPEND
         Create            -> StandardOpenOption.CREATE
         Create_New        -> StandardOpenOption.CREATE_NEW

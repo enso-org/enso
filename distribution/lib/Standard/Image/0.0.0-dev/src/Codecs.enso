@@ -61,7 +61,7 @@ read location flags=[] =
      Write the image with applying several flags.
          Codecs.write path image [Codecs.Write_Jpeg_Quality 40, Codecs.Write_Jpeg_Progressive]
 Image.Image.write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.IO_Error
-Image.Image.write location flags=[] =
+Image.Image.write self location flags=[] =
     path = case location of
         File.File -> location.path
         _ -> location

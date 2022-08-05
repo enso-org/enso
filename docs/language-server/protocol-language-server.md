@@ -609,7 +609,7 @@ interface Tag {
   name: string;
 
   /** The tag text. */
-  text: HTMLString;
+  body: HTMLString;
 }
 
 /** The paragraph of the text.

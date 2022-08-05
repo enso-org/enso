@@ -7,13 +7,13 @@ import Standard.Table.Data.Column
 
 import Standard.Test
 
-Table.Table.should_equal expected =
+Table.Table.should_equal self expected =
     self_cols = self.columns
     that_cols = expected.columns
     self_cols.map .name . should_equal (that_cols.map .name) frames_to_skip=1
     self_cols.map .to_vector . should_equal (that_cols.map .to_vector) frames_to_skip=1
 
-Column.Column.should_equal expected =
+Column.Column.should_equal self expected =
     self.name.should_equal expected.name
     self.length.should_equal expected.length
     self.to_vector.should_equal expected.to_vector

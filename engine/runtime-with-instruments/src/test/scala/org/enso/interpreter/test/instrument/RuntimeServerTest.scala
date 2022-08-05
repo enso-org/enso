@@ -121,8 +121,8 @@ class RuntimeServerTest
       val idMainX = metadata.addItem(63, 1)
       val idMainY = metadata.addItem(73, 7)
       val idMainZ = metadata.addItem(89, 5)
-      val idFooY  = metadata.addItem(128, 8)
-      val idFooZ  = metadata.addItem(145, 5)
+      val idFooY  = metadata.addItem(133, 8)
+      val idFooZ  = metadata.addItem(150, 5)
 
       def code =
         metadata.appendToCode(
@@ -135,7 +135,7 @@ class RuntimeServerTest
             |    z = y + 5
             |    z
             |
-            |Number.foo = x ->
+            |Number.foo self = x ->
             |    y = self + 3
             |    z = y * x
             |    z

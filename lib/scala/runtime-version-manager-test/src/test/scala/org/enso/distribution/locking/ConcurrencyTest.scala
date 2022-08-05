@@ -171,8 +171,10 @@ class ConcurrencyTest
     )._2
 
   "locks" should {
-    "synchronize parallel installations " +
-    "with the same runtime".taggedAs(Flaky, Retry) in {
+    "synchronize parallel installations with the same runtime".taggedAs(
+      Flaky,
+      Retry
+    ) in {
 
       /** Two threads start installing different engines in parallel, but these
         * engines use the same runtime. The second thread is stalled on
