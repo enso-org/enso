@@ -14,6 +14,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
 use ide_view as view;
+use ide_view::component_browser::list_panel;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::project::SearcherParams;
@@ -280,15 +281,18 @@ impl Searcher {
                     new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     graph.set_node_expression <+ new_input;
 
-                    entry_selected <- list_view.selected_entry
-                        .map2(&list_view.is_header_selected, |entry, (_, is_header)| (!is_header).as_some(*entry))
-                        .filter_map(|e| *e);
+                    entry_selected <- list_view.selected.filter_map(
+                        |s| s.as_ref().map(list_panel::Selected::as_entry_id)
+                    );
                     entry_docs <- all_with(
                         &action_list_changed,
                         &entry_selected,
                         f!((_, entry) model.documentation_of_component(*entry))
                     );
-                    header_selected <- list_view.is_header_selected.filter_map(|(id, is)| is.as_some(*id));
+                    header_selected <- list_view.selected.filter_map(|s| match s {
+                        Some(list_panel::Selected::Header(g)) => Some(*g),
+                        _ => None
+                    });
                     header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
                     documentation.frp.display_documentation <+ entry_docs;
                     documentation.frp.display_documentation <+ header_docs;
