@@ -6,6 +6,7 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 /** Performs a call into a given foreign call target. */
@@ -46,6 +47,11 @@ public class ForeignMethodCallNode extends ExpressionNode {
         return args[i];
       }
     }
-    return callNode.call(args);
+    Object result = callNode.call(args);
+    if (result == null) {
+      return Context.get(this).getBuiltins().nothing().newInstance();
+    } else {
+      return result;
+    }
   }
 }

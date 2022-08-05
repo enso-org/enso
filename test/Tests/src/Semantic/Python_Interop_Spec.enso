@@ -140,6 +140,10 @@ spec =
                 Number -> True
             num_double_match.should_be_true
 
+        Test.specify "should make Python None values equal to Nothing" <|
+            py_null = make_null
+            py_null . should_equal Nothing
+
         Test.specify "should allow Enso to catch Python exceptions" <|
             value = My_Type 1 2
             result = Panic.recover Any <| value.my_throw

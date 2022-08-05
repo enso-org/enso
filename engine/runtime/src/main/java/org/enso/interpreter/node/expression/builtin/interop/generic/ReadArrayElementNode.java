@@ -13,32 +13,34 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
-        type = "Polyglot",
-        name = "read_array_element",
-        description = "Returns the size of a polyglot array.")
+    type = "Polyglot",
+    name = "read_array_element",
+    description = "Returns the size of a polyglot array.")
 public class ReadArrayElementNode extends Node {
-    private @Child
-    InteropLibrary library =
-            InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
+  private @Child InteropLibrary library =
+      InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
 
-    private @Child
-    CoercePrimitiveNode coercion = CoercePrimitiveNode.build();
-    private final BranchProfile err = BranchProfile.create();
+  private @Child CoercePrimitiveNode coercion = CoercePrimitiveNode.build();
+  private final BranchProfile err = BranchProfile.create();
 
-    Object execute(Object array, long index) {
-        try {
-            Object elem = library.readArrayElement(array, index);
-            return coercion.execute(elem);
-        } catch (UnsupportedMessageException e) {
-            err.enter();
-            Builtins builtins = Context.get(this).getBuiltins();
-            throw new PanicException(
-                    builtins.error().makeTypeError(builtins.array(), array, "array"), this);
-        } catch (InvalidArrayIndexException e) {
-            err.enter();
-            Builtins builtins = Context.get(this).getBuiltins();
-            throw new PanicException(
-                    builtins.error().makeInvalidArrayIndexError(array, index), this);
-        }
+  Object execute(Object array, long index) {
+    try {
+      Object elem = coercion.execute(library.readArrayElement(array, index));
+      if (elem == null) {
+        Builtins builtins = Context.get(this).getBuiltins();
+        return builtins.nothing().newInstance();
+      } else {
+        return elem;
+      }
+    } catch (UnsupportedMessageException e) {
+      err.enter();
+      Builtins builtins = Context.get(this).getBuiltins();
+      throw new PanicException(
+          builtins.error().makeTypeError(builtins.array(), array, "array"), this);
+    } catch (InvalidArrayIndexException e) {
+      err.enter();
+      Builtins builtins = Context.get(this).getBuiltins();
+      throw new PanicException(builtins.error().makeInvalidArrayIndexError(array, index), this);
     }
+  }
 }

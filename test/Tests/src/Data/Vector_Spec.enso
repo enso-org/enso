@@ -30,7 +30,7 @@ foreign js generate_nested_js_array = """
     return [[1, 2, 3], [4, 5]]
 
 foreign python generate_py_array = """
-    return [1, 2, 3, 4, 5]
+    return [1, 2, 3, 4, None]
 
 foreign python generate_nested_py_array = """
     return [[1, 2, 3], [4, 5]]
@@ -50,7 +50,7 @@ spec = Test.group "Vectors" <|
         built_from_js = Vector.from_polyglot_array generate_js_array
         built_from_js . should_equal [1, 2, 3, 4, 5]
         built_from_py = Vector.from_polyglot_array generate_py_array
-        built_from_py . should_equal [1, 2, 3, 4, 5]
+        built_from_py . should_equal [1, 2, 3, 4, Nothing]
 
     Test.specify "should allow creation from arrays without mutability for nested arrays" pending="Polyglot Arrays/Vector rewrite" <|
         built_from_js = Vector.from_polyglot_array generate_nested_js_array

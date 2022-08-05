@@ -64,6 +64,11 @@ public abstract class CoercePrimitiveNode extends Node {
     }
   }
 
+  @Specialization(guards = "interop.isNull(value)")
+  Object doNull(Object value, @CachedLibrary(limit = "5") InteropLibrary interop) {
+    return null;
+  }
+
   @Fallback
   Object doNonPrimitive(Object value) {
     return value;
