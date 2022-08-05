@@ -8,6 +8,14 @@ import org.enso.text.editing.model.TextEdit
 
 object TextProtocol {
 
+  /** Requests the language server to open an in-memory buffer on behalf of a
+    * given user.
+    *
+    * @param rpcSession the client opening the file.
+    * @param path the file path.
+    */
+  case class OpenBuffer(rpcSession: JsonSession, path: Path)
+
   /** Requests the language server to open a file on behalf of a given user.
     *
     * @param rpcSession the client opening the file.
