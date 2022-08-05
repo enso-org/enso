@@ -1,18 +1,12 @@
-# Catch All
-* @4e6 @MichaelMauderer @PabloBuchu @jdunkerley
-
-# Github metadata
-/.github/ @4e6 @MichaelMauderer @PabloBuchu @jdunkerley @wdanilo
-
 # Change log
 CHANGELOG.md
 
 # Rust Libraries and Related Files
-rust-toolchain.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
-rustfmt.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
-Cargo.lock @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo @kazcw
-Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo @kazcw
-/lib/rust/ @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo @kazcw
+rust-toolchain.toml @MichaelMauderer @mwu-tow @farmaazon
+rustfmt.toml @MichaelMauderer @mwu-tow @farmaazon
+Cargo.lock
+Cargo.toml
+/lib/rust/ @MichaelMauderer @mwu-tow @farmaazon @wdanilo @kazcw
 /lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon
 /lib/rust/metamodel/ @kazcw @wdanilo @jaroslavtulach
 /lib/rust/parser/ @kazcw @wdanilo @jaroslavtulach
@@ -36,13 +30,13 @@ Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo @kazcw
 /distribution/ @4e6
 /engine/ @4e6 @jaroslavtulach
 /project/ @4e6
-/test/ @4e6 @jdunkerley @radeusgd
+/test/ @jdunkerley @radeusgd
 /tools/ @4e6
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
-/distribution/lib/ @4e6 @jdunkerley @radeusgd
-/std-bits/ @4e6 @jdunkerley @radeusgd
+/distribution/lib/ @jdunkerley @radeusgd
+/std-bits/ @jdunkerley @radeusgd
 
 # Engine
 /app/engine/ @4e6

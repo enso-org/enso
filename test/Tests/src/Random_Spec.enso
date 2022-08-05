@@ -1,0 +1,44 @@
+from Standard.Base import all
+
+import Standard.Base.Random
+
+import Standard.Test
+
+spec = Test.group "Random" <|
+    Test.specify "should allow to generate random indices" <|
+        rng = Random.new 0
+        two_out_of_three = 0.up_to 100 . map _->
+            Random.random_indices 3 2 rng
+        permutations = 0.up_to 100 . map _->
+            Random.random_indices 3 3 rng
+        permutations_2 = 0.up_to 100 . map _->
+            Random.random_indices 3 100 rng
+        two_out_of_three . should_contain_the_same_elements_as [[0, 1], [0, 2], [1, 2], [1, 0], [2, 0], [2, 1]]
+
+        all_permutations = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]
+        permutations . should_contain_the_same_elements_as all_permutations
+        permutations_2 . should_contain_the_same_elements_as all_permutations
+
+        Random.random_indices 0 0 rng . should_equal []
+        Random.random_indices 0 100 rng . should_equal []
+        Random.random_indices 1 1 rng . should_equal [0]
+        Random.random_indices 1 100 rng . should_equal [0]
+        Random.random_indices 100 0 rng . should_equal []
+
+    Test.specify "should allow to select a random sample from a vector" <|
+        rng = Random.new 0
+        vector = ["A", "B", "C"]
+        shuffles = 0.up_to 100 . map _->
+            Random.sample vector 2 rng
+        shuffles . should_contain_the_same_elements_as [["A", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["C", "A"], ["C", "B"]]
+
+        overflow = Random.sample vector 100 rng
+        overflow.length . should_equal 3
+        overflow.should_contain_the_same_elements_as vector
+
+        Random.sample ["A", "A", "A"] 2 rng . should_equal ["A", "A"]
+        Random.sample ["A", "A", "A"] 0 rng . should_equal []
+        Random.sample ["A", "A", "A"] 3 rng . should_equal ["A", "A", "A"]
+        Random.sample ["A", "A", "A"] 100 rng . should_equal ["A", "A", "A"]
+
+main = Test.Suite.run_main spec
