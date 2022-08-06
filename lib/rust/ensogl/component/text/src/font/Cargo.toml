@@ -1,0 +1,15 @@
+[package]
+name = "ensogl-text-font"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-prelude = { path = "../../../../../prelude" }
+ensogl-core = { path = "../../../../core" }
+ensogl-text-msdf-sys = { path = "../../msdf-sys" }
+serde = {version = "1", features = ["rc"]}
+owned_ttf_parser = "0.15"

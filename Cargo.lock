@@ -2812,6 +2812,7 @@ dependencies = [
  "enso-types",
  "ensogl-core",
  "ensogl-text-embedded-fonts",
+ "ensogl-text-font",
  "ensogl-text-msdf-sys",
  "owned_ttf_parser",
  "serde",
@@ -2832,6 +2833,26 @@ dependencies = [
 [[package]]
 name = "ensogl-text-embedded-fonts-names"
 version = "0.1.0"
+
+[[package]]
+name = "ensogl-text-font"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "ensogl-core",
+ "ensogl-text-msdf-sys",
+ "owned_ttf_parser",
+ "serde",
+]
+
+[[package]]
+name = "ensogl-text-font-converter"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "ensogl-core",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "ensogl-text-msdf-sys"
