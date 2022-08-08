@@ -117,7 +117,8 @@ impl List {
     ) {
         use suggestion_database::entry::Kind;
         let local_scope_id = self.local_scope.component_id;
-        let lookup_component_by_id = |id| Some(Component::new_from_db(id, db.lookup(id).ok()?));
+        let lookup_component_by_id =
+            |id| Some(Component::new_from_database_entry(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
             if let component::Kind::FromDatabase { id, ref entry } = component.kind {
