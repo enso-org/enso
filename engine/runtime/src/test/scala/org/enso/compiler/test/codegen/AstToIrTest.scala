@@ -1048,6 +1048,8 @@ class AstToIrTest extends CompilerTest with Inside {
         "from project import all",
         "from Username.Bar.Quux import Baz",
         "from Username.Bar.Test import Baz, Spam",
+        "from Username.Bar.Test import Baz, Spam, foo, Bar",
+        "from Username.Bar.Test import foo, bar",
         "from username.Foo.Bar import all",
         "from username.Foo.Bar as Eggs import all hiding Spam",
         "from project.Foo.Bar import all hiding Spam, Eggs"
