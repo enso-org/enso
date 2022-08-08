@@ -461,10 +461,12 @@ mod tests {
         assert_eq!(&entry_names, expected_names);
     }
 
+    /// Test building a component list with a virtual component. The virtual component will be
+    /// inserted into an existing favorites group.
     #[test]
-    fn building_component_list_with_virtual_components_in_existing_favorites_group() {
+    fn building_component_list_with_virtual_component_in_existing_favorites_group() {
         use component::group;
-        let logger = Logger::new("tests::virtual_components_in_existing_favorites_group");
+        let logger = Logger::new("tests::virtual_component_in_existing_favorites_group");
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
@@ -488,10 +490,12 @@ mod tests {
         check_names_and_order_of_group_entries(&favorites[0], &expected_entry_names);
     }
 
+    /// Test building a component list with a virtual component. The virtual component will be
+    /// inserted into a new favorites group.
     #[test]
-    fn building_component_list_with_virtual_components_in_new_favorites_group() {
+    fn building_component_list_with_virtual_component_in_new_favorites_group() {
         use component::group;
-        let logger = Logger::new("tests::virtual_components_in_new_favorites_group");
+        let logger = Logger::new("tests::virtual_component_in_new_favorites_group");
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
