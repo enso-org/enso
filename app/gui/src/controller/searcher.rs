@@ -59,9 +59,9 @@ macro_rules! doc_html_with_summary_and_synopsis {
         concatcp!(
             "<div class='enso docs summary'><p />",
             $summary_html,
-            "</div><div class='enso docs'><div><div class='synopsis'>",
+            "</div><div class='enso docs synopsis'>",
             $synopsis_html,
-            "</div></div></div>"
+            "</div>"
         )
     };
 }
