@@ -99,6 +99,7 @@ macro_rules! define_icons {
                 $(f(Self::$variant);)*
             }
 
+            /// Get a string identifier with the icon's name.
             pub fn as_str(&self) -> &'static str {
                 match self {
                     $(Self::$variant => stringify!($variant),)*
