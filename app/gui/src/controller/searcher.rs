@@ -13,7 +13,6 @@ use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
-use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::module::QualifiedName;
@@ -54,18 +53,6 @@ const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
 /// components.
 const INPUT_COMPONENT_GROUP_NAME: &str = "Input";
 
-macro_rules! html_docs_with_summary_and_synopsis {
-    ($summary_html:literal, $synopsis_html:literal) => {
-        concatcp!(
-            "<div class='enso docs summary'><p />",
-            $summary_html,
-            "</div><div class='enso docs synopsis'>",
-            $synopsis_html,
-            "</div>"
-        )
-    };
-}
-
 thread_local! {
     /// Code snippets of default literal values of text and number type. The snippets are
     /// documented as code that can be used as input nodes. When converted to [`Component`]s and
@@ -75,23 +62,23 @@ thread_local! {
             name:               "text input",
             code:               "\"\"",
             return_type:        "Standard.Base.Data.Text.Text",
-            documentation_html: html_docs_with_summary_and_synopsis!(
-                "A text input node.",
-                "An empty text. The value can be edited and used as an input for other nodes."
-            ),
+            documentation:
+                "A text input node.\n\n\
+                An empty text. The value can be edited and used as an input for other nodes."
+            ,
             icon:               ide_view_component_group::icon::Id::TextInput,
         },
         LiteralSnippet {
             name:               "number input",
             code:               "0",
             return_type:        "Standard.Base.Data.Numbers.Number",
-            documentation_html: html_docs_with_summary_and_synopsis!(
-                "A number input node.",
-                "A zero number. The value can be edited and used as an input for other nodes."
-            ),
+            documentation: 
+                "A number input node.\n\n\
+                A zero number. The value can be edited and used as an input for other nodes."
+            ,
             icon:               ide_view_component_group::icon::Id::NumberInput,
         },
-    ].into_iter().map(|c| Rc::new(c.into())).collect_vec();
+    ].into_iter().map(|c| Rc::new(c.try_into().unwrap())).collect_vec();
 }
 
 
@@ -102,26 +89,30 @@ thread_local! {
 
 /// A snippet of code with a literal value, with description and syntax metadata.
 struct LiteralSnippet {
-    pub name:               &'static str,
-    pub code:               &'static str,
-    pub return_type:        &'static str,
-    pub documentation_html: &'static str,
-    pub icon:               ide_view_component_group::icon::Id,
+    pub name:          &'static str,
+    pub code:          &'static str,
+    pub return_type:   &'static str,
+    pub documentation: &'static str,
+    pub icon:          ide_view_component_group::icon::Id,
 }
 
-impl From<LiteralSnippet> for component::HardcodedSnippet {
-    fn from(literal: LiteralSnippet) -> component::HardcodedSnippet {
-        component::HardcodedSnippet {
+impl TryFrom<LiteralSnippet> for component::HardcodedSnippet {
+    type Error = failure::Error;
+    fn try_from(literal: LiteralSnippet) -> Result<component::HardcodedSnippet, Self::Error> {
+        let doc_parser = parser::DocParser::new()?;
+        let doc_string = literal.documentation.to_string();
+        let documentation_html = doc_parser.generate_html_doc_pure(doc_string)?;
+        Ok(component::HardcodedSnippet {
             name:               literal.name,
             code:               literal.code,
             this_arg:           None,
             argument_types:     vec![],
-            return_type:        Some(literal.return_type.try_into().unwrap()),
+            return_type:        Some(literal.return_type.try_into()?),
             imports:            vec![],
-            documentation_html: Some(literal.documentation_html),
+            documentation_html: Some(documentation_html),
             method_id:          None,
             icon:               literal.icon.as_str().into(),
-        }
+        })
     }
 }
 
