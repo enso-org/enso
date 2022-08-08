@@ -99,7 +99,7 @@ pub struct Component {
 }
 
 impl Component {
-    /// Construct a new component.
+    /// Construct a new component from a [`suggestion_database`] entry.
     ///
     /// The matching info will be filled for an empty pattern.
     pub fn new_from_db(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
