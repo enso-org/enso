@@ -570,7 +570,9 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     scalaJSUseMainModuleInitializer := false,
     scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
-    Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
+    Compile / fullOptJS / artifactPath := file("target/scala-parser.js"),
+    libraryDependencies +=
+      "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
   )
 
 lazy val `lexer-bench` =
