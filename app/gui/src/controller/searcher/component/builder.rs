@@ -9,9 +9,10 @@
 //!
 //! When using the methods of the [`List`] type to build a [`component::List`]:
 //!  - The components and groups are sorted once.
-//!  - The [`component::List::favorites`] contain only components with IDs that were passed both to
-//!    [`List::set_grouping_and_order_of_favorites`] and to
-//!    [`List::extend_list_and_allow_favorites_with_ids`].
+//!  - The [`component::List::favorites`] will contain:
+//!    - components with IDs that were passed both to [`List::set_grouping_and_order_of_favorites`]
+//!      and to [`List::extend_list_and_allow_favorites_with_ids`],
+//!    - virtual components inserted with [`List::insert_virtual_components_in_favorites_group`].
 //!  - Empty component groups are allowed in favorites. (This simplifies distributing groups of
 //!    favorites over columns in [Component Browser](crate::controller::Searcher) consistently.
 //!    That's because for the same input to [`List::set_grouping_and_order_of_favorites`], the same
@@ -169,6 +170,9 @@ impl List {
         std::mem::take(&mut self.grouping_and_order_of_favorites).into_iter().collect_vec()
     }
 
+    /// Insert virtual components at the beginning of a favorites group with given name. If a group
+    /// with that name does not exist, it is created. The virtual components are created from the
+    /// given snippets.
     pub fn insert_virtual_components_in_favorites_group(
         &mut self,
         group_name: component::group::QualifiedName,
