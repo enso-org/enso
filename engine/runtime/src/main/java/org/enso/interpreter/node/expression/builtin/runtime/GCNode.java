@@ -17,7 +17,7 @@ public abstract class GCNode extends Node {
   }
 
   @Specialization
-  Object doGc(Object self) {
+  Object doGc() {
     runGC();
     return Context.get(this).getBuiltins().nothing().newInstance();
   }

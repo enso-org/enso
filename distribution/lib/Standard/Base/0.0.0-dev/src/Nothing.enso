@@ -17,7 +17,7 @@ type Nothing
 
              1.is_nothing
     is_nothing : Boolean
-    is_nothing = True
+    is_nothing self = True
 
     ## UNSTABLE
        If this is Nothing then returns `function`.
@@ -27,4 +27,4 @@ type Nothing
 
              "Hello".if_nothing ""
     if_nothing : Any -> Any
-    if_nothing ~function = function
+    if_nothing self ~function = function

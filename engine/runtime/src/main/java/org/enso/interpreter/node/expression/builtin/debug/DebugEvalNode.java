@@ -22,8 +22,7 @@ public class DebugEvalNode extends Node {
     evalNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Stateful execute(
-      CallerInfo callerInfo, @MonadicState Object state, Object self, Object expression) {
+  Stateful execute(CallerInfo callerInfo, @MonadicState Object state, Object expression) {
     return evalNode.execute(callerInfo, state, expectTextNode.execute(expression));
   }
 }

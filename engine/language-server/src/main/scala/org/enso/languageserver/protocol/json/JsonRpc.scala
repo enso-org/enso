@@ -39,6 +39,7 @@ object JsonRpc {
     .registerRequest(ReadFile)
     .registerRequest(CreateFile)
     .registerRequest(OpenFile)
+    .registerRequest(OpenBuffer)
     .registerRequest(CloseFile)
     .registerRequest(SaveFile)
     .registerRequest(ApplyEdit)

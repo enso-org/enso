@@ -29,13 +29,12 @@ public abstract class PrintlnNode extends Node {
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
   abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Object self, @AcceptsError Object message);
+      VirtualFrame frame, @MonadicState Object state, @AcceptsError Object message);
 
   @Specialization(guards = "strings.isString(message)")
   Stateful doPrintText(
       VirtualFrame frame,
       Object state,
-      Object self,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings) {
     Context ctx = Context.get(this);
@@ -51,7 +50,6 @@ public abstract class PrintlnNode extends Node {
   Stateful doPrint(
       VirtualFrame frame,
       Object state,
-      Object self,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,

@@ -1,0 +1,39 @@
+from Standard.Base import all
+import Standard.Base.System
+
+polyglot java import java.util.Random as Java_Random
+polyglot java import org.enso.base.Random_Utils
+
+## UNSTABLE
+   Returns a default seed to use for random number generation.
+
+   The returned seed may differ between each call to this method.
+get_default_seed : Integer
+get_default_seed = System.nano_time
+
+## Constructs a new random number generator.
+new : Integer -> Random_Number_Generator
+new seed=get_default_seed =
+    Random_Number_Generator (Java_Random.new seed)
+
+type Random_Number_Generator
+    ## A random number generator.
+    type Random_Number_Generator java_random
+
+## Returns a new vector containing a random sample of the input vector, without
+   replacement.
+
+   If the amount of elements to select is larger than the input vector size, it
+   returns a random permutation of the input vector.
+sample : Vector Any -> Integer -> Random_Number_Generator -> Vector Any
+sample vector k rng =
+    new_array = Random_Utils.sample vector.to_array k rng.java_random
+    Vector.Vector new_array
+
+## Returns `k` indices sampled from the range [0, n-1] without replacement.
+
+   If `k >= n`, it will return a random permutation of the indices.
+random_indices : Integer -> Integer -> Random_Number_Generator -> Vector Integer
+random_indices n k rng =
+    array = Random_Utils.random_indices n k rng.java_random
+    Vector.Vector array

@@ -15,6 +15,7 @@ use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
 use ide_view as view;
+use ide_view::component_browser::list_panel;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::project::SearcherParams;
@@ -28,6 +29,41 @@ use ide_view_component_group::set::SectionId;
 
 pub mod provider;
 
+
+
+// ==============
+// === Errors ===
+// ==============
+
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Fail)]
+#[fail(display = "No component group with the index {:?}.", _0)]
+pub struct NoSuchComponent(view::component_browser::list_panel::EntryId);
+
+
+
+// ========================
+// === Helper Functions ===
+// ========================
+
+fn title_for_docs(suggestion: &model::suggestion_database::Entry) -> String {
+    match suggestion.kind {
+        Kind::Atom => format!("Atom {}", suggestion.name),
+        Kind::Function => format!("Function {}", suggestion.name),
+        Kind::Local => format!("Node {}", suggestion.name),
+        Kind::Method => {
+            let preposition = if suggestion.self_type.is_some() { " of " } else { "" };
+            let self_type = suggestion.self_type.as_ref().map_or("", |tp| &tp.name);
+            format!("Method {}{}{}", suggestion.name, preposition, self_type)
+        }
+        Kind::Module => format!("Module {}", suggestion.name),
+    }
+}
+
+fn doc_placeholder_for(suggestion: &model::suggestion_database::Entry) -> String {
+    let title = title_for_docs(suggestion);
+    format!("<div class=\"enso docs summary\"><p />{title} <p />No documentation available</div>")
+}
 
 
 // =============
@@ -96,7 +132,8 @@ impl Model {
         &self,
         id: view::component_browser::list_panel::EntryId,
     ) -> Option<(ViewNodeId, node_view::Expression)> {
-        let component = self.component_by_view_id(id);
+        let component: FallibleResult<_> =
+            self.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
         let new_code = component.and_then(|component| {
             let suggestion = match component.kind {
                 component::Kind::FromDb { suggestion, .. } =>
@@ -134,15 +171,22 @@ impl Model {
     fn component_by_view_id(
         &self,
         id: view::component_browser::list_panel::EntryId,
-    ) -> FallibleResult<controller::searcher::component::Component> {
+    ) -> Option<controller::searcher::component::Component> {
+        let group = self.group_by_view_id(id.group);
+        group.and_then(|group| group.get_entry(id.entry_id))
+    }
+
+    fn group_by_view_id(
+        &self,
+        id: view::component_browser::list_panel::GroupId,
+    ) -> Option<controller::searcher::component::Group> {
         let components = self.controller.components();
-        match id.group.section {
-            SectionId::Favorites =>
-                components.favorites_entry_by_index(id.group.index, id.entry_id),
-            SectionId::LocalScope => components.local_scope_entry_by_index(id.entry_id),
-            SectionId::SubModules =>
-                components.top_module_entry_by_index(id.group.index, id.entry_id),
-        }
+        let opt_group = match id.section {
+            SectionId::Favorites => components.favorites.get(id.index),
+            SectionId::LocalScope => (id.index == 0).as_some_from(|| &components.local_scope),
+            SectionId::SubModules => components.top_modules().get(id.index),
+        };
+        opt_group.cloned()
     }
 
     fn create_submodules_providers(&self) -> Vec<LabeledAnyModelProvider> {
@@ -161,30 +205,15 @@ impl Model {
         &self,
         id: Option<view::component_browser::list_panel::EntryId>,
     ) -> String {
-        let component = id.and_then(|id| self.component_by_view_id(id).ok());
+        let component = id.and_then(|id| self.component_by_view_id(id));
         if let Some(component) = component {
             match component.kind {
                 component::Kind::FromDb { suggestion, .. } => {
                     if let Some(documentation) = &suggestion.documentation_html {
-                        let title = match suggestion.kind {
-                            Kind::Atom => format!("Atom {}", suggestion.name),
-                            Kind::Function => format!("Function {}", suggestion.name),
-                            Kind::Local => format!("Node {}", suggestion.name),
-                            Kind::Method => format!(
-                                "Method {}{}{}",
-                                suggestion.name,
-                                if suggestion.self_type.is_some() { " of " } else { "" },
-                                suggestion.self_type.as_ref().map_or("", |tp| &tp.name),
-                            ),
-                            Kind::Module => format!("Module {}", suggestion.name),
-                        };
-                        format!(
-                            "<div class=\"enso docs summary\"><p />{title}</div>{documentation}"
-                        )
+                        let title = title_for_docs(&suggestion);
+                        format!("<div class=\"enso docs summary\"><p />{title}</div>{documentation}")
                     } else {
-                        provider::Action::doc_placeholder_for(&Suggestion::FromDatabase(
-                            suggestion.clone_ref(),
-                        ))
+                        doc_placeholder_for(&suggestion)
                     }
                 }
                 component::Kind::Virtual { suggestion } => {
@@ -195,6 +224,15 @@ impl Model {
                     }
                 }
             }
+        } else {
+            default()
+        }
+    }
+
+    fn documentation_of_group(&self, id: view::component_browser::list_panel::GroupId) -> String {
+        let group = self.group_by_view_id(id);
+        if let Some(group) = group {
+            iformat!("<div class=\"enso docs summary\"><p />{group.name}</div>")
         } else {
             default()
         }
@@ -260,12 +298,22 @@ impl Searcher {
                     new_input <- list_view.suggestion_accepted.filter_map(f!((e) model.suggestion_accepted(*e)));
                     graph.set_node_expression <+ new_input;
 
-                    current_docs <- all_with(
+                    entry_selected <- list_view.selected.filter_map(
+                        |s| s.as_ref().map(list_panel::Selected::as_entry_id)
+                    );
+                    entry_docs <- all_with(
                         &action_list_changed,
-                        &list_view.selected_entry,
+                        &entry_selected,
                         f!((_, entry) model.documentation_of_component(*entry))
                     );
-                    documentation.frp.display_documentation <+ current_docs;
+                    header_selected <- list_view.selected.filter_map(|s| match s {
+                        Some(list_panel::Selected::Header(g)) => Some(*g),
+                        _ => None
+                    });
+                    header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
+                    documentation.frp.display_documentation <+ entry_docs;
+                    documentation.frp.display_documentation <+ header_docs;
+                    trace documentation.frp.display_documentation;
 
                     eval_ list_view.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                 }

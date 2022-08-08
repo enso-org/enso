@@ -345,8 +345,8 @@ object Shape extends ShapeImplicit {
     path: List1[AST.Ident],
     rename: Option[AST.Ident.Cons],
     isAll: Boolean,
-    onlyNames: Option[List1[AST.Ident.Cons]],
-    hidingNames: Option[List1[AST.Ident.Cons]]
+    onlyNames: Option[List1[AST.Ident]],
+    hidingNames: Option[List1[AST.Ident]]
   ) extends SpacelessAST[T]
   final case class Export[T](
     path: List1[AST.Ident],
@@ -2395,8 +2395,8 @@ object AST {
       path: List1[AST.Ident],
       rename: Option[AST.Ident.Cons],
       isAll: Boolean,
-      onlyNames: Option[List1[AST.Ident.Cons]],
-      hidingNames: Option[List1[AST.Ident.Cons]]
+      onlyNames: Option[List1[AST.Ident]],
+      hidingNames: Option[List1[AST.Ident]]
     ): Import =
       Shape.Import[AST](path, rename, isAll, onlyNames, hidingNames)
     def unapply(t: AST): Option[
@@ -2404,8 +2404,8 @@ object AST {
         List1[AST.Ident],
         Option[AST.Ident.Cons],
         Boolean,
-        Option[List1[AST.Ident.Cons]],
-        Option[List1[AST.Ident.Cons]]
+        Option[List1[AST.Ident]],
+        Option[List1[AST.Ident]]
       )
     ] =
       Unapply[Import].run(t =>

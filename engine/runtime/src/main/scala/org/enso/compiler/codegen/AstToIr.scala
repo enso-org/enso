@@ -338,12 +338,19 @@ object AstToIr {
               IR.Error.Syntax.InvalidForeignDefinition(reason)
             )
         }
-      case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
-      case AST.Comment.any(inputAST)           => translateComment(inputAST)
+      case fs @ AstView.FunctionSugar(_, _, _) =>
+        translateExpression(fs)
+      case AST.Comment.any(inputAST) => translateComment(inputAST)
       case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>
+        val translatedArgs = arg match {
+          case AstView.FunctionParamList(items) =>
+            items.map(translateArgumentDefinition(_))
+          case _ =>
+            List(translateArgumentDefinition(arg))
+        }
         Function.Binding(
           buildName(opr),
-          List(translateArgumentDefinition(arg)),
+          translatedArgs,
           translateExpression(body),
           getIdentifiedLocation(inputAst)
         )

@@ -105,7 +105,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @param function the function to execute.
    * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
-   * @param arguments the arguments to reorder and supply to the {@code function}.
+   * @param arguments the arguments to reorder and supply to the {@code function}
    * @return the result of calling {@code function} with the supplied {@code arguments}.
    */
   @Specialization(replaces = "invokeCached")

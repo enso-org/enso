@@ -91,7 +91,7 @@ class LambdaTest extends InterpreterTest {
       val code =
         """import Standard.Base.Nothing
           |
-          |Nothing.my_method = 1
+          |Nothing.my_method self = 1
           |
           |main =
           |    f = x -> .my_method
@@ -136,7 +136,7 @@ class LambdaTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Numbers import Number
           |
-          |Number.if_then_else = ~t -> ~f -> if self == 0 then t else f
+          |Number.if_then_else self = ~t -> ~f -> if self == 0 then t else f
           |
           |main =
           |    lam = (x = 10) -> x

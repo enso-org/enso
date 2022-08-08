@@ -15,7 +15,7 @@ public class HasSourceLocationNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  boolean execute(Object self, Object value) {
+  boolean execute(Object value) {
     return library.hasSourceLocation(value);
   }
 }

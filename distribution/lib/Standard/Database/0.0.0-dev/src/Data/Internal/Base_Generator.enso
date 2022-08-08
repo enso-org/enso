@@ -4,7 +4,7 @@ import Standard.Database.Data.Sql
 import Standard.Database.Data.Internal.IR
 
 from Standard.Database.Data.Sql import Sql_Type
-from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
+from Standard.Database.Error import Unsupported_Database_Operation_Error
 
 type Internal_Dialect
 
@@ -33,7 +33,7 @@ type Internal_Dialect
 
        # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
     extend_with : Vector Any -> Internal_Dialect
-    extend_with mappings =
+    extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
         Internal_Dialect new_map self.wrap_identifier
 

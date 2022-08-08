@@ -1,6 +1,7 @@
 package org.enso.syntax2;
 
 import org.enso.syntax2.serialization.Message;
+import org.enso.syntax2.UnsupportedSyntaxException;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -25,7 +26,7 @@ public final class Parser implements AutoCloseable {
         var state = allocState();
         return new Parser(state);
     }
-    public final Tree parse(String input) {
+    public final Tree parse(String input) throws UnsupportedSyntaxException {
         try {
             byte[] inputBytes = input.getBytes("UTF-8");
             ByteBuffer inputBuf = ByteBuffer.allocateDirect(inputBytes.length);
@@ -33,7 +34,12 @@ public final class Parser implements AutoCloseable {
             var serializedTree = parseInput(state, inputBuf);
             var base = getLastInputBase(state);
             serializedTree.order(ByteOrder.LITTLE_ENDIAN);
-            return Tree.deserialize(new Message(serializedTree, inputBuf, base));
+            var message = new Message(serializedTree, inputBuf, base);
+            var result = Tree.deserialize(message);
+            if (message.getEncounteredUnsupportedSyntax()) {
+                throw new UnsupportedSyntaxException(result);
+            }
+            return result;
         } catch (java.io.UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
