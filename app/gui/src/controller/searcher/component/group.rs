@@ -124,9 +124,9 @@ impl Group {
 
     pub fn from_qualified_name_and_virtual_components(
         qualified_name: QualifiedName,
-        components: impl IntoIterator<Item = Rc<component::Virtual>>,
+        snippets: impl IntoIterator<Item = Rc<component::HardcodedSnippet>>,
     ) -> Self {
-        let entries = components.into_iter().map(Into::into).collect_vec();
+        let entries = snippets.into_iter().map(Into::into).collect_vec();
         let group_data = Data {
             project:               Some(qualified_name.project),
             name:                  qualified_name.name,

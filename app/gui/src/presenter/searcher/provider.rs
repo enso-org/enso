@@ -188,14 +188,14 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
         let icon = match component.kind {
-            component::Kind::FromDb { suggestion, .. } => {
-                let kind = suggestion.kind;
-                let icon_name = suggestion.icon_name.as_ref();
+            component::Kind::FromDb { entry, .. } => {
+                let kind = entry.kind;
+                let icon_name = entry.icon_name.as_ref();
                 let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());
                 icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)))
             }
-            component::Kind::Virtual { suggestion } => {
-                let icon = &suggestion.icon;
+            component::Kind::Virtual { snippet } => {
+                let icon = &snippet.icon;
                 let parsed_icon = component_group_view::icon::Id::from_str(icon);
                 parsed_icon.unwrap_or_else(|_| {
                     event!(ERROR, "Virtual component uses an icon name {icon} not found among predefined icons.");

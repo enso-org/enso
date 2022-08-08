@@ -67,10 +67,11 @@ macro_rules! html_docs_with_summary_and_synopsis {
 }
 
 thread_local! {
-    /// Virtual components with literal values, documented as input nodes. When added into the
-    /// [`component::List`] they help the users discover how to enter literals in code.
-    static INPUT_LITERAL_VIRTUAL_COMPONENTS: Vec<Rc<component::Virtual>> = [
-        LiteralVirtualComponent {
+    /// Code snippets of default literal values of text and number type. The snippets are
+    /// documented as code that can be used as input nodes. When converted to [`Component`]s and
+    /// added to the [`component::List`] they allow the users to easily enter literals in code.
+    static LITERAL_INPUT_NODES_SNIPPETS: Vec<Rc<component::HardcodedSnippet>> = [
+        LiteralSnippet {
             name:               "text input",
             code:               "\"\"",
             return_type:        "Standard.Base.Data.Text.Text",
@@ -80,7 +81,7 @@ thread_local! {
             ),
             icon:               ide_view_component_group::icon::Id::TextInput,
         },
-        LiteralVirtualComponent {
+        LiteralSnippet {
             name:               "number input",
             code:               "0",
             return_type:        "Standard.Base.Data.Numbers.Number",
@@ -95,12 +96,12 @@ thread_local! {
 
 
 
-// ===============================
-// === LiteralVirtualComponent ===
-// ===============================
+// ======================
+// === LiteralSnippet ===
+// ======================
 
 /// A virtual component containing a literal value in its code.
-struct LiteralVirtualComponent {
+struct LiteralSnippet {
     pub name:               &'static str,
     pub code:               &'static str,
     pub return_type:        &'static str,
@@ -108,9 +109,9 @@ struct LiteralVirtualComponent {
     pub icon:               ide_view_component_group::icon::Id,
 }
 
-impl From<LiteralVirtualComponent> for component::Virtual {
-    fn from(literal: LiteralVirtualComponent) -> component::Virtual {
-        component::Virtual {
+impl From<LiteralSnippet> for component::HardcodedSnippet {
+    fn from(literal: LiteralSnippet) -> component::HardcodedSnippet {
+        component::HardcodedSnippet {
             name:               literal.name,
             code:               literal.code,
             this_arg:           None,
@@ -1267,8 +1268,8 @@ fn component_list_builder_with_favorites<'a>(
     let base_lib_qn = project::QualifiedName::of_standard_base_library();
     let input_group_name = INPUT_COMPONENT_GROUP_NAME;
     let input_group_qn = component::group::QualifiedName::new(base_lib_qn, input_group_name);
-    let components = INPUT_LITERAL_VIRTUAL_COMPONENTS.with(|c| c.clone());
-    builder.insert_virtual_components_in_favorites_group(input_group_qn, components);
+    let snippets = LITERAL_INPUT_NODES_SNIPPETS.with(|c| c.clone());
+    builder.insert_virtual_components_in_favorites_group(input_group_qn, snippets);
     builder
 }
 

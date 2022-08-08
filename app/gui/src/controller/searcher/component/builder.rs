@@ -120,17 +120,17 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
-            if let component::Kind::FromDb { id, ref suggestion } = component.kind {
+            if let component::Kind::FromDb { id, ref entry } = component.kind {
                 self.allowed_favorites.insert(*id);
                 let mut component_inserted_somewhere = false;
-                if let Some(parent_module) = suggestion.parent_module() {
+                if let Some(parent_module) = entry.parent_module() {
                     if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
                         parent_group.content.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
                         let parent_id = parent_group.content.component_id;
                         let in_local_scope =
                             parent_id == local_scope_id && local_scope_id.is_some();
-                        let not_module = suggestion.kind != Kind::Module;
+                        let not_module = entry.kind != Kind::Module;
                         if in_local_scope && not_module {
                             self.local_scope.entries.borrow_mut().push(component.clone_ref());
                         }
@@ -172,7 +172,7 @@ impl List {
     pub fn insert_virtual_components_in_favorites_group(
         &mut self,
         group_name: component::group::QualifiedName,
-        virtual_components: impl IntoIterator<Item = Rc<component::Virtual>>,
+        snippets: impl IntoIterator<Item = Rc<component::HardcodedSnippet>>,
     ) {
         use component::Group;
         let mut favorites_grouping = self.take_grouping_and_order_of_favorites_as_vec();
@@ -180,10 +180,9 @@ impl List {
             .iter_mut()
             .find(|g| g.qualified_name().as_ref() == Some(&group_name));
         if let Some(group) = group_with_matching_name {
-            group.insert_entries(&virtual_components.into_iter().map(Into::into).collect_vec());
+            group.insert_entries(&snippets.into_iter().map(Into::into).collect_vec());
         } else {
-            let group =
-                Group::from_qualified_name_and_virtual_components(group_name, virtual_components);
+            let group = Group::from_qualified_name_and_virtual_components(group_name, snippets);
             favorites_grouping.insert(0, group);
         }
         self.grouping_and_order_of_favorites = component::group::List::new(favorites_grouping);

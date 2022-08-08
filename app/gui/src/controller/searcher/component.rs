@@ -30,8 +30,8 @@ pub type Id = suggestion_database::entry::Id;
 /// Information how the component matches the filtering pattern.
 pub type MatchInfo = controller::searcher::action::MatchInfo;
 
-/// A virtual component is hardcoded and not present in the [`suggestion_database`].
-pub type Virtual = controller::searcher::action::hardcoded::Suggestion;
+/// A hardcoded snippet of code with a description and syntactic metadata.
+pub type HardcodedSnippet = controller::searcher::action::hardcoded::Suggestion;
 
 
 // =============
@@ -60,20 +60,20 @@ pub enum Order {
 // === Kind ===
 // ============
 
-/// The kind of the suggestion offered by a [`Component`].
+/// The kind of a [`Component`].
 #[derive(Clone, CloneRef, Debug)]
 pub enum Kind {
-    /// A suggestion from the [`suggestion_database`].
+    /// A component from the [`suggestion_database`].
     FromDb {
-        /// The ID of the suggestion in the [`suggestion_database`].
+        /// The ID of the component in the [`suggestion_database`].
         id: Immutable<Id>,
-        /// The contents of the suggestion.
-        suggestion: Rc<suggestion_database::Entry>,
+        /// The component's entry in the [`suggestion_database`].
+        entry: Rc<suggestion_database::Entry>,
     },
-    /// A virtual (hardcoded) suggestion.
+    /// A virtual component contains a hardcoded snippet of code.
     Virtual {
-        /// The contents of the suggestion.
-        suggestion: Rc<Virtual>,
+        /// A hardcoded snippet of code.
+        snippet: Rc<HardcodedSnippet>,
     },
 }
 
@@ -102,8 +102,8 @@ impl Component {
     /// Construct a new component.
     ///
     /// The matching info will be filled for an empty pattern.
-    pub fn new(id: Id, suggestion: Rc<suggestion_database::Entry>) -> Self {
-        let kind = Kind::FromDb { id: Immutable(id), suggestion };
+    pub fn new(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
+        let kind = Kind::FromDb { id: Immutable(id), entry };
         Self { kind, match_info: default() }
     }
 
@@ -114,8 +114,8 @@ impl Component {
 
     pub fn name(&self) -> &str {
         match &self.kind {
-            Kind::FromDb { suggestion, .. } => suggestion.name.as_str(),
-            Kind::Virtual { suggestion } => suggestion.name,
+            Kind::FromDb { entry, .. } => entry.name.as_str(),
+            Kind::Virtual { snippet } => snippet.name,
         }
     }
 
@@ -136,10 +136,10 @@ impl Component {
     /// Currently, only modules can be entered, and then the Browser should display content and
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
-        use suggestion_database::entry::Kind as SuggestionKind;
+        use suggestion_database::entry::Kind as EntryKind;
         matches!(
             &self.kind,
-            Kind::FromDb { suggestion, .. } if suggestion.kind == SuggestionKind::Module
+            Kind::FromDb { entry, .. } if entry.kind == EntryKind::Module
         )
     }
 
@@ -160,19 +160,19 @@ impl Component {
     }
 }
 
-impl From<Rc<Virtual>> for Component {
-    fn from(suggestion: Rc<Virtual>) -> Self {
-        Self { kind: Kind::Virtual { suggestion }, match_info: default() }
+impl From<Rc<HardcodedSnippet>> for Component {
+    fn from(snippet: Rc<HardcodedSnippet>) -> Self {
+        Self { kind: Kind::Virtual { snippet }, match_info: default() }
     }
 }
 
 impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
-            Kind::FromDb { suggestion, .. } => {
-                let name = suggestion.name.from_case(Case::Snake).to_case(Case::Lower);
-                let self_type_ref = suggestion.self_type.as_ref();
-                let self_type_not_here = self_type_ref.filter(|t| *t != &suggestion.module);
+            Kind::FromDb { entry, .. } => {
+                let name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
+                let self_type_ref = entry.self_type.as_ref();
+                let self_type_not_here = self_type_ref.filter(|t| *t != &entry.module);
                 if let Some(self_type) = self_type_not_here {
                     let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
                     write!(f, "{} {}", self_name, name)
@@ -180,7 +180,7 @@ impl Display for Component {
                     write!(f, "{}", name)
                 }
             }
-            Kind::Virtual { suggestion } => write!(f, "{}", suggestion.name),
+            Kind::Virtual { snippet } => write!(f, "{}", snippet.name),
         }
     }
 }
