@@ -54,7 +54,7 @@ const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
 /// components.
 const INPUT_COMPONENT_GROUP_NAME: &str = "Input";
 
-macro_rules! doc_html_with_summary_and_synopsis {
+macro_rules! html_docs_with_summary_and_synopsis {
     ($summary_html:literal, $synopsis_html:literal) => {
         concatcp!(
             "<div class='enso docs summary'><p />",
@@ -74,7 +74,7 @@ thread_local! {
             name:               "text input",
             code:               "\"\"",
             return_type:        "Standard.Base.Data.Text.Text",
-            documentation_html: doc_html_with_summary_and_synopsis!(
+            documentation_html: html_docs_with_summary_and_synopsis!(
                 "A text input node.",
                 "An empty text. The value can be edited and used as an input for other nodes."
             ),
@@ -84,7 +84,7 @@ thread_local! {
             name:               "number input",
             code:               "0",
             return_type:        "Standard.Base.Data.Numbers.Number",
-            documentation_html: doc_html_with_summary_and_synopsis!(
+            documentation_html: html_docs_with_summary_and_synopsis!(
                 "A number input node.",
                 "A zero number. The value can be edited and used as an input for other nodes."
             ),
