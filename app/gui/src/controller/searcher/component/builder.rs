@@ -479,14 +479,14 @@ mod tests {
             components: vec![qn_of_db_entry_0.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        let virtual_component = component::Virtual { name: "Virtual Component", ..default() };
-        let vc_iter = std::iter::once(Rc::new(virtual_component));
-        builder.insert_virtual_components_in_favorites_group(qn_of_group.clone(), vc_iter);
+        let snippet = component::HardcodedSnippet { name: "test snippet", ..default() };
+        let snippet_iter = std::iter::once(Rc::new(snippet));
+        builder.insert_virtual_components_in_favorites_group(qn_of_group.clone(), snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 1, "Expected one group of favorites, got: {:?}.", favorites);
-        let expected_entry_names = ["Virtual Component", "TopModule1"];
+        let expected_entry_names = ["test snippet", "TopModule1"];
         check_names_and_order_of_group_entries(&favorites[0], &expected_entry_names);
     }
 
@@ -508,17 +508,17 @@ mod tests {
             components: vec![qn_of_db_entry_0.clone()],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        let virtual_component = component::Virtual { name: "Virtual Component", ..default() };
-        let vc_iter = std::iter::once(Rc::new(virtual_component));
+        let snippet = component::HardcodedSnippet { name: "test snippet", ..default() };
+        let snippet_iter = std::iter::once(Rc::new(snippet));
         let qn_of_group_2 = group::QualifiedName::new(qn_of_base_lib, "Group 2");
-        builder.insert_virtual_components_in_favorites_group(qn_of_group_2.clone(), vc_iter);
+        builder.insert_virtual_components_in_favorites_group(qn_of_group_2.clone(), snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
         let list = builder.build();
         let favorites = list.favorites;
         assert_eq!(favorites.len(), 2, "Expected two groups of favorites, got: {:?}.", favorites);
         let group_at_0 = &favorites[0];
         assert_eq!(group_at_0.name, "Group 2");
-        check_names_and_order_of_group_entries(group_at_0, &["Virtual Component"]);
+        check_names_and_order_of_group_entries(group_at_0, &["test snippet"]);
         let group_at_1 = &favorites[1];
         assert_eq!(group_at_1.name, "Group 1");
         check_names_and_order_of_group_entries(group_at_1, &["TopModule1"]);
