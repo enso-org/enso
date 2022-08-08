@@ -66,7 +66,7 @@ pub enum Kind {
     /// A component from the [`suggestion_database`].
     FromDatabase {
         /// The ID of the component in the [`suggestion_database`].
-        id: Immutable<Id>,
+        id:    Immutable<Id>,
         /// The component's entry in the [`suggestion_database`].
         entry: Rc<suggestion_database::Entry>,
     },

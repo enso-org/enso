@@ -72,7 +72,7 @@ thread_local! {
             name:               "number input",
             code:               "0",
             return_type:        "Standard.Base.Data.Numbers.Number",
-            documentation: 
+            documentation:
                 "A number input node.\n\n\
                 A zero number. The value can be edited and used as an input for other nodes."
             ,

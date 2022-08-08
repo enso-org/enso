@@ -138,8 +138,7 @@ impl Model {
             let suggestion = match component.kind {
                 component::Kind::FromDatabase { entry, .. } =>
                     Suggestion::FromDatabase(entry.clone_ref()),
-                component::Kind::Virtual { snippet } =>
-                    Suggestion::Hardcoded(snippet.clone_ref()),
+                component::Kind::Virtual { snippet } => Suggestion::Hardcoded(snippet.clone_ref()),
             };
             self.controller.use_suggestion(suggestion)
         });
@@ -211,7 +210,9 @@ impl Model {
                 component::Kind::FromDatabase { entry, .. } => {
                     if let Some(documentation) = &entry.documentation_html {
                         let title = title_for_docs(&entry);
-                        format!("<div class=\"enso docs summary\"><p />{title}</div>{documentation}")
+                        format!(
+                            "<div class=\"enso docs summary\"><p />{title}</div>{documentation}"
+                        )
                     } else {
                         doc_placeholder_for(&entry)
                     }
