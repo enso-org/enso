@@ -60,10 +60,21 @@ pub enum Order {
 // === Kind ===
 // ============
 
+/// The kind of the suggestion offered by a [`Component`].
 #[derive(Clone, CloneRef, Debug)]
 pub enum Kind {
-    FromDb { id: Immutable<Id>, suggestion: Rc<suggestion_database::Entry> },
-    Virtual { suggestion: Rc<Virtual> },
+    /// A suggestion from the [`suggestion_database`].
+    FromDb {
+        /// The ID of the suggestion in the [`suggestion_database`].
+        id: Immutable<Id>,
+        /// The contents of the suggestion.
+        suggestion: Rc<suggestion_database::Entry>,
+    },
+    /// A virtual (hardcoded) suggestion.
+    Virtual {
+        /// The contents of the suggestion.
+        suggestion: Rc<Virtual>,
+    },
 }
 
 
