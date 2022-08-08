@@ -122,7 +122,9 @@ impl Group {
         Self::from_name_and_project_and_id(name, Some(project_name), Some(component_id))
     }
 
-    pub fn from_qualified_name_and_virtual_components(
+    /// Create a group with given name and containing virtual components created from given
+    /// snippets.
+    pub fn from_qualified_name_and_snippets(
         qualified_name: QualifiedName,
         snippets: impl IntoIterator<Item = Rc<component::HardcodedSnippet>>,
     ) -> Self {

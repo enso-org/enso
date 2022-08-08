@@ -188,7 +188,7 @@ impl List {
         if let Some(group) = group_with_matching_name {
             group.insert_entries(&snippets.into_iter().map(Into::into).collect_vec());
         } else {
-            let group = Group::from_qualified_name_and_virtual_components(group_name, snippets);
+            let group = Group::from_qualified_name_and_snippets(group_name, snippets);
             favorites_grouping.insert(0, group);
         }
         self.grouping_and_order_of_favorites = component::group::List::new(favorites_grouping);
