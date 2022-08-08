@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::controller::searcher::action::MatchInfo;
 use crate::controller::searcher::component;
-use crate::model::suggestion_database;
 use crate::presenter;
 
 use enso_text as text;
