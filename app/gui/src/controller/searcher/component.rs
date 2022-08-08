@@ -112,6 +112,7 @@ impl Component {
         self.to_string()
     }
 
+    /// The name of the component.
     pub fn name(&self) -> &str {
         match &self.kind {
             Kind::FromDatabase { entry, .. } => entry.name.as_str(),
@@ -119,6 +120,7 @@ impl Component {
         }
     }
 
+    /// The [`Id`] of the component in the [`suggestion_database`].
     pub fn id(&self) -> Option<Id> {
         match self.kind {
             Kind::FromDatabase { id, .. } => Some(*id),
