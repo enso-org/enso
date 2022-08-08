@@ -139,10 +139,7 @@ impl Component {
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
         use suggestion_database::entry::Kind as EntryKind;
-        matches!(
-            &self.kind,
-            Kind::FromDatabase { entry, .. } if entry.kind == EntryKind::Module
-        )
+        matches!(&self.kind, Kind::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
     }
 
     /// Update matching info.
