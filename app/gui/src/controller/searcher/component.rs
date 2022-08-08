@@ -169,14 +169,14 @@ impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
             Kind::FromDatabase { entry, .. } => {
-                let name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
+                let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
                 let self_type_ref = entry.self_type.as_ref();
                 let self_type_not_here = self_type_ref.filter(|t| *t != &entry.module);
                 if let Some(self_type) = self_type_not_here {
                     let self_name = self_type.name.from_case(Case::Snake).to_case(Case::Title);
-                    write!(f, "{} {}", self_name, name)
+                    write!(f, "{} {}", self_name, entry_name)
                 } else {
-                    write!(f, "{}", name)
+                    write!(f, "{}", entry_name)
                 }
             }
             Kind::Virtual { snippet } => write!(f, "{}", snippet.name),
