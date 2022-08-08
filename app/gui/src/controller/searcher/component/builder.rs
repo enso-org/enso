@@ -141,7 +141,7 @@ impl List {
             let top_module = parent_module.top_module();
             if let Some(top_group) = self.lookup_module_group(db, &top_module) {
                 if let Some(flatten_group) = &mut top_group.flattened_content {
-                    push_component_to_group_and_set_pushed(&flatten_group);
+                    push_component_to_group_and_set_pushed(flatten_group);
                 }
             }
             component_pushed_somewhere
@@ -494,12 +494,12 @@ mod tests {
             project:    qn_of_group.project.clone(),
             name:       qn_of_group.name.clone(),
             color:      None,
-            components: vec![qn_of_db_entry_0.clone()],
+            components: vec![qn_of_db_entry_0],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let snippet = component::HardcodedSnippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
-        builder.insert_virtual_components_in_favorites_group(qn_of_group.clone(), snippet_iter);
+        builder.insert_virtual_components_in_favorites_group(qn_of_group, snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
         let list = builder.build();
         let favorites = list.favorites;
@@ -521,15 +521,15 @@ mod tests {
         let qn_of_group_1 = group::QualifiedName::new(qn_of_base_lib.clone(), "Group 1");
         let groups = [execution_context::ComponentGroup {
             project:    qn_of_group_1.project.clone(),
-            name:       qn_of_group_1.name.clone(),
+            name:       qn_of_group_1.name,
             color:      None,
-            components: vec![qn_of_db_entry_0.clone()],
+            components: vec![qn_of_db_entry_0],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let snippet = component::HardcodedSnippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         let qn_of_group_2 = group::QualifiedName::new(qn_of_base_lib, "Group 2");
-        builder.insert_virtual_components_in_favorites_group(qn_of_group_2.clone(), snippet_iter);
+        builder.insert_virtual_components_in_favorites_group(qn_of_group_2, snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
         let list = builder.build();
         let favorites = list.favorites;
