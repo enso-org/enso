@@ -103,7 +103,8 @@ impl Deref for Group {
 }
 
 impl Group {
-    /// Create a named empty group referring to module with specified component ID.
+    /// Create a named empty group referring to module with specified component ID and in the given
+    /// project.
     pub fn from_name_and_project_and_id(
         name: impl Into<ImString>,
         project: Option<project::QualifiedName>,
