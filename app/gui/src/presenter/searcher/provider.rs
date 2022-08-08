@@ -188,7 +188,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
         let label = component.label();
         let highlighted = bytes_of_matched_letters(&*match_info, &label);
         let icon = match component.kind {
-            component::Kind::FromDb { entry, .. } => {
+            component::Kind::FromDatabase { entry, .. } => {
                 let kind = entry.kind;
                 let icon_name = entry.icon_name.as_ref();
                 let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());

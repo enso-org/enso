@@ -136,7 +136,7 @@ impl Model {
             self.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
         let new_code = component.and_then(|component| {
             let suggestion = match component.kind {
-                component::Kind::FromDb { entry, .. } =>
+                component::Kind::FromDatabase { entry, .. } =>
                     Suggestion::FromDatabase(entry.clone_ref()),
                 component::Kind::Virtual { snippet } =>
                     Suggestion::Hardcoded(snippet.clone_ref()),
@@ -208,7 +208,7 @@ impl Model {
         let component = id.and_then(|id| self.component_by_view_id(id));
         if let Some(component) = component {
             match component.kind {
-                component::Kind::FromDb { entry, .. } => {
+                component::Kind::FromDatabase { entry, .. } => {
                     if let Some(documentation) = &entry.documentation_html {
                         let title = title_for_docs(&entry);
                         format!("<div class=\"enso docs summary\"><p />{title}</div>{documentation}")

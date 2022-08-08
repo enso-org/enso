@@ -121,7 +121,7 @@ impl List {
         let lookup_component_by_id = |id| Some(Component::new_from_db(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
-            if let component::Kind::FromDb { id, ref entry } = component.kind {
+            if let component::Kind::FromDatabase { id, ref entry } = component.kind {
                 self.allowed_favorites.insert(*id);
                 let mut component_inserted_somewhere = false;
                 if let Some(parent_module) = entry.parent_module() {
@@ -148,7 +148,11 @@ impl List {
                     self.all_components.push(component);
                 }
             } else {
-                event!(ERROR, "The suggestion database returned a component of a non-FromDb kind: {component:?}");
+                let msg = iformat!(
+                    "The suggestion database returned a component of a non-FromDatabase kind: "
+                    component;?
+                );
+                event!(ERROR, "{msg}");
             }
         }
     }
@@ -249,7 +253,7 @@ impl List {
         let mut favorites_groups = self.take_grouping_and_order_of_favorites_as_vec();
         for group in favorites_groups.iter_mut() {
             group.retain_entries(|e| match e.kind {
-                component::Kind::FromDb { id, .. } => self.allowed_favorites.contains(&id),
+                component::Kind::FromDatabase { id, .. } => self.allowed_favorites.contains(&id),
                 component::Kind::Virtual { .. } => true,
             });
             self.all_components.extend(group.entries.borrow().iter().cloned());

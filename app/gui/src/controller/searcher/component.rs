@@ -64,7 +64,7 @@ pub enum Order {
 #[derive(Clone, CloneRef, Debug)]
 pub enum Kind {
     /// A component from the [`suggestion_database`].
-    FromDb {
+    FromDatabase {
         /// The ID of the component in the [`suggestion_database`].
         id: Immutable<Id>,
         /// The component's entry in the [`suggestion_database`].
@@ -103,7 +103,7 @@ impl Component {
     ///
     /// The matching info will be filled for an empty pattern.
     pub fn new_from_db(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
-        let kind = Kind::FromDb { id: Immutable(id), entry };
+        let kind = Kind::FromDatabase { id: Immutable(id), entry };
         Self { kind, match_info: default() }
     }
 
@@ -114,14 +114,14 @@ impl Component {
 
     pub fn name(&self) -> &str {
         match &self.kind {
-            Kind::FromDb { entry, .. } => entry.name.as_str(),
+            Kind::FromDatabase { entry, .. } => entry.name.as_str(),
             Kind::Virtual { snippet } => snippet.name,
         }
     }
 
     pub fn id(&self) -> Option<Id> {
         match self.kind {
-            Kind::FromDb { id, .. } => Some(*id),
+            Kind::FromDatabase { id, .. } => Some(*id),
             Kind::Virtual { .. } => None,
         }
     }
@@ -139,7 +139,7 @@ impl Component {
         use suggestion_database::entry::Kind as EntryKind;
         matches!(
             &self.kind,
-            Kind::FromDb { entry, .. } if entry.kind == EntryKind::Module
+            Kind::FromDatabase { entry, .. } if entry.kind == EntryKind::Module
         )
     }
 
@@ -169,7 +169,7 @@ impl From<Rc<HardcodedSnippet>> for Component {
 impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
-            Kind::FromDb { entry, .. } => {
+            Kind::FromDatabase { entry, .. } => {
                 let name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
                 let self_type_ref = entry.self_type.as_ref();
                 let self_type_not_here = self_type_ref.filter(|t| *t != &entry.module);
