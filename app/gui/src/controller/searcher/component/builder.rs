@@ -468,8 +468,8 @@ mod tests {
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
-        let qn_of_base_project = project::QualifiedName::of_standard_base_library();
-        let qn_of_group = group::QualifiedName::new(qn_of_base_project, "Group");
+        let qn_of_base_lib = project::QualifiedName::of_standard_base_library();
+        let qn_of_group = group::QualifiedName::new(qn_of_base_lib, "Group");
         let groups = [execution_context::ComponentGroup {
             project:    qn_of_group.project.clone(),
             name:       qn_of_group.name.clone(),
@@ -495,8 +495,8 @@ mod tests {
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
-        let qn_of_base_project = project::QualifiedName::of_standard_base_library();
-        let qn_of_group_1 = group::QualifiedName::new(qn_of_base_project.clone(), "Group 1");
+        let qn_of_base_lib = project::QualifiedName::of_standard_base_library();
+        let qn_of_group_1 = group::QualifiedName::new(qn_of_base_lib.clone(), "Group 1");
         let groups = [execution_context::ComponentGroup {
             project:    qn_of_group_1.project.clone(),
             name:       qn_of_group_1.name.clone(),
@@ -506,7 +506,7 @@ mod tests {
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let virtual_component = component::Virtual { name: "Virtual Component", ..default() };
         let vc_iter = std::iter::once(Rc::new(virtual_component));
-        let qn_of_group_2 = group::QualifiedName::new(qn_of_base_project, "Group 2");
+        let qn_of_group_2 = group::QualifiedName::new(qn_of_base_lib, "Group 2");
         builder.insert_virtual_components_in_favorites_group(qn_of_group_2.clone(), vc_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
         let list = builder.build();
