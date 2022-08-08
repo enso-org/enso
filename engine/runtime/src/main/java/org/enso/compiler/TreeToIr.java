@@ -5,11 +5,15 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
+import org.enso.compiler.core.IR$Error$Syntax$InterfaceDefinition$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidTypeDefinition$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
+import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
+import org.enso.compiler.core.IR$Module$Scope$Definition$Atom;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
+import org.enso.compiler.core.IR$Module$Scope$Definition$Type;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR.IdentifiedLocation;
@@ -75,11 +79,8 @@ final class TreeToIr {
               bindings = cons(m, bindings);
             }
             case Tree.TypeDef def -> {
-              var key = buildName(def);
-              var name = buildName(def.getName());
-              var params = def.getParams();
-              var constructors = def.getConstructors();
-              var translatedBody = translateTypeBody(def);
+              var t = translateModuleSymbol(def);
+              bindings= cons(t, bindings);
             }
             case null -> {
             }
@@ -87,7 +88,7 @@ final class TreeToIr {
             }
           }
         }
-        yield new IR.Module(nil(), nil(), bindings, getIdentifiedLocation(module), meta(), diag());
+        yield new IR.Module(nil(), nil(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
       }
       default -> throw new UnhandledEntity(module, "translateModule");
     };
@@ -182,48 +183,61 @@ final class TreeToIr {
     *
     * @param inputAst the definition to be translated
     * @return the [[IR]] representation of `inputAST`
-
-  def translateModuleSymbol(inputAst: AST): Module.Scope.Definition = {
+    */
+  IR$Module$Scope$Definition translateModuleSymbol(Tree inputAst) {
+    return switch (inputAst) {
+    /*
     inputAst match {
       case AST.Ident.Annotation.any(annotation) =>
         IR.Name.Annotation(annotation.name, getIdentifiedLocation(annotation))
-      case AstView.Atom(consName, args) =>
-        val newArgs = args.map(translateArgumentDefinition(_))
-
-        if (newArgs.exists(_.suspended)) {
-          val ast = newArgs
-            .zip(args)
-            .collect { case (arg, ast) if arg.suspended => ast }
-            .head
-          Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
+      */
+      case Tree.TypeDef def -> {
+        var typeName = buildName(def.getName());
+        var translatedBody = translateTypeBody(def, true);
+        if (translatedBody.isEmpty()) {
+          // atom
+          List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
+          /*
+          if (newArgs.exists(_.suspended)) {
+            val ast = newArgs
+              .zip(args)
+              .collect { case (arg, ast) if arg.suspended => ast }
+              .head
+            Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
+          } else {
+          */
+          yield new IR$Module$Scope$Definition$Atom(
+            typeName,
+            args,
+            getIdentifiedLocation(inputAst),
+            meta(), diag()
+          );
         } else {
-          Module.Scope.Definition.Atom(
-            buildName(consName),
-            newArgs,
-            getIdentifiedLocation(inputAst)
-          )
+          // type
+          var containsAtomDefOrInclude = switch (translatedBody.head()) {
+            case IR$Module$Scope$Definition$Atom atom -> true;
+            case IR$Module$Scope$Definition$Type type -> true;
+            case IR$Name$Literal lit -> true;
+            default -> false;
+          };
+          var hasArgs = !def.getParams().isEmpty();
+          if (containsAtomDefOrInclude && !hasArgs) {
+            List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
+            yield new IR$Module$Scope$Definition$Type(
+              typeName,
+              args,
+              translatedBody,
+              getIdentifiedLocation(inputAst),
+              meta(), diag()
+            );
+          } else if (!containsAtomDefOrInclude) {
+            yield new IR$Error$Syntax(null, IR$Error$Syntax$InterfaceDefinition$.MODULE$, meta(), diag());
+          } else {
+            yield new IR$Error$Syntax(null, IR$Error$Syntax$InvalidTypeDefinition$.MODULE$, meta(), diag());
+          }
         }
-      case AstView.TypeDef(typeName, args, body) =>
-        val translatedBody = translateTypeBody(body)
-        val containsAtomDefOrInclude = translatedBody.exists {
-          case _: IR.Module.Scope.Definition.Atom => true
-          case _: IR.Name.Literal                 => true
-          case _                                  => false
-        }
-        val hasArgs = args.nonEmpty
-
-        if (containsAtomDefOrInclude && !hasArgs) {
-          Module.Scope.Definition.Type(
-            buildName(typeName),
-            args.map(translateArgumentDefinition(_)),
-            translatedBody,
-            getIdentifiedLocation(inputAst)
-          )
-        } else if (!containsAtomDefOrInclude) {
-          Error.Syntax(inputAst, Error.Syntax.InterfaceDefinition)
-        } else {
-          Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
-        }
+      }
+        /*
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val nameId: AST.Ident = name match {
           case AST.Ident.Var.any(name) => name
@@ -332,6 +346,18 @@ final class TreeToIr {
         }
       case _ => Error.Syntax(inputAst, Error.Syntax.UnexpectedExpression)
     }
+    */
+      default -> new IR$Error$Syntax(null, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
+    };
+  }
+
+  private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<Tree> params) {
+      List<IR.DefinitionArgument> args = nil();
+      for (var p : params) {
+        var m = translateArgumentDefinition(p, false);
+        args = cons(m, args);
+      }
+    return args.reverse();
   }
 
   /** Translates the body of a type expression.
@@ -339,20 +365,13 @@ final class TreeToIr {
     * @param body the body to be translated
     * @return the [[IR]] representation of `body`
     */
-  private scala.collection.immutable.List<IR> translateTypeBody(Tree.TypeDef def) {
+  private scala.collection.immutable.List<IR> translateTypeBody(Tree.TypeDef def, boolean found) {
     List<IR> result = nil();
-    boolean found = false;
     for (var line : def.getBlock()) {
       var expr = translateTypeBodyExpression(line);
-      result = cons(expr, nil());
-      found = true;
+      result = cons(expr, result);
     }
-    if (!found) {
-      var err = new IR$Error$Syntax(null, IR$Error$Syntax$InvalidTypeDefinition$.MODULE$, meta(), diag());
-      return cons(err, result);
-    } else {
-      return result;
-    }
+    return result.reverse();
   }
 
   /** Translates any expression that can be found in the body of a type
@@ -368,12 +387,15 @@ final class TreeToIr {
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
     */
+    return switch (inputAst.getExpression()) {
     /*
     inputAst match {
       case AST.Ident.Annotation.any(ann) =>
         IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
       case AST.Ident.Cons.any(include) => translateIdent(include)
-      case atom @ AstView.Atom(_, _)   => translateModuleSymbol(atom)
+      */
+      case Tree.TypeDef def -> translateModuleSymbol(def);
+      /*
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
             header,
@@ -419,7 +441,9 @@ final class TreeToIr {
         IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
     }
     */
-    return new IR$Error$Syntax(null, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
+      default ->
+        new IR$Error$Syntax(null, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
+    };
   }
 
   /*
@@ -828,13 +852,12 @@ final class TreeToIr {
     * @param arg the argument to translate
     * @param isSuspended `true` if the argument is suspended, otherwise `false`
     * @return the [[IR]] representation of `arg`
-
-  @tailrec
-  def translateArgumentDefinition(
-    arg: AST,
-    isSuspended: Boolean = false
-  ): DefinitionArgument = {
-    arg match {
+    * @tailrec
+    */
+  IR.DefinitionArgument translateArgumentDefinition(Tree arg, boolean isSuspended) {
+    return switch (arg) {
+      case null -> null;
+      /*
       case AstView.AscribedArgument(name, ascType, mValue, isSuspended) =>
         translateIdent(name) match {
           case name: IR.Name =>
@@ -889,9 +912,9 @@ final class TreeToIr {
           case _ =>
             throw new UnhandledEntity(arg, "translateArgumentDefinition")
         }
-      case _ =>
-        throw new UnhandledEntity(arg, "translateArgumentDefinition")
-    }
+      */
+      default -> throw new UnhandledEntity(arg, "translateArgumentDefinition");
+    };
   }
 
   /** Translates a call-site function argument from its [[AST]] representation
@@ -1082,7 +1105,7 @@ final class TreeToIr {
     */
   IR.Expression translateIdent(Tree identifier, boolean isMethod) {
     return switch (identifier) {
-      case Tree.Ident id -> buildName(id, isMethod);
+      case Tree.Ident id -> buildName(id, id.getToken(), isMethod);
       default -> throw new UnhandledEntity(identifier, "translateIdent");
     };
     /*
@@ -1311,18 +1334,21 @@ final class TreeToIr {
   }
   */
   private IR$Name$Literal buildName(Tree ident) {
-    return buildName(ident, false);
-  }
-  private IR$Name$Literal buildName(Tree ident, boolean isMethod) {
     return switch (ident) {
-      case Tree.Ident id -> new IR$Name$Literal(
-        id.getToken().codeRepr(),
-        isMethod , // || AST.Opr.any.unapply(ident).isDefined,
-        getIdentifiedLocation(ident),
-        meta(), diag()
-      );
+      case Tree.Ident id -> buildName(id, id.getToken());
       default -> throw new UnhandledEntity(ident, "buildName");
     };
+  }
+  private IR$Name$Literal buildName(Tree ident, Token id) {
+    return buildName(ident, id, false);
+  }
+  private IR$Name$Literal buildName(Tree ident, Token id, boolean isMethod) {
+    return new IR$Name$Literal(
+      id.codeRepr(),
+      isMethod , // || AST.Opr.any.unapply(ident).isDefined,
+      getIdentifiedLocation(ident),
+      meta(), diag()
+    );
   }
 
   private static final Field codeReprBegin;
