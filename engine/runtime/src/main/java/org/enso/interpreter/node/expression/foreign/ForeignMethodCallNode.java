@@ -13,11 +13,13 @@ import org.enso.interpreter.runtime.error.DataflowError;
 public class ForeignMethodCallNode extends ExpressionNode {
   private @Children ExpressionNode[] arguments;
   private @Child DirectCallNode callNode;
+  private @Child CoerceNothing coerceNothingNode;
   private final BranchProfile[] errorProfiles;
 
   ForeignMethodCallNode(ExpressionNode[] arguments, CallTarget foreignCt) {
     this.arguments = arguments;
     this.callNode = DirectCallNode.create(foreignCt);
+    this.coerceNothingNode = CoerceNothing.build();
 
     this.errorProfiles = new BranchProfile[arguments.length];
     for (int i = 0; i < arguments.length; i++) {
@@ -47,11 +49,6 @@ public class ForeignMethodCallNode extends ExpressionNode {
         return args[i];
       }
     }
-    Object result = callNode.call(args);
-    if (result == null) {
-      return Context.get(this).getBuiltins().nothing().newInstance();
-    } else {
-      return result;
-    }
+    return coerceNothingNode.execute(callNode.call(args));
   }
 }
