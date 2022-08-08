@@ -149,7 +149,7 @@ impl Group {
     ) -> Option<Self> {
         let lookup_component = |qualified_name| {
             let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
-            Some(Component::new(id, suggestion))
+            Some(Component::new_from_db(id, suggestion))
         };
         let components = &group.components;
         let looked_up_components = components.iter().filter_map(lookup_component).collect_vec();

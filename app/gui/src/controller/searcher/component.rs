@@ -102,7 +102,7 @@ impl Component {
     /// Construct a new component.
     ///
     /// The matching info will be filled for an empty pattern.
-    pub fn new(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
+    pub fn new_from_db(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
         let kind = Kind::FromDb { id: Immutable(id), entry };
         Self { kind, match_info: default() }
     }
