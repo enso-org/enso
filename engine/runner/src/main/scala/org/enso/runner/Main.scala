@@ -756,7 +756,10 @@ object Main {
       val mainCons = mainModule.getAssociatedConstructor
       val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
       mainFun match {
-        case Some(main) => main.execute()
+        case Some(main) if mainMethodName != "main" =>
+          main.execute(mainCons.newInstance())
+        case Some(main) =>
+          main.execute()
         case None =>
           err.println(
             s"The module ${mainModule.getName} does not contain a `main` " +
