@@ -19,9 +19,12 @@ use std::cmp;
 // === QualifiedName ===
 // =====================
 
+/// Fully qualified name of a component group.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QualifiedName {
+    /// Fully qualified name of the project containing the definition of the group.
     pub project: project::QualifiedName,
+    /// The name of the group in the scope of the project where it was defined.
     pub name:    ImString,
 }
 
