@@ -313,7 +313,6 @@ impl ComponentGroup {
 
 impl TryFrom<language_server::LibraryComponentGroup> for ComponentGroup {
     type Error = failure::Error;
-
     fn try_from(group: language_server::LibraryComponentGroup) -> FallibleResult<Self> {
         Self::from_language_server_protocol_struct(group)
     }
