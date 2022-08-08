@@ -107,47 +107,6 @@ impl List {
         Self { local_scope, ..self }
     }
 
-    /// Add a component with given id and entry to component groups based on its parent module.
-    /// Return `true` if added to any component group.
-    ///
-    /// The component will be considered for adding to the following groups:
-    ///  - the [`ModuleGroup`] of the entry's parent module, if found;
-    ///  - the [`List::local_scope`], if the entry's parent module is the local scope;
-    ///  - the group containing the flattened content of the entry's top module, if found.
-    #[must_use]
-    fn add_component_from_db_to_groups_by_parent_module(
-        &mut self,
-        db: &model::SuggestionDatabase,
-        id: component::Id,
-        entry: &Rc<suggestion_database::Entry>,
-    ) -> bool {
-        use suggestion_database::entry::Kind;
-        entry.parent_module().map_or(false, |parent_module| {
-            let mut component_pushed_somewhere = false;
-            let mut push_component_to_group_and_set_pushed = |group: &component::Group| {
-                group.entries.borrow_mut().push(Component::new_from_db(id, entry.clone_ref()));
-                component_pushed_somewhere = true;
-            };
-            if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
-                push_component_to_group_and_set_pushed(&parent_group.content);
-                let parent_id = parent_group.content.component_id;
-                let local_scope_id = self.local_scope.component_id;
-                let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
-                let not_module = entry.kind != Kind::Module;
-                if in_local_scope && not_module {
-                    push_component_to_group_and_set_pushed(&self.local_scope);
-                }
-            }
-            let top_module = parent_module.top_module();
-            if let Some(top_group) = self.lookup_module_group(db, &top_module) {
-                if let Some(flatten_group) = &mut top_group.flattened_content {
-                    push_component_to_group_and_set_pushed(flatten_group);
-                }
-            }
-            component_pushed_somewhere
-        })
-    }
-
     /// Extend the list with new entries looked up by ID in suggestion database. Allow those
     /// entries to be present in [`component::List::favorites`]. See the module documentation for
     /// more details.
@@ -156,12 +115,35 @@ impl List {
         db: &model::SuggestionDatabase,
         entries: impl IntoIterator<Item = component::Id>,
     ) {
+        use suggestion_database::entry::Kind;
+        let local_scope_id = self.local_scope.component_id;
         let lookup_component_by_id = |id| Some(Component::new_from_db(id, db.lookup(id).ok()?));
         let components = entries.into_iter().filter_map(lookup_component_by_id);
         for component in components {
             if let component::Kind::FromDatabase { id, ref entry } = component.kind {
                 self.allowed_favorites.insert(*id);
-                if self.add_component_from_db_to_groups_by_parent_module(db, *id, entry) {
+                let mut component_inserted_somewhere = false;
+                if let Some(parent_module) = entry.parent_module() {
+                    if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
+                        parent_group.content.entries.borrow_mut().push(component.clone_ref());
+                        component_inserted_somewhere = true;
+                        let parent_id = parent_group.content.component_id;
+                        let in_local_scope =
+                            parent_id == local_scope_id && local_scope_id.is_some();
+                        let not_module = entry.kind != Kind::Module;
+                        if in_local_scope && not_module {
+                            self.local_scope.entries.borrow_mut().push(component.clone_ref());
+                        }
+                    }
+                    let top_module = parent_module.top_module();
+                    if let Some(top_group) = self.lookup_module_group(db, &top_module) {
+                        if let Some(flatten_group) = &mut top_group.flattened_content {
+                            flatten_group.entries.borrow_mut().push(component.clone_ref());
+                            component_inserted_somewhere = true;
+                        }
+                    }
+                }
+                if component_inserted_somewhere {
                     self.all_components.push(component);
                 }
             } else {
