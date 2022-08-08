@@ -174,6 +174,7 @@ impl Group {
         })
     }
 
+    /// Insert given entries as first entries in the group.
     pub fn insert_entries(&mut self, entries: &[Component]) {
         let group_data = Rc::make_mut(&mut self.data);
         group_data.entries.borrow_mut().splice(0..0, entries.iter().cloned());
