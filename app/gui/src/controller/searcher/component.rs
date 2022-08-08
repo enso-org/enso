@@ -70,7 +70,7 @@ pub enum Kind {
         /// The component's entry in the [`suggestion_database`].
         entry: Rc<suggestion_database::Entry>,
     },
-    /// A virtual component contains a hardcoded snippet of code.
+    /// A virtual component containing a hardcoded snippet of code.
     Virtual {
         /// A hardcoded snippet of code.
         snippet: Rc<HardcodedSnippet>,
