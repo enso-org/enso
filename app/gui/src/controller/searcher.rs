@@ -100,7 +100,7 @@ thread_local! {
 // === LiteralSnippet ===
 // ======================
 
-/// A virtual component containing a literal value in its code.
+/// A snippet of code with a literal value, with description and syntax metadata.
 struct LiteralSnippet {
     pub name:               &'static str,
     pub code:               &'static str,
