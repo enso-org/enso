@@ -288,7 +288,7 @@ mod tests {
         grid_view.setup_sections_and_headers(headers_layer, None);
         let entries = (0..3).map(|i| Rc::new(TestEntryModel::new(i, 0))).collect_vec();
         let models = entries.clone();
-        let header_model = entries[1].clone_ref();
+        let header_model = Rc::new(TestEntryModel::new(1, 0));
         let selection_state = || entries.iter().map(|e| e.selected.get()).collect_vec();
         let headers = grid_view.headers_frp();
         frp::extend! { network

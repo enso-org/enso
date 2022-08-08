@@ -45,14 +45,19 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         let shape = shape::View::new(Logger::new("HighlightMask"));
         let entries = parent_layer.create_sublayer();
         let text = parent_layer.create_sublayer();
+        let headers = parent_layer.create_sublayer();
+        let headers_text = parent_layer.create_sublayer();
         let mask = Layer::new_with_cam(
             Logger::new("grid_view::HighlightLayers::mask"),
             &parent_layer.camera(),
         );
         entries.set_mask(&mask);
         text.set_mask(&mask);
+        headers.set_mask(&mask);
+        headers_text.set_mask(&mask);
         entries.add_exclusive(&grid);
         grid.set_text_layer(Some(text.downgrade()));
+        grid.setup_sections_and_headers(headers, Some(headers_text));
         mask.add_exclusive(&shape);
         base_grid.add_child(&grid);
         grid.add_child(&shape);
@@ -61,6 +66,8 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         // and entries size first, because its required to receive `model_for_entry` events after
         // resizing grid properly.
         let network = grid.network();
+        let headers_frp = grid.headers_frp();
+        let base_header_frp = base_grid.headers_frp();
         frp::extend! { network
             init <- source_();
             viewport <- all(init, base_grid.viewport)._1();
@@ -69,6 +76,7 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             grid.set_entries_size <+ all(init, base_grid.entries_size)._1();
             grid.resize_grid <+ all(init, base_grid.grid_size)._1();
             grid.model_for_entry <+ base_grid.model_for_entry;
+            headers_frp.section_info <+ base_header_frp.section_info;
 
             different_entry_hovered <- grid.entry_hovered.map2(&base_grid.entry_hovered, |e1, e2| e1 != e2);
             base_grid.hover_entry <+ grid.entry_hovered.gate(&different_entry_hovered);

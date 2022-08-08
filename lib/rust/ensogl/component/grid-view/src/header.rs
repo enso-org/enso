@@ -24,7 +24,9 @@ ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
     }
     Output {
         section_info_needed(Row, Col),
+        header_shown(Row, Col),
         header_position_changed(Row, Col, Vector2),
+        header_hidden(Row, Col),
     }
 }
 
@@ -86,7 +88,7 @@ impl<HeaderEntry, HeaderParams> Model<HeaderEntry, HeaderParams> {
 }
 
 impl<HeaderEntry: display::Object, HeaderParams> Model<HeaderEntry, HeaderParams> {
-    fn update_visible_headers(&self, properties: Properties) -> Vec<(Row, Col)> {
+    fn hide_no_longer_visible_headers(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { row_count, col_count, viewport, entries_size } = properties;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
@@ -96,11 +98,21 @@ impl<HeaderEntry: display::Object, HeaderParams> Model<HeaderEntry, HeaderParams
         let freed = visible_headers.drain_filter(|col, header| {
             !cols_range.contains(col) || !header.section_rows.contains(&highest_visible_row)
         });
-        let detached = freed.map(|(_, header)| {
+        let detached = freed.map(|(col, header)| {
             header.entry.entry.unset_parent();
-            header.entry
+            ((header.section_rows.start, col), header.entry)
         });
-        free_headers.extend(detached);
+        let (locations, entries): (Vec<_>, Vec<_>) = detached.unzip();
+        free_headers.extend(entries);
+        locations
+    }
+
+    fn needed_info_for_uncovered_sections(&self, properties: Properties) -> Vec<(Row, Col)> {
+        let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let mut visible_headers = self.visible_headers.borrow_mut();
+        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count);
+        let highest_visible_row =
+            visible_area::visible_rows(viewport, entries_size, row_count).start;
         let uncovered = cols_range.filter_map(|col| {
             (!visible_headers.contains_key(&col)).as_some((highest_visible_row, col))
         });
@@ -227,10 +239,17 @@ impl<HeaderEntry: Entry> HandlerTemplate<HeaderEntry, HeaderEntry::Model, Header
         let out = &frp.private.output;
         let grid_frp = grid.frp();
         frp::extend! { network
+            headers_hidden_after_viewport_change <=
+                grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.hide_no_longer_visible_headers(*props)));
+            headers_hidden_after_entry_size_change <=
+                grid_frp.entries_size.map2(&grid_frp.properties, f!((_, props) model.hide_no_longer_visible_headers(*props)));
+            out.header_hidden <+ headers_hidden_after_viewport_change;
+            out.header_hidden <+ headers_hidden_after_entry_size_change;
+
             request_sections_after_viewport_change <=
-                grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.update_visible_headers(*props)));
+                grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.needed_info_for_uncovered_sections(*props)));
             request_sections_after_entry_size_change <=
-                grid_frp.entries_size.map2(&grid_frp.properties, f!((_, props) model.update_visible_headers(*props)));
+                grid_frp.entries_size.map2(&grid_frp.properties, f!((_, props) model.needed_info_for_uncovered_sections(*props)));
             request_sections_after_reset <=
                 grid_frp.reset_entries.map2(&grid_frp.properties, f!((_, props) model.reset_entries(*props)));
             request_sections_after_sections_reset <=
@@ -244,9 +263,11 @@ impl<HeaderEntry: Entry> HandlerTemplate<HeaderEntry, HeaderEntry::Model, Header
 
             position_update <= grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.update_headers_positions(*props)));
             out.header_position_changed <+ position_update;
-            out.header_position_changed <+ input.section_info.map2(&grid_frp.properties,
+            section_update <- input.section_info.map2(&grid_frp.properties,
                 f!(((rows, col, m), props) model.update_section(rows.clone(), *col, m.clone(), props.entries_size, props.viewport))
             );
+            out.header_shown <+ section_update.map(|&(row, col, _)| (row, col));
+            out.header_position_changed <+ section_update;
         }
 
         *self.model.borrow_mut() = Some(model);
@@ -258,7 +279,7 @@ where
     HeaderModel: frp::node::Data,
     HeaderParams: frp::node::Data,
 {
-    pub fn get_entry(&self, row: Row, col: Col) -> Option<HeaderEntry>
+    pub fn get_header(&self, row: Row, col: Col) -> Option<HeaderEntry>
     where HeaderEntry: CloneRef {
         self.model.borrow().as_ref().and_then(|model| {
             let headers = model.visible_headers.borrow();

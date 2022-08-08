@@ -5,6 +5,8 @@ use crate::prelude::*;
 
 use crate::entry;
 use crate::header;
+use crate::selectable::highlight::connected_entry::ConnectedEntry;
+use crate::selectable::highlight::connected_entry::EntryEndpoints;
 use crate::selectable::highlight::shape::HoverAttrSetter;
 use crate::selectable::highlight::shape::SelectionAttrSetter;
 use crate::Col;
@@ -21,6 +23,7 @@ use ensogl_core::Animation;
 // === Export ===
 // ==============
 
+pub mod connected_entry;
 pub mod layer;
 pub mod shape;
 
@@ -45,15 +48,6 @@ ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
     }
 }
 
-/// A subset of [`entry::FRP`] endpoints used by the specific highlight [`Handler`].
-#[derive(Clone, CloneRef, Debug)]
-pub struct EntryEndpoints {
-    /// The "is_highlighted" input: may be `is_selected` or `is_hovered`.
-    flag:     frp::Any<bool>,
-    location: frp::Stream<(Row, Col)>,
-    contour:  frp::Stream<entry::Contour>,
-    color:    frp::Stream<color::Rgba>,
-}
 
 /// All highlight animations.
 #[derive(Clone, CloneRef, Debug)]
@@ -94,58 +88,6 @@ impl Animations {
 }
 
 
-// ======================
-// === HighlightGuard ===
-// ======================
-
-/// A guard managing the connections between highlighted entry and the [`Handler`] FRP outputs.
-///
-/// Until dropped, this structure keeps connected the entry endpoints declaring the highlight
-/// appearance (`position`, `contour` and `color`) to the appropriate [`Handler`] endpoints.
-/// Also, the entry's flag (`is_selected` or `is_hovered`) will be set to `true` on construction and
-/// set back to `false` on drop.
-#[derive(Debug)]
-struct ConnectedEntryGuard {
-    network:             frp::Network,
-    /// An event emitted when we should drop this guard and try to create new with the same
-    /// location, for example when the Entry instance is re-used in another location.
-    should_be_recreated: frp::Stream,
-    dropped:             frp::Source,
-}
-
-impl ConnectedEntryGuard {
-    /// Create guard for entry FRP at given location.  
-    fn new_for_entry<EntryParams: frp::node::Data>(
-        entry_frp: EntryEndpoints,
-        row: Row,
-        col: Col,
-        frp: &api::private::Output<EntryParams>,
-    ) -> Self {
-        let network = frp::Network::new("HighlightedEntryGuard");
-        frp::extend! { network
-            init <- source_();
-            dropped <- source_();
-            contour <- all(init, entry_frp.contour)._1();
-            color <- all(init, entry_frp.color)._1();
-            entry_frp.flag <+ init.constant(true);
-            entry_frp.flag <+ dropped.constant(false);
-            frp.contour <+ contour;
-            frp.color <+ color;
-            location_change <- entry_frp.location.filter(move |loc| *loc != (row, col));
-            should_be_recreated <- location_change.constant(());
-        }
-        init.emit(());
-        Self { network, dropped, should_be_recreated }
-    }
-}
-
-impl Drop for ConnectedEntryGuard {
-    fn drop(&mut self) {
-        self.dropped.emit(());
-    }
-}
-
-
 
 // =============
 // === Model ===
@@ -154,101 +96,66 @@ impl Drop for ConnectedEntryGuard {
 /// Function returning [`EntryEndpoints`] of given entry, used as parameter of highlight
 /// [`Handler`].
 pub type EntryEndpointsGetter<Entry> = fn(&Entry) -> EntryEndpoints;
+pub type EntryGetter<Entry: 'static, EntryModel: 'static, EntryParams: 'static> =
+    impl connected_entry::Getter;
+pub type HeaderGetter<Entry: 'static, EntryModel: 'static, EntryParams: 'static> =
+    impl connected_entry::Getter;
 
 /// The inner data structure for [`Handler`].
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Data<Entry: 'static, EntryModel: frp::node::Data, EntryParams: frp::node::Data> {
-    app:                    Application,
-    grid:                   crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
-    connected_entry:        Cell<Option<(Row, Col)>>,
-    guard:                  RefCell<Option<ConnectedEntryGuard>>,
-    output:                 api::private::Output<EntryParams>,
-    animations:             Animations,
+    app:              Application,
+    grid:             crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
+    connected_entry:  Rc<ConnectedEntry<EntryGetter<Entry, EntryModel, EntryParams>>>,
+    connected_header: Rc<ConnectedEntry<HeaderGetter<Entry, EntryModel, EntryParams>>>,
+    animations:       Animations,
     #[derivative(Debug = "ignore")]
-    entry_endpoints_getter: EntryEndpointsGetter<Entry>,
-    layers:                 RefCell<Option<layer::Handler<Entry, EntryModel, EntryParams>>>,
+    layers:           RefCell<Option<layer::Handler<Entry, EntryModel, EntryParams>>>,
 }
 
 impl<Entry, EntryModel, EntryParams> Data<Entry, EntryModel, EntryParams>
 where
+    Entry: CloneRef + 'static,
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
 {
     fn new(
         app: &Application,
         grid: &crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
-        output: &api::private::Output<EntryParams>,
+        connected_entry_out: &connected_entry::Output,
+        connected_header_out: &connected_entry::Output,
         animations: Animations,
         entry_endpoints_getter: EntryEndpointsGetter<Entry>,
     ) -> Self {
+        let entry_getter = f!((r, c) grid.get_entry(r, c).map(|e| entry_endpoints_getter(&e)));
+        let header_getter = f!((r, c) grid.get_header(r, c).map(|e| entry_endpoints_getter(&e)));
         Self {
             app: app.clone_ref(),
             grid: grid.clone_ref(),
-            connected_entry: default(),
-            guard: default(),
-            output: output.clone_ref(),
+            connected_entry: ConnectedEntry::new(entry_getter, connected_entry_out.clone_ref()),
+            connected_header: ConnectedEntry::new(header_getter, connected_header_out.clone_ref()),
             animations,
-            entry_endpoints_getter,
             layers: default(),
         }
-    }
-
-    fn drop_guard(&self) {
-        self.connected_entry.set(None);
-        self.guard.take();
     }
 }
 
 impl<E: Entry> Data<E, E::Model, E::Params> {
-    /// Drop old [`ConnectedEntryGuard`] and create a new one for new highlighted entry.
-    fn connect_new_highlighted_entry(self: &Rc<Self>, location: Option<(Row, Col)>) {
-        if let Some((row, col)) = location {
-            let current_entry = self.connected_entry.get();
-            let entry_changed = current_entry.map_or(true, |loc| loc != (row, col));
-            if entry_changed {
-                self.guard.take();
-                let entry = self.grid.get_entry(row, col);
-                *self.guard.borrow_mut() = entry.map(|e| {
-                    let endpoints = (self.entry_endpoints_getter)(&e);
-                    ConnectedEntryGuard::new_for_entry(endpoints, row, col, &self.output)
-                });
-                self.connected_entry.set(Some((row, col)));
-                self.set_up_guard_dropping();
-            }
-        } else {
-            self.drop_guard()
-        }
-    }
-
-    fn set_up_guard_dropping(self: &Rc<Self>) {
-        if let Some(guard) = &*self.guard.borrow() {
-            let network = &guard.network;
-            let this = self;
-            frp::extend! { network
-                eval_ guard.should_be_recreated (this.reconnect_highlighted_entry());
-            }
-        }
-    }
-
-    fn reconnect_highlighted_entry(self: &Rc<Self>) {
-        tracing::debug!("Reconnecting highlighted entry");
-        let location = self.connected_entry.take();
-        self.guard.take();
-        self.connect_new_highlighted_entry(location);
-    }
-
-    fn setup_masked_layer(&self, layer: Option<&WeakLayer>) -> bool {
+    fn setup_masked_layer(
+        &self,
+        layer: Option<&WeakLayer>,
+        entries_params: frp::Stream<E::Params>,
+    ) -> bool {
         self.layers.take();
         let new_layers = layer.and_then(|l| l.upgrade()).map(|layer| {
             let layers = layer::Handler::new(&self.app, &layer, &self.grid);
             let shape = &layers.shape;
             let network = layers.grid.network();
             let highlight_grid_frp = layers.grid.frp();
-            let frp = &self.output;
             self.connect_with_shape::<HoverAttrSetter>(network, shape, false, None);
             frp::extend! { network
-                highlight_grid_frp.set_entries_params <+ frp.entries_params;
+                highlight_grid_frp.set_entries_params <+ entries_params;
             }
             HoverAttrSetter::set_color(shape, color::Rgba::black());
             SelectionAttrSetter::set_size(shape, default());
@@ -341,35 +248,55 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
         entry_endpoints_getter: EntryEndpointsGetter<E>,
     ) -> Self {
         let frp = Frp::new();
-        let animations = Animations::new(&frp);
-        let out = &frp.private.output;
-        let model =
-            Rc::new(Data::new(app, grid, out, animations.clone_ref(), entry_endpoints_getter));
         let network = frp.network();
+        let animations = Animations::new(&frp);
+        let connected_entry_out = connected_entry::Output::new(&network);
+        let connected_header_out = connected_entry::Output::new(&network);
+        let out = &frp.private.output;
+        let model = Rc::new(Data::new(
+            app,
+            grid,
+            &connected_entry_out,
+            &connected_header_out,
+            animations.clone_ref(),
+            entry_endpoints_getter,
+        ));
         let grid_frp = grid.frp();
         let headers_frp = grid.headers_frp();
         frp::extend! {network
             shown_with_highlighted <-
                 grid_frp.entry_shown.map2(&frp.entry_highlighted, |a, b| (*a, *b));
             highlighted_is_shown <-
-                shown_with_highlighted.map(|(sh, hlt)| hlt.contains(sh).and_option(*hlt));
-            should_reconnect <- any(frp.entry_highlighted, highlighted_is_shown);
-            eval should_reconnect ((loc) model.connect_new_highlighted_entry(*loc));
+                shown_with_highlighted.filter_map(|(sh, hlt)| hlt.contains(sh).and_option(Some(*hlt)));
+            should_reconnect_entry <- any(frp.entry_highlighted, highlighted_is_shown);
+            eval should_reconnect_entry ((loc) model.connected_entry.connect_new_highlighted_entry(*loc));
 
-            trace frp.entry_highlighted;
+            header_shown_with_highlighted <-
+                headers_frp.header_shown.map2(&frp.entry_highlighted, |a, b| (*a, *b));
+            highlighted_header_is_shown <-
+                header_shown_with_highlighted.filter_map(|(sh, hlt)| hlt.contains(sh).and_option(Some(*hlt)));
+            should_reconnect_header <- any(frp.entry_highlighted, highlighted_header_is_shown);
+            trace should_reconnect_header;
+            eval should_reconnect_header ((loc) model.connected_header.connect_new_highlighted_entry(*loc));
+            header_hidden_with_highlighted <-
+                headers_frp.header_hidden.map2(&frp.entry_highlighted, |a, b| (*a, *b));
+            should_disconnect_header <- header_hidden_with_highlighted.filter_map(|(hd, hlt)| hlt.contains(hd).and_option(*hlt));
+            eval_ should_disconnect_header (model.connected_header.drop_guard());
+
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
             position_after_highlight <- became_highlighted.map(
-                f!((&(row, col)) model.grid.entry_position(row, col))
+                f!((&(row, col)) model.grid.header_or_entry_position(row, col))
+            );
+            position_after_header_disconnect <- should_disconnect_header.map(
+                f!((&(row, col)) model.grid.header_or_entry_position(row, col))
             );
             highligthed_header_pos_change <- headers_frp.header_position_changed.map2(
                 &frp.entry_highlighted,
-                |&(row, col, pos), h| {
-                    tracing::debug!("{row} {col} {pos} {h:?}");
-                    h.contains(&(row, col)).as_some(pos)
-                }
+                |&(row, col, pos), h| h.contains(&(row, col)).as_some(pos)
             );
             highligthed_header_pos_change <- highligthed_header_pos_change.filter_map(|p| *p);
             out.position <+ position_after_highlight;
+            out.position <+ position_after_header_disconnect;
             out.position <+ highligthed_header_pos_change;
             prev_position <- out.position.previous();
             new_jump <- position_after_highlight.map2(&prev_position, |pos, prev| prev - pos);
@@ -377,13 +304,27 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             animations.position_jump.skip <+ new_jump.constant(());
             animations.position_jump.target <+ new_jump.constant(Vector2(0.0, 0.0));
 
+            let header_connected = &connected_header_out.is_entry_connected;
+            out.contour <+ all_with3(
+                header_connected,
+                &connected_entry_out.contour,
+                &connected_header_out.contour,
+                |&from_header, &entry, &header| if from_header {header} else {entry}
+            );
+            out.color <+ all_with3(
+                header_connected,
+                &connected_entry_out.color,
+                &connected_header_out.color,
+                |&from_header, &entry, &header| if from_header {header} else {entry}
+            );
 
             none_highlightd <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
             out.contour <+ none_highlightd.constant(default());
 
             out.entries_params <+ frp.set_entries_params;
+            let entries_params = out.entries_params.clone_ref();
             out.is_masked_layer_set <+
-                frp.setup_masked_layer.map(f!((layer) model.setup_masked_layer(layer.as_ref())));
+                frp.setup_masked_layer.map(f!([model, entries_params](layer) model.setup_masked_layer(layer.as_ref(), (&entries_params).into())));
 
         }
 

@@ -86,6 +86,8 @@ fn setup_grid_view(app: &Application) -> grid_view::simple::SimpleScrollableSele
     let params = grid_view::simple::EntryParams {
         bg_color: color::Rgba(0.8, 0.8, 0.9, 1.0),
         bg_margin: 1.0,
+        hover_color: color::Rgba(0.0, 1.0, 0.0, 1.0),
+        selection_color: color::Rgba(1.0, 0.0, 0.0, 1.0),
         ..default()
     };
     view.set_entries_params(params);

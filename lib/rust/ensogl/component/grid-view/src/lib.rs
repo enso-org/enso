@@ -7,6 +7,7 @@
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
+#![feature(type_alias_impl_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -425,24 +426,28 @@ where
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
 {
-    fn get_entry(&self, row: Row, column: Col) -> Option<Entry>
+    pub fn get_entry(&self, row: Row, column: Col) -> Option<Entry>
     where Entry: CloneRef {
-        self.widget.model().headers.get_entry(row, column).or_else(|| {
-            if let Err(err) = self.widget.model().visible_entries.try_borrow() {
-                tracing::trace!("Double Borrow {}", backtrace());
-            }
-            let entries = self.widget.model().visible_entries.borrow();
-            let entry = entries.get(&(row, column));
-            entry.map(|e| e.entry.clone_ref())
-        })
+        let entries = self.widget.model().visible_entries.borrow();
+        let entry = entries.get(&(row, column));
+        entry.map(|e| e.entry.clone_ref())
     }
 
-    fn entry_position(&self, row: Row, column: Col) -> Vector2 {
-        self.widget
-            .model()
-            .headers
-            .header_position(row, column, self.entries_size.value(), self.viewport.value())
-            .unwrap_or_else(|| entry::visible::position(row, column, self.entries_size.value()))
+    pub fn entry_position(&self, row: Row, column: Col) -> Vector2 {
+        entry::visible::position(row, column, self.entries_size.value())
+    }
+
+    pub fn get_header(&self, row: Row, column: Col) -> Option<Entry>
+    where Entry: CloneRef {
+        self.widget.model().headers.get_header(row, column)
+    }
+
+    pub fn header_or_entry_position(&self, row: Row, column: Col) -> Vector2 {
+        let entries_size = self.entries_size.value();
+        let viewport = self.viewport.value();
+        let headers = &self.widget.model().headers;
+        let header_pos = headers.header_position(row, column, entries_size, viewport);
+        header_pos.unwrap_or_else(|| self.entry_position(row, column))
     }
 }
 
