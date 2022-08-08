@@ -242,6 +242,7 @@ impl Group {
         }
     }
 
+    /// The fully qualified name of the components group, or [`None`] if not available.
     pub fn qualified_name(&self) -> Option<QualifiedName> {
         let name = self.name.clone();
         self.project.as_ref().map(|p| QualifiedName { project: p.clone(), name })
