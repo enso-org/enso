@@ -50,6 +50,10 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 /// See also [`Searcher::add_enso_project_entries`].
 const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
 
+/// Name of the virtual component group in the `Standard.Base` library which contains input
+/// components.
+const INPUT_COMPONENT_GROUP_NAME: &str = "Input";
+
 macro_rules! doc_html_with_summary_and_synopsis {
     ($summary_html:literal, $synopsis_html:literal) => {
         concatcp!(
@@ -1260,7 +1264,7 @@ fn component_list_builder_with_favorites<'a>(
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     let project = project::QualifiedName::of_standard_base_library();
-    let group_name = component::group::QualifiedName { project, name: "Input".into() };
+    let group_name = INPUT_COMPONENT_GROUP_NAME.into();
     let group_qn = component::group::QualifiedName { project, name: group_name };
     let components = INPUT_LITERAL_VIRTUAL_COMPONENTS.with(|c| c.clone());
     builder.insert_virtual_components_in_favorites_group(group_qn, components);
