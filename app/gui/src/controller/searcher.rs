@@ -99,6 +99,7 @@ thread_local! {
 // === LiteralVirtualComponent ===
 // ===============================
 
+/// A virtual component containing a literal value in its code.
 struct LiteralVirtualComponent {
     pub name:               &'static str,
     pub code:               &'static str,
