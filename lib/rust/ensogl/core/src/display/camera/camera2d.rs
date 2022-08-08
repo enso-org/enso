@@ -167,6 +167,8 @@ pub struct Frp {
     pub position: frp::Source<Vector3<f32>>,
     /// Camera zoom factor.
     pub zoom:     frp::Source<f32>,
+    /// Camera's frustum screen dimensions.
+    pub screen:   frp::Source<Screen>,
 }
 
 /// Function used to return the updated screen dimensions.
@@ -213,8 +215,9 @@ impl Camera2dData {
         frp::extend! { network
             frp_position <- source();
             frp_zoom <- source();
+            frp_screen <- source();
         }
-        let frp = Frp { network, position: frp_position, zoom: frp_zoom };
+        let frp = Frp { network, position: frp_position, zoom: frp_zoom, screen: frp_screen };
         Self {
             frp,
             display_object,
@@ -293,8 +296,6 @@ impl Camera2dData {
             self.matrix.view_projection = self.matrix.projection * self.matrix.view;
             let zoom = self.zoom;
             self.zoom_update_registry.run_all(zoom);
-            self.frp.position.emit(self.display_object.position());
-            self.frp.zoom.emit(zoom);
         }
         changed
     }
@@ -415,7 +416,9 @@ impl Camera2d {
 impl Camera2d {
     /// Sets screen dimensions.
     pub fn set_screen(&self, width: f32, height: f32) {
-        self.data.borrow_mut().set_screen(width, height)
+        self.data.borrow_mut().set_screen(width, height);
+        let screen = self.data.borrow().screen;
+        self.data.borrow().frp.screen.emit(screen);
     }
 
     /// Resets the zoom of the camera to the 1.0 value.
@@ -425,7 +428,14 @@ impl Camera2d {
 
     /// Update all dirty camera parameters and compute updated view-projection matrix.
     pub fn update(&self, scene: &Scene) -> bool {
-        self.data.borrow_mut().update(scene)
+        let is_updated = self.data.borrow_mut().update(scene);
+        if is_updated {
+            let borrowed = self.data.borrow();
+            let frp = &borrowed.frp;
+            frp.position.emit(self.display_object.position());
+            frp.zoom.emit(borrowed.zoom);
+        }
+        is_updated
     }
 
     // FIXME: This can fail, for example, when during calling the callback another callback is
