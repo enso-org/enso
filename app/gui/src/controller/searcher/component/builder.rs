@@ -284,11 +284,11 @@ mod tests {
     }
 
     impl<'a> From<&'a component::Group> for ComparableGroupData<'a> {
-        fn from(group: &'a component::Group) -> Self {
+        fn from(component: &'a component::Group) -> Self {
             Self {
-                name:         group.name.as_str(),
-                component_id: group.component_id,
-                entries:      group.entries.borrow().iter().map(|e| e.id().unwrap()).collect(),
+                name:         component.name.as_str(),
+                component_id: component.component_id,
+                entries:      component.entries.borrow().iter().map(|e| e.id().unwrap()).collect(),
             }
         }
     }
