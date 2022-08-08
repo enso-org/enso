@@ -63,7 +63,9 @@ macro_rules! doc_html_with_summary_and_synopsis {
 }
 
 thread_local! {
-    static VIRTUAL_COMPONENTS_IN_INPUT_GROUP: Vec<Rc<component::Virtual>> = [
+    /// Virtual components with literal values, documented as input nodes. When added into the
+    /// [`component::List`] they help the users discover how to enter literals in code.
+    static INPUT_LITERAL_VIRTUAL_COMPONENTS: Vec<Rc<component::Virtual>> = [
         LiteralVirtualComponent {
             name:               "text input",
             code:               "\"\"",
@@ -1259,8 +1261,9 @@ fn component_list_builder_with_favorites<'a>(
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     let project = project::QualifiedName::of_standard_base_library();
     let group_name = component::group::QualifiedName { project, name: "Input".into() };
-    let components = VIRTUAL_COMPONENTS_IN_INPUT_GROUP.with(|c| c.clone());
-    builder.insert_virtual_components_in_favorites_group(group_name, components);
+    let group_qn = component::group::QualifiedName { project, name: group_name };
+    let components = INPUT_LITERAL_VIRTUAL_COMPONENTS.with(|c| c.clone());
+    builder.insert_virtual_components_in_favorites_group(group_qn, components);
     builder
 }
 
