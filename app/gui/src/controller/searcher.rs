@@ -1264,11 +1264,11 @@ fn component_list_builder_with_favorites<'a>(
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
-    let project = project::QualifiedName::of_standard_base_library();
-    let group_name = INPUT_COMPONENT_GROUP_NAME.into();
-    let group_qn = component::group::QualifiedName { project, name: group_name };
+    let base_lib_qn = project::QualifiedName::of_standard_base_library();
+    let input_group_name = INPUT_COMPONENT_GROUP_NAME;
+    let input_group_qn = component::group::QualifiedName::new(base_lib_qn, input_group_name);
     let components = INPUT_LITERAL_VIRTUAL_COMPONENTS.with(|c| c.clone());
-    builder.insert_virtual_components_in_favorites_group(group_qn, components);
+    builder.insert_virtual_components_in_favorites_group(input_group_qn, components);
     builder
 }
 
