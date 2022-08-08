@@ -30,6 +30,7 @@ pub type Id = suggestion_database::entry::Id;
 /// Information how the component matches the filtering pattern.
 pub type MatchInfo = controller::searcher::action::MatchInfo;
 
+/// A virtual component is not present in the [`suggestion_database`] but hardcoded instead.
 pub type Virtual = controller::searcher::action::hardcoded::Suggestion;
 
 
