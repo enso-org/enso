@@ -1,13 +1,9 @@
 package org.enso.loggingservice.internal.service
 
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.AttributeKeys
 import akka.http.scaladsl.model.HttpMethods._
-import akka.http.scaladsl.model.ws.{
-  BinaryMessage,
-  Message,
-  TextMessage,
-  UpgradeToWebSocket
-}
+import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import io.circe.{parser, Error}
@@ -19,7 +15,6 @@ import org.enso.loggingservice.internal.protocol.WSLogMessage
 import org.enso.loggingservice.printers.Printer
 import org.enso.loggingservice.{LogLevel, ServerBinding}
 
-import scala.annotation.nowarn
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 
@@ -61,7 +56,7 @@ class Server(
   private def startWebSocketServer(): Future[Unit] = {
     val requestHandler: HttpRequest => HttpResponse = {
       case req @ HttpRequest(GET, Uri.Path("/"), _, _, _) =>
-        req.header[UpgradeToWebSocket @nowarn] match {
+        req.attribute(AttributeKeys.webSocketUpgrade) match {
           case Some(upgrade) =>
             val flow = Flow.fromSinkAndSourceCoupled(
               createMessageProcessor(),

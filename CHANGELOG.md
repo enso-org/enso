@@ -302,6 +302,7 @@
 - [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
 - [Support module imports using a qualified name][3608]
+- [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -339,6 +340,7 @@
 [3538]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
 [3608]: https://github.com/enso-org/enso/pull/3608
+[3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
