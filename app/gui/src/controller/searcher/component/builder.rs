@@ -115,7 +115,8 @@ impl List {
     ///  - the [`List::local_scope`], if the entry's parent module is the local scope;
     ///  - the group containing the flattened content of the entry's top module, if found.
     #[must_use]
-    fn add_component_from_db_to_groups_by_parent_module(&mut self, 
+    fn add_component_from_db_to_groups_by_parent_module(
+        &mut self,
         db: &model::SuggestionDatabase,
         id: component::Id,
         entry: &Rc<suggestion_database::Entry>,
@@ -131,8 +132,7 @@ impl List {
                 push_component_to_group_and_set_pushed(&parent_group.content);
                 let parent_id = parent_group.content.component_id;
                 let local_scope_id = self.local_scope.component_id;
-                let in_local_scope =
-                    parent_id == local_scope_id && local_scope_id.is_some();
+                let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
                 let not_module = entry.kind != Kind::Module;
                 if in_local_scope && not_module {
                     push_component_to_group_and_set_pushed(&self.local_scope);
