@@ -64,7 +64,7 @@ macro_rules! doc_html_with_summary_and_synopsis {
 
 thread_local! {
     static VIRTUAL_COMPONENTS_IN_INPUT_GROUP: Vec<Rc<component::Virtual>> = [
-        VirtualComponentWithLiteral {
+        LiteralVirtualComponent {
             name:               "text input",
             code:               "\"\"",
             return_type:        "Standard.Base.Data.Text.Text",
@@ -74,7 +74,7 @@ thread_local! {
             ),
             icon:               ide_view_component_group::icon::Id::TextInput,
         },
-        VirtualComponentWithLiteral {
+        LiteralVirtualComponent {
             name:               "number input",
             code:               "0",
             return_type:        "Standard.Base.Data.Numbers.Number",
@@ -89,11 +89,11 @@ thread_local! {
 
 
 
-// ===================================
-// === VirtualComponentWithLiteral ===
-// ===================================
+// ===============================
+// === LiteralVirtualComponent ===
+// ===============================
 
-struct VirtualComponentWithLiteral {
+struct LiteralVirtualComponent {
     pub name:               &'static str,
     pub code:               &'static str,
     pub return_type:        &'static str,
@@ -101,8 +101,8 @@ struct VirtualComponentWithLiteral {
     pub icon:               ide_view_component_group::icon::Id,
 }
 
-impl From<VirtualComponentWithLiteral> for component::Virtual {
-    fn from(literal: VirtualComponentWithLiteral) -> component::Virtual {
+impl From<LiteralVirtualComponent> for component::Virtual {
+    fn from(literal: LiteralVirtualComponent) -> component::Virtual {
         component::Virtual {
             name:               literal.name,
             code:               literal.code,
