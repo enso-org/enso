@@ -29,15 +29,10 @@ public abstract class RunStateNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
   abstract Stateful execute(
-      @MonadicState Object state,
-      Object self,
-      Object key,
-      Object local_state,
-      @Suspend Object computation);
+      @MonadicState Object state, Object key, Object local_state, @Suspend Object computation);
 
   @Specialization
-  Stateful doEmpty(
-      EmptyMap state, Object self, Object key, Object local_state, Object computation) {
+  Stateful doEmpty(EmptyMap state, Object key, Object local_state, Object computation) {
     SingletonMap localStateMap = new SingletonMap(key, local_state);
     Object result =
         thunkExecutorNode
@@ -48,7 +43,7 @@ public abstract class RunStateNode extends Node {
 
   @Specialization(guards = {"state.getKey() == key"})
   Stateful doSingletonSameKey(
-      SingletonMap state, Object self, Object key, Object local_state, Object computation) {
+      SingletonMap state, Object key, Object local_state, Object computation) {
     SingletonMap localStateContainer = new SingletonMap(state.getKey(), local_state);
     Stateful res =
         thunkExecutorNode.executeThunk(
@@ -64,7 +59,6 @@ public abstract class RunStateNode extends Node {
       })
   Stateful doSingletonNewKeyCached(
       SingletonMap state,
-      Object self,
       Object key,
       Object local_state,
       Object computation,
@@ -81,10 +75,9 @@ public abstract class RunStateNode extends Node {
 
   @Specialization
   Stateful doSingletonNewKeyUncached(
-      SingletonMap state, Object self, Object key, Object local_state, Object computation) {
+      SingletonMap state, Object key, Object local_state, Object computation) {
     return doSingletonNewKeyCached(
         state,
-        self,
         key,
         local_state,
         computation,
@@ -101,7 +94,6 @@ public abstract class RunStateNode extends Node {
       guards = {"key == cachedNewKey", "state.getKeys() == cachedOldKeys", "index == NOT_FOUND"})
   Stateful doMultiNewKeyCached(
       SmallMap state,
-      Object self,
       Object key,
       Object local_state,
       Object computation,
@@ -126,7 +118,6 @@ public abstract class RunStateNode extends Node {
       guards = {"key == cachedNewKey", "state.getKeys() == cachedOldKeys", "index != NOT_FOUND"})
   Stateful doMultiExistingKeyCached(
       SmallMap state,
-      Object self,
       Object key,
       Object local_state,
       Object computation,
@@ -147,13 +138,11 @@ public abstract class RunStateNode extends Node {
   }
 
   @Specialization
-  Stateful doMultiUncached(
-      SmallMap state, Object self, Object key, Object local_state, Object computation) {
+  Stateful doMultiUncached(SmallMap state, Object key, Object local_state, Object computation) {
     int idx = state.indexOf(key);
     if (idx == SmallMap.NOT_FOUND) {
       return doMultiNewKeyCached(
           state,
-          self,
           key,
           local_state,
           computation,
@@ -163,7 +152,7 @@ public abstract class RunStateNode extends Node {
           buildNewKeys(key, state.getKeys()));
     } else {
       return doMultiExistingKeyCached(
-          state, self, key, local_state, computation, key, state.getKeys(), idx);
+          state, key, local_state, computation, key, state.getKeys(), idx);
     }
   }
 

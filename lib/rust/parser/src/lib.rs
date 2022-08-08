@@ -124,6 +124,37 @@ pub mod prelude {
     pub use enso_reflect::Reflect;
     pub use enso_types::traits::*;
     pub use enso_types::unit2::Bytes;
+
+    /// Wraps return value for functions whose implementations don't handle all cases yet. When the
+    /// parser is complete, this type will be eliminated.
+    pub type WipResult<T> = Result<T, String>;
+
+    /// Return type for functions that will only fail in case of a bug in the implementation.
+    #[derive(Debug, Default)]
+    pub struct ParseResult<T> {
+        /// The result of the operation. If `internal_error` is set, this is a best-effort value
+        /// that cannot be assumed to be accurate; otherwise, it should be correct.
+        pub value:          T,
+        /// Internal error encountered while computing this result.
+        pub internal_error: Option<String>,
+    }
+
+    impl<T> ParseResult<T> {
+        /// Return a new [`ParseResult`] whose value is the result of applying the given function to
+        /// the input's value, and whose `internal_error` field is the same as the input.
+        pub fn map<U, F>(self, f: F) -> ParseResult<U>
+        where F: FnOnce(T) -> U {
+            let ParseResult { value, internal_error } = self;
+            let value = f(value);
+            ParseResult { value, internal_error }
+        }
+
+        /// Panic if the result contains an internal error; otherwise, return the contained value.
+        pub fn unwrap(self) -> T {
+            assert_eq!(self.internal_error, None);
+            self.value
+        }
+    }
 }
 
 
@@ -150,7 +181,12 @@ impl Parser {
     pub fn run<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
         let tokens = lexer::run(code);
         let resolver = macros::resolver::Resolver::new_root();
-        resolver.run(&self.macros, tokens)
+        let result = tokens.map(|tokens| resolver.run(&self.macros, tokens));
+        let value = result.value;
+        if let Some(error) = result.internal_error {
+            return value.with_error(format!("Internal error: {}", error));
+        }
+        value
     }
 }
 
@@ -169,12 +205,19 @@ impl Default for Parser {
 /// interpreted as a variable assignment or method definition.
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
-    let tree_ = match &mut *tree.variant {
-        Variant::OprSectionBoundary(OprSectionBoundary { ast }) => ast,
+    let mut left_offset = source::span::Offset::default();
+    let tree_ = match &mut tree {
+        Tree { variant: box Variant::OprSectionBoundary(OprSectionBoundary { ast }), span } => {
+            left_offset += &span.left_offset;
+            ast
+        }
         _ => &mut tree,
     };
-    let opr_app = match &mut *tree_.variant {
-        Variant::OprApp(opr_app) => opr_app,
+    let opr_app = match tree_ {
+        Tree { variant: box Variant::OprApp(opr_app), span } => {
+            left_offset += &span.left_offset;
+            opr_app
+        }
         _ => return tree,
     };
     if let OprApp { lhs: Some(lhs), opr: Ok(opr), rhs } = opr_app && opr.code == "=" {
@@ -188,12 +231,18 @@ fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
         if args.is_empty() && let Some(rhs) = rhs && !is_body_block(rhs) {
             // If the LHS has no arguments, and there is a RHS, and the RHS is not a body block,
             // this is a variable assignment.
-            return Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs))
+            let mut result = Tree::assignment(mem::take(lhs), mem::take(opr), mem::take(rhs));
+            left_offset += result.span.left_offset;
+            result.span.left_offset = left_offset;
+            return result;
         }
         if let Variant::Ident(Ident { token }) = &mut *lhs.variant {
             // If this is not a variable assignment, and the leftmost leaf of the `App` tree is
             // an identifier, this is a function definition.
-            return Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs))
+            let mut result = Tree::function(mem::take(token), args, mem::take(opr), mem::take(rhs));
+            left_offset += result.span.left_offset;
+            result.span.left_offset = left_offset;
+            return result;
         }
     }
     tree
@@ -261,6 +310,41 @@ mod benches {
             str.push('\n');
         }
         let parser = Parser::new();
+        bencher.bytes = str.len() as u64;
+        bencher.iter(move || {
+            parser.run(&str);
+        });
+    }
+
+    #[bench]
+    fn bench_expressions(bencher: &mut Bencher) {
+        use rand::prelude::*;
+        use rand_chacha::ChaCha8Rng;
+        let lines = 100;
+        let avg_group_len = 20;
+        let avg_groups_per_line = 20;
+        let mut str = String::new();
+        let mut rng = ChaCha8Rng::seed_from_u64(0);
+        let normal = rand_distr::StandardNormal;
+        for _ in 0..lines {
+            let operators = ['=', '+', '-', '*', ':'];
+            let groups: f64 = normal.sample(&mut rng);
+            let groups = (groups * avg_groups_per_line as f64) as usize;
+            for _ in 0..groups {
+                let len: f64 = normal.sample(&mut rng);
+                let len = (len * avg_group_len as f64) as usize;
+                str.push('x');
+                for _ in 0..len {
+                    let i = rng.gen_range(0..operators.len());
+                    str.push(operators[i]);
+                    str.push('x');
+                }
+                str.push(' ');
+            }
+            str.push('\n');
+        }
+        let parser = Parser::new();
+        bencher.bytes = str.len() as u64;
         bencher.iter(move || {
             parser.run(&str);
         });

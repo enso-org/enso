@@ -158,27 +158,21 @@ impl<'s> Match<'s> {
 
     fn build_var_map<V: Default + Validator>(self, tree: &mut VarMap<'s, V>, validator: &V) {
         match self {
-            Self::Everything(_) => {}
-            Self::Nothing => {}
-            Self::Identifier(_) => {}
-            Self::Expected(_, _) => {}
-            Self::NotBlock(_) => {}
-            Self::Or(t) => match *t {
-                OrMatch::First(first) => first.build_var_map(tree, validator),
-                OrMatch::Second(second) => second.build_var_map(tree, validator),
-            },
+            Self::Everything(_)
+            | Self::Nothing
+            | Self::Identifier(_)
+            | Self::Expected(_, _)
+            | Self::NotBlock(_) => {}
+            Self::Or(box OrMatch::First(item) | box OrMatch::Second(item)) =>
+                item.build_var_map(tree, validator),
             Self::Seq(first, second) => {
                 first.build_var_map(tree, validator);
                 second.build_var_map(tree, validator);
             }
             Self::Many(matches) => {
-                if tree.nested.is_none() {
-                    let nested = VarMap::<'s, V>::default();
-                    tree.nested = Some(Box::new(nested));
-                }
                 let nested_validator = V::default();
                 nested_validator.set_parent(validator);
-                let nested = tree.nested.as_mut().unwrap();
+                let nested = tree.nested.get_or_insert(default());
                 for m in matches {
                     m.build_var_map(nested, &nested_validator);
                 }
@@ -310,7 +304,7 @@ impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
 
 impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
     /// Query for a variable.
-    pub fn query(&mut self, name: &str) -> Option<&'t Vec<Vec<syntax::Item<'s>>>> {
+    pub fn query(&mut self, name: &str) -> Option<&'t [Vec<syntax::Item<'s>>]> {
         self.tree.and_then(|t| {
             t.map.get(name).map(|entry| {
                 match &self.resolved_validator {
@@ -342,7 +336,7 @@ impl<'t, 's, V: Validator> VarMapView<'t, 's, V> {
                         self.resolved_validator = Some(resolved_validator);
                     }
                 }
-                &entry.tokens
+                &entry.tokens[..]
             })
         })
     }

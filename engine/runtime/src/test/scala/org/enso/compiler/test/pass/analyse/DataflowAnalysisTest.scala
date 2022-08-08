@@ -1606,7 +1606,6 @@ class DataflowAnalysisTest extends CompilerTest {
       conversion.hasDependencyInfo
       sourceType.hasDependencyInfo
       lambda.hasDependencyInfo
-      fnArgThis.hasDependencyInfo
       fnArgValue.hasDependencyInfo
       fnBody.hasDependencyInfo
       fooExpr.hasDependencyInfo

@@ -4,6 +4,7 @@ public final class Message {
     private final java.nio.ByteBuffer buffer;
     private final java.nio.ByteBuffer context;
     private final int base;
+    private boolean encounteredUnsupportedSyntax;
 
     public Message(java.nio.ByteBuffer bufferIn, java.nio.ByteBuffer contextIn, long baseIn) {
         buffer = bufferIn;
@@ -52,5 +53,17 @@ public final class Message {
         }
         assert tmp >= 0;
         return tmp;
+    }
+
+    final String getLocation() {
+        return "Message[buffer=" + buffer.position() + "]";
+    }
+
+    public final boolean getEncounteredUnsupportedSyntax() {
+        return encounteredUnsupportedSyntax;
+    }
+
+    public final void markEncounteredUnsupportedSyntax() {
+        encounteredUnsupportedSyntax = true;
     }
 }

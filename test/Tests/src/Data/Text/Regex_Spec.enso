@@ -1,10 +1,10 @@
-
 from Standard.Base import all
-import Standard.Test
 
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Option
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+
+import Standard.Test
 
 spec =
     Test.group "Regex options handling" <|

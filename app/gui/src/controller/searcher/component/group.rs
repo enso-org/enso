@@ -6,8 +6,6 @@ use crate::prelude::*;
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
 use crate::controller::searcher::component::MatchInfo;
-use crate::controller::searcher::component::NoSuchComponent;
-use crate::controller::searcher::component::NoSuchGroup;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
@@ -216,24 +214,6 @@ impl List {
     /// Constructor.
     pub fn new(groups: Vec<Group>) -> Self {
         Self { groups: Rc::new(groups) }
-    }
-
-    /// Get entry under given group and entry index.
-    pub fn entry_by_index(
-        &self,
-        section_name: CowString,
-        group_index: usize,
-        entry_index: usize,
-    ) -> FallibleResult<Component> {
-        let error = || NoSuchGroup { section_name, index: group_index };
-        let group = self.groups.get(group_index).ok_or_else(error)?;
-        let error = || NoSuchComponent {
-            group_name: group.name.to_string().into(),
-            index:      entry_index,
-        };
-        let entries = group.entries.borrow();
-        let component = entries.get(entry_index).ok_or_else(error)?;
-        Ok(component.clone_ref())
     }
 }
 

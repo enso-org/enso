@@ -121,7 +121,7 @@ macro_rules! define_color_space {
 
         /// Constructor.
         #[allow(non_snake_case)]
-        pub fn $name($($comp:f32),*) -> $name {
+        pub const fn $name($($comp:f32),*) -> $name {
             $name::new($($comp),*)
         }
 
@@ -142,7 +142,7 @@ macro_rules! define_color_space {
 
         /// Constructor.
         #[allow(non_snake_case)]
-        pub fn $a_name($($comp:f32),*,alpha:f32) -> $a_name {
+        pub const fn $a_name($($comp:f32),*,alpha:f32) -> $a_name {
             $a_name::new($($comp),*,alpha)
         }
 

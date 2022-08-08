@@ -1,7 +1,6 @@
-from Standard.Base import Nothing, File, Illegal_Argument_Error, True, False
-import Standard.Base.System.File.Existing_File_Behavior
+from Standard.Base import all
+
 from Standard.Base.System.File import File_Already_Exists_Error
-import Standard.Base.Data.Time.Date
 from Standard.Base.Error.Problem_Behavior import all
 
 import Standard.Table

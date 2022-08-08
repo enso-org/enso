@@ -72,7 +72,7 @@ type Interval
 
              example_contains = (Interval.inclusive 0.1 1) . contains 0.33
     contains : Number -> Boolean
-    contains that = if self.start.n > self.end.n then False else
+    contains self that = if self.start.n > self.end.n then False else
         case self.start of
             Bound.Exclusive s -> (that > s) && case self.end of
                 Bound.Exclusive e -> that < e
@@ -90,7 +90,7 @@ type Interval
 
              example_is_empty = Interval.inclusive 0 0 . is_empty
     is_empty : Boolean
-    is_empty = case self.start of
+    is_empty self = case self.start of
         Bound.Exclusive s -> case self.end of
             Bound.Exclusive e -> s >= e
             Bound.Inclusive e -> s >= e
@@ -107,5 +107,5 @@ type Interval
 
              example_not_empty = Interval.inclusive 0 0.001 . not_empty
     not_empty : Boolean
-    not_empty = self.is_empty.not
+    not_empty self = self.is_empty.not
 

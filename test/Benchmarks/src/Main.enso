@@ -1,8 +1,8 @@
 from Standard.Base import all
-
-import Standard.Test.Bench
 import Standard.Base.Runtime.Debug
 import Standard.Base.Runtime.State
+
+import Standard.Test.Bench
 
 polyglot java import java.lang.Long
 

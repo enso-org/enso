@@ -107,7 +107,7 @@ type Matrix
 
              example_rows = Examples.matrix.rows
     rows : Integer
-    rows = self.opencv_mat.rows
+    rows self = self.opencv_mat.rows
 
     ## UNSTABLE
 
@@ -120,7 +120,7 @@ type Matrix
 
              example_columns = Examples.matrix.columns
     columns : Integer
-    columns = self.opencv_mat.cols
+    columns self = self.opencv_mat.cols
 
     ## Return the number of matrix channels.
 
@@ -131,7 +131,7 @@ type Matrix
 
              example_channels = Examples.matrix.channels
     channels : Integer
-    channels = self.opencv_mat.channels
+    channels self = self.opencv_mat.channels
 
     ## UNSTABLE
 
@@ -148,7 +148,7 @@ type Matrix
 
              example_get = Examples.matrix.get 0 0
     get : Integer -> Integer -> Vector ! Index_Out_Of_Bounds_Error
-    get row column =
+    get self row column =
         if (row < 0) || (row >= self.rows) then Error.throw (Index_Out_Of_Bounds_Error self.rows self.columns row) else
             if (column < 0) || (column >= self.columns) then Error.throw (Index_Out_Of_Bounds_Error self.rows self.columns column) else
                 arr = Java_Matrix.get self.opencv_mat row column
@@ -169,7 +169,7 @@ type Matrix
 
              example_rewhsape = Matrix.from_vector [0, 0, 0] . reshape rows=3 channels=1
     reshape : Integer -> Integer -> Matrix
-    reshape rows channels=Nothing =
+    reshape self rows channels=Nothing =
         case channels of
             Nothing -> Matrix (self.opencv_mat.reshape self.channels rows)
             _ -> Matrix (self.opencv_mat.reshape channels rows)
@@ -210,7 +210,7 @@ type Matrix
 
              example_plus = Examples.matrix + Examples.matrix
     + : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    + value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
+    + self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -249,7 +249,7 @@ type Matrix
 
              example_minus = Examples.matrix - Examples.matrix
     - : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    - value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
+    - self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -293,7 +293,7 @@ type Matrix
          Multiply two matrices.
              m * m
     * : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    * value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
+    * self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -331,7 +331,7 @@ type Matrix
 
               example_div = Examples.matrix / Examples.matrix
     / : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
-    / value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
+    / self value = Panic.recover Any (Internal.core_op self.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
 
     ## UNSTABLE
 
@@ -351,7 +351,7 @@ type Matrix
 
              example_eq = Examples.matrix == Examples.matrix
     == : Matrix -> Boolean
-    == that = Java_Matrix.is_equals self.opencv_mat that.opencv_mat
+    == self that = Java_Matrix.is_equals self.opencv_mat that.opencv_mat
 
     ## UNSTABLE
 
@@ -384,7 +384,7 @@ type Matrix
 
              example_normalize = Matrix.identity 3 3 . normalize
     normalize : Number -> Number -> Matrix
-    normalize min_value=0.0 max_value=1.0 =
+    normalize self min_value=0.0 max_value=1.0 =
         Matrix (Java_Matrix.normalize self.opencv_mat min_value max_value)
 
     ## UNSTABLE
@@ -398,7 +398,7 @@ type Matrix
 
              example_to_image = Examples.matrix.to_image
     to_image : Image.Image
-    to_image = Image.Image (Image.from_vector self.normalize.to_vector self.rows self.channels)
+    to_image self = Image.Image (Image.from_vector self.normalize.to_vector self.rows self.channels)
 
     ## UNSTABLE
 
@@ -411,7 +411,7 @@ type Matrix
 
              example_to_vector = Examples.matrix.to_vector
     to_vector : Vector
-    to_vector =
+    to_vector self =
         arr = Java_Matrix.to_vector self.opencv_mat
         Vector.Vector arr
 
@@ -426,7 +426,7 @@ type Matrix
 
              example_to_json = Examples.matrix.to_json
     to_json : Json
-    to_json = Json.String self.opencv_mat.to_text
+    to_json self = Json.String self.opencv_mat.to_text
 
 ## UNSTABLE
 type Matrix_Error
@@ -451,7 +451,7 @@ type Matrix_Error
 
        Pretty-prints a matrix error to be readable by the users.
     to_display_text : Text
-    to_display_text = case self of
+    to_display_text self = case self of
         Index_Out_Of_Bounds_Error rows columns index ->
             'For a matrix with dimensions ' + rows.to_text + 'x' + columns.to_text + ', the index ' + index.to_text + ' is out of bounds.'
         Dimensions_Not_Equal ->
