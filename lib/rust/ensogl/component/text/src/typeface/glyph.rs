@@ -105,6 +105,7 @@ impl Glyph {
     }
 
     // FIXME: How does it work? Replace with better checking.
+    // ^^^
     fn update_msdf_texture(&self) {
         let texture_changed = self.atlas.with_content(|texture| {
             texture.storage().height != self.font.msdf_texture_rows() as i32

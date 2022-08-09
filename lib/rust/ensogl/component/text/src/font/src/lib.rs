@@ -181,6 +181,8 @@ pub struct FontData {
     font_face: ttf::OwnedFace,
     atlas:     msdf::Texture,
     glyphs:    Cache<char, GlyphRenderInfo>,
+    /// Kerning is also available in the `font_face` structure, but accessing it is slower than via
+    /// a cache.
     kerning:   Cache<(char, char), f32>,
 }
 
