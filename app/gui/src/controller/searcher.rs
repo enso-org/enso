@@ -1859,7 +1859,7 @@ pub mod test {
         // Prepare a sample component group to be returned by a mock Language Server client.
         let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
         let sample_ls_component_group = language_server::LibraryComponentGroup {
-            library: "".to_string(),
+            library: project::QualifiedName::of_standard_base_library().to_string(),
             name:    "Test Group 1".to_string(),
             color:   None,
             icon:    None,
