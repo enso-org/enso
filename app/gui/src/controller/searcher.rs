@@ -440,7 +440,7 @@ impl Data {
         let actions = default();
         let components = default();
         let intended_method = edited_node.metadata.and_then(|md| md.intended_method);
-        let initial_entry = intended_method.and_then(|m| database.lookup_method(m));
+        let initial_entry = intended_method.and_then(|metadata| database.lookup_method(metadata));
         let initial_fragment = initial_entry.and_then(|entry| {
             let fragment = FragmentAddedByPickingSuggestion {
                 id:                CompletedFragmentId::Function,
@@ -1228,8 +1228,8 @@ impl EditGuard {
         let module = &self.graph.graph().module;
         module.with_node_metadata(
             self.node_id,
-            Box::new(|m| {
-                m.edit_status = Some(NodeEditStatus::Edited { previous_expression });
+            Box::new(|metadata| {
+                metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
             }),
         )
     }
@@ -1239,8 +1239,8 @@ impl EditGuard {
         let module = &self.graph.graph().module;
         module.with_node_metadata(
             self.node_id,
-            Box::new(|m| {
-                m.edit_status = None;
+            Box::new(|metadata| {
+                metadata.edit_status = None;
             }),
         )
     }
@@ -1250,26 +1250,29 @@ impl EditGuard {
         let mut edit_status = None;
         module.with_node_metadata(
             self.node_id,
-            Box::new(|m| {
-                edit_status = m.edit_status.clone();
+            Box::new(|metadata| {
+                edit_status = metadata.edit_status.clone();
             }),
         )?;
         Ok(edit_status)
     }
 
-    fn revert_node_expression(&self) -> FallibleResult {
+    fn revert_node_expression_edit(&self) -> FallibleResult {
         let edit_status = self.get_saved_expression()?;
         match edit_status {
             None => {
-                tracing::warn!("Tried to revert edited node, but found not edit metadata.");
+                tracing::warn!(
+                    "Tried to revert the expression of the edited node, \
+                but found no edit metadata."
+                );
             }
             Some(NodeEditStatus::Created) => {
-                tracing::debug!("Deleting node {} after edit reverted.", self.node_id);
+                tracing::debug!("Deleting temporary node {} after aborting edit.", self.node_id);
                 self.graph.graph().remove_node(self.node_id)?;
             }
             Some(NodeEditStatus::Edited { previous_expression }) => {
                 tracing::debug!(
-                    "Reverting node {} after edit reverted. Expression to revert: {}",
+                    "Reverting expression of node {} to {} after aborting edit.",
                     self.node_id,
                     &previous_expression
                 );
@@ -1284,7 +1287,7 @@ impl EditGuard {
 impl Drop for EditGuard {
     fn drop(&mut self) {
         if self.revert_expression.get() {
-            self.revert_node_expression().unwrap_or_else(|e| {
+            self.revert_node_expression_edit().unwrap_or_else(|e| {
                 tracing::error!(
                     "Failed to revert node edit after editing ended because of an error: {}",
                     e
@@ -2352,9 +2355,9 @@ pub mod test {
         module
             .with_node_metadata(
                 node_id,
-                Box::new(|m| {
+                Box::new(|metadata| {
                     assert_eq!(
-                        m.edit_status,
+                        metadata.edit_status,
                         Some(NodeEditStatus::Edited {
                             previous_expression: node.info.expression().to_string(),
                         })
@@ -2368,8 +2371,8 @@ pub mod test {
         module
             .with_node_metadata(
                 node_id,
-                Box::new(|m| {
-                    assert_eq!(m.edit_status, None);
+                Box::new(|metadata| {
+                    assert_eq!(metadata.edit_status, None);
                 }),
             )
             .unwrap();
@@ -2390,9 +2393,10 @@ pub mod test {
         searcher.node_edit_guard =
             Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
 
-        // Edit node
+        // Apply an edit to the node.
         let new_expression = "Edited Node";
         graph.set_expression(node_id, new_expression).unwrap();
+        // Prevent reverting the node by calling the `prevent_revert` method.
         searcher.node_edit_guard.deref().as_ref().unwrap().prevent_revert();
 
         // Verify the node is not reverted after the searcher is dropped.
