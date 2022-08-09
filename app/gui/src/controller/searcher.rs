@@ -2347,7 +2347,7 @@ pub mod test {
         searcher.node_edit_guard =
             Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
 
-        // Edit node
+        // Apply an edit to the node.
         graph.set_expression(node_id, "Edited Node").unwrap();
 
         // Verify the metadata was initialised after the guard creation.
