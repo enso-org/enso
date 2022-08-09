@@ -125,6 +125,13 @@ object TextProtocol {
     */
   case class TextDidChange(changes: List[FileEdit])
 
+  /** A notification sent by the Language Server, notifying a client about
+    * a successful auto-save action.
+    *
+    * @param path path to the saved file
+    */
+  case class FileAutoSaved(path: Path)
+
   /** Requests the language server to save a file on behalf of a given user.
     *
     * @param clientId the client closing the file.

@@ -2306,6 +2306,17 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
       Thread.sleep(8.seconds.toMillis)
       // No explicit file save
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method":"text/autoSave",
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/read",
