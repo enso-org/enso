@@ -99,11 +99,11 @@ class CollaborativeBuffer(
     case ReadTextualFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
       timeoutCancellable.cancel()
-      stop()
+      stop(autoSave)
 
     case IOTimeout =>
       replyTo ! OpenFileResponse(Left(OperationTimeout))
-      stop()
+      stop(autoSave)
 
     case _ => stash()
   }
@@ -512,7 +512,7 @@ class CollaborativeBuffer(
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
       runtimeConnector ! Api.Request(Api.CloseFileNotification(buffer.file))
-      stop()
+      stop(autoSave)
     } else {
       context.become(
         collaborativeEditing(
@@ -583,7 +583,8 @@ class CollaborativeBuffer(
     }
   }
 
-  def stop(): Unit = {
+  def stop(autoSave: Map[ClientId, Cancellable]): Unit = {
+    autoSave.foreach(_._2.cancel())
     context.system.eventStream.publish(BufferClosed(bufferPath))
     context.stop(self)
   }
