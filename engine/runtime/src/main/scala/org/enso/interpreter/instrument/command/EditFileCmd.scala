@@ -42,7 +42,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
   private def executeJobs(implicit
     ctx: RuntimeContext
   ): Iterable[ExecuteJob] = {
-    ctx.contextManager.getAll
+    ctx.contextManager.getAllContexts
       .collect {
         case (contextId, stack) if stack.nonEmpty =>
           new ExecuteJob(contextId, stack.toList)

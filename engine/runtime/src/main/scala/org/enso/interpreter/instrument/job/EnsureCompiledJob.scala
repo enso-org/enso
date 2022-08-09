@@ -305,7 +305,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         changeset,
         module.getSource.getCharacters
       )
-    ctx.contextManager.getAll.values
+    ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
           CacheInvalidation.runAll(stack, invalidationCommands)
@@ -342,7 +342,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     diagnostics: Seq[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit =
     if (diagnostics.nonEmpty) {
-      ctx.contextManager.getAll.keys.foreach { contextId =>
+      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
         ctx.endpoint.sendToClient(
           Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
         )
@@ -357,7 +357,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def sendFailureUpdate(
     failure: Api.ExecutionResult.Failure
   )(implicit ctx: RuntimeContext): Unit =
-    ctx.contextManager.getAll.keys.foreach { contextId =>
+    ctx.contextManager.getAllContexts.keys.foreach { contextId =>
       ctx.endpoint.sendToClient(
         Api.Response(Api.ExecutionFailed(contextId, failure))
       )
@@ -372,7 +372,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       CompilationStatus.Success
 
   private def setCacheWeights()(implicit ctx: RuntimeContext): Unit = {
-    ctx.contextManager.getAll.values.foreach { stack =>
+    ctx.contextManager.getAllContexts.values.foreach { stack =>
       getCacheMetadata(stack).foreach { metadata =>
         CacheInvalidation.run(
           stack,

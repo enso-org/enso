@@ -58,9 +58,10 @@ class ExecutionContextManager {
 
   /** Gets all execution contexts.
     *
-    * @return all currently available execution contexsts.
+    * @return all currently available execution contexts.
     */
-  def getAll: collection.MapView[ContextId, mutable.Stack[InstrumentFrame]] =
+  def getAllContexts
+    : collection.MapView[ContextId, mutable.Stack[InstrumentFrame]] =
     synchronized {
       contexts.view.mapValues(_.stack)
     }

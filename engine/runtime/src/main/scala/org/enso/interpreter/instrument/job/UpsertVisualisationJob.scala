@@ -54,8 +54,8 @@ class UpsertVisualisationJob(
         )
 
       maybeCallable match {
-        case Left(ModuleNotFound) =>
-          replyWithModuleNotFoundError(config.expression.module)
+        case Left(ModuleNotFound(moduleName)) =>
+          replyWithModuleNotFoundError(moduleName)
           None
 
         case Left(EvaluationFailed(message, result)) =>
@@ -131,8 +131,10 @@ object UpsertVisualisationJob {
   sealed trait EvaluationFailure
 
   /** Signals that a module cannot be found.
+    *
+    * @param moduleName the module name
     */
-  case object ModuleNotFound extends EvaluationFailure
+  case class ModuleNotFound(moduleName: String) extends EvaluationFailure
 
   /** Signals that an evaluation of an expression failed.
     *
@@ -186,7 +188,7 @@ object UpsertVisualisationJob {
     val maybeModule = context.findModule(moduleName)
 
     if (maybeModule.isPresent) Right(maybeModule.get())
-    else Left(ModuleNotFound)
+    else Left(ModuleNotFound(moduleName))
   }
 
   /** Evaluate the visualisation expression in a given module.
