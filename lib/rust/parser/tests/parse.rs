@@ -391,15 +391,10 @@ fn minus_section() {
     #[rustfmt::skip]
     let cases = [
         ("- x", block![(OprSectionBoundary (OprApp () (Ok "-") (Ident x)))]),
-        ("(- x)", block![
-            (MultiSegmentApp #(
-             ((Symbol "(") (OprSectionBoundary (OprApp () (Ok "-") (Ident x))))
-             ((Symbol ")") ())))]),
+        ("(- x)", block![(Group "(" (OprSectionBoundary (OprApp () (Ok "-") (Ident x))) ")")]),
         ("- (x * 2)", block![
             (OprSectionBoundary (OprApp () (Ok "-")
-             (MultiSegmentApp #(
-              ((Symbol "(") (OprApp (Ident x) (Ok "*") (Number 2)))
-              ((Symbol ")") ())))))]),
+             (Group "(" (OprApp (Ident x) (Ok "*") (Number 2)) ")")))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
@@ -410,12 +405,9 @@ fn minus_unary() {
     let cases = [
         ("f -5", block![(App (Ident f) (UnaryOprApp "-" (Number 5)))]),
         ("-5", block![(UnaryOprApp "-" (Number 5))]),
-        ("(-5)", block![
-            (MultiSegmentApp #(((Symbol "(") (UnaryOprApp "-" (Number 5))) ((Symbol ")") ())))]),
+        ("(-5)", block![(Group "(" (UnaryOprApp "-" (Number 5)) ")")]),
         ("-(x * 2)", block![
-            (UnaryOprApp "-" (MultiSegmentApp #(
-             ((Symbol "(") (OprApp (Ident x) (Ok "*") (Number 2)))
-             ((Symbol ")") ()))))]),
+            (UnaryOprApp "-" (Group "(" (OprApp (Ident x) (Ok "*") (Number 2)) ")"))]),
         ("x=-1", block![(Assignment (Ident x) "=" (UnaryOprApp "-" (Number 1)))]),
         ("-1+2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "+") (Number 2))]),
         ("-1*2", block![(OprApp (UnaryOprApp "-" (Number 1)) (Ok "*") (Number 2))]),
