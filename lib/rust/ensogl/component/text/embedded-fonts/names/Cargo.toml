@@ -5,7 +5,7 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
-owned_ttf_parser = "0.15"
+owned_ttf_parser = "0.15.1"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

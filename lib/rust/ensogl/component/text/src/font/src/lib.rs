@@ -173,11 +173,7 @@ const FONT_FACE_NUMBER: u32 = 0;
 #[allow(missing_docs)]
 pub struct FontData {
     pub name:  String,
-    // FIXME: Contains the binary font data. This field should not be needed when it would be
-    //        possible to access the font data from within the `ttf::OwnedFace` structure.
-    //        See: https://github.com/RazrFalcon/ttf-parser/issues/103
-    data:      Vec<u8>,
-    msdf_font: Option<msdf_sys::Font>,
+    msdf_font: msdf_sys::Font,
     font_face: ttf::OwnedFace,
     atlas:     msdf::Texture,
     glyphs:    Cache<char, GlyphRenderInfo>,
@@ -186,60 +182,6 @@ pub struct FontData {
     kerning:   Cache<(char, char), f32>,
 }
 
-impl FontData {
-    /// Removes all glyph info from the font definition, leaving helper tables, such as the kerning
-    /// table. The glyph atlas is not removed. The main purpose of this function is to prevent
-    /// extraction of the font files from the application, while still allowing rendering the glyphs
-    /// to the screen. You can think of the glyph atlas like a set of glyph images. This allows
-    /// usage of commercial fonts without the need to distribute the font with the application, and
-    /// thus, it allows for more flexibility in font licensing (according to our font provider).
-    ///
-    /// The [`msdf_font`] definition is removed, which means that no new glyphs can be added to the
-    /// atlas after this operation. Moreover, all glyph shape data is erased from the [`font_face`]
-    /// definition, which means that the exact glyph shapes could not be reconstructed anymore.
-    ///
-    /// To learn more about the tables being removed, please refer to the `ttf-parser` documentation
-    /// at https://docs.rs/ttf-parser/0.15.2/ttf_parser/index.html#modules.
-    pub fn remove_glyph_data(&mut self) {
-        mem::take(&mut self.msdf_font);
-        let data_slice = &self.data[..];
-        let data_ptr = data_slice.as_ptr();
-        if let Ok(font_face) = ttf::RawFace::from_slice(data_slice, FONT_FACE_NUMBER) {
-            let tags_to_remove =
-                [b"CBDT", b"CBLC", b"CFF ", b"CFF2", b"fvar", b"gvar", b"sbix", b"SVG ", b"glyf"];
-            let mut ranges_to_remove = tags_to_remove
-                .into_iter()
-                .filter_map(|tag| {
-                    font_face.table(ttf::Tag::from_bytes(tag)).map(|glyph_table| {
-                        let glyph_table_ptr = glyph_table.as_ptr();
-                        // Safety: This is safe, as both pointers refer to the same slice.
-                        let start_index = unsafe { glyph_table_ptr.offset_from(data_ptr) } as usize;
-                        start_index..(start_index + glyph_table.len())
-                    })
-                })
-                .sorted_by_key(|t| t.start)
-                .into_iter();
-            let mut range_to_remove = ranges_to_remove.next();
-            let mut index = 0;
-            self.data.retain(|_| {
-                let mut keep = true;
-                if let Some(range) = &range_to_remove {
-                    let in_range = range.contains(&index);
-                    let next_in_range = range.contains(&(index + 1));
-                    if in_range && !next_in_range {
-                        range_to_remove = ranges_to_remove.next();
-                    }
-                    keep = !in_range;
-                }
-                index += 1;
-                keep
-            });
-        }
-        if let Ok(font_face) = ttf::OwnedFace::from_vec(self.data.clone(), FONT_FACE_NUMBER) {
-            self.font_face = font_face;
-        }
-    }
-}
 
 impl Font {
     /// Constructor.
@@ -247,20 +189,17 @@ impl Font {
         name: String,
         msdf_font: msdf_sys::Font,
         font_face: ttf::OwnedFace,
-        data: Vec<u8>,
     ) -> Self {
         let atlas = default();
         let glyphs = default();
         let kerning = default();
-        let msdf_font = Some(msdf_font);
-        FontData { name, data, msdf_font, font_face, atlas, glyphs, kerning }.into()
+        FontData { name, msdf_font, font_face, atlas, glyphs, kerning }.into()
     }
 
     /// Constructor.
     pub fn from_raw_data(name: String, font_data: &[u8]) -> Result<Self, ttf::FaceParsingError> {
         ttf::OwnedFace::from_vec(font_data.into(), FONT_FACE_NUMBER).map(|face| {
-            let data = font_data.into();
-            Self::from_msdf_font(name, msdf_sys::Font::load_from_memory(font_data), face, data)
+            Self::from_msdf_font(name, msdf_sys::Font::load_from_memory(font_data), face)
         })
     }
 
@@ -268,10 +207,9 @@ impl Font {
 
     /// Get render info for one character, generating one if not found.
     pub fn glyph_info(&self, ch: char) -> GlyphRenderInfo {
-        let handle = &self.msdf_font;
         self.glyphs.get_or_create(ch, move || {
             // FIXME: display default image for missing glyph.
-            GlyphRenderInfo::load(handle.as_ref().unwrap(), ch, &self.atlas)
+            GlyphRenderInfo::load(&self.msdf_font, ch, &self.atlas)
         })
     }
 
@@ -333,46 +271,5 @@ impl Font {
     pub fn mock_kerning_info(&self, l: char, r: char, value: f32) {
         self.kerning.invalidate(&(l, r));
         self.kerning.get_or_create((l, r), || value);
-    }
-}
-
-
-
-// ================================
-// === FontDataWithoutGlyphInfo ===
-// ================================
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct FontDataWithoutGlyphInfo {
-    pub name: String,
-    data:     Vec<u8>,
-    atlas:    msdf::Texture,
-    glyphs:   Cache<char, GlyphRenderInfo>,
-    kerning:  Cache<(char, char), f32>,
-}
-
-impl From<FontData> for FontDataWithoutGlyphInfo {
-    fn from(mut font_data: FontData) -> Self {
-        font_data.remove_glyph_data();
-        let name = font_data.name;
-        let data = font_data.data;
-        let atlas = font_data.atlas;
-        let glyphs = font_data.glyphs;
-        let kerning = font_data.kerning;
-        FontDataWithoutGlyphInfo { name, data, atlas, glyphs, kerning }
-    }
-}
-
-impl From<FontDataWithoutGlyphInfo> for FontData {
-    fn from(mut font_data: FontDataWithoutGlyphInfo) -> Self {
-        let name = font_data.name;
-        let data = font_data.data;
-        let atlas = font_data.atlas;
-        let glyphs = font_data.glyphs;
-        let kerning = font_data.kerning;
-        let msdf_font = None;
-        let err = "Internal error. The font data cannot be reconstructed.";
-        let font_face = ttf::OwnedFace::from_vec(data.clone(), FONT_FACE_NUMBER).expect(err);
-        FontData { name, data, atlas, glyphs, kerning, msdf_font, font_face }
     }
 }

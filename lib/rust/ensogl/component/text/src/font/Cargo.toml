@@ -12,4 +12,4 @@ enso-prelude = { path = "../../../../../prelude" }
 ensogl-core = { path = "../../../../core" }
 ensogl-text-msdf-sys = { path = "../../msdf-sys" }
 serde = {version = "1", features = ["rc"]}
-owned_ttf_parser = "0.15"
+owned_ttf_parser = "0.15.1"

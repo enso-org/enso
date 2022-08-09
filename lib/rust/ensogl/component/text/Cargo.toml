@@ -19,7 +19,7 @@ ensogl-text-font = { path = "src/font" }
 ensogl-text-msdf-sys = { path = "msdf-sys" }
 const_format = "0.2.22"
 xi-rope = { version = "0.3.0" }
-owned_ttf_parser = "0.15"
+owned_ttf_parser = "0.15.1"
 bincode = "2.0.0-rc.1"
 serde = {version = "1", features = ["rc"]}
 
