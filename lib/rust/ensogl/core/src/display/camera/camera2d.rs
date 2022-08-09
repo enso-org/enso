@@ -167,6 +167,8 @@ pub struct Frp {
     pub position: frp::Source<Vector3<f32>>,
     /// Camera zoom factor.
     pub zoom:     frp::Source<f32>,
+    /// Camera's frustum screen dimensions.
+    pub screen:   frp::Source<Screen>,
 }
 
 /// Function used to return the updated screen dimensions.
@@ -213,8 +215,9 @@ impl Camera2dData {
         frp::extend! { network
             frp_position <- source();
             frp_zoom <- source();
+            frp_screen <- source();
         }
-        let frp = Frp { network, position: frp_position, zoom: frp_zoom };
+        let frp = Frp { network, position: frp_position, zoom: frp_zoom, screen: frp_screen };
         Self {
             frp,
             display_object,
@@ -293,8 +296,6 @@ impl Camera2dData {
             self.matrix.view_projection = self.matrix.projection * self.matrix.view;
             let zoom = self.zoom;
             self.zoom_update_registry.run_all(zoom);
-            self.frp.position.emit(self.display_object.position());
-            self.frp.zoom.emit(zoom);
         }
         changed
     }
@@ -415,7 +416,12 @@ impl Camera2d {
 impl Camera2d {
     /// Sets screen dimensions.
     pub fn set_screen(&self, width: f32, height: f32) {
-        self.data.borrow_mut().set_screen(width, height)
+        let (endpoint, screen) = {
+            let mut borrowed = self.data.borrow_mut();
+            borrowed.set_screen(width, height);
+            (borrowed.frp.screen.clone_ref(), borrowed.screen)
+        };
+        endpoint.emit(screen);
     }
 
     /// Resets the zoom of the camera to the 1.0 value.
@@ -425,7 +431,18 @@ impl Camera2d {
 
     /// Update all dirty camera parameters and compute updated view-projection matrix.
     pub fn update(&self, scene: &Scene) -> bool {
-        self.data.borrow_mut().update(scene)
+        let (is_updated, frp, zoom) = {
+            let mut borrowed = self.data.borrow_mut();
+            let is_updated = borrowed.update(scene);
+            let frp = borrowed.frp.clone_ref();
+            let zoom = borrowed.zoom;
+            (is_updated, frp, zoom)
+        };
+        if is_updated {
+            frp.position.emit(self.display_object.position());
+            frp.zoom.emit(zoom);
+        }
+        is_updated
     }
 
     // FIXME: This can fail, for example, when during calling the callback another callback is
@@ -523,5 +540,42 @@ impl Camera2d {
 impl display::Object for Camera2d {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A regression test checks whether handling the camera's FRP events does not cause panics
+    /// at runtime.
+    ///
+    /// If the events are emitted with the camera's internal [`RefCell`] lock held, the usage of
+    /// camera API methods in event handlers can cause a panic. We need to check methods that use
+    /// both immutable and mutable borrows because, depending on the implementation of
+    /// the camera, it can hold either lock variant while emitting the event.
+    #[test]
+    fn test_frp_endpoints_are_not_causing_refcell_locks() {
+        let app = crate::application::Application::new("root");
+        let camera = app.display.default_scene.camera();
+        let frp = camera.frp();
+        let network = frp::Network::new("TestCamera2d");
+        frp::extend! { network
+            // `zoom()` method uses immutable borrow under the hood.
+            dummy <- frp.position.map(f_!(camera.zoom()));
+            // `set_position` method uses mutable borrow.
+            eval_ dummy(camera.set_position(default()));
+            // `screen` output is fired from the method that uses mutable borrow.
+            eval_ frp.screen(camera.zoom());
+            eval_ frp.screen(camera.set_position(default()));
+        }
+        camera.set_position(Vector3(1.0, 2.0, 3.0));
+        camera.update(&app.display.default_scene);
     }
 }
