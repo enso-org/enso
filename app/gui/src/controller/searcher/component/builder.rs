@@ -134,8 +134,7 @@ impl List {
                         self.local_scope.entries.borrow_mut().push(component.clone_ref());
                     }
                 }
-                let top_module = parent_module.top_module();
-                if let Some(top_group) = self.lookup_module_group(db, &top_module) {
+                if let Some(top_group) = self.lookup_module_group(db, &parent_module.top_module()) {
                     if let Some(flatten_group) = &mut top_group.flattened_content {
                         flatten_group.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
