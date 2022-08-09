@@ -52,6 +52,12 @@ public class EnsoCompilerTest {
   public void testImport() throws Exception {
     parseTest("""
     from Standard.Base.Data.Any import all
+    import project.IO
+    import Standard.Base as Enso_List
+    from Standard.Base import all hiding Number, Boolean
+    from Standard.Table as Column_Module import Column
+    polyglot java import java.lang.Float
+    polyglot java import java.net.URI as Java_URI
 
     main = 3
     """);

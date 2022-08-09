@@ -17,6 +17,8 @@ import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Type;
 import org.enso.compiler.core.IR$Module$Scope$Import;
 import org.enso.compiler.core.IR$Module$Scope$Import$Module;
+import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
+import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
@@ -1246,6 +1248,11 @@ final class TreeToIr {
   */
 
   private IR$Name$Qualified buildQualifiedName(Tree t) {
+    var segments = buildQualifiedSegments(t);
+    return new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
+  }
+
+  private List<IR.Name> buildQualifiedSegments(Tree t) {
     List<IR.Name> segments = nil();
     for (;;) {
       switch (t) {
@@ -1255,7 +1262,7 @@ final class TreeToIr {
         }
         case Tree.Ident id -> {
           segments = cons(buildName(id), segments);
-          return new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
+          return segments;
         }
         default -> {
           throw new UnhandledEntity(t, "buildQualifiedName");
@@ -1278,6 +1285,36 @@ final class TreeToIr {
         var isAll = buildName(onlyNames).name().equals("all");
         return new IR$Module$Scope$Import$Module(
           qualifiedName, Option.empty(), isAll, Option.empty(),
+          Option.empty(), getIdentifiedLocation(imp), false,
+          meta(), diag()
+        );
+      } else if (imp.getPolyglot() != null) {
+        List<IR.Name> qualifiedName = buildQualifiedSegments(imp.getImport().getBody());
+        StringBuilder pkg = new StringBuilder();
+        String cls = null;
+        for (List<IR.Name> next = qualifiedName; !next.isEmpty();) {
+          if (cls != null) {
+            if (pkg.length() != 0) {
+              pkg.append(".");
+            }
+            pkg.append(cls);
+          }
+          cls = next.head().name();
+          next = (List<IR.Name>) next.tail();
+        }
+        Option<String> rename = imp.getImportAs() == null ? Option.empty() :
+                Option.apply(buildName(imp.getImportAs().getBody()).name());
+        return new IR$Module$Scope$Import$Polyglot(
+          new IR$Module$Scope$Import$Polyglot$Java(pkg.toString(), cls),
+          rename, getIdentifiedLocation(imp),
+          meta(), diag()
+        );
+      } else {
+        var qualifiedName = buildQualifiedName(imp.getImport().getBody());
+        Option<IR$Name$Literal> rename = imp.getImportAs() == null ? Option.empty() :
+                Option.apply(buildName(imp.getImportAs().getBody()));
+        return new IR$Module$Scope$Import$Module(
+          qualifiedName, rename, false, Option.empty(),
           Option.empty(), getIdentifiedLocation(imp), false,
           meta(), diag()
         );
