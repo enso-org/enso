@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { existsSync } from 'node:fs'
+import fs from 'node:fs'
 import process from 'node:process'
 
 /**
@@ -38,8 +38,25 @@ export function require_env_resolved_path(name: string) {
  */
 export function require_env_path_exist(name: string) {
     const value = require_env(name)
-    if (existsSync(value)) return value
+    if (fs.existsSync(value)) return value
     else throw Error(`File with path ${value} read from environment variable ${name} is missing.`)
+}
+
+/**
+ * Function fulfills after the given path denotes an existing, readable file.
+ */
+async function wait_until_readable(path: string) {
+    // This implementation (polling every 100ms) is crude but should be reliable.
+    // If such need arises, more refined implementation can be built using `fs.watch` api.
+    console.log(`Waiting for file ${path} to become readable.`)
+    while (true) {
+        try {
+            await fs.promises.access(path, fs.constants.R_OK)
+            return
+        } catch (err) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+        }
+    }
 }
 
 export default { require_env, require_env_path_exist }
