@@ -299,8 +299,14 @@ fn implement_getter(graph: &TypeGraph, class: &Class, id: FieldId) -> syntax::Me
 /// specified [`Field`]. The method must be attached to the same [`syntax::Class`] in which the
 /// [`Field`] is defined.
 fn getter(graph: &TypeGraph, field: &Field) -> syntax::Method {
-    let getter_name = |field| {
-        let field = crate::meta::Identifier::from_camel_case(field);
+    let getter_name = |field: &str| {
+        let with_field_prefix: String = field.chars().skip(5).collect();
+        let simple_name = if field.starts_with("field") {
+            with_field_prefix.as_str()
+        } else {
+            field
+        };
+        let field = crate::meta::Identifier::from_camel_case(simple_name);
         let mut name = crate::meta::Identifier::from_camel_case("get");
         name.append(field);
         name.to_camel_case()
