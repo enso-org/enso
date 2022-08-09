@@ -17,6 +17,7 @@ use enso_prelude::*;
 
 use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 
+pub use embedded_fonts_names::*;
 
 // ==============
 // === Export ===
@@ -26,7 +27,7 @@ use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 
 
 
-include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
+include!(concat!(env!("OUT_DIR"), "/embedded_fonts_data.rs"));
 
 // /// The default font family used in the app.
 // pub type DefaultFamily = embedded_fonts_names::DejaVuSans;
@@ -34,7 +35,7 @@ include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
 
 
 // =====================
-// === EmbeddedFonts ===
+// === EmbeddedFontsData ===
 // =====================
 
 /// A base of built-in fonts in application.
@@ -44,23 +45,18 @@ include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
 ///
 /// For list of embedded fonts, see FONTS_TO_EXTRACT constant in `build.rs`.
 #[allow(missing_docs)]
-pub struct EmbeddedFonts {
-    pub ttf_binary_data: HashMap<&'static str, &'static [u8]>,
+#[derive(Clone, Deref, DerefMut)]
+pub struct EmbeddedFontsData {
+    pub data: HashMap<&'static str, &'static [u8]>,
 }
 
-impl EmbeddedFonts {
-    /// Creates an embedded fonts base filled with data.
-    ///
-    /// For list of embedded fonts, see `FONTS_TO_EXTRACT` constant in `build.rs`
-    pub fn create_and_fill() -> EmbeddedFonts {
-        let mut ttf_binary_data = HashMap::<&'static str, &'static [u8]>::new();
-        // ...
-        event!(WARN, "{:?}", ttf_binary_data.keys().collect_vec());
-        EmbeddedFonts { ttf_binary_data }
+impl EmbeddedFontsData {
+    pub fn new() -> EmbeddedFontsData {
+        EmbeddedFontsData { data: embedded_fonts_data() }
     }
 }
 
-impl Debug for EmbeddedFonts {
+impl Debug for EmbeddedFontsData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("<Embedded fonts>")
     }
@@ -81,7 +77,7 @@ mod test {
 
     #[test]
     fn loading_embedded_fonts() {
-        let fonts = EmbeddedFonts::create_and_fill();
+        let fonts = EmbeddedFontsData::new();
         let example_font = fonts.ttf_binary_data.get(DejaVuSans::regular()).unwrap();
 
         assert_eq!(0x00, example_font[0]);
