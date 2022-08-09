@@ -49,73 +49,6 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 /// See also [`Searcher::add_enso_project_entries`].
 const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
 
-/// Name of the virtual component group in the `Standard.Base` library which contains input
-/// components.
-const INPUT_COMPONENT_GROUP_NAME: &str = "Input";
-
-thread_local! {
-    /// Code snippets of default literal values of text and number type. The snippets are
-    /// documented as code that can be used as input nodes. When converted to [`Component`]s and
-    /// added to the [`component::List`] they allow the users to easily enter literals in code.
-    static LITERAL_INPUT_NODES_SNIPPETS: Vec<Rc<component::hardcoded::Snippet>> = [
-        LiteralSnippet {
-            name:               "text input",
-            code:               "\"\"",
-            return_type:        "Standard.Base.Data.Text.Text",
-            documentation:
-                "A text input node.\n\n\
-                An empty text. The value can be edited and used as an input for other nodes."
-            ,
-            icon:               ide_view_component_group::icon::Id::TextInput,
-        },
-        LiteralSnippet {
-            name:               "number input",
-            code:               "0",
-            return_type:        "Standard.Base.Data.Numbers.Number",
-            documentation:
-                "A number input node.\n\n\
-                A zero number. The value can be edited and used as an input for other nodes."
-            ,
-            icon:               ide_view_component_group::icon::Id::NumberInput,
-        },
-    ].into_iter().map(|c| Rc::new(c.try_into().unwrap())).collect_vec();
-}
-
-
-
-// ======================
-// === LiteralSnippet ===
-// ======================
-
-/// A snippet of code with a literal value, with description and syntax metadata.
-struct LiteralSnippet {
-    pub name:          &'static str,
-    pub code:          &'static str,
-    pub return_type:   &'static str,
-    pub documentation: &'static str,
-    pub icon:          ide_view_component_group::icon::Id,
-}
-
-impl TryFrom<LiteralSnippet> for component::hardcoded::Snippet {
-    type Error = failure::Error;
-    fn try_from(literal: LiteralSnippet) -> Result<component::hardcoded::Snippet, Self::Error> {
-        let doc_parser = parser::DocParser::new()?;
-        let doc_string = literal.documentation.to_string();
-        let documentation_html = doc_parser.generate_html_doc_pure(doc_string)?;
-        Ok(component::hardcoded::Snippet {
-            name:               literal.name,
-            code:               literal.code,
-            this_arg:           None,
-            argument_types:     vec![],
-            return_type:        Some(literal.return_type.try_into()?),
-            imports:            vec![],
-            documentation_html: Some(documentation_html),
-            method_id:          None,
-            icon:               literal.icon.as_str().into(),
-        })
-    }
-}
-
 
 
 // ==============
@@ -1257,8 +1190,8 @@ fn component_list_builder_with_favorites<'a>(
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     let base_lib_qn = project::QualifiedName::standard_base_library();
-    let input_group_name = INPUT_COMPONENT_GROUP_NAME;
-    let snippets = LITERAL_INPUT_NODES_SNIPPETS.with(|snippet| snippet.clone());
+    let input_group_name = component::hardcoded::INPUT_COMPONENT_GROUP_NAME;
+    let snippets = component::hardcoded::LITERAL_INPUT_NODES_SNIPPETS.with(|s| s.clone());
     builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
     builder
 }
@@ -1898,7 +1831,7 @@ pub mod test {
         let favorites = &components.favorites;
         assert_eq!(favorites.len(), 2);
         let favorites_group_0 = &favorites[0];
-        assert_eq!(favorites_group_0.name, INPUT_COMPONENT_GROUP_NAME);
+        assert_eq!(favorites_group_0.name, component::hardcoded::INPUT_COMPONENT_GROUP_NAME);
         let favorites_group_1 = &favorites[1];
         assert_eq!(favorites_group_1.name, "Test Group 1");
         let favorites_entries = favorites_group_1.entries.borrow();
