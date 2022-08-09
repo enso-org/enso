@@ -109,7 +109,7 @@ impl Group {
     pub fn from_name_and_project_and_snippets(
         name: impl Into<ImString>,
         project: project::QualifiedName,
-        snippets: impl IntoIterator<Item = Rc<component::HardcodedSnippet>>,
+        snippets: impl IntoIterator<Item = Rc<component::hardcoded::Snippet>>,
     ) -> Self {
         let entries = snippets.into_iter().map(Into::into).collect_vec();
         let group_data = Data {

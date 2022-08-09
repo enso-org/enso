@@ -172,7 +172,7 @@ impl List {
         &mut self,
         group_name: &str,
         project: project::QualifiedName,
-        snippets: impl IntoIterator<Item = Rc<component::HardcodedSnippet>>,
+        snippets: impl IntoIterator<Item = Rc<component::hardcoded::Snippet>>,
     ) {
         use component::Group;
         let mut favorites_grouping = self.take_grouping_and_order_of_favorites_as_vec();
@@ -472,7 +472,7 @@ mod tests {
             components: vec![qn_of_db_entry_0],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        let snippet = component::HardcodedSnippet { name: "test snippet", ..default() };
+        let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         builder.insert_virtual_components_in_favorites_group(GROUP_NAME, project, snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
@@ -500,7 +500,7 @@ mod tests {
             components: vec![qn_of_db_entry_0],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
-        let snippet = component::HardcodedSnippet { name: "test snippet", ..default() };
+        let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
         const GROUP_2_NAME: &str = "Group 2";
         builder.insert_virtual_components_in_favorites_group(GROUP_2_NAME, project, snippet_iter);

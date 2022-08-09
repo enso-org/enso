@@ -16,6 +16,7 @@ use convert_case::Casing;
 
 pub mod builder;
 pub mod group;
+pub mod hardcoded;
 
 pub use group::Group;
 
@@ -30,8 +31,6 @@ pub type Id = suggestion_database::entry::Id;
 /// Information how the component matches the filtering pattern.
 pub type MatchInfo = controller::searcher::action::MatchInfo;
 
-/// A hardcoded snippet of code with a description and syntactic metadata.
-pub type HardcodedSnippet = controller::searcher::action::hardcoded::Suggestion;
 
 
 // =============
@@ -73,7 +72,7 @@ pub enum Kind {
     /// A virtual component containing a hardcoded snippet of code.
     Virtual {
         /// A hardcoded snippet of code.
-        snippet: Rc<HardcodedSnippet>,
+        snippet: Rc<hardcoded::Snippet>,
     },
 }
 
@@ -159,8 +158,8 @@ impl Component {
     }
 }
 
-impl From<Rc<HardcodedSnippet>> for Component {
-    fn from(snippet: Rc<HardcodedSnippet>) -> Self {
+impl From<Rc<hardcoded::Snippet>> for Component {
+    fn from(snippet: Rc<hardcoded::Snippet>) -> Self {
         Self { kind: Kind::Virtual { snippet }, match_info: default() }
     }
 }
