@@ -7,6 +7,7 @@ use crate::prelude::*;
 
 use crate::component_browser::component_group::prelude::StyleWatchFrp;
 use crate::documentation;
+use crate::graph_editor::component::node::HEIGHT as NODE_HEIGHT;
 
 use enso_frp as frp;
 use ensogl::application::frp::API;
@@ -51,6 +52,22 @@ impl component::Model for Model {
     }
 }
 
+impl Model {
+    fn expression_input_position(
+        panel_size: &Vector2,
+        panel_x: &f32,
+        vertical_gap: &f32,
+    ) -> Vector2 {
+        let half_width = panel_size.x / 2.0;
+        let half_node_height = NODE_HEIGHT / 2.0;
+        let panel_left = panel_x - half_width;
+        let panel_bottom = -panel_size.y / 2.0;
+        let x = panel_left;
+        let y = panel_bottom - vertical_gap - half_node_height;
+        Vector2(x, y)
+    }
+}
+
 impl display::Object for Model {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
@@ -76,7 +93,6 @@ impl component::Frp<Model> for Frp {
         model: &Model,
         style: &StyleWatchFrp,
     ) {
-        use crate::graph_editor::component::node::HEIGHT as NODE_HEIGHT;
         let network = &frp_api.network;
         let input = &frp_api.input;
         let out = &frp_api.output;
@@ -106,18 +122,11 @@ impl component::Frp<Model> for Frp {
             model.list.input.shown <+ any(&input.show, &init);
             out.is_visible <+ bool(&input.hide, &input.show);
             out.size <+ size;
-            out.expression_input_position <+ all_with4(
+            out.expression_input_position <+ all_with3(
                 &list_panel.size,
                 &list_position_x,
-                &size,
                 &gap,
-                |list_size, list_x, size, gap| {
-                    let half_width = list_size.x / 2.0;
-                    let left_x = list_x - half_width;
-                    let bottom_y = -size.y / 2.0;
-                    let half_node_height = NODE_HEIGHT / 2.0;
-                    Vector2(left_x, bottom_y - gap - half_node_height)
-                }
+                Model::expression_input_position
             );
         }
         init.emit(());

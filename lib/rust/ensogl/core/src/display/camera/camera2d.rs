@@ -431,17 +431,16 @@ impl Camera2d {
 
     /// Update all dirty camera parameters and compute updated view-projection matrix.
     pub fn update(&self, scene: &Scene) -> bool {
-        let (is_updated, pos_endpoint, zoom_endpoint, zoom) = {
+        let (is_updated, frp, zoom) = {
             let mut borrowed = self.data.borrow_mut();
             let is_updated = borrowed.update(scene);
-            let pos_endpoint = borrowed.frp.position.clone_ref();
-            let zoom_endpoint = borrowed.frp.zoom.clone_ref();
+            let frp = borrowed.frp.clone_ref();
             let zoom = borrowed.zoom;
-            (is_updated, pos_endpoint, zoom_endpoint, zoom)
+            (is_updated, frp, zoom)
         };
         if is_updated {
-            pos_endpoint.emit(self.display_object.position());
-            zoom_endpoint.emit(zoom);
+            frp.position.emit(self.display_object.position());
+            frp.zoom.emit(zoom);
         }
         is_updated
     }
@@ -557,8 +556,10 @@ mod tests {
     /// A regression test checks whether handling the camera's FRP events does not cause panics
     /// at runtime.
     ///
-    /// If the events are emitted with the camera's internal [`RefCell`] lock held, any usage of
-    /// camera API in event handlers will cause a panic.
+    /// If the events are emitted with the camera's internal [`RefCell`] lock held, the usage of
+    /// camera API methods in event handlers can cause a panic. We need to check methods that use
+    /// both immutable and mutable borrows because, depending on the implementation of
+    /// the camera, it can hold either lock variant while emitting the event.
     #[test]
     fn test_frp_endpoints_are_not_causing_refcell_locks() {
         let app = crate::application::Application::new("root");
@@ -572,6 +573,7 @@ mod tests {
             eval_ dummy(camera.set_position(default()));
             // `screen` output is fired from the method that uses mutable borrow.
             eval_ frp.screen(camera.zoom());
+            eval_ frp.screen(camera.set_position(default()));
         }
         camera.set_position(Vector3(1.0, 2.0, 3.0));
         camera.update(&app.display.default_scene);
