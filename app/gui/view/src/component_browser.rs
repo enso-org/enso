@@ -112,7 +112,11 @@ impl component::Frp<Model> for Frp {
                 &size,
                 &gap,
                 |list_size, list_x, size, gap| {
-                    Vector2(*list_x - list_size.x / 2.0, - size.y / 2.0 - gap - NODE_HEIGHT / 2.0)
+                    let half_width = list_size.x / 2.0;
+                    let left_x = list_x - half_width;
+                    let bottom_y = -size.y / 2.0;
+                    let half_node_height = NODE_HEIGHT / 2.0;
+                    Vector2(left_x, bottom_y - gap - half_node_height)
                 }
             );
         }
