@@ -1256,7 +1256,7 @@ fn component_list_builder_with_favorites<'a>(
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
-    let base_lib_qn = project::QualifiedName::of_standard_base_library();
+    let base_lib_qn = project::QualifiedName::standard_base_library();
     let input_group_name = INPUT_COMPONENT_GROUP_NAME;
     let input_group_qn = component::group::QualifiedName::new(base_lib_qn, input_group_name);
     let snippets = LITERAL_INPUT_NODES_SNIPPETS.with(|c| c.clone());
@@ -1859,7 +1859,7 @@ pub mod test {
         // Prepare a sample component group to be returned by a mock Language Server client.
         let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
         let sample_ls_component_group = language_server::LibraryComponentGroup {
-            library: project::QualifiedName::of_standard_base_library().to_string(),
+            library: project::QualifiedName::standard_base_library().to_string(),
             name:    "Test Group 1".to_string(),
             color:   None,
             icon:    None,

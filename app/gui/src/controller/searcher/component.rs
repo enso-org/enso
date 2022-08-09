@@ -366,7 +366,7 @@ pub(crate) mod tests {
     ) -> Vec<crate::model::execution_context::ComponentGroup> {
         let db_entries = component_ids.iter().map(|id| db.lookup(*id).unwrap());
         let group = crate::model::execution_context::ComponentGroup {
-            project:    project::QualifiedName::of_standard_base_library(),
+            project:    project::QualifiedName::standard_base_library(),
             name:       "Test Group 1".into(),
             color:      None,
             components: db_entries.into_iter().map(|e| e.qualified_name()).collect(),

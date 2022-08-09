@@ -412,7 +412,7 @@ mod tests {
         assert_eq!(db.lookup_by_qualified_name_str(QN_NOT_IN_DB), None);
         let groups = [
             execution_context::ComponentGroup {
-                project:    project::QualifiedName::of_standard_base_library(),
+                project:    project::QualifiedName::standard_base_library(),
                 name:       "Group 1".into(),
                 color:      None,
                 components: vec![
@@ -426,7 +426,7 @@ mod tests {
                 ],
             },
             execution_context::ComponentGroup {
-                project:    project::QualifiedName::of_standard_base_library(),
+                project:    project::QualifiedName::standard_base_library(),
                 name:       "Group 2".into(),
                 color:      None,
                 components: vec![
@@ -471,7 +471,7 @@ mod tests {
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
-        let qn_of_base_lib = project::QualifiedName::of_standard_base_library();
+        let qn_of_base_lib = project::QualifiedName::standard_base_library();
         let qn_of_group = group::QualifiedName::new(qn_of_base_lib, "Group");
         let groups = [execution_context::ComponentGroup {
             project:    qn_of_group.project.clone(),
@@ -500,7 +500,7 @@ mod tests {
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
-        let qn_of_base_lib = project::QualifiedName::of_standard_base_library();
+        let qn_of_base_lib = project::QualifiedName::standard_base_library();
         let qn_of_group_1 = group::QualifiedName::new(qn_of_base_lib.clone(), "Group 1");
         let groups = [execution_context::ComponentGroup {
             project:    qn_of_group_1.project.clone(),

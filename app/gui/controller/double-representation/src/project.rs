@@ -77,7 +77,7 @@ impl QualifiedName {
     }
 
     /// Return the qualified name of the "Standard.Base" library project.
-    pub fn of_standard_base_library() -> Self {
+    pub fn standard_base_library() -> Self {
         Self::from_segments("Standard", "Base").unwrap()
     }
 
@@ -160,6 +160,6 @@ mod test {
 
     #[test]
     fn qualified_name_of_standard_base_library_does_not_panic() {
-        let _ = QualifiedName::of_standard_base_library();
+        let _ = QualifiedName::standard_base_library();
     }
 }
