@@ -4,9 +4,10 @@
 #![feature(const_trait_impl)]
 
 use std::env;
+use std::fmt::Write;
 use std::fs;
 use std::io;
-use std::io::Write;
+use std::io::Write as IoWrite;
 use std::path;
 
 
@@ -16,28 +17,37 @@ use std::path;
 // =====================
 
 /// Generated file with code filling embedded fonts map
+#[derive(Debug, Default)]
 pub struct FillMapRsFile {
-    file: fs::File,
+    font_binary_map_body: String,
+    // file: fs::File,
 }
 
 impl FillMapRsFile {
-    fn create<P: AsRef<path::Path>>(path: P) -> io::Result<FillMapRsFile> {
+    fn write<P: AsRef<path::Path>>(&self, path: P) -> io::Result<()> {
         let mut file = fs::File::create(path)?;
-        writeln!(file, "{{")?;
-        Ok(FillMapRsFile { file })
+        writeln!(file, "pub fn font_binary_map() -> HashMap<&'static str, &'static [u8]> {{")?;
+        writeln!(file, "    let mut map = HashMap::<&'static str, &'static [u8]>::new();")?;
+        write!(file, "{}", self.font_binary_map_body)?;
+        writeln!(file, "    map")?;
+        writeln!(file, "}}")?;
+        Ok(())
     }
 
-    fn add_font_inserting_line(&mut self, font_name: &str, font_file: &str) -> io::Result<()> {
+    fn add_font_inserting_line(&mut self, font_name: &str, font_file: &str) {
         writeln!(
-            self.file,
-            "   ttf_binary_data.insert(\"{font_name}\", include_bytes!(\"{font_file}\"));",
-            font_name = font_name,
-            font_file = font_file
+            &mut self.font_binary_map_body,
+            "    map.insert(\"{font_name}\", include_bytes!(\"{font_file}\"));",
         )
+        .ok();
     }
 
-    fn close_block(&mut self) -> io::Result<()> {
-        writeln!(self.file, "}}")
+    fn code(&self) -> String {
+        let mut out = String::new();
+        writeln!(&mut out, "pub fn font_binary_map() -> HashMap<&'static str, &'static [u8]> {{");
+        writeln!(&mut out, "{}", &self.font_binary_map_body);
+        writeln!(&mut out, "}}");
+        out
     }
 }
 
@@ -52,7 +62,6 @@ mod deja_vu {
 
     use enso_build_utilities::GithubRelease;
     use ensogl_text_embedded_fonts_names::DejaVuSans;
-    use ensogl_text_embedded_fonts_names::FontFamily;
     use std::path;
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {
@@ -63,16 +72,11 @@ mod deja_vu {
 
     pub const PACKAGE_FONTS_PREFIX: &str = "dejavu-fonts-ttf-2.37/ttf";
 
-    pub fn font_file_from_font_name(font_name: &str) -> String {
-        return format!("{}.ttf", font_name);
-    }
-
-    pub fn extract_font(package_path: &path::Path, font_name: &str) {
-        let font_file = font_file_from_font_name(font_name);
+    pub fn extract_font(package_path: &path::Path, file_name: &str) {
         // println!("cargo:warning={:?}",package_path);
-        let font_in_package_path = format!("{}/{}", PACKAGE_FONTS_PREFIX, font_file);
+        let font_in_package_path = format!("{}/{}", PACKAGE_FONTS_PREFIX, file_name);
         let package_dir = package_path.parent().unwrap();
-        let output_path = package_dir.join(font_file);
+        let output_path = package_dir.join(file_name);
 
         let archive_file = std::fs::File::open(package_path).unwrap();
         let mut archive = zip::ZipArchive::new(archive_file).unwrap();
@@ -82,12 +86,13 @@ mod deja_vu {
         std::io::copy(&mut input_stream, &mut output_stream).unwrap();
     }
 
-    pub const FONTS_TO_EXTRACT: &[&str] =
-        &[DejaVuSans::regular(), DejaVuSans::bold(), DejaVuSans::mono(), DejaVuSans::mono_bold()];
+    const deja_vu: DejaVuSans = DejaVuSans;
+
+    const FILE_NAMES: [&str; 2] = ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf"];
 
     pub fn extract_all_fonts(package_path: &path::Path) {
-        for font_name in FONTS_TO_EXTRACT {
-            extract_font(package_path, font_name);
+        for file_name in FILE_NAMES {
+            extract_font(package_path, &file_name);
         }
     }
 
@@ -98,9 +103,30 @@ mod deja_vu {
     }
 
     pub fn add_entries_to_fill_map_rs(file: &mut FillMapRsFile) {
-        for font_name in FONTS_TO_EXTRACT {
-            let font_file = font_file_from_font_name(font_name);
-            file.add_font_inserting_line(font_name, font_file.as_str()).unwrap();
+        for file_name in FILE_NAMES {
+            file.add_font_inserting_line(file_name, file_name);
+        }
+    }
+}
+
+
+mod google_fonts {
+    use crate::FillMapRsFile;
+
+    use enso_build_utilities::GithubFile;
+    use enso_build_utilities::GoogleFontsRelease;
+    use std::path;
+
+
+    pub fn download_font(name: impl Into<String>, out_dir: &path::Path) -> Vec<GithubFile> {
+        let name = name.into();
+        let release = GoogleFontsRelease { name };
+        release.download(out_dir)
+    }
+
+    pub fn add_entries_to_fill_map_rs(out: &mut FillMapRsFile, files: &[GithubFile]) {
+        for file in files {
+            out.add_font_inserting_line(&file.name, &file.name)
         }
     }
 }
@@ -111,8 +137,10 @@ fn main() {
     // println!("cargo:warning=out dir {:?}",out);
     let out_dir = path::Path::new(&out);
     deja_vu::download_and_extract_all_fonts(out_dir);
+    let files = google_fonts::download_font("mplus1", out_dir);
     let fill_map_rs_path = out_dir.join("fill_map.rs");
-    let mut fill_map_rs_file = FillMapRsFile::create(fill_map_rs_path).unwrap();
+    let mut fill_map_rs_file = FillMapRsFile::default();
     deja_vu::add_entries_to_fill_map_rs(&mut fill_map_rs_file);
-    fill_map_rs_file.close_block().unwrap();
+    google_fonts::add_entries_to_fill_map_rs(&mut fill_map_rs_file, &files);
+    fill_map_rs_file.write(fill_map_rs_path).unwrap();
 }

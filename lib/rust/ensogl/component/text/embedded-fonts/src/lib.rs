@@ -22,12 +22,14 @@ use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 // === Export ===
 // ==============
 
-pub use embedded_fonts_names::FontFamily as Family;
+// pub use embedded_fonts_names::FontFamily as Family;
 
 
 
-/// The default font family used in the app.
-pub type DefaultFamily = embedded_fonts_names::DejaVuSans;
+include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
+
+// /// The default font family used in the app.
+// pub type DefaultFamily = embedded_fonts_names::DejaVuSans;
 
 
 
@@ -52,7 +54,8 @@ impl EmbeddedFonts {
     /// For list of embedded fonts, see `FONTS_TO_EXTRACT` constant in `build.rs`
     pub fn create_and_fill() -> EmbeddedFonts {
         let mut ttf_binary_data = HashMap::<&'static str, &'static [u8]>::new();
-        include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
+        // ...
+        event!(WARN, "{:?}", ttf_binary_data.keys().collect_vec());
         EmbeddedFonts { ttf_binary_data }
     }
 }

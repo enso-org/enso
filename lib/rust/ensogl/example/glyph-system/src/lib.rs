@@ -27,7 +27,7 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_text_embedded_fonts as embedded_fonts;
-use ensogl_text_embedded_fonts::Family;
+// use ensogl_text_embedded_fonts::Family;
 use ensogl_text_msdf_sys::run_once_initialized;
 
 
@@ -44,7 +44,8 @@ pub fn main() {
 
 fn init(world: &World) {
     let fonts = world.default_scene.extension::<font::Registry>();
-    let font = fonts.load(embedded_fonts::DefaultFamily::regular());
+    // let font = fonts.load(embedded_fonts::DefaultFamily::regular());
+    let font = fonts.load("DejaVuSans");
     for a in 'a'..'z' {
         for b in 'a'..'z' {
             font.kerning(a, b);

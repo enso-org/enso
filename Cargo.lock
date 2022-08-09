@@ -1855,6 +1855,7 @@ version = "0.1.0"
 dependencies = [
  "path-clean",
  "reqwest 0.10.10",
+ "serde",
 ]
 
 [[package]]
@@ -2833,6 +2834,9 @@ dependencies = [
 [[package]]
 name = "ensogl-text-embedded-fonts-names"
 version = "0.1.0"
+dependencies = [
+ "owned_ttf_parser",
+]
 
 [[package]]
 name = "ensogl-text-font"
@@ -2843,15 +2847,6 @@ dependencies = [
  "ensogl-text-msdf-sys",
  "owned_ttf_parser",
  "serde",
-]
-
-[[package]]
-name = "ensogl-text-font-converter"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "ensogl-core",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -5683,6 +5678,7 @@ dependencies = [
  "percent-encoding 2.1.0",
  "pin-project-lite 0.2.9",
  "serde",
+ "serde_json",
  "serde_urlencoded",
  "tokio 0.2.25",
  "tokio-tls 0.3.1",

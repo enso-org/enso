@@ -7,7 +7,7 @@ use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
 use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFonts;
-use ensogl_text_embedded_fonts::Family;
+// use ensogl_text_embedded_fonts::Family;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
@@ -25,7 +25,7 @@ pub use ensogl_text_font::*;
 // =================
 
 /// Default font the app will revert to if a desired font could not be loaded.
-pub const DEFAULT_FONT: &str = embedded_fonts::DefaultFamily::regular();
+pub const DEFAULT_FONT: &str = "MPLUS1[wght]"; //embedded_fonts::DefaultFamily::regular();
 
 
 
@@ -115,7 +115,7 @@ mod tests {
 
     use ensogl_text_embedded_fonts;
     use ensogl_text_embedded_fonts::EmbeddedFonts;
-    use ensogl_text_embedded_fonts::Family;
+    // use ensogl_text_embedded_fonts::Family;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
