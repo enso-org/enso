@@ -81,6 +81,19 @@ pub trait VecOps<T>: AsMut<Vec<T>> + Sized {
         let new_size = vec.len().checked_sub(n);
         new_size.map(|new_size| vec.truncate(new_size)).is_some()
     }
+
+    /// Pop and return the last element, if the vector is non-empty and the given predicate returns
+    /// true when applied to the last element.
+    fn pop_if<F>(&mut self, f: F) -> Option<T>
+    where F: FnOnce(&T) -> bool {
+        let vec = self.as_mut();
+        if let Some(last) = vec.last() {
+            if f(last) {
+                return vec.pop();
+            }
+        }
+        None
+    }
 }
 
 impl<T> VecOps<T> for Vec<T> {}
