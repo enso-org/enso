@@ -73,6 +73,7 @@ use ensogl_core::display::style;
 use ensogl_core::Animation;
 use ensogl_derive_theme::FromTheme;
 use ensogl_gui_component::component;
+use ensogl_hardcoded_theme::application::component_browser::component_group as component_group_theme;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
 use ensogl_scroll_area::ScrollArea;
@@ -206,6 +207,12 @@ impl Style {
         self.size_inner().map(|value| value + 2.0 * SHADOW_PADDING)
     }
 
+    fn scroll_area_size(&self) -> Vector2 {
+        let width = self.content_width - 2.0 * self.content_padding;
+        let height = self.content_height - self.content_padding;
+        Vector2(width, height)
+    }
+
     fn menu_divider_y_pos(&self) -> f32 {
         self.size_inner().y / 2.0 - self.menu_height
     }
@@ -228,7 +235,87 @@ enum SectionHeaderPlacement {
 const SECTION_HEADER_PLACEMENT: SectionHeaderPlacement = SectionHeaderPlacement::Bottom;
 
 
+
+// ========================
 // === Shape Definition ===
+// ========================
+
+
+// === Selection ===
+
+/// A shape of a selection box. It is used as a mask to show only specific parts of the selection
+/// layers.
+///
+/// The selection box highlights a selected entry in the component list panel view. We render the
+/// selection above the background of the component group (so it is visible) but below the entry's
+/// text (so the text is not covered). Headers of the component groups complicate matters. The
+/// header is displayed on top of entries when scrolling the group, so there are cases when
+/// selection covers the header background (the header is considered the entry) and cases when the
+/// header covers selection, i.e., we select a partially visible entry below the header. To allow
+/// such behavior, we render a highlighted version of each component group on top of a normal one
+/// and use a layer masking to show only a part of it. See
+/// [component_group](component_group#selection) documentation to learn more about how the component
+/// groups are implemented.
+///
+/// The selection box should never leave the borders of the component list panel. We can't use
+/// [layers masking][] as our renderer does not support hierarchical masks, so instead, we build a
+/// shape of the selection box as an intersection of the `mask` rounded rectangle and the `area`
+/// shape. The `area` covers the entire component list panel and thus limits the area in which the
+/// selection box is visible.
+///
+/// The `mask` represents the selection box itself and moves in borders of `area` shape. `pos`
+/// and `selection_size` parameters represent its position and size, respectively. The shape of the
+/// component list panel determines the position and the size of the `area`. One can adjust them
+/// using a standard display object's API. (e.g. `set_position` method)
+///
+/// The `margin_top` parameter controls the variable height of the `area`. In a scrolled
+/// component group, the user can select a partially visible entry behind the group's header. We
+/// make the selection box appear covered by the header by reducing the height of the `area`. It's
+/// enough because headers are always on top of the component list panel in a scrolled group.
+///
+/// We have only a single `corners_radius` parameter for the bottom corners of the `area` and the
+/// corners of the selection `mask`. In the current [design][], the corner radius of the selection
+/// box depends on whether it covers the group's header or the entries. When entries are selected, a
+/// single `corners_radius` makes total sense - both `mask` and `area` have the same roundness.
+/// When the headers are highlighted, the `corners_radius` parameter no longer matches the roundness
+/// of the component list panel. It is ok because the header sticks to the top and is never
+/// displayed near the bottom part of the component list panel, where the rounded corners are.
+///
+/// [design]: https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md
+/// [layers masking]: ensogl::display::scene::layer::Layer#masking-layers-with-arbitrary-shapes
+pub mod selection_box {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        pointer_events = false;
+        (style:Style,corners_radius:f32,pos:Vector2,selection_size:Vector2,margin_top:f32) {
+            let area_width = Var::<Pixels>::from("input_size.x");
+            let area_height = Var::<Pixels>::from("input_size.y");
+            let area_height = area_height - margin_top.px();
+            let half_height = area_height.clone() / 2.0;
+            let quater_height = area_height.clone() / 4.0;
+            let area_top = Rect((area_width.clone(),half_height.clone()));
+            let area_top = area_top.translate_y(quater_height.clone());
+            // Additional padding so that the two halves of the area overlap without gaps.
+            // The precise size is unimportant, so we use 1/8 of the height.
+            let padding = area_height / 8.0;
+            let area_bottom = Rect((area_width, half_height + padding.clone()));
+            let area_bottom = area_bottom.corners_radius(corners_radius.px());
+            let area_bottom = area_bottom.translate_y(-quater_height + padding / 2.0);
+            let area = area_top + area_bottom;
+            let area = area.translate_y(-margin_top.px() / 2.0);
+
+            let size = selection_size;
+            let mask = Rect(size.px()).corners_radius(corners_radius.px());
+            let mask = mask.translate(pos.px());
+            let mask = &mask * &area;
+            mask.fill(color::Rgba::black()).into()
+        }
+    }
+}
+
+
+// === Background ===
 
 mod background {
     use super::*;
@@ -269,6 +356,9 @@ mod background {
         }
     }
 }
+
+
+// === Section divider ===
 
 mod hline {
     use super::*;
@@ -315,7 +405,7 @@ pub struct Model {
     layers:              Layers,
     groups_wrapper:      component_group::set::Wrapper,
     navigator:           Rc<RefCell<Option<Navigator>>>,
-    selection:           component_group::selection_box::View,
+    selection:           selection_box::View,
 }
 
 impl Model {
@@ -351,8 +441,8 @@ impl Model {
         display_object.add_child(&section_navigator);
         layers.navigator.add_exclusive(&section_navigator);
 
-        let selection = component_group::selection_box::View::new(&app.logger);
-        display_object.add_child(&selection);
+        let selection = selection_box::View::new(&app.logger);
+        scroll_area.add_child(&selection);
         layers.selection_mask.add_exclusive(&selection);
 
         scroll_area.set_scrollbars_layer(&layers.scrollbar_layer);
@@ -428,15 +518,16 @@ impl Model {
 
         // Scroll Area
 
-        self.scroll_area.resize(Vector2::new(
-            style.content_width - 2.0 * style.content_padding,
-            style.content_height - style.content_padding,
-        ));
+        let scroll_area_size = style.scroll_area_size();
+        self.scroll_area.resize(scroll_area_size);
         self.scroll_area.set_position_xy(Vector2::new(
             -style.content_width / 2.0 + style.content_padding + style.navigator_width / 2.0,
             style.content_height / 2.0 - style.menu_height / 2.0,
         ));
         self.scroll_area.set_corner_radius_bottom_right(style.content_corner_radius);
+        self.selection.size.set(scroll_area_size);
+        let selection_area_pos = Vector2(scroll_area_size.x / 2.0, -scroll_area_size.y / 2.0);
+        self.selection.set_position_xy(selection_area_pos);
     }
 
     fn recompute_layout(&self, style: &Style) {
@@ -526,6 +617,27 @@ impl Model {
         let half_selection_height = selection_height / 2.0;
         let y = pos.y.clamp(top_y - height + half_selection_height, top_y - half_selection_height);
         Vector2(pos.x, y)
+    }
+
+    /// Calculate the view-local position of the selection from the group-local one.
+    ///
+    /// A group-local position of the selection box is provided by the
+    /// [`component_group::set::Wrapper`]. We need to convert it to a view-local position to display
+    /// the selection box correctly. We do this by manually going through the hierarchy of display
+    /// objects from the scroll area to the component group that is currently selected and adding
+    /// the positions of these objects.
+    fn selection_position(&self, id: GroupId, group_local_pos: Vector2, style: &Style) -> Vector2 {
+        let scroll_area = &self.scroll_area;
+        let scroll_area_size = style.scroll_area_size();
+        let scroll_area_center = Vector2(-scroll_area_size.x / 2.0, scroll_area_size.y / 2.0);
+        let scroll_area_pos = scroll_area_center + scroll_area.content().position().xy();
+        let section_pos = match id.section {
+            SectionId::Favorites => self.favourites_section.content.position(),
+            SectionId::LocalScope => default(),
+            SectionId::SubModules => self.sub_modules_section.content.position(),
+        };
+        let group_pos = self.groups_wrapper.get(&id).map(|g| g.position()).unwrap_or_default();
+        scroll_area_pos + (section_pos + group_pos).xy() + group_local_pos
     }
 
     fn on_hover(&self) {
@@ -762,6 +874,34 @@ impl EntryId {
     }
 }
 
+/// The selected part of the component group and the identifier of this group.
+///
+/// Similar to [`component_group::Selected`], but also contains a group id.
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub enum Selected {
+    Header(GroupId),
+    Entry(GroupId, component_group::entry::Id),
+}
+
+impl Selected {
+    /// Extract an [`EntryId`] if the selected part is an entry.
+    pub fn as_entry_id(&self) -> Option<EntryId> {
+        match *self {
+            Selected::Entry(group, entry_id) => Some(EntryId { group, entry_id }),
+            _ => None,
+        }
+    }
+
+    fn from_wrapper_event(&(group, selected): &(GroupId, component_group::Selected)) -> Self {
+        use component_group::Selected::*;
+        match selected {
+            Header => Self::Header(group),
+            Entry(entry_id) => Self::Entry(group, entry_id),
+        }
+    }
+}
+
 define_endpoints_2! {
     Input{
         set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
@@ -771,10 +911,9 @@ define_endpoints_2! {
         shown(),
     }
     Output{
-        selected_entry(Option<EntryId>),
+        selected(Option<Selected>),
         suggestion_accepted(EntryId),
         expression_accepted(EntryId),
-        is_header_selected(GroupId, bool),
         header_accepted(GroupId),
         size(Vector2),
     }
@@ -788,6 +927,7 @@ impl component::Frp<Model> for Frp {
         style: &StyleWatchFrp,
     ) {
         let network = &frp_api.network;
+        let header_height = style.get_number(component_group_theme::header::height);
         let layout_frp = Style::from_theme(network, style);
         let scene = &app.display.default_scene;
         let output = &frp_api.output;
@@ -799,18 +939,6 @@ impl component::Frp<Model> for Frp {
         let selection_corners_animation = Animation::<f32>::new(network);
         let spring = inertia::Spring::default() * SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER;
         selection_animation.set_spring.emit(spring);
-        fn selection_position(model: &Model, id: GroupId, group_local_pos: Vector2) -> Vector2 {
-            let scroll_area = &model.scroll_area;
-            let scroll_area_pos = scroll_area.position() + scroll_area.content().position();
-            let section_pos = match id.section {
-                SectionId::Favorites => model.favourites_section.content.position(),
-                SectionId::LocalScope => default(),
-                SectionId::SubModules => model.sub_modules_section.content.position(),
-            };
-            let group_pos = model.groups_wrapper.get(&id).map(|g| g.position()).unwrap_or_default();
-            let pos = (scroll_area_pos + section_pos + group_pos).xy() + group_local_pos;
-            model.clamp_y(pos)
-        }
 
         frp::extend! { network
             model.favourites_section.content.set_content <+ frp_api.input.set_favourites_section;
@@ -836,10 +964,9 @@ impl component::Frp<Model> for Frp {
             eval_ on_hover ( model.on_hover() );
             eval_ on_hover_end ( model.on_hover_end() );
 
-            output.selected_entry <+ groups.selected_entry.map(|op| op.as_ref().map(EntryId::from_wrapper_event));
+            output.selected <+ groups.selected.map(|op| op.as_ref().map(Selected::from_wrapper_event));
             output.suggestion_accepted <+ groups.suggestion_accepted.map(EntryId::from_wrapper_event);
             output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
-            output.is_header_selected <+ groups.is_header_selected;
             output.header_accepted <+ groups.header_accepted;
 
             output.size <+ layout_frp.update.map(|style| style.size_inner());
@@ -848,15 +975,42 @@ impl component::Frp<Model> for Frp {
             // === Selection ===
 
             selection_size_animation.target <+ groups.selection_size._1();
-            selection_animation.target <+ groups.selection_position_target.all_with(
+            selection_animation.target <+ groups.selection_position_target.all_with3(
                 &model.scroll_area.scroll_position_y,
-                f!([model]((id, pos), _) selection_position(&model,*id, *pos))
+                &layout_frp.update,
+                f!(((id, pos), _, style) model.selection_position(*id, *pos, style))
             );
             selection_corners_animation.target <+ groups.selection_corners_radius._1();
-            eval selection_animation.value ((pos) selection.set_position_xy(*pos));
-            eval selection_size_animation.value ((pos) selection.size.set(*pos));
+            eval selection_animation.value ((pos) selection.pos.set(*pos));
+            eval selection_size_animation.value ((pos) selection.selection_size.set(*pos));
             eval selection_corners_animation.value ((r) selection.corners_radius.set(*r));
             eval_ model.scroll_area.scroll_position_y(selection_animation.skip.emit(()));
+            // When the selection highlights entries near the header of the component group, we use
+            // the `margin_top` parameter of the [`selection_box`] shape to clip the selection shape
+            // and make it appear covered by the header. When we select the header, the `margin_top`
+            // parameter is reset to zero to avoid clipping the selection shape.
+            // See the documentation of the [`selection_box`](selection_box) module for more
+            // details.
+            let is_header = |s: &Option<Selected>| matches!(*s, Some(Selected::Header(_)));
+            is_any_header_selected <- output.selected.map(is_header).on_change();
+            on_any_header_selected <- is_any_header_selected.on_true();
+            on_any_header_deselected <- is_any_header_selected.on_false();
+            // The local scope section does not have a header and we must reset the selection area
+            // margin when hovering it.
+            let is_local_scope = |s: &Option<(GroupId, _)>| {
+                matches!(*s, Some((id, _)) if id == GroupId::local_scope_group())
+            };
+            is_local_scope_section_selected <- groups.selected.map(is_local_scope).on_change();
+            should_reset_area <- any(...);
+            should_reset_area <+ on_any_header_selected.constant(true);
+            should_reset_area <+ on_any_header_deselected.constant(false);
+            should_reset_area <- or(&should_reset_area, &is_local_scope_section_selected);
+            reset_selection_area <- should_reset_area.on_true();
+            restrict_selection_area <- should_reset_area.on_false();
+            eval_ reset_selection_area(selection.margin_top.set(0.0));
+            _eval <- all_with(&header_height, &restrict_selection_area,
+                f!((height, _) selection.margin_top.set(*height))
+            );
 
 
             // === Section navigator ===

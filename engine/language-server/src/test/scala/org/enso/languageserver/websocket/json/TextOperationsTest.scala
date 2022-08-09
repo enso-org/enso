@@ -193,6 +193,99 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
     }
   }
 
+  "text/openBuffer" must {
+    "open a buffer if the corresponding file does not exist" in {
+      // Interaction:
+      // 1. Client opens in-memory buffer.
+      // 2. Client receives the buffer contents and a canEdit capability.
+      val client = getInitialisedWsClient()
+      // 1
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openBuffer",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "buffer" ]
+              }
+            }
+          }
+          """)
+
+      // 2
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "writeCapability": {
+                "method": "text/canEdit",
+                "registerOptions": { "path": {
+                  "rootId": $testContentRootId,
+                  "segments": ["buffer"]
+                } }
+              },
+              "content": "",
+              "currentVersion": "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7"
+            }
+          }
+          """)
+    }
+
+    "fail opening a buffer if the corresponding file exists" in {
+      // Interaction:
+      // 1. Client creates a file.
+      // 2. Client receives confirmation.
+      // 3. Client tries to open existing file as in-memory buffer
+      // 4. Client receives an error message.
+      val client = getInitialisedWsClient()
+      // 1
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+
+      // 2
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+
+      // 3
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openBuffer",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+
+      // 4
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": { "code": 1004, "message": "File already exists" }
+          }
+          """)
+    }
+  }
+
   "grant the canEdit capability if no one else holds it" in {
     // Interaction:
     // 1. Client 1 creates a file.
@@ -1468,6 +1561,76 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
+    "edit opened buffer" in {
+      val client = getInitialisedWsClient()
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openBuffer",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "buffer" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "text/canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "buffer"
+                    ]
+                  }
+                }
+              },
+              "content" : "",
+              "currentVersion" : "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7"
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "buffer" ]
+                },
+                "oldVersion": "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7",
+                "newVersion": "cd3e5cfe8c66f5cf9ab3b7867e4d752851d4a6a54d06bf6081429ca0",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+    }
+
   }
 
   "text/applyExpressionValue" must {
@@ -1802,7 +1965,7 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
-    "persist changes from a buffer to durable storage" in {
+    "persist changes from a opened file to disk" in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1930,6 +2093,113 @@ class TextOperationsTest extends BaseServerTest with FlakySpec {
           { "jsonrpc": "2.0",
             "id": 4,
             "result": { "contents": "bar123456789foo" }
+          }
+          """)
+    }
+
+    "persist changes from a opened buffer to disk" in {
+      val client = getInitialisedWsClient()
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openBuffer",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "buffer.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "text/canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "buffer.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "",
+              "currentVersion" : "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7"
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 2,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "buffer.txt" ]
+                },
+                "oldVersion": "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7",
+                "newVersion": "cd3e5cfe8c66f5cf9ab3b7867e4d752851d4a6a54d06bf6081429ca0",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/save",
+            "id": 3,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "buffer.txt" ]
+              },
+              "currentVersion": "cd3e5cfe8c66f5cf9ab3b7867e4d752851d4a6a54d06bf6081429ca0"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": null
+          }
+          """)
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/read",
+            "id": 4,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "buffer.txt" ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 4,
+            "result": { "contents": "bar" }
           }
           """)
     }

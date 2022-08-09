@@ -10,6 +10,7 @@ use ensogl::prelude::*;
 
 use crate::entry;
 use crate::wide;
+use crate::Selected;
 use crate::View;
 
 use enso_frp as frp;
@@ -136,10 +137,9 @@ propagated_events! {
     #[allow(missing_docs)]
     struct PropagatedEvents {
         mouse_in_group:            GroupId,
-        selected_entry:            Option<(GroupId, entry::Id)>,
+        selected:                  Option<(GroupId, Selected)>,
         suggestion_accepted:       (GroupId, entry::Id),
         expression_accepted:       (GroupId, entry::Id),
-        is_header_selected:        (GroupId, bool),
         header_accepted:           GroupId,
         selection_position_target: (GroupId, Vector2<f32>),
         selection_size:            (GroupId, Vector2<f32>),
@@ -269,13 +269,12 @@ impl Wrapper {
                     events.focused <+ group.focused.map(move |f| (id, *f));
                 }
                 propagate_frp! { network, group, events,
-                    (selected_entry, move |e| e.map(|e| (id, e))),
+                    (selected, move |s| s.map(|s| (id, s))),
                     (suggestion_accepted, move |e| (id, *e)),
                     (expression_accepted, move |e| (id, *e)),
                     (selection_position_target, move |p| (id, *p)),
                     (selection_size, move |p| (id, *p)),
                     (selection_corners_radius, move |r| (id, *r)),
-                    (is_header_selected, move |h| (id, *h)),
                     (header_accepted, move |_| id)
                 }
             }
@@ -284,7 +283,7 @@ impl Wrapper {
                     events.focused <+ group.focused.map(move |f| (id, *f));
                 }
                 propagate_frp! { network, group, events,
-                    (selected_entry, move |e| e.map(|e| (id, e))),
+                    (selected, move |s| s.map(|s| (id, s))),
                     (suggestion_accepted, move |e| (id, *e)),
                     (expression_accepted, move |e| (id, *e)),
                     (selection_position_target, move |p| (id, *p)),
