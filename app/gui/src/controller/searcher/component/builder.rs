@@ -113,46 +113,37 @@ impl List {
     pub fn extend_list_and_allow_favorites_with_ids(
         &mut self,
         db: &model::SuggestionDatabase,
-        entries: impl IntoIterator<Item = component::Id>,
+        entry_ids: impl IntoIterator<Item = component::Id>,
     ) {
         use suggestion_database::entry::Kind;
         let local_scope_id = self.local_scope.component_id;
-        let lookup_component_by_id =
-            |id| Some(Component::new_from_database_entry(id, db.lookup(id).ok()?));
-        let components = entries.into_iter().filter_map(lookup_component_by_id);
-        for component in components {
-            if let component::Kind::FromDatabase { id, ref entry } = component.kind {
-                self.allowed_favorites.insert(*id);
-                let mut component_inserted_somewhere = false;
-                if let Some(parent_module) = entry.parent_module() {
-                    if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
-                        parent_group.content.entries.borrow_mut().push(component.clone_ref());
+        let id_and_looked_up_entry = |id| Some((id, db.lookup(id).ok()?));
+        let ids_and_entries = entry_ids.into_iter().filter_map(id_and_looked_up_entry);
+        for (id, entry) in ids_and_entries {
+            self.allowed_favorites.insert(id);
+            let component = Component::new_from_database_entry(id, entry.clone_ref());
+            let mut component_inserted_somewhere = false;
+            if let Some(parent_module) = entry.parent_module() {
+                if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
+                    parent_group.content.entries.borrow_mut().push(component.clone_ref());
+                    component_inserted_somewhere = true;
+                    let parent_id = parent_group.content.component_id;
+                    let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
+                    let not_module = entry.kind != Kind::Module;
+                    if in_local_scope && not_module {
+                        self.local_scope.entries.borrow_mut().push(component.clone_ref());
+                    }
+                }
+                let top_module = parent_module.top_module();
+                if let Some(top_group) = self.lookup_module_group(db, &top_module) {
+                    if let Some(flatten_group) = &mut top_group.flattened_content {
+                        flatten_group.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
-                        let parent_id = parent_group.content.component_id;
-                        let in_local_scope =
-                            parent_id == local_scope_id && local_scope_id.is_some();
-                        let not_module = entry.kind != Kind::Module;
-                        if in_local_scope && not_module {
-                            self.local_scope.entries.borrow_mut().push(component.clone_ref());
-                        }
-                    }
-                    let top_module = parent_module.top_module();
-                    if let Some(top_group) = self.lookup_module_group(db, &top_module) {
-                        if let Some(flatten_group) = &mut top_group.flattened_content {
-                            flatten_group.entries.borrow_mut().push(component.clone_ref());
-                            component_inserted_somewhere = true;
-                        }
                     }
                 }
-                if component_inserted_somewhere {
-                    self.all_components.push(component);
-                }
-            } else {
-                let msg = iformat!(
-                    "The suggestion database returned a component of a non-FromDatabase kind: "
-                    component;?
-                );
-                event!(ERROR, "{msg}");
+            }
+            if component_inserted_somewhere {
+                self.all_components.push(component);
             }
         }
     }
