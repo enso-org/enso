@@ -1357,10 +1357,10 @@ final class TreeToIr {
   private static final Field spanCodeLength;
   static {
     try {
-      codeReprBegin = Token.class.getDeclaredField("codeReprBegin");
-      codeReprLen = Token.class.getDeclaredField("codeReprLen");
-      spanLeftOffsetVisible = Tree.class.getDeclaredField("spanLeftOffsetVisible");
-      spanCodeLength = Tree.class.getDeclaredField("spanCodeLength");
+      codeReprBegin = Token.class.getDeclaredField("fieldCodeReprBegin");
+      codeReprLen = Token.class.getDeclaredField("fieldCodeReprLen");
+      spanLeftOffsetVisible = Tree.class.getDeclaredField("fieldSpanLeftOffsetVisible");
+      spanCodeLength = Tree.class.getDeclaredField("fieldSpanCodeLength");
       codeReprBegin.setAccessible(true);
       codeReprLen.setAccessible(true);
       spanLeftOffsetVisible.setAccessible(true);
