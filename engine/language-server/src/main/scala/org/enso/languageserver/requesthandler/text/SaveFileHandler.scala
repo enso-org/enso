@@ -62,12 +62,12 @@ class SaveFileHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case FileSaved =>
+    case FileSaved(_) =>
       replyTo ! ResponseResult(SaveFile, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
-    case SaveFailed(fsFailure) =>
+    case SaveFailed(fsFailure, _) =>
       replyTo ! ResponseError(
         Some(id),
         FileSystemFailureMapper.mapFailure(fsFailure)

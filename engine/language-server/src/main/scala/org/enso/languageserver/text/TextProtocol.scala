@@ -142,8 +142,10 @@ object TextProtocol {
   sealed trait SaveFileResult
 
   /** Signals that saving a file was executed successfully.
+    *
+    * @param autoSave if true, saving was triggered by autoSave action
     */
-  case object FileSaved extends SaveFileResult
+  case class FileSaved(autoSave: Boolean) extends SaveFileResult
 
   /** Signals that the client doesn't hold write lock to the buffer.
     */
@@ -163,7 +165,9 @@ object TextProtocol {
   /** Signals that saving a file failed due to IO error.
     *
     * @param fsFailure a filesystem failure
+    * @param autoSave if true, saving was triggered by autoSave action
     */
-  case class SaveFailed(fsFailure: FileSystemFailure) extends SaveFileResult
+  case class SaveFailed(fsFailure: FileSystemFailure, autoSave: Boolean)
+      extends SaveFileResult
 
 }
