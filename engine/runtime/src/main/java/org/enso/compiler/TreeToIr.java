@@ -1255,7 +1255,7 @@ final class TreeToIr {
         }
         case Tree.Ident id -> {
           segments = cons(buildName(id), segments);
-          return new IR$Name$Qualified(segments, getIdentifiedLocation(t), meta(), diag());
+          return new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
         }
         default -> {
           throw new UnhandledEntity(t, "buildQualifiedName");
