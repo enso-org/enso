@@ -36,9 +36,9 @@ pub mod serialization;
 /// The package for the generated code.
 pub const PACKAGE: &str = "org.enso.syntax2";
 /// The package for the non-generated serialization support code.
-pub const SERIALIZATION_SUPPORT: &str = "org.enso.syntax2.serialization";
+pub const SERIALIZATION_SUPPORT: &str = "org.enso.syntax2";
 /// The fully-qualified name of an `Either` type.
-pub const EITHER_TYPE: &str = "org.enso.syntax2.serialization.Either";
+pub const EITHER_TYPE: &str = "org.enso.syntax2.Either";
 
 
 

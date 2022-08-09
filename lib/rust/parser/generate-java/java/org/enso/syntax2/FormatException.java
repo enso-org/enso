@@ -1,4 +1,4 @@
-package org.enso.syntax2.serialization;
+package org.enso.syntax2;
 
 public class FormatException
   extends RuntimeException {
