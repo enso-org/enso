@@ -26,6 +26,7 @@ use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::module;
+use double_representation::project;
 
 
 
@@ -164,22 +165,24 @@ impl List {
         std::mem::take(&mut self.grouping_and_order_of_favorites).into_iter().collect_vec()
     }
 
-    /// Insert virtual components at the beginning of a favorites group with given name. If a group
-    /// with that name does not exist, it is created. The virtual components are created from the
-    /// given snippets.
+    /// Insert virtual components at the beginning of a favorites group with given name defined in
+    /// given project. If a group with that name and project does not exist, it is created. The
+    /// virtual components are created from the given snippets.
     pub fn insert_virtual_components_in_favorites_group(
         &mut self,
-        group_name: component::group::QualifiedName,
+        group_name: &str,
+        project: project::QualifiedName,
         snippets: impl IntoIterator<Item = Rc<component::HardcodedSnippet>>,
     ) {
         use component::Group;
         let mut favorites_grouping = self.take_grouping_and_order_of_favorites_as_vec();
-        let name_match = |g: &&mut Group| g.qualified_name().as_ref() == Some(&group_name);
-        let group_with_matching_name = favorites_grouping.iter_mut().find(name_match);
+        let name_and_project_match =
+            |g: &&mut Group| g.name == group_name && g.project.as_ref() == Some(&project);
+        let group_with_matching_name = favorites_grouping.iter_mut().find(name_and_project_match);
         if let Some(group) = group_with_matching_name {
             group.insert_entries(&snippets.into_iter().map(Into::into).collect_vec());
         } else {
-            let group = Group::from_qualified_name_and_snippets(group_name, snippets);
+            let group = Group::from_name_and_project_and_snippets(group_name, project, snippets);
             favorites_grouping.insert(0, group);
         }
         self.grouping_and_order_of_favorites = component::group::List::new(favorites_grouping);
@@ -456,23 +459,22 @@ mod tests {
     /// inserted into an existing favorites group.
     #[test]
     fn building_component_list_with_virtual_component_in_existing_favorites_group() {
-        use component::group;
         let logger = Logger::new("tests::virtual_component_in_existing_favorites_group");
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
-        let qn_of_base_lib = project::QualifiedName::standard_base_library();
-        let qn_of_group = group::QualifiedName::new(qn_of_base_lib, "Group");
+        let project = project::QualifiedName::standard_base_library();
+        const GROUP_NAME: &str = "Group";
         let groups = [execution_context::ComponentGroup {
-            project:    qn_of_group.project.clone(),
-            name:       qn_of_group.name.clone(),
+            project:    project.clone(),
+            name:       GROUP_NAME.into(),
             color:      None,
             components: vec![qn_of_db_entry_0],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let snippet = component::HardcodedSnippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
-        builder.insert_virtual_components_in_favorites_group(qn_of_group, snippet_iter);
+        builder.insert_virtual_components_in_favorites_group(GROUP_NAME, project, snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
         let list = builder.build();
         let favorites = list.favorites;
@@ -485,24 +487,23 @@ mod tests {
     /// inserted into a new favorites group.
     #[test]
     fn building_component_list_with_virtual_component_in_new_favorites_group() {
-        use component::group;
         let logger = Logger::new("tests::virtual_component_in_new_favorites_group");
         let db = mock_suggestion_db(logger);
         let mut builder = List::new();
         let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
-        let qn_of_base_lib = project::QualifiedName::standard_base_library();
-        let qn_of_group_1 = group::QualifiedName::new(qn_of_base_lib.clone(), "Group 1");
+        let project = project::QualifiedName::standard_base_library();
+        const GROUP_1_NAME: &str = "Group 1";
         let groups = [execution_context::ComponentGroup {
-            project:    qn_of_group_1.project.clone(),
-            name:       qn_of_group_1.name,
+            project:    project.clone(),
+            name:       GROUP_1_NAME.into(),
             color:      None,
             components: vec![qn_of_db_entry_0],
         }];
         builder.set_grouping_and_order_of_favorites(&db, &groups);
         let snippet = component::HardcodedSnippet { name: "test snippet", ..default() };
         let snippet_iter = std::iter::once(Rc::new(snippet));
-        let qn_of_group_2 = group::QualifiedName::new(qn_of_base_lib, "Group 2");
-        builder.insert_virtual_components_in_favorites_group(qn_of_group_2, snippet_iter);
+        const GROUP_2_NAME: &str = "Group 2";
+        builder.insert_virtual_components_in_favorites_group(GROUP_2_NAME, project, snippet_iter);
         builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
         let list = builder.build();
         let favorites = list.favorites;

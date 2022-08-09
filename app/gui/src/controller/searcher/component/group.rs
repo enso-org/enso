@@ -15,28 +15,6 @@ use std::cmp;
 
 
 
-// =====================
-// === QualifiedName ===
-// =====================
-
-/// Fully qualified name of a component group.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct QualifiedName {
-    /// Fully qualified name of the project containing the definition of the group.
-    pub project: project::QualifiedName,
-    /// The name of the group in the scope of the project where it was defined.
-    pub name:    ImString,
-}
-
-impl QualifiedName {
-    /// Construct.
-    pub fn new(project: project::QualifiedName, name: impl Into<ImString>) -> Self {
-        Self { project, name: name.into() }
-    }
-}
-
-
-
 // ============
 // === Data ===
 // ============
@@ -128,14 +106,15 @@ impl Group {
 
     /// Create a group with given name and containing virtual components created from given
     /// snippets.
-    pub fn from_qualified_name_and_snippets(
-        qualified_name: QualifiedName,
+    pub fn from_name_and_project_and_snippets(
+        name: impl Into<ImString>,
+        project: project::QualifiedName,
         snippets: impl IntoIterator<Item = Rc<component::HardcodedSnippet>>,
     ) -> Self {
         let entries = snippets.into_iter().map(Into::into).collect_vec();
         let group_data = Data {
-            project:               Some(qualified_name.project),
-            name:                  qualified_name.name,
+            project:               Some(project),
+            name:                  name.into(),
             color:                 None,
             component_id:          None,
             matched_items:         Cell::new(entries.len()),
@@ -240,12 +219,6 @@ impl Group {
             (MatchInfo::Matches { subsequence: lhs }, MatchInfo::Matches { subsequence: rhs }) =>
                 lhs.compare_scores(rhs),
         }
-    }
-
-    /// The fully qualified name of the components group, or [`None`] if not available.
-    pub fn qualified_name(&self) -> Option<QualifiedName> {
-        let name = self.name.clone();
-        self.project.as_ref().map(|p| QualifiedName { project: p.clone(), name })
     }
 
     /// Get the number of entries.
