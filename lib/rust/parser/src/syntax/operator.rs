@@ -96,7 +96,14 @@ fn resolve_operator_precedence_internal<'s>(
 
 // === Expression builder ===
 
-/// Stack machine that builds an expression from syntax nodes according to a shift-reduce algorithm.
+/// Stack machine that builds an expression from syntax nodes.
+///
+/// The operator-precedence algorithm[1] used is based on the shunting yard algorithm[2], extended
+/// to support *operator sections*, function application, and unary operators, and correctly report
+/// errors relating to consecutive operators.
+///
+/// [^1](https://en.wikipedia.org/wiki/Operator-precedence_parser)
+/// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
 #[derive(Default)]
 struct ExpressionBuilder<'s> {
     was_section_used: bool,
