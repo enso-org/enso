@@ -62,14 +62,24 @@ class CollaborativeBuffer(
 
   override def receive: Receive = uninitialized
 
-  private def uninitialized: Receive = { case OpenFile(client, path) =>
-    context.system.eventStream.publish(BufferOpened(path))
-    logger.info(
-      "Buffer opened for [path:{}, client:{}].",
-      path,
-      client.clientId
-    )
-    readFile(client, path)
+  private def uninitialized: Receive = {
+    case OpenFile(client, path) =>
+      context.system.eventStream.publish(BufferOpened(path))
+      logger.info(
+        "Buffer opened for [path:{}, client:{}].",
+        path,
+        client.clientId
+      )
+      readFile(client, path)
+
+    case OpenBuffer(client, path) =>
+      context.system.eventStream.publish(BufferOpened(path))
+      logger.info(
+        "Buffer opened in-memory for [path:{}, client:{}].",
+        path,
+        client.clientId
+      )
+      openBuffer(client, path)
   }
 
   private def waitingForFileContent(
@@ -80,7 +90,7 @@ class CollaborativeBuffer(
     case ReadTextualFileResult(Right(content)) =>
       handleFileContent(rpcSession, replyTo, content)
       unstashAll()
-      timeoutCancellable.cancel(): Unit
+      timeoutCancellable.cancel()
 
     case ReadTextualFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
@@ -334,6 +344,15 @@ class CollaborativeBuffer(
 
   private def readFile(rpcSession: JsonSession, path: Path): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
+    val timeoutCancellable = context.system.scheduler
+      .scheduleOnce(timeout, self, IOTimeout)
+    context.become(
+      waitingForFileContent(rpcSession, sender(), timeoutCancellable)
+    )
+  }
+
+  private def openBuffer(rpcSession: JsonSession, path: Path): Unit = {
+    fileManager ! FileManagerProtocol.OpenBuffer(path)
     val timeoutCancellable = context.system.scheduler
       .scheduleOnce(timeout, self, IOTimeout)
     context.become(

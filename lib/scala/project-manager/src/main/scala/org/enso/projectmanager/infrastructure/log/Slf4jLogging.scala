@@ -1,4 +1,5 @@
 package org.enso.projectmanager.infrastructure.log
+
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.control.effect.Sync
 

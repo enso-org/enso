@@ -18,6 +18,7 @@ import org.enso.languageserver.text.TextProtocol.{
   ApplyExpressionValue,
   CloseFile,
   FileNotOpened,
+  OpenBuffer,
   OpenFile,
   SaveFile
 }
@@ -91,6 +92,23 @@ class BufferRegistry(
       sender() ! Pong
 
     case msg @ OpenFile(_, path) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        val bufferRef =
+          context.actorOf(
+            CollaborativeBuffer.props(
+              path,
+              fileManager,
+              runtimeConnector
+            )
+          )
+        context.watch(bufferRef)
+        bufferRef.forward(msg)
+        context.become(running(registry + (path -> bufferRef)))
+      }
+
+    case msg @ OpenBuffer(_, path) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)
       } else {

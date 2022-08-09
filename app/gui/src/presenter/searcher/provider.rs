@@ -3,14 +3,15 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action::MatchInfo;
-
 use crate::presenter;
+
 use enso_text as text;
 use ensogl_component::list_view;
 use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view_component_group as component_group_view;
+
 
 
 // ============================
@@ -232,8 +233,9 @@ pub fn from_component_group(
     group: &controller::searcher::component::Group,
 ) -> LabeledAnyModelProvider {
     LabeledAnyModelProvider {
-        label:   group.name.clone_ref(),
-        content: Rc::new(Component::new(group.clone_ref())).into(),
+        label:                group.name.clone_ref(),
+        content:              Rc::new(Component::new(group.clone_ref())).into(),
+        original_entry_count: group.entries.borrow().len(),
     }
 }
 
