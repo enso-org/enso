@@ -1,0 +1,726 @@
+[
+  {
+    "name": "akka.actor.ActorCell",
+    "fields": [
+      {
+        "name": "akka$actor$dungeon$Children$$_childrenRefsDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "akka$actor$dungeon$Children$$_functionRefsDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "akka$actor$dungeon$Children$$_nextNameDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      },
+      {
+        "name": "akka$actor$dungeon$Dispatch$$_mailboxDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.DefaultSupervisorStrategy",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "akka.actor.LightArrayRevolverScheduler",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.typesafe.config.Config",
+          "akka.event.LoggingAdapter",
+          "java.util.concurrent.ThreadFactory"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.LightArrayRevolverScheduler$TaskHolder",
+    "fields": [{ "name": "task", "allowUnsafeAccess": true }]
+  },
+  {
+    "name": "akka.actor.LightArrayRevolverScheduler$TaskQueue[]"
+  },
+  {
+    "name": "akka.actor.LocalActorRefProvider",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "java.lang.String",
+          "akka.actor.ActorSystem$Settings",
+          "akka.event.EventStream",
+          "akka.actor.DynamicAccess"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.actor.LocalActorRefProvider$Guardian",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.actor.LocalActorRefProvider$SystemGuardian",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.actor.Props$EmptyActor",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "akka.actor.RepointableActorRef",
+    "fields": [
+      { "name": "_cellDoNotCallMeDirectly", "allowUnsafeAccess": true },
+      { "name": "_lookupDoNotCallMeDirectly", "allowUnsafeAccess": true }
+    ]
+  },
+  {
+    "name": "akka.dispatch.AbstractNodeQueue",
+    "fields": [
+      { "name": "_tailDoNotCallMeDirectly", "allowUnsafeAccess": true }
+    ]
+  },
+  {
+    "name": "akka.dispatch.AbstractNodeQueue$Node",
+    "fields": [
+      { "name": "_nextDoNotCallMeDirectly", "allowUnsafeAccess": true }
+    ]
+  },
+  {
+    "name": "akka.dispatch.BoundedControlAwareMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.BoundedDequeBasedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.BoundedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.ControlAwareMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.DequeBasedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.Mailbox",
+    "fields": [
+      { "name": "_statusDoNotCallMeDirectly", "allowUnsafeAccess": true },
+      { "name": "_systemQueueDoNotCallMeDirectly", "allowUnsafeAccess": true }
+    ]
+  },
+  {
+    "name": "akka.dispatch.MessageDispatcher",
+    "fields": [
+      { "name": "_inhabitantsDoNotCallMeDirectly", "allowUnsafeAccess": true },
+      {
+        "name": "_shutdownScheduleDoNotCallMeDirectly",
+        "allowUnsafeAccess": true
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.MultipleConsumerSemantics"
+  },
+  {
+    "name": "akka.dispatch.UnboundedControlAwareMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.UnboundedDequeBasedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.dispatch.UnboundedMailbox",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.dispatch.UnboundedMessageQueueSemantics"
+  },
+  {
+    "name": "akka.event.DeadLetterListener",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "akka.event.DefaultLoggingFilter",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "akka.event.EventStream"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.event.EventStreamUnsubscriber",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.event.LoggerMailboxType",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "com.typesafe.config.Config"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.event.LoggerMessageQueueSemantics"
+  },
+  {
+    "name": "akka.event.slf4j.Slf4jLogger",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "akka.event.slf4j.Slf4jLoggingFilter",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "akka.actor.ActorSystem$Settings",
+          "akka.event.EventStream"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "akka.http.DefaultParsingErrorHandler$",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "akka.http.impl.engine.client.PoolMasterActor",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "akka.io.InetAddressDnsProvider",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "akka.io.InetAddressDnsResolver",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.SelectionHandler",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.SimpleDnsManager",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.TcpIncomingConnection",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.TcpListener",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.TcpManager",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.TcpOutgoingConnection",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.io.dns.RecordType[]"
+  },
+  {
+    "name": "akka.pattern.PromiseActorRef",
+    "fields": [
+      { "name": "_stateDoNotCallMeDirectly", "allowUnsafeAccess": true },
+      { "name": "_watchedByDoNotCallMeDirectly", "allowUnsafeAccess": true }
+    ]
+  },
+  {
+    "name": "akka.routing.ConsistentHashingPool",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["com.typesafe.config.Config"] }
+    ]
+  },
+  {
+    "name": "akka.routing.ConsistentRoutee[]"
+  },
+  {
+    "name": "akka.routing.RoundRobinPool",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["com.typesafe.config.Config"] }
+    ]
+  },
+  {
+    "name": "akka.routing.RoutedActorCell$RouterActorCreator",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "akka.serialization.BooleanSerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.serialization.ByteArraySerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.serialization.ByteStringSerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.serialization.DisabledJavaSerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.serialization.IntSerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.serialization.LongSerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.serialization.SerializationExtension$",
+    "fields": [{ "name": "MODULE$" }]
+  },
+  {
+    "name": "akka.serialization.StringSerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.stream.SinkRef"
+  },
+  {
+    "name": "akka.stream.SourceRef"
+  },
+  {
+    "name": "akka.stream.SystemMaterializer$",
+    "fields": [{ "name": "MODULE$" }]
+  },
+  {
+    "name": "akka.stream.impl.BatchingInputBuffer[]"
+  },
+  {
+    "name": "akka.stream.impl.FanOut$FanoutOutputs[]"
+  },
+  {
+    "name": "akka.stream.impl.streamref.StreamRefsProtocol"
+  },
+  {
+    "name": "akka.stream.serialization.StreamRefSerializer",
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["akka.actor.ExtendedActorSystem"] }
+    ]
+  },
+  {
+    "name": "akka.stream.stage.GraphStageLogic[]"
+  },
+  {
+    "name": "akka.util.ByteString$ByteString1"
+  },
+  {
+    "name": "akka.util.ByteString$ByteString1C"
+  },
+  {
+    "name": "akka.util.ByteString$ByteStrings"
+  },
+  {
+    "name": "com.sun.crypto.provider.AESCipher$General",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.DHParameters",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsKeyMaterialGenerator",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsMasterSecretGenerator",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.sun.crypto.provider.TlsPrfGenerator$V12",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "java.io.Serializable"
+  },
+  {
+    "name": "java.lang.Boolean"
+  },
+  {
+    "name": "java.lang.Class[]"
+  },
+  {
+    "name": "java.lang.Integer"
+  },
+  {
+    "name": "java.lang.Long"
+  },
+  {
+    "name": "java.lang.String",
+    "fields": [{ "name": "value", "allowUnsafeAccess": true }]
+  },
+  {
+    "name": "java.lang.String[]"
+  },
+  {
+    "name": "java.lang.invoke.VarHandle"
+  },
+  {
+    "name": "java.nio.file.Path[]"
+  },
+  {
+    "name": "java.security.AlgorithmParametersSpi"
+  },
+  {
+    "name": "java.security.KeyStoreSpi"
+  },
+  {
+    "name": "java.security.MessageDigestSpi"
+  },
+  {
+    "name": "java.security.SecureRandomParameters"
+  },
+  {
+    "name": "java.security.interfaces.ECPrivateKey"
+  },
+  {
+    "name": "java.security.interfaces.ECPublicKey"
+  },
+  {
+    "name": "java.security.interfaces.RSAPrivateKey"
+  },
+  {
+    "name": "java.security.interfaces.RSAPublicKey"
+  },
+  {
+    "name": "java.sql.Date"
+  },
+  {
+    "name": "java.sql.Timestamp"
+  },
+  {
+    "name": "java.util.Date"
+  },
+  {
+    "name": "javax.net.ssl.KeyManager[]"
+  },
+  {
+    "name": "javax.net.ssl.TrustManager[]"
+  },
+  {
+    "name": "javax.security.auth.x500.X500Principal",
+    "fields": [{ "name": "thisX500Name" }],
+    "methods": [
+      { "name": "<init>", "parameterTypes": ["sun.security.x509.X500Name"] }
+    ]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.AsiExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.JarMarker",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.ResourceAlignmentExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.UnicodeCommentExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.UnicodePathExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X000A_NTFS",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0014_X509Certificates",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0015_CertificateIdForFile",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0016_CertificateIdForCentralDirectory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0017_StrongEncryptionHeader",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X0019_EncryptionRecipientCertificateList",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X5455_ExtendedTimestamp",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.X7875_NewUnix",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "scala.Boolean"
+  },
+  {
+    "name": "scala.Int"
+  },
+  {
+    "name": "scala.Long"
+  },
+  {
+    "name": "scala.Tuple2[]"
+  },
+  {
+    "name": "sun.misc.Unsafe",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "sun.security.pkcs.SignerInfo[]"
+  },
+  {
+    "name": "sun.security.pkcs12.PKCS12KeyStore",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.DSA$SHA224withDSA",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.DSA$SHA256withDSA",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.JavaKeyStore$DualFormatJKS",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.JavaKeyStore$JKS",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.NativePRNG",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.SHA",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.SHA2$SHA224",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.SHA2$SHA256",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.SHA5$SHA384",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.SHA5$SHA512",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.X509Factory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.provider.certpath.PKIXCertPathValidator",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.rsa.RSAKeyFactory$Legacy",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.rsa.RSAPSSSignature",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.rsa.RSASignature$SHA224withRSA",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.rsa.RSASignature$SHA256withRSA",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.ssl.KeyManagerFactoryImpl$SunX509",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.ssl.SSLContextImpl$DefaultSSLContext",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.ssl.SSLContextImpl$TLS12Context",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "sun.security.util.ObjectIdentifier"
+  },
+  {
+    "name": "sun.security.x509.AuthorityInfoAccessExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.AuthorityKeyIdentifierExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.BasicConstraintsExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.CRLDistributionPointsExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.CertificateExtensions"
+  },
+  {
+    "name": "sun.security.x509.CertificatePoliciesExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.ExtendedKeyUsageExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.IssuerAlternativeNameExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.KeyUsageExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.NetscapeCertTypeExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.PrivateKeyUsageExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.SubjectAlternativeNameExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  },
+  {
+    "name": "sun.security.x509.SubjectKeyIdentifierExtension",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": ["java.lang.Boolean", "java.lang.Object"]
+      }
+    ]
+  }
+]

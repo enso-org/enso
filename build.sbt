@@ -1526,6 +1526,30 @@ lazy val `engine-runner` = project
       .dependsOn(`runtime-with-instruments` / assembly)
       .value
   )
+  .settings(
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "runner",
+        staticOnLinux = true,
+        additionalOptions = Seq(
+          "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+          "-H:IncludeResources=.*Main.enso$"
+        ),
+        initializeAtRuntime = Seq(
+          // Note [WSLoggerManager Shutdown Hook]
+          "org.enso.loggingservice.WSLoggerManager$"
+        )
+      )
+      .dependsOn(assembly)
+      .dependsOn(VerifyReflectionSetup.run)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "runner"
+      )
+      .value,
+  )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(cli)
