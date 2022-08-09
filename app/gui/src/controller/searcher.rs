@@ -2377,7 +2377,7 @@ pub mod test {
 
         let node = graph.nodes().unwrap().last().unwrap().clone();
         let final_node_expression = node.main_line.expression().clone();
-        assert_eq!(initial_node_expression, final_node_expression);
+        assert_eq!(initial_node_expression.to_string(), final_node_expression.to_string());
     }
 
     #[wasm_bindgen_test]
