@@ -1897,10 +1897,12 @@ pub mod test {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
         let favorites = &components.favorites;
-        assert_eq!(favorites.len(), 1);
-        let favorites_group = &favorites[0];
-        assert_eq!(favorites_group.name, "Test Group 1");
-        let favorites_entries = favorites_group.entries.borrow();
+        assert_eq!(favorites.len(), 2);
+        let favorites_group_0 = &favorites[0];
+        assert_eq!(favorites_group_0.name, INPUT_COMPONENT_GROUP_NAME);
+        let favorites_group_1 = &favorites[1];
+        assert_eq!(favorites_group_1.name, "Test Group 1");
+        let favorites_entries = favorites_group_1.entries.borrow();
         assert_eq!(favorites_entries.len(), 1);
         assert_eq!(favorites_entries[0].id().unwrap(), 1);
     }
