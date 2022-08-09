@@ -1259,7 +1259,7 @@ fn component_list_builder_with_favorites<'a>(
     let base_lib_qn = project::QualifiedName::standard_base_library();
     let input_group_name = INPUT_COMPONENT_GROUP_NAME;
     let input_group_qn = component::group::QualifiedName::new(base_lib_qn, input_group_name);
-    let snippets = LITERAL_INPUT_NODES_SNIPPETS.with(|c| c.clone());
+    let snippets = LITERAL_INPUT_NODES_SNIPPETS.with(|snippet| snippet.clone());
     builder.insert_virtual_components_in_favorites_group(input_group_qn, snippets);
     builder
 }
