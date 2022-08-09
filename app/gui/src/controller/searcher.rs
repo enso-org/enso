@@ -973,14 +973,14 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
-                    data.components = this.make_component_list(completions);
+                    data.components = this.make_component_list(completions, &this_type, &return_types);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    data.components = this.make_component_list(this.database.keys());
+                    data.components = this.make_component_list(this.database.keys(), &this_type, &return_types);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1043,8 +1043,21 @@ impl Searcher {
     fn make_component_list<'a>(
         &self,
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
+        this_type: &Option<String>,
+        return_types: &[String],
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
+
+        // TODO[LATER]: maybe extract to separate helper method/func
+        // FIXME: instead, filter by snippets.this_type
+        if this_type.is_none() {
+            let base_lib_qn = project::QualifiedName::of_standard_base_library();
+            let input_group_name = INPUT_COMPONENT_GROUP_NAME;
+            let input_group_qn = component::group::QualifiedName::new(base_lib_qn, input_group_name);
+            let snippets = LITERAL_INPUT_NODES_SNIPPETS.with(|c| c.clone());
+            builder.insert_virtual_components_in_favorites_group(input_group_qn, snippets);
+        }
+
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
@@ -1191,10 +1204,10 @@ fn component_list_builder_with_favorites<'a>(
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
-    let base_lib_qn = project::QualifiedName::standard_base_library();
-    let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
-    let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
-    builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
+    // let base_lib_qn = project::QualifiedName::standard_base_library();
+    // let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
+    // let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
+    // builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
     builder
 }
 
