@@ -7,6 +7,7 @@ import org.enso.compiler.core.IR$CallArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InterfaceDefinition$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidTypeDefinition$;
+import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Literal$Number;
@@ -14,8 +15,11 @@ import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Atom;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Method$Binding;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Type;
+import org.enso.compiler.core.IR$Module$Scope$Import;
+import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
+import org.enso.compiler.core.IR$Name$Qualified;
 import org.enso.compiler.core.IR.IdentifiedLocation;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -52,6 +56,7 @@ final class TreeToIr {
     return switch (module) {
       case Tree.BodyBlock b -> {
         List<IR$Module$Scope$Definition> bindings = nil();
+        List<IR$Module$Scope$Import> imports = nil();
         for (Line line : b.getStatements()) {
           switch (line.getExpression()) {
             case Tree.Assignment a -> {
@@ -82,13 +87,16 @@ final class TreeToIr {
               var t = translateModuleSymbol(def);
               bindings= cons(t, bindings);
             }
+            case Tree.Import imp -> {
+              imports = cons(translateImport(imp), imports);
+            }
             case null -> {
             }
             default -> {
             }
           }
         }
-        yield new IR.Module(nil(), nil(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
+        yield new IR.Module(imports.reverse(), nil(), bindings.reverse(), getIdentifiedLocation(module), meta(), diag());
       }
       default -> throw new UnhandledEntity(module, "translateModule");
     };
@@ -1235,14 +1243,47 @@ final class TreeToIr {
       case None      => Error.Syntax(group, Error.Syntax.EmptyParentheses)
     }
   }
+  */
+
+  private IR$Name$Qualified buildQualifiedName(Tree t) {
+    List<IR.Name> segments = nil();
+    for (;;) {
+      switch (t) {
+        case Tree.OprApp app -> {
+          segments = cons(buildName(app.getRhs()), segments);
+          t = app.getLhs();
+        }
+        case Tree.Ident id -> {
+          segments = cons(buildName(id), segments);
+          return new IR$Name$Qualified(segments, getIdentifiedLocation(t), meta(), diag());
+        }
+        default -> {
+          throw new UnhandledEntity(t, "buildQualifiedName");
+        }
+      }
+    }
+  }
 
   /** Translates an import statement from its [[AST]] representation into
     * [[IR]].
     *
     * @param imp the import to translate
     * @return the [[IR]] representation of `imp`
-
-  def translateImport(imp: AST.Import): Module.Scope.Import = {
+    */
+  IR$Module$Scope$Import translateImport(Tree.Import imp) {
+    if (imp.getImport() != null) {
+      if (imp.getFrom() != null) {
+        var qualifiedName = buildQualifiedName(imp.getFrom().getBody());
+        var onlyNames = imp.getImport().getBody();
+        var isAll = buildName(onlyNames).name().equals("all");
+        return new IR$Module$Scope$Import$Module(
+          qualifiedName, Option.empty(), isAll, Option.empty(),
+          Option.empty(), getIdentifiedLocation(imp), false,
+          meta(), diag()
+        );
+      }
+    }
+    /*
     imp match {
       case AST.Import(path, rename, isAll, onlyNames, hiddenNames) =>
         IR.Module.Scope.Import.Module(
@@ -1256,6 +1297,8 @@ final class TreeToIr {
       case _ =>
         IR.Error.Syntax(imp, IR.Error.Syntax.InvalidImport)
     }
+    */
+    return new IR$Error$Syntax(null, IR$Error$Syntax$InvalidImport$.MODULE$, meta(), diag());
   }
 
   /** Translates an export statement from its [[AST]] representation into

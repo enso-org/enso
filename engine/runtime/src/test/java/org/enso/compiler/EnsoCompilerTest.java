@@ -48,6 +48,15 @@ public class EnsoCompilerTest {
     );
   }
 
+  @Test
+  public void testImport() throws Exception {
+    parseTest("""
+    from Standard.Base.Data.Any import all
+
+    main = 3
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
