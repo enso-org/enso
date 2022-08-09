@@ -167,9 +167,9 @@ class CollaborativeBuffer(
         clientId,
         ContentVersion(clientVersion),
         autoSave,
-        None
+        isAutoSave = false
       )
-    case AutoSave(replyTo, clientId, clientVersion) =>
+    case AutoSave(clientId, clientVersion) =>
       saveFile(
         buffer,
         clients,
@@ -177,7 +177,7 @@ class CollaborativeBuffer(
         clientId,
         clientVersion,
         autoSave.removed(clientId),
-        Some(replyTo)
+        isAutoSave = true
       )
   }
 
@@ -186,20 +186,18 @@ class CollaborativeBuffer(
     clients: Map[ClientId, JsonSession],
     autoSave: Map[ClientId, Cancellable],
     lockHolder: Option[JsonSession],
-    replyTo: ActorRef,
-    timeoutCancellable: Cancellable,
-    triggeredByAutoSave: Boolean
+    replyTo: Option[ActorRef],
+    timeoutCancellable: Cancellable
   ): Receive = {
     case IOTimeout =>
-      replyTo ! SaveFailed(OperationTimeout, triggeredByAutoSave)
+      replyTo.foreach(_ ! SaveFailed(OperationTimeout))
       unstashAll()
       context.become(
         collaborativeEditing(buffer, clients, lockHolder, autoSave)
       )
 
     case WriteFileResult(Left(failure)) =>
-      replyTo ! SaveFailed(failure, triggeredByAutoSave)
-
+      replyTo.foreach(_ ! SaveFailed(failure))
       unstashAll()
       timeoutCancellable.cancel()
       context.become(
@@ -207,9 +205,13 @@ class CollaborativeBuffer(
       )
 
     case WriteFileResult(Right(())) =>
-      replyTo ! FileSaved(triggeredByAutoSave)
-      if (triggeredByAutoSave)
-        clients.values.foreach { _.rpcController ! FileAutoSaved(bufferPath) }
+      replyTo match {
+        case Some(replyTo) => replyTo ! FileSaved
+        case None =>
+          clients.values.foreach {
+            _.rpcController ! FileAutoSaved(bufferPath)
+          }
+      }
       unstashAll()
       timeoutCancellable.cancel()
       context.become(
@@ -227,10 +229,9 @@ class CollaborativeBuffer(
     clientId: ClientId,
     clientVersion: ContentVersion,
     currentAutoSaves: Map[ClientId, Cancellable],
-    autoSaveReplyTo: Option[ActorRef]
+    isAutoSave: Boolean
   ): Unit = {
-    val hasLock             = lockHolder.exists(_.clientId == clientId)
-    val triggeredByAutoSave = autoSaveReplyTo.nonEmpty
+    val hasLock = lockHolder.exists(_.clientId == clientId)
     if (hasLock) {
       if (clientVersion == buffer.version) {
         fileManager ! FileManagerProtocol.WriteFile(
@@ -247,18 +248,17 @@ class CollaborativeBuffer(
             clients,
             currentAutoSaves.removed(clientId),
             lockHolder,
-            autoSaveReplyTo.getOrElse(sender()),
-            timeoutCancellable,
-            autoSaveReplyTo.nonEmpty
+            if (isAutoSave) None else Some(sender()),
+            timeoutCancellable
           )
         )
-      } else if (autoSaveReplyTo.isEmpty)
+      } else if (!isAutoSave)
         sender() ! SaveFileInvalidVersion(
           clientVersion.toHexString,
           buffer.version.toHexString
         )
     } else {
-      if (!triggeredByAutoSave) {
+      if (!isAutoSave) {
         sender() ! SaveDenied
       }
     }
@@ -266,7 +266,6 @@ class CollaborativeBuffer(
 
   private def upsertAutoSaveTimer(
     currentAutoSave: Map[ClientId, Cancellable],
-    replyTo: ActorRef,
     clientId: ClientId,
     clientVersion: ContentVersion
   ): Map[ClientId, Cancellable] = {
@@ -280,7 +279,7 @@ class CollaborativeBuffer(
             .scheduleOnce(
               delay,
               self,
-              AutoSave(replyTo, clientId, clientVersion)
+              AutoSave(clientId, clientVersion)
             )
         )
       )
@@ -315,7 +314,6 @@ class CollaborativeBuffer(
         )
         val newAutoSave: Map[ClientId, Cancellable] = upsertAutoSaveTimer(
           autoSave,
-          sender(),
           clientId,
           modifiedBuffer.version
         )
@@ -347,7 +345,6 @@ class CollaborativeBuffer(
         )
         val newAutoSave: Map[ClientId, Cancellable] = upsertAutoSaveTimer(
           autoSave,
-          sender(),
           clientId,
           modifiedBuffer.version
         )
@@ -596,7 +593,6 @@ object CollaborativeBuffer {
   case object IOTimeout
 
   private case class AutoSave(
-    replyTo: ActorRef,
     clientId: ClientId,
     clientVersion: ContentVersion
   )
