@@ -1048,6 +1048,8 @@ impl Searcher {
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
 
+        DEBUG!("MCDBG this=" this_type;? " ret_types=" return_types;?);
+
         // TODO[LATER]: maybe extract to separate helper method/func
         // FIXME: instead, filter by snippets.this_type
         if this_type.is_none() {
