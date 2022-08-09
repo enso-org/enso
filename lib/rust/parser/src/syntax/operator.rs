@@ -149,7 +149,7 @@ impl<'s> ExpressionBuilder<'s> {
                 // We don't know the correct precedence, so we can't structure the tree correctly.
                 // Pick some arbitrary value so we can at least produce *some* tree containing all
                 // the right subexpressions; we'll wrap the expression in an `Invalid` node.
-                const ARBITRARY_PRECEDENCE: usize = 20;
+                const ARBITRARY_PRECEDENCE: token::Precedence = token::Precedence { value: 20 };
                 let error = || format!("Precedence of: {:?}", opr.code);
                 self.precedence_error.get_or_insert_with(error);
                 self.binary_operator(ARBITRARY_PRECEDENCE, opr);
@@ -159,7 +159,7 @@ impl<'s> ExpressionBuilder<'s> {
 
     /// Extend the expression with a binary operator, by pushing it to the `operator_stack` or
     /// emitting a multiple-operator error.
-    fn binary_operator(&mut self, precedence: usize, opr: token::Operator<'s>) {
+    fn binary_operator(&mut self, precedence: token::Precedence, opr: token::Operator<'s>) {
         if self.prev_type == Some(ItemType::Opr)
                 && let Some(prev_opr) = self.operator_stack.last_mut()
                 && let Arity::Binary(oprs) = &mut prev_opr.opr {
@@ -171,7 +171,7 @@ impl<'s> ExpressionBuilder<'s> {
 
     /// Add an operator to the stack; [`reduce`] the stack first, as appropriate for the specified
     /// precedence.
-    fn push_operator(&mut self, precedence: usize, opr: Arity<'s>) {
+    fn push_operator(&mut self, precedence: token::Precedence, opr: Arity<'s>) {
         let opr = Operator { precedence, opr };
         if self.prev_type != Some(ItemType::Opr) {
             // If the previous item was also an operator, this must be a unary operator following a
@@ -190,7 +190,7 @@ impl<'s> ExpressionBuilder<'s> {
     /// Given a starting value, replace it with the result of successively applying to it all
     /// operators in the `operator_stack` that have precedence greater than or equal to the
     /// specified value, consuming LHS values from the `output` stack as needed.
-    fn reduce(&mut self, prec: usize, rhs: &mut Option<syntax::Tree<'s>>) {
+    fn reduce(&mut self, prec: token::Precedence, rhs: &mut Option<syntax::Tree<'s>>) {
         while let Some(opr) = self.operator_stack.pop_if(|opr| opr.precedence >= prec) {
             let rhs_ = rhs.take();
             let ast = match opr.opr {
@@ -212,7 +212,7 @@ impl<'s> ExpressionBuilder<'s> {
         use ItemType::*;
         let mut item =
             (self.prev_type == Some(Ast)).and_option_from(|| self.output.pop().map(|t| t.to_ast()));
-        self.reduce(0, &mut item);
+        self.reduce(token::Precedence::minimum(), &mut item);
         if !self.output.is_empty() {
             panic!(
                 "Internal error. Not all tokens were consumed while constructing the expression."
@@ -244,7 +244,7 @@ enum ItemType {
 /// An operator, whose arity and precedence have been determined.
 #[derive(Debug)]
 struct Operator<'s> {
-    precedence: usize,
+    precedence: token::Precedence,
     opr:        Arity<'s>,
 }
 

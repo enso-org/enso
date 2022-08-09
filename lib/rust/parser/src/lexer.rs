@@ -551,11 +551,12 @@ impl<'s> Lexer<'s> {
 // === Precedence ===
 
 // FIXME: Compute precedences according to spec. Issue: #182497344
-fn compute_precedence(token: &str) -> (Option<usize>, Option<usize>) {
+fn compute_precedence(token: &str) -> (Option<token::Precedence>, Option<token::Precedence>) {
     let binary = match token {
         // Special handling for tokens that can be unary.
-        "~" => return (None, Some(100)),
-        "-" => return (Some(14), Some(100)),
+        "~" => return (None, Some(token::Precedence { value: 100 })),
+        "-" =>
+            return (Some(token::Precedence { value: 14 }), Some(token::Precedence { value: 100 })),
         // "There are a few operators with the lowest precedence possible."
         "=" => 1,
         ":" => 2,
@@ -578,7 +579,7 @@ fn compute_precedence(token: &str) -> (Option<usize>, Option<usize>) {
         "." => 21,
         _ => return (None, None),
     };
-    (Some(binary), None)
+    (Some(token::Precedence { value: binary }), None)
 }
 
 
