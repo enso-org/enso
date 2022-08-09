@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Text.Text_Sub_Range
 import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Time_Of_Day
@@ -155,7 +156,7 @@ js_array_date year month=1 day=1 =
     arr.at(0)
 
 java_date year month=1 day=1 =
-    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time.Time_Error <| err.payload.to_display_text.take (Range 16 Nothing)))
+    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time.Time_Error <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))
 
 foreign js js_date_impl year month=1 day=1 = """
     if (month > 12) {

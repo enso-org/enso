@@ -198,6 +198,22 @@ type Illegal_Argument_Error
     handle_java_exception =
         Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error cause.getMessage cause))
 
+## UNSTABLE
+
+   An error indicating that a requested index was out of bounds of a collection.
+
+   Arguments:
+   - index: The requested index.
+   - length: The length of the collection.
+type Index_Out_Of_Bounds_Error index length
+
+## UNSTABLE
+
+   Pretty prints an index out of bounds error.
+Index_Out_Of_Bounds_Error.to_display_text : Text
+Index_Out_Of_Bounds_Error.to_display_text self =
+    "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
+
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
    from other panics.

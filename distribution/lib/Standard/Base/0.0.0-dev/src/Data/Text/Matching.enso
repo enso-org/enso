@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex
-from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
 from Standard.Base.Error.Common import Wrapped_Dataflow_Error
 
 ## UNSTABLE

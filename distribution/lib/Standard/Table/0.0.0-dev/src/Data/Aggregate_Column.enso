@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Column as Column_Module import Column
+from Standard.Table.Data.Column import Column
 import Standard.Table.Data.Column_Selector
 import Standard.Table.Data.Sort_Column_Selector
 

@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Time as Time_Module import Time
-from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
-from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Auto
+from Standard.Base.Data.Time import Time
+from Standard.Base.Data.Time.Time_Of_Day import Time_Of_Day
+from Standard.Table.Data.Column_Type_Selection import Auto
 import Standard.Base.Error.Common as Errors
 import Standard.Base.Error.Problem_Behavior
 import Standard.Table.Data.Storage

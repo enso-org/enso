@@ -289,6 +289,11 @@ object Builtin {
         (name, rename)
       }
 
+      val consOrVar: PartialFunction[AST, AST.Ident] = {
+        case AST.Ident.Var.any(v)  => v: AST.Ident
+        case AST.Ident.Cons.any(c) => c: AST.Ident
+      }
+
       val itemsImport = {
         val all: Pattern = Var("all")
         val items        = Pattern.SepList(Pattern.Cons() | Pattern.Var(), Opr(","))
@@ -305,13 +310,14 @@ object Builtin {
                 case Match.Or(_, Left(hidden)) =>
                   val hiddenItems = hidden.toStream
                     .map(_.wrapped)
-                    .flatMap(AST.Ident.Cons.any.unapply)
+                    .drop(2)
+                    .collect(consOrVar)
                   (List1(hiddenItems), None)
 
                 case Match.Or(_, Right(imported)) =>
                   val importedItems = imported.toStream
                     .map(_.wrapped)
-                    .flatMap(AST.Ident.Cons.any.unapply)
+                    .collect(consOrVar)
                   (None, List1(importedItems))
                 case _ => internalError
               }
@@ -339,19 +345,13 @@ object Builtin {
                   val hiddenItems = hidden.toStream
                     .map(_.wrapped)
                     .drop(2)
-                    .collect {
-                      case AST.Ident.Var.any(v)  => v: AST.Ident
-                      case AST.Ident.Cons.any(c) => c: AST.Ident
-                    }
+                    .collect(consOrVar)
                   (List1(hiddenItems), None)
 
                 case Match.Or(_, Right(imported)) =>
                   val importedItems = imported.toStream
                     .map(_.wrapped)
-                    .collect {
-                      case AST.Ident.Var.any(v)  => v: AST.Ident
-                      case AST.Ident.Cons.any(c) => c: AST.Ident
-                    }
+                    .collect(consOrVar)
                   (None, List1(importedItems))
                 case _ => internalError
               }
