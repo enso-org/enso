@@ -1022,7 +1022,7 @@ mod tests {
     #[test]
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
-        let (_, unary) = compute_precedence(&"-");
+        let (_, unary) = compute_precedence("-");
         let unary_minus = Token("", "-", token::Variant::operator(None, unary));
         test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
     }
