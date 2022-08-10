@@ -1245,7 +1245,9 @@ normalize_ranges descriptors =
    equal to 1).
 
    Arguments:
-   - ranges: The list of ranges determining indices which are selected - i..e list of ranges determining indices which will not be selected by the new list.
+   - ranges: The list of ranges determining indices which are selected. The
+     result will be a list of ranges containing all the indices which were not
+     originally selected here.
    - length: Length of the related sequence.
    - needs_sorting: Determines if `ranges` need to be sorted and merged or if it
      can be assumed that they are sorted already.

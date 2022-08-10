@@ -134,8 +134,8 @@ type Range
        efficient.
 
        Arguments:
-       - function: A function to apply that takes two indices: first the index
-         of a given range element and then the actual range element.
+       - function: A function to apply that takes two parameters: first the
+         index of a given range element and then the actual range element.
 
        > Example
          Print range elements with their indices within the range.
