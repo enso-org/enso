@@ -1191,7 +1191,7 @@ fn component_list_builder_with_favorites<'a>(
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     let base_lib_qn = project::QualifiedName::standard_base_library();
     let input_group_name = component::hardcoded::INPUT_COMPONENT_GROUP_NAME;
-    let snippets = component::hardcoded::LITERAL_INPUT_NODES_SNIPPETS.with(|s| s.clone());
+    let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
     builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
     builder
 }

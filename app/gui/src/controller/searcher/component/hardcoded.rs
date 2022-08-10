@@ -19,7 +19,23 @@ pub type Snippet = controller::searcher::action::hardcoded::Suggestion;
 /// components.
 pub const INPUT_COMPONENT_GROUP_NAME: &str = "Input";
 
-const INPUT_NODES_LITERAL_SNIPPETS: &[LiteralSnippet] = &[
+thread_local! {
+    /// Code snippets of default literal values of text and number type. The snippets are
+    /// documented as code that can be used as input nodes. When converted to [`Component`]s and
+    /// added to the [`component::List`] they allow the users to easily enter literals in code.
+    pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
+        Snippet::new("text input", "\"\"", &ImString::new("TextInput"))
+            .with_return_type("Standard.Base.Data.Text.Text")
+            .with_documentation(
+                "A text input node.\n\n\
+                An empty text. The value can be edited and used as an input for other nodes."
+            )
+            .into(),
+    ];
+}
+
+/*
+const INPUT_LITERAL_SNIPPETS: &[LiteralSnippet] = &[
     LiteralSnippet {
         name:               "text input",
         code:               "\"\"",
@@ -46,8 +62,17 @@ thread_local! {
     /// Code snippets of default literal values of text and number type. The snippets are
     /// documented as code that can be used as input nodes. When converted to [`Component`]s and
     /// added to the [`component::List`] they allow the users to easily enter literals in code.
-    pub static LITERAL_INPUT_NODES_SNIPPETS: Vec<Rc<Snippet>> = INPUT_NODES_LITERAL_SNIPPETS.into_iter().map(|c| Rc::new(c.clone().try_into().unwrap())).collect_vec();
+    pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = build_input_snippets().unwrap();
 }
+
+
+// === Constants helpers ===
+
+fn build_input_snippets() -> FallibleResult<Vec<Rc<Snippet>>> {
+    let 
+    INPUT_LITERAL_SNIPPETS.into_iter().map(|c| Rc::new(c.clone().try_into()?)).collect()
+}
+*/
 
 
 

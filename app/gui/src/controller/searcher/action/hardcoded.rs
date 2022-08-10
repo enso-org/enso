@@ -110,7 +110,7 @@ pub struct Suggestion {
 }
 
 impl Suggestion {
-    fn new(name: &'static str, code: &'static str, icon: &ImString) -> Self {
+    pub(crate) fn new(name: &'static str, code: &'static str, icon: &ImString) -> Self {
         let icon = icon.clone_ref();
         Self { name, code, icon, ..default() }
     }
@@ -130,7 +130,7 @@ impl Suggestion {
         self
     }
 
-    fn with_return_type(
+    pub(crate) fn with_return_type(
         mut self,
         return_type: impl TryInto<tp::QualifiedName, Error: Debug>,
     ) -> Self {
@@ -143,6 +143,17 @@ impl Suggestion {
         import: impl TryInto<module::QualifiedName, Error: Debug>,
     ) -> Self {
         self.imports.push(import.try_into().unwrap());
+        self
+    }
+
+    pub(crate) fn with_documentation(
+        mut self,
+        documentation: &str,
+    ) -> Self {
+        let doc_parser = parser::DocParser::new().unwrap();
+        let doc_string = documentation.to_string();
+        let documentation_html = doc_parser.generate_html_doc_pure(doc_string);
+        self.documentation_html = Some(documentation_html.unwrap());
         self
     }
 
