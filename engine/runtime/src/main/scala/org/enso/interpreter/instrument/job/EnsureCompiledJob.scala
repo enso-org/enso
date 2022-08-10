@@ -12,10 +12,16 @@ import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
 }
-import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
+import org.enso.interpreter.instrument.{
+  CacheInvalidation,
+  InstrumentFrame,
+  Visualisation
+}
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
 
 import java.io.File
@@ -39,17 +45,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
 
     try {
       val compilationResult = ensureCompiledFiles(files)
-      ctx.contextManager.getAll.values.foreach { stack =>
-        getCacheMetadata(stack).foreach { metadata =>
-          CacheInvalidation.run(
-            stack,
-            CacheInvalidation(
-              CacheInvalidation.StackSelector.Top,
-              CacheInvalidation.Command.SetMetadata(metadata)
-            )
-          )
-        }
-      }
+      setCacheWeights()
       compilationResult
     } finally {
       ctx.locking.releaseWriteCompilationLock()
@@ -89,12 +85,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     applyEdits(new File(module.getPath)).map { changeset =>
       compile(module)
         .map { compilerResult =>
-          val cacheInvalidationCommands =
-            buildCacheInvalidationCommands(
-              changeset,
-              module.getSource.getCharacters
-            )
-          runInvalidationCommands(cacheInvalidationCommands)
+          invalidateCaches(module, changeset)
           ctx.jobProcessor.runBackground(
             AnalyzeModuleInScopeJob(
               module.getName,
@@ -301,18 +292,44 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
 
   /** Run the invalidation commands.
     *
-    * @param invalidationCommands the invalidation command to run
+    * @param module the compiled module
+    * @param changeset the changeset containing the list of invalidated expressions
     * @param ctx the runtime context
     */
-  private def runInvalidationCommands(
-    invalidationCommands: Iterable[CacheInvalidation]
+  private def invalidateCaches(
+    module: Module,
+    changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
-    ctx.contextManager.getAll.values
+    val invalidationCommands =
+      buildCacheInvalidationCommands(
+        changeset,
+        module.getSource.getCharacters
+      )
+    ctx.contextManager.getAllContexts.values
       .foreach { stack =>
-        if (stack.nonEmpty) {
+        if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
           CacheInvalidation.runAll(stack, invalidationCommands)
         }
       }
+    CacheInvalidation.runAllVisualisations(
+      ctx.contextManager.getVisualisations(module.getName),
+      invalidationCommands
+    )
+
+    val invalidatedVisualisations =
+      ctx.contextManager.getInvalidatedVisualisations(
+        module.getName,
+        changeset.invalidated
+      )
+    invalidatedVisualisations.foreach { visualisation =>
+      UpsertVisualisationJob.upsertVisualisation(visualisation)
+    }
+    if (invalidatedVisualisations.nonEmpty) {
+      ctx.executionService.getLogger.log(
+        Level.FINE,
+        s"Invalidated visualisations [${invalidatedVisualisations.map(_.id)}]"
+      )
+    }
   }
 
   /** Send notification about the compilation status.
@@ -325,7 +342,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     diagnostics: Seq[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit =
     if (diagnostics.nonEmpty) {
-      ctx.contextManager.getAll.keys.foreach { contextId =>
+      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
         ctx.endpoint.sendToClient(
           Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
         )
@@ -340,7 +357,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   private def sendFailureUpdate(
     failure: Api.ExecutionResult.Failure
   )(implicit ctx: RuntimeContext): Unit =
-    ctx.contextManager.getAll.keys.foreach { contextId =>
+    ctx.contextManager.getAllContexts.keys.foreach { contextId =>
       ctx.endpoint.sendToClient(
         Api.Response(Api.ExecutionFailed(contextId, failure))
       )
@@ -353,6 +370,27 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       CompilationStatus.Error
     else
       CompilationStatus.Success
+
+  private def setCacheWeights()(implicit ctx: RuntimeContext): Unit = {
+    ctx.contextManager.getAllContexts.values.foreach { stack =>
+      getCacheMetadata(stack).foreach { metadata =>
+        CacheInvalidation.run(
+          stack,
+          CacheInvalidation(
+            CacheInvalidation.StackSelector.Top,
+            CacheInvalidation.Command.SetMetadata(metadata)
+          )
+        )
+      }
+    }
+    val visualisations = ctx.contextManager.getAllVisualisations
+    visualisations.flatMap(getCacheMetadata).foreach { metadata =>
+      CacheInvalidation.runVisualisations(
+        visualisations,
+        CacheInvalidation.Command.SetMetadata(metadata)
+      )
+    }
+  }
 
   private def getCacheMetadata(
     stack: Iterable[InstrumentFrame]
@@ -370,11 +408,36 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
       case _ => None
     }
 
+  private def getCacheMetadata(
+    visualisation: Visualisation
+  ): Option[CachePreferenceAnalysis.Metadata] = {
+    val module = visualisation.module
+    module.getIr.getMetadata(CachePreferenceAnalysis)
+  }
+
   /** Get all modules in the current compiler scope. */
   private def getModulesInScope(implicit
     ctx: RuntimeContext
   ): Iterable[Module] =
     ctx.executionService.getContext.getTopScope.getModules.asScala
+
+  /** Check if stack belongs to the provided module.
+    *
+    * @param module the qualified module name
+    * @param stack the execution stack
+    */
+  private def isStackInModule(
+    module: QualifiedName,
+    stack: Iterable[InstrumentFrame]
+  ): Boolean =
+    stack.headOption match {
+      case Some(
+            InstrumentFrame(StackItem.ExplicitCall(methodPointer, _, _), _, _)
+          ) =>
+        methodPointer.module == module.toString
+      case _ =>
+        false
+    }
 
 }
 

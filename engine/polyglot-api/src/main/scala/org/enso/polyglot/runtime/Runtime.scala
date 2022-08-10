@@ -477,26 +477,76 @@ object Runtime {
       expressionId: ExpressionId
     )
 
+    /** A visualization expression. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[VisualisationExpression.Text],
+          name  = "visualisationExpressionText"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[VisualisationExpression.ModuleMethod],
+          name  = "visualisationExpressionModuleMethod"
+        )
+      )
+    )
+    sealed trait VisualisationExpression extends ToLogString {
+      def module: String
+    }
+    object VisualisationExpression {
+
+      /** Visualization expression represented as a text.
+        *
+        * @param module a qualified module name containing the expression
+        * @param expression an expression that creates a visualization
+        */
+      case class Text(module: String, expression: String)
+          extends VisualisationExpression {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"Text(module=$module" +
+          s",expression=" +
+          (if (shouldMask) STUB else expression) +
+          ")"
+      }
+
+      /** Visualization expression represented as a module method.
+        *
+        * @param methodPointer a pointer to a method definition
+        */
+      case class ModuleMethod(methodPointer: MethodPointer)
+          extends VisualisationExpression {
+
+        /** @inheritdoc */
+        override val module: String = methodPointer.module
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"ModuleMethod(methodPointer=$methodPointer)"
+      }
+    }
+
     /** A configuration object for properties of the visualisation.
       *
       * @param executionContextId an execution context of the visualisation
-      * @param visualisationModule a qualified name of the module containing
-      *                            the expression which creates visualisation
       * @param expression the expression that creates a visualisation
       */
     case class VisualisationConfiguration(
       executionContextId: ContextId,
-      visualisationModule: String,
-      expression: String
+      expression: VisualisationExpression
     ) extends ToLogString {
+
+      /** A qualified module name containing the expression. */
+      def visualisationModule: String =
+        expression.module
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         s"VisualisationConfiguration(" +
         s"executionContextId=$executionContextId," +
-        s"visualisationModule=$visualisationModule,expression=" +
-        (if (shouldMask) STUB else expression) +
-        ")"
+        s"expression=${expression.toLogString(shouldMask)})"
     }
 
     /** An operation applied to the suggestion argument. */
