@@ -123,6 +123,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
         /// constructors. **Performance note**: This will re-instantiate all entries.
         set_text_layer(Option<WeakLayer>),
+        setup_sections_and_headers(Option<WeakLayer>, Option<WeakLayer>),
         select_entry(Option<(Row, Col)>),
         hover_entry(Option<(Row, Col)>),
         accept_entry(Row, Col),

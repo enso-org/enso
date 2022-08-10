@@ -6,6 +6,7 @@ use crate::Entry;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
+use ensogl_core::display::scene::Layer;
 
 
 // ==============
@@ -32,6 +33,7 @@ pub struct GridViewTemplate<
     #[deref]
     grid:              crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
     highlights:        highlight::shape::View,
+    header_highlights: highlight::shape::View,
     selection_handler: highlight::Handler<Entry, EntryModel, EntryParams>,
     hover_handler:     highlight::Handler<Entry, EntryModel, EntryParams>,
 }
@@ -70,6 +72,7 @@ impl<E: Entry> GridView<E> {
     pub fn new(app: &Application) -> Self {
         let grid = crate::GridView::<E>::new(app);
         let highlights = highlight::shape::View::new(Logger::new("highlights"));
+        let header_highlights = highlight::shape::View::new(Logger::new("header_highlights"));
         let selection_handler = highlight::Handler::new_for_selection_connected(app, &grid);
         let hover_handler = highlight::Handler::new_for_hover_connected(app, &grid);
         grid.add_child(&highlights);
@@ -78,10 +81,30 @@ impl<E: Entry> GridView<E> {
 
         let network = grid.frp().network();
         frp::extend! { network
-            eval grid.viewport ([highlights](&vp) highlight::shape::set_viewport(&highlights, vp));
+            eval grid.viewport ([highlights, header_highlights](&vp) {
+                highlight::shape::set_viewport(&highlights, vp);
+                highlight::shape::set_viewport(&header_highlights, vp);
+            });
         }
 
-        Self { grid, highlights, selection_handler, hover_handler }
+        Self { grid, highlights, header_highlights, selection_handler, hover_handler }
+    }
+
+    pub fn setup_sections_and_headers(
+        &self,
+        headers_layer: Layer,
+        headers_text_layer: Option<Layer>,
+    ) {
+        tracing::debug!("Setting sections and headers in selectable::GridView.");
+        self.grid.add_child(&self.header_highlights);
+        headers_layer.add_exclusive(&self.header_highlights);
+        self.selection_handler.connect_with_header_shape::<highlight::shape::SelectionAttrSetter>(
+            &self.header_highlights,
+        );
+        self.hover_handler.connect_with_header_shape::<highlight::shape::HoverAttrSetter>(
+            &self.header_highlights,
+        );
+        self.grid.setup_sections_and_headers(headers_layer, headers_text_layer);
     }
 }
 

@@ -91,6 +91,7 @@ pub trait AttrSetter {
     fn set_corners_radius(shape: &View, radius: f32);
     fn set_color(shape: &View, color: color::Rgba);
     fn set_top_clip(shape: &View, y: f32, viewport: Viewport);
+    fn set_bottom_clip(shape: &View, y: f32, viewport: Viewport);
 }
 
 
@@ -132,6 +133,12 @@ impl AttrSetter for HoverAttrSetter {
         attr.x = viewport.top - y;
         shape.highlights_y_clip.set(attr);
     }
+
+    fn set_bottom_clip(shape: &View, y: f32, viewport: Viewport) {
+        let mut attr = shape.highlights_y_clip.get();
+        attr.y = y - viewport.bottom;
+        shape.highlights_y_clip.set(attr);
+    }
 }
 
 
@@ -171,6 +178,19 @@ impl AttrSetter for SelectionAttrSetter {
     fn set_top_clip(shape: &View, y: f32, viewport: Viewport) {
         let mut attr = shape.highlights_y_clip.get();
         attr.z = viewport.top - y;
+        shape.highlights_y_clip.set(attr);
+    }
+
+    fn set_bottom_clip(shape: &View, y: f32, viewport: Viewport) {
+        let mut attr = shape.highlights_y_clip.get();
+        tracing::debug!(
+            "Setting bottom clip {} - {} = {}",
+            y,
+            viewport.bottom,
+            y - viewport.bottom
+        );
+        attr.w = y - viewport.bottom;
+        tracing::debug!("The attr value is {:?}", attr);
         shape.highlights_y_clip.set(attr);
     }
 }

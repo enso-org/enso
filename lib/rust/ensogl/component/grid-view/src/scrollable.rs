@@ -88,15 +88,6 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
     pub fn scroll_frp(&self) -> &ensogl_scroll_area::Frp {
         self.area.deref()
     }
-
-    pub fn setup_headers<E>(&self)
-    where
-        E: Entry,
-        InnerGridView: AsRef<crate::GridView<E>>, {
-        let headers_layer = self.area.content_layer().create_sublayer();
-        let text_layer = self.area.content_layer().create_sublayer();
-        self.inner_grid.as_ref().setup_sections_and_headers(headers_layer, Some(text_layer));
-    }
 }
 
 impl<E: Entry> GridView<E> {
@@ -104,12 +95,24 @@ impl<E: Entry> GridView<E> {
     pub fn new(app: &Application) -> Self {
         Self::new_wrapping(app, crate::GridView::new(app))
     }
+
+    pub fn setup_headers(&self) {
+        let headers_layer = self.area.content_layer().create_sublayer();
+        let text_layer = self.area.content_layer().create_sublayer();
+        self.inner_grid.setup_sections_and_headers(headers_layer, Some(text_layer));
+    }
 }
 
 impl<E: Entry> SelectableGridView<E> {
     /// Create new scrollable [`SelectableGridView`] component.
     pub fn new(app: &Application) -> Self {
         Self::new_wrapping(app, selectable::GridView::new(app))
+    }
+
+    pub fn setup_headers(&self) {
+        let headers_layer = self.area.content_layer().create_sublayer();
+        let text_layer = self.area.content_layer().create_sublayer();
+        self.inner_grid.setup_sections_and_headers(headers_layer, Some(text_layer));
     }
 }
 

@@ -44,6 +44,7 @@ ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
         position(Vector2),
         contour(entry::Contour),
         color(color::Rgba),
+        header_separator(f32),
         top_clip(f32),
         is_masked_layer_set(bool),
     }
@@ -158,7 +159,7 @@ impl<E: Entry> Data<E, E::Model, E::Params> {
             let shape = &layers.shape;
             let network = layers.grid.network();
             let highlight_grid_frp = layers.grid.frp();
-            self.connect_with_shape::<HoverAttrSetter>(network, shape, false, None);
+            self.connect_with_shape::<HoverAttrSetter>(network, shape, false, None, None);
             frp::extend! { network
                 highlight_grid_frp.set_entries_params <+ entries_params;
             }
@@ -182,6 +183,7 @@ impl<E: Entry> Data<E, E::Model, E::Params> {
         shape: &shape::View,
         connect_color: bool,
         hide: Option<&frp::Stream<bool>>,
+        bottom_clip: Option<&frp::Stream<f32>>,
     ) {
         let grid_frp = self.grid.frp();
         frp::extend! { network
@@ -211,6 +213,14 @@ impl<E: Entry> Data<E, E::Model, E::Params> {
             frp::extend! { network
                 color <- all(init, self.animations.color.value)._1();
                 eval color ([shape](&color) Setter::set_color(&shape, color));
+            }
+        }
+        if let Some(bottom_clip) = bottom_clip {
+            frp::extend! {network
+                bottom_clip <- all(&init, bottom_clip)._1();
+                trace bottom_clip;
+                bottom_clip_and_viewport <- all(bottom_clip, grid_frp.viewport);
+                eval bottom_clip_and_viewport ([shape](&(c, v)) Setter::set_bottom_clip(&shape, c, v));
             }
         }
         init.emit(())
@@ -338,8 +348,8 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
                 &frp.entry_highlighted,
                 |&(row, col, pos), h| h.map_or(false, |(_, h_col)| col == h_col)
             ).filter(|v| *v).constant(());
-            new_header_separator <- all_with(&highlight_column, &header_moved_in_highlight_column, f!((col, ()) model.grid.header_separator(*col)));
-            new_top_clip <- new_header_separator.map3(header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
+            out.header_separator <+ all_with(&highlight_column, &header_moved_in_highlight_column, f!((col, ()) model.grid.header_separator(*col)));
+            new_top_clip <- all_with3(&out.header_separator, header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
             out.top_clip <+ new_top_clip;
             prev_top_clip <- out.top_clip.previous();
             new_clip_jump <- new_top_clip.sample(&became_highlighted).map2(&prev_top_clip, |c, p| p - c);
@@ -396,6 +406,19 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
     pub fn connect_with_shape<Setter: shape::AttrSetter>(&self, shape: &shape::View) {
         let network = self.frp.network();
         let shape_hidden = (&self.frp.is_masked_layer_set).into();
-        self.model.connect_with_shape::<Setter>(network, shape, true, Some(&shape_hidden));
+        self.model.connect_with_shape::<Setter>(network, shape, true, Some(&shape_hidden), None);
+    }
+
+    pub fn connect_with_header_shape<Setter: shape::AttrSetter>(&self, shape: &shape::View) {
+        let network = self.frp.network();
+        let shape_hidden = (&self.frp.is_masked_layer_set).into();
+        let bottom_clip = (&self.frp.header_separator).into();
+        self.model.connect_with_shape::<Setter>(
+            network,
+            shape,
+            true,
+            Some(&shape_hidden),
+            Some(&bottom_clip),
+        );
     }
 }
