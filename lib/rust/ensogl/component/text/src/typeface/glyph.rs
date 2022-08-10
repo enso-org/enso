@@ -24,20 +24,6 @@ use font::GlyphRenderInfo;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-mod style_flag {
-    use const_format::concatcp;
-
-    pub const BOLD: i32 = 1 << 0;
-
-    pub const GLSL_DEFINITIONS: &str = concatcp!("const int STYLE_BOLD_FLAG = ", BOLD, ";\n");
-}
-
-
-
 // =============
 // === Glyph ===
 // =============
@@ -56,17 +42,16 @@ pub struct Glyph {
 /// Internal structure of [`Glyph`].
 #[derive(Debug)]
 pub struct GlyphData {
+    char:        Cell<char>,
     sprite:      Sprite,
     context:     Context,
     font:        Font,
     properties:  Cell<NonVariableFontFaceHeader>,
     font_size:   Attribute<f32>,
     color:       Attribute<Vector4<f32>>,
-    style:       Attribute<i32>,
     sdf_bold:    Attribute<f32>,
     atlas_index: Attribute<f32>,
     atlas:       Uniform<Texture>,
-    char:        Cell<char>,
 }
 
 
@@ -108,34 +93,34 @@ impl Glyph {
     )];
 
     define_prop_setters_and_getters![Style(Normal, Italic, Oblique)];
-}
 
-
-
-impl Glyph {
-    /// Glyph color attribute accessor.
+    /// Color getter.
     pub fn color(&self) -> Rgba {
         self.color.get().into()
     }
 
+    /// Color setter.
     pub fn set_color(&self, color: impl Into<Rgba>) {
         self.color.set(color.into().into())
     }
 
-
-
+    /// SDF-based glyph thickness adjustment. Values greater than 0 make the glyph thicker, while
+    /// values lower than 0 makes it thinner.
     pub fn sdf_bold(&self) -> f32 {
         self.sdf_bold.get()
     }
 
+    /// SDF-based glyph thickness getter.
     pub fn set_sdf_bold(&self, value: f32) {
         self.sdf_bold.set(value);
     }
 
+    /// Size getter.
     pub fn font_size(&self) -> f32 {
         self.font_size.get()
     }
 
+    /// Size setter.
     pub fn set_font_size(&self, size: f32) {
         self.font_size.set(size);
         self.font.with_glyph_info(self.properties.get(), self.char.get(), |glyph_info| {
@@ -148,22 +133,20 @@ impl Glyph {
         self.char.set(ch);
         self.font.with_glyph_info(self.properties.get(), ch, |glyph_info| {
             self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
-            self.update_msdf_texture();
+            self.update_atlas();
             let font_size = self.font_size();
             self.sprite.size.set(glyph_info.scale.scale(font_size));
         })
     }
 
-    // FIXME: How does it work? Replace with better checking.
-    // ^^^
-    fn update_msdf_texture(&self) {
-        let texture_changed = self.atlas.with_content(|texture| {
-            texture.storage().height != self.font.msdf_texture_rows() as i32
-        });
+    /// Check whether the CPU-bound texture changed and if so, upload it to GPU.
+    fn update_atlas(&self) {
+        let cpu_tex_height = self.font.msdf_texture_rows() as i32;
+        let gpu_tex_height = self.atlas.with_content(|texture| texture.storage().height);
+        let texture_changed = cpu_tex_height != gpu_tex_height;
         if texture_changed {
-            let width = font::msdf::Texture::WIDTH as i32;
-            let height = self.font.msdf_texture_rows() as i32;
-            let texture = Texture::new(&self.context, (width, height));
+            let cpu_tex_width = font::msdf::Texture::WIDTH as i32;
+            let texture = Texture::new(&self.context, (cpu_tex_width, cpu_tex_height));
             self.font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
             self.atlas.set(texture);
         }
@@ -192,7 +175,6 @@ pub struct System {
     pub font:      Font,
     font_size:     Buffer<f32>,
     color:         Buffer<Vector4<f32>>,
-    style:         Buffer<i32>,
     sdf_bold:      Buffer<f32>,
     atlas_index:   Buffer<f32>,
     atlas:         Uniform<Texture>,
@@ -225,7 +207,6 @@ impl System {
             atlas: symbol.variables().add_or_panic("atlas", texture),
             font_size: mesh.instance_scope().add_buffer("font_size"),
             color: mesh.instance_scope().add_buffer("color"),
-            style: mesh.instance_scope().add_buffer("style"),
             sdf_bold: mesh.instance_scope().add_buffer("sdf_bold"),
             atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
         }
@@ -239,7 +220,6 @@ impl System {
         let instance_id = sprite.instance_id;
         let font_size = self.font_size.at(instance_id);
         let color = self.color.at(instance_id);
-        let style = self.style.at(instance_id);
         let sdf_bold = self.sdf_bold.at(instance_id);
         let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
@@ -255,7 +235,6 @@ impl System {
                 font,
                 font_size,
                 color,
-                style,
                 sdf_bold,
                 atlas_index,
                 atlas,
@@ -280,10 +259,9 @@ impl display::Object for System {
 
 // === Material ===
 #[cfg(target_os = "macos")]
-const FUNCTIONS: &str =
-    concatcp!(style_flag::GLSL_DEFINITIONS, include_str!("glsl/glyph_mac.glsl"));
+const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
 #[cfg(not(target_os = "macos"))]
-const FUNCTIONS: &str = concatcp!(style_flag::GLSL_DEFINITIONS, include_str!("glsl/glyph.glsl"));
+const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
 
 const MAIN: &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
 
@@ -299,7 +277,6 @@ impl System {
         material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
         material.add_input("font_size", 10.0);
         material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
-        material.add_input("style", 0);
         material.add_input("sdf_bold", 0.0);
         // FIXME We need to use this output, as we need to declare the same amount of shader
         // FIXME outputs as the number of attachments to framebuffer. We should manage this more

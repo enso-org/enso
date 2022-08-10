@@ -7,11 +7,10 @@ use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
 use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFontsData;
-use ensogl_text_embedded_fonts::NonVariableFontFamilyDefinition;
-// use ensogl_text_embedded_fonts::Family;
 use ensogl_text_embedded_fonts::FontFamilyDefinition;
 use ensogl_text_embedded_fonts::FontName;
 use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
+use ensogl_text_embedded_fonts::NonVariableFontFamilyDefinition;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
@@ -295,13 +294,13 @@ impl Font {
         )
     }
 
-    /// A whole msdf texture bound for this font.
+    /// A whole MSDF texture bound for this font.
     pub fn with_borrowed_msdf_texture_data<F, R>(&self, operation: F) -> R
     where F: FnOnce(&[u8]) -> R {
         self.atlas.with_borrowed_data(operation)
     }
 
-    /// Get number of rows in msdf texture.
+    /// Get number of rows in MSDF texture.
     pub fn msdf_texture_rows(&self) -> usize {
         self.atlas.rows()
     }
