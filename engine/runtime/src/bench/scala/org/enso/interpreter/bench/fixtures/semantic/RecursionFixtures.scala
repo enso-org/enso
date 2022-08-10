@@ -10,7 +10,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
 
   val sumTCOCode =
     """
-      |main self = sumTo ->
+      |main = sumTo ->
       |    summator = acc -> current ->
       |        if current == 0 then acc else @Tail_Call summator acc+current current-1
       |
@@ -21,7 +21,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
 
   val sumTCOFoldLikeCode =
     """
-      |main self = sumTo ->
+      |main = sumTo ->
       |    summator = acc -> i -> f ->
       |        if i == 0 then acc else @Tail_Call summator (f acc i) (i - 1) f
       |    res = summator 0 sumTo (x -> y -> x + y)
@@ -31,7 +31,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
 
   val sumRecursiveCode =
     """
-      |main self = sumTo ->
+      |main = sumTo ->
       |    summator = i -> if i == 0 then 0 else i + summator (i - 1)
       |    res = summator sumTo
       |    res
@@ -40,7 +40,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
 
   val oversaturatedRecursiveCallTCOCode =
     """
-      |main self = sumTo ->
+      |main = sumTo ->
       |    summator = acc -> i -> f ->
       |        if i == 0 then acc else @Tail_Call summator (f acc i) (i - 1) f
       |    res = summator 0 sumTo (x -> y -> x + y)
@@ -57,7 +57,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |    State.put Number (acc + n)
       |    if n == 0 then State.get Number else @Tail_Call stateSum (n - 1)
       |
-      |main self = sumTo ->
+      |main = sumTo ->
       |    res = State.run Number 0 (stateSum sumTo)
       |    res
       |""".stripMargin
@@ -66,7 +66,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
   val sumTCOWithEvalCode =
     """import Standard.Base.Runtime.Debug
       |
-      |main self = sumTo ->
+      |main = sumTo ->
       |    summator = acc -> current ->
       |        if current == 0 then acc else Debug.eval "@Tail_Call summator (acc + current) (current - 1)"
       |
@@ -84,7 +84,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |    block
       |    if n == 1 then Nothing else @Tail_Call doNTimes n-1 block
       |
-      |main self = n ->
+      |main = n ->
       |    block =
       |        x = State.get Number
       |        State.put Number x+1

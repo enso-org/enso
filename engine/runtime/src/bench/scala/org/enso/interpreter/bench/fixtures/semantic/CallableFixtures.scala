@@ -14,7 +14,7 @@ class CallableFixtures extends DefaultInterpreterRunner {
       |Foo.from (that : Number) current=0 =
       |    if current == 0 then that else @Tail_Call Foo.from (that + current) (current - 1)
       |
-      |main self = sumTo ->
+      |main = sumTo ->
       |    res = Foo.from 0 sumTo
       |    res
       |""".stripMargin
@@ -26,7 +26,7 @@ class CallableFixtures extends DefaultInterpreterRunner {
       |summator = acc -> current ->
       |    if current == 0 then acc else @Tail_Call summator (acc + current) (current - 1)
       |
-      |main self = sumTo ->
+      |main = sumTo ->
       |    res = summator 0 sumTo
       |    res
       |""".stripMargin
@@ -37,7 +37,7 @@ class CallableFixtures extends DefaultInterpreterRunner {
       |summator = acc -> current ->
       |    if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
       |
-      |main self = sumTo ->
+      |main = sumTo ->
       |    res = summator current=sumTo acc=0
       |    res
       |""".stripMargin
@@ -49,7 +49,7 @@ class CallableFixtures extends DefaultInterpreterRunner {
       |summator = (acc = 0) -> current ->
       |    if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
       |
-      |main self = sumTo ->
+      |main = sumTo ->
       |    res = summator current=sumTo
       |    res
       |""".stripMargin
