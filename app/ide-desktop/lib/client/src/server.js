@@ -1,4 +1,4 @@
-import * as createServers from 'create-servers'
+import createServer from 'create-servers'
 import * as fs from 'fs'
 import * as mime from 'mime-types'
 import * as path from 'path'
@@ -12,8 +12,7 @@ export const DEFAULT_PORT = 8080
 
 async function findPort(cfg) {
     if (!cfg.port) {
-        portfinder.basePort = DEFAULT_PORT
-        cfg.port = await portfinder.getPortPromise()
+        cfg.port = await portfinder.getPortPromise({ port: DEFAULT_PORT, startPort: DEFAULT_PORT })
     }
 }
 
@@ -31,7 +30,8 @@ class Server {
         this.dir = cfg.dir
         this.port = cfg.port
         this.fallback = cfg.fallback
-        this.server = createServers(
+        console.log('f', createServer)
+        this.server = createServer(
             {
                 http: this.port,
                 handler: function (request, response) {

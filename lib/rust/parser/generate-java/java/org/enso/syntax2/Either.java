@@ -1,4 +1,4 @@
-package org.enso.syntax2.serialization;
+package org.enso.syntax2;
 
 public class Either<Left, Right> {
     protected Left left;

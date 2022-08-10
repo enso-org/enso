@@ -1,6 +1,6 @@
-package org.enso.syntax2.serialization;
+package org.enso.syntax2;
 
-public final class Message {
+final class Message {
     private final java.nio.ByteBuffer buffer;
     private final java.nio.ByteBuffer context;
     private final int base;
