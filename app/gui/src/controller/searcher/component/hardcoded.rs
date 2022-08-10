@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+use ide_view_component_group::icon::Id as IconId;
+
 
 
 // ====================
@@ -24,14 +26,14 @@ thread_local! {
     /// documented as code that can be used as input nodes. When converted to [`Component`]s and
     /// added to the [`component::List`] they allow the users to easily enter literals in code.
     pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
-        Snippet::new("text input", "\"\"", &ImString::new("TextInput"))
+        snippet_with_name_and_code_and_icon("text input", "\"\"", IconId::TextInput)
             .with_return_type("Standard.Base.Data.Text.Text")
             .with_documentation(
                 "A text input node.\n\n\
                 An empty text. The value can be edited and used as an input for other nodes."
             )
             .into(),
-        Snippet::new("number input", "0", &ImString::new("NumberInput"))
+        snippet_with_name_and_code_and_icon("number input", "0", IconId::NumberInput)
             .with_return_type("Standard.Base.Data.Numbers.Number")
             .with_documentation(
                  "A number input node.\n\n\
@@ -39,4 +41,11 @@ thread_local! {
             )
             .into(),
     ];
+}
+
+
+// === Constants helpers ===
+
+fn snippet_with_name_and_code_and_icon(name: &'static str, code: &'static str, icon: IconId) -> Snippet {
+    Snippet::new(name, code, &ImString::new(icon.as_str()))
 }
