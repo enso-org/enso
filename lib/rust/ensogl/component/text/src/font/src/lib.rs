@@ -27,7 +27,7 @@ pub mod msdf;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Cache<K: Eq + Hash, V> {
-    map: RefCell<HashMap<K, V>>,
+    pub map: RefCell<HashMap<K, V>>,
 }
 
 impl<K: Eq + Hash, V: Copy> Cache<K, V> {

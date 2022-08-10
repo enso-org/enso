@@ -61,7 +61,6 @@ fn init(world: &World) {
     let start_pos = Vector2(-300.0, -300.0);
 
 
-
     for (line_ind, line) in CHARS_TO_TEST.iter().enumerate() {
         for (char_ind, char) in line.chars().enumerate() {
             let glyph = glyph_system.new_glyph();
@@ -73,7 +72,7 @@ fn init(world: &World) {
             bold_glyph.set_char(char);
             bold_glyph.set_color(color);
             bold_glyph.set_font_size(height);
-            bold_glyph.set_bold(true);
+            bold_glyph.set_weight_bold();
 
             let x = char_ind as f32 * (height + 4.0);
             let y = line_ind as f32 * (height * 2.0 + 8.0);

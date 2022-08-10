@@ -16,6 +16,9 @@ use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
 use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
+use ensogl_text_embedded_fonts::Style;
+use ensogl_text_embedded_fonts::Weight;
+use ensogl_text_embedded_fonts::Width;
 use font::Font;
 use font::GlyphRenderInfo;
 
@@ -45,20 +48,69 @@ pub type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 /// A glyph rendered on screen.
 ///
 /// The underlying sprite's size is automatically adjusted depending on char and font size set.
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct Glyph {
+    data: Rc<GlyphData>,
+}
+
+/// Internal structure of [`Glyph`].
+#[derive(Debug)]
+pub struct GlyphData {
     sprite:      Sprite,
     context:     Context,
     font:        Font,
+    properties:  Cell<NonVariableFontFaceHeader>,
     font_size:   Attribute<f32>,
     color:       Attribute<Vector4<f32>>,
     style:       Attribute<i32>,
     sdf_bold:    Attribute<f32>,
     atlas_index: Attribute<f32>,
     atlas:       Uniform<Texture>,
-    char:        Rc<Cell<char>>,
-    properties:  Rc<Cell<NonVariableFontFaceHeader>>,
+    char:        Cell<char>,
 }
+
+
+// === Properties getters and setters ===
+
+macro_rules! define_prop_setters_and_getters {
+    ($prop:ident ($($name:ident),* $(,)?)) => { paste! {
+        pub fn [<set_ $prop:snake:lower>](&self, value: $prop) {
+            self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
+            self.set_char(self.char.get());
+        }
+        $(
+            pub fn [<set_ $prop:snake:lower _ $name:snake:lower>](&self) {
+                self.[<set_ $prop:snake:lower>]($prop::$name)
+            }
+
+            pub fn [<is_ $prop:snake:lower _ $name:snake:lower>](&self) -> bool {
+                self.properties.get().[<$prop:snake:lower>] == $prop::$name
+            }
+        )*
+    }};
+}
+
+impl Glyph {
+    define_prop_setters_and_getters![Weight(
+        Thin, ExtraLight, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black
+    )];
+
+    define_prop_setters_and_getters![Width(
+        UltraCondensed,
+        ExtraCondensed,
+        Condensed,
+        SemiCondensed,
+        Normal,
+        SemiExpanded,
+        Expanded,
+        ExtraExpanded,
+        UltraExpanded
+    )];
+
+    define_prop_setters_and_getters![Style(Normal, Italic, Oblique)];
+}
+
+
 
 impl Glyph {
     /// Glyph color attribute accessor.
@@ -70,13 +122,7 @@ impl Glyph {
         self.color.set(color.into().into())
     }
 
-    pub fn is_bold(&self) -> bool {
-        self.style.get() & style_flag::BOLD != 0
-    }
 
-    pub fn set_bold(&self, value: bool) {
-        self.style.modify(|v| if value { *v |= style_flag::BOLD } else { *v &= !style_flag::BOLD });
-    }
 
     pub fn sdf_bold(&self) -> f32 {
         self.sdf_bold.get()
@@ -92,20 +138,20 @@ impl Glyph {
 
     pub fn set_font_size(&self, size: f32) {
         self.font_size.set(size);
-        if let Some(glyph_info) = self.font.glyph_info(self.properties.get(), self.char.get()) {
+        self.font.with_glyph_info(self.properties.get(), self.char.get(), |glyph_info| {
             self.sprite.size.set(glyph_info.scale.scale(size));
-        }
+        })
     }
 
     /// Change the displayed character.
     pub fn set_char(&self, ch: char) {
         self.char.set(ch);
-        if let Some(glyph_info) = self.font.glyph_info(self.properties.get(), ch) {
+        self.font.with_glyph_info(self.properties.get(), ch, |glyph_info| {
             self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_msdf_texture();
             let font_size = self.font_size();
             self.sprite.size.set(glyph_info.scale.scale(font_size));
-        }
+        })
     }
 
     // FIXME: How does it work? Replace with better checking.
@@ -203,17 +249,19 @@ impl System {
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
         Glyph {
-            sprite,
-            context,
-            font,
-            font_size,
-            color,
-            style,
-            sdf_bold,
-            atlas_index,
-            atlas,
-            char,
-            properties,
+            data: Rc::new(GlyphData {
+                sprite,
+                context,
+                font,
+                font_size,
+                color,
+                style,
+                sdf_bold,
+                atlas_index,
+                atlas,
+                char,
+                properties,
+            }),
         }
     }
 

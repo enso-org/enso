@@ -210,14 +210,18 @@ impl Font {
         family: &'a mut NonVariableFontFamily,
         definition: &'b NonVariableFontFamilyDefinition,
         loader: &'c FontLoader,
-    ) -> Option<&'a FontFace> {
+        f: impl FnOnce(&'a FontFace),
+    ) {
         if family.faces.contains_key(&header) {
-            family.faces.get(&header)
+            if let Some(face) = family.faces.get(&header) {
+                f(face);
+            }
         } else {
             let opt_face = definition.map.get(&header).and_then(|file_name| {
                 // FIXME conversion + FIXME loader should be prepared for async loading with
                 //  a callback
                 let x: &str = &*file_name;
+                // FIXME: warning when trying to load font not from embedded resources.
                 loader.rc.borrow().embedded_fonts_data.data.get(x).and_then(|font_data| {
                     let result = ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_NUMBER)
                         .map(|ttf| {
@@ -229,52 +233,66 @@ impl Font {
             });
             if let Some(face) = opt_face {
                 family.faces.insert(header, face);
-                Some(family.faces.get(&header).unwrap())
-            } else {
-                None
+                f(family.faces.get(&header).unwrap());
             }
         }
     }
 
     /// Get render info for one character, generating one if not found.
-    pub fn glyph_info(
+    pub fn with_glyph_info(
         &self,
         header: NonVariableFontFaceHeader,
         ch: char,
-    ) -> Option<GlyphRenderInfo> {
-        self.glyphs.get_or_try_creating((header, ch), move || {
+        f: impl FnOnce(GlyphRenderInfo),
+    ) {
+        let opt_render_info = self.glyphs.map.borrow().get(&(header, ch)).copied();
+        if let Some(render_info) = opt_render_info {
+            f(render_info);
+        } else {
             Self::get_or_load_face(
                 header,
                 &mut self.family.borrow_mut(),
                 &self.definition,
                 &self.loader,
+                |face| {
+                    let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
+                    self.glyphs.map.borrow_mut().insert((header, ch), render_info);
+                    f(render_info)
+                },
             )
-            .map(|face| GlyphRenderInfo::load(&face.msdf, ch, &self.atlas))
-        })
+        }
     }
 
     /// Get kerning between two characters.
-    pub fn kerning(&self, header: NonVariableFontFaceHeader, left: char, right: char) -> f32 {
+    pub fn with_kerning(
+        &self,
+        header: NonVariableFontFaceHeader,
+        left: char,
+        right: char,
+        f: impl FnOnce(f32),
+    ) {
         Self::get_or_load_face(
             header,
             &mut self.family.borrow_mut(),
             &self.definition,
             &self.loader,
-        )
-        .and_then(|face| {
-            face.ttf.as_face_ref().glyph_index(left).and_then(|left_id| {
-                face.ttf.as_face_ref().glyph_index(right).map(|right_id| {
-                    self.kerning.get_or_create((left, right), || {
-                        let tables = face.ttf.as_face_ref().tables();
-                        let units_per_em = tables.head.units_per_em;
-                        let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
-                        let kerning = kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
-                        kerning.unwrap_or_default() as f32 / units_per_em as f32
+            |face| {
+                let opt_kerning = face.ttf.as_face_ref().glyph_index(left).and_then(|left_id| {
+                    face.ttf.as_face_ref().glyph_index(right).map(|right_id| {
+                        self.kerning.get_or_create((left, right), || {
+                            let tables = face.ttf.as_face_ref().tables();
+                            let units_per_em = tables.head.units_per_em;
+                            let kern_table =
+                                tables.kern.and_then(|t| t.subtables.into_iter().next());
+                            let kerning =
+                                kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
+                            kerning.unwrap_or_default() as f32 / units_per_em as f32
+                        })
                     })
-                })
-            })
-        })
-        .unwrap_or_default()
+                });
+                f(opt_kerning.unwrap_or_default())
+            },
+        )
     }
 
     /// A whole msdf texture bound for this font.
