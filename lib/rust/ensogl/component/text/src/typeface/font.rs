@@ -71,8 +71,6 @@ shared! { Registry
 pub struct RegistryData {
     font_loader: FontLoader,
     fonts:       HashMap<FontName,Font>,
-        // FIXME: possibly not needed anymore:
-    // default:     Font,
 }
 
 impl {
@@ -80,7 +78,9 @@ impl {
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns None if the name is missing in both cache and embedded
     /// font list.
-    pub fn try_load(&mut self, name:FontName) -> Font {
+    pub fn load(&mut self, name:impl Into<FontName>) -> Font {
+        let name = name.into();
+        event!(WARN, "Loading font: {:?}", name);
         match self.fonts.entry(name.clone()) {
             Entry::Occupied (entry) => entry.get().clone_ref(),
             Entry::Vacant   (entry) => {
@@ -89,56 +89,19 @@ impl {
                     self.font_loader.rc.borrow().font_family_definitions.get(&name).unwrap().clone();
                 match definition {
                     FontFamilyDefinition::NonVariable(definition) =>
-                        Self::try_from_embedded(name, definition, self.font_loader.clone_ref()),
+                        Font::new(name, definition, self.font_loader.clone_ref()),
                     t => panic!("{:?}", t),
                 }
             }
         }
     }
-
-        // FIXME: not needed, try_load always succeeds now.
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
-    /// registry if not used before. Returns default font if the name is missing in both cache and
-    /// embedded font list.
-    pub fn load(&mut self, name:impl Into<FontName>) -> Font {
-        let name = name.into();
-            // FIXME: impl display
-        event!(WARN, "Loading font: {:?}", name);
-        self.try_load(name)
-    }
 }}
 
 impl RegistryData {
-    // TODO: rename and update docs
-    /// Create render info for one of embedded fonts
-    pub fn try_from_embedded(
-        // base: &EmbeddedFontsData,
-        name: FontName,
-        definition: NonVariableFontFamilyDefinition,
-        loader: FontLoader,
-    ) -> Font {
-        Font::from_raw_data(name, definition, loader)
-        // // FIXME: report parse warning + not found name warning
-        // event!(WARN, ">>> {:?}", name);
-        // event!(WARN, "{:?}", base.data);
-        // base.data
-        //     .get(name)
-        //     .and_then(|data| .ok())
-    }
-
     /// Create empty font `Registry` and load raw data of embedded fonts.
     pub fn init_and_load_embedded_font_data() -> RegistryData {
         let fonts = HashMap::new();
-        // let default_font = DEFAULT_FONT;
         let font_loader = FontLoader::init_and_load_embedded_font_data();
-        // // FIXME:
-        // let definition =
-        //     font_loader.rc.borrow().font_family_definitions.get(default_font).unwrap().clone();
-        // let default = match definition {
-        //     FontFamilyDefinition::NonVariable(definition) =>
-        //         Self::try_from_embedded(default_font, definition, font_loader.clone_ref()),
-        //     t => panic!("{:?}", t),
-        // };
         Self { font_loader, fonts }
     }
 }
@@ -230,7 +193,7 @@ pub struct FontData {
 
 impl Font {
     /// Constructor.
-    pub fn from_msdf_font(
+    pub fn new(
         name: FontName,
         definition: NonVariableFontFamilyDefinition,
         loader: FontLoader,
@@ -240,20 +203,6 @@ impl Font {
         let kerning = default();
         let family = default();
         FontData { name, definition, family, atlas, glyphs, kerning, loader }.into()
-    }
-
-    /// Constructor.
-    pub fn from_raw_data(
-        name: FontName,
-        definition: NonVariableFontFamilyDefinition,
-        loader: FontLoader,
-    ) -> Self {
-        Self::from_msdf_font(name, definition, loader)
-        // ttf::OwnedFace::from_vec(font_data.into(), FONT_FACE_NUMBER).map(|ttf| {
-        //     // let msdf = msdf_sys::Font::load_from_memory(font_data);
-        //     // let face = FontFace { msdf, ttf };
-        //
-        // })
     }
 
     pub fn get_or_load_face<'a, 'b, 'c>(
