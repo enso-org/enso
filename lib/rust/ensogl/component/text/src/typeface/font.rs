@@ -179,15 +179,17 @@ pub enum FontFamily {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontData {
-    pub name:       FontName,
-    pub definition: NonVariableFontFamilyDefinition,
-    family:         RefCell<NonVariableFontFamily>,
-    atlas:          msdf::Texture,
-    glyphs:         Cache<(NonVariableFontFaceHeader, char), GlyphRenderInfo>,
+    pub name:               FontName,
+    pub definition:         NonVariableFontFamilyDefinition,
+    family:                 Rc<RefCell<NonVariableFontFamily>>,
+    atlas:                  msdf::Texture,
+    glyphs:                 Cache<(NonVariableFontFaceHeader, GlyphId), GlyphRenderInfo>,
     /// Kerning is also available in the `font_face` structure, but accessing it is slower than via
     /// a cache.
-    kerning:        Cache<(char, char), f32>,
-    loader:         FontLoader,
+    kerning:                Cache<(GlyphId, GlyphId), f32>,
+    loader:                 FontLoader,
+    // FIXME: remove after MSDF-gen API will be updated to handle GlyphIds.
+    glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
 }
 
 
@@ -202,24 +204,37 @@ impl Font {
         let glyphs = default();
         let kerning = default();
         let family = default();
-        FontData { name, definition, family, atlas, glyphs, kerning, loader }.into()
+        let glyph_id_to_code_point = default();
+        FontData {
+            name,
+            definition,
+            family,
+            atlas,
+            glyphs,
+            kerning,
+            loader,
+            glyph_id_to_code_point,
+        }
+        .into()
     }
 
-    pub fn get_or_load_face<'a, 'b, 'c>(
+    pub fn get_or_load_face<F>(
         header: NonVariableFontFaceHeader,
-        family: &'a mut NonVariableFontFamily,
-        definition: &'b NonVariableFontFamilyDefinition,
-        loader: &'c FontLoader,
-        f: impl FnOnce(&'a FontFace),
-    ) {
-        if family.faces.contains_key(&header) {
-            if let Some(face) = family.faces.get(&header) {
+        family: &Rc<RefCell<NonVariableFontFamily>>,
+        definition: &NonVariableFontFamilyDefinition,
+        loader: &FontLoader,
+        f: F,
+    ) where
+        F: for<'a> FnOnce(&'a FontFace),
+    {
+        if family.borrow().faces.contains_key(&header) {
+            let borrowed_family = family.borrow();
+            if let Some(face) = borrowed_family.faces.get(&header) {
                 f(face);
             }
         } else {
             let opt_face = definition.map.get(&header).and_then(|file_name| {
-                // FIXME conversion + FIXME loader should be prepared for async loading with
-                //  a callback
+                // FIXME conversion
                 let x: &str = &*file_name;
                 // FIXME: warning when trying to load font not from embedded resources.
                 loader.rc.borrow().embedded_fonts_data.data.get(x).and_then(|font_data| {
@@ -232,13 +247,13 @@ impl Font {
                 })
             });
             if let Some(face) = opt_face {
-                family.faces.insert(header, face);
-                f(family.faces.get(&header).unwrap());
+                family.borrow_mut().faces.insert(header, face);
+                f(family.borrow().faces.get(&header).unwrap());
             }
         }
     }
 
-    pub fn glyph_index_of_code_point(
+    pub fn glyph_id_of_code_point(
         &self,
         header: NonVariableFontFaceHeader,
         code_point: char,
@@ -247,10 +262,16 @@ impl Font {
         Self::get_or_load_face(
             header,
             // FIXME: this borrow can cause trouble.
-            &mut self.family.borrow_mut(),
+            &self.family,
             &self.definition,
             &self.loader,
-            |face| f(face.ttf.as_face_ref().glyph_index(code_point)),
+            |face| {
+                let id = face.ttf.as_face_ref().glyph_index(code_point);
+                if let Some(id) = id {
+                    self.glyph_id_to_code_point.borrow_mut().insert(id, code_point);
+                }
+                f(id)
+            },
         )
     }
 
@@ -258,24 +279,20 @@ impl Font {
     pub fn with_glyph_info(
         &self,
         header: NonVariableFontFaceHeader,
-        ch: char,
+        glyph_id: GlyphId,
         f: impl FnOnce(GlyphRenderInfo),
     ) {
-        let opt_render_info = self.glyphs.map.borrow().get(&(header, ch)).copied();
+        let opt_render_info = self.glyphs.map.borrow().get(&(header, glyph_id)).copied();
         if let Some(render_info) = opt_render_info {
             f(render_info);
         } else {
-            Self::get_or_load_face(
-                header,
-                &mut self.family.borrow_mut(),
-                &self.definition,
-                &self.loader,
-                |face| {
-                    let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
-                    self.glyphs.map.borrow_mut().insert((header, ch), render_info);
-                    f(render_info)
-                },
-            )
+            Self::get_or_load_face(header, &self.family, &self.definition, &self.loader, |face| {
+                // FIXME: remove
+                let ch = *self.glyph_id_to_code_point.borrow().get(&glyph_id).unwrap();
+                let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
+                self.glyphs.map.borrow_mut().insert((header, glyph_id), render_info);
+                f(render_info)
+            })
         }
     }
 
@@ -283,32 +300,20 @@ impl Font {
     pub fn with_kerning(
         &self,
         header: NonVariableFontFaceHeader,
-        left: char,
-        right: char,
+        left_id: GlyphId,
+        right_id: GlyphId,
         f: impl FnOnce(f32),
     ) {
-        Self::get_or_load_face(
-            header,
-            &mut self.family.borrow_mut(),
-            &self.definition,
-            &self.loader,
-            |face| {
-                let opt_kerning = face.ttf.as_face_ref().glyph_index(left).and_then(|left_id| {
-                    face.ttf.as_face_ref().glyph_index(right).map(|right_id| {
-                        self.kerning.get_or_create((left, right), || {
-                            let tables = face.ttf.as_face_ref().tables();
-                            let units_per_em = tables.head.units_per_em;
-                            let kern_table =
-                                tables.kern.and_then(|t| t.subtables.into_iter().next());
-                            let kerning =
-                                kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
-                            kerning.unwrap_or_default() as f32 / units_per_em as f32
-                        })
-                    })
-                });
-                f(opt_kerning.unwrap_or_default())
-            },
-        )
+        Self::get_or_load_face(header, &self.family, &self.definition, &self.loader, |face| {
+            let kerning = self.kerning.get_or_create((left_id, right_id), || {
+                let tables = face.ttf.as_face_ref().tables();
+                let units_per_em = tables.head.units_per_em;
+                let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
+                let kerning = kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
+                kerning.unwrap_or_default() as f32 / units_per_em as f32
+            });
+            f(kerning)
+        })
     }
 
     /// A whole MSDF texture bound for this font.

@@ -43,7 +43,7 @@ pub struct Glyph {
 /// Internal structure of [`Glyph`].
 #[derive(Debug)]
 pub struct GlyphData {
-    char:        Cell<char>,
+    glyph_id:    Cell<GlyphId>,
     sprite:      Sprite,
     context:     Context,
     font:        Font,
@@ -124,15 +124,15 @@ impl Glyph {
     /// Size setter.
     pub fn set_font_size(&self, size: f32) {
         self.font_size.set(size);
-        self.font.with_glyph_info(self.properties.get(), self.char.get(), |glyph_info| {
+        self.font.with_glyph_info(self.properties.get(), self.glyph_id.get(), |glyph_info| {
             self.sprite.size.set(glyph_info.scale.scale(size));
         })
     }
 
     /// Change the displayed character.
-    pub fn set_char(&self, ch: char) {
-        self.char.set(ch);
-        self.font.with_glyph_info(self.properties.get(), ch, |glyph_info| {
+    pub fn set_glyph_id(&self, glyph_id: GlyphId) {
+        self.glyph_id.set(glyph_id);
+        self.font.with_glyph_info(self.properties.get(), glyph_id, |glyph_info| {
             self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
             let font_size = self.font_size();
@@ -140,12 +140,14 @@ impl Glyph {
         })
     }
 
-    pub fn set_glyph_id(&self, index: GlyphId) {}
-
-    pub fn set_char2(&self, ch: char) {
-        self.font.glyph_index_of_code_point(self.properties.get(), ch, |index| {})
+    pub fn set_char(&self, ch: char) {
+        self.font.glyph_id_of_code_point(self.properties.get(), ch, |opt_glyph_id| {
+            if let Some(glyph_id) = opt_glyph_id {
+                self.set_glyph_id(glyph_id)
+            }
+            // FIXME: display not found char
+        })
     }
-    MOVING TO GLYPHID EVERYWHERE
 
     /// Check whether the CPU-bound texture changed and if so, upload it to GPU.
     fn update_atlas(&self) {
@@ -163,7 +165,7 @@ impl Glyph {
     /// Check whether a new glyph should be baked to the atlas and reload the texture if needed.
     /// This is useful for example after changing the width of the glyph.
     fn refresh(&self) {
-        self.set_char(self.char.get());
+        self.set_glyph_id(self.glyph_id.get());
     }
 }
 
@@ -238,7 +240,7 @@ impl System {
         let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
         let atlas = self.atlas.clone();
-        let char = default();
+        let glyph_id = default();
         let properties = default();
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
@@ -252,7 +254,7 @@ impl System {
                 sdf_bold,
                 atlas_index,
                 atlas,
-                char,
+                glyph_id,
                 properties,
             }),
         }
