@@ -80,21 +80,34 @@ impl Type {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Method {
     #[allow(missing_docs)]
-    pub name:      String,
+    pub name:       String,
     #[allow(missing_docs)]
-    pub arguments: Vec<(Type, String)>,
+    pub arguments:  Vec<(Type, String)>,
+    /// Visibility modifier; if None, the Java default is package-visible.
+    pub visibility: Option<Visibility>,
     /// Return value, unless this is a constructor.
-    pub return_:   Option<Type>,
+    pub return_:    Option<Type>,
     #[allow(missing_docs)]
-    pub static_:   bool,
+    pub static_:    bool,
     #[allow(missing_docs)]
-    pub final_:    bool,
+    pub final_:     bool,
     /// Literal body, not including brackets.
-    pub body:      String,
+    pub body:       String,
     #[allow(missing_docs)]
-    pub override_: bool,
+    pub override_:  bool,
     #[allow(missing_docs)]
-    pub throws:    Vec<Type>,
+    pub throws:     Vec<Type>,
+}
+
+/// Java visibility modifier keyword for a variable or method.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Visibility {
+    #[allow(missing_docs)]
+    Private,
+    #[allow(missing_docs)]
+    Protected,
+    #[allow(missing_docs)]
+    Public,
 }
 
 
@@ -111,7 +124,8 @@ impl Method {
         let body = Default::default();
         let override_ = Default::default();
         let throws = Default::default();
-        Method { name, arguments, return_, static_, final_, body, override_, throws }
+        let visibility = Some(Visibility::Public);
+        Method { name, arguments, return_, static_, final_, body, override_, throws, visibility }
     }
 
     /// Create a constructor.
@@ -124,7 +138,8 @@ impl Method {
         let body = Default::default();
         let override_ = Default::default();
         let throws = Default::default();
-        Method { name, arguments, return_, static_, final_, body, override_, throws }
+        let visibility = None;
+        Method { name, arguments, return_, static_, final_, body, override_, throws, visibility }
     }
 }
 
@@ -190,7 +205,7 @@ impl fmt::Display for Class {
 impl fmt::Display for Field {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Field { type_, name, final_ } = &self;
-        let mut tokens = vec!["protected".to_string()];
+        let mut tokens = vec![];
         final_.then(|| tokens.push("final".to_string()));
         tokens.push(type_.to_string());
         tokens.push(name.clone());
@@ -211,10 +226,22 @@ impl fmt::Display for Type {
 
 impl fmt::Display for Method {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Method { name, arguments, return_, static_, final_, body, override_, throws } = &self;
+        let Method {
+            name,
+            arguments,
+            return_,
+            static_,
+            final_,
+            body,
+            override_,
+            throws,
+            visibility,
+        } = &self;
         let mut tokens = vec![];
         override_.then(|| tokens.push("@Override".to_string()));
-        tokens.push("public".to_string());
+        if let Some(visibility) = visibility {
+            tokens.push(visibility.to_string());
+        }
         static_.then(|| tokens.push("static".to_string()));
         final_.then(|| tokens.push("final".to_string()));
         if let Some(return_) = return_ {
@@ -235,5 +262,15 @@ impl fmt::Display for Method {
         writeln!(f, "{body}")?;
         writeln!(f, "}}")?;
         Ok(())
+    }
+}
+
+impl fmt::Display for Visibility {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Visibility::Private => "private",
+            Visibility::Protected => "protected",
+            Visibility::Public => "public",
+        })
     }
 }

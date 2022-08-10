@@ -1,6 +1,8 @@
 {
+  "name": "enso-gui-server",
   "version": "1.0.0",
   "type": "module",
+  "exports": "./src/index.mjs",
   "author": {
     "name": "Enso Team",
     "email": "contact@enso.org"
@@ -13,17 +15,8 @@
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
   },
-  "name": "root",
-  "private": true,
-  "workspaces": [
-    "lib/client",
-    "lib/common",
-    "lib/content",
-    "lib/copy-plugin",
-    "lib/icons",
-    "lib/server"
-  ],
-  "scripts": {
-    "watch": "npm run watch --workspace enso-studio-content"
+  "dependencies": {
+    "live-server": "^1.2.2",
+    "portfinder": "^1.0.28"
   }
 }
