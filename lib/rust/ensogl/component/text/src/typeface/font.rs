@@ -7,6 +7,7 @@ use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
 use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFontsData;
+use ensogl_text_embedded_fonts::NonVariableFontFamilyDefinition;
 // use ensogl_text_embedded_fonts::Family;
 use ensogl_text_embedded_fonts::FontFamilyDefinition;
 use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
@@ -34,35 +35,64 @@ pub const DEFAULT_FONT: &str = "dejavusans"; //embedded_fonts::DefaultFamily::re
 // === RegistryData ===
 // ====================
 
+shared! { FontLoader
+/// Structure keeping all fonts loaded from different sources.
+#[derive(Debug)]
+pub struct FontLoaderData {
+    font_family_definitions: HashMap<String, FontFamilyDefinition>,
+    embedded_fonts_data : EmbeddedFontsData,
+}
+
+impl {
+
+}}
+
+impl FontLoaderData {
+    pub fn init_and_load_embedded_font_data() -> Self {
+        let embedded_fonts_data = EmbeddedFontsData::new();
+        let font_family_definitions = ensogl_text_embedded_fonts::font_family_files_map().clone();
+        Self { embedded_fonts_data, font_family_definitions }
+    }
+}
+
+impl FontLoader {
+    pub fn init_and_load_embedded_font_data() -> Self {
+        let data = FontLoaderData::init_and_load_embedded_font_data();
+        let rc = Rc::new(RefCell::new(data));
+        Self { rc }
+    }
+}
+
+
 shared! { Registry
 /// Structure keeping all fonts loaded from different sources.
 #[derive(Debug)]
 pub struct RegistryData {
-    font_family_definitions: HashMap<String, FontFamilyDefinition>,
-    embedded_fonts_data : EmbeddedFontsData,
-    fonts    : HashMap<String,Font>,
-    default  : Font,
+    font_loader: FontLoader,
+    fonts:       HashMap<String,Font>,
+    default:     Font,
 }
 
 impl {
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
-    /// registry if not used before. Returns None if the name is missing in both cache and embedded
-    /// font list.
-    pub fn try_load(&mut self, name:&str) -> Option<Font> {
-        match self.fonts.entry(name.to_string()) {
-            Entry::Occupied (entry) => Some(entry.get().clone_ref()),
-            Entry::Vacant   (entry) => RegistryData::try_from_embedded(&self.embedded_fonts_data,name).map(|font| {
-                entry.insert(font.clone_ref());
-                font
-            })
-        }
-    }
+    // /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
+    // /// registry if not used before. Returns None if the name is missing in both cache and embedded
+    // /// font list.
+    // pub fn try_load(&mut self, name:&str) -> Option<Font> {
+    //     match self.fonts.entry(name.to_string()) {
+    //         Entry::Occupied (entry) => Some(entry.get().clone_ref()),
+    //         Entry::Vacant   (entry) => RegistryData::try_from_embedded(&self.embedded_fonts_data,name).map(|font| {
+    //             entry.insert(font.clone_ref());
+    //             font
+    //         })
+    //     }
+    // }
 
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns default font if the name is missing in both cache and
     /// embedded font list.
     pub fn load(&mut self, name:&str) -> Font {
-        self.try_load(name).unwrap_or_else(|| self.default())
+        panic!()
+        // self.try_load(name).unwrap_or_else(|| self.default())
     }
 
     /// Get the default font. It is often used in case the desired font could not be loaded.
@@ -74,33 +104,50 @@ impl {
 impl RegistryData {
     // TODO: rename and update docs
     /// Create render info for one of embedded fonts
-    pub fn try_from_embedded(base: &EmbeddedFontsData, name: &str) -> Option<Font> {
-        base.data.get(name).and_then(|data| Font::from_raw_data(name.to_string(), data).ok())
+    pub fn try_from_embedded(
+        base: &EmbeddedFontsData,
+        name: &str,
+        definition: NonVariableFontFamilyDefinition,
+        loader: FontLoader,
+    ) -> Option<Font> {
+        base.data
+            .get(name)
+            .and_then(|data| Font::from_raw_data(name.to_string(), definition, data, loader).ok())
     }
 
     /// Create empty font `Registry` and load raw data of embedded fonts.
-    pub fn init_and_load_default() -> RegistryData {
-        let embedded_fonts_data = EmbeddedFontsData::new();
+    pub fn init_and_load_embedded_font_data() -> RegistryData {
         let fonts = HashMap::new();
         let default_font = DEFAULT_FONT;
-        let default = Self::try_from_embedded(&embedded_fonts_data, default_font)
-            .unwrap_or_else(|| panic!("Cannot load the default font '{}'.", default_font));
-        let font_family_definitions = ensogl_text_embedded_fonts::font_family_files_map().clone();
-        Self { embedded_fonts_data, fonts, default, font_family_definitions }
+        let font_loader = FontLoader::init_and_load_embedded_font_data();
+        // FIXME:
+        let definition =
+            font_loader.rc.borrow().font_family_definitions.get(default_font).unwrap().clone();
+        let default = match definition {
+            FontFamilyDefinition::NonVariable(definition) => Self::try_from_embedded(
+                &font_loader.rc.borrow().embedded_fonts_data,
+                default_font,
+                definition,
+                font_loader.clone_ref(),
+            )
+            .unwrap(),
+            _ => panic!(),
+        };
+        Self { font_loader, fonts, default }
     }
 }
 
 impl Registry {
     /// Constructor.
-    pub fn init_and_load_default() -> Registry {
-        let rc = Rc::new(RefCell::new(RegistryData::init_and_load_default()));
+    pub fn init_and_load_embedded_font_data() -> Registry {
+        let rc = Rc::new(RefCell::new(RegistryData::init_and_load_embedded_font_data()));
         Self { rc }
     }
 }
 
 impl scene::Extension for Registry {
     fn init(_scene: &Scene) -> Self {
-        Self::init_and_load_default()
+        Self::init_and_load_embedded_font_data()
     }
 }
 
@@ -163,31 +210,43 @@ pub enum FontFamily {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontData {
-    pub name: String,
-    face:     FontFace,
-    atlas:    msdf::Texture,
-    glyphs:   Cache<char, GlyphRenderInfo>,
+    pub name:       String,
+    pub definition: NonVariableFontFamilyDefinition,
+    face:           FontFace,
+    atlas:          msdf::Texture,
+    glyphs:         Cache<char, GlyphRenderInfo>,
     /// Kerning is also available in the `font_face` structure, but accessing it is slower than via
     /// a cache.
-    kerning:  Cache<(char, char), f32>,
+    kerning:        Cache<(char, char), f32>,
+    loader:         FontLoader,
 }
 
 
 impl Font {
     /// Constructor.
-    pub fn from_msdf_font(name: String, face: FontFace) -> Self {
+    pub fn from_msdf_font(
+        name: String,
+        face: FontFace,
+        definition: NonVariableFontFamilyDefinition,
+        loader: FontLoader,
+    ) -> Self {
         let atlas = default();
         let glyphs = default();
         let kerning = default();
-        FontData { name, face, atlas, glyphs, kerning }.into()
+        FontData { name, definition, face, atlas, glyphs, kerning, loader }.into()
     }
 
     /// Constructor.
-    pub fn from_raw_data(name: String, font_data: &[u8]) -> Result<Self, ttf::FaceParsingError> {
+    pub fn from_raw_data(
+        name: String,
+        definition: NonVariableFontFamilyDefinition,
+        font_data: &[u8],
+        loader: FontLoader,
+    ) -> Result<Self, ttf::FaceParsingError> {
         ttf::OwnedFace::from_vec(font_data.into(), FONT_FACE_NUMBER).map(|ttf| {
             let msdf = msdf_sys::Font::load_from_memory(font_data);
             let face = FontFace { msdf, ttf };
-            Self::from_msdf_font(name, face)
+            Self::from_msdf_font(name, face, definition, loader)
         })
     }
 

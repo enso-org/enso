@@ -28,7 +28,7 @@ pub use owned_ttf_parser::Width;
 /// fonts. For variable fonts, there is just one definition for any combination of the parameters.
 /// The combination reflects how the `@font-face` rule is defined in the CSS. See the following link
 /// to learn more: https://www.w3schools.com/cssref/css3_pr_font-face_rule.asp
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct NonVariableFontFaceHeader {
     pub width:  Width,
     pub weight: Weight,
@@ -36,20 +36,19 @@ pub struct NonVariableFontFaceHeader {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NonVariableFontFaceDefinition {
-    pub header: NonVariableFontFaceHeader,
-    pub file:   String,
+pub struct NonVariableFontFamilyDefinition {
+    pub map: HashMap<NonVariableFontFaceHeader, String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VariableFontFaceDefinition {
+pub struct VariableFontFamilyDefinition {
     pub file: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FontFamilyDefinition {
-    Variable(VariableFontFaceDefinition),
-    NonVariable(Vec<NonVariableFontFaceDefinition>),
+    Variable(VariableFontFamilyDefinition),
+    NonVariable(NonVariableFontFamilyDefinition),
 }
 
 impl NonVariableFontFaceHeader {
@@ -58,15 +57,17 @@ impl NonVariableFontFaceHeader {
     }
 }
 
-impl NonVariableFontFaceDefinition {
-    pub fn new(width: Width, weight: Weight, style: Style, file: impl Into<String>) -> Self {
-        let header = NonVariableFontFaceHeader::new(width, weight, style);
-        let file = file.into();
-        Self { header, file }
+impl NonVariableFontFamilyDefinition {
+    pub fn new(map: HashMap<NonVariableFontFaceHeader, String>) -> Self {
+        Self { map }
+    }
+
+    pub fn from_iter(iter: impl IntoIterator<Item = (NonVariableFontFaceHeader, String)>) -> Self {
+        Self::new(iter.into_iter().collect())
     }
 }
 
-impl VariableFontFaceDefinition {
+impl VariableFontFamilyDefinition {
     pub fn new(file: impl Into<String>) -> Self {
         let file = file.into();
         Self { file }
@@ -79,24 +80,20 @@ pub fn font_family_files_map() -> HashMap<String, FontFamilyDefinition> {
     let mut map = HashMap::new();
     map.insert(
         "mplus1".into(),
-        FontFamilyDefinition::Variable(VariableFontFaceDefinition::new("MPLUS1[wght].ttf")),
+        FontFamilyDefinition::Variable(VariableFontFamilyDefinition::new("MPLUS1[wght].ttf")),
     );
     map.insert(
         "dejavusans".into(),
-        FontFamilyDefinition::NonVariable(vec![
-            NonVariableFontFaceDefinition::new(
-                Width::Normal,
-                Weight::Normal,
-                Style::Normal,
-                "DejaVuSans.ttf",
+        FontFamilyDefinition::NonVariable(NonVariableFontFamilyDefinition::from_iter([
+            (
+                NonVariableFontFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
+                "DejaVuSans.ttf".to_string(),
             ),
-            NonVariableFontFaceDefinition::new(
-                Width::Normal,
-                Weight::Bold,
-                Style::Normal,
-                "DejaVuSans-Bold.ttf",
+            (
+                NonVariableFontFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
+                "DejaVuSans-Bold.ttf".to_string(),
             ),
-        ]),
+        ])),
     );
     map
 }
