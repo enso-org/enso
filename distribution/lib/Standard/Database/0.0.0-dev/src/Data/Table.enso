@@ -598,8 +598,8 @@ type Table
             right_names_before = right_new_columns.map .name
             new_names = combine_names left_names_before right_names_before left_suffix right_suffix
             left_indices_count = left_new_meta_index.length
-            left_new_meta_index_names = new_names.first.take_start left_indices_count
-            left_new_columns_names = new_names.first.drop_start left_indices_count
+            left_new_meta_index_names = new_names.first.take (First left_indices_count)
+            left_new_columns_names = new_names.first.drop (First left_indices_count)
             right_new_columns_names = new_names.second
 
             # Rename columns to the newly allocated names

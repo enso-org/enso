@@ -63,7 +63,7 @@ run_tests connection pending=Nothing =
     agg_in_memory_table = (enso_project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
-    empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
+    empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take (First 0))
     tables.append empty_agg_table.name
     Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=True selection pending=pending
 

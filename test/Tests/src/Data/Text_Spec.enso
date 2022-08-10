@@ -4,6 +4,7 @@ from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
 from Standard.Base.Data.Text.Text_Sub_Range import all
+from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
 
 import Standard.Test
 
@@ -262,7 +263,7 @@ spec =
             "ABCDEFGH".drop (Every 3 first=1) . should_equal "ACDFG"
             "ABCDEFGHI".drop (Every 3 first=1) . should_equal "ACDFGI"
 
-        Test.specify "should allow selecting a random sample of a substring"
+        Test.specify "should allow taking or dropping a random sample of a substring"
             "AAAAA".take (Sample 3) . should_equal "AAA"
             "AAAAA".drop (Sample 3) . should_equal "AA"
 
@@ -275,12 +276,20 @@ spec =
             "ABCDEFGH".take (Sample 1 seed=42) . should_equal "F"
             "ABCDEFGH".take (Sample 100 seed=42) . should_equal "FGCHABED"
 
+            samples_1 = 0.up_to 10000 . map seed->
+                "ABCD".take (Sample 2 seed)
+            samples_1.should_contain_the_same_elements_as ["AB", "BA", "AC", "CA", "AD", "DA", "BC", "CB", "BD", "DB", "CD", "DC"]
+
             "ABCDEFGH".drop (Sample 0) . should_equal "ABCDEFGH"
             "ABCDEFGH".drop (Sample 1 seed=42) . should_equal "ABCDEGH"
             "ABCDEFGH".drop (Sample 2 seed=42) . should_equal "ABCDEH"
             "ABCDEFGH".drop (Sample 4 seed=42) . should_equal "ABDE"
             "ABCDEFGH".drop (Sample 8 seed=42) . should_equal ""
             "ABCDEFGH".drop (Sample 100 seed=42) . should_equal ""
+
+            samples_2 = 0.up_to 10000 . map seed->
+                "ABCD".drop (Sample 2 seed)
+            samples_2.should_contain_the_same_elements_as ["AB", "AC", "AD", "BC", "CD", "BD"]
 
         Test.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
             "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000

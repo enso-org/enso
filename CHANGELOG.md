@@ -171,6 +171,8 @@
   type from `Standard.Table`.][3601]
 - [Created `Index_Sub_Range` type and updated `Text.take` and
   `Text.drop`.][3617]
+- [Updated `Vector.take` and `Vector.drop` and removed their obsolete
+  counterparts.][3629]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -270,6 +272,7 @@
 [3593]: https://github.com/enso-org/enso/pull/3593
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
+[3629]: https://github.com/enso-org/enso/pull/3629
 
 #### Enso Compiler
 
