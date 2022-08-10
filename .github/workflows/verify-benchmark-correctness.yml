@@ -50,11 +50,6 @@ jobs:
         run: |
           sbt "bootstrap"
           sbt "buildEngineDistribution"
-      - name: Modify benchmarks to run just once
-        run: |
-          find engine/runtime/src/bench/java/org/enso/interpreter/bench/benchmarks/ -type f | xargs sed -i -e 's/@Warmup.*/@Warmup(iterations = 1)/' -e 's/@Measurement.*iterations.*/@Measurement(iterations = 1)/'
-          git diff engine/runtime/src/bench/java/org/enso/interpreter/bench/benchmarks/
-          rm -f ./engine/runtime/bench-report.xml
       - name: Run benchmarks
         run: |
-          sbt "runtime/bench"
+          sbt "runtime/bench" "-Dbench.compileOnly=true"

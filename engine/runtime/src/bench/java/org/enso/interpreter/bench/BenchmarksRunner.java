@@ -1,18 +1,18 @@
 package org.enso.interpreter.bench;
 
-import org.openjdk.jmh.results.RunResult;
-import org.openjdk.jmh.runner.BenchmarkList;
-import org.openjdk.jmh.runner.BenchmarkListEntry;
-import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
-
 import jakarta.xml.bind.JAXBException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.openjdk.jmh.results.RunResult;
+import org.openjdk.jmh.runner.BenchmarkList;
+import org.openjdk.jmh.runner.BenchmarkListEntry;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {
@@ -32,10 +32,17 @@ public class BenchmarksRunner {
    * @return a {@link BenchmarkItem} containing current run result and historical results.
    */
   public BenchmarkItem run(String label) throws RunnerException, JAXBException {
-    Options benchmarkOptions = new OptionsBuilder()
+    ChainedOptionsBuilder builder = new OptionsBuilder()
       .jvmArgsAppend("-Xss16M", "-Dpolyglot.engine.MultiTier=false")
-      .include("^" + label + "$")
-      .build();
+      .include("^" + label + "$");
+
+    if (Boolean.getBoolean("bench.compileOnly")) {
+      builder
+        .measurementIterations(1)
+        .warmupIterations(0);
+    }
+
+    Options benchmarkOptions = builder.build();
     RunResult benchmarksResult = new Runner(benchmarkOptions).runSingle();
 
     Report report;
