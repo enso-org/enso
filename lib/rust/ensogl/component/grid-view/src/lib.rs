@@ -138,6 +138,7 @@ ensogl_core::define_endpoints_2! {
         /// Event emitted when the Grid View needs model for an uncovered entry.
         model_for_entry_needed(Row, Col),
         entry_shown(Row, Col),
+        entry_contour(Row, Col, entry::Contour),
         entry_hovered(Option<(Row, Col)>),
         entry_selected(Option<(Row, Col)>),
         entry_accepted(Row, Col),
@@ -335,6 +336,7 @@ impl<E: Entry> GridView<E> {
             network:          network.downgrade(),
             set_entry_size:   set_entry_size.into(),
             set_entry_params: set_entry_params.into(),
+            entry_contour:    out.entry_contour.clone_ref(),
             entry_hovered:    out.entry_hovered.clone_ref(),
             entry_selected:   out.entry_selected.clone_ref(),
             entry_accepted:   out.entry_accepted.clone_ref(),
@@ -419,6 +421,21 @@ impl<E: Entry> GridView<E> {
     pub fn headers_frp(&self) -> &header::Frp<E::Model> {
         &*self.widget.model().headers
     }
+
+    pub fn header_or_entry_position(&self, row: Row, column: Col) -> Vector2 {
+        let entries_size = self.entries_size.value();
+        let viewport = self.viewport.value();
+        let headers = &self.widget.model().headers;
+        let header_pos = headers.header_position(row, column, entries_size, viewport);
+        header_pos.unwrap_or_else(|| self.entry_position(row, column))
+    }
+
+    pub fn header_separator(&self, column: Col) -> f32 {
+        let headers = &self.widget.model().headers;
+        let entries_size = self.entries_size.value();
+        let viewport = self.viewport.value();
+        headers.header_separator(column, entries_size, viewport)
+    }
 }
 
 impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>
@@ -440,14 +457,6 @@ where
     pub fn get_header(&self, row: Row, column: Col) -> Option<Entry>
     where Entry: CloneRef {
         self.widget.model().headers.get_header(row, column)
-    }
-
-    pub fn header_or_entry_position(&self, row: Row, column: Col) -> Vector2 {
-        let entries_size = self.entries_size.value();
-        let viewport = self.viewport.value();
-        let headers = &self.widget.model().headers;
-        let header_pos = headers.header_position(row, column, entries_size, viewport);
-        header_pos.unwrap_or_else(|| self.entry_position(row, column))
     }
 }
 

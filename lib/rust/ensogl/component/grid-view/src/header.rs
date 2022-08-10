@@ -42,11 +42,12 @@ pub struct VisibleHeader<HeaderEntry> {
     entry:        VisibleEntry<HeaderEntry>,
 }
 
-impl<HeaderEntry> VisibleHeader<HeaderEntry> {
+impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
     fn header_position(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> Vector2 {
+        let contour = self.entry.entry.frp().contour.value();
         let next_section_y = entry::visible::position_y(self.section_rows.end, entry_size);
-        let min_y = next_section_y + entry_size.y;
-        let y = (viewport.top - entry_size.y / 2.0).max(min_y);
+        let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0;
+        let y = (viewport.top - contour.size.y / 2.0).max(min_y);
         Vector2(entry::visible::position_x(col, entry_size), y)
     }
 }
@@ -72,18 +73,6 @@ impl<HeaderEntry, HeaderParams> Model<HeaderEntry, HeaderParams> {
         let visible_headers = default();
         let free_headers = default();
         Self { grid, visible_headers, free_headers, entry_creation_ctx, layer, text_layer }
-    }
-
-    fn header_position(
-        &self,
-        row: Row,
-        col: Col,
-        entry_size: Vector2,
-        viewport: Viewport,
-    ) -> Option<Vector2> {
-        let visible_headers = self.visible_headers.borrow();
-        let header = visible_headers.get(&col).filter(|h| h.section_rows.start == row);
-        header.map(|h| h.header_position(col, entry_size, viewport))
     }
 }
 
@@ -119,21 +108,6 @@ impl<HeaderEntry: display::Object, HeaderParams> Model<HeaderEntry, HeaderParams
         uncovered.collect()
     }
 
-    fn update_headers_positions(&self, properties: Properties) -> Vec<(Row, Col, Vector2)> {
-        let Properties { row_count, col_count, viewport, entries_size } = properties;
-        let visible_headers = self.visible_headers.borrow();
-        visible_headers
-            .iter()
-            .filter_map(|(col, header)| {
-                let new_position = header.header_position(*col, entries_size, viewport);
-                (header.entry.position().xy() != new_position).as_some_from(|| {
-                    header.entry.set_position_xy(new_position);
-                    (header.section_rows.start, *col, new_position)
-                })
-            })
-            .collect()
-    }
-
     fn reset_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { row_count, col_count, viewport, entries_size } = properties;
         let mut visible_headers = self.visible_headers.borrow_mut();
@@ -157,6 +131,42 @@ impl<HeaderEntry: display::Object, HeaderParams> Model<HeaderEntry, HeaderParams
 }
 
 impl<HeaderEntry: Entry> Model<HeaderEntry, HeaderEntry::Params> {
+    fn header_position(
+        &self,
+        row: Row,
+        col: Col,
+        entry_size: Vector2,
+        viewport: Viewport,
+    ) -> Option<Vector2> {
+        let visible_headers = self.visible_headers.borrow();
+        let header = visible_headers.get(&col).filter(|h| h.section_rows.start == row);
+        header.map(|h| h.header_position(col, entry_size, viewport))
+    }
+
+    fn header_separator(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> Option<f32> {
+        let visible_headers = self.visible_headers.borrow();
+        let header = visible_headers.get(&col);
+        header.map(|h| {
+            h.header_position(col, entry_size, viewport).y
+                - h.entry.entry.frp().contour.value().size.y / 2.0
+        })
+    }
+
+    fn update_headers_positions(&self, properties: Properties) -> Vec<(Row, Col, Vector2)> {
+        let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let visible_headers = self.visible_headers.borrow();
+        visible_headers
+            .iter()
+            .filter_map(|(col, header)| {
+                let new_position = header.header_position(*col, entries_size, viewport);
+                (header.entry.position().xy() != new_position).as_some_from(|| {
+                    header.entry.set_position_xy(new_position);
+                    (header.section_rows.start, *col, new_position)
+                })
+            })
+            .collect()
+    }
+
     fn update_section(
         &self,
         rows: Range<Row>,
@@ -272,6 +282,24 @@ impl<HeaderEntry: Entry> HandlerTemplate<HeaderEntry, HeaderEntry::Model, Header
 
         *self.model.borrow_mut() = Some(model);
     }
+
+    pub fn header_position(
+        &self,
+        row: Row,
+        col: Col,
+        entry_size: Vector2,
+        viewport: Viewport,
+    ) -> Option<Vector2> {
+        self.model.borrow().as_ref().and_then(|m| m.header_position(row, col, entry_size, viewport))
+    }
+
+    pub fn header_separator(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> f32 {
+        self.model
+            .borrow()
+            .as_ref()
+            .and_then(|m| m.header_separator(col, entry_size, viewport))
+            .unwrap_or(viewport.top)
+    }
 }
 
 impl<HeaderEntry, HeaderModel, HeaderParams> HandlerTemplate<HeaderEntry, HeaderModel, HeaderParams>
@@ -286,16 +314,6 @@ where
             let header = headers.get(&col).filter(|h| h.section_rows.start == row);
             header.map(|e| e.entry.entry.clone_ref())
         })
-    }
-
-    pub fn header_position(
-        &self,
-        row: Row,
-        col: Col,
-        entry_size: Vector2,
-        viewport: Viewport,
-    ) -> Option<Vector2> {
-        self.model.borrow().as_ref().and_then(|m| m.header_position(row, col, entry_size, viewport))
     }
 }
 

@@ -90,7 +90,7 @@ pub trait AttrSetter {
     fn set_size(shape: &View, size: Vector2);
     fn set_corners_radius(shape: &View, radius: f32);
     fn set_color(shape: &View, color: color::Rgba);
-    fn set_y_clip_range(shape: &View, range: Range<f32>, viewport: Viewport);
+    fn set_top_clip(shape: &View, y: f32, viewport: Viewport);
 }
 
 
@@ -127,11 +127,9 @@ impl AttrSetter for HoverAttrSetter {
         shape.hover_color.set(color.into())
     }
 
-    fn set_y_clip_range(shape: &View, range: Range<f32>, viewport: Viewport) {
+    fn set_top_clip(shape: &View, y: f32, viewport: Viewport) {
         let mut attr = shape.highlights_y_clip.get();
-        let viewport_y = viewport.center_point().y;
-        attr.x = range.start - viewport_y;
-        attr.y = range.end - viewport_y;
+        attr.x = viewport.top - y;
         shape.highlights_y_clip.set(attr);
     }
 }
@@ -170,11 +168,9 @@ impl AttrSetter for SelectionAttrSetter {
         shape.selection_color.set(color.into())
     }
 
-    fn set_y_clip_range(shape: &View, range: Range<f32>, viewport: Viewport) {
+    fn set_top_clip(shape: &View, y: f32, viewport: Viewport) {
         let mut attr = shape.highlights_y_clip.get();
-        let viewport_y = viewport.center_point().y;
-        attr.z = range.start - viewport_y;
-        attr.w = range.end - viewport_y;
+        attr.z = viewport.top - y;
         shape.highlights_y_clip.set(attr);
     }
 }

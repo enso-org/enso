@@ -114,10 +114,12 @@ impl<EntryGetter> ConnectedEntry<EntryGetter> {
                     self.location.set(Some((row, col)));
                     self.output.is_entry_connected.emit(true);
                     self.set_up_guard_dropping();
+                } else {
+                    self.drop_guard();
                 }
             }
         } else {
-            self.drop_guard()
+            self.drop_guard();
         }
     }
 

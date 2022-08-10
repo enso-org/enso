@@ -50,6 +50,7 @@ pub struct CreationCtx<EntryParams> {
     pub network:          frp::WeakNetwork,
     pub set_entry_size:   frp::Stream<Vector2>,
     pub set_entry_params: frp::Stream<EntryParams>,
+    pub entry_contour:    frp::Any<(Row, Col, entry::Contour)>,
     pub entry_hovered:    frp::Any<Option<(Row, Col)>>,
     pub entry_selected:   frp::Any<Option<(Row, Col)>>,
     pub entry_accepted:   frp::Any<(Row, Col)>,
@@ -79,6 +80,7 @@ where EntryParams: frp::node::Data
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
                 let location = entry_frp.set_location.clone_ref();
+                self.entry_contour <+ all_with(&location, &contour, |&(r, c), &cont| (r, c, cont));
 
                 // We make a distinction between "hovered" state and "mouse_in" state, because
                 // we want to highlight entry as hovered only when mouse moves a bit.

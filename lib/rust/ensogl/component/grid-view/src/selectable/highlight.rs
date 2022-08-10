@@ -44,6 +44,7 @@ ensogl_core::define_endpoints_2! { <EntryParams: (frp::node::Data)>
         position(Vector2),
         contour(entry::Contour),
         color(color::Rgba),
+        top_clip(f32),
         is_masked_layer_set(bool),
     }
 }
@@ -57,6 +58,8 @@ pub struct Animations {
     size:           Animation<Vector2>,
     corners_radius: Animation<f32>,
     color:          Animation<color::Rgba>,
+    top_clip_jump:  Animation<f32>,
+    top_clip:       frp::Stream<f32>,
 }
 
 impl Animations {
@@ -67,6 +70,7 @@ impl Animations {
         let size = Animation::<Vector2>::new(network);
         let corners_radius = Animation::<f32>::new(network);
         let color = Animation::<color::Rgba>::new(network);
+        let top_clip_jump = Animation::<f32>::new(network);
 
         frp::extend! { network
             init <- source_();
@@ -74,6 +78,7 @@ impl Animations {
             size.target <+ frp.contour.map(|&c| c.size);
             corners_radius.target <+ frp.contour.map(|&c| c.corners_radius);
             color.target <+ frp.color;
+            top_clip <- all_with(&top_clip_jump.value, &frp.top_clip, |jump, clip| clip + jump);
 
             // Skip animations when the highlight is not visible.
             size_val <- all(init, size.value)._1();
@@ -83,7 +88,7 @@ impl Animations {
             color.skip <+ frp.color.gate(&not_visible).constant(());
         }
         init.emit(());
-        Self { position_jump, position, size, corners_radius, color }
+        Self { position_jump, position, size, corners_radius, color, top_clip_jump, top_clip }
     }
 }
 
@@ -184,6 +189,7 @@ impl<E: Entry> Data<E, E::Model, E::Params> {
             position <- all(init, self.animations.position)._1();
             size <- all(init, self.animations.size.value)._1();
             corners_radius <- all(init, self.animations.corners_radius.value)._1();
+            top_clip <- all(init, self.animations.top_clip)._1();
         }
         let size = if let Some(hide) = hide {
             frp::extend! { network
@@ -198,6 +204,8 @@ impl<E: Entry> Data<E, E::Model, E::Params> {
             eval pos_and_viewport ([shape](&(pos, vp)) Setter::set_position(&shape, pos, vp));
             eval size ([shape](&size) Setter::set_size(&shape, size));
             eval corners_radius ([shape](&r) Setter::set_corners_radius(&shape, r));
+            top_clip_and_viewport <- all(top_clip, grid_frp.viewport);
+            eval top_clip_and_viewport ([shape](&(c, v)) Setter::set_top_clip(&shape, c, v));
         }
         if connect_color {
             frp::extend! { network
@@ -276,7 +284,6 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             highlighted_header_is_shown <-
                 header_shown_with_highlighted.filter_map(|(sh, hlt)| hlt.contains(sh).and_option(Some(*hlt)));
             should_reconnect_header <- any(frp.entry_highlighted, highlighted_header_is_shown);
-            trace should_reconnect_header;
             eval should_reconnect_header ((loc) model.connected_header.connect_new_highlighted_entry(*loc));
             header_hidden_with_highlighted <-
                 headers_frp.header_hidden.map2(&frp.entry_highlighted, |a, b| (*a, *b));
@@ -318,14 +325,27 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
                 |&from_header, &entry, &header| if from_header {header} else {entry}
             );
 
-            none_highlightd <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
-            out.contour <+ none_highlightd.constant(default());
+            none_highlighted <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
+            out.contour <+ none_highlighted.constant(default());
 
             out.entries_params <+ frp.set_entries_params;
             let entries_params = out.entries_params.clone_ref();
             out.is_masked_layer_set <+
                 frp.setup_masked_layer.map(f!([model, entries_params](layer) model.setup_masked_layer(layer.as_ref(), (&entries_params).into())));
 
+            highlight_column <- became_highlighted._1();
+            header_moved_in_highlight_column <- headers_frp.header_position_changed.map2(
+                &frp.entry_highlighted,
+                |&(row, col, pos), h| h.map_or(false, |(_, h_col)| col == h_col)
+            ).filter(|v| *v).constant(());
+            new_header_separator <- all_with(&highlight_column, &header_moved_in_highlight_column, f!((col, ()) model.grid.header_separator(*col)));
+            new_top_clip <- new_header_separator.map3(header_connected, &grid_frp.viewport, |&sep, &hc, v| if hc {v.top} else {sep});
+            out.top_clip <+ new_top_clip;
+            prev_top_clip <- out.top_clip.previous();
+            new_clip_jump <- new_top_clip.sample(&became_highlighted).map2(&prev_top_clip, |c, p| p - c);
+            animations.top_clip_jump.target <+ new_clip_jump;
+            animations.top_clip_jump.skip <+ new_clip_jump.constant(());
+            animations.top_clip_jump.target <+ new_clip_jump.constant(0.0);
         }
 
         Self { frp, model }
