@@ -29,9 +29,9 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Standard.Base.Data.List import all
       |
       |main self = length ->
-      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (Cons i acc) (i - 1)
+      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
       |
-      |    res = generator Nil length
+      |    res = generator List.Nil length
       |    res
     """.stripMargin
   val generateListQualified = getMain(generateListQualifiedCode)
