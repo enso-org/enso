@@ -10,6 +10,7 @@ use ensogl_text_embedded_fonts::EmbeddedFontsData;
 use ensogl_text_embedded_fonts::NonVariableFontFamilyDefinition;
 // use ensogl_text_embedded_fonts::Family;
 use ensogl_text_embedded_fonts::FontFamilyDefinition;
+use ensogl_text_embedded_fonts::FontName;
 use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
@@ -39,7 +40,7 @@ shared! { FontLoader
 /// Structure keeping all fonts loaded from different sources.
 #[derive(Debug)]
 pub struct FontLoaderData {
-    font_family_definitions: HashMap<String, FontFamilyDefinition>,
+    font_family_definitions: HashMap<FontName, FontFamilyDefinition>,
     embedded_fonts_data : EmbeddedFontsData,
 }
 
@@ -69,9 +70,9 @@ shared! { Registry
 #[derive(Debug)]
 pub struct RegistryData {
     font_loader: FontLoader,
-    fonts:       HashMap<String,Font>,
+    fonts:       HashMap<FontName,Font>,
         // FIXME: possibly not needed anymore:
-    default:     Font,
+    // default:     Font,
 }
 
 impl {
@@ -79,13 +80,13 @@ impl {
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns None if the name is missing in both cache and embedded
     /// font list.
-    pub fn try_load(&mut self, name:&str) -> Font {
-        match self.fonts.entry(name.to_string()) {
+    pub fn try_load(&mut self, name:FontName) -> Font {
+        match self.fonts.entry(name.clone()) {
             Entry::Occupied (entry) => entry.get().clone_ref(),
             Entry::Vacant   (entry) => {
                     // FIXME: unwrap
                 let definition =
-                    self.font_loader.rc.borrow().font_family_definitions.get(name).unwrap().clone();
+                    self.font_loader.rc.borrow().font_family_definitions.get(&name).unwrap().clone();
                 match definition {
                     FontFamilyDefinition::NonVariable(definition) =>
                         Self::try_from_embedded(name, definition, self.font_loader.clone_ref()),
@@ -99,14 +100,11 @@ impl {
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns default font if the name is missing in both cache and
     /// embedded font list.
-    pub fn load(&mut self, name:&str) -> Font {
-        event!(WARN, "Loading font: {}", name);
+    pub fn load(&mut self, name:impl Into<FontName>) -> Font {
+        let name = name.into();
+            // FIXME: impl display
+        event!(WARN, "Loading font: {:?}", name);
         self.try_load(name)
-    }
-
-    /// Get the default font. It is often used in case the desired font could not be loaded.
-    pub fn default(&self) -> Font {
-        self.default.clone_ref()
     }
 }}
 
@@ -115,11 +113,11 @@ impl RegistryData {
     /// Create render info for one of embedded fonts
     pub fn try_from_embedded(
         // base: &EmbeddedFontsData,
-        name: &str,
+        name: FontName,
         definition: NonVariableFontFamilyDefinition,
         loader: FontLoader,
     ) -> Font {
-        Font::from_raw_data(name.to_string(), definition, loader)
+        Font::from_raw_data(name, definition, loader)
         // // FIXME: report parse warning + not found name warning
         // event!(WARN, ">>> {:?}", name);
         // event!(WARN, "{:?}", base.data);
@@ -131,17 +129,17 @@ impl RegistryData {
     /// Create empty font `Registry` and load raw data of embedded fonts.
     pub fn init_and_load_embedded_font_data() -> RegistryData {
         let fonts = HashMap::new();
-        let default_font = DEFAULT_FONT;
+        // let default_font = DEFAULT_FONT;
         let font_loader = FontLoader::init_and_load_embedded_font_data();
-        // FIXME:
-        let definition =
-            font_loader.rc.borrow().font_family_definitions.get(default_font).unwrap().clone();
-        let default = match definition {
-            FontFamilyDefinition::NonVariable(definition) =>
-                Self::try_from_embedded(default_font, definition, font_loader.clone_ref()),
-            t => panic!("{:?}", t),
-        };
-        Self { font_loader, fonts, default }
+        // // FIXME:
+        // let definition =
+        //     font_loader.rc.borrow().font_family_definitions.get(default_font).unwrap().clone();
+        // let default = match definition {
+        //     FontFamilyDefinition::NonVariable(definition) =>
+        //         Self::try_from_embedded(default_font, definition, font_loader.clone_ref()),
+        //     t => panic!("{:?}", t),
+        // };
+        Self { font_loader, fonts }
     }
 }
 
@@ -218,7 +216,7 @@ pub enum FontFamily {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontData {
-    pub name:       String,
+    pub name:       FontName,
     pub definition: NonVariableFontFamilyDefinition,
     family:         RefCell<NonVariableFontFamily>,
     atlas:          msdf::Texture,
@@ -233,7 +231,7 @@ pub struct FontData {
 impl Font {
     /// Constructor.
     pub fn from_msdf_font(
-        name: String,
+        name: FontName,
         definition: NonVariableFontFamilyDefinition,
         loader: FontLoader,
     ) -> Self {
@@ -246,7 +244,7 @@ impl Font {
 
     /// Constructor.
     pub fn from_raw_data(
-        name: String,
+        name: FontName,
         definition: NonVariableFontFamilyDefinition,
         loader: FontLoader,
     ) -> Self {

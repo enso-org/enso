@@ -47,7 +47,7 @@ fn init(world: &World) {
     // let font = fonts.load(embedded_fonts::DefaultFamily::regular());
     // FIXME: support different names
     // let font = fonts.load("DejaVuSans");
-    let font = fonts.load("dejavusans");
+    let font = fonts.load("DejaVuSans");
     // for a in 'a'..'z' {
     //     for b in 'a'..'z' {
     //         font.kerning(a, b);

@@ -24,6 +24,32 @@ pub use owned_ttf_parser::Width;
 
 
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct FontName {
+    pub normalized: String,
+}
+
+impl From<&str> for FontName {
+    fn from(name: &str) -> Self {
+        FontName { normalized: name.to_lowercase().replace("-", "").replace("_", "") }
+    }
+}
+
+impl From<&String> for FontName {
+    fn from(name: &String) -> Self {
+        let str: &str = &*name;
+        str.into()
+    }
+}
+
+impl From<String> for FontName {
+    fn from(name: String) -> Self {
+        (&name).into()
+    }
+}
+
+
+
 /// Combination of all information allowing mapping the font face to a font file for non-variable
 /// fonts. For variable fonts, there is just one definition for any combination of the parameters.
 /// The combination reflects how the `@font-face` rule is defined in the CSS. See the following link
@@ -76,7 +102,7 @@ impl VariableFontFamilyDefinition {
 
 
 
-pub fn font_family_files_map() -> HashMap<String, FontFamilyDefinition> {
+pub fn font_family_files_map() -> HashMap<FontName, FontFamilyDefinition> {
     let mut map = HashMap::new();
     map.insert(
         "mplus1".into(),
