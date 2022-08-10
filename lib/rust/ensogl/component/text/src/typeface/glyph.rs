@@ -15,6 +15,7 @@ use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
+use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
 use font::Font;
 use font::GlyphRenderInfo;
 
@@ -56,6 +57,7 @@ pub struct Glyph {
     atlas_index: Attribute<f32>,
     atlas:       Uniform<Texture>,
     char:        Rc<Cell<char>>,
+    properties:  Rc<Cell<NonVariableFontFaceHeader>>,
 }
 
 impl Glyph {
@@ -90,18 +92,20 @@ impl Glyph {
 
     pub fn set_font_size(&self, size: f32) {
         self.font_size.set(size);
-        let glyph_info = self.font.glyph_info(self.char.get());
-        self.sprite.size.set(glyph_info.scale.scale(size));
+        if let Some(glyph_info) = self.font.glyph_info(self.properties.get(), self.char.get()) {
+            self.sprite.size.set(glyph_info.scale.scale(size));
+        }
     }
 
     /// Change the displayed character.
     pub fn set_char(&self, ch: char) {
         self.char.set(ch);
-        let glyph_info = self.font.glyph_info(ch);
-        self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
-        self.update_msdf_texture();
-        let font_size = self.font_size();
-        self.sprite.size.set(glyph_info.scale.scale(font_size));
+        if let Some(glyph_info) = self.font.glyph_info(self.properties.get(), ch) {
+            self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
+            self.update_msdf_texture();
+            let font_size = self.font_size();
+            self.sprite.size.set(glyph_info.scale.scale(font_size));
+        }
     }
 
     // FIXME: How does it work? Replace with better checking.
@@ -195,9 +199,22 @@ impl System {
         let font = self.font.clone_ref();
         let atlas = self.atlas.clone();
         let char = default();
+        let properties = default();
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
-        Glyph { sprite, context, font, font_size, color, style, sdf_bold, atlas_index, atlas, char }
+        Glyph {
+            sprite,
+            context,
+            font,
+            font_size,
+            color,
+            style,
+            sdf_bold,
+            atlas_index,
+            atlas,
+            char,
+            properties,
+        }
     }
 
     /// Get underlying sprite system.

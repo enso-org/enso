@@ -35,6 +35,17 @@ impl<K: Eq + Hash, V: Copy> Cache<K, V> {
     where F: FnOnce() -> V {
         *self.map.borrow_mut().entry(key).or_insert_with(|| constructor())
     }
+
+    pub fn get_or_try_creating<F>(&self, key: K, constructor: F) -> Option<V>
+    where F: FnOnce() -> Option<V> {
+        let opt_value = self.map.borrow().get(&key).cloned();
+        opt_value.or_else(|| {
+            constructor().map(|new_value| {
+                self.map.borrow_mut().insert(key, new_value);
+                new_value
+            })
+        })
+    }
 }
 
 impl<K: Eq + Hash, V> Cache<K, V> {

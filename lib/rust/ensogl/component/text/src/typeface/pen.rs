@@ -69,18 +69,19 @@ impl Pen {
 
     /// Advance the pen to the next position.
     pub fn advance(&mut self, next: Option<CharInfo>) -> AdvanceResult {
-        event!(WARN, "ADVANCE THE PEN!");
-        let next_char = next.map(|t| t.char);
-        if let Some(current) = self.current_char {
-            let kerning =
-                next_char.map(|ch| self.font.kerning(current.char, ch)).unwrap_or_default();
-            let advance = self.font.glyph_info(current.char).advance + kerning;
-            let offset = advance * current.size;
-            self.offset += offset;
-        }
-        self.current_char = next;
-        let offset = self.offset;
-        AdvanceResult { char: next_char, offset }
+        // event!(WARN, "ADVANCE THE PEN!");
+        // let next_char = next.map(|t| t.char);
+        // if let Some(current) = self.current_char {
+        //     let kerning =
+        //         next_char.map(|ch| self.font.kerning(current.char, ch)).unwrap_or_default();
+        //     let advance = self.font.glyph_info(current.char).advance + kerning;
+        //     let offset = advance * current.size;
+        //     self.offset += offset;
+        // }
+        // self.current_char = next;
+        // let offset = self.offset;
+        // AdvanceResult { char: next_char, offset }
+        panic!()
     }
 }
 
