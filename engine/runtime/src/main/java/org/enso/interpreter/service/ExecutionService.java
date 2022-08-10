@@ -49,6 +49,8 @@ import java.util.function.Consumer;
  * language.
  */
 public class ExecutionService {
+
+  private static final String MAIN_METHOD = "main";
   private final Context context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
@@ -100,8 +102,9 @@ public class ExecutionService {
     if (function == null) {
       throw new MethodNotFoundException(module.getName().toString(), atomConstructor, methodName);
     }
-    return new FunctionCallInstrumentationNode.FunctionCall(
-        function, EmptyMap.create(), new Object[] {});
+    Object[] arguments =
+        MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {atomConstructor};
+    return new FunctionCallInstrumentationNode.FunctionCall(function, EmptyMap.create(), arguments);
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
