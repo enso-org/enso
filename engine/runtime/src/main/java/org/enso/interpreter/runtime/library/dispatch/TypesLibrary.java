@@ -3,10 +3,6 @@ package org.enso.interpreter.runtime.library.dispatch;
 import com.oracle.truffle.api.library.GenerateLibrary;
 import com.oracle.truffle.api.library.Library;
 import com.oracle.truffle.api.library.LibraryFactory;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 
 /**
@@ -17,14 +13,14 @@ import org.enso.interpreter.runtime.data.Type;
 @GenerateLibrary.DefaultExport(DefaultLongExports.class)
 @GenerateLibrary.DefaultExport(DefaultDoubleExports.class)
 @GenerateLibrary.DefaultExport(DefaultBooleanExports.class)
-public abstract class MethodDispatchLibrary extends Library {
+public abstract class TypesLibrary extends Library {
 
   /**
    * Returns a resolved library factory for this library.
    *
    * @return a library factory instance
    */
-  public static LibraryFactory<MethodDispatchLibrary> getFactory() {
+  public static LibraryFactory<TypesLibrary> getFactory() {
     return FACTORY;
   }
 
@@ -33,15 +29,12 @@ public abstract class MethodDispatchLibrary extends Library {
    *
    * @return the uncached instance of this library
    */
-  public static MethodDispatchLibrary getUncached() {
+  public static TypesLibrary getUncached() {
     return FACTORY.getUncached();
   }
 
-  /** An exception thrown when the library cannot lookup the method definition. */
-  public static class NoSuchMethodException extends Exception {}
-
-  private static final LibraryFactory<MethodDispatchLibrary> FACTORY =
-      LibraryFactory.resolve(MethodDispatchLibrary.class);
+  private static final LibraryFactory<TypesLibrary> FACTORY =
+      LibraryFactory.resolve(TypesLibrary.class);
 
   /**
    * Checks if the receiver supports Enso-style method dispatch
@@ -49,8 +42,8 @@ public abstract class MethodDispatchLibrary extends Library {
    * @param receiver the receiver to check
    * @return whether the receiver supports method dispatch through this library
    */
-  @GenerateLibrary.Abstract(ifExported = {"getFunctionalDispatch"})
-  public boolean hasFunctionalDispatch(Object receiver) {
+  @GenerateLibrary.Abstract(ifExported = {"getType"})
+  public boolean hasType(Object receiver) {
     return false;
   }
 
@@ -73,30 +66,8 @@ public abstract class MethodDispatchLibrary extends Library {
    * @return the corresponding function definition
    * @throws NoSuchMethodException if the function definition could not be found
    */
-  @GenerateLibrary.Abstract(ifExported = {"hasFunctionalDispatch"})
-  public Function getFunctionalDispatch(Object receiver, UnresolvedSymbol symbol)
-      throws NoSuchMethodException {
-    throw new NoSuchMethodException();
-  }
-
-  /** Conversions */
-
-  /** An exception thrown when the library cannot lookup the conversion definition. */
-  public static class NoSuchConversionException extends Exception {}
-
-  // @GenerateLibrary.Abstract(ifExported = {"getConversionFunction"})
-  public boolean canConvertFrom(Object receiver) {
-    return false;
-  }
-
-  public boolean hasSpecialConversion(Object receiver) {
-    return false;
-  }
-
-  @GenerateLibrary.Abstract(ifExported = {"canConvertFrom"})
-  public Function getConversionFunction(
-          Object receiver, Type target, UnresolvedConversion symbol)
-      throws MethodDispatchLibrary.NoSuchConversionException {
-    throw new MethodDispatchLibrary.NoSuchConversionException();
+  @GenerateLibrary.Abstract(ifExported = {"hasType"})
+  public Type getType(Object receiver) {
+    return null;
   }
 }

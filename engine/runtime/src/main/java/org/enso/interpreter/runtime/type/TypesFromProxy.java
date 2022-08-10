@@ -36,7 +36,7 @@ public class TypesFromProxy {
       case ConstantsGen.BOOLEAN:
         return builtins.bool().getType();
       case ConstantsGen.DECIMAL:
-        return builtins.number.getDecimal();
+        return builtins.number().getDecimal();
       case ConstantsGen.ERROR:
         return builtins.dataflowError();
       case ConstantsGen.FUNCTION:
@@ -44,13 +44,13 @@ public class TypesFromProxy {
       case ConstantsGen.FILE:
         return builtins.file();
       case ConstantsGen.INTEGER:
-        return builtins.number.getInteger();
+        return builtins.number().getInteger();
       case ConstantsGen.MANAGED_RESOURCE:
         return builtins.managedResource();
       case ConstantsGen.NOTHING:
         return builtins.nothing();
       case ConstantsGen.NUMBER:
-        return builtins.number.getNumber();
+        return builtins.number().getNumber();
       case ConstantsGen.PANIC:
         return builtins.panic();
       case ConstantsGen.REF:

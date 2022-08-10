@@ -1,17 +1,6 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
@@ -19,8 +8,8 @@ import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
-import org.enso.interpreter.node.expression.builtin.*;
 import org.enso.interpreter.node.expression.builtin.Boolean;
+import org.enso.interpreter.node.expression.builtin.*;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
@@ -38,6 +27,16 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
@@ -59,7 +58,7 @@ public class Builtins {
   private final Error error;
   private final Module module;
   private final ModuleScope scope;
-  public final Number number;
+  private final Number number;
   private final Boolean bool;
   private final Ordering ordering;
   private final System system;
