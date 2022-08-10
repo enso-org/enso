@@ -11,21 +11,21 @@ type Existing_File_Behavior
 
        Note: There is a risk of data loss if a failure occurs during the write
        operation.
-    type Overwrite
+    Overwrite
 
     ## Creates a backup of the existing file (by appending a `.bak` suffix to
        the name) before replacing it with the new contents.
 
        Note: This requires sufficient storage to have two copies of the file.
              If an existing `.bak` file exists, it will be replaced.
-    type Backup
+    Backup
 
     ## Appends data to the existing file.
-    type Append
+    Append
 
     ## If the file already exists, a `File_Already_Exists_Error` error is
        raised.
-    type Error
+    Error
 
     ## PRIVATE
        Runs the `action` which is given a file output stream and should write

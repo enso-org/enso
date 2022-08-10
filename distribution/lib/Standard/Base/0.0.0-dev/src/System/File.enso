@@ -1008,17 +1008,17 @@ type File_Error
 
        Arguments:
        - file: The file that doesn't exist.
-    type File_Not_Found file
+    File_Not_Found file
 
     ## Indicates that a destination file already exists.
-    type File_Already_Exists_Error file
+    File_Already_Exists_Error file
 
     ## A generic IO error.
 
        Arguments:
        - file: The file that couldn't be read.
        - message: The message for the error.
-    type IO_Error file message
+    IO_Error file message
 
     ## UNSTABLE
 
