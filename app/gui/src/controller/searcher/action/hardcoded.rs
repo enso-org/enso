@@ -146,10 +146,7 @@ impl Suggestion {
         self
     }
 
-    pub(crate) fn with_documentation(
-        mut self,
-        documentation: &str,
-    ) -> Self {
+    pub(crate) fn with_documentation(mut self, documentation: &str) -> Self {
         let doc_parser = parser::DocParser::new().unwrap();
         let doc_string = documentation.to_string();
         let documentation_html = doc_parser.generate_html_doc_pure(doc_string);

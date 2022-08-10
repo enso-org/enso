@@ -46,6 +46,10 @@ thread_local! {
 
 // === Constants helpers ===
 
-fn snippet_with_name_and_code_and_icon(name: &'static str, code: &'static str, icon: IconId) -> Snippet {
+fn snippet_with_name_and_code_and_icon(
+    name: &'static str,
+    code: &'static str,
+    icon: IconId,
+) -> Snippet {
     Snippet::new(name, code, &ImString::new(icon.as_str()))
 }
