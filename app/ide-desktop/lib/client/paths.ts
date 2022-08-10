@@ -5,7 +5,5 @@
  *
  */
 
-import path from 'path'
-
 /** Path to the Project Manager bundle. */
 export const project_manager_bundle = 'enso'
