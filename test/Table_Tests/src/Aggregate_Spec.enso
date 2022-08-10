@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding First, Last
 
 import Standard.Table
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
