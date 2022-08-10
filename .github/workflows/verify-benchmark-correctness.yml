@@ -36,8 +36,16 @@ jobs:
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+      - name: Setup conda
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: true
+          conda-channels: anaconda, conda-forge
       - name: Install FlatBuffers Compiler
-        run: conda install flatbuffers=1.12.0
+        run: |
+          conda install flatbuffers=1.12.0
+          flatc --version
+          type flatc
       - name: Build Engine
         run: |
           sbt "bootstrap"
