@@ -1190,7 +1190,7 @@ fn component_list_builder_with_favorites<'a>(
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     let base_lib_qn = project::QualifiedName::standard_base_library();
-    let input_group_name = component::hardcoded::INPUT_COMPONENT_GROUP_NAME;
+    let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
     let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
     builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
     builder
@@ -1831,7 +1831,7 @@ pub mod test {
         let favorites = &components.favorites;
         assert_eq!(favorites.len(), 2);
         let favorites_group_0 = &favorites[0];
-        assert_eq!(favorites_group_0.name, component::hardcoded::INPUT_COMPONENT_GROUP_NAME);
+        assert_eq!(favorites_group_0.name, component::hardcoded::INPUT_GROUP_NAME);
         let favorites_group_1 = &favorites[1];
         assert_eq!(favorites_group_1.name, "Test Group 1");
         let favorites_entries = favorites_group_1.entries.borrow();
