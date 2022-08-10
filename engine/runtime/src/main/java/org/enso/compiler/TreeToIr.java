@@ -521,20 +521,30 @@ final class TreeToIr {
     * @return the {@link IR} representation of `maybeParensedInput`
     */
   IR.Expression translateExpression(Tree tree, boolean insideTypeSignature) {
+    return translateExpression(tree, null, insideTypeSignature);
+  }
+
+  IR.Expression translateExpression(Tree tree, Tree moreArgs, boolean insideTypeSignature) {
     return switch (tree) {
       case Tree.OprApp app -> {
         var rhs = translateIdent(app.getRhs(), true);
         var lhs = translateExpression(app.getLhs(), insideTypeSignature);
-        var callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, getIdentifiedLocation(tree), meta(), diag());
+        IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, getIdentifiedLocation(tree), meta(), diag());
+        var firstArg = cons(callArgument, nil());
+        var args = moreArgs == null ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
         var prefix = new IR$Application$Prefix(
-            rhs,
-            cons(callArgument, nil()),
+            rhs, args,
             false,
             getIdentifiedLocation(tree),
             meta(),
             diag()
         );
         yield prefix;
+      }
+
+      case Tree.App app -> {
+        var fn = translateExpression(app.getFunc(), app.getArg(), insideTypeSignature);
+        yield fn;
       }
       case Tree.Number n -> new IR$Literal$Number(
         // translateDecimalLiteral(inputAst, intPart, fracPart)
@@ -927,16 +937,30 @@ final class TreeToIr {
     };
   }
 
+  private List<IR.CallArgument> translateCallArguments(Tree args, List<IR.CallArgument> res, boolean insideTypeSignature) {
+    for (;;) {
+      var a = translateCallArgument(args, insideTypeSignature);
+      if (a != null) {
+        res = cons(a, res);
+      } else {
+        break;
+      }
+      break;
+    }
+    return res.reverse();
+  }
+
   /** Translates a call-site function argument from its [[AST]] representation
     * into [[IR]].
     *
     * @param arg the argument to translate
     * @return the [[IR]] representation of `arg`
-
-  def translateCallArgument(
-    arg: AST,
-    insideTypeSignature: Boolean = false
-  ): CallArgument.Specified =
+    */
+  IR$CallArgument$Specified translateCallArgument(
+    Tree arg,
+    boolean insideTypeSignature
+  ) {
+    /*
     arg match {
       case AstView.AssignedArgument(left, right) =>
         CallArgument
@@ -946,13 +970,12 @@ final class TreeToIr {
             getIdentifiedLocation(arg)
           )
       case _ =>
-        CallArgument
-          .Specified(
-            None,
-            translateExpression(arg, insideTypeSignature),
-            getIdentifiedLocation(arg)
-          )
     }
+    */
+    var expr = translateExpression(arg, insideTypeSignature);
+    var loc = getIdentifiedLocation(arg);
+    return new IR$CallArgument$Specified(Option.empty(), expr, loc, meta(), diag());
+  }
 
   /** Calculates whether a set of arguments has its defaults suspended, and
     * processes the argument list to remove that operator.

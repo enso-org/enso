@@ -63,6 +63,15 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testMeaningOfWorld() throws Exception {
+    parseTest("""
+    import Standard.Base.IO
+
+    main = IO.println 42
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
