@@ -88,5 +88,18 @@ spec = Test.group "Pattern Matches" <|
         case Any of
             Any -> Nothing
             _ -> Test.fail "Expected the Any constructor to match."
+    Test.specify "should be able to match on literal values" <|
+        value_1 = 42
+        value_2 = "foo"
+        case value_1 of
+            0     -> Test.fail "Expected value to match constant."
+            "foo" -> Test.fail "Expected value to match constant."
+            42    -> Nothing
+            _     -> Test.fail "Expected value to match constant."
+        case value_2 of
+            "meh" -> Test.fail "Expected value to match constant."
+            0     -> Test.fail "Expected value to match constant."
+            "foo" -> Nothing
+            _     -> Test.fail "Expected value to match constant."
 
 main = Test.Suite.run_main spec

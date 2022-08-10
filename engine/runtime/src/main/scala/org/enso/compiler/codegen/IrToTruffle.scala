@@ -947,6 +947,29 @@ class IrToTruffle(
 
             branchNode
           }
+        case literalPattern: Pattern.Literal =>
+          val branchCodeNode = childProcessor.processFunctionBody(
+            Nil,
+            branch.expression,
+            branch.location
+          )
+
+          literalPattern.literal match {
+            case num: IR.Literal.Number =>
+              Right(
+                LiteralBranchNode.build(
+                  num.numericValue,
+                  branchCodeNode.getCallTarget
+                )
+              )
+            case text: IR.Literal.Text =>
+              Right(
+                LiteralBranchNode.build(
+                  text.text,
+                  branchCodeNode.getCallTarget
+                )
+              )
+          }
         case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
