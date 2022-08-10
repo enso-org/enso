@@ -16,6 +16,7 @@ use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
 use owned_ttf_parser as ttf;
 use owned_ttf_parser::AsFaceRef;
+use owned_ttf_parser::GlyphId;
 use serde;
 use std::collections::hash_map::Entry;
 
@@ -235,6 +236,22 @@ impl Font {
                 f(family.faces.get(&header).unwrap());
             }
         }
+    }
+
+    pub fn glyph_index_of_code_point(
+        &self,
+        header: NonVariableFontFaceHeader,
+        code_point: char,
+        f: impl FnOnce(Option<GlyphId>),
+    ) {
+        Self::get_or_load_face(
+            header,
+            // FIXME: this borrow can cause trouble.
+            &mut self.family.borrow_mut(),
+            &self.definition,
+            &self.loader,
+            |face| f(face.ttf.as_face_ref().glyph_index(code_point)),
+        )
     }
 
     /// Get render info for one character, generating one if not found.

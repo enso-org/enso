@@ -21,6 +21,7 @@ use ensogl_text_embedded_fonts::Weight;
 use ensogl_text_embedded_fonts::Width;
 use font::Font;
 use font::GlyphRenderInfo;
+use owned_ttf_parser::GlyphId;
 
 
 
@@ -61,7 +62,7 @@ macro_rules! define_prop_setters_and_getters {
     ($prop:ident ($($name:ident),* $(,)?)) => { paste! {
         pub fn [<set_ $prop:snake:lower>](&self, value: $prop) {
             self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
-            self.set_char(self.char.get());
+            self.refresh();
         }
         $(
             pub fn [<set_ $prop:snake:lower _ $name:snake:lower>](&self) {
@@ -139,6 +140,13 @@ impl Glyph {
         })
     }
 
+    pub fn set_glyph_id(&self, index: GlyphId) {}
+
+    pub fn set_char2(&self, ch: char) {
+        self.font.glyph_index_of_code_point(self.properties.get(), ch, |index| {})
+    }
+    MOVING TO GLYPHID EVERYWHERE
+
     /// Check whether the CPU-bound texture changed and if so, upload it to GPU.
     fn update_atlas(&self) {
         let cpu_tex_height = self.font.msdf_texture_rows() as i32;
@@ -150,6 +158,12 @@ impl Glyph {
             self.font.with_borrowed_msdf_texture_data(|data| texture.reload_with_content(data));
             self.atlas.set(texture);
         }
+    }
+
+    /// Check whether a new glyph should be baked to the atlas and reload the texture if needed.
+    /// This is useful for example after changing the width of the glyph.
+    fn refresh(&self) {
+        self.set_char(self.char.get());
     }
 }
 
