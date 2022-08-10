@@ -58,7 +58,7 @@ class PanicsTest extends InterpreterTest {
           |    caught = Panic.catch_primitive (Long.parseLong "oops") .convert_to_dataflow_error
           |    IO.println caught
           |    cause = caught.catch_primitive e-> case e of
-          |        Make_Polyglot_Error err -> err
+          |        Polyglot_Error_Data err -> err
           |        _ -> "fail"
           |    IO.println cause
           |    message = cause.getMessage
@@ -66,7 +66,7 @@ class PanicsTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
-        """(Error: (Make_Polyglot_Error java.lang.NumberFormatException: For input string: "oops"))""",
+        """(Error: (Polyglot_Error_Data java.lang.NumberFormatException: For input string: "oops"))""",
         """java.lang.NumberFormatException: For input string: "oops"""",
         """For input string: "oops""""
       )

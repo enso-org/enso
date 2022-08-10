@@ -66,7 +66,8 @@ case class IdsInstrumenter(instrument: CodeIdsTestInstrument) {
       val listener = binding.getElement
       if (!listener.isSuccessful) {
         Assertions.fail(
-          s"Node with id ${listener.getId} does not exist or did not return the correct value."
+          s"Node with id ${listener.getId} does not exist or did not return the" +
+            s" correct value (expected ${listener.getExpectedResult}."
         )
       }
     }

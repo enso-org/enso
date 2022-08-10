@@ -204,8 +204,8 @@ class DataflowErrorsTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
-        "(Error: (Make_Syntax_Error 'Unrecognized token.'))",
-        "(Make_Syntax_Error 'Unrecognized token.')"
+        "(Error: (Syntax_Error_Data 'Unrecognized token.'))",
+        "(Syntax_Error_Data 'Unrecognized token.')"
       )
     }
   }

@@ -30,6 +30,14 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         if (builtinType == null) {
           throw new CompilerError("Unknown @BuiltinType " + tp.name)
         }
+        if (
+          Set(tp.members: _*) != Set(builtinType.getConstructors.toIndexedSeq: _*)
+            .map(_.getName)
+        ) {
+          throw new CompilerError(
+            s"Wrong constructors declared in the builtin ${tp.name}."
+          )
+        }
         builtinType.getConstructors.foreach(scope.registerConstructor)
         scope.registerType(builtinType.getType)
         builtinType.getType.setShadowDefinitions(scope)

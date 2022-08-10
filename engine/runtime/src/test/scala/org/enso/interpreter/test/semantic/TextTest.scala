@@ -113,14 +113,14 @@ class TextTest extends InterpreterTest {
           |
           |main =
           |    IO.println (Cons Nothing Nothing).to_display_text
-          |    IO.println (Make_Syntax_Error "foo").to_display_text
-          |    IO.println (Make_Type_Error Nothing Nil "myvar").to_display_text
-          |    IO.println (Make_Compile_Error "error :(").to_display_text
-          |    IO.println (Make_Inexhaustive_Pattern_Match_Error 32).to_display_text
-          |    IO.println (Make_Arithmetic_Error "cannot frobnicate quaternions").to_display_text
+          |    IO.println (Syntax_Error_Data "foo").to_display_text
+          |    IO.println (Type_Error_Data Nothing Nil "myvar").to_display_text
+          |    IO.println (Compile_Error_Data "error :(").to_display_text
+          |    IO.println (Inexhaustive_Pattern_Match_Error_Data 32).to_display_text
+          |    IO.println (Arithmetic_Error_Data "cannot frobnicate quaternions").to_display_text
           |    IO.println ((Panic.catch_primitive (1 + "foo") .convert_to_dataflow_error).catch_primitive .to_display_text)
           |    IO.println ((Panic.catch_primitive (7 1) .convert_to_dataflow_error).catch_primitive .to_display_text)
-          |    IO.println (Make_Arity_Error 10 10 20).to_display_text
+          |    IO.println (Arity_Error_Data 10 10 20).to_display_text
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(

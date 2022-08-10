@@ -133,4 +133,9 @@ public class Type implements TruffleObject {
   String toDisplayString(boolean allowSideEffects) {
     return name;
   }
+
+  @Override
+  public String toString() {
+    return toDisplayString(true);
+  }
 }

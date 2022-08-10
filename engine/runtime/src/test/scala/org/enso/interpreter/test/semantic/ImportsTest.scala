@@ -82,9 +82,9 @@ class ImportsTest extends PackageTest {
     evalTestProject("TestSubmodules") shouldEqual 42
     val outLines = consumeOut
     outLines(0) shouldEqual "(Foo 10)"
-    outLines(1) shouldEqual "(C 52)"
+    outLines(1) shouldEqual "(Mk_C 52)"
     outLines(2) shouldEqual "20"
-    outLines(3) shouldEqual "(C 10)"
+    outLines(3) shouldEqual "(Mk_C 10)"
   }
 
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
