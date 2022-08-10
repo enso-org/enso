@@ -36,8 +36,11 @@ jobs:
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+      - name: Install FlatBuffers Compiler
+        run: conda install flatbuffers=1.12.0
       - name: Build Engine
         run: |
+          sbt "bootstrap"
           sbt "buildEngineDistribution"
       - name: Modify benchmarks to run just once
         run: |
