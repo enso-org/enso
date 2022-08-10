@@ -28,62 +28,62 @@ type Statistic
         _ -> Nothing
 
     ## Count the number of non-Nothing and non-NaN values.
-    type Count
+    Count
 
     ## The minimum value.
-    type Minimum
+    Minimum
 
     ## The maximum value.
-    type Maximum
+    Maximum
 
     ## Sum the non-Nothing and non-NaN values.
-    type Sum
+    Sum
 
     ## The sample mean of the values.
-    type Mean
+    Mean
 
     ## The variance of the values.
        Arguments:
        - population: specifies if data is a sample or the population.
-    type Variance (population:Boolean=False)
+    Variance (population:Boolean=False)
 
     ## The standard deviation of the values.
        Arguments:
        - population: specifies if data is a sample or the population.
-    type Standard_Deviation (population:Boolean=False)
+    Standard_Deviation (population:Boolean=False)
 
     ## The skewness of the values.
        Arguments:
        - population: specifies if data is a sample or the population.
-    type Skew (population:Boolean=False)
+    Skew (population:Boolean=False)
 
     ## The sample kurtosis of the values.
-    type Kurtosis
+    Kurtosis
 
     ## Calculate the Covariance between data and series.
 
        Arguments:
        - series: the series to compute the covariance with.
-    type Covariance (series:Vector)
+    Covariance (series:Vector)
 
     ## Calculate the Pearson Correlation between data and series.
 
        Arguments:
        - series: the series to compute the correlation with.
-    type Pearson (series:Vector)
+    Pearson (series:Vector)
 
     ## Calculate the Spearman Rank Correlation between data and series.
 
        Arguments:
        - series: the series to compute the correlation with.
-    type Spearman (series:Vector)
+    Spearman (series:Vector)
 
     ## Calculate the coefficient of determination between data and predicted
        series.
 
        Arguments:
        - predicted: the series to compute the r_squared with.
-    type R_Squared (predicted:Vector)
+    R_Squared (predicted:Vector)
 
 
 ## Compute a single statistic on a vector like object.

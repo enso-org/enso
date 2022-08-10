@@ -18,7 +18,7 @@ type Meta
 
        Arguments:
        - value: The value of the atom in the meta representation.
-    type Atom value
+    Atom value
 
     ## UNSTABLE
        ADVANCED
@@ -27,7 +27,7 @@ type Meta
 
        Arguments:
        - value: The value of the constructor in the meta representation.
-    type Constructor value
+    Constructor value
 
     ## UNSTABLE
        ADVANCED
@@ -36,7 +36,7 @@ type Meta
 
        Arguments:
        - value: The value of the primitive object in the meta representation.
-    type Primitive value
+    Primitive value
 
     ## UNSTABLE
        ADVANCED
@@ -45,7 +45,7 @@ type Meta
 
        Arguments:
        - value: The value of the unresolved symbol in the meta representation.
-    type Unresolved_Symbol value
+    Unresolved_Symbol value
 
     ## UNSTABLE
        ADVANCED
@@ -54,7 +54,7 @@ type Meta
 
        Arguments:
        - value: The payload of the error.
-    type Error value
+    Error value
 
     ## UNSTABLE
        ADVANCED
@@ -63,7 +63,7 @@ type Meta
 
        Arguments:
        - value: The polyglot value contained in the meta representation.
-    type Polyglot value
+    Polyglot value
 
 
 ## Atom methods

@@ -5,16 +5,16 @@ polyglot java import org.enso.base.statistics.FitError
 
 type Model
     ## Fit a line (y = A x + B) to the data with an optional fixed intercept.
-    type Linear_Model (intercept:Number|Nothing=Nothing)
+    Linear_Model (intercept:Number|Nothing=Nothing)
 
     ## Fit a exponential line (y = A exp(B x)) to the data with an optional fixed intercept.
-    type Exponential_Model (intercept:Number|Nothing=Nothing)
+    Exponential_Model (intercept:Number|Nothing=Nothing)
 
     ## Fit a logarithmic line (y = A log x + B) to the data.
-    type Logarithmic_Model
+    Logarithmic_Model
 
     ## Fit a power series (y = A x ^ B) to the data.
-    type Power_Model
+    Power_Model
 
 ## Use Least Squares to fit a line to the data.
 fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument_Error | Fit_Error
@@ -42,16 +42,16 @@ fit_least_squares known_xs known_ys model=Linear_Model =
 
 type Fitted_Model
     ## Fitted line (y = slope x + intercept).
-    type Fitted_Linear_Model slope:Number intercept:Number r_squared:Number=0.0
+    Fitted_Linear_Model slope:Number intercept:Number r_squared:Number=0.0
 
     ## Fitted exponential line (y = a exp(b x)).
-    type Fitted_Exponential_Model a:Number b:Number r_squared:Number=0.0
+    Fitted_Exponential_Model a:Number b:Number r_squared:Number=0.0
 
     ## Fitted logarithmic line (y = a log x + b).
-    type Fitted_Logarithmic_Model a:Number b:Number r_squared:Number=0.0
+    Fitted_Logarithmic_Model a:Number b:Number r_squared:Number=0.0
 
     ## Fitted power series (y = a x ^ b).
-    type Fitted_Power_Model a:Number b:Number r_squared:Number=0.0
+    Fitted_Power_Model a:Number b:Number r_squared:Number=0.0
 
     ## Display the fitted line.
     to_text : Text
@@ -95,7 +95,8 @@ ln_series xs series_name="Values" =
 
    Arguments:
    - message: The error message.
-type Fit_Error message
+type Fit_Error
+    Fit_Error_Data message
 
 ## PRIVATE
 
@@ -105,4 +106,4 @@ Fit_Error.to_display_text self = "Could not fit the model: " + self.message.to_t
 
 ## PRIVATE
 Fit_Error.handle_java_exception =
-    Panic.catch_java FitError handler=(java_exception-> Error.throw (Fit_Error java_exception.getMessage))
+    Panic.catch_java FitError handler=(java_exception-> Error.throw (Fit_Error_Data java_exception.getMessage))

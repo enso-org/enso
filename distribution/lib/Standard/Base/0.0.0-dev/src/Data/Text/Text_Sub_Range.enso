@@ -15,20 +15,20 @@ type Text_Sub_Range
     ## Select characters until the first instance of `delimiter`.
        Select an empty string if `delimiter` is empty.
        Select the entire string if the input does not contain `delimiter`.
-    type Before (delimiter : Text)
+    Before (delimiter : Text)
 
     ## Select characters until the last instance of `delimiter`.
        Select an empty string if `delimiter` is empty.
        Select the entire string if the input does not contain `delimiter`.
-    type Before_Last (delimiter : Text)
+    Before_Last (delimiter : Text)
 
     ## Select characters after the first instance of `delimiter`.
        Select an empty string if the input does not contain `delimiter`.
-    type After (delimiter : Text)
+    After (delimiter : Text)
 
     ## Select characters after the last instance of `delimiter`.
        Select an empty string if the input does not contain `delimiter`.
-    type After_Last (delimiter : Text)
+    After_Last (delimiter : Text)
 
 ## PRIVATE
    Finds code-point indices corresponding to the part of the input matching the
@@ -109,7 +109,7 @@ type Codepoint_Ranges
        - ranges: the list of ranges. Each `Range` has `step` equal to 1.
        - is_sorted_and_distinct: A helper value specifying if the ranges are
          already sorted and non-intersecting.
-    type Codepoint_Ranges (ranges : Vector Range) (is_sorted_and_distinct : Boolean)
+    Codepoint_Ranges_Data (ranges : Vector Range) (is_sorted_and_distinct : Boolean)
 
     ## PRIVATE
        Returns a new sorted list of ranges where intersecting ranges have been

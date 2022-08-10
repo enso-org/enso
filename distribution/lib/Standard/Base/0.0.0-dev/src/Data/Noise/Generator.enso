@@ -12,12 +12,6 @@ polyglot java import java.util.Random
    To be a valid generator, it must provide the `step` method as described
    below.
 type Generator
-
-    ## PRIVATE
-
-       The basic generator type.
-    type Generator
-
     ## PRIVATE
 
       Step the generator to produce the next value..
@@ -38,14 +32,6 @@ type Generator
    It produces what is commonly termed "white" noise, where any value in the
    range has an equal chance of occurring.
 type Deterministic_Random
-
-    ## A deterministic random noise generator that performs a perturbation of the
-       input
-
-       It produces what is commonly termed as "white" noise, where any value in
-       the range has an equal chance of occurring.
-    type Deterministic_Random
-
     ## Step the generator to produce the next value.
 
        Arguments:

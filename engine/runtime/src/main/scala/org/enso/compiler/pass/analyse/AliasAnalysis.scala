@@ -241,15 +241,16 @@ case object AliasAnalysis extends IRPass {
             topLevelGraph,
             topLevelGraph.rootScope
           ),
-          members = t.members.map(d =>
+          members = t.members.map(d => {
+            val graph = new Graph
             d.copy(arguments =
               analyseArgumentDefs(
                 d.arguments,
-                topLevelGraph,
-                topLevelGraph.rootScope
+                graph,
+                graph.rootScope
               )
-            ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
-          )
+            ).updateMetadata(this -->> Info.Scope.Root(graph))
+          })
         ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
       case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
@@ -475,7 +476,10 @@ case object AliasAnalysis extends IRPass {
             .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
         } else {
           throw new CompilerError(
-            "Arguments should never be redefined. This is a bug."
+            s"""
+                Arguments should never be redefined. This is a bug.
+                ${}
+                """
           )
         }
     }

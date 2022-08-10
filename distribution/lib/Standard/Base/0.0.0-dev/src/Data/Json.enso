@@ -48,34 +48,34 @@ type Json
 
        Arguments:
        - fields: The fields of the JSON object.
-    type Object fields
+    Object fields
 
     ## A representation of a JSON array.
 
        Arguments:
        - items: The items in the JSON array.
-    type Array items
+    Array items
 
     ## A representation of a JSON string.
 
        Arguments:
        - value: The text contained in the JSON string.
-    type String value
+    String value
 
     ## A representation of a JSON number.
 
        Arguments:
        - value: The number contained in the JSON number.
-    type Number value
+    Number value
 
     ## A representation of a JSON boolean.
 
        Arguments:
        - value: The boolean contained in a JSON boolean.
-    type Boolean value
+    Boolean value
 
     ## A representation of a JSON null.
-    type Null
+    Null
 
     ## Marshalls this JSON into an arbitrary value described by
        `type_descriptor`.

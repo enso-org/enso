@@ -6,15 +6,15 @@ import Standard.Base.Warning
 type Problem_Behavior
     ## UNSTABLE
        Ignore the problem and attempt to complete the operation
-    type Ignore
+    Ignore
 
     ## UNSTABLE
        Report the problem as a warning and attempt to complete the operation
-    type Report_Warning
+    Report_Warning
 
     ## UNSTABLE
        Report the problem as a dataflow error and abort the operation
-    type Report_Error
+    Report_Error
 
     ## ADVANCED
        UNSTABLE

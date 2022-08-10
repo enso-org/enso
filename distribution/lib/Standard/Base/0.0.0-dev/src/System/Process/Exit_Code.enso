@@ -4,13 +4,13 @@ from Standard.Base import all
 type Exit_Code
 
     ## The process exited with a success.
-    type Exit_Success
+    Exit_Success
 
     ## The process exited with a failure.
 
        Arguments:
        - code: The exit code for the failure.
-    type Exit_Failure code
+    Exit_Failure code
 
     ## Convert exit code to a number.
 

@@ -25,7 +25,8 @@ type Case_Insensitive locale=Locale.default
    Arguments:
    - case_sensitive: Case Sensitive if True. Otherwise, the comparison is case
      insensitive using the specified locale.
-type Text_Matcher (case_sensitive : (True | Case_Insensitive) = True)
+type Text_Matcher
+    Text_Matcher_Data (case_sensitive : (True | Case_Insensitive) = True)
 
 ## Represents regex matching mode.
 
@@ -52,7 +53,8 @@ type Text_Matcher (case_sensitive : (True | Case_Insensitive) = True)
        preceded by an unescaped backslash, all characters from the leftmost such
        `#` to the end of the line are ignored. That is to say; they act as
        'comments' in the regex.
-type Regex_Matcher (case_sensitive : (True | Case_Insensitive) = True) (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
+type Regex_Matcher
+    Regex_Matcher_Data (case_sensitive : (True | Case_Insensitive) = True) (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
 
 ## UNSTABLE
    Compiles a provided pattern according to the rules defined in this
@@ -185,11 +187,6 @@ Text_Matcher.match_criteria self = match_criteria_implementation self
 Regex_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
 Regex_Matcher.match_criteria self = match_criteria_implementation self
 
-## A common supertype representing a matching strategy.
-type Matcher
-    Text_Matcher
-    Regex_Matcher
-
 ## PRIVATE
 match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning =
     result = internal_match_criteria_implementation matcher objects criteria reorder name_mapper
@@ -208,7 +205,7 @@ match_criteria_callback matcher objects criteria problem_callback reorder=False 
 type Match_Matrix
     ## PRIVATE
        A helper type holding a matrix of matches.
-    type Match_Matrix matrix criteria objects
+    type Match_Matrix_Data matrix criteria objects
 
     # Checks if the ith object is matched by any criterion.
     is_object_matched_by_anything : Integer -> Boolean
