@@ -19,32 +19,34 @@ pub type Snippet = controller::searcher::action::hardcoded::Suggestion;
 /// components.
 pub const INPUT_COMPONENT_GROUP_NAME: &str = "Input";
 
+const INPUT_NODES_LITERAL_SNIPPETS: &[LiteralSnippet] = &[
+    LiteralSnippet {
+        name:               "text input",
+        code:               "\"\"",
+        return_type:        "Standard.Base.Data.Text.Text",
+        documentation:
+            "A text input node.\n\n\
+            An empty text. The value can be edited and used as an input for other nodes."
+        ,
+        icon:               ide_view_component_group::icon::Id::TextInput,
+    },
+    LiteralSnippet {
+        name:               "number input",
+        code:               "0",
+        return_type:        "Standard.Base.Data.Numbers.Number",
+        documentation:
+            "A number input node.\n\n\
+            A zero number. The value can be edited and used as an input for other nodes."
+        ,
+        icon:               ide_view_component_group::icon::Id::NumberInput,
+    },
+];
+
 thread_local! {
     /// Code snippets of default literal values of text and number type. The snippets are
     /// documented as code that can be used as input nodes. When converted to [`Component`]s and
     /// added to the [`component::List`] they allow the users to easily enter literals in code.
-    pub static LITERAL_INPUT_NODES_SNIPPETS: Vec<Rc<Snippet>> = [
-        LiteralSnippet {
-            name:               "text input",
-            code:               "\"\"",
-            return_type:        "Standard.Base.Data.Text.Text",
-            documentation:
-                "A text input node.\n\n\
-                An empty text. The value can be edited and used as an input for other nodes."
-            ,
-            icon:               ide_view_component_group::icon::Id::TextInput,
-        },
-        LiteralSnippet {
-            name:               "number input",
-            code:               "0",
-            return_type:        "Standard.Base.Data.Numbers.Number",
-            documentation:
-                "A number input node.\n\n\
-                A zero number. The value can be edited and used as an input for other nodes."
-            ,
-            icon:               ide_view_component_group::icon::Id::NumberInput,
-        },
-    ].into_iter().map(|c| Rc::new(c.try_into().unwrap())).collect_vec();
+    pub static LITERAL_INPUT_NODES_SNIPPETS: Vec<Rc<Snippet>> = INPUT_NODES_LITERAL_SNIPPETS.into_iter().map(|c| Rc::new(c.clone().try_into().unwrap())).collect_vec();
 }
 
 
@@ -54,6 +56,7 @@ thread_local! {
 // ======================
 
 /// A snippet of code with a literal value, with description and syntax metadata.
+#[derive(Copy, Clone, Debug)]
 struct LiteralSnippet {
     pub name:          &'static str,
     pub code:          &'static str,
