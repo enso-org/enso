@@ -553,12 +553,6 @@ Error.should_contain_the_same_elements_as self _ frames_to_skip=0 = fail_match_o
 
 
 type Verbs
-
-    ## PRIVATE
-
-       Verbs that describe how tests should execute.
-    type Verbs
-
     ## PRIVATE
 
        Checks if the `subject` starts with `argument`.
@@ -613,7 +607,7 @@ type Verbs
 
 ## PRVATE
 type Suite_Config
-    type Suite_Config only_group_regexp output_path
+    type Suite_Config_Data only_group_regexp output_path
 
     should_run_group self name =
         regexp = self.only_group_regexp
@@ -633,7 +627,8 @@ type Suite_Config
    - config: Suite_Config controlloing the test run.
    - specs: The specs contained within the test suite.
    - builder: StringBuilder for JUnit output.
-type Suite config specs builder
+type Suite
+    Suite_Data config specs builder
 
 ## PRIVATE
 
@@ -642,7 +637,8 @@ type Suite config specs builder
    Arguments:
    - name: The name of the spec.
    - behaviors: The results of the behaviors encapsulated in that spec.
-type Spec name behaviors
+type Spec
+    Spec_Data name behaviors
 
 ## PRIVATE
 
@@ -651,7 +647,8 @@ type Spec name behaviors
    Arguments:
    - name: The name of the behavior.
    - result: The result of the behavior.
-type Behavior name result
+type Behavior
+    Behavior_Data name result
 
 ## PRIVATE
 
@@ -679,7 +676,8 @@ Suite.is_fail self = self.specs.any .is_fail
    - err: The payload of the error that triggered this error.
    - stack_trace_text: A textual representation of the stack trace for the
      error.
-type Finished_With_Error err stack_trace_text
+type Finished_With_Error
+    Finished_With_Error_Data err stack_trace_text
 
 ## PRIVATE
 type Assertion
@@ -687,7 +685,7 @@ type Assertion
     ## PRIVATE
 
        Represents a successful behavioral test.
-    type Success
+    Success
 
     ## PRIVATE
 
@@ -695,7 +693,7 @@ type Assertion
 
        Arguments:
        - message: The reason why the test failed.
-    type Failure message
+    Failure message
 
     ## PRIVATE
 
@@ -703,7 +701,7 @@ type Assertion
 
        Arguments:
        - reason: Text describing why the test is pending.
-    type Pending reason
+    Pending reason
 
     ## PRIVATE
 
