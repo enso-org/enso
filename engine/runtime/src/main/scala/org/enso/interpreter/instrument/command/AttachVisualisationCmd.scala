@@ -49,10 +49,10 @@ class AttachVisualisationCmd(
       ctx.jobProcessor.run(
         new UpsertVisualisationJob(
           maybeRequestId,
+          Api.VisualisationAttached(),
           request.visualisationId,
           request.expressionId,
-          request.visualisationConfig,
-          Api.VisualisationAttached()
+          request.visualisationConfig
         )
       )
 
