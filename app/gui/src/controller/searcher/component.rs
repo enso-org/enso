@@ -121,7 +121,7 @@ impl Component {
         }
     }
 
-    /// The [`Id`] of the component in the [`suggestion_database`].
+    /// The [`Id`] of the component in the [`suggestion_database`], or `None` if not applicable.
     pub fn id(&self) -> Option<Id> {
         match self.data {
             Data::FromDatabase { id, .. } => Some(*id),
