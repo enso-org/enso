@@ -362,9 +362,15 @@ mod tests {
         assert_eq!((color.red * 255.0) as u8, 0xaa);
         assert_eq!((color.green * 255.0) as u8, 0xbb);
         assert_eq!((color.blue * 255.0) as u8, 0xcc);
-        let entry_ids = group.entries.borrow().iter().map(|e| e.id().unwrap()).collect_vec();
-        let expected_ids = vec![6, 10, 5];
-        assert_eq!(entry_ids, expected_ids);
+        let entry_ids_and_names = group
+            .entries
+            .borrow()
+            .iter()
+            .map(|e| (e.id().unwrap(), e.name().to_string()))
+            .collect_vec();
+        let expected_ids_and_names =
+            vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
+        assert_eq!(entry_ids_and_names, expected_ids_and_names);
     }
 
     // Test constructing a component group from an [`execution_context::ComponentGroup`] containing
