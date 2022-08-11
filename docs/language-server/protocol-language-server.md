@@ -108,6 +108,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`text/applyEdit`](#textapplyedit)
   - [`text/applyExpressionValue`](#textapplyexpressionvalue)
   - [`text/didChange`](#textdidchange)
+  - [`text/autoSave`](#textautosave)
 - [Workspace Operations](#workspace-operations)
   - [`workspace/projectInfo`](#workspaceprojectinfo)
 - [Monitoring](#monitoring)
@@ -2867,6 +2868,32 @@ This notification must _only_ be sent for files that the client has open.
 ```typescript
 {
   edits: [FileEdit];
+}
+```
+
+#### Errors
+
+```typescript
+null;
+```
+
+### `text/autoSave`
+
+This is a notification sent from the server to the clients to inform them of any
+successful auto-save action.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+This notification must _only_ be sent for files that the client has open.
+
+#### Parameters
+
+```typescript
+{
+  path: Path;
 }
 ```
 
