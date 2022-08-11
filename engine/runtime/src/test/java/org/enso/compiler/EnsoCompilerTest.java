@@ -72,6 +72,27 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testMinusOne() throws Exception {
+    parseTest("""
+    minus n = n-1
+    """);
+  }
+
+  @Test
+  public void testMinusRec() throws Exception {
+    parseTest("""
+    minus n = minus n-1
+    """);
+  }
+
+  @Test
+  public void testFactorial() throws Exception {
+    parseTest("""
+    fac n = if n == 1 then 1 else n * fac n-1
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
