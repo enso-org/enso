@@ -151,8 +151,9 @@ impl Suggestion {
     }
 
     /// Returns a modified suggestion with [`Suggestion::documentation_html`] field set. This
-    /// method is only intended to be used when defining hardcoded suggestions and panics if the
-    /// argument fails to parse as valid documentation.
+    /// method is only intended to be used when defining hardcoded suggestions and panics if a
+    /// documentation parser cannot be created or the argument fails to parse as valid
+    /// documentation.
     pub(crate) fn with_documentation(mut self, documentation: &str) -> Self {
         let doc_parser = parser::DocParser::new().unwrap();
         let doc_string = documentation.to_string();
