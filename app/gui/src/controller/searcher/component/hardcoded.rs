@@ -1,6 +1,9 @@
 //! A module containing definitions of hardcoded [`Snippet`]s displayed as virtual components in
 //! the [Component Browser](crate::controller::Searcher). The module also defines names of the
-//! virtual component groups where the snippets should be added.
+//! favorites component groups where the snippets should be added.
+//!
+//! To learn more about favorites component groups, see:
+//! [`crate::controller::searcher::component::List::favorites`].
 
 use crate::prelude::*;
 
@@ -21,11 +24,14 @@ pub type Snippet = controller::searcher::action::hardcoded::Suggestion;
 // === Constants ===
 // =================
 
-/// Name of the virtual component group in the `Standard.Base` library where virtual components
+/// Name of the favorites component group in the `Standard.Base` library where virtual components
 /// created from the [`INPUT_SNIPPETS`] should be added.
 pub const INPUT_GROUP_NAME: &str = "Input";
 
 thread_local! {
+    /// Snippets describing virtual components displayed in the [`INPUT_GROUP_NAME`] favorites
+    /// component group.
+    /// Code snippets 
     /// Code snippets of default literal values of text and number type. The snippets are
     /// documented as code that can be used as input nodes. When converted to [`Component`]s and
     /// added to the [`component::List`] they allow the users to easily enter literals in code.
