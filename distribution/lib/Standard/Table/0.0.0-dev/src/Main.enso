@@ -4,6 +4,7 @@ import Standard.Geo.Geo_Json
 import Standard.Table.IO.File_Read
 import Standard.Table.IO.File_Format
 import Standard.Table.IO.Excel
+import Standard.Table.Errors
 import Standard.Table.Data.Table
 import Standard.Table.Data.Column
 
@@ -13,7 +14,8 @@ export Standard.Table.Data.Column
 export Standard.Table.IO.File_Read
 export Standard.Table.IO.File_Format
 
-from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Column_Error, Table
+from Standard.Table.Data.Table export new, from_rows, join, concat, Table
+from Standard.Table.Errors export No_Such_Column_Error
 
 ## ALIAS To Table
 

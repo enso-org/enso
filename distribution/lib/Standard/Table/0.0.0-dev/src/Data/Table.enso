@@ -19,7 +19,7 @@ from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Aut
 from Standard.Table.Data.Data_Formatter import Data_Formatter
 from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
-from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error
 import Standard.Table.Data.Match_Columns
 
 import Standard.Table.Data.Column_Name_Mapping
@@ -257,7 +257,7 @@ type Table
     at self selector=0 = case selector of
         Integer ->
             java_columns = Vector.Vector self.java_table.getColumns
-            Column.Column (java_column.at selector)
+            Column.Column (java_columns.at selector)
         Text ->
             case self.java_table.getColumnOrIndexByName selector of
                 Nothing -> Error.throw (No_Such_Column_Error selector)
@@ -890,17 +890,6 @@ type Table
     row_count : Integer
     row_count self = self.java_table.rowCount
 
-    ## Returns the number of rows in this table.
-
-       > Example
-         Count the number of rows in the table.
-
-             import Standard.Examples
-
-             example_length = Examples.inventory_table.length
-    length : Integer
-    length self = self.row_count
-
     ## Returns a Table describing this table's contents.
 
        The table lists all columns, counts of non-null items and storage types
@@ -1137,33 +1126,6 @@ type Table
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
     to_csv self = Text.from self (File_Format.Delimited delimiter=",")
-
-
-## UNSTABLE
-
-   An error returned when a non-existent column is being looked up.
-
-   Arguments:
-   - column_name: The name of the column that doesn't exist.
-type No_Such_Column_Error column_name
-
-## UNSTABLE
-
-   Create a human-readable version of the no such column error.
-No_Such_Column_Error.to_display_text : Text
-No_Such_Column_Error.to_display_text self =
-    "The column " + self.column_name + " does not exist."
-
-## UNSTABLE
-
-   An error returned when getting an index but no index is set for that table.
-type No_Index_Set_Error
-
-## UNSTABLE
-
-   Create a human-readable version of the no such column error.
-No_Index_Set_Error.to_display_text : Text
-No_Index_Set_Error.to_display_text self = "The table does not have an index set."
 
 ## UNSTABLE
 

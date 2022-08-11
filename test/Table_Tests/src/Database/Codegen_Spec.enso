@@ -4,8 +4,7 @@ from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Nam
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table import No_Such_Column_Error
-from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column_Error
 
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
