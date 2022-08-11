@@ -31,15 +31,11 @@ import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
 
-import scala.concurrent.duration._
-import scala.language.postfixOps
-
 /** An actor enabling multiple users edit collaboratively a file.
   *
   * @param bufferPath a path to a file
   * @param fileManager a file manger actor
   * @param runtimeConnector a gateway to the runtime
-  * @param timeout a request timeout
   * @param versionCalculator a content based version calculator
   * @param timingsConfig a config with timeout/delay values
   */
@@ -47,7 +43,6 @@ class CollaborativeBuffer(
   bufferPath: Path,
   fileManager: ActorRef,
   runtimeConnector: ActorRef,
-  timeout: FiniteDuration,
   timingsConfig: TimingsConfig
 )(implicit
   versionCalculator: ContentBasedVersioning
@@ -73,7 +68,7 @@ class CollaborativeBuffer(
         path,
         client.clientId
       )
-      readFile(client, path, Map.empty)
+      readFile(client, path)
 
     case OpenBuffer(client, path) =>
       context.system.eventStream.publish(BufferOpened(path))
@@ -82,28 +77,28 @@ class CollaborativeBuffer(
         path,
         client.clientId
       )
-      openBuffer(client, path, Map.empty)
+      openBuffer(client, path)
   }
 
   private def waitingForFileContent(
     rpcSession: JsonSession,
     replyTo: ActorRef,
     timeoutCancellable: Cancellable,
-    autoSave: Map[ClientId, Cancellable]
+    inMemoryBuffer: Boolean
   ): Receive = {
     case ReadTextualFileResult(Right(content)) =>
-      handleFileContent(rpcSession, replyTo, content, autoSave)
+      handleFileContent(rpcSession, replyTo, content, inMemoryBuffer, Map.empty)
       unstashAll()
       timeoutCancellable.cancel()
 
     case ReadTextualFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
       timeoutCancellable.cancel()
-      stop(autoSave)
+      stop(Map.empty)
 
     case IOTimeout =>
       replyTo ! OpenFileResponse(Left(OperationTimeout))
-      stop(autoSave)
+      stop(Map.empty)
 
     case _ => stash()
   }
@@ -241,7 +236,7 @@ class CollaborativeBuffer(
         currentAutoSaves.get(clientId).foreach(_.cancel())
 
         val timeoutCancellable = context.system.scheduler
-          .scheduleOnce(timeout, self, IOTimeout)
+          .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
         context.become(
           saving(
             buffer,
@@ -312,11 +307,9 @@ class CollaborativeBuffer(
             expressionValue
           )
         )
-        val newAutoSave: Map[ClientId, Cancellable] = upsertAutoSaveTimer(
-          autoSave,
-          clientId,
-          modifiedBuffer.version
-        )
+        val newAutoSave: Map[ClientId, Cancellable] =
+          if (buffer.inMemory) autoSave
+          else upsertAutoSaveTimer(autoSave, clientId, modifiedBuffer.version)
         context.become(
           collaborativeEditing(modifiedBuffer, clients, lockHolder, newAutoSave)
         )
@@ -406,7 +399,12 @@ class CollaborativeBuffer(
       .applyEdits(buffer.contents, edits)
       .leftMap(toEditFailure)
       .map(rope =>
-        Buffer(buffer.file, rope, versionCalculator.evalVersion(rope.toString))
+        Buffer(
+          buffer.file,
+          rope,
+          buffer.inMemory,
+          versionCalculator.evalVersion(rope.toString)
+        )
       )
   }
 
@@ -421,27 +419,35 @@ class CollaborativeBuffer(
 
   private def readFile(
     rpcSession: JsonSession,
-    path: Path,
-    autoSave: Map[ClientId, Cancellable]
+    path: Path
   ): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
     val timeoutCancellable = context.system.scheduler
-      .scheduleOnce(timeout, self, IOTimeout)
+      .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
     context.become(
-      waitingForFileContent(rpcSession, sender(), timeoutCancellable, autoSave)
+      waitingForFileContent(
+        rpcSession,
+        sender(),
+        timeoutCancellable,
+        inMemoryBuffer = false
+      )
     )
   }
 
   private def openBuffer(
     rpcSession: JsonSession,
-    path: Path,
-    autoSave: Map[ClientId, Cancellable]
+    path: Path
   ): Unit = {
     fileManager ! FileManagerProtocol.OpenBuffer(path)
     val timeoutCancellable = context.system.scheduler
-      .scheduleOnce(timeout, self, IOTimeout)
+      .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
     context.become(
-      waitingForFileContent(rpcSession, sender(), timeoutCancellable, autoSave)
+      waitingForFileContent(
+        rpcSession,
+        sender(),
+        timeoutCancellable,
+        inMemoryBuffer = true
+      )
     )
   }
 
@@ -449,9 +455,10 @@ class CollaborativeBuffer(
     rpcSession: JsonSession,
     originalSender: ActorRef,
     file: TextualFileContent,
+    inMemoryBuffer: Boolean,
     autoSave: Map[ClientId, Cancellable]
   ): Unit = {
-    val buffer = Buffer(file.path, file.content)
+    val buffer = Buffer(file.path, file.content, inMemoryBuffer)
     val cap    = CapabilityRegistration(CanEdit(bufferPath))
     originalSender ! OpenFileResponse(
       Right(OpenFileResult(buffer, Some(cap)))
@@ -602,16 +609,14 @@ object CollaborativeBuffer {
     * @param bufferPath a path to a file
     * @param fileManager a file manager actor
     * @param runtimeConnector a gateway to the runtime
-    * @param timeout a request timeout
-    * @param versionCalculator a content based version calculator
     * @param timingsConfig a config with timing/delay values
+    * @param versionCalculator a content based version calculator
     * @return a configuration object
     */
   def props(
     bufferPath: Path,
     fileManager: ActorRef,
     runtimeConnector: ActorRef,
-    timeout: FiniteDuration = 10 seconds,
     timingsConfig: TimingsConfig
   )(implicit versionCalculator: ContentBasedVersioning): Props =
     Props(
@@ -619,7 +624,6 @@ object CollaborativeBuffer {
         bufferPath,
         fileManager,
         runtimeConnector,
-        timeout,
         timingsConfig
       )
     )

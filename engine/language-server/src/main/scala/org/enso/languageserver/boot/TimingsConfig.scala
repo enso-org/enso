@@ -4,12 +4,22 @@ import scala.concurrent.duration._
 
 /** TimingsConfig encapsulates information about timings or delays in messages being sent between services.
   *
+  * @param autoSave a request timeout
   * @param autoSave if non-empty value, determines the delay when auto-save should be triggered
   */
-class TimingsConfig(private[this] var autoSave: Option[FiniteDuration]) {
-  def this() = {
-    this(None)
+class TimingsConfig(
+  private[this] val timeout: FiniteDuration,
+  private[this] var autoSave: Option[FiniteDuration]
+) {
+  def this(timeout: FiniteDuration) = {
+    this(timeout, None)
   }
+
+  /** A request timeout.
+    *
+    * @return a duration to wait for the request to be handled
+    */
+  def requestTimeout: FiniteDuration = timeout
 
   /** Auto-save delay.
     *
@@ -29,5 +39,5 @@ class TimingsConfig(private[this] var autoSave: Option[FiniteDuration]) {
 }
 
 object TimingsConfig {
-  def default(): TimingsConfig = new TimingsConfig()
+  def default(): TimingsConfig = new TimingsConfig(10.seconds)
 }

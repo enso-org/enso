@@ -199,7 +199,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       BufferRegistry.props(
         fileManager,
         runtimeConnector,
-        TimingsConfig.default().withAutoSave(60.seconds)
+        TimingsConfig.default().withAutoSave(6.seconds)
       ),
       "buffer-registry"
     )
