@@ -13,8 +13,10 @@ use serde::Serialize;
 // === Constants ===
 // =================
 
+/// The namespace of the standard library.
 const STANDARD_NAMESPACE: &str = "Standard";
 
+/// The name of the project in the [`STANDARD_NAMESPACE`] containing the base standard library.
 const BASE_LIBRARY_NAME: &str = "Base";
 
 
