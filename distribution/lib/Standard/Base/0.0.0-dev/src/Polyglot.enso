@@ -1,12 +1,9 @@
-## Generic utilities for interacting with other languages.
+## A type representing interactions with polyglot languages.
+    Polyglot is a term that refers to other languages (such as Java) that are
+    running on the same JVM.
+
+@Builtin_Type
 type Polyglot
-
-    ## A type representing interactions with polyglot languages.
-        Polyglot is a term that refers to other languages (such as Java) that are
-        running on the same JVM.
-
-    @Builtin_Type
-    type Polyglot
 
 ## Reads the number of elements in a given polyglot array object.
 

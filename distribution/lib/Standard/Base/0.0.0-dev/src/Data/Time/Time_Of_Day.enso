@@ -19,7 +19,7 @@ polyglot java import org.enso.base.Time_Utils
 
          example_now = Time_Of_Day.now
 now : Time_Of_Day
-now = Time_Of_Day LocalTime.now
+now = Time_Of_Day_Data LocalTime.now
 
 ## Obtains an instance of `Time_Of_Day` from an hour, minute, second
    and nanosecond.
@@ -47,8 +47,8 @@ now = Time_Of_Day LocalTime.now
          example_epoch = Time_Of_Day.new hour=9 minute=30
 new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time.Time_Error
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Panic.catch_java Any (Time_Of_Day (LocalTime.of hour minute second nanosecond)) java_exception->
-        Error.throw (Time.Time_Error java_exception.getMessage)
+    Panic.catch_java Any (Time_Of_Day_Data (LocalTime.of hour minute second nanosecond)) java_exception->
+        Error.throw (Time.Time_Error_Data java_exception.getMessage)
 
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -118,9 +118,9 @@ parse text pattern=Nothing locale=Locale.default =
         Text ->
             formatter = DateTimeFormatter.ofPattern pattern
             LocalTime.parse text (formatter.withLocale locale.java_locale)
-        _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
-    Time_Of_Day result . map_error <| case _ of
-        Polyglot_Error err -> Time.Time_Error err.getMessage
+        _ -> Panic.throw (Time.Time_Error_Data "An invalid pattern was provided.")
+    Time_Of_Day_Data result . map_error <| case _ of
+        Polyglot_Error_Data err -> Time.Time_Error_Data err.getMessage
         x -> x
 
 type Time_Of_Day
@@ -135,7 +135,7 @@ type Time_Of_Day
 
        Time is represented to nanosecond precision. For example, the value
        "13:45.30.123456789" can be stored in a `Time_Of_Day`.
-    type Time_Of_Day internal_local_time
+    Time_Of_Day_Data internal_local_time
 
     ## Get the hour portion of the time of day.
 
@@ -206,7 +206,7 @@ type Time_Of_Day
              example_to_time = Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_time : Date -> Zone -> Time
     to_time self date (zone = Zone.system) =
-        Time.Time (self . internal_local_time . atDate date . atZone zone.internal_zone_id)
+        Time.Time_Data (self . internal_local_time . atDate date . atZone zone.internal_zone_id)
 
     ## Add the specified amount of time to this instant to get a new instant.
 
@@ -220,8 +220,8 @@ type Time_Of_Day
 
              example_plus = Time_Of_Day.new + 3.seconds
     + : Duration -> Time_Of_Day
-    + self amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
-        Time_Of_Day (self . internal_local_time . plus amount.internal_duration)
+    + self amount = if amount.is_date then Error.throw (Time.Time_Error_Data "Time_Of_Day does not support date intervals") else
+        Time_Of_Day_Data (self . internal_local_time . plus amount.internal_duration)
 
     ## Subtract the  specified amount of time from this instant to get a new
        instant.
@@ -237,8 +237,8 @@ type Time_Of_Day
 
              example_minus = Time_Of_Day.now - 12.hours
     - : Duration -> Time_Of_Day
-    - self amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
-        Time_Of_Day (self . internal_local_time . minus amount.internal_duration)
+    - self amount = if amount.is_date then Error.throw (Time.Time_Error_Data "Time_Of_Day does not support date intervals") else
+        Time_Of_Day_Data (self . internal_local_time . minus amount.internal_duration)
 
     ## Format this time of day as text using the default formatter.
 
@@ -334,5 +334,5 @@ type Time_Of_Day
     ## Compares two Time_Of_Day for equality.
     == : Date -> Boolean
     == self that = case that of
-        Time_Of_Day _ -> self.internal_local_time.equals that.internal_local_time
+        Time_Of_Day_Data _ -> self.internal_local_time.equals that.internal_local_time
         _ -> False

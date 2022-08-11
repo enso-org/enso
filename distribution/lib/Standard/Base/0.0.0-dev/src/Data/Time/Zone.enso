@@ -58,7 +58,7 @@ utc = parse "UTC"
          example_new = Zone.new 1 1 50
 new : Integer -> Integer -> Integer -> Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =
-    Zone (ZoneOffset.ofHoursMinutesSeconds hours minutes seconds . normalized)
+    Zone_Data (ZoneOffset.ofHoursMinutesSeconds hours minutes seconds . normalized)
 
 ## ALIAS Time Zone from Text
 
@@ -95,7 +95,7 @@ new (hours = 0) (minutes = 0) (seconds = 0) =
 
          example_parse = Zone.parse "+03:02:01"
 parse : Text -> Zone
-parse text = Zone (ZoneId.of text)
+parse text = Zone_Data (ZoneId.of text)
 
 type Zone
 

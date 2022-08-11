@@ -119,14 +119,14 @@ Text.at self index =
         True ->
             length = self.length
             new_index = index + length
-            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error index length) else
+            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error_Data index length) else
                 self.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText self
             first = iterator.next index
             next = if first == -1 then -1 else iterator.next
-            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error index self.length)) else
+            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)) else
                 Text_Utils.substring self first next
 
 ## ALIAS Get Characters
@@ -364,7 +364,7 @@ Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector.Vector Text
 Text.split self delimiter="," matcher=Text_Matcher_Data = if delimiter.is_empty then Error.throw (Illegal_Argument_Error "The delimiter cannot be empty.") else
     case matcher of
         Text_Matcher_Data case_sensitivity ->
-            delimiters = Vector.Vector <| case case_sensitivity of
+            delimiters = Vector.Vector_Data <| case case_sensitivity of
                 True ->
                     Text_Utils.span_of_all self delimiter
                 Case_Insensitive_Data locale ->
@@ -552,7 +552,7 @@ Text.words self keep_whitespace=False =
         '\na\nb\n'.lines keep_endings=True == ['\n', 'a\n', 'b\n']
 Text.lines : Boolean -> Vector.Vector Text
 Text.lines self keep_endings=False =
-    Vector.Vector (Text_Utils.split_on_lines self keep_endings)
+    Vector.Vector_Data (Text_Utils.split_on_lines self keep_endings)
 
 ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
@@ -674,7 +674,7 @@ Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds_Error
 Text.insert self index that =
     len = self.length
     idx = if index < 0 then len + index + 1 else index
-    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error index len) else
+    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error_Data index len) else
         if idx == 0 then that + self else
             if idx == len then self + that else
                 pre = self.take (Range_Data 0 idx)
@@ -739,7 +739,7 @@ Text.is_whitespace self =
 Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
 Text.bytes self encoding on_problems=Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
-    vector = Vector.Vector result.result
+    vector = Vector.Vector_Data result.result
     if result.warnings.is_nothing then vector else
         on_problems.attach_problems_after vector [Encoding_Error result.warnings]
 
@@ -817,7 +817,7 @@ Text.from_utf_8 bytes on_problems=Report_Warning =
 
          "Hello".char_vector
 Text.char_vector : Vector.Vector Integer
-Text.char_vector self = Vector.Vector (Text_Utils.get_chars self)
+Text.char_vector self = Vector.Vector_Data (Text_Utils.get_chars self)
 
 ## Takes a vector of characters and returns the text that results from it.
 
@@ -840,7 +840,7 @@ Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
          "Hello".codepoints
 Text.codepoints : Vector.Vector Integer
-Text.codepoints self = Vector.Vector (Text_Utils.get_codepoints self)
+Text.codepoints self = Vector.Vector_Data (Text_Utils.get_codepoints self)
 
 ## Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.
@@ -1487,8 +1487,8 @@ Text.location_of_all : Text -> Matcher -> [Span]
 Text.location_of_all self term="" matcher=Text_Matcher_Data = case matcher of
     Text_Matcher_Data case_sensitive -> if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case case_sensitive of
         True ->
-            codepoint_spans = Vector.Vector <| Text_Utils.span_of_all self term
-            grahpeme_ixes = Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
+            codepoint_spans = Vector.Vector_Data <| Text_Utils.span_of_all self term
+            grahpeme_ixes = Vector.Vector_Data <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
             ## While the codepoint_spans may have different code unit lengths
                from our term, the `length` counted in grapheme clusters is
                guaranteed to be the same.
@@ -1497,7 +1497,7 @@ Text.location_of_all self term="" matcher=Text_Matcher_Data = case matcher of
                 end = start+offset
                 Span_Data (Range_Data start end) self
         Case_Insensitive_Data locale ->
-            grapheme_spans = Vector.Vector <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
+            grapheme_spans = Vector.Vector_Data <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
             grapheme_spans.map grapheme_span->
                 Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
     Regex_Matcher_Data _ _ _ _ _ ->

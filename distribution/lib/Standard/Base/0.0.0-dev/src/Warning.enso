@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Runtime import Stack_Trace_Element
+from Standard.Base.Runtime import Stack_Trace_Element, Stack_Trace_Element_Data
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
@@ -35,11 +35,11 @@ type Warning
          nature is preserved.
     reassignments : Vector.Vector Stack_Trace_Element
     reassignments self =
-        Vector.Vector self.get_reassignments . map r->
+        Vector.Vector_Data self.get_reassignments . map r->
             loc = case Polyglot.has_source_location r of
                 False -> Nothing
-                True -> Source_Location (Polyglot.get_source_location r)
-            Stack_Trace_Element (Polyglot.get_executable_name r) loc
+                True -> Source_Location_Data (Polyglot.get_source_location r)
+            Stack_Trace_Element_Data (Polyglot.get_executable_name r) loc
 
     ## PRIVATE
 
@@ -77,7 +77,7 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
    Gets all the warnings attached to the given value. Warnings are returned in the
    reverse-chronological order with respect to their attachment time.
 get_all : Any -> Vector.Vector Warning
-get_all value = Vector.Vector (get_all_array value)
+get_all value = Vector.Vector_Data (get_all_array value)
 
 
 ## PRIVATE
@@ -200,7 +200,7 @@ detach_selected_warnings value predicate =
     result = warnings.partition w-> predicate w.value
     matched = result.first
     remaining = result.second
-    Pair (set remaining value) matched
+    Pair_Data (set remaining value) matched
 
 ## UNSTABLE
    A helper function which gathers warnings matching some predicate and passes

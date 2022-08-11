@@ -201,7 +201,8 @@ type Illegal_Argument_Error
    Arguments:
    - index: The requested index.
    - length: The length of the collection.
-type Index_Out_Of_Bounds_Error index length
+type Index_Out_Of_Bounds_Error
+    Index_Out_Of_Bounds_Error_Data index length
 
 ## UNSTABLE
 
@@ -213,7 +214,8 @@ Index_Out_Of_Bounds_Error.to_display_text self =
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
    from other panics.
-type Wrapped_Dataflow_Error payload
+type Wrapped_Dataflow_Error
+    Wrapped_Dataflow_Error_Data payload
 
 ## PRIVATE
    Throws the original error.

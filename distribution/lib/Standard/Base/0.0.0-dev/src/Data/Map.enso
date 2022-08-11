@@ -40,7 +40,7 @@ singleton key value = Bin 1 key value Tip Tip
 
          example_from_vector = Map.from_vector [[1, 2], [3, 4]]
 from_vector : Vector.Vector Any -> Map
-from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
+from_vector vec = vec.fold empty (m -> el -> m.insert (el.at 0) (el.at 1))
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
@@ -445,7 +445,7 @@ type Map
     first : Pair
     first self =
         first p m = case m of
-            Bin _ k v l _ -> @Tail_Call first (Pair k v) l
+            Bin _ k v l _ -> @Tail_Call first (Pair_Data k v) l
             Tip -> p
         first Nothing self
 
@@ -454,7 +454,7 @@ type Map
     last : Pair
     last self =
         last p m = case m of
-            Bin _ k v _ r -> @Tail_Call last (Pair k v) r
+            Bin _ k v _ r -> @Tail_Call last (Pair_Data k v) r
             Tip -> p
         last Nothing self
 

@@ -144,8 +144,8 @@ type Vector
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at self index =
         actual_index = if index < 0 then self.length + index else index
-        Panic.catch Invalid_Array_Index_Error (self.unsafe_at actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error index self.length)
+        Panic.catch Invalid_Array_Index_Error_Data (self.unsafe_at actual_index) _->
+            Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
 
     ## ADVANCED
        UNSTABLE
@@ -231,7 +231,7 @@ type Vector
     sum self =
         result = Panic.recover Any <| self.reduce (+)
         result.map_error x->case x of
-            No_Such_Method_Error _ _ -> x
+            No_Such_Method_Error_Data _ _ -> x
             Empty_Error -> x
             _ -> Panic.throw x
 
@@ -384,12 +384,12 @@ type Vector
              [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) == (Pair [2, 4] [1, 3, 5])
     partition : (Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition self predicate =
-        pair = self.fold (Pair new_builder new_builder) acc-> elem->
+        pair = self.fold (Pair_Data new_builder new_builder) acc-> elem->
             case predicate elem of
                 True ->
-                    Pair (acc.first.append elem) acc.second
+                    Pair_Data (acc.first.append elem) acc.second
                 False ->
-                    Pair acc.first (acc.second.append elem)
+                    Pair_Data acc.first (acc.second.append elem)
         pair.map .to_vector
 
     ## Partitions the vector into vectors of elements which satisfy a given
@@ -412,10 +412,10 @@ type Vector
              ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
     partition_with_index : (Integer -> Any -> Boolean) -> Pair (Vector Any) (Vector Any)
     partition_with_index self predicate =
-        pair = self.fold_with_index (Pair new_builder new_builder) acc-> ix-> elem->
+        pair = self.fold_with_index (Pair_Data new_builder new_builder) acc-> ix-> elem->
             case predicate ix elem of
-                True -> Pair (acc.first.append elem) acc.second
-                False -> Pair acc.first (acc.second.append elem)
+                True -> Pair_Data (acc.first.append elem) acc.second
+                False -> Pair_Data acc.first (acc.second.append elem)
         pair.map .to_vector
 
     ## Applies a function to each element of the vector, returning the vector of
@@ -852,7 +852,7 @@ type Vector
              [1, 2, 3, 4].second
     second : Vector ! Singleton_Error
     second self = if self.length >= 2 then self.unsafe_at 1 else
-        Error.throw (Singleton_Error self)
+        Error.throw (Singleton_Error_Data self)
 
     ## Get all elements in the vector except the first.
 
@@ -1097,8 +1097,8 @@ type Builder
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at self index =
         actual_index = if index < 0 then self.length + index else index
-        Panic.catch Invalid_Array_Index_Error (self.to_array.at actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error index self.length)
+        Panic.catch Invalid_Array_Index_Error_Data (self.to_array.at actual_index) _->
+            Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
 
     ## Checks whether a predicate holds for at least one element of this builder.
 
@@ -1170,4 +1170,4 @@ type Incomparable_Values_Error
    Incomparable_Values_Error if any occur.
 handle_incomparable_value ~function =
     handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
-    handle No_Such_Method_Error <| handle Type_Error <| handle Unsupported_Argument_Types <| function
+    handle No_Such_Method_Error_Data <| handle Type_Error_Data <| handle Unsupported_Argument_Types_Data <| function
