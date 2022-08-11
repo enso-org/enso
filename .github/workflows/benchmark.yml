@@ -6,7 +6,13 @@ name: Benchmark Engine
       - develop
   schedule:
     - cron: 0 5 * * 2-6
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      just-check:
+        description: "If set, benchmarks will be only checked to run correctly, not to measure actual performance."
+        required: true
+        type: boolean
+        default: false
 jobs:
   benchmark-engine:
     name: Benchmark Engine
@@ -54,4 +60,5 @@ jobs:
         run: ls -lAR
         if: "failure() && runner.os != 'Windows'"
 env:
+  ENSO_BUILD_MINIMAL_RUN: "${{ inputs.just-check }}"
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
