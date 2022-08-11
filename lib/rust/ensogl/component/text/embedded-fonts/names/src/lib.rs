@@ -16,7 +16,6 @@
 
 
 use std::collections::HashMap;
-use std::rc::Rc;
 
 pub use owned_ttf_parser::Style;
 pub use owned_ttf_parser::Weight;
@@ -24,6 +23,10 @@ pub use owned_ttf_parser::Width;
 
 
 
+/// A name of a font. The name is being normalized during construction to eliminate accidental
+/// mistakes. The normalization is done by removing all spaces, dashes, and underscores, and
+/// replacing all uppercase letters with lowercase ones.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct FontName {
     pub normalized: String,
@@ -31,7 +34,8 @@ pub struct FontName {
 
 impl From<&str> for FontName {
     fn from(name: &str) -> Self {
-        FontName { normalized: name.to_lowercase().replace("-", "").replace("_", "") }
+        let normalized = name.to_lowercase().replace(' ', "").replace('-', "").replace('_', "");
+        FontName { normalized }
     }
 }
 
@@ -54,6 +58,7 @@ impl From<String> for FontName {
 /// fonts. For variable fonts, there is just one definition for any combination of the parameters.
 /// The combination reflects how the `@font-face` rule is defined in the CSS. See the following link
 /// to learn more: https://www.w3schools.com/cssref/css3_pr_font-face_rule.asp
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct NonVariableFontFaceHeader {
     pub width:  Width,
@@ -88,14 +93,18 @@ impl NonVariableFontFamilyDefinition {
         Self { map }
     }
 
-    pub fn from_iter(iter: impl IntoIterator<Item = (NonVariableFontFaceHeader, String)>) -> Self {
-        Self::new(iter.into_iter().collect())
-    }
-
     pub fn possible_weights(&self) -> Vec<Weight> {
         self.map.keys().map(|header| header.weight).collect()
     }
 }
+
+impl FromIterator<(NonVariableFontFaceHeader, String)> for NonVariableFontFamilyDefinition {
+    fn from_iter<T>(iter: T) -> Self
+    where T: IntoIterator<Item = (NonVariableFontFaceHeader, String)> {
+        Self::new(iter.into_iter().collect())
+    }
+}
+
 
 impl VariableFontFamilyDefinition {
     pub fn new(file: impl Into<String>) -> Self {
@@ -127,68 +136,3 @@ pub fn font_family_files_map() -> HashMap<FontName, FontFamilyDefinition> {
     );
     map
 }
-
-
-
-//
-// // ==================
-// // === DejaVuSans ===
-// // ==================
-//
-// /// A type with methods returning names of fonts in the DejaVuSans font family.
-// #[derive(Copy, Clone, Debug)]
-// pub struct DejaVuSans;
-//
-// impl Family for DejaVuSans {
-//     fn name(&self) -> &str {
-//         "DejaVuSans"
-//     }
-//
-//     fn is_variable(&self) -> bool {
-//         false
-//     }
-//
-//     fn is_monospace(&self) -> bool {
-//         false
-//     }
-//
-//     fn file_name(&self, header: NonVariableFaceHeader) -> Option<&str> {
-//         match (header.width, header.weight, header.style) {
-//             (Width::Normal, Weight::Normal, Style::Normal) => Some("DejaVuSans.ttf"),
-//             (Width::Normal, Weight::Bold, Style::Normal) => Some("DejaVuSans-Bold.ttf"),
-//             _ => None,
-//         }
-//     }
-// }
-//
-//
-//
-// // ======================
-// // === DejaVuSansMono ===
-// // ======================
-//
-// /// A type with methods returning names of fonts in the DejaVuSans font family.
-// #[derive(Copy, Clone, Debug)]
-// pub struct DejaVuSansMono;
-//
-// impl Family for DejaVuSansMono {
-//     fn name(&self) -> &str {
-//         "DejaVuSansMono"
-//     }
-//
-//     fn is_variable(&self) -> bool {
-//         false
-//     }
-//
-//     fn is_monospace(&self) -> bool {
-//         true
-//     }
-//
-//     fn file_name(&self, header: NonVariableFaceHeader) -> Option<&str> {
-//         match (header.width, header.weight, header.style) {
-//             (Width::Normal, Weight::Normal, Style::Normal) => Some("DejaVuSansMono.ttf"),
-//             (Width::Normal, Weight::Bold, Style::Normal) => Some("DejaVuSansMono-Bold.ttf"),
-//             _ => None,
-//         }
-//     }
-// }
