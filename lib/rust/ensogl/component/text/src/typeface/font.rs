@@ -26,6 +26,7 @@ use std::collections::hash_map::Entry;
 pub use ensogl_text_font::*;
 
 
+
 // =================
 // === Constants ===
 // =================
@@ -329,6 +330,12 @@ impl Font {
 //     rc: Rc<NonVariableFontData>,
 // }
 
+#[derive(Debug, Default)]
+pub struct FontDataCache {
+    kerning: HashMap<(GlyphId, GlyphId), f32>,
+    glyphs:  HashMap<GlyphId, GlyphRenderInfo>,
+}
+
 #[derive(Deref, Derivative, CloneRef, Debug)]
 #[derivative(Clone(bound = ""))]
 pub struct FontTemplate<Family, Variations> {
@@ -341,11 +348,7 @@ pub struct FontDataTemplate<Family, Variations> {
     pub name:               FontName,
     family:                 Family,
     atlas:                  msdf::Texture,
-    // FIXME: docs wrong vvv
-    /// Kerning is also available in the `font_face` structure, but accessing it is slower than via
-    /// a cache.
-    kerning:                Cache<(Variations, GlyphId, GlyphId), f32>,
-    glyphs:                 Cache<(Variations, GlyphId), GlyphRenderInfo>,
+    cache:                  RefCell<HashMap<Variations, FontDataCache>>,
     loader:                 FontLoader,
     // FIXME: remove after MSDF-gen API will be updated to handle GlyphIds.
     glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
@@ -362,12 +365,10 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     /// Constructor.
     pub fn new(name: FontName, family: impl Into<F>, loader: FontLoader) -> Self {
         let atlas = default();
-        let glyphs = default();
-        let kerning = default();
+        let cache = default();
         let family = family.into();
         let glyph_id_to_code_point = default();
-        FontDataTemplate { name, family, atlas, glyphs, kerning, loader, glyph_id_to_code_point }
-            .into()
+        FontDataTemplate { name, family, atlas, cache, loader, glyph_id_to_code_point }.into()
     }
 
 
@@ -393,11 +394,8 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
         glyph_id: GlyphId,
         f: impl FnOnce(GlyphRenderInfo),
     ) {
-        // FIXME: clone really needed?
-        let variations = variations.clone();
-        let key = (variations, glyph_id);
-        let opt_render_info = self.glyphs.map.borrow().get(&key).copied();
-        let (variations, _) = key;
+        let opt_render_info =
+            self.cache.borrow().get(variations).and_then(|t| t.glyphs.get(&glyph_id)).copied();
         if let Some(render_info) = opt_render_info {
             f(render_info);
         } else {
@@ -405,7 +403,15 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
                 // FIXME: remove
                 let ch = *self.glyph_id_to_code_point.borrow().get(&glyph_id).unwrap();
                 let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
-                self.glyphs.map.borrow_mut().insert((variations.clone(), glyph_id), render_info);
+                if !self.cache.borrow().contains_key(variations) {
+                    self.cache.borrow_mut().insert(variations.clone(), default());
+                }
+                self.cache
+                    .borrow_mut()
+                    .get_mut(variations)
+                    .unwrap()
+                    .glyphs
+                    .insert(glyph_id, render_info);
                 f(render_info)
             })
         }
@@ -420,9 +426,17 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
         f: impl FnOnce(f32),
     ) {
         self.family.get_or_load_face(variations, &self.loader, |face| {
-            // FIXME: performance of variations.clone here.
-            let kerning =
-                self.kerning.get_or_create((variations.clone(), left_id, right_id), || {
+            if !self.cache.borrow().contains_key(variations) {
+                self.cache.borrow_mut().insert(variations.clone(), default());
+            }
+            let kerning = *self
+                .cache
+                .borrow_mut()
+                .get_mut(variations)
+                .unwrap()
+                .kerning
+                .entry((left_id, right_id))
+                .or_insert_with(|| {
                     let tables = face.ttf.as_face_ref().tables();
                     let units_per_em = tables.head.units_per_em;
                     let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
