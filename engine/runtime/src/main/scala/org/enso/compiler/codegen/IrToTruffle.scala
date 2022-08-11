@@ -959,21 +959,21 @@ class IrToTruffle(
               num.numericValue match {
                 case doubleVal: Double =>
                   Right(
-                    LiteralBranchNode.build(
+                    NumericLiteralBranchNode.build(
                       doubleVal,
                       branchCodeNode.getCallTarget
                     )
                   )
                 case longVal: Long =>
                   Right(
-                    LiteralBranchNode.build(
+                    NumericLiteralBranchNode.build(
                       longVal,
                       branchCodeNode.getCallTarget
                     )
                   )
                 case bigIntVal: BigInteger =>
                   Right(
-                    LiteralBranchNode.build(
+                    NumericLiteralBranchNode.build(
                       bigIntVal,
                       branchCodeNode.getCallTarget
                     )
@@ -985,7 +985,7 @@ class IrToTruffle(
               }
             case text: IR.Literal.Text =>
               Right(
-                LiteralBranchNode.build(
+                StringLiteralBranchNode.build(
                   text.text,
                   branchCodeNode.getCallTarget
                 )

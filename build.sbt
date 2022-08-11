@@ -1246,6 +1246,7 @@ lazy val runtime = (project in file("engine/runtime"))
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
+      "com.ibm.icu"         % "icu4j"                 % icuVersion,
       "com.chuusai"        %% "shapeless"             % shapelessVersion,
       "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
       "org.apache.tika"     % "tika-core"             % tikaVersion,

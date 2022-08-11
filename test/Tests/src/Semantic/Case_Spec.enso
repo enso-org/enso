@@ -91,6 +91,8 @@ spec = Test.group "Pattern Matches" <|
     Test.specify "should be able to match on literal values" <|
         value_1 = 42
         value_2 = "foo"
+        value_3 = 's\u0301'
+        value_4 = '\u00E9'
         case value_1 of
             0     -> Test.fail "Expected value to match constant."
             "foo" -> Test.fail "Expected value to match constant."
@@ -101,6 +103,17 @@ spec = Test.group "Pattern Matches" <|
             0     -> Test.fail "Expected value to match constant."
             "foo" -> Nothing
             _     -> Test.fail "Expected value to match constant."
+        case value_3 of
+            "s"   -> Test.fail "Expected value to match constant."
+            "ś"   -> Nothing
+            _     -> Test.fail "Expected value to match constant."
+        case value_4 of
+            "e"   -> Test.fail "Expected value to match constant."
+            "ę"   -> Test.fail "Expected value to match constant."
+            '\u0065\u{301}' -> Nothing
+            _     -> Test.fail "Expected value to match constant."
+
+
     Test.specify "should be able to match on literal values nested in constructors" <|
         value_1 = Cons 42 Nil
         case value_1 of
