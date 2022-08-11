@@ -88,7 +88,8 @@ impl QualifiedName {
         }
     }
 
-    /// Return the qualified name of the "Standard.Base" library project.
+    /// Return the qualified name of the [`BASE_LIBRARY_NAME`] project in the
+    /// [`STANDARD_NAMESPACE`].
     pub fn standard_base_library() -> Self {
         Self::from_segments(STANDARD_NAMESPACE, BASE_LIBRARY_NAME).unwrap()
     }
