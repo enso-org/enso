@@ -6,6 +6,7 @@ use ensogl_core::display::world::*;
 
 use crate::typeface::font;
 
+use crate::typeface::font::VariationAxes;
 use const_format::concatcp;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
@@ -19,8 +20,8 @@ use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
 use ensogl_text_embedded_fonts::Style;
 use ensogl_text_embedded_fonts::Weight;
 use ensogl_text_embedded_fonts::Width;
+use font::Font;
 use font::GlyphRenderInfo;
-use font::NonVariableFont;
 use owned_ttf_parser::GlyphId;
 
 
@@ -46,8 +47,9 @@ pub struct GlyphData {
     glyph_id:    Cell<GlyphId>,
     sprite:      Sprite,
     context:     Context,
-    font:        NonVariableFont,
+    font:        Font,
     properties:  Cell<NonVariableFontFaceHeader>,
+    variations:  RefCell<VariationAxes>,
     font_size:   Attribute<f32>,
     color:       Attribute<Vector4<f32>>,
     sdf_bold:    Attribute<f32>,
@@ -124,29 +126,44 @@ impl Glyph {
     /// Size setter.
     pub fn set_font_size(&self, size: f32) {
         self.font_size.set(size);
-        self.font.with_glyph_info(self.properties.get(), self.glyph_id.get(), |glyph_info| {
-            self.sprite.size.set(glyph_info.scale.scale(size));
-        })
+        self.font.with_glyph_info(
+            self.properties.get(),
+            &self.variations.borrow(),
+            self.glyph_id.get(),
+            |glyph_info| {
+                self.sprite.size.set(glyph_info.scale.scale(size));
+            },
+        )
     }
 
     /// Change the displayed character.
     pub fn set_glyph_id(&self, glyph_id: GlyphId) {
         self.glyph_id.set(glyph_id);
-        self.font.with_glyph_info(self.properties.get(), glyph_id, |glyph_info| {
-            self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
-            self.update_atlas();
-            let font_size = self.font_size();
-            self.sprite.size.set(glyph_info.scale.scale(font_size));
-        })
+        self.font.with_glyph_info(
+            self.properties.get(),
+            &self.variations.borrow(),
+            glyph_id,
+            |glyph_info| {
+                self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
+                self.update_atlas();
+                let font_size = self.font_size();
+                self.sprite.size.set(glyph_info.scale.scale(font_size));
+            },
+        )
     }
 
     pub fn set_char(&self, ch: char) {
-        self.font.glyph_id_of_code_point(self.properties.get(), ch, |opt_glyph_id| {
-            if let Some(glyph_id) = opt_glyph_id {
-                self.set_glyph_id(glyph_id)
-            }
-            // FIXME: display not found char
-        })
+        self.font.glyph_id_of_code_point(
+            self.properties.get(),
+            &self.variations.borrow(),
+            ch,
+            |opt_glyph_id| {
+                if let Some(glyph_id) = opt_glyph_id {
+                    self.set_glyph_id(glyph_id)
+                }
+                // FIXME: display not found char
+            },
+        )
     }
 
     /// Check whether the CPU-bound texture changed and if so, upload it to GPU.
@@ -188,7 +205,7 @@ pub struct System {
     logger:        Logger,
     context:       Context,
     sprite_system: SpriteSystem,
-    pub font:      NonVariableFont,
+    pub font:      Font,
     font_size:     Buffer<f32>,
     color:         Buffer<Vector4<f32>>,
     sdf_bold:      Buffer<f32>,
@@ -199,7 +216,7 @@ pub struct System {
 impl System {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(scene: impl AsRef<Scene>, font: NonVariableFont) -> Self {
+    pub fn new(scene: impl AsRef<Scene>, font: Font) -> Self {
         let logger = Logger::new("glyph_system");
         let size = font::msdf::Texture::size();
         let scene = scene.as_ref();
@@ -242,6 +259,7 @@ impl System {
         let atlas = self.atlas.clone();
         let glyph_id = default();
         let properties = default();
+        let variations = default();
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
         Glyph {
@@ -256,6 +274,7 @@ impl System {
                 atlas,
                 glyph_id,
                 properties,
+                variations,
             }),
         }
     }

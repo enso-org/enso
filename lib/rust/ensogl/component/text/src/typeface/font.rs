@@ -73,7 +73,7 @@ shared! { Registry
 #[derive(Debug)]
 pub struct RegistryData {
     font_loader: FontLoader,
-    fonts:       HashMap<FontName,NonVariableFont>,
+    fonts:       HashMap<FontName,Font>,
 }
 
 impl {
@@ -81,7 +81,7 @@ impl {
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns None if the name is missing in both cache and embedded
     /// font list.
-    pub fn load(&mut self, name:impl Into<FontName>) -> NonVariableFont {
+    pub fn load(&mut self, name:impl Into<FontName>) -> Font {
         let name = name.into();
         event!(WARN, "Loading font: {:?}", name);
         match self.fonts.entry(name.clone()) {
@@ -92,8 +92,9 @@ impl {
                     self.font_loader.rc.borrow().font_family_definitions.get(&name).unwrap().clone();
                 match definition {
                     FontFamilyDefinition::NonVariable(definition) =>
-                        NonVariableFont::new(name, definition, self.font_loader.clone_ref()),
-                    t => panic!("{:?}", t),
+                        NonVariableFont::new(name, definition, self.font_loader.clone_ref()).into(),
+                    FontFamilyDefinition::Variable(definition) =>
+                        VariableFont::new(name, definition, self.font_loader.clone_ref()).into(),
                 }
             }
         }
@@ -255,7 +256,7 @@ pub struct VariationAxes {
 // === Font ===
 // ============
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, From)]
 pub enum Font {
     NonVariable(NonVariableFont),
     Variable(VariableFont),
@@ -264,6 +265,51 @@ pub enum Font {
 pub type NonVariableFont = FontTemplate<NonVariableFontFamily, NonVariableFontFaceHeader>;
 pub type VariableFont = FontTemplate<VariableFontFamily, VariationAxes>;
 
+
+impl Font {
+    pub fn with_glyph_info(
+        &self,
+        non_variable_font_variations: NonVariableFontFaceHeader,
+        variable_font_variations: &VariationAxes,
+        glyph_id: GlyphId,
+        f: impl FnOnce(GlyphRenderInfo),
+    ) {
+        match self {
+            Font::NonVariable(font) =>
+                font.with_glyph_info(&non_variable_font_variations, glyph_id, f),
+            Font::Variable(font) => font.with_glyph_info(variable_font_variations, glyph_id, f),
+        }
+    }
+
+    pub fn glyph_id_of_code_point(
+        &self,
+        non_variable_font_variations: NonVariableFontFaceHeader,
+        variable_font_variations: &VariationAxes,
+        code_point: char,
+        f: impl FnOnce(Option<GlyphId>),
+    ) {
+        match self {
+            Font::NonVariable(font) =>
+                font.glyph_id_of_code_point(&non_variable_font_variations, code_point, f),
+            Font::Variable(font) =>
+                font.glyph_id_of_code_point(variable_font_variations, code_point, f),
+        }
+    }
+
+    pub fn msdf_texture_rows(&self) -> usize {
+        match self {
+            Font::NonVariable(font) => font.msdf_texture_rows(),
+            Font::Variable(font) => font.msdf_texture_rows(),
+        }
+    }
+
+    pub fn with_borrowed_msdf_texture_data<R>(&self, operation: impl FnOnce(&[u8]) -> R) -> R {
+        match self {
+            Font::NonVariable(font) => font.with_borrowed_msdf_texture_data(operation),
+            Font::Variable(font) => font.with_borrowed_msdf_texture_data(operation),
+        }
+    }
+}
 
 
 // ====================
@@ -327,11 +373,11 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
 
     pub fn glyph_id_of_code_point(
         &self,
-        variations: V,
+        variations: &V,
         code_point: char,
         f: impl FnOnce(Option<GlyphId>),
     ) {
-        self.family.get_or_load_face(&variations, &self.loader, |face| {
+        self.family.get_or_load_face(variations, &self.loader, |face| {
             let id = face.ttf.as_face_ref().glyph_index(code_point);
             if let Some(id) = id {
                 self.glyph_id_to_code_point.borrow_mut().insert(id, code_point);
@@ -343,10 +389,12 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     /// Get render info for one character, generating one if not found.
     pub fn with_glyph_info(
         &self,
-        variations: V,
+        variations: &V,
         glyph_id: GlyphId,
         f: impl FnOnce(GlyphRenderInfo),
     ) {
+        // FIXME: clone really needed?
+        let variations = variations.clone();
         let key = (variations, glyph_id);
         let opt_render_info = self.glyphs.map.borrow().get(&key).copied();
         let (variations, _) = key;
