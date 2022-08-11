@@ -24,7 +24,7 @@ new : Number -> (Number -> Any) -> Vector Any
 new length constructor =
     arr = Array.new length
     0.up_to length . each ix-> arr.set_at ix (constructor ix)
-    Vector arr
+    Vector_Data arr
 
 ## Creates a new vector of the given length, filling the elements with
    the provided constant.
@@ -44,7 +44,7 @@ fill : Number -> Any -> Vector Any
 fill length ~item =
     arr = Array.new length
     0.up_to length . each ix-> arr.set_at ix item
-    Vector arr
+    Vector_Data arr
 
 ## Creates a new vector builder instance.
 
@@ -114,7 +114,7 @@ type Vector
          A vector containing 50 elements, each being the number `42`, can be
          created by:
              Vector.fill length=50 item=42
-    type Vector to_array
+    Vector_Data to_array
 
     ## Returns the number of elements stored in this vector.
 
@@ -462,7 +462,7 @@ type Vector
         self.fold 0 i-> vec->
             Array.copy vec.to_array 0 arr i vec.length
             i + vec.length
-        Vector arr
+        Vector_Data arr
 
     ## Applies a function to each element of the vector, returning the vector
        of results.
@@ -593,7 +593,7 @@ type Vector
         arr = Array.new (self_len + that.length)
         Array.copy self.to_array 0 arr 0 self_len
         Array.copy that.to_array 0 arr self_len that.length
-        Vector arr
+        Vector_Data arr
 
     ## Add `element` to the beginning of `self` vector.
 
@@ -652,12 +652,12 @@ type Vector
     take self start end =
         slice_start = Math.max 0 start
         slice_end = Math.min self.length end
-        if slice_start >= slice_end then Vector (Array.new 0) else
+        if slice_start >= slice_end then Vector_Data (Array.new 0) else
             if (slice_start == 0) && (slice_end == self.length) then self else
                 len = slice_end - slice_start
                 arr = Array.new len
                 Array.copy self.to_array slice_start arr 0 len
-                Vector arr
+                Vector_Data arr
 
     ## Creates a new vector with the first `count` elements in `self` removed.
 
@@ -921,7 +921,7 @@ type Vector
 
         new_vec_arr.sort compare
 
-        Vector new_vec_arr
+        Vector_Data new_vec_arr
 
     ## UNSTABLE
        Keeps only unique elements within the Vector, removing any duplicates.
@@ -1008,7 +1008,7 @@ type Builder
                              @Tail_Call do_build new_builder start+1 stop
                      builder = do_build Vector.new_builder 1 10
                      builder.to_vector
-    type Builder to_array length
+    Builder_Data to_array length
 
     ## Creates a new builder.
 
@@ -1020,7 +1020,7 @@ type Builder
 
              Vector.new_builder
     new : Integer->Builder
-    new (capacity=1) = Builder (Array.new capacity) 0
+    new (capacity=1) = Builder_Data (Array.new capacity) 0
 
     ## Returns the current capacity (i.e. the size of the underlying storage)
        of this builder.
@@ -1126,7 +1126,7 @@ type Builder
         old_array = self.to_array
         new_array = Array.new self.length
         Array.copy old_array 0 new_array 0 self.length
-        Vector new_array
+        Vector_Data new_array
 
 ## UNSTABLE
 
@@ -1145,7 +1145,8 @@ Empty_Error.to_display_text self = "The vector is empty."
 
    Arguments:
    - vec: The vector that only has one element.
-type Singleton_Error vec
+type Singleton_Error
+    Singleton_Error_Data vec
 
 ## UNSTABLE
 
@@ -1155,7 +1156,8 @@ Singleton_Error.to_display_text self =
     "The vector " + self.vec.to_text  + " has only one element."
 
 ## PRIVATE
-type Partition_Accumulator true_builder false_builder ix
+type Partition_Accumulator
+    Partition_Accumulator_Data true_builder false_builder ix
 
 ## UNSTABLE
 

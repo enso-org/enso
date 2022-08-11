@@ -18,7 +18,8 @@ No_Matches_Found.to_display_text self =
 
    Arguments:
    - locale: The locale used for the comparison.
-type Case_Insensitive locale=Locale.default
+type Case_Insensitive
+    Case_Insensitive_Data locale=Locale.default
 
 ## Represents exact text matching mode.
 
@@ -66,7 +67,7 @@ Regex_Matcher.compile self pattern =
         ## TODO [RW] Currently locale is not supported in case-insensitive
            Regex matching. There are plans to revisit it:
            https://www.pivotaltracker.com/story/show/181313576
-        Case_Insensitive _ -> True
+        Case_Insensitive_Data _ -> True
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive match_ascii=self.match_ascii dot_matches_newline=self.dot_matches_newline multiline=self.multiline comments=self.comments
     compiled_pattern
 
@@ -86,7 +87,7 @@ Text_Matcher.match_single_criterion : Text -> Text -> Boolean
 Text_Matcher.match_single_criterion self name criterion =
     case self.case_sensitive of
         True -> name == criterion
-        Case_Insensitive locale -> name.equals_ignore_case criterion locale=locale
+        Case_Insensitive_Data locale -> name.equals_ignore_case criterion locale=locale
 
 ## UNSTABLE
    Checks if a name matches the provided criterion according to the specified

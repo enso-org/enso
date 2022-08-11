@@ -725,7 +725,8 @@ class Compiler(
       }
       if (reportDiagnostics(diagnostics)) {
         val count = diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
-        println(s"Aborting due to ${count} errors.")
+        val warnCount = diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
+        println(s"Aborting due to ${count} errors and ${warnCount} warnings.")
         throw new CompilationAbortedException
       }
     }

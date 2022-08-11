@@ -21,7 +21,7 @@ polyglot java import org.enso.base.Time_Utils
 
          example_now = Time.now
 now : Time
-now = Time ZonedDateTime.now
+now = Time_Data ZonedDateTime.now
 
 ## Obtains an instance of `Time` from a year, month, day, hour, minute,
    second, nanosecond and timezone.
@@ -55,8 +55,8 @@ now = Time ZonedDateTime.now
          example_new = Time.new 1986 8 5
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time ! Time_Error
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
-    Panic.catch_java Any (Time (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) java_exception->
-        Error.throw (Time_Error java_exception.getMessage)
+    Panic.catch_java Any (Time_Data (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) java_exception->
+        Error.throw (Time_Error_Data java_exception.getMessage)
 
 ## ALIAS Time from Text
 
@@ -141,9 +141,9 @@ parse text pattern=Nothing locale=Locale.default =
     result = Panic.recover Any <| case pattern of
         Nothing -> Time_Utils.parse_time text
         Text -> Time_Utils.parse_time_format text pattern locale.java_locale
-        _ -> Panic.throw (Time_Error "An invalid pattern was provided.")
-    Time result . map_error <| case _ of
-        Polyglot_Error err ->  Time_Error err.getMessage
+        _ -> Panic.throw (Time_Error_Data "An invalid pattern was provided.")
+    Time_Data result . map_error <| case _ of
+        Polyglot_Error_Data err ->  Time_Error_Data err.getMessage
         x -> x
 
 type Time
@@ -163,7 +163,7 @@ type Time
 
        For example, the value "2nd October 2007 at 13:45.30.123456789 +02:00 in
        the Europe/Paris timezone" can be stored as `Time`.
-    type Time internal_zoned_date_time
+    Time_Data internal_zoned_date_time
 
     ## Get the year portion of the time.
 
@@ -316,7 +316,7 @@ type Time
 
              exaomple_at_zone = Time.new 2020 . at_zone (Zone.new -4)
     at_zone : Zone -> Time
-    at_zone self zone = Time (self.internal_zoned_date_time . withZoneSameInstant zone.internal_zone_id)
+    at_zone self zone = Time_Data (self.internal_zoned_date_time . withZoneSameInstant zone.internal_zone_id)
 
     ## Add the specified amount of time to this instant to produce a new instant.
 
@@ -331,7 +331,7 @@ type Time
 
              example_plus = Time.new 2020 + 15.years + 3.hours
     + : Duration -> Time
-    + self amount = Time (self . internal_zoned_date_time . plus amount.internal_period . plus amount.internal_duration)
+    + self amount = Time_Data (self . internal_zoned_date_time . plus amount.internal_period . plus amount.internal_duration)
 
     ## Subtract the specified amount of time from this instant to get a new
        instant.
@@ -347,7 +347,7 @@ type Time
 
              example_minus = Time.new 2020 - 1.year - 9.months
     - : Duration -> Time
-    - self amount = Time (self . internal_zoned_date_time . minus amount.internal_period . minus amount.internal_duration)
+    - self amount = Time_Data (self . internal_zoned_date_time . minus amount.internal_period . minus amount.internal_duration)
 
     ## Convert this time to text using the default formatter.
 
@@ -468,16 +468,9 @@ type Time
     ## Compares two Time for equality.
     == : Time -> Boolean
     == self that = case that of
-        Time _ -> self.internal_zoned_date_time.equals that.internal_zoned_date_time
+        Time_Data _ -> self.internal_zoned_date_time.equals that.internal_zoned_date_time
         _ -> False
 
 type Time_Error
-
-    ## UNSTABLE
-
-       An error produced while working with time.
-
-       Arguments:
-       - error_message: The message for the error.
-    type Time_Error error_message
+    Time_Error_Data error_message
 

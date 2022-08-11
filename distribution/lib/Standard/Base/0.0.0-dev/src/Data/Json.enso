@@ -133,12 +133,12 @@ type Json
              example_unwrap = Json.Number 3 . unwrap
     unwrap : Any
     unwrap self = case self of
-        Json.Array its -> its.map .unwrap
-        Json.Boolean b -> b
-        Json.Number n -> n
-        Json.String t -> t
-        Json.Null -> Nothing
-        Json.Object f -> f.map .unwrap
+        Array its -> its.map .unwrap
+        Boolean b -> b
+        Number n -> n
+        String t -> t
+        Null -> Nothing
+        Object f -> f.map .unwrap
 
 ## UNSTABLE
 
@@ -201,7 +201,7 @@ type Marshalling_Error
        - format: The type format that did not match.
 
        This can occur e.g. when trying to reinterpret a number as a `Text`, etc.
-    type Type_Mismatch_Error json format
+    Type_Mismatch_Error json format
 
     ## UNSTABLE
 
@@ -215,7 +215,7 @@ type Marshalling_Error
 
        This can occure when trying to reinterpret a JSON object into an atom,
        when the JSON does not contain all the fields required by the atom.
-    type Missing_Field_Error json field format
+    Missing_Field_Error json field format
 
     ## UNSTABLE
 

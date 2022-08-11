@@ -6616,6 +6616,22 @@ object IR {
 
       override def diagnosticKeys(): Array[Any] = Array(ir.showCode(), reason)
     }
+
+    case class NonUnitTypeUsedOnValueLevel(ir: IR.Name) extends Warning {
+
+      /** @return a human-readable description of this error condition.
+        */
+      override def message: String =
+        s"A non-unit type ${ir.name} is used on value level." +
+        " This is probably an error"
+
+      /** The location at which the diagnostic occurs. */
+      override val location: Option[IdentifiedLocation] = ir.location
+
+      /** The important keys identifying identity of the diagnostic
+        */
+      override def diagnosticKeys(): Array[Any] = Array(ir.name)
+    }
   }
 
   // === Errors ===============================================================
@@ -7863,7 +7879,7 @@ object IR {
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
-         /** Creates a copy of `this`.
+        /** Creates a copy of `this`.
           *
           * @param atomName the name of the atom the method was being redefined
           *                 on

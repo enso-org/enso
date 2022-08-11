@@ -83,7 +83,7 @@ find_codepoint_ranges text subrange =
                 Range 0 indices.first
         By_Index indices ->
             case indices of
-                Vector.Vector _ ->
+                Vector.Vector_Data _ ->
                     if indices.length == 1 then resolve_index_or_range text indices.first else
                         batch_resolve_indices_or_ranges text indices
                 _ -> resolve_index_or_range text indices
@@ -97,7 +97,7 @@ find_codepoint_ranges text subrange =
                 if start >= len then Range 0 0 else
                     range = Range start text.length step
                     find_codepoint_ranges text (By_Index range)
-        Range _ _ _ ->
+        Range_Data _ _ _ ->
             find_codepoint_ranges text (By_Index subrange)
 
 type Codepoint_Ranges

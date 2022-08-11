@@ -4,23 +4,19 @@ import Standard.Base.Runtime
 
 polyglot java import java.lang.IllegalArgumentException
 
-## Dataflow errors.
+## A type representing dataflow errors.
+
+   A dataflow error in Enso is one that behaves like a standard value, and
+   hence represents erroneous states in a way that exists _within_ standard
+   control flow.
+
+   ? Dataflow Errors or Panics
+     Whilst a Panic is useful for unrecoverable situations, most Enso APIs
+     are designed to use dataflow errors instead. As they exist within the
+     normal program control flow, they are able to be represented on the
+     Enso graph.
+@Builtin_Type
 type Error
-
-    ## A type representing dataflow errors.
-
-       A dataflow error in Enso is one that behaves like a standard value, and
-       hence represents erroneous states in a way that exists _within_ standard
-       control flow.
-
-       ? Dataflow Errors or Panics
-         Whilst a Panic is useful for unrecoverable situations, most Enso APIs
-         are designed to use dataflow errors instead. As they exist within the
-         normal program control flow, they are able to be represented on the
-         Enso graph.
-    @Builtin_Type
-    type Error
-
     ## Creates a new dataflow error containing the provided payload.
 
        Arguments:
@@ -552,7 +548,8 @@ No_Such_Method_Error.method_name self =
    Arguments:
    - cause: A polyglot object corresponding to the original error.
 @Builtin_Type
-type Polyglot_Error cause
+type Polyglot_Error
+    Polyglot_Error_Data cause
 
 ## An error that occurs when the enso_project function is called in a file
    that is not part of a project.
@@ -564,7 +561,8 @@ type Module_Not_In_Package_Error
    Arguments:
    - message: A description of the error condition.
 @Builtin_Type
-type Arithmetic_Error message
+type Arithmetic_Error
+    Arithmetic_Error_Data message
 
 ## An error that occurs when a program requests a read from an array index
    that is out of bounds in the array.
@@ -573,7 +571,8 @@ type Arithmetic_Error message
    - array: The array in which the index was requested.
    - index: The index that was out of bounds.
 @Builtin_Type
-type Invalid_Array_Index_Error array index
+type Invalid_Array_Index_Error
+    Invalid_Array_Index_Error_Data array index
 
 ## An error that occurs when an object is used as a function in a function
    call, but it cannot be called.
@@ -581,7 +580,8 @@ type Invalid_Array_Index_Error array index
    Arguments:
      - target: The called object.
 @Builtin_Type
-type Not_Invokable_Error target
+type Not_Invokable_Error
+    Not_Invokable_Error_Data target
 
 ## An error that occurs when arguments used in a function call are invalid
    types for the function.
@@ -589,14 +589,16 @@ type Not_Invokable_Error target
    Arguments:
      - arguments: The passed arguments.
 @Builtin_Type
-type Unsupported_Argument_Types arguments
+type Unsupported_Argument_Types
+    Unsupported_Argument_Types_Data arguments
 
 ## An error that occurs when the specified module cannot be found.
 
    Arguments:
      - name: The module searched for.
 @Builtin_Type
-type Module_Does_Not_Exist name
+type Module_Does_Not_Exist
+    Module_Does_Not_Exist_Data name
 
 ## An error that occurs when the specified value cannot be converted to a given type
 ## FIXME: please check
@@ -604,7 +606,8 @@ type Module_Does_Not_Exist name
    Arguments:
      - target: ...
 @Builtin_Type
-type Invalid_Conversion_Target_Error target
+type Invalid_Conversion_Target_Error
+    Invalid_Conversion_Target_Error_Data target
 
 ## An error that occurs when the conversion from one type to another does not exist
 ## FIXME: please check
@@ -622,7 +625,8 @@ type No_Such_Conversion_Error
 
    Arguments:
    - message: The message describing what implementation is missing.
-type Unimplemented_Error message
+type Unimplemented_Error
+    Unimplemented_Error_Data message
 
 ## UNSTABLE
 
@@ -645,4 +649,4 @@ Unimplemented_Error.to_display_text self = "An implementation is missing: " + se
 
          example_unimplemented = Errors.unimplemented
 unimplemented : Text -> Void
-unimplemented message="" = Panic.throw (Unimplemented_Error message)
+unimplemented message="" = Panic.throw (Unimplemented_Error_Data message)

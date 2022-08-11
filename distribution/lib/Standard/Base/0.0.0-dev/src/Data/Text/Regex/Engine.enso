@@ -26,13 +26,6 @@ type Engine
 
     ## PRIVATE
 
-       A type to represent the regular expresion engine.
-
-       This type may have whichever fields are required to implement the engine.
-    type Engine
-
-    ## PRIVATE
-
        Compile the provided `expression` into a regex pattern that can be used
        for matching.
 
@@ -56,13 +49,6 @@ type Engine
 
 ## The `Data.Text.Regex.Engine.Pattern` interface.
 type Pattern
-
-    ## PRIVATE
-
-       A type to represent the pattern that results from compilation.
-
-       The type may contain any fields necessary for its implementation.
-    type Pattern
 
     ## PRIVATE
 
@@ -143,13 +129,6 @@ type Pattern
 
 ## The `Data.Text.Regex.Engine.Match` interface.
 type Match
-
-    ## PRIVATE
-
-       A type to represent the match.
-
-       This type may contain any fields necessary.
-    type Match
 
     ## PRIVATE
 

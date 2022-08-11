@@ -77,7 +77,7 @@ case object OverloadsResolution extends IRPass {
         IR.Error.Redefined
           .Method(method.typeName, method.methodName, method.location)
       } else {
-        types.find(_.name.name.equalsIgnoreCase(method.methodName.name)) match {
+        types.find(_.name.name.equals(method.methodName.name)) match {
           case Some(clashedAtom) if method.typeName.isEmpty =>
             IR.Error.Redefined.MethodClashWithAtom(
               clashedAtom.name,

@@ -79,7 +79,7 @@ no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
 ## PRIVATE
    Converts a primitive stack trace element into the regular one.
 wrap_primitive_stack_trace_element el =
-    loc = if Polyglot.has_source_location el then (Source_Location_Data (Polyglot.get_source_location el)) else Nothing
+    loc = if Polyglot.has_source_location el then Source_Location_Data (Polyglot.get_source_location el) else Nothing
     name = Polyglot.get_executable_name el
     Stack_Trace_Element_Data name loc
 

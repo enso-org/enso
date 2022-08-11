@@ -79,7 +79,7 @@ type Engine
        Arguments:
        - engine_opts: Options for regex matching that are specific to this
          engine.
-    type Engine (engine_opts : Vector.Vector Option)
+    Engine_Data (engine_opts : Vector.Vector Option)
 
     ## ADVANCED
 
@@ -125,7 +125,7 @@ type Engine
                     Syntax_Error ("The regex could not be compiled: " + err.getMessage)
             other -> other
 
-        Pattern internal_pattern all_options self
+        Pattern_Data internal_pattern all_options self
 
     ## ADVANCED
 
@@ -159,7 +159,7 @@ type Pattern
        - internal_pattern: The internal representation of the compiled pattern.
        - options: The vector of options with which this pattern was built.
        - engine: A handle to the engine that built this pattern.
-    type Pattern (internal_pattern : Java_Pattern) (options : Vector.Vector (Global_Option.Option | Option)) (engine : Engine)
+    type Pattern_Data (internal_pattern : Java_Pattern) (options : Vector.Vector (Global_Option.Option | Option)) (engine : Engine)
 
     ## PRIVATE
 
@@ -596,7 +596,7 @@ type Match
        - region_start: The start of the region over which the match was made.
        - region_end: The end of the region over which the match was made.
        - input: The input text that was being matched.
-    type Match (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer) (input : Text)
+    type Match_Data (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer) (input : Text)
 
     ## Gets the text matched by the group with the provided identifier, or
        `Nothing` if the group did not participate in the match. If no such group
@@ -836,14 +836,14 @@ type Option
     ## Specifies that the input expression to the pattern be treated as a
        sequence of literal characters. Metacharacters and escape sequences have
        no special meaning in this mode.
-    type Literal_Pattern
+    Literal_Pattern
 
     ## Disables anchoring to the region's boundaries.
 
        By default, the regex engine will allow `^` and `$` to match the
        boundaries of a restricted region. With this option specified, they will
        only match the start and end of the input.
-    type No_Anchoring_Bounds
+    No_Anchoring_Bounds
 
     ## Enables transparent bounds.
 
@@ -853,11 +853,11 @@ type Option
 
        Without this flag, the region boundaries are treated as opaque, meaning
        that the above constructs will fail to match anything outside the region.
-    type Transparent_Bounds
+    Transparent_Bounds
 
     ## Specifies that only the unix line ending `''\n'` be considered in the
        behaviour of the `^` and `$` special characters.
-    type Unix_Lines
+    Unix_Lines
 
 ## PRIVATE
 
@@ -905,7 +905,8 @@ Invalid_Bounds_Error.to_display_text =
 
    Arguments:
    - message: The text of the message to display to users.
-type Mode_Error (message : Text)
+type Mode_Error
+    Mode_Error_Data (message : Text)
 
 ## PRIVATE
 
@@ -919,7 +920,8 @@ Mode_Error.to_display_text self = self.message.to_text
 
    Arguments:
    - opt: The option that was not valid for this regex engine.
-type Invalid_Option_Error (opt : Any)
+type Invalid_Option_Error
+    Invalid_Option_Error_Data (opt : Any)
 
 ## PRIVATE
 

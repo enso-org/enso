@@ -12,7 +12,7 @@ polyglot java import java.time.ZoneOffset
 
          example_system = Zone.system
 system : Zone
-system = Zone ZoneId.systemDefault
+system = Zone_Data ZoneId.systemDefault
 
 ## ALIAS Current Time Zone
 
@@ -109,7 +109,7 @@ type Zone
 
        A time zone can be eiter offset-based like "-06:00" or id-based like
        "Europe/Paris".
-    type Zone internal_zone_id
+    Zone_Data internal_zone_id
 
     ## Get the unique timezone ID.
 
