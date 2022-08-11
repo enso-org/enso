@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::identifier::ReferentName;
 
+use const_format::concatcp;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -14,10 +15,13 @@ use serde::Serialize;
 // =================
 
 /// The namespace of the standard library.
-const STANDARD_NAMESPACE: &str = "Standard";
+pub const STANDARD_NAMESPACE: &str = "Standard";
 
 /// The name of the project in the [`STANDARD_NAMESPACE`] containing the base standard library.
-const BASE_LIBRARY_NAME: &str = "Base";
+pub const BASE_LIBRARY_NAME: &str = "Base";
+
+/// The path of the [`BASE_LIBRARY_NAME`] project in the [`STANDARD_NAMESPACE`].
+pub const STANDARD_BASE_LIBRARY_PATH: &str = concatcp!(STANDARD_NAMESPACE, ".", BASE_LIBRARY_NAME);
 
 
 
@@ -88,7 +92,7 @@ impl QualifiedName {
         }
     }
 
-    /// Return the qualified name of the [`BASE_LIBRARY_NAME`] project in the
+    /// Return the fully qualified name of the [`BASE_LIBRARY_NAME`] project in the
     /// [`STANDARD_NAMESPACE`].
     pub fn standard_base_library() -> Self {
         Self::from_segments(STANDARD_NAMESPACE, BASE_LIBRARY_NAME).unwrap()

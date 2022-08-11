@@ -13,6 +13,7 @@ use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
+use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::module::QualifiedName;
@@ -47,7 +48,8 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 
 /// The special module used for mock `Enso_Project.data` entry.
 /// See also [`Searcher::add_enso_project_entries`].
-const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
+const ENSO_PROJECT_SPECIAL_MODULE: &str =
+    concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
 
 
 
