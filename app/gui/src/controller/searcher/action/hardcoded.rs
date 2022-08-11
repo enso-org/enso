@@ -131,9 +131,9 @@ impl Suggestion {
         self
     }
 
-    /// Return a modified suggestion with [`Suggestion::return_type`] field set. This method is
-    /// only intended to be used to define hardcoded suggestions as it panics if the argument fails
-    /// to convert to a valid type name.
+    /// Returns a modified suggestion with [`Suggestion::return_type`] field set. This method is
+    /// only intended to be used when defining hardcoded suggestions and panics if the argument
+    /// fails to convert to a valid type name.
     pub(crate) fn with_return_type(
         mut self,
         return_type: impl TryInto<tp::QualifiedName, Error: Debug>,
@@ -150,9 +150,9 @@ impl Suggestion {
         self
     }
 
-    /// Return a modified suggestion with [`Suggestion::documentation_html`] field set. This method
-    /// is only intended to be used to define hardcoded suggestions as it panics if the argument
-    /// fails to parse as valid documentation.
+    /// Returns a modified suggestion with [`Suggestion::documentation_html`] field set. This
+    /// method is only intended to be used when defining hardcoded suggestions and panics if the
+    /// argument fails to parse as valid documentation.
     pub(crate) fn with_documentation(mut self, documentation: &str) -> Self {
         let doc_parser = parser::DocParser::new().unwrap();
         let doc_string = documentation.to_string();
