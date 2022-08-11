@@ -1,11 +1,44 @@
-//! Font families containing the names of the fonts embedded in the app.
+//! TODO - short info
+//!
+//! The implementation of this library has several limitations that should not cause any problems,
+//! however, it is important to be aware of them:
+//!
+//! # One font face per file
+//! The implementation of this library has an important limitation that should not cause any
+//! problems, however, it is important to be aware of it. In case of non-variable fonts, only one
+//! font face is supported per file. A font face is identified by (width, weight, style) triple (see
+//! [`NonVariableFontFaceHeader`]) to learn more. If you want to use font faces defined in the same
+//! file (e.g. ".ttf" file), you have to split them into multiple files first. All major browsers
+//! have the same limitation. For example, you are unable to define in CSS a new font family by
+//! loading different faces from the same file with the `@font-face` rule
+//! (https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face).
 
 // === Features ===
+#![allow(incomplete_features)]
+#![feature(negative_impls)]
+#![feature(associated_type_defaults)]
+#![feature(bool_to_option)]
+#![feature(cell_update)]
+#![feature(const_type_id)]
+#![feature(drain_filter)]
+#![feature(entry_insert)]
+#![feature(fn_traits)]
+#![feature(marker_trait_attr)]
+#![feature(specialization)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
+#![feature(trace_macros)]
 #![feature(const_trait_impl)]
+#![feature(slice_as_chunks)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
+#![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
+#![allow(dead_code)]
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -23,30 +56,34 @@ pub use owned_ttf_parser::Width;
 
 
 
-/// A name of a font. The name is being normalized during construction to eliminate accidental
-/// mistakes. The normalization is done by removing all spaces, dashes, and underscores, and
-/// replacing all uppercase letters with lowercase ones.
+// ============
+// === Name ===
+// ============
+
+/// A name of a font. The name is normalized during construction to eliminate accidental mistakes.
+/// The normalization is done by removing all spaces, dashes, and underscores, and replacing all
+/// uppercase letters with lowercase ones.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct FontName {
+pub struct Name {
     pub normalized: String,
 }
 
-impl From<&str> for FontName {
+impl From<&str> for Name {
     fn from(name: &str) -> Self {
         let normalized = name.to_lowercase().replace(' ', "").replace('-', "").replace('_', "");
-        FontName { normalized }
+        Name { normalized }
     }
 }
 
-impl From<&String> for FontName {
+impl From<&String> for Name {
     fn from(name: &String) -> Self {
         let str: &str = &*name;
         str.into()
     }
 }
 
-impl From<String> for FontName {
+impl From<String> for Name {
     fn from(name: String) -> Self {
         (&name).into()
     }
@@ -54,45 +91,60 @@ impl From<String> for FontName {
 
 
 
-/// Combination of all information allowing mapping the font face to a font file for non-variable
-/// fonts. For variable fonts, there is just one definition for any combination of the parameters.
-/// The combination reflects how the `@font-face` rule is defined in the CSS. See the following link
-/// to learn more: https://www.w3schools.com/cssref/css3_pr_font-face_rule.asp
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
-pub struct NonVariableFontFaceHeader {
-    pub width:  Width,
-    pub weight: Weight,
-    pub style:  Style,
-}
+// ============================
+// === FontFamilyDefinition ===
+// ============================
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NonVariableFontFamilyDefinition {
-    pub map: HashMap<NonVariableFontFaceHeader, String>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VariableFontFamilyDefinition {
-    pub file: String,
-}
-
+/// Definition of a font family. Font family consist of one font face in case of variable fonts or
+/// multiple font faces in case of non-variable ones.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FontFamilyDefinition {
     Variable(VariableFontFamilyDefinition),
     NonVariable(NonVariableFontFamilyDefinition),
 }
 
-impl NonVariableFontFaceHeader {
-    pub fn new(width: Width, weight: Weight, style: Style) -> Self {
-        Self { width, weight, style }
+
+
+// ====================================
+// === VariableFontFamilyDefinition ===
+// ====================================
+
+/// Definition of a variable font family. See the following link to learn more about variable fonts:
+/// https://docs.microsoft.com/en-us/windows/win32/directwrite/opentype-variable-fonts
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VariableFontFamilyDefinition {
+    pub file: String,
+}
+
+impl VariableFontFamilyDefinition {
+    /// Constructor.
+    pub fn new(file: impl Into<String>) -> Self {
+        let file = file.into();
+        Self { file }
     }
 }
 
+
+
+// =======================================
+// === NonVariableFontFamilyDefinition ===
+// =======================================
+
+/// Definition of a non-variable font family. Contains mapping between (width, weight, style) triple
+/// (see [`NonVariableFontFaceHeader`]) to learn more) and file names.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NonVariableFontFamilyDefinition {
+    pub map: HashMap<NonVariableFontFaceHeader, String>,
+}
+
 impl NonVariableFontFamilyDefinition {
+    /// Constructor.
     pub fn new(map: HashMap<NonVariableFontFaceHeader, String>) -> Self {
         Self { map }
     }
 
+    /// All weights defined in this font family.
     pub fn possible_weights(&self) -> Vec<Weight> {
         self.map.keys().map(|header| header.weight).collect()
     }
@@ -106,16 +158,37 @@ impl FromIterator<(NonVariableFontFaceHeader, String)> for NonVariableFontFamily
 }
 
 
-impl VariableFontFamilyDefinition {
-    pub fn new(file: impl Into<String>) -> Self {
-        let file = file.into();
-        Self { file }
+
+// =================================
+// === NonVariableFontFaceHeader ===
+// =================================
+
+/// Combination of all information allowing mapping the font face to a font file for non-variable
+/// fonts. For variable fonts, there is just one definition for any combination of the parameters.
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+pub struct NonVariableFontFaceHeader {
+    pub width:  Width,
+    pub weight: Weight,
+    pub style:  Style,
+}
+
+impl NonVariableFontFaceHeader {
+    /// Constructor.
+    pub fn new(width: Width, weight: Weight, style: Style) -> Self {
+        Self { width, weight, style }
     }
 }
 
 
 
-pub fn font_family_files_map() -> HashMap<FontName, FontFamilyDefinition> {
+// ======================
+// === Embedded Fonts ===
+// ======================
+
+// TOOD: to be refactored.
+
+pub fn font_family_files_map() -> HashMap<Name, FontFamilyDefinition> {
     let mut map = HashMap::new();
     map.insert(
         "mplus1".into(),

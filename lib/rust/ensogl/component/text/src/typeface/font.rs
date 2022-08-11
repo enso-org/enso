@@ -8,7 +8,7 @@ use ensogl_core::display::Scene;
 use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFontsData;
 use ensogl_text_embedded_fonts::FontFamilyDefinition;
-use ensogl_text_embedded_fonts::FontName;
+use ensogl_text_embedded_fonts::Name;
 use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
 use ensogl_text_embedded_fonts::NonVariableFontFamilyDefinition;
 use ensogl_text_embedded_fonts::VariableFontFamilyDefinition;
@@ -47,7 +47,7 @@ shared! { FontLoader
 /// Structure keeping all fonts loaded from different sources.
 #[derive(Debug)]
 pub struct FontLoaderData {
-    font_family_definitions: HashMap<FontName, FontFamilyDefinition>,
+    font_family_definitions: HashMap<Name, FontFamilyDefinition>,
     embedded_fonts_data : EmbeddedFontsData,
 }
 
@@ -77,7 +77,7 @@ shared! { Registry
 #[derive(Debug)]
 pub struct RegistryData {
     font_loader: FontLoader,
-    fonts:       HashMap<FontName,Font>,
+    fonts:       HashMap<Name,Font>,
 }
 
 impl {
@@ -85,7 +85,7 @@ impl {
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns None if the name is missing in both cache and embedded
     /// font list.
-    pub fn load(&mut self, name:impl Into<FontName>) -> Font {
+    pub fn load(&mut self, name:impl Into<Name>) -> Font {
         let name = name.into();
         event!(WARN, "Loading font: {:?}", name);
         match self.fonts.entry(name.clone()) {
@@ -398,7 +398,7 @@ pub struct FontTemplate<Family, Variations> {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontDataTemplate<Family, Variations> {
-    pub name:               FontName,
+    pub name:               Name,
     family:                 Family,
     atlas:                  msdf::Texture,
     cache:                  RefCell<HashMap<Variations, FontDataCache>>,
@@ -416,7 +416,7 @@ impl<F, V> From<FontDataTemplate<F, V>> for FontTemplate<F, V> {
 
 impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     /// Constructor.
-    pub fn new(name: FontName, family: impl Into<F>, loader: FontLoader) -> Self {
+    pub fn new(name: Name, family: impl Into<F>, loader: FontLoader) -> Self {
         let atlas = default();
         let cache = default();
         let family = family.into();
