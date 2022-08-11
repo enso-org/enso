@@ -55,6 +55,7 @@ fn init(app: Application) {
     let snowman = "\u{2603}";
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let text = quote.to_string() + snowman + zalgo;
+    let text = "test".to_string();
     area.set_content(text.clone() + "\n" + text.as_str());
     area.set_font("DejaVuSans");
     area.focus();

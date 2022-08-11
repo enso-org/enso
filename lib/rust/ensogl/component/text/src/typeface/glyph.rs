@@ -43,17 +43,17 @@ pub struct Glyph {
 /// Internal structure of [`Glyph`].
 #[derive(Debug)]
 pub struct GlyphData {
-    glyph_id:    Cell<GlyphId>,
-    sprite:      Sprite,
-    context:     Context,
-    font:        Font,
-    properties:  Cell<NonVariableFaceHeader>,
-    variations:  RefCell<VariationAxes>,
-    font_size:   Attribute<f32>,
-    color:       Attribute<Vector4<f32>>,
-    sdf_bold:    Attribute<f32>,
-    atlas_index: Attribute<f32>,
-    atlas:       Uniform<Texture>,
+    pub glyph_id:    Cell<GlyphId>,
+    pub sprite:      Sprite,
+    pub context:     Context,
+    pub font:        Font,
+    pub properties:  Cell<NonVariableFaceHeader>,
+    pub variations:  RefCell<VariationAxes>,
+    pub font_size:   Attribute<f32>,
+    pub color:       Attribute<Vector4<f32>>,
+    pub sdf_bold:    Attribute<f32>,
+    pub atlas_index: Attribute<f32>,
+    pub atlas:       Uniform<Texture>,
 }
 
 

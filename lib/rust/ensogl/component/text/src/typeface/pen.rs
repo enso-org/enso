@@ -3,8 +3,10 @@
 //! [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
 
 use crate::prelude::*;
+use crate::typeface::font::VariationAxes;
+use ensogl_text_embedded_fonts::NonVariableFaceHeader;
 
-use super::font::NonVariableFont;
+use super::font::Font;
 
 
 
@@ -27,16 +29,23 @@ pub struct AdvanceResult {
 // ================
 
 /// Information about the char used to transform the pen.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct CharInfo {
-    pub char: char,
-    pub size: f32,
+    pub char:                     char,
+    pub size:                     f32,
+    non_variable_font_variations: NonVariableFaceHeader,
+    variable_font_variations:     VariationAxes,
 }
 
 impl CharInfo {
-    pub fn new(char: char, size: f32) -> Self {
-        Self { char, size }
+    pub fn new(
+        char: char,
+        size: f32,
+        non_variable_font_variations: NonVariableFaceHeader,
+        variable_font_variations: VariationAxes,
+    ) -> Self {
+        Self { char, size, non_variable_font_variations, variable_font_variations }
     }
 }
 
@@ -55,33 +64,68 @@ impl CharInfo {
 pub struct Pen {
     offset:       f32,
     current_char: Option<CharInfo>,
-    font:         NonVariableFont,
+    font:         Font,
 }
 
 impl Pen {
     /// Create a new pen iterator for a given font.
-    pub fn new(font: &NonVariableFont) -> Self {
+    pub fn new(font: &Font) -> Self {
         let offset = default();
         let current_char = default();
         let font = font.clone_ref();
         Self { offset, current_char, font }
     }
 
+    // FIXME all unwraps
     /// Advance the pen to the next position.
-    pub fn advance(&mut self, _next: Option<CharInfo>) -> AdvanceResult {
-        // event!(WARN, "ADVANCE THE PEN!");
-        // let next_char = next.map(|t| t.char);
-        // if let Some(current) = self.current_char {
-        //     let kerning =
-        //         next_char.map(|ch| self.font.kerning(current.char, ch)).unwrap_or_default();
-        //     let advance = self.font.glyph_info(current.char).advance + kerning;
-        //     let offset = advance * current.size;
-        //     self.offset += offset;
-        // }
-        // self.current_char = next;
-        // let offset = self.offset;
-        // AdvanceResult { char: next_char, offset }
-        panic!()
+    pub fn advance(&mut self, next: Option<CharInfo>) -> AdvanceResult {
+        event!(WARN, "ADVANCE THE PEN!");
+        let next_char = next.as_ref().map(|t| t.char);
+        if let Some(current) = &self.current_char {
+            let a = self
+                .font
+                .glyph_id_of_code_point(
+                    current.non_variable_font_variations,
+                    &current.variable_font_variations,
+                    current.char,
+                )
+                .unwrap(); // FIXME
+            let b = next.as_ref().map(|t| {
+                self.font
+                    .glyph_id_of_code_point(
+                        t.non_variable_font_variations,
+                        &t.variable_font_variations,
+                        t.char,
+                    )
+                    .unwrap() // FIXME
+            });
+            let kerning = b
+                .map(|ch| {
+                    self.font.kerning(
+                        current.non_variable_font_variations,
+                        &current.variable_font_variations,
+                        a,
+                        ch,
+                    )
+                })
+                .unwrap_or_default();
+            let advance = self
+                .font
+                .glyph_info(
+                    current.non_variable_font_variations,
+                    &current.variable_font_variations,
+                    a,
+                )
+                .unwrap()
+                .advance
+                + kerning;
+            let offset = advance * current.size;
+            self.offset += offset;
+        }
+        self.current_char = next;
+        let offset = self.offset;
+        AdvanceResult { char: next_char, offset }
+        // panic!()
     }
 }
 
@@ -102,7 +146,7 @@ mod tests {
     #[wasm_bindgen_test(async)]
     async fn moving_pen() {
         ensogl_text_msdf_sys::initialized().await;
-        let font = NonVariableFont::mock("Test font");
+        let font = Font::mock("Test font");
         mock_a_glyph_info(font.clone_ref());
         mock_w_glyph_info(font.clone_ref());
         font.mock_kerning_info('A', 'W', -0.16);
@@ -118,14 +162,14 @@ mod tests {
         assert_eq!(expected, result);
     }
 
-    fn mock_a_glyph_info(font: NonVariableFont) -> GlyphRenderInfo {
+    fn mock_a_glyph_info(font: Font) -> GlyphRenderInfo {
         let advance = 0.56;
         let scale = Vector2::new(0.5, 0.8);
         let offset = Vector2::new(0.1, 0.2);
         font.mock_char_info('A', scale, offset, advance)
     }
 
-    fn mock_w_glyph_info(font: NonVariableFont) -> GlyphRenderInfo {
+    fn mock_w_glyph_info(font: Font) -> GlyphRenderInfo {
         let advance = 0.7;
         let scale = Vector2::new(0.6, 0.9);
         let offset = Vector2::new(0.1, 0.2);

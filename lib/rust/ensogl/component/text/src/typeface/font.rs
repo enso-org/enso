@@ -402,7 +402,22 @@ impl Font {
             Font::Variable(font) => font.with_borrowed_msdf_texture_data(operation),
         }
     }
+
+    pub fn kerning(
+        &self,
+        non_variable_font_variations: NonVariableFaceHeader,
+        variable_font_variations: &VariationAxes,
+        left_id: GlyphId,
+        right_id: GlyphId,
+    ) -> f32 {
+        match self {
+            Font::NonVariable(font) =>
+                font.kerning(&non_variable_font_variations, left_id, right_id),
+            Font::Variable(font) => font.kerning(variable_font_variations, left_id, right_id),
+        }
+    }
 }
+
 
 
 // ====================

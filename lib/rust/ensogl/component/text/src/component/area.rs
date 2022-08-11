@@ -11,12 +11,12 @@ use crate::buffer::Text;
 use crate::buffer::Transform;
 use crate::component::selection;
 use crate::component::Selection;
-#[cfg(target_arch = "wasm32X")]
+#[cfg(target_arch = "wasm32")]
 use crate::typeface;
-#[cfg(target_arch = "wasm32X")]
+#[cfg(target_arch = "wasm32")]
 use crate::typeface::glyph;
 use crate::typeface::glyph::Glyph;
-#[cfg(target_arch = "wasm32X")]
+#[cfg(target_arch = "wasm32")]
 use crate::typeface::pen;
 
 use enso_frp as frp;
@@ -29,7 +29,7 @@ use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
-#[cfg(target_arch = "wasm32X")]
+#[cfg(target_arch = "wasm32")]
 use ensogl_text_embedded_fonts as embedded_fonts;
 use std::ops::Not;
 
@@ -52,7 +52,7 @@ const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To b
 
 /// Mapping between selection id, `Selection`, and text location.
 #[derive(Clone, Debug, Default)]
-#[cfg_attr(not(target_arch = "wasm32X"), allow(dead_code))]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<usize, Selection>,
     location_map: HashMap<usize, HashMap<Column, usize>>,
@@ -70,7 +70,7 @@ pub struct SelectionMap {
 /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when clicking
 /// inside of the text area, it allows us to binary search the place of the mouse pointer.
 #[derive(Debug)]
-#[cfg_attr(not(target_arch = "wasm32X"), allow(dead_code))]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct Line {
     display_object: display::object::Instance,
     glyphs:         Vec<Glyph>,
@@ -89,7 +89,7 @@ impl Line {
     }
 
     /// Set the division points (offsets between letters). Also updates center points.
-    #[cfg_attr(not(target_arch = "wasm32X"), allow(dead_code))]
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn set_divs(&mut self, divs: Vec<f32>) {
         let div_iter = divs.iter();
         let div_iter_skipped = divs.iter().skip(1);
@@ -101,13 +101,13 @@ impl Line {
         self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
     }
 
-    #[cfg_attr(not(target_arch = "wasm32X"), allow(dead_code))]
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn div_by_column(&self, column: Column) -> f32 {
         let ix = column.as_usize().min(self.divs.len() - 1);
         self.divs[ix]
     }
 
-    #[cfg_attr(not(target_arch = "wasm32X"), allow(dead_code))]
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
         self.glyphs.resize_with(size, move || {
@@ -593,7 +593,7 @@ pub struct AreaModel {
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
-    #[cfg(target_arch = "wasm32X")]
+    #[cfg(target_arch = "wasm32")]
     glyph_system:   Rc<RefCell<glyph::System>>,
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
@@ -608,10 +608,10 @@ impl AreaModel {
         let logger = Logger::new("text_area");
         let selection_map = default();
         let display_object = display::object::Instance::new(&logger);
-        #[cfg(target_arch = "wasm32X")]
+        #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<typeface::font::Registry>();
-            let font = fonts.load(embedded_fonts::DefaultFamily::mono());
+            let font = fonts.load("dejavusans");
             let glyph_system = typeface::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))
@@ -638,7 +638,7 @@ impl AreaModel {
             frp_endpoints,
             buffer,
             display_object,
-            #[cfg(target_arch = "wasm32X")]
+            #[cfg(target_arch = "wasm32")]
             glyph_system,
             lines,
             single_line,
@@ -647,10 +647,10 @@ impl AreaModel {
         .init()
     }
 
-    #[cfg(not(target_arch = "wasm32X"))]
+    #[cfg(not(target_arch = "wasm32"))]
     fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
 
-    #[cfg(target_arch = "wasm32X")]
+    #[cfg(target_arch = "wasm32")]
     #[profile(Debug)]
     fn on_modified_selection(
         &self,
@@ -792,12 +792,12 @@ impl AreaModel {
         self.lines.len() as f32 * LINE_HEIGHT
     }
 
-    #[cfg(not(target_arch = "wasm32X"))]
+    #[cfg(not(target_arch = "wasm32"))]
     fn redraw_line(&self, _: usize, _: String) -> f32 {
         0.0
     }
 
-    #[cfg(target_arch = "wasm32X")]
+    #[cfg(target_arch = "wasm32")]
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
         let cursor_map = self
             .selection_map
@@ -822,7 +822,14 @@ impl AreaModel {
             let next = iter.next();
             let style = line_style.next().unwrap_or_default();
             let chr_size = style.size.raw;
-            let char_info = next.as_ref().map(|t| pen::CharInfo::new(t.1, chr_size));
+            let char_info = next.as_ref().map(|t| {
+                pen::CharInfo::new(
+                    t.1,
+                    chr_size,
+                    t.0.properties.get(),
+                    t.0.variations.borrow().clone(),
+                )
+            });
             let info = pen.advance(char_info);
 
             cursor_map.get(&column).for_each(|id| {
@@ -841,14 +848,25 @@ impl AreaModel {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style.drop(chr_bytes - 1.bytes());
-                    let glyph_info = glyph_system.font.glyph_info(chr);
+                    let glyph_id = glyph_system
+                        .font
+                        .glyph_id_of_code_point(
+                            glyph.properties.get(),
+                            &glyph.variations.borrow(),
+                            chr,
+                        )
+                        .unwrap(); // FIXME
+                    let glyph_info = glyph_system
+                        .font
+                        .glyph_info(glyph.properties.get(), &glyph.variations.borrow(), glyph_id)
+                        .unwrap(); // FIXME
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
                     let glyph_y = glyph_offset.y;
                     glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
-                    glyph.set_bold(style.bold.raw);
+                    // glyph.set_bold(style.bold.raw); // FIXME
                     glyph.set_sdf_bold(style.sdf_bold.raw);
                     glyph.set_font_size(chr_size);
                     match &last_cursor {
@@ -871,7 +889,7 @@ impl AreaModel {
         last_offset - cursor_offset
     }
 
-    #[cfg(not(target_arch = "wasm32X"))]
+    #[cfg(not(target_arch = "wasm32"))]
     fn line_truncated_with_ellipsis(&self, line: &str, _: style::Size, _: f32) -> String {
         line.to_string()
     }
@@ -882,36 +900,37 @@ impl AreaModel {
     ///
     /// The truncation point is chosen such that the resulting string with ellipsis will fit in
     /// `max_width_px` if possible. The `line` must not contain newline characters.
-    #[cfg(target_arch = "wasm32X")]
+    #[cfg(target_arch = "wasm32")]
     fn line_truncated_with_ellipsis(
         &self,
         line: &str,
         font_size: style::Size,
         max_width_px: f32,
     ) -> String {
-        const ELLIPSIS: char = '\u{2026}';
-        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-        let mut truncation_point = 0.bytes();
-        let truncate = line.char_indices().any(|(i, ch)| {
-            let char_info = pen::CharInfo::new(ch, font_size.raw);
-            let pen_info = pen.advance(Some(char_info));
-            let next_width = pen_info.offset + char_info.size;
-            if next_width > max_width_px {
-                return true;
-            }
-            let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.raw).size;
-            let char_length: Bytes = ch.len_utf8().into();
-            if next_width + width_of_ellipsis <= max_width_px {
-                truncation_point = Bytes::from(i) + char_length;
-            }
-            false
-        });
-        if truncate {
-            let truncated_content = line[..truncation_point.as_usize()].to_string();
-            truncated_content + String::from(ELLIPSIS).as_str()
-        } else {
-            line.to_string()
-        }
+        // const ELLIPSIS: char = '\u{2026}';
+        // let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
+        // let mut truncation_point = 0.bytes();
+        // let truncate = line.char_indices().any(|(i, ch)| {
+        //     let char_info = pen::CharInfo::new(ch, font_size.raw);
+        //     let pen_info = pen.advance(Some(char_info));
+        //     let next_width = pen_info.offset + char_info.size;
+        //     if next_width > max_width_px {
+        //         return true;
+        //     }
+        //     let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.raw).size;
+        //     let char_length: Bytes = ch.len_utf8().into();
+        //     if next_width + width_of_ellipsis <= max_width_px {
+        //         truncation_point = Bytes::from(i) + char_length;
+        //     }
+        //     false
+        // });
+        // if truncate {
+        //     let truncated_content = line[..truncation_point.as_usize()].to_string();
+        //     truncated_content + String::from(ELLIPSIS).as_str()
+        // } else {
+        //     line.to_string()
+        // }
+        line.to_string()
     }
 
     /// Truncate trailing characters on every line of `text` that exceeds `max_width_px` when
@@ -1011,7 +1030,7 @@ impl AreaModel {
     }
 
     /// Constrain the selection to values fitting inside of the current text buffer.
-    #[cfg_attr(not(target_arch = "wasm32X"), allow(dead_code))]
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn snap_selection(
         &self,
         selection: buffer::selection::Selection,
@@ -1021,7 +1040,7 @@ impl AreaModel {
         selection.with_start(start).with_end(end)
     }
 
-    #[cfg(target_arch = "wasm32X")]
+    #[cfg(target_arch = "wasm32")]
     #[profile(Debug)]
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
@@ -1038,7 +1057,7 @@ impl AreaModel {
         self.redraw(true);
     }
 
-    #[cfg(not(target_arch = "wasm32X"))]
+    #[cfg(not(target_arch = "wasm32"))]
     fn set_font(&self, _font_name: &str) {}
 
     fn add_symbols_to_scene_layer(&self) {
@@ -1054,12 +1073,12 @@ impl AreaModel {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32X"))]
+    #[cfg(not(target_arch = "wasm32"))]
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
         default()
     }
 
-    #[cfg(target_arch = "wasm32X")]
+    #[cfg(target_arch = "wasm32")]
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
         let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
         let shapes = &self.app.display.default_scene.shapes;
