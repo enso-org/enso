@@ -243,7 +243,7 @@ final class ContextRegistry(
             Api.AttachVisualisation(
               visualisationId,
               expressionId,
-              convertVisualisationConfig(cfg)
+              cfg.toApi
             )
           )
         } else {
@@ -263,7 +263,7 @@ final class ContextRegistry(
             Api.AttachVisualisation(
               visualisationId,
               expressionId,
-              convertVisualisationConfig(cfg)
+              cfg.toApi
             )
           )
         } else {
@@ -301,24 +301,13 @@ final class ContextRegistry(
             )
           )
 
-          val configuration = convertVisualisationConfig(cfg)
-
           handler.forward(
-            Api.ModifyVisualisation(visualisationId, configuration)
+            Api.ModifyVisualisation(visualisationId, cfg.toApi)
           )
         } else {
           sender() ! AccessDenied
         }
     }
-
-  private def convertVisualisationConfig(
-    config: VisualisationConfiguration
-  ): Api.VisualisationConfiguration =
-    Api.VisualisationConfiguration(
-      executionContextId  = config.executionContextId,
-      visualisationModule = config.visualisationModule,
-      expression          = config.expression
-    )
 
   private def getRuntimeStackItem(
     stackItem: StackItem

@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Index_Sub_Range import While
 from Standard.Base.Runtime import Stack_Trace_Element
 
 ## A representation of a dataflow warning attached to a value.
@@ -68,7 +69,7 @@ create payload origin = @Builtin_Method "Warning.create"
 attach : Any -> Any -> Any
 attach warning value =
     origin = Runtime.get_stack_trace
-    attach_with_stacktrace value warning (origin.drop_start 1)
+    attach_with_stacktrace value warning (origin.drop (First 1))
 
 ## PRIVATE
 
@@ -175,8 +176,8 @@ map_attached_warnings_helper mapper value frames_to_drop =
             Maybe.Some new_payload ->
                 self_call_name = "Warning.map_attached_warnings_helper"
                 stack_trace = Runtime.get_stack_trace
-                stack_trace_up_to_this_function = stack_trace.drop_while element-> element.name != self_call_name
-                new_origin = stack_trace_up_to_this_function.drop_start 1+frames_to_drop
+                stack_trace_up_to_this_function = stack_trace.drop (While element-> element.name != self_call_name)
+                new_origin = stack_trace_up_to_this_function.drop (First 1+frames_to_drop)
                 create new_payload new_origin
             ## If the mapper did not want to affect this warning, we return the
                original (unwrapped) warning instance.

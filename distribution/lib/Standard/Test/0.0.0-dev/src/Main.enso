@@ -516,14 +516,13 @@ Any.should_be_an self typ = self.should_be_a typ
          example_should_equal = [1, 2] . should_contain_the_same_elements_as [2, 1]
 Any.should_contain_the_same_elements_as : Any -> Integer -> Assertion
 Any.should_contain_the_same_elements_as self that frames_to_skip=0 =
+    loc = Meta.get_source_location 1+frames_to_skip
     that.each element->
         if self.contains element . not then
-            loc = Meta.get_source_location 2+frames_to_skip
             msg = "The collection (" + self.to_text + ") did not contain "+element.to_text+" (at " + loc + ")."
             fail msg
     self.each element->
         if that.contains element . not then
-            loc = Meta.get_source_location 2+frames_to_skip
             msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
             fail msg
 

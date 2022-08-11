@@ -16,10 +16,12 @@
   "name": "root",
   "private": true,
   "workspaces": [
-    "lib/icons",
+    "lib/client",
     "lib/common",
     "lib/content",
-    "lib/client"
+    "lib/copy-plugin",
+    "lib/icons",
+    "lib/server"
   ],
   "scripts": {
     "watch": "npm run watch --workspace enso-studio-content"
