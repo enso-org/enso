@@ -127,44 +127,36 @@ impl Glyph {
     /// Size setter.
     pub fn set_font_size(&self, size: f32) {
         self.font_size.set(size);
-        self.font.get_or_load_glyph_info(
+        let opt_glyph_info = self.font.glyph_info(
             self.properties.get(),
             &self.variations.borrow(),
             self.glyph_id.get(),
-            |glyph_info| {
-                self.sprite.size.set(glyph_info.scale.scale(size));
-            },
-        )
+        );
+        if let Some(glyph_info) = opt_glyph_info {
+            self.sprite.size.set(glyph_info.scale.scale(size))
+        }
     }
 
     pub fn set_char(&self, ch: char) {
-        self.font.glyph_id_of_code_point(
-            self.properties.get(),
-            &self.variations.borrow(),
-            ch,
-            |opt_glyph_id| {
-                if let Some(glyph_id) = opt_glyph_id {
-                    self.set_glyph_id(glyph_id)
-                }
-                // FIXME: display not found char
-            },
-        )
+        let opt_glyph_id =
+            self.font.glyph_id_of_code_point(self.properties.get(), &self.variations.borrow(), ch);
+        if let Some(glyph_id) = opt_glyph_id {
+            self.set_glyph_id(glyph_id)
+        }
+        // FIXME: display not found char
     }
 
     /// Change the displayed character.
     pub fn set_glyph_id(&self, glyph_id: GlyphId) {
         self.glyph_id.set(glyph_id);
-        self.font.get_or_load_glyph_info(
-            self.properties.get(),
-            &self.variations.borrow(),
-            glyph_id,
-            |glyph_info| {
-                self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
-                self.update_atlas();
-                let font_size = self.font_size();
-                self.sprite.size.set(glyph_info.scale.scale(font_size));
-            },
-        )
+        let opt_glyph_info =
+            self.font.glyph_info(self.properties.get(), &self.variations.borrow(), glyph_id);
+        if let Some(glyph_info) = opt_glyph_info {
+            self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
+            self.update_atlas();
+            let font_size = self.font_size();
+            self.sprite.size.set(glyph_info.scale.scale(font_size));
+        }
     }
 
     /// Check whether the CPU-bound texture changed and if so, upload it to GPU.

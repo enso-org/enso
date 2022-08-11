@@ -134,6 +134,9 @@ const FONT_FACE_NUMBER: u32 = 0;
 
 
 pub trait FaceLoader<Variations> {
+    fn with_borrowed_face<F, T>(&self, variations: &Variations, f: F) -> T
+    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T;
+    fn load_all_faces(&self, loader: &FontLoader);
     fn get_or_load_face<F>(&self, variations: &Variations, loader: &FontLoader, f: F)
     where F: for<'a> FnOnce(&'a FontFace);
 }
@@ -157,6 +160,34 @@ impl From<NonVariableFamilyDefinition> for NonVariableFontFamily {
 }
 
 impl FaceLoader<NonVariableFaceHeader> for NonVariableFontFamily {
+    fn with_borrowed_face<F, T>(&self, variations: &NonVariableFaceHeader, f: F) -> T
+    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T {
+        f(self.faces.borrow().get(variations))
+    }
+
+    fn load_all_faces(&self, loader: &FontLoader) {
+        for (header, file_name) in &self.definition.map {
+            // FIXME conversion
+            let x: &str = &*file_name;
+            let face = loader
+                .rc
+                .borrow()
+                .embedded_fonts_data
+                .data
+                .get(x)
+                .and_then(|font_data| {
+                    let result = ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_NUMBER)
+                        .map(|ttf| {
+                            let msdf = msdf_sys::Font::load_from_memory(font_data);
+                            FontFace { msdf, ttf }
+                        });
+                    result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
+                })
+                .unwrap(); // FIXME unwrap
+            self.faces.borrow_mut().insert(*header, face);
+        }
+    }
+
     fn get_or_load_face<F>(&self, variations: &NonVariableFaceHeader, loader: &FontLoader, f: F)
     where F: for<'a> FnOnce(&'a FontFace) {
         if self.faces.borrow().contains_key(&variations) {
@@ -197,8 +228,33 @@ impl From<VariableFamilyDefinition> for VariableFontFamily {
     }
 }
 
-impl<T> FaceLoader<T> for VariableFontFamily {
-    fn get_or_load_face<F>(&self, _variations: &T, loader: &FontLoader, f: F)
+impl<V> FaceLoader<V> for VariableFontFamily {
+    fn with_borrowed_face<F, T>(&self, _variations: &V, f: F) -> T
+    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T {
+        f(self.face.borrow().as_ref())
+    }
+
+    fn load_all_faces(&self, loader: &FontLoader) {
+        let x: &str = &self.definition.file_name;
+        let face = loader
+            .rc
+            .borrow()
+            .embedded_fonts_data
+            .data
+            .get(x)
+            .and_then(|font_data| {
+                let result =
+                    ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_NUMBER).map(|ttf| {
+                        let msdf = msdf_sys::Font::load_from_memory(font_data);
+                        FontFace { msdf, ttf }
+                    });
+                result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
+            })
+            .unwrap(); // FIXME unwrap
+        self.face.borrow_mut().replace(face);
+    }
+
+    fn get_or_load_face<F>(&self, _variations: &V, loader: &FontLoader, f: F)
     where F: for<'a> FnOnce(&'a FontFace) {
         if self.face.borrow().is_some() {
             if let Some(face) = self.face.borrow().as_ref() {
@@ -224,11 +280,6 @@ impl<T> FaceLoader<T> for VariableFontFamily {
     }
 }
 
-#[derive(Debug)]
-pub enum FontFamily {
-    Variable(VariableFontFamily),
-    NonVariable(NonVariableFontFamily),
-}
 
 
 // ====================
@@ -312,18 +363,15 @@ impl Font {
         }
     }
 
-    pub fn get_or_load_glyph_info(
+    pub fn glyph_info(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
         variable_font_variations: &VariationAxes,
         glyph_id: GlyphId,
-        f: impl FnOnce(GlyphRenderInfo),
-    ) {
+    ) -> Option<GlyphRenderInfo> {
         match self {
-            Font::NonVariable(font) =>
-                font.get_or_load_glyph_info(&non_variable_font_variations, glyph_id, f),
-            Font::Variable(font) =>
-                font.get_or_load_glyph_info(variable_font_variations, glyph_id, f),
+            Font::NonVariable(font) => font.glyph_info(&non_variable_font_variations, glyph_id),
+            Font::Variable(font) => font.glyph_info(variable_font_variations, glyph_id),
         }
     }
 
@@ -332,13 +380,12 @@ impl Font {
         non_variable_font_variations: NonVariableFaceHeader,
         variable_font_variations: &VariationAxes,
         code_point: char,
-        f: impl FnOnce(Option<GlyphId>),
-    ) {
+    ) -> Option<GlyphId> {
         match self {
             Font::NonVariable(font) =>
-                font.glyph_id_of_code_point(&non_variable_font_variations, code_point, f),
+                font.glyph_id_of_code_point(&non_variable_font_variations, code_point),
             Font::Variable(font) =>
-                font.glyph_id_of_code_point(variable_font_variations, code_point, f),
+                font.glyph_id_of_code_point(variable_font_variations, code_point),
         }
     }
 
@@ -384,12 +431,12 @@ pub struct FontDataCache {
 #[derive(Deref, Derivative, CloneRef, Debug)]
 #[derivative(Clone(bound = ""))]
 pub struct FontTemplate<Family, Variations> {
-    rc: Rc<FontDataTemplate<Family, Variations>>,
+    rc: Rc<FontTemplateData<Family, Variations>>,
 }
 
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct FontDataTemplate<Family, Variations> {
+pub struct FontTemplateData<Family, Variations> {
     pub name:               Name,
     family:                 Family,
     atlas:                  msdf::Texture,
@@ -399,8 +446,8 @@ pub struct FontDataTemplate<Family, Variations> {
     glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
 }
 
-impl<F, V> From<FontDataTemplate<F, V>> for FontTemplate<F, V> {
-    fn from(t: FontDataTemplate<F, V>) -> Self {
+impl<F, V> From<FontTemplateData<F, V>> for FontTemplate<F, V> {
+    fn from(t: FontTemplateData<F, V>) -> Self {
         let rc = Rc::new(t);
         Self { rc }
     }
@@ -413,83 +460,81 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
         let cache = default();
         let family = family.into();
         let glyph_id_to_code_point = default();
-        FontDataTemplate { name, family, atlas, cache, loader, glyph_id_to_code_point }.into()
+        let data = FontTemplateData { name, family, atlas, cache, loader, glyph_id_to_code_point };
+        Self { rc: Rc::new(data) }.init()
     }
 
+    fn init(self) -> Self {
+        self.family.load_all_faces(&self.loader);
+        self
+    }
 
-    pub fn glyph_id_of_code_point(
-        &self,
-        variations: &V,
-        code_point: char,
-        f: impl FnOnce(Option<GlyphId>),
-    ) {
-        self.family.get_or_load_face(variations, &self.loader, |face| {
-            let id = face.ttf.as_face_ref().glyph_index(code_point);
-            if let Some(id) = id {
-                self.glyph_id_to_code_point.borrow_mut().insert(id, code_point);
-            }
-            f(id)
+    pub fn glyph_id_of_code_point(&self, variations: &V, code_point: char) -> Option<GlyphId> {
+        self.family.with_borrowed_face(variations, |opt_face| {
+            opt_face.and_then(|face| {
+                let id = face.ttf.as_face_ref().glyph_index(code_point);
+                if let Some(id) = id {
+                    self.glyph_id_to_code_point.borrow_mut().insert(id, code_point);
+                }
+                id
+            })
         })
     }
 
     /// Get render info for one character, generating one if not found.
-    pub fn get_or_load_glyph_info(
-        &self,
-        variations: &V,
-        glyph_id: GlyphId,
-        f: impl FnOnce(GlyphRenderInfo),
-    ) {
+    pub fn glyph_info(&self, variations: &V, glyph_id: GlyphId) -> Option<GlyphRenderInfo> {
         let opt_render_info =
             self.cache.borrow().get(variations).and_then(|t| t.glyphs.get(&glyph_id)).copied();
         if let Some(render_info) = opt_render_info {
-            f(render_info);
+            Some(render_info) // FIXME nicer code
         } else {
-            self.family.get_or_load_face(variations, &self.loader, |face| {
-                // TODO: Switch from chars to GlyphIDs here.
-                let ch = *self.glyph_id_to_code_point.borrow().get(&glyph_id).unwrap();
-                // TODO: Use variations to generate variable-width glyphs.
-                let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
-                if !self.cache.borrow().contains_key(variations) {
-                    self.cache.borrow_mut().insert(variations.clone(), default());
-                }
-                self.cache
-                    .borrow_mut()
-                    .get_mut(variations)
-                    .unwrap()
-                    .glyphs
-                    .insert(glyph_id, render_info);
-                f(render_info)
+            self.family.with_borrowed_face(variations, |opt_face| {
+                opt_face.map(|face| {
+                    // TODO: Switch from chars to GlyphIDs here.
+                    let ch = *self.glyph_id_to_code_point.borrow().get(&glyph_id).unwrap();
+                    // TODO: Use variations to generate variable-width glyphs.
+                    let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
+                    if !self.cache.borrow().contains_key(variations) {
+                        self.cache.borrow_mut().insert(variations.clone(), default());
+                    }
+                    self.cache
+                        .borrow_mut()
+                        .get_mut(variations)
+                        .unwrap()
+                        .glyphs
+                        .insert(glyph_id, render_info);
+                    render_info
+                })
             })
         }
     }
 
     /// Get kerning between two characters.
-    pub fn with_kerning(
-        &self,
-        variations: &V,
-        left_id: GlyphId,
-        right_id: GlyphId,
-        f: impl FnOnce(f32),
-    ) {
-        self.family.get_or_load_face(variations, &self.loader, |face| {
-            if !self.cache.borrow().contains_key(variations) {
-                self.cache.borrow_mut().insert(variations.clone(), default());
-            }
-            let kerning = *self
-                .cache
-                .borrow_mut()
-                .get_mut(variations)
-                .unwrap()
-                .kerning
-                .entry((left_id, right_id))
-                .or_insert_with(|| {
-                    let tables = face.ttf.as_face_ref().tables();
-                    let units_per_em = tables.head.units_per_em;
-                    let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
-                    let kerning = kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
-                    kerning.unwrap_or_default() as f32 / units_per_em as f32
-                });
-            f(kerning)
+    pub fn kerning(&self, variations: &V, left_id: GlyphId, right_id: GlyphId) -> f32 {
+        self.family.with_borrowed_face(variations, |opt_face| {
+            opt_face
+                .map(|face| {
+                    if !self.cache.borrow().contains_key(variations) {
+                        self.cache.borrow_mut().insert(variations.clone(), default());
+                    }
+                    *self
+                        .cache
+                        .borrow_mut()
+                        .get_mut(variations)
+                        .unwrap()
+                        .kerning
+                        .entry((left_id, right_id))
+                        .or_insert_with(|| {
+                            let tables = face.ttf.as_face_ref().tables();
+                            let units_per_em = tables.head.units_per_em;
+                            let kern_table =
+                                tables.kern.and_then(|t| t.subtables.into_iter().next());
+                            let kerning =
+                                kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
+                            kerning.unwrap_or_default() as f32 / units_per_em as f32
+                        })
+                })
+                .unwrap_or_default()
         })
     }
 
