@@ -1053,10 +1053,13 @@ impl Searcher {
         // TODO[LATER]: maybe extract to separate helper method/func
         // FIXME: instead, filter by snippets.this_type
         if this_type.is_none() {
-            let rt_converted = return_types.iter().map(tp::QualifiedName::from_text);
-            let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
+            // FIXME: log errors?
+            let rt_converted = return_types.iter().filter_map(|s| tp::QualifiedName::from_text(s).ok());
+            // let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
+            let return_types: HashSet<_> = rt_converted.collect();
             // FIXME: log error
-            let return_types = rt_result.unwrap_or_default();
+            // let return_types = rt_result.unwrap_or_default();
+            DEBUG!("MCDBG return_types: " return_types;?);
             // FIXME: refactor to smart methods
             // let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
             let base_lib_qn = project::QualifiedName::standard_base_library();
