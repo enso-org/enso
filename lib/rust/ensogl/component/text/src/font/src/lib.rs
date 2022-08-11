@@ -26,7 +26,11 @@ pub mod msdf;
 // =============
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Cache<K: Eq + Hash, V> {
+pub struct Cache<K, V> {
+    #[serde(bound(serialize = "K: Eq + Hash + serde::Serialize, V: serde::Serialize"))]
+    #[serde(bound(
+        deserialize = "K: Eq + Hash + serde::Deserialize<'de>, V: serde::Deserialize<'de>"
+    ))]
     pub map: RefCell<HashMap<K, V>>,
 }
 
