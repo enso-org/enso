@@ -1053,6 +1053,7 @@ impl Searcher {
         // TODO[LATER]: maybe extract to separate helper method/func
         // FIXME: instead, filter by snippets.this_type
         if this_type.is_none() {
+            let all_snippets = return_types.is_empty();
             // FIXME: log errors?
             let rt_converted = return_types.iter().filter_map(|s| tp::QualifiedName::from_text(s).ok());
             // let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
@@ -1065,7 +1066,7 @@ impl Searcher {
             let base_lib_qn = project::QualifiedName::standard_base_library();
             let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
             let snippets = component::hardcoded::INPUT_SNIPPETS.with(|snippets| {
-                snippets.iter().filter(|s| s.return_types.iter().any(|rt| {
+                snippets.iter().filter(|s| all_snippets || s.return_types.iter().any(|rt| {
                     let contains = return_types.contains(rt);
                     DEBUG!("MCDBG  " s.name ": " contains " @ " rt;?);
                     contains
