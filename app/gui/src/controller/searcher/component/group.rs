@@ -104,8 +104,8 @@ impl Group {
         Self::from_name_and_project_and_id(name, Some(project_name), Some(component_id))
     }
 
-    /// Create a group with given name and containing virtual components created from given
-    /// snippets.
+    /// Create a group with given name in given project and containing virtual components created
+    /// from given snippets.
     pub fn from_name_and_project_and_snippets(
         name: impl Into<ImString>,
         project: project::QualifiedName,
