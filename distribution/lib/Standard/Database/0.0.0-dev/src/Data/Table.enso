@@ -475,18 +475,18 @@ type Table
        > Example
          Order the table by the column "alpha" in ascending order.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
+             table.order_by (Sort_Column_Selector.By_Name ["alpha"])
 
        > Example
          Order the table by the second column in ascending order. In case of any
          ties, break them based on the 7th column from the end of the table in
          descending order.
 
-             table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
+             table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity'])
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity'])
 
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`.
@@ -497,7 +497,7 @@ type Table
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating'])
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity', 'Rating'])
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
