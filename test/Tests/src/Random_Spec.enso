@@ -25,6 +25,11 @@ spec = Test.group "Random" <|
         Random.random_indices 1 100 rng . should_equal [0]
         Random.random_indices 100 0 rng . should_equal []
 
+        two_out_of_four = 0.up_to 10000 . map seed->
+            Random.random_indices 4 2 (Random.new seed)
+        two_out_of_four . should_contain_the_same_elements_as <|
+            [[0, 1], [0, 2], [1, 2], [1, 0], [2, 0], [2, 1], [0, 3], [1, 3], [2, 3], [3, 0], [3, 1], [3, 2]]
+
     Test.specify "should allow to select a random sample from a vector" <|
         rng = Random.new 0
         vector = ["A", "B", "C"]

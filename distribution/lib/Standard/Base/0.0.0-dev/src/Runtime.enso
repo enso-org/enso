@@ -1,4 +1,5 @@
 import Standard.Base.Data.Vector
+from Standard.Base.Data.Index_Sub_Range import First
 import Standard.Base.Polyglot
 import Standard.Base.Nothing
 from Standard.Base.Runtime.Extensions import Source_Location
@@ -23,7 +24,7 @@ get_stack_trace =
     stack_with_prims = Vector.Vector prim_stack
     stack = stack_with_prims.map wrap_primitive_stack_trace_element
     # drop this frame and the one from `Runtime.primitive_get_stack_trace`
-    stack.drop_start 2
+    stack.drop (First 2)
 
 ## ADVANCED
 

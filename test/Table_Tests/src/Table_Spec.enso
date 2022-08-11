@@ -486,12 +486,12 @@ spec =
             t_1.take_start 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
             t_2 = t_1.take_start 2
-            t_2.index.to_vector . should_equal (t_1.index.to_vector . take_start 2)
-            t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take_start 2)
-            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take_start 2)
-            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take_start 2)
+            t_2.index.to_vector . should_equal (t_1.index.to_vector . take (First 2))
+            t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
+            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
 
-            t_1.at 'col' . take_start 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take_start 2)
+            t_1.at 'col' . take_start 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
 
         Test.specify "should allow taking the last n rows" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -503,10 +503,10 @@ spec =
             t_1.take_end 10 . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
 
             t_2 = t_1.take_end 2
-            t_2.index.to_vector . should_equal (t_1.index.to_vector . take_end 2)
-            t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take_end 2)
-            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take_end 2)
-            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take_end 2)
+            t_2.index.to_vector . should_equal (t_1.index.to_vector . take (Last 2))
+            t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
+            t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (Last 2))
+            t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
 
         Test.specify "should allow getting the first / head row" <|
             i_1 = ['ix', [1, 2, 3]]

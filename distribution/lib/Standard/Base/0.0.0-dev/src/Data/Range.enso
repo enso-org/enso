@@ -127,6 +127,30 @@ type Range
             if self.step < 0 then go (<=) self.start else
                 throw_zero_step_error
 
+    ## PRIVATE
+       Applies a function to each element of the range.
+
+       Essentially acts like `range.to_vector.each_with_index`, but it is more
+       efficient.
+
+       Arguments:
+       - function: A function to apply that takes two parameters: first the
+         index of a given range element and then the actual range element.
+
+       > Example
+         Print range elements with their indices within the range.
+
+             (10.up_to 13).each_with_index ix-> elem-> IO.println (Pair ix elem) # Will print Pair 0 10, Pair 1 11, Pair 2 12
+    each_with_index : (Integer -> Any -> Any) -> Nothing
+    each_with_index self function =
+        go end_condition ix current =
+            if end_condition current self.end then Nothing else
+                function ix current
+                @Tail_Call go end_condition ix+1 current+self.step
+        if self.step > 0 then go (>=) 0 self.start else
+            if self.step < 0 then go (<=) 0 self.start else
+                throw_zero_step_error
+
     ## Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
