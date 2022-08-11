@@ -22,6 +22,7 @@ use ensogl_text_embedded_fonts::Weight;
 use ensogl_text_embedded_fonts::Width;
 use font::Font;
 use font::GlyphRenderInfo;
+use ordered_float::NotNan;
 use owned_ttf_parser::GlyphId;
 
 
@@ -64,8 +65,10 @@ macro_rules! define_prop_setters_and_getters {
     ($prop:ident ($($name:ident),* $(,)?)) => { paste! {
         pub fn [<set_ $prop:snake:lower>](&self, value: $prop) {
             self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
+            self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
             self.refresh();
         }
+
         $(
             pub fn [<set_ $prop:snake:lower _ $name:snake:lower>](&self) {
                 self.[<set_ $prop:snake:lower>]($prop::$name)
@@ -126,28 +129,12 @@ impl Glyph {
     /// Size setter.
     pub fn set_font_size(&self, size: f32) {
         self.font_size.set(size);
-        self.font.with_glyph_info(
+        self.font.get_or_load_glyph_info(
             self.properties.get(),
             &self.variations.borrow(),
             self.glyph_id.get(),
             |glyph_info| {
                 self.sprite.size.set(glyph_info.scale.scale(size));
-            },
-        )
-    }
-
-    /// Change the displayed character.
-    pub fn set_glyph_id(&self, glyph_id: GlyphId) {
-        self.glyph_id.set(glyph_id);
-        self.font.with_glyph_info(
-            self.properties.get(),
-            &self.variations.borrow(),
-            glyph_id,
-            |glyph_info| {
-                self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
-                self.update_atlas();
-                let font_size = self.font_size();
-                self.sprite.size.set(glyph_info.scale.scale(font_size));
             },
         )
     }
@@ -162,6 +149,22 @@ impl Glyph {
                     self.set_glyph_id(glyph_id)
                 }
                 // FIXME: display not found char
+            },
+        )
+    }
+
+    /// Change the displayed character.
+    pub fn set_glyph_id(&self, glyph_id: GlyphId) {
+        self.glyph_id.set(glyph_id);
+        self.font.get_or_load_glyph_info(
+            self.properties.get(),
+            &self.variations.borrow(),
+            glyph_id,
+            |glyph_info| {
+                self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
+                self.update_atlas();
+                let font_size = self.font_size();
+                self.sprite.size.set(glyph_info.scale.scale(font_size));
             },
         )
     }

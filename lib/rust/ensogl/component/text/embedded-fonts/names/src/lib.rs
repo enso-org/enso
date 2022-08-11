@@ -91,6 +91,10 @@ impl NonVariableFontFamilyDefinition {
     pub fn from_iter(iter: impl IntoIterator<Item = (NonVariableFontFaceHeader, String)>) -> Self {
         Self::new(iter.into_iter().collect())
     }
+
+    pub fn possible_weights(&self) -> Vec<Weight> {
+        self.map.keys().map(|header| header.weight).collect()
+    }
 }
 
 impl VariableFontFamilyDefinition {

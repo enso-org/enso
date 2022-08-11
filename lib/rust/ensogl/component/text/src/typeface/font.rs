@@ -19,7 +19,10 @@ use ordered_float::NotNan;
 use owned_ttf_parser as ttf;
 use owned_ttf_parser::AsFaceRef;
 use owned_ttf_parser::GlyphId;
+use owned_ttf_parser::Style;
 use owned_ttf_parser::Tag;
+use owned_ttf_parser::Weight;
+use owned_ttf_parser::Width;
 use serde;
 use std::collections::hash_map::Entry;
 
@@ -251,6 +254,48 @@ pub struct VariationAxes {
     pub non_standard: Vec<(Tag, NotNan<f32>)>,
 }
 
+impl VariationAxes {
+    /// https://fonts.google.com/knowledge/glossary/weight_axis
+    pub fn set_weight(&mut self, value: Weight) {
+        self.wght = value.to_number().into();
+    }
+
+    /// https://fonts.google.com/knowledge/glossary/width_axis
+    pub fn set_width(&mut self, value: Width) {
+        let wdth = match value {
+            Width::UltraCondensed => 25.0,
+            Width::ExtraCondensed => 43.75,
+            Width::Condensed => 62.5,
+            Width::SemiCondensed => 81.25,
+            Width::Normal => 100.0,
+            Width::SemiExpanded => 118.75,
+            Width::Expanded => 137.5,
+            Width::ExtraExpanded => 156.25,
+            Width::UltraExpanded => 175.0,
+        };
+        self.wdth = NotNan::new(wdth).unwrap();
+    }
+
+    /// https://fonts.google.com/knowledge/glossary/italic_axis
+    /// https://fonts.google.com/knowledge/glossary/slant_axis
+    pub fn set_style(&mut self, value: Style) {
+        match value {
+            Style::Normal => {
+                self.ital = 0_u16.into();
+                self.slnt = 0_u16.into();
+            }
+            Style::Italic => {
+                self.ital = 1_u16.into();
+                self.slnt = 0_u16.into();
+            }
+            Style::Oblique => {
+                self.ital = 0_u16.into();
+                self.slnt = 90_u16.into();
+            }
+        }
+    }
+}
+
 
 
 // ============
@@ -268,7 +313,14 @@ pub type VariableFont = FontTemplate<VariableFontFamily, VariationAxes>;
 
 
 impl Font {
-    pub fn with_glyph_info(
+    pub fn possible_weights(&self) -> Option<Vec<Weight>> {
+        match self {
+            Font::NonVariable(font) => Some(font.family.definition.possible_weights()),
+            Font::Variable(_) => None,
+        }
+    }
+
+    pub fn get_or_load_glyph_info(
         &self,
         non_variable_font_variations: NonVariableFontFaceHeader,
         variable_font_variations: &VariationAxes,
@@ -277,8 +329,9 @@ impl Font {
     ) {
         match self {
             Font::NonVariable(font) =>
-                font.with_glyph_info(&non_variable_font_variations, glyph_id, f),
-            Font::Variable(font) => font.with_glyph_info(variable_font_variations, glyph_id, f),
+                font.get_or_load_glyph_info(&non_variable_font_variations, glyph_id, f),
+            Font::Variable(font) =>
+                font.get_or_load_glyph_info(variable_font_variations, glyph_id, f),
         }
     }
 
@@ -388,7 +441,7 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     }
 
     /// Get render info for one character, generating one if not found.
-    pub fn with_glyph_info(
+    pub fn get_or_load_glyph_info(
         &self,
         variations: &V,
         glyph_id: GlyphId,
@@ -400,8 +453,9 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
             f(render_info);
         } else {
             self.family.get_or_load_face(&variations, &self.loader, |face| {
-                // FIXME: remove
+                // TODO: Switch from chars to GlyphIDs here.
                 let ch = *self.glyph_id_to_code_point.borrow().get(&glyph_id).unwrap();
+                // TODO: Use variations to generate variable-width glyphs.
                 let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
                 if !self.cache.borrow().contains_key(variations) {
                     self.cache.borrow_mut().insert(variations.clone(), default());
