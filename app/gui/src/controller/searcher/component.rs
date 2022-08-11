@@ -59,8 +59,8 @@ pub enum Order {
 // === Data ===
 // ============
 
-/// Contains detailed data of a [`Component`]. The details are stored as a reference that differs
-/// depending on where the data originates from (either from the [`suggestion_database`] or from a
+/// Contains detailed data of a [`Component`]. The storage of the details differs depending on
+/// where the data originates from (either from the [`suggestion_database`] or from a
 /// [`hardcoded::Snippet`]).
 #[derive(Clone, CloneRef, Debug)]
 pub enum Data {
