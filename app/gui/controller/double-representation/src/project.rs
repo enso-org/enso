@@ -9,6 +9,16 @@ use serde::Serialize;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const STANDARD_NAMESPACE: &str = "Standard";
+
+const BASE_LIBRARY_NAME: &str = "Base";
+
+
+
 // ==============
 // === Errors ===
 // ==============
@@ -78,7 +88,7 @@ impl QualifiedName {
 
     /// Return the qualified name of the "Standard.Base" library project.
     pub fn standard_base_library() -> Self {
-        Self::from_segments("Standard", "Base").unwrap()
+        Self::from_segments(STANDARD_NAMESPACE, BASE_LIBRARY_NAME).unwrap()
     }
 
     /// The iterator over name's segments: the namespace and project name.
