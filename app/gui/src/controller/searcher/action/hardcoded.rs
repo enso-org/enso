@@ -98,7 +98,7 @@ pub struct Suggestion {
     /// The list of argument types which may be applied to the code returned by this suggestion.
     pub argument_types:     Vec<tp::QualifiedName>,
     /// The type returned by the suggestion's code.
-    pub return_type:        Option<tp::QualifiedName>,
+    pub return_types:       Vec<tp::QualifiedName>,
     /// An import required by the suggestion.
     pub imports:            Vec<module::QualifiedName>,
     /// The documentation bound to the suggestion.
@@ -138,7 +138,13 @@ impl Suggestion {
         mut self,
         return_type: impl TryInto<tp::QualifiedName, Error: Debug>,
     ) -> Self {
-        self.return_type = Some(return_type.try_into().unwrap());
+        self.return_types = vec![return_type.try_into().unwrap()];
+        self
+    }
+
+    pub(crate) fn with_return_types<'a>(mut self, return_types: impl IntoIterator<Item = &'a str>) -> Self {
+        let types = return_types.into_iter().map(|rt| rt.try_into().unwrap()).collect_vec();
+        self.return_types = types;
         self
     }
 
@@ -288,9 +294,11 @@ pub fn add_hardcoded_entries_to_list(
                     };
                     let return_type_matches = if let Some(return_types) = return_types {
                         suggestion
-                            .return_type
-                            .as_ref()
-                            .map_or(false, |rt| return_types.contains(rt))
+                            .return_types
+                            .iter()
+                            .any(|rt| return_types.contains(rt))
+                            // .as_ref()
+                            // .map_or(false, |rt| return_types.contains(rt))
                     } else {
                         true
                     };

@@ -1053,9 +1053,30 @@ impl Searcher {
         // TODO[LATER]: maybe extract to separate helper method/func
         // FIXME: instead, filter by snippets.this_type
         if this_type.is_none() {
+            let rt_converted = return_types.iter().map(tp::QualifiedName::from_text);
+            let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
+            // FIXME: log error
+            let return_types = rt_result.unwrap_or_default();
+            // FIXME: refactor to smart methods
+            // let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
             let base_lib_qn = project::QualifiedName::standard_base_library();
             let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
-            let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
+            let snippets = component::hardcoded::INPUT_SNIPPETS.with(|snippets| {
+                snippets.iter().filter(|s| s.return_types.iter().any(|rt| {
+                    let contains = return_types.contains(rt);
+                    DEBUG!("MCDBG  " s.name ": " contains " @ " rt;?);
+                    contains
+                })).cloned().collect_vec()
+                // s.clone()
+            });
+            /*
+        let this_type = this_type.map(tp::QualifiedName::from_text).transpose()?;
+        let rt_converted = return_types.iter().map(tp::QualifiedName::from_text);
+        let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
+        let return_types = rt_result?;
+        let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
+        action::hardcoded::add_hardcoded_entries_to_list(list, this_type.as_ref(), return_types);
+             */
             builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
         }
 

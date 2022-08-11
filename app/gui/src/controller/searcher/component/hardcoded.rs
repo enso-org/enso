@@ -42,7 +42,7 @@ thread_local! {
             )
             .into(),
         snippet_with_name_and_code_and_icon("number input", "0", IconId::NumberInput)
-            .with_return_type("Standard.Base.Data.Numbers.Number")
+            .with_return_types(["Standard.Base.Data.Numbers.Number", "Standard.Base.Data.Numbers.Decimal", "Standard.Base.Data.Numbers.Integer"])
             .with_documentation(
                  "A number input node.\n\n\
                  A zero number. The value can be edited and used as an input for other nodes."
