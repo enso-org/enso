@@ -4,7 +4,7 @@
 
 use crate::prelude::*;
 
-use super::font::Font;
+use super::font::NonVariableFont;
 
 
 
@@ -55,12 +55,12 @@ impl CharInfo {
 pub struct Pen {
     offset:       f32,
     current_char: Option<CharInfo>,
-    font:         Font,
+    font:         NonVariableFont,
 }
 
 impl Pen {
     /// Create a new pen iterator for a given font.
-    pub fn new(font: &Font) -> Self {
+    pub fn new(font: &NonVariableFont) -> Self {
         let offset = default();
         let current_char = default();
         let font = font.clone_ref();
@@ -102,7 +102,7 @@ mod tests {
     #[wasm_bindgen_test(async)]
     async fn moving_pen() {
         ensogl_text_msdf_sys::initialized().await;
-        let font = Font::mock("Test font");
+        let font = NonVariableFont::mock("Test font");
         mock_a_glyph_info(font.clone_ref());
         mock_w_glyph_info(font.clone_ref());
         font.mock_kerning_info('A', 'W', -0.16);
@@ -118,14 +118,14 @@ mod tests {
         assert_eq!(expected, result);
     }
 
-    fn mock_a_glyph_info(font: Font) -> GlyphRenderInfo {
+    fn mock_a_glyph_info(font: NonVariableFont) -> GlyphRenderInfo {
         let advance = 0.56;
         let scale = Vector2::new(0.5, 0.8);
         let offset = Vector2::new(0.1, 0.2);
         font.mock_char_info('A', scale, offset, advance)
     }
 
-    fn mock_w_glyph_info(font: Font) -> GlyphRenderInfo {
+    fn mock_w_glyph_info(font: NonVariableFont) -> GlyphRenderInfo {
         let advance = 0.7;
         let scale = Vector2::new(0.6, 0.9);
         let offset = Vector2::new(0.1, 0.2);

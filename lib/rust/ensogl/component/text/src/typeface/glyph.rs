@@ -19,8 +19,8 @@ use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
 use ensogl_text_embedded_fonts::Style;
 use ensogl_text_embedded_fonts::Weight;
 use ensogl_text_embedded_fonts::Width;
-use font::Font;
 use font::GlyphRenderInfo;
+use font::NonVariableFont;
 use owned_ttf_parser::GlyphId;
 
 
@@ -46,7 +46,7 @@ pub struct GlyphData {
     glyph_id:    Cell<GlyphId>,
     sprite:      Sprite,
     context:     Context,
-    font:        Font,
+    font:        NonVariableFont,
     properties:  Cell<NonVariableFontFaceHeader>,
     font_size:   Attribute<f32>,
     color:       Attribute<Vector4<f32>>,
@@ -188,7 +188,7 @@ pub struct System {
     logger:        Logger,
     context:       Context,
     sprite_system: SpriteSystem,
-    pub font:      Font,
+    pub font:      NonVariableFont,
     font_size:     Buffer<f32>,
     color:         Buffer<Vector4<f32>>,
     sdf_bold:      Buffer<f32>,
@@ -199,7 +199,7 @@ pub struct System {
 impl System {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(scene: impl AsRef<Scene>, font: Font) -> Self {
+    pub fn new(scene: impl AsRef<Scene>, font: NonVariableFont) -> Self {
         let logger = Logger::new("glyph_system");
         let size = font::msdf::Texture::size();
         let scene = scene.as_ref();

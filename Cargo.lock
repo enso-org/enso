@@ -2815,6 +2815,7 @@ dependencies = [
  "ensogl-text-embedded-fonts",
  "ensogl-text-font",
  "ensogl-text-msdf-sys",
+ "ordered-float",
  "owned_ttf_parser",
  "serde",
  "wasm-bindgen-test",
