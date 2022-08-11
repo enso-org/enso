@@ -59,6 +59,12 @@ pub enum Order {
 // === Kind ===
 // ============
 
+/// Wraps the detailed data of a [`Component`]. The data differs depending on where the component
+/// originates from (either from the [`suggestion_database`] or hardcoded).
+/// Wraps the detailed data of a [`Component`]. The data is differentiated depending on where the component
+/// originates from (
+/// Describes where a [`Component`] originates from (either 
+/// Differentiates
 /// The kind of a [`Component`].
 #[derive(Clone, CloneRef, Debug)]
 pub enum Kind {
