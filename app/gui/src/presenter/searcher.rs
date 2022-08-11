@@ -135,10 +135,10 @@ impl Model {
         let component: FallibleResult<_> =
             self.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
         let new_code = component.and_then(|component| {
-            let suggestion = match component.kind {
-                component::Kind::FromDatabase { entry, .. } =>
+            let suggestion = match component.data {
+                component::Data::FromDatabase { entry, .. } =>
                     Suggestion::FromDatabase(entry.clone_ref()),
-                component::Kind::Virtual { snippet } => Suggestion::Hardcoded(snippet.clone_ref()),
+                component::Data::Virtual { snippet } => Suggestion::Hardcoded(snippet.clone_ref()),
             };
             self.controller.use_suggestion(suggestion)
         });
@@ -206,8 +206,8 @@ impl Model {
     ) -> String {
         let component = id.and_then(|id| self.component_by_view_id(id));
         if let Some(component) = component {
-            match component.kind {
-                component::Kind::FromDatabase { entry, .. } => {
+            match component.data {
+                component::Data::FromDatabase { entry, .. } => {
                     if let Some(documentation) = &entry.documentation_html {
                         let title = title_for_docs(&entry);
                         format!(
@@ -217,7 +217,7 @@ impl Model {
                         doc_placeholder_for(&entry)
                     }
                 }
-                component::Kind::Virtual { snippet } => {
+                component::Data::Virtual { snippet } => {
                     if let Some(documentation) = &snippet.documentation_html {
                         documentation.to_string()
                     } else {

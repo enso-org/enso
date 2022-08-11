@@ -56,18 +56,14 @@ pub enum Order {
 
 
 // ============
-// === Kind ===
+// === Data ===
 // ============
 
-/// Wraps the detailed data of a [`Component`]. The data differs depending on where the component
-/// originates from (either from the [`suggestion_database`] or hardcoded).
-/// Wraps the detailed data of a [`Component`]. The data is differentiated depending on where the component
-/// originates from (
-/// Describes where a [`Component`] originates from (either 
-/// Differentiates
-/// The kind of a [`Component`].
+/// Contains detailed data of a [`Component`]. The details are stored as a reference that differs
+/// depending on where the data originates from (either from the [`suggestion_database`] or from a
+/// [`hardcoded::Snippet`]).
 #[derive(Clone, CloneRef, Debug)]
-pub enum Kind {
+pub enum Data {
     /// A component from the [`suggestion_database`].
     FromDatabase {
         /// The ID of the component in the [`suggestion_database`].
@@ -99,7 +95,7 @@ pub enum Kind {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
-    pub kind:       Kind,
+    pub data:       Data,
     pub match_info: Rc<RefCell<MatchInfo>>,
 }
 
@@ -108,8 +104,8 @@ impl Component {
     ///
     /// The matching info will be filled for an empty pattern.
     pub fn new_from_database_entry(id: Id, entry: Rc<suggestion_database::Entry>) -> Self {
-        let kind = Kind::FromDatabase { id: Immutable(id), entry };
-        Self { kind, match_info: default() }
+        let data = Data::FromDatabase { id: Immutable(id), entry };
+        Self { data, match_info: default() }
     }
 
     /// The label which should be displayed in the Component Browser.
@@ -119,17 +115,17 @@ impl Component {
 
     /// The name of the component.
     pub fn name(&self) -> &str {
-        match &self.kind {
-            Kind::FromDatabase { entry, .. } => entry.name.as_str(),
-            Kind::Virtual { snippet } => snippet.name,
+        match &self.data {
+            Data::FromDatabase { entry, .. } => entry.name.as_str(),
+            Data::Virtual { snippet } => snippet.name,
         }
     }
 
     /// The [`Id`] of the component in the [`suggestion_database`].
     pub fn id(&self) -> Option<Id> {
-        match self.kind {
-            Kind::FromDatabase { id, .. } => Some(*id),
-            Kind::Virtual { .. } => None,
+        match self.data {
+            Data::FromDatabase { id, .. } => Some(*id),
+            Data::Virtual { .. } => None,
         }
     }
 
@@ -144,7 +140,7 @@ impl Component {
     /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
         use suggestion_database::entry::Kind as EntryKind;
-        matches!(&self.kind, Kind::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
+        matches!(&self.data, Data::FromDatabase { entry, .. } if entry.kind == EntryKind::Module)
     }
 
     /// Update matching info.
@@ -166,14 +162,14 @@ impl Component {
 
 impl From<Rc<hardcoded::Snippet>> for Component {
     fn from(snippet: Rc<hardcoded::Snippet>) -> Self {
-        Self { kind: Kind::Virtual { snippet }, match_info: default() }
+        Self { data: Data::Virtual { snippet }, match_info: default() }
     }
 }
 
 impl Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.kind {
-            Kind::FromDatabase { entry, .. } => {
+        match &self.data {
+            Data::FromDatabase { entry, .. } => {
                 let entry_name = entry.name.from_case(Case::Snake).to_case(Case::Lower);
                 let self_type_ref = entry.self_type.as_ref();
                 let self_type_not_here = self_type_ref.filter(|t| *t != &entry.module);
@@ -184,7 +180,7 @@ impl Display for Component {
                     write!(f, "{}", entry_name)
                 }
             }
-            Kind::Virtual { snippet } => write!(f, "{}", snippet.name),
+            Data::Virtual { snippet } => write!(f, "{}", snippet.name),
         }
     }
 }

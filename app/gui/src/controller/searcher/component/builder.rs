@@ -245,9 +245,9 @@ impl List {
     fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
         let mut favorites_groups = self.take_grouping_and_order_of_favorites_as_vec();
         for group in favorites_groups.iter_mut() {
-            group.retain_entries(|e| match e.kind {
-                component::Kind::FromDatabase { id, .. } => self.allowed_favorites.contains(&id),
-                component::Kind::Virtual { .. } => true,
+            group.retain_entries(|e| match e.data {
+                component::Data::FromDatabase { id, .. } => self.allowed_favorites.contains(&id),
+                component::Data::Virtual { .. } => true,
             });
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
