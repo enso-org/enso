@@ -1533,11 +1533,13 @@ lazy val `engine-runner` = project
         staticOnLinux = true,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-          "-H:IncludeResources=.*Main.enso$"
+          "-H:IncludeResources=.*Main.enso$",
+          "--allow-incomplete-classpath"
         ),
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
-          "org.enso.loggingservice.WSLoggerManager$"
+          "org.enso.loggingservice.WSLoggerManager$",
+          "io.methvin.watchservice.jna.CarbonAPI"
         )
       )
       .dependsOn(assembly)
