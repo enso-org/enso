@@ -86,12 +86,19 @@ type Table
        Returns the column with the given name.
 
        Arguments:
-       - name: The name of the column to get.
-    at : Text -> Column ! No_Such_Column_Error
-    at self name =
-        candidates = self.internal_columns + self.context.meta_index
-        internal = candidates.find (p -> p.name == name)
-        self.make_column internal . map_error (_ -> No_Such_Column_Error name)
+       - selector: The name or index of the column to get.
+    at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
+    at self selector = case selector of
+        Integer -> self.make_column (self.internal_columns.at selector)
+        Text ->
+            candidates = self.internal_columns + self.context.meta_index
+            internal_column = candidates.find (p -> p.name == name)
+            self.make_column internal_column . map_error (_ -> No_Such_Column_Error name)
+
+    ## UNSTABLE
+       Returns the number of columns in the table.
+    length : Integer
+    length = self.internal_columns.length
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be

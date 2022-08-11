@@ -238,7 +238,7 @@ type Table
     ## Returns the column with the given name.
 
        Arguments:
-       - name: The name of the column being looked up.
+       - selector: The name or index of the column being looked up.
 
        > Example
          Get the names of all of the items from the shop inventory.
@@ -246,10 +246,27 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.at "item_name"
-    at : Text -> Column ! No_Such_Column_Error
-    at self name = case self.java_table.getColumnOrIndexByName name of
-        Nothing -> Error.throw (No_Such_Column_Error name)
-        c -> Column.Column c
+
+       > Example
+         Get the last column.
+
+             import Standard.Examples
+
+             example_at = Examples.inventory_table.at -1
+    at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
+    at self selector=0 = case selector of
+        Integer ->
+            java_columns = Vector.Vector self.java_table.getColumns
+            Column.Column (java_column.at selector)
+        Text ->
+            case self.java_table.getColumnOrIndexByName selector of
+                Nothing -> Error.throw (No_Such_Column_Error selector)
+                c -> Column.Column c
+
+    ## UNSTABLE
+       Returns the number of columns in the table.
+    length : Integer
+    length = self.java_table.getColumns.length
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
