@@ -170,13 +170,14 @@ Parse_Error.to_display_text self =
          example_get = Examples.json_object.get "title"
 Object.get : Text -> Json ! No_Such_Field_Error
 Object.get self field = self.fields.get field . map_error case _ of
-    Map.No_Value_For_Key_Error _ -> No_Such_Field_Error field
+    Map.No_Value_For_Key_Error_Data _ -> No_Such_Field_Error_Data field
     x -> x
 
 ## UNSTABLE
 
    An error indicating that there is no such field in the JSON object.
-type No_Such_Field_Error field_name
+type No_Such_Field_Error
+    No_Such_Field_Error_Data field_name
 
 ## UNSTABLE
 

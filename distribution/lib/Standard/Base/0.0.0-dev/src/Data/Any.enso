@@ -2,15 +2,12 @@ from Standard.Base import all
 
 from Standard.Base.Error.Common import dataflow_error_handler
 
-# The type that subsumes all types.
+## Any is the universal top-type, with all other types being subsumed by it.
+
+   If a value of type Any is expected in a given location, _any value_ can
+   be used in that position.
+@Builtin_Type
 type Any
-
-    ## Any is the universal top-type, with all other types being subsumed by it.
-
-       If a value of type Any is expected in a given location, _any value_ can
-       be used in that position.
-    @Builtin_Type
-    type Any
 
     ## PRIVATE
 

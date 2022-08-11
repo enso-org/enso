@@ -89,7 +89,7 @@ from project.Data.Range export all
 from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location
 from project.Data.Text.Matching export Case_Insensitive, Case_Insensitive_Data, Text_Matcher, Text_Matcher_Data, Regex_Matcher, Regex_Matcher_Data, No_Matches_Found
 from project.Data.Text export all hiding Encoding, Span, Text_Ordering
-from project.Data.Text.Encoding export Encoding, Encoding_Error
+from project.Data.Text.Encoding export Encoding, Encoding_Error, Encoding_Error_Data
 from project.Data.Text.Text_Ordering export all
 from project.Data.Text.Span export all
 from project.Error.Common export all

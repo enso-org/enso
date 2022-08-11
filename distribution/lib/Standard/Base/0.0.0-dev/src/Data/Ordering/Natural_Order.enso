@@ -75,7 +75,7 @@ compare text1 text2 case_sensitive=True =
                 substring2 = Text_Utils.substring text2 prev2 next2
                 first_char_2 = Text_Utils.get_chars substring2 . at 0
 
-                tmp = Pair (is_digit first_char_1) (is_digit first_char_2)
+                tmp = Pair_Data (is_digit first_char_1) (is_digit first_char_2)
                 ## ToDo: Move to case on second block
                    Appears to be an issue using a nested case statement on a pair
                    https://www.pivotaltracker.com/story/show/181280737

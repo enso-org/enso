@@ -206,7 +206,7 @@ match_criteria_callback matcher objects criteria problem_callback reorder=False 
 type Match_Matrix
     ## PRIVATE
        A helper type holding a matrix of matches.
-    type Match_Matrix_Data matrix criteria objects
+    Match_Matrix_Data matrix criteria objects
 
     # Checks if the ith object is matched by any criterion.
     is_object_matched_by_anything : Integer -> Boolean

@@ -9,7 +9,7 @@ import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource
 from Standard.Base.Runtime.Resource import Managed_Resource
-from Standard.Base.Data.Time import Time
+from Standard.Base.Data.Time import Time, Time_Data
 
 polyglot java import org.enso.base.Array_Utils
 polyglot java import org.enso.base.Encoding_Utils
