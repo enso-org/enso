@@ -12,6 +12,8 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.data.text.Text;
 
+import java.math.BigInteger;
+
 @NodeInfo(shortName = "LiteralMatch", description = "Allows matching on literals")
 public abstract class LiteralBranchNode extends BranchNode {
   private final Object literal;
@@ -24,7 +26,19 @@ public abstract class LiteralBranchNode extends BranchNode {
     this.literal = literal;
   }
 
-  public static LiteralBranchNode build(Object literal, RootCallTarget branch) {
+  public static LiteralBranchNode build(long literal, RootCallTarget branch) {
+    return LiteralBranchNodeGen.create(literal, branch);
+  }
+
+  public static LiteralBranchNode build(double literal, RootCallTarget branch) {
+    return LiteralBranchNodeGen.create(literal, branch);
+  }
+
+  public static LiteralBranchNode build(BigInteger literal, RootCallTarget branch) {
+    return LiteralBranchNodeGen.create(literal, branch);
+  }
+
+  public static LiteralBranchNode build(String literal, RootCallTarget branch) {
     return LiteralBranchNodeGen.create(literal, branch);
   }
 

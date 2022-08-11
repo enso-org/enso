@@ -101,5 +101,13 @@ spec = Test.group "Pattern Matches" <|
             0     -> Test.fail "Expected value to match constant."
             "foo" -> Nothing
             _     -> Test.fail "Expected value to match constant."
+    Test.specify "should be able to match on literal values nested in constructors" <|
+        value_1 = Cons 42 Nil
+        case value_1 of
+            42                    -> Test.fail "Expected value to match constant."
+            Cons (Cons 1 Nil) Nil -> Test.fail "Expected value to match constant."
+            Cons 1 Nil            -> Test.fail "Expected value to match constant."
+            Cons 42 Nil           -> Nothing
+            _                     -> Test.fail "Expected value to match constant."
 
 main = Test.Suite.run_main spec

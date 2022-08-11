@@ -270,11 +270,12 @@ class NestedPatternMatchTest extends CompilerTest {
           .asInstanceOf[IR.Case.Expr]
 
       consBranchBody.branches.length shouldEqual 2
-      consBranchBody.branches.head.expression shouldBe an[IR.Literal.Number]
+      consBranchBody.branches.head.expression shouldBe an[IR.Expression.Block]
       consBranchBody.branches.head.pattern
-        .asInstanceOf[Pattern.Constructor]
-        .constructor
-        .name shouldEqual "Nil"
+        .asInstanceOf[Pattern.Literal]
+        .literal
+        .asInstanceOf[IR.Literal.Number]
+        .numericValue shouldEqual 1
       NestedPatternMatch.containsNestedPatterns(
         consBranchBody.branches.head.pattern
       ) shouldEqual false

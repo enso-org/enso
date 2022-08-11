@@ -367,7 +367,7 @@ case object NestedPatternMatch extends IRPass {
         fields.exists {
           case _: Pattern.Constructor => true
           case _: Pattern.Name        => false
-          case _: Pattern.Literal     => false
+          case _: Pattern.Literal     => true
           case _: IR.Error.Pattern    => false
           case _: Pattern.Documentation =>
             throw new CompilerError(
@@ -392,7 +392,7 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => false
       case _: Pattern.Constructor => true
-      case _: Pattern.Literal     => false
+      case _: Pattern.Literal     => true
       case _: IR.Error.Pattern    => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
