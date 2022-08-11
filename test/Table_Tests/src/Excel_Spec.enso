@@ -518,24 +518,24 @@ spec =
             table = xlsx_sheet.read (File_Format.Excel (Sheet 1))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet 1 (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet 1 (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read by sheet name" <|
             table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read XLS by sheet index" <|
             table = xls_sheet.read (File_Format.Excel (Sheet 1))
             check_table table
 
-            table_2 = xls_sheet.read (File_Format.Excel (Sheet 1 (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xls_sheet.read (File_Format.Excel (Sheet 1 (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read XLS by sheet name" <|
@@ -546,8 +546,8 @@ spec =
             table = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C" (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C" (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
             check_table <| xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!10:13"))
@@ -555,22 +555,22 @@ spec =
 
         Test.specify "should let you read by range name" <|
             table = xlsx_sheet.read (File_Format.Excel (Cell_Range "myData"))
-            table.length . should_equal col_a.length
+            table.row_count . should_equal col_a.length
             check_table <| table
 
         Test.specify "should let you restrict number of rows read and skip rows" <|
             table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
-            table_3 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length) 2))
-            table_3.length . should_equal 2
+            table_3 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length) 2))
+            table_3.row_count . should_equal 2
 
             table_4 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" row_limit=6))
-            table_4.length . should_equal 6
+            table_4.row_count . should_equal 6
 
     Test.group "Problems" <|
         Test.specify "should handle non-existing file gracefully" <|

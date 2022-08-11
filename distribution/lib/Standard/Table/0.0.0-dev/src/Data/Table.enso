@@ -266,7 +266,7 @@ type Table
     ## UNSTABLE
        Returns the number of columns in the table.
     length : Integer
-    length = self.java_table.getColumns.length
+    length self = self.java_table.getColumns.length
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
