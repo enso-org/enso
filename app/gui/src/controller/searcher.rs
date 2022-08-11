@@ -1053,11 +1053,10 @@ impl Searcher {
         // TODO[LATER]: maybe extract to separate helper method/func
         // FIXME: instead, filter by snippets.this_type
         if this_type.is_none() {
-            let base_lib_qn = project::QualifiedName::of_standard_base_library();
-            let input_group_name = INPUT_COMPONENT_GROUP_NAME;
-            let input_group_qn = component::group::QualifiedName::new(base_lib_qn, input_group_name);
-            let snippets = LITERAL_INPUT_NODES_SNIPPETS.with(|c| c.clone());
-            builder.insert_virtual_components_in_favorites_group(input_group_qn, snippets);
+            let base_lib_qn = project::QualifiedName::standard_base_library();
+            let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
+            let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
+            builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
         }
 
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
