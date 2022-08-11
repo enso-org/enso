@@ -994,10 +994,19 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
 // === Sub-Projects ===========================================================
 // ============================================================================
 
-val truffleRunOptions = Seq(
-  "-Dpolyglot.engine.IterativePartialEscape=true",
-  "-Dpolyglot.engine.BackgroundCompilation=false"
-)
+val truffleRunOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
+  Seq(
+    "-Dpolyglot.engine.IterativePartialEscape=true",
+    "-Dpolyglot.engine.BackgroundCompilation=false",
+    "-Dbench.compileOnly=true"
+  )
+} else {
+  Seq(
+    "-Dpolyglot.engine.IterativePartialEscape=true",
+    "-Dpolyglot.engine.BackgroundCompilation=false"
+  )
+}
+
 
 val truffleRunOptionsSettings = Seq(
   fork := true,
