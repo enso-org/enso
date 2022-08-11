@@ -16,7 +16,7 @@ use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
-use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
+use ensogl_text_embedded_fonts::NonVariableFaceHeader;
 use ensogl_text_embedded_fonts::Style;
 use ensogl_text_embedded_fonts::Weight;
 use ensogl_text_embedded_fonts::Width;
@@ -49,7 +49,7 @@ pub struct GlyphData {
     sprite:      Sprite,
     context:     Context,
     font:        Font,
-    properties:  Cell<NonVariableFontFaceHeader>,
+    properties:  Cell<NonVariableFaceHeader>,
     variations:  RefCell<VariationAxes>,
     font_size:   Attribute<f32>,
     color:       Attribute<Vector4<f32>>,

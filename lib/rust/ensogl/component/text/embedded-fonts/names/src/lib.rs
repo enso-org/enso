@@ -7,7 +7,7 @@
 //! The implementation of this library has an important limitation that should not cause any
 //! problems, however, it is important to be aware of it. In case of non-variable fonts, only one
 //! font face is supported per file. A font face is identified by (width, weight, style) triple (see
-//! [`NonVariableFontFaceHeader`]) to learn more. If you want to use font faces defined in the same
+//! [`NonVariableFaceHeader`]) to learn more. If you want to use font faces defined in the same
 //! file (e.g. ".ttf" file), you have to split them into multiple files first. All major browsers
 //! have the same limitation. For example, you are unable to define in CSS a new font family by
 //! loading different faces from the same file with the `@font-face` rule
@@ -91,32 +91,32 @@ impl From<String> for Name {
 
 
 
-// ============================
-// === FontFamilyDefinition ===
-// ============================
+// ========================
+// === FamilyDefinition ===
+// ========================
 
 /// Definition of a font family. Font family consist of one font face in case of variable fonts or
 /// multiple font faces in case of non-variable ones.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum FontFamilyDefinition {
-    Variable(VariableFontFamilyDefinition),
-    NonVariable(NonVariableFontFamilyDefinition),
+pub enum FamilyDefinition {
+    Variable(VariableFamilyDefinition),
+    NonVariable(NonVariableFamilyDefinition),
 }
 
 
 
-// ====================================
-// === VariableFontFamilyDefinition ===
-// ====================================
+// ================================
+// === VariableFamilyDefinition ===
+// ================================
 
 /// Definition of a variable font family. See the following link to learn more about variable fonts:
 /// https://docs.microsoft.com/en-us/windows/win32/directwrite/opentype-variable-fonts
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VariableFontFamilyDefinition {
+pub struct VariableFamilyDefinition {
     pub file: String,
 }
 
-impl VariableFontFamilyDefinition {
+impl VariableFamilyDefinition {
     /// Constructor.
     pub fn new(file: impl Into<String>) -> Self {
         let file = file.into();
@@ -126,21 +126,21 @@ impl VariableFontFamilyDefinition {
 
 
 
-// =======================================
-// === NonVariableFontFamilyDefinition ===
-// =======================================
+// ===================================
+// === NonVariableFamilyDefinition ===
+// ===================================
 
 /// Definition of a non-variable font family. Contains mapping between (width, weight, style) triple
-/// (see [`NonVariableFontFaceHeader`]) to learn more) and file names.
+/// (see [`NonVariableFaceHeader`]) to learn more) and file names.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NonVariableFontFamilyDefinition {
-    pub map: HashMap<NonVariableFontFaceHeader, String>,
+pub struct NonVariableFamilyDefinition {
+    pub map: HashMap<NonVariableFaceHeader, String>,
 }
 
-impl NonVariableFontFamilyDefinition {
+impl NonVariableFamilyDefinition {
     /// Constructor.
-    pub fn new(map: HashMap<NonVariableFontFaceHeader, String>) -> Self {
+    pub fn new(map: HashMap<NonVariableFaceHeader, String>) -> Self {
         Self { map }
     }
 
@@ -150,30 +150,30 @@ impl NonVariableFontFamilyDefinition {
     }
 }
 
-impl FromIterator<(NonVariableFontFaceHeader, String)> for NonVariableFontFamilyDefinition {
+impl FromIterator<(NonVariableFaceHeader, String)> for NonVariableFamilyDefinition {
     fn from_iter<T>(iter: T) -> Self
-    where T: IntoIterator<Item = (NonVariableFontFaceHeader, String)> {
+    where T: IntoIterator<Item = (NonVariableFaceHeader, String)> {
         Self::new(iter.into_iter().collect())
     }
 }
 
 
 
-// =================================
-// === NonVariableFontFaceHeader ===
-// =================================
+// =============================
+// === NonVariableFaceHeader ===
+// =============================
 
 /// Combination of all information allowing mapping the font face to a font file for non-variable
 /// fonts. For variable fonts, there is just one definition for any combination of the parameters.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
-pub struct NonVariableFontFaceHeader {
+pub struct NonVariableFaceHeader {
     pub width:  Width,
     pub weight: Weight,
     pub style:  Style,
 }
 
-impl NonVariableFontFaceHeader {
+impl NonVariableFaceHeader {
     /// Constructor.
     pub fn new(width: Width, weight: Weight, style: Style) -> Self {
         Self { width, weight, style }
@@ -186,23 +186,23 @@ impl NonVariableFontFaceHeader {
 // === Embedded Fonts ===
 // ======================
 
-// TOOD: to be refactored.
+// TOOD:
 
-pub fn font_family_files_map() -> HashMap<Name, FontFamilyDefinition> {
+pub fn font_family_files_map() -> HashMap<Name, FamilyDefinition> {
     let mut map = HashMap::new();
     map.insert(
         "mplus1".into(),
-        FontFamilyDefinition::Variable(VariableFontFamilyDefinition::new("MPLUS1[wght].ttf")),
+        FamilyDefinition::Variable(VariableFamilyDefinition::new("MPLUS1[wght].ttf")),
     );
     map.insert(
         "dejavusans".into(),
-        FontFamilyDefinition::NonVariable(NonVariableFontFamilyDefinition::from_iter([
+        FamilyDefinition::NonVariable(NonVariableFamilyDefinition::from_iter([
             (
-                NonVariableFontFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
+                NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
                 "DejaVuSans.ttf".to_string(),
             ),
             (
-                NonVariableFontFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
+                NonVariableFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
                 "DejaVuSans-Bold.ttf".to_string(),
             ),
         ])),

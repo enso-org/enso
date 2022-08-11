@@ -7,11 +7,11 @@ use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
 use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFontsData;
-use ensogl_text_embedded_fonts::FontFamilyDefinition;
+use ensogl_text_embedded_fonts::FamilyDefinition;
 use ensogl_text_embedded_fonts::Name;
-use ensogl_text_embedded_fonts::NonVariableFontFaceHeader;
-use ensogl_text_embedded_fonts::NonVariableFontFamilyDefinition;
-use ensogl_text_embedded_fonts::VariableFontFamilyDefinition;
+use ensogl_text_embedded_fonts::NonVariableFaceHeader;
+use ensogl_text_embedded_fonts::NonVariableFamilyDefinition;
+use ensogl_text_embedded_fonts::VariableFamilyDefinition;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
@@ -47,7 +47,7 @@ shared! { FontLoader
 /// Structure keeping all fonts loaded from different sources.
 #[derive(Debug)]
 pub struct FontLoaderData {
-    font_family_definitions: HashMap<Name, FontFamilyDefinition>,
+    font_family_definitions: HashMap<Name, FamilyDefinition>,
     embedded_fonts_data : EmbeddedFontsData,
 }
 
@@ -95,9 +95,9 @@ impl {
                 let definition =
                     self.font_loader.rc.borrow().font_family_definitions.get(&name).unwrap().clone();
                 match definition {
-                    FontFamilyDefinition::NonVariable(definition) =>
+                    FamilyDefinition::NonVariable(definition) =>
                         NonVariableFont::new(name, definition, self.font_loader.clone_ref()).into(),
-                    FontFamilyDefinition::Variable(definition) =>
+                    FamilyDefinition::Variable(definition) =>
                         VariableFont::new(name, definition, self.font_loader.clone_ref()).into(),
                 }
             }
@@ -148,25 +148,19 @@ pub struct FontFace {
 
 #[derive(Debug)]
 pub struct NonVariableFontFamily {
-    pub definition: NonVariableFontFamilyDefinition,
-    pub faces:      Rc<RefCell<HashMap<NonVariableFontFaceHeader, FontFace>>>,
+    pub definition: NonVariableFamilyDefinition,
+    pub faces:      Rc<RefCell<HashMap<NonVariableFaceHeader, FontFace>>>,
 }
 
-impl From<NonVariableFontFamilyDefinition> for NonVariableFontFamily {
-    fn from(definition: NonVariableFontFamilyDefinition) -> Self {
+impl From<NonVariableFamilyDefinition> for NonVariableFontFamily {
+    fn from(definition: NonVariableFamilyDefinition) -> Self {
         Self { definition, faces: default() }
     }
 }
 
-impl FaceLoader<NonVariableFontFaceHeader> for NonVariableFontFamily {
-    fn get_or_load_face<F>(
-        &self,
-        variations: &NonVariableFontFaceHeader,
-        loader: &FontLoader,
-        f: F,
-    ) where
-        F: for<'a> FnOnce(&'a FontFace),
-    {
+impl FaceLoader<NonVariableFaceHeader> for NonVariableFontFamily {
+    fn get_or_load_face<F>(&self, variations: &NonVariableFaceHeader, loader: &FontLoader, f: F)
+    where F: for<'a> FnOnce(&'a FontFace) {
         if self.faces.borrow().contains_key(&variations) {
             if let Some(face) = self.faces.borrow().get(&variations) {
                 f(face);
@@ -195,12 +189,12 @@ impl FaceLoader<NonVariableFontFaceHeader> for NonVariableFontFamily {
 
 #[derive(Debug)]
 pub struct VariableFontFamily {
-    pub definition: VariableFontFamilyDefinition,
+    pub definition: VariableFamilyDefinition,
     pub face:       Rc<RefCell<Option<FontFace>>>,
 }
 
-impl From<VariableFontFamilyDefinition> for VariableFontFamily {
-    fn from(definition: VariableFontFamilyDefinition) -> Self {
+impl From<VariableFamilyDefinition> for VariableFontFamily {
+    fn from(definition: VariableFamilyDefinition) -> Self {
         Self { definition, face: default() }
     }
 }
@@ -308,7 +302,7 @@ pub enum Font {
     Variable(VariableFont),
 }
 
-pub type NonVariableFont = FontTemplate<NonVariableFontFamily, NonVariableFontFaceHeader>;
+pub type NonVariableFont = FontTemplate<NonVariableFontFamily, NonVariableFaceHeader>;
 pub type VariableFont = FontTemplate<VariableFontFamily, VariationAxes>;
 
 
@@ -322,7 +316,7 @@ impl Font {
 
     pub fn get_or_load_glyph_info(
         &self,
-        non_variable_font_variations: NonVariableFontFaceHeader,
+        non_variable_font_variations: NonVariableFaceHeader,
         variable_font_variations: &VariationAxes,
         glyph_id: GlyphId,
         f: impl FnOnce(GlyphRenderInfo),
@@ -337,7 +331,7 @@ impl Font {
 
     pub fn glyph_id_of_code_point(
         &self,
-        non_variable_font_variations: NonVariableFontFaceHeader,
+        non_variable_font_variations: NonVariableFaceHeader,
         variable_font_variations: &VariationAxes,
         code_point: char,
         f: impl FnOnce(Option<GlyphId>),
