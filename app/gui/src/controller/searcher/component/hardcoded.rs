@@ -1,3 +1,7 @@
+//! A module containing definitions of hardcoded [`Snippet`]s displayed as virtual components in
+//! the [Component Browser](crate::controller::Searcher). The module also defines names of the
+//! virtual component groups where the snippets should be added.
+
 use crate::prelude::*;
 
 use ide_view_component_group::icon::Id as IconId;
@@ -17,8 +21,8 @@ pub type Snippet = controller::searcher::action::hardcoded::Suggestion;
 // === Constants ===
 // =================
 
-/// Name of the virtual component group in the `Standard.Base` library which contains input
-/// components.
+/// Name of the virtual component group in the `Standard.Base` library where virtual components
+/// created from the [`INPUT_SNIPPETS`] should be added.
 pub const INPUT_GROUP_NAME: &str = "Input";
 
 thread_local! {
