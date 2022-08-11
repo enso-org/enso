@@ -1,6 +1,6 @@
 //! A module containing definitions of hardcoded [`Snippet`]s displayed as virtual components in
 //! the [Component Browser](crate::controller::Searcher). The module also defines names of the
-//! favorites component groups where the snippets should be added.
+//! favorites component groups where the virtual components should be displayed.
 //!
 //! To learn more about favorites component groups, see:
 //! [`crate::controller::searcher::component::List::favorites`].
@@ -30,11 +30,9 @@ pub const INPUT_GROUP_NAME: &str = "Input";
 
 thread_local! {
     /// Snippets describing virtual components displayed in the [`INPUT_GROUP_NAME`] favorites
-    /// component group.
-    /// Code snippets 
-    /// Code snippets of default literal values of text and number type. The snippets are
-    /// documented as code that can be used as input nodes. When converted to [`Component`]s and
-    /// added to the [`component::List`] they allow the users to easily enter literals in code.
+    /// component group. The snippets wrap default literal values of Text and Number types. When
+    /// displayed in the Component Browser as virtual components they allow the users to easily
+    /// enter primitive literals in code.
     pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
         snippet_with_name_and_code_and_icon("text input", "\"\"", IconId::TextInput)
             .with_return_type("Standard.Base.Data.Text.Text")
