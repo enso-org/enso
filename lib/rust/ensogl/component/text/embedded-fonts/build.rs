@@ -26,6 +26,7 @@ pub struct FillMapRsFile {
 impl FillMapRsFile {
     fn write<P: AsRef<path::Path>>(&self, path: P) -> io::Result<()> {
         let mut file = fs::File::create(path)?;
+        writeln!(file, "/// Mapping between file name and embedded fonts data.")?;
         writeln!(file, "pub fn embedded_fonts_data() -> HashMap<&'static str, &'static [u8]> {{")?;
         writeln!(file, "    let mut map = HashMap::<&'static str, &'static [u8]>::new();")?;
         write!(file, "{}", self.embedded_fonts_map_body)?;
@@ -40,17 +41,6 @@ impl FillMapRsFile {
             "    map.insert(\"{font_name}\", include_bytes!(\"{font_file}\"));",
         )
         .ok();
-    }
-
-    fn code(&self) -> String {
-        let mut out = String::new();
-        writeln!(
-            &mut out,
-            "pub fn embedded_fonts_data() -> HashMap<&'static str, &'static [u8]> {{"
-        );
-        writeln!(&mut out, "{}", &self.embedded_fonts_map_body);
-        writeln!(&mut out, "}}");
-        out
     }
 }
 
@@ -95,7 +85,7 @@ mod deja_vu {
 
     pub fn extract_all_fonts(package_path: &path::Path) {
         for file_name in FILE_NAMES {
-            extract_font(package_path, &file_name);
+            extract_font(package_path, file_name);
         }
     }
 

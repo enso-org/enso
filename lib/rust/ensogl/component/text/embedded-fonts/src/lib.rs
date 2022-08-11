@@ -51,7 +51,8 @@ pub struct EmbeddedFontsData {
 }
 
 impl EmbeddedFontsData {
-    pub fn new() -> EmbeddedFontsData {
+    /// Construct and load all the embedded fonts to memory.
+    pub fn init_and_load_embedded_font_data() -> EmbeddedFontsData {
         EmbeddedFontsData { data: embedded_fonts_data() }
     }
 }

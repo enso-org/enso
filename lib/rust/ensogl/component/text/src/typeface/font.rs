@@ -5,7 +5,6 @@ use crate::prelude::*;
 use enso_shapely::shared;
 use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
-use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFontsData;
 use ensogl_text_embedded_fonts::FamilyDefinition;
 use ensogl_text_embedded_fonts::Name;
@@ -13,8 +12,6 @@ use ensogl_text_embedded_fonts::NonVariableFaceHeader;
 use ensogl_text_embedded_fonts::NonVariableFamilyDefinition;
 use ensogl_text_embedded_fonts::VariableFamilyDefinition;
 use ensogl_text_msdf_sys as msdf_sys;
-use msdf_sys::Msdf;
-use msdf_sys::MsdfParameters;
 use ordered_float::NotNan;
 use owned_ttf_parser as ttf;
 use owned_ttf_parser::AsFaceRef;
@@ -23,7 +20,6 @@ use owned_ttf_parser::Style;
 use owned_ttf_parser::Tag;
 use owned_ttf_parser::Weight;
 use owned_ttf_parser::Width;
-use serde;
 use std::collections::hash_map::Entry;
 
 pub use ensogl_text_font::*;
@@ -57,7 +53,7 @@ impl {
 
 impl FontLoaderData {
     pub fn init_and_load_embedded_font_data() -> Self {
-        let embedded_fonts_data = EmbeddedFontsData::new();
+        let embedded_fonts_data = EmbeddedFontsData::init_and_load_embedded_font_data();
         let font_family_definitions = ensogl_text_embedded_fonts::font_family_files_map().clone();
         Self { embedded_fonts_data, font_family_definitions }
     }
@@ -94,12 +90,14 @@ impl {
                     // FIXME: unwrap
                 let definition =
                     self.font_loader.rc.borrow().font_family_definitions.get(&name).unwrap().clone();
-                match definition {
+                let font: Font = match definition {
                     FamilyDefinition::NonVariable(definition) =>
                         NonVariableFont::new(name, definition, self.font_loader.clone_ref()).into(),
                     FamilyDefinition::Variable(definition) =>
                         VariableFont::new(name, definition, self.font_loader.clone_ref()).into(),
-                }
+                };
+                entry.insert(font.clone_ref());
+                font
             }
         }
     }
@@ -166,7 +164,7 @@ impl FaceLoader<NonVariableFaceHeader> for NonVariableFontFamily {
                 f(face);
             }
         } else {
-            let opt_face = self.definition.map.get(&variations).and_then(|file_name| {
+            let opt_face = self.definition.map.get(variations).and_then(|file_name| {
                 // FIXME conversion
                 let x: &str = &*file_name;
                 // FIXME: warning when trying to load font not from embedded resources.
@@ -207,7 +205,7 @@ impl<T> FaceLoader<T> for VariableFontFamily {
                 f(face);
             }
         } else {
-            let x: &str = &self.definition.file;
+            let x: &str = &self.definition.file_name;
             let opt_face =
                 loader.rc.borrow().embedded_fonts_data.data.get(x).and_then(|font_data| {
                     let result = ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_NUMBER)
@@ -446,7 +444,7 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
         if let Some(render_info) = opt_render_info {
             f(render_info);
         } else {
-            self.family.get_or_load_face(&variations, &self.loader, |face| {
+            self.family.get_or_load_face(variations, &self.loader, |face| {
                 // TODO: Switch from chars to GlyphIDs here.
                 let ch = *self.glyph_id_to_code_point.borrow().get(&glyph_id).unwrap();
                 // TODO: Use variations to generate variable-width glyphs.

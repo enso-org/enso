@@ -7,7 +7,6 @@ use ensogl_core::display::world::*;
 use crate::typeface::font;
 
 use crate::typeface::font::VariationAxes;
-use const_format::concatcp;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;
@@ -22,7 +21,6 @@ use ensogl_text_embedded_fonts::Weight;
 use ensogl_text_embedded_fonts::Width;
 use font::Font;
 use font::GlyphRenderInfo;
-use ordered_float::NotNan;
 use owned_ttf_parser::GlyphId;
 
 

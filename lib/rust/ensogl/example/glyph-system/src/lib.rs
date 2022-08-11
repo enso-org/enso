@@ -26,7 +26,7 @@ use ensogl_text::typeface::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
-use ensogl_text_embedded_fonts as embedded_fonts;
+// use ensogl_text_embedded_fonts as embedded_fonts;
 // use ensogl_text_embedded_fonts::Family;
 use ensogl_text_msdf_sys::run_once_initialized;
 

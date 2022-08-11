@@ -8,8 +8,6 @@ use prelude::*;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
-use owned_ttf_parser as ttf;
-use owned_ttf_parser::AsFaceRef;
 
 
 

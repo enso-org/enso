@@ -97,6 +97,7 @@ impl From<String> for Name {
 
 /// Definition of a font family. Font family consist of one font face in case of variable fonts or
 /// multiple font faces in case of non-variable ones.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FamilyDefinition {
     Variable(VariableFamilyDefinition),
@@ -111,16 +112,17 @@ pub enum FamilyDefinition {
 
 /// Definition of a variable font family. See the following link to learn more about variable fonts:
 /// https://docs.microsoft.com/en-us/windows/win32/directwrite/opentype-variable-fonts
+#[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VariableFamilyDefinition {
-    pub file: String,
+    pub file_name: String,
 }
 
 impl VariableFamilyDefinition {
     /// Constructor.
-    pub fn new(file: impl Into<String>) -> Self {
-        let file = file.into();
-        Self { file }
+    pub fn new(file_name: impl Into<String>) -> Self {
+        let file_name = file_name.into();
+        Self { file_name }
     }
 }
 
@@ -188,6 +190,7 @@ impl NonVariableFaceHeader {
 
 // TOOD:
 
+/// Generated. TODO: docs
 pub fn font_family_files_map() -> HashMap<Name, FamilyDefinition> {
     let mut map = HashMap::new();
     map.insert(
