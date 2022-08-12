@@ -96,7 +96,7 @@ impl Model {
         if let Some(searcher) = searcher {
             let is_example = entry_id.map_or(false, |i| searcher.is_entry_an_example(i));
             if let Some(created_node) = searcher.commit_editing(entry_id) {
-                self.graph.assign_node_view_explicitly(node, created_node);
+                self.graph.allow_expression_auto_updates(created_node, true);
                 if is_example {
                     self.view.graph().enable_visualization(node);
                 }
@@ -111,13 +111,12 @@ impl Model {
 
     fn editing_committed(
         &self,
-        node: ViewNodeId,
         entry_id: Option<view::component_browser::list_panel::EntryId>,
     ) -> bool {
         let searcher = self.searcher.take();
         if let Some(searcher) = searcher {
             if let Some(created_node) = searcher.expression_accepted(entry_id) {
-                self.graph.assign_node_view_explicitly(node, created_node);
+                self.graph.allow_expression_auto_updates(created_node, true);
                 false
             } else {
                 true
@@ -218,7 +217,7 @@ impl Project {
                 model.editing_committed_old_searcher(*node_view, *entry).as_some(*node_view)
             }));
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {
-                model.editing_committed(*node_view, *entry).as_some(*node_view)
+                model.editing_committed(*entry).as_some(*node_view)
             }));
             eval_ view.editing_aborted(model.editing_aborted());
 
