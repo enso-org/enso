@@ -17,7 +17,7 @@ ensogl-core = { path = "../../core" }
 ensogl-flame-graph = { path = "../../component/flame-graph" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text = { path = "../../component/text" }
-ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 ensogl-tooltip = { path = "../../component/tooltip" }
 futures = "0.3"
 wasm-bindgen = { version = "0.2.58", features = ["nightly"] }

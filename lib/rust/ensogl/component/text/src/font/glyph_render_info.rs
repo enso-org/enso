@@ -8,7 +8,7 @@ pub mod prelude {
 use prelude::*;
 
 use crate::font::msdf;
-use ensogl_text_msdf_sys as msdf_sys;
+use ensogl_text_msdf as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
 

@@ -12,5 +12,5 @@ ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text = { path = "../../component/text" }
 ensogl-text-embedded-fonts = { path = "../../component/text/src/font/embedded" }
-ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
+ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

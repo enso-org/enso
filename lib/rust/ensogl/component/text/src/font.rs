@@ -11,7 +11,7 @@ use ensogl_text_embedded_fonts::Name;
 use ensogl_text_embedded_fonts::NonVariableFaceHeader;
 use ensogl_text_embedded_fonts::NonVariableFamilyDefinition;
 use ensogl_text_embedded_fonts::VariableFamilyDefinition;
-use ensogl_text_msdf_sys as msdf_sys;
+use ensogl_text_msdf as msdf_sys;
 use ordered_float::NotNan;
 use owned_ttf_parser as ttf;
 use owned_ttf_parser::AsFaceRef;

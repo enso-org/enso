@@ -1517,7 +1517,7 @@ dependencies = [
  "ensogl-list-view",
  "ensogl-scroll-area",
  "ensogl-selector",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view-component-group",
  "wasm-bindgen",
 ]
@@ -1532,7 +1532,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
  "ensogl-selector",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view-component-group",
  "ide-view-component-list-panel",
  "js-sys",
@@ -1557,7 +1557,7 @@ dependencies = [
  "enso-frp",
  "ensogl",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view",
  "parser",
  "span-tree",
@@ -1572,7 +1572,7 @@ dependencies = [
  "enso-frp",
  "ensogl",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view",
  "js-sys",
  "nalgebra 0.26.2",
@@ -1983,7 +1983,7 @@ dependencies = [
  "ensogl-drop-manager",
  "ensogl-examples",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "failure",
  "flo_stream",
  "futures 0.3.21",
@@ -2369,7 +2369,7 @@ dependencies = [
  "enso-types",
  "enso-web",
  "ensogl-text-embedded-fonts",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "enum_dispatch",
  "failure",
  "itertools 0.10.3",
@@ -2430,7 +2430,7 @@ dependencies = [
  "enso-frp",
  "enso-prelude",
  "ensogl-core",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2491,7 +2491,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-text",
  "ensogl-text-embedded-fonts",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2504,7 +2504,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2517,7 +2517,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2527,7 +2527,7 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2547,7 +2547,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-sequence-diagram",
  "ensogl-text",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ensogl-tooltip",
  "futures 0.3.21",
  "qstring",
@@ -2571,7 +2571,7 @@ dependencies = [
  "ensogl-flame-graph",
  "ensogl-hardcoded-theme",
  "ensogl-text",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ensogl-tooltip",
  "futures 0.3.21",
  "wasm-bindgen",
@@ -2586,7 +2586,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-scroll-area",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2606,7 +2606,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-selector",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2636,7 +2636,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-embedded-fonts",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2813,7 +2813,7 @@ dependencies = [
  "enso-types",
  "ensogl-core",
  "ensogl-text-embedded-fonts",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ordered-float",
  "owned_ttf_parser",
  "serde",
@@ -2839,7 +2839,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-text-msdf-sys"
+name = "ensogl-text-msdf"
 version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
@@ -3829,7 +3829,7 @@ dependencies = [
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "ide-view-component-browser",
  "ide-view-graph-editor",
  "js-sys",
@@ -3911,7 +3911,7 @@ dependencies = [
  "ensogl-component",
  "ensogl-drop-manager",
  "ensogl-hardcoded-theme",
- "ensogl-text-msdf-sys",
+ "ensogl-text-msdf",
  "failure",
  "js-sys",
  "nalgebra 0.26.2",

@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use ensogl_text_msdf_sys::Msdf;
+use ensogl_text_msdf::Msdf;
 use serde;
 
 
