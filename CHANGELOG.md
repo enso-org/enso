@@ -52,8 +52,10 @@
   "executionContext/visualisationEvaluationFailed"][3193]
 - [New Version of the Node Searcher - the Component Browser][3530] The available
   methods, atoms and functions are presented in nice, categorized view. The most
-  popular tools are available at hand. The The panel is unstable, and thus is
+  popular tools are available at hand. The panel is unstable, and thus is
   available under the `--enable-new-component-browser` flag.
+- [New nodes are created in the project source when the searcher is opened  
+  and a new node is created.][5250]
 
 #### EnsoGL (rendering engine)
 
@@ -273,6 +275,7 @@
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3629]: https://github.com/enso-org/enso/pull/3629
+[5250]: https://github.com/enso-org/enso/pull/5250
 
 #### Enso Compiler
 
