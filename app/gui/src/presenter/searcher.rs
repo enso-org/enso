@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 use crate::controller::graph::NewNodeInfo;
-use crate::controller::searcher;
 use crate::controller::searcher::action::Suggestion;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::Notification;
@@ -360,7 +359,7 @@ impl Searcher {
                 let metadata = NodeMetadata { position, ..default() };
                 let mut new_node = NewNodeInfo::new_pushed_back(DEFAULT_INPUT_EXPRESSION);
                 new_node.metadata = Some(metadata);
-                new_node.introduce_pattern = searcher::ASSIGN_NAMES_FOR_NODES;
+                new_node.introduce_pattern = false;
                 let created_node = graph_controller.add_node(new_node)?;
 
                 graph.assign_node_view_explicitly(input, created_node);

@@ -1523,7 +1523,7 @@ pub mod test {
                 ide: Rc::new(ide),
                 data: default(),
                 notifier: default(),
-                mode: Immutable(Mode::NewNode { position: default(), source_node: None }),
+                mode: Immutable(Mode::NewNode { node_id: node.id(), source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
@@ -2180,7 +2180,8 @@ pub mod test {
             });
 
             // Add new node.
-            searcher.mode = Immutable(Mode::NewNode { position: None, source_node: None });
+            let node_id = searcher.mode.node_id();
+            searcher.mode = Immutable(Mode::NewNode { node_id, source_node: None });
             searcher.commit_node().unwrap();
 
             let module_info = module.info();
@@ -2204,6 +2205,8 @@ pub mod test {
     #[wasm_bindgen_test]
     fn committing_node() {
         let Fixture { test: _test, mut searcher, entry4, .. } = Fixture::new();
+        let (node1, node2) = searcher.graph.graph().nodes().unwrap().expect_tuple();
+
         let module = searcher.graph.graph().module.clone_ref();
         // Setup searcher.
         let parser = Parser::new_or_panic();
@@ -2217,14 +2220,12 @@ pub mod test {
         });
 
         // Add new node.
-        let position = Some(Position::new(4.0, 5.0));
-        searcher.mode = Immutable(Mode::NewNode { position, source_node: None });
+        searcher.mode = Immutable(Mode::NewNode { node_id: node1.id(), source_node: None });
         searcher.commit_node().unwrap();
 
         let expected_code =
             "import test.Test.Test\nmain = \n    2 + 2\n    operator1 = Test.testMethod1";
         assert_eq!(module.ast().repr(), expected_code);
-        let (node1, node2) = searcher.graph.graph().nodes().unwrap().expect_tuple();
         let expected_intended_method = Some(MethodId {
             module:          "test.Test.Test".to_string().try_into().unwrap(),
             defined_on_type: "test.Test.Test".to_string().try_into().unwrap(),
@@ -2333,7 +2334,7 @@ pub mod test {
         };
         let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
             main = \n    2 + 2\n    here.test_example1";
-        searcher.add_example(&Rc::new(example), None).unwrap();
+        searcher.add_example(&Rc::new(example)).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
     }
 
@@ -2351,8 +2352,8 @@ pub mod test {
             test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
             main = \n    2 + 2\n    here.test_example1\n    here.test_example2";
         let example = Rc::new(example);
-        searcher.add_example(&example, None).unwrap();
-        searcher.add_example(&example, None).unwrap();
+        searcher.add_example(&example).unwrap();
+        searcher.add_example(&example).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
     }
 
@@ -2365,7 +2366,7 @@ pub mod test {
         let node_id = node.info.id();
         searcher.mode = Immutable(Mode::EditNode { node_id });
         searcher.node_edit_guard =
-            Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
+            Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
 
         // Apply an edit to the node.
         graph.set_expression(node_id, "Edited Node").unwrap();
@@ -2411,7 +2412,7 @@ pub mod test {
         let node_id = node.info.id();
         searcher.mode = Immutable(Mode::EditNode { node_id });
         searcher.node_edit_guard =
-            Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
+            Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
 
         // Apply an edit to the node.
         let new_expression = "Edited Node";

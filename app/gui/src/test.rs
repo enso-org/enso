@@ -129,7 +129,7 @@ pub mod mock {
         }
     }
 
-    /// This mock data represents a rudimentary enviromment consisting of a project with a single
+    /// This mock data represents a rudimentary environment consisting of a project with a single
     /// module. The module contents is provided by default by [data::CODE], can be overwritten by
     /// calling [set_code] or [set_inline_code].
     #[derive(Clone, Debug)]
@@ -301,8 +301,14 @@ pub mod mock {
             );
             let executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
+            let mut new_node = controller::graph::NewNodeInfo::new_pushed_back("Nothing");
+            new_node.introduce_pattern = false;
+            let node = graph
+                .add_node(new_node)
+                .expect("Failed to create target node for searcher in fixture customisation.");
+
             let searcher_mode =
-                controller::searcher::Mode::NewNode { position: None, source_node: None };
+                controller::searcher::Mode::NewNode { node_id: node, source_node: None };
             let searcher = controller::Searcher::new_from_graph_controller(
                 &logger,
                 ide.clone_ref(),
