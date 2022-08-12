@@ -2,11 +2,17 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
-#![allow(missing_docs)]
+#![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
+#![allow(dead_code)]
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-
-
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
 
 mod binding;
 pub mod emscripten_data;
@@ -29,9 +35,8 @@ use wasm_bindgen::JsValue;
 // === Initialization ===
 // ======================
 
-/// Add initialization callback.
-///
-/// The callback passed as argument will be called once the msdfgen library is initialized.
+/// Add initialization callback. The callback passed as argument will be called once the msdfgen
+/// library is initialized.
 pub fn run_once_initialized<F>(callback: F)
 where F: 'static + FnOnce() {
     if is_emscripten_runtime_initialized() {
@@ -42,12 +47,12 @@ where F: 'static + FnOnce() {
     }
 }
 
-/// Returns future which returns once the msdfgen library is initialized.
+/// A future which resolves once the msdfgen library is initialized.
 pub fn initialized() -> impl Future<Output = ()> {
     MsdfgenJsInitialized()
 }
 
-/// The future for running test after initialization.
+/// A future for running test after initialization.
 #[derive(Debug)]
 struct MsdfgenJsInitialized();
 
@@ -67,26 +72,32 @@ impl Future for MsdfgenJsInitialized {
 
 
 
-// ============
-// === Font ===
-// ============
+// =================
+// === OwnedFace ===
+// =================
 
+/// A font face loaded to JS memory and handled by the msdfgen library.
+///
+/// The name uses the "owned" prefix in order to stay compatible with the `ttf-parser` library. In
+/// most cases, non-owned version is desirable, however, as this library uses JS interop (which is
+/// costly), keeping the owned version makes more sense.
+#[allow(missing_docs)]
 #[derive(Debug)]
-pub struct Font {
+pub struct OwnedFace {
     pub handle: JsValue,
 }
 
-impl Drop for Font {
+impl Drop for OwnedFace {
     fn drop(&mut self) {
         msdfgen_free_font(self.handle.clone())
     }
 }
 
-impl Font {
-    /// Loading font from memory.
+impl OwnedFace {
+    /// Load font from memory.
     ///
-    /// Loads font from any format which freetype library can handle.
-    /// See [https://www.freetype.org/freetype2/docs/index.html] for reference.
+    /// Loads font from any format which freetype library can handle. See
+    /// [https://www.freetype.org/freetype2/docs/index.html] for reference.
     pub fn load_from_memory(data: &[u8]) -> Self {
         let array_type_js = JsValue::from_str(ccall_types::ARRAY);
         let number_type_js = JsValue::from_str(ccall_types::NUMBER);
@@ -100,26 +111,20 @@ impl Font {
         let params = js_sys::Array::of2(&data_js, &data_size_js);
 
         let handle = emscripten_call_function(function_name, return_type, param_types, params);
-        Font { handle }
+        OwnedFace { handle }
     }
 
-    pub fn retrieve_kerning(&self, left: char, right: char) -> f64 {
-        let left_unicode = left as u32;
-        let right_unicode = right as u32;
-        msdfgen_get_kerning(self.handle.clone(), left_unicode, right_unicode)
-    }
-
-    pub fn mock_font() -> Font {
+    pub fn mock_font() -> OwnedFace {
         let handle = JsValue::from_f64(0.0);
-        Font { handle }
+        OwnedFace { handle }
     }
 }
 
 
 
-// =====================================================
-// === Mutlichannel signed distance field generation ===
-// =====================================================
+// ======================
+// === MsdfParameters ===
+// ======================
 
 /// Parameters of MSDF generation.
 ///
@@ -156,7 +161,7 @@ impl Msdf {
     /// Generate Mutlichannel Signed Distance Field (MSDF) for one glyph.
     ///
     /// For more information about MSDF see [https://github.com/Chlumsky/msdfgen].
-    pub fn generate(font: &Font, unicode: u32, params: &MsdfParameters) -> Msdf {
+    pub fn generate(font: &OwnedFace, unicode: u32, params: &MsdfParameters) -> Msdf {
         let handle = msdfgen_generate_msdf(
             params.width,
             params.height,
@@ -233,7 +238,7 @@ mod tests {
         // given
         let font_base = EmbeddedFonts::create_and_fill();
         let font_name = DejaVuSans::mono_bold();
-        let font = Font::load_from_memory(font_base.font_data_by_name.get(font_name).unwrap());
+        let font = OwnedFace::load_from_memory(font_base.font_data_by_name.get(font_name).unwrap());
         let params = MsdfParameters {
             width: 32,
             height: 32,

@@ -32,9 +32,9 @@ include!(concat!(env!("OUT_DIR"), "/embedded_fonts_data.rs"));
 
 
 
-// =========================
-// === EmbeddedFontsData ===
-// =========================
+// =====================
+// === EmbeddedFonts ===
+// =====================
 
 /// A base of built-in fonts in application.
 ///
@@ -43,19 +43,22 @@ include!(concat!(env!("OUT_DIR"), "/embedded_fonts_data.rs"));
 ///
 /// For list of embedded fonts, see FONTS_TO_EXTRACT constant in `build.rs`.
 #[allow(missing_docs)]
-#[derive(Clone, Deref, DerefMut)]
-pub struct EmbeddedFontsData {
-    pub data: HashMap<&'static str, &'static [u8]>,
+#[derive(Clone)]
+pub struct EmbeddedFonts {
+    pub definitions: HashMap<Name, FamilyDefinition>,
+    pub data:        HashMap<&'static str, &'static [u8]>,
 }
 
-impl EmbeddedFontsData {
+impl EmbeddedFonts {
     /// Construct and load all the embedded fonts to memory.
-    pub fn init_and_load_embedded_font_data() -> EmbeddedFontsData {
-        EmbeddedFontsData { data: embedded_fonts_data() }
+    pub fn init_and_load_embedded_font_data() -> Self {
+        let data = embedded_fonts_data();
+        let definitions = font_family_files_map();
+        Self { data, definitions }
     }
 }
 
-impl Debug for EmbeddedFontsData {
+impl Debug for EmbeddedFonts {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("<Embedded fonts>")
     }
@@ -73,7 +76,7 @@ mod test {
 
     #[test]
     fn loading_embedded_fonts() {
-        let fonts = EmbeddedFontsData::init_and_load_embedded_font_data();
+        let fonts = EmbeddedFonts::init_and_load_embedded_font_data();
         let example_font = fonts.data.get("DejaVuSans.ttf").unwrap();
 
         assert_eq!(0x00, example_font[0]);

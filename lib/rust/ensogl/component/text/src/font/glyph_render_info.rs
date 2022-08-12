@@ -72,7 +72,7 @@ impl GlyphRenderInfo {
 
     /// Load new [`GlyphRenderInfo`] from msdf_sys font handle. This also extends the atlas with
     /// MSDF generated for this character.
-    pub fn load(handle: &msdf_sys::Font, ch: char, atlas: &msdf::Texture) -> Self {
+    pub fn load(handle: &msdf_sys::OwnedFace, ch: char, atlas: &msdf::Texture) -> Self {
         let unicode = ch as u32;
         let params = Self::MSDF_PARAMS;
         let msdf = Msdf::generate(handle, unicode, &params);
