@@ -1,4 +1,4 @@
-//! In this module we handle the fonts information required for rendering glyphs.
+//! In this module we handle the fonts' information required for rendering glyphs.
 
 use crate::prelude::*;
 

@@ -16,7 +16,7 @@ wasm-bindgen = { version = "0.2.78" }
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }
 futures = { version = "0.3.1" }
-ensogl-text-embedded-fonts = { path = "../embedded-fonts" }
+ensogl-text-embedded-fonts = { path = "../src/font/embedded" }
 ensogl-text-font-family = { path = "../src/font/family" }
 
 [build-dependencies]
