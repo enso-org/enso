@@ -17,23 +17,25 @@
   "description": "Enso Data Processing Environment.",
   "main": "index.cjs",
   "dependencies": {
-    "create-servers": "^3.1.0",
+    "create-servers": "^3.2.0",
+    "enso-gui-server": "^1.0.0",
+    "mime-types": "^2.1.35",
     "@electron/remote": "^2.0.8",
     "electron-is-dev": "^1.2.0",
     "yargs": "^15.3.0"
   },
   "devDependencies": {
-    "compression-webpack-plugin": "^9.2.0",
-    "copy-webpack-plugin": "^10.2.4",
     "electron": "17.1.0",
-    "electron-builder": "^23.0.6",
+    "electron-builder": "^23.3.1",
+    "esbuild": "^0.14.43",
     "crypto-js": "4.1.1",
     "electron-notarize": "1.2.1",
-    "webpack": "^5.72.1"
+    "enso-copy-plugin": "^1.0.0",
+    "ts-node": "^10.9.1"
   },
   "scripts": {
     "start": "electron ../../../../dist/content -- ",
-    "build": "webpack ",
-    "dist": "node electron-builder-config.mjs && electron-builder --publish never --config electron-builder-config.json"
+    "build": "ts-node bundle.ts",
+    "dist": "ts-node electron-builder-config.ts && electron-builder --publish never --config electron-builder-config.json"
   }
 }

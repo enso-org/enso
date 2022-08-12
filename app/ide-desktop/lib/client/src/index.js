@@ -1,21 +1,21 @@
 'use strict'
 
 import { defaultLogServerHost } from '../../../config.js'
-import assert from 'assert'
+import assert from 'node:assert'
 import buildCfg from '../../../build.json'
 import Electron from 'electron'
 import isDev from 'electron-is-dev'
-import path from 'path'
-import * as Server from 'enso-studio-common/src/server.js'
-import util from 'util'
+import path from 'node:path'
+import * as Server from './server.js'
+import util from 'node:util'
 import yargs from 'yargs'
 import remoteMain from '@electron/remote/main/index.js'
 
-import { project_manager_bundle } from '../paths.mjs'
+import { project_manager_bundle } from '../paths.js'
 
 import child_process from 'child_process'
-import fss from 'fs'
-import fsp from 'fs/promises'
+import fss from 'node:fs'
+import fsp from 'node:fs/promises'
 
 // =============
 // === Paths ===
@@ -26,7 +26,7 @@ const resources = path.join(root, '..')
 const project_manager_executable = path.join(
     resources,
     project_manager_bundle,
-    PROJECT_MANAGER_IN_BUNDLE_PATH
+    PROJECT_MANAGER_IN_BUNDLE_PATH // Placeholder for a bundler-provided define.
 )
 
 // FIXME default options parsed wrong

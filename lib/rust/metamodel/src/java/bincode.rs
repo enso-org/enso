@@ -217,6 +217,7 @@ impl DeserializerBuilder {
         method.static_ = true;
         method.body = body;
         method.arguments = vec![(message_ty, message.to_owned())];
+        method.visibility = None;
         method
     }
 
@@ -351,6 +352,7 @@ impl DeserializerBuilder {
         method.static_ = true;
         method.body = body;
         method.arguments = vec![(message_ty, message.to_owned())];
+        method.visibility = None;
         method
     }
 }

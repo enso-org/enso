@@ -14,7 +14,7 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = "2.13.7"
+val scalacVersion = "2.13.8"
 val graalVersion = "21.3.0"
 val javaVersion = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
@@ -325,10 +325,10 @@ lazy val enso = (project in file("."))
 def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
-val akkaVersion               = "2.6.18"
-val akkaHTTPVersion           = "10.2.7"
+val akkaVersion               = "2.6.19"
+val akkaHTTPVersion           = "10.2.9"
 val akkaMockSchedulerVersion  = "0.5.5"
-val logbackClassicVersion     = "1.2.10"
+val logbackClassicVersion     = "1.2.11"
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
 val akkaTyped                 = akkaPkg("actor-typed")
@@ -351,7 +351,7 @@ val akka =
 
 // === Cats ===================================================================
 
-val catsVersion    = "2.7.0"
+val catsVersion    = "2.8.0"
 val kittensVersion = "2.3.2"
 val cats = {
   Seq(
@@ -365,10 +365,10 @@ val cats = {
 
 // === Circe ==================================================================
 
-val circeVersion              = "0.14.1"
+val circeVersion              = "0.14.2"
 val circeYamlVersion          = "0.14.1"
 val enumeratumCirceVersion    = "1.7.0"
-val circeGenericExtrasVersion = "0.14.1"
+val circeGenericExtrasVersion = "0.14.2"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 
@@ -392,7 +392,7 @@ val commons = Seq(
 
 // === Jackson ================================================================
 
-val jacksonVersion = "2.13.1"
+val jacksonVersion = "2.13.3"
 val jackson = Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
   "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
@@ -401,7 +401,7 @@ val jackson = Seq(
 
 // === JAXB ================================================================
 
-val jaxbVersion = "3.0.1"
+val jaxbVersion = "4.0.0"
 val jaxb = Seq(
   "jakarta.xml.bind" % "jakarta.xml.bind-api" % jaxbVersion % Benchmark,
   "com.sun.xml.bind" % "jaxb-impl"            % jaxbVersion % Benchmark
@@ -409,7 +409,7 @@ val jaxb = Seq(
 
 // === JMH ====================================================================
 
-val jmhVersion = "1.34"
+val jmhVersion = "1.35"
 val jmh = Seq(
   "org.openjdk.jmh" % "jmh-core"                 % jmhVersion % Benchmark,
   "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
@@ -435,7 +435,7 @@ val scalaCompiler = Seq(
 
 // === std-lib ================================================================
 
-val icuVersion = "67.1"
+val icuVersion = "71.1"
 
 // === ZIO ====================================================================
 
@@ -450,29 +450,30 @@ val zio = Seq(
 
 val bcpkixJdk15Version      = "1.70"
 val bumpVersion             = "0.1.3"
-val declineVersion          = "2.2.0"
+val declineVersion          = "2.3.0"
 val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
-val guavaVersion            = "31.0.1-jre"
+val guavaVersion            = "31.1-jre"
 val jlineVersion            = "3.21.0"
 val kindProjectorVersion    = "0.13.2"
-val mockitoScalaVersion     = "1.16.49"
+val mockitoScalaVersion     = "1.17.12"
 val newtypeVersion          = "0.4.4"
-val pprintVersion           = "0.7.1"
+val pprintVersion           = "0.7.3"
 val pureconfigVersion       = "0.17.1"
-val refinedVersion          = "0.9.27"
-val scalacheckVersion       = "1.15.4"
+val scalacheckVersion       = "1.16.0"
 val scalacticVersion        = "3.3.0-SNAP3"
 val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
-val scalatagsVersion        = "0.11.0"
+val scalatagsVersion        = "0.11.1"
 val scalatestVersion        = "3.3.0-SNAP3"
 val shapelessVersion        = "2.4.0-M1"
-val slf4jVersion            = "1.7.32"
+val slf4jVersion            = "1.7.36"
 val slickVersion            = "3.3.3"
 val sqliteVersion           = "3.36.0.3"
-val tikaVersion             = "2.2.1"
-val typesafeConfigVersion   = "1.4.1"
+val tikaVersion             = "2.4.1"
+val typesafeConfigVersion   = "1.4.2"
+val junitVersion            = "4.13.2"
+val netbeansApiVersion      = "RELEASE140"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -495,7 +496,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .dependsOn(logger)
   .settings(
     version := "0.1",
-    resolvers += Resolver.sonatypeRepo("releases"),
+    resolvers ++= Resolver.sonatypeOssRepos("releases"),
     libraryDependencies ++= scalaCompiler ++ Seq(
       "com.google.guava" % "guava"     % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
       "org.typelevel"  %%% "cats-core" % catsVersion,
@@ -570,7 +571,9 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     scalaJSUseMainModuleInitializer := false,
     scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
-    Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
+    Compile / fullOptJS / artifactPath := file("target/scala-parser.js"),
+    libraryDependencies +=
+      "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0"
   )
 
 lazy val `lexer-bench` =
@@ -678,9 +681,9 @@ lazy val graph = (project in file("lib/scala/graph/"))
   .configs(Test)
   .settings(
     version := "0.1",
-    resolvers ++= Seq(
-      Resolver.sonatypeRepo("releases"),
-      Resolver.sonatypeRepo("snapshots")
+    resolvers ++= (
+      Resolver.sonatypeOssRepos("releases") ++
+      Resolver.sonatypeOssRepos("snapshots")
     ),
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= scalaCompiler ++ Seq(
@@ -726,15 +729,14 @@ lazy val `profiling-utils` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130"
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % netbeansApiVersion
       exclude ("org.netbeans.api", "org-openide-loaders")
       exclude ("org.netbeans.api", "org-openide-nodes")
-      // exclude following when RELEASE140 is out:
-      //   exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
-      //   exclude("org.netbeans.api", "org-netbeans-api-progress")
-      //   exclude("org.netbeans.api", "org-openide-util-lookup")
-      //   exclude("org.netbeans.api", "org-openide-util")
-      //   exclude("org.netbeans.api", "org-openide-dialogs")
+      exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
+      exclude("org.netbeans.api", "org-netbeans-api-progress")
+      exclude("org.netbeans.api", "org-openide-util-lookup")
+      exclude("org.netbeans.api", "org-openide-util")
+      exclude("org.netbeans.api", "org-openide-dialogs")
       exclude ("org.netbeans.api", "org-openide-filesystems")
       exclude ("org.netbeans.api", "org-openide-util-ui")
       exclude ("org.netbeans.api", "org-openide-awt")
@@ -1002,7 +1004,7 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     )),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
-      "org.netbeans.api"   % "org-openide-util-lookup" % "RELEASE130",
+      "org.netbeans.api"   % "org-openide-util-lookup" % netbeansApiVersion,
       "com.google.guava"   % "guava"                   % guavaVersion exclude ("com.google.code.findbugs", "jsr305")
     )
   )
@@ -1011,10 +1013,19 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
 // === Sub-Projects ===========================================================
 // ============================================================================
 
-val truffleRunOptions = Seq(
-  "-Dpolyglot.engine.IterativePartialEscape=true",
-  "-Dpolyglot.engine.BackgroundCompilation=false"
-)
+val truffleRunOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
+  Seq(
+    "-Dpolyglot.engine.IterativePartialEscape=true",
+    "-Dpolyglot.engine.BackgroundCompilation=false",
+    "-Dbench.compileOnly=true"
+  )
+} else {
+  Seq(
+    "-Dpolyglot.engine.IterativePartialEscape=true",
+    "-Dpolyglot.engine.BackgroundCompilation=false"
+  )
+}
+
 
 val truffleRunOptionsSettings = Seq(
   fork := true,
@@ -1268,8 +1279,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
-      "eu.timepit"         %% "refined"               % refinedVersion,
-      "junit"               % "junit"                 % "4.12"            % Test,
+      "junit"               % "junit"                 % junitVersion      % Test,
       "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
     ),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
@@ -1777,9 +1787,9 @@ lazy val `std-table` = project
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
       "com.ibm.icu"         % "icu4j"             % icuVersion,
-      "com.univocity"       % "univocity-parsers" % "2.9.0",
-      "org.apache.poi"      % "poi-ooxml"         % "5.0.0",
-      "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1",
+      "com.univocity"       % "univocity-parsers" % "2.9.1",
+      "org.apache.poi"      % "poi-ooxml"         % "5.2.2",
+      "org.apache.xmlbeans" % "xmlbeans"          % "5.1.0",
       "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided"
     ),
     Compile / packageBin := Def.task {
@@ -1804,7 +1814,7 @@ lazy val `std-image` = project
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
     libraryDependencies ++= Seq(
-      "org.openpnp" % "opencv" % "4.5.1-0"
+      "org.openpnp" % "opencv" % "4.5.1-2"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1852,11 +1862,11 @@ lazy val `std-database` = project
       `database-polyglot-root` / "std-database.jar",
     libraryDependencies ++= Seq(
       "org.xerial"          % "sqlite-jdbc"           % "3.36.0.3",
-      "org.postgresql"      % "postgresql"            % "42.3.6",
-      "com.amazon.redshift" % "redshift-jdbc42"       % "2.1.0.1",
-      "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.23",
-      "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.23",
-      "com.amazonaws"       % "aws-java-sdk-sts"      % "1.12.23"
+      "org.postgresql"      % "postgresql"            % "42.4.0",
+      "com.amazon.redshift" % "redshift-jdbc42"       % "2.1.0.9",
+      "com.amazonaws"       % "aws-java-sdk-core"     % "1.12.273",
+      "com.amazonaws"       % "aws-java-sdk-redshift" % "1.12.273",
+      "com.amazonaws"       % "aws-java-sdk-sts"      % "1.12.273"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
