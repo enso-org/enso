@@ -629,7 +629,7 @@ final class TreeToIr {
           sep = "_";
         }
         var fn = new IR$Name$Literal(fnName.toString(), true, Option.empty(), meta(), diag());
-        yield new IR$Application$Prefix(fn, args.reverse(), false, Option.empty(), meta(), diag());
+        yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
