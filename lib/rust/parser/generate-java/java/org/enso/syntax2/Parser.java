@@ -1,6 +1,5 @@
 package org.enso.syntax2;
 
-import org.enso.syntax2.serialization.Message;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

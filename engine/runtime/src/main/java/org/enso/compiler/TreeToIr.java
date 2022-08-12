@@ -561,7 +561,7 @@ final class TreeToIr {
             yield prefix;
           }
           default -> {
-            if (op.getCanBeBinaryInfix()) {
+            if (op.getBinaryInfixPrecedence() != null) {
               var lhs = translateCallArgument(app.getLhs(), insideTypeSignature);
               var rhs = translateCallArgument(app.getRhs(), insideTypeSignature);
               yield new IR$Application$Operator$Binary(
@@ -1391,17 +1391,7 @@ final class TreeToIr {
       } else if (imp.getPolyglot() != null) {
         List<IR.Name> qualifiedName = buildQualifiedSegments(imp.getImport().getBody());
         StringBuilder pkg = new StringBuilder();
-        String cls = null;
-        for (List<IR.Name> next = qualifiedName; !next.isEmpty();) {
-          if (cls != null) {
-            if (pkg.length() != 0) {
-              pkg.append(".");
-            }
-            pkg.append(cls);
-          }
-          cls = next.head().name();
-          next = (List<IR.Name>) next.tail();
-        }
+        String cls = extractPackageAndName(qualifiedName, pkg);
         Option<String> rename = imp.getImportAs() == null ? Option.empty() :
                 Option.apply(buildName(imp.getImportAs().getBody()).name());
         return new IR$Module$Scope$Import$Polyglot(
@@ -1436,6 +1426,22 @@ final class TreeToIr {
     }
     */
     return new IR$Error$Syntax(null, IR$Error$Syntax$InvalidImport$.MODULE$, meta(), diag());
+  }
+
+  @SuppressWarnings("unchecked")
+  private String extractPackageAndName(List<IR.Name> qualifiedName, StringBuilder pkg) {
+      String cls = null;
+      for (List<IR.Name> next = qualifiedName; !next.isEmpty();) {
+        if (cls != null) {
+          if (pkg.length() != 0) {
+            pkg.append(".");
+          }
+          pkg.append(cls);
+        }
+        cls = next.head().name();
+        next = (List<IR.Name>) next.tail();
+      }
+    return cls;
   }
 
   /** Translates an export statement from its [[AST]] representation into
