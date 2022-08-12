@@ -701,8 +701,7 @@ type Vector
                     range = Range start self.length step
                     self.take (By_Index range)
 
-    ## Creates a new vector with only the specified range of elements from the
-       input, removing any elements outside the range.
+    ## Creates a new vector, removing any elements from the specified range.
 
        Arguments:
        - range: The section of the this Vector to return.

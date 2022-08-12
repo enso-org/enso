@@ -745,6 +745,31 @@ type Table
     where self indexes =
         Table (self.java_table.mask indexes.java_column)
 
+    ## UNSTABLE
+       Creates a new Table with the specified range of rows from the input
+       Table.
+
+       Arguments:
+       - range: The selection of rows from the table to return.
+    take : (Index_Sub_Range | Range) -> Table
+    take range =
+        indices = (Range 0 self.row_count . to_vector).take range
+        mask = OrderMask.new indices.to_array
+        Table <| self.java_table.applyMask mask
+
+    ## UNSTABLE
+       Creates a new Table from the input with the specified range of rows
+       removed.
+
+
+       Arguments:
+       - range: The selection of rows from the table to remove.
+    drop : (Index_Sub_Range | Range) -> Table
+    drop range =
+        indices = (Range 0 self.row_count . to_vector).drop range
+        mask = OrderMask.new indices.to_array
+        Table <| self.java_table.applyMask mask
+
     ## ALIAS Add Column
 
        Sets the column value at the given name.
@@ -941,8 +966,7 @@ type Table
     concat : Table -> Table
     concat self other = Table (Java_Table.concat [self.java_table, other.java_table].to_array)
 
-    ## ALIAS First N Rows
-       UNSTABLE
+    ## DEPRECATED
 
        Returns a table containing the first `count` elements in this table.
 
@@ -961,8 +985,7 @@ type Table
     take_start : Integer -> Table
     take_start self count = Table (self.java_table.slice 0 count)
 
-    ## ALIAS Last N Rows
-       UNSTABLE
+    ## DEPRECATED
 
        Returns a table containing the last `count` elements in this table.
 
@@ -982,60 +1005,6 @@ type Table
     take_end self count =
         start_point = Math.max (self.row_count - count) 0
         Table (self.java_table.slice start_point count)
-
-    ## ALIAS First Row
-       UNSTABLE
-
-       Returns the first row in the table, if it exists.
-
-       If the table is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
-
-       > Example
-         Get the first row from the table.
-
-             import Standard.Examples
-
-             example_first = Examples.inventory_table.first
-    first : Table ! Empty_Error
-    first self =
-        table = self.take_start 1
-        if table.row_count != 1 then Error.throw Empty_Error else table
-
-    ## UNSTABLE
-
-       Returns the first row in the table, if it exists.
-
-       If the table is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
-
-       > Example
-         Get the first row from the table.
-
-             import Standard.Examples
-
-             example_head = Examples.inventory_table.head
-    head : Table ! Empty_Error
-    head self = self.first
-
-    ## ALIAS Last Row
-       UNSTABLE
-
-       Returns the last row in the table, if it exists.
-
-       If the table is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
-
-       > Example
-         Get the last row from the table.
-
-             import Standard.Examples
-
-             example_last = Examples.inventory_table.last
-    last : Table ! Empty_Error
-    last self =
-        table = self.take_end 1
-        if table.row_count != 1 then Error.throw Empty_Error else table
 
     ## UNSTABLE
 
