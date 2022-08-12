@@ -5,7 +5,7 @@ use crate::prelude::*;
 use enso_shapely::shared;
 use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
-use ensogl_text_embedded_fonts::EmbeddedFonts;
+use ensogl_text_embedded_fonts::Embedded;
 use ensogl_text_embedded_fonts::FamilyDefinition;
 use ensogl_text_embedded_fonts::Name;
 use ensogl_text_embedded_fonts::NonVariableFaceHeader;
@@ -46,198 +46,15 @@ pub const DEFAULT_FONT_MONO: &str = "dejavusansmono";
 
 
 
-// ================
-// === Registry ===
-// ================
+// =====================
+// === VariationAxes ===
+// =====================
 
-shared! { Registry
-/// Structure keeping all fonts loaded from different sources.
-#[derive(Debug)]
-pub struct RegistryData {
-    embedded_fonts: EmbeddedFonts,
-    fonts:          HashMap<Name,Font>,
-}
-
-impl {
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
-    /// registry if not used before. Returns the default font if the name is missing in both cache
-    /// and embedded font list.
-    pub fn load(&mut self, name:impl Into<Name>) -> Font {
-        self.try_load(name).unwrap_or_else(||
-            self.try_load(DEFAULT_FONT).expect("Default font not found."))
-    }
-
-    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
-    /// registry if not used before. Returns [`None`] if the name is missing in both cache and
-    /// embedded font list.
-    pub fn try_load(&mut self, name:impl Into<Name>) -> Option<Font> {
-        let name = name.into();
-        event!(DEBUG, "Loading font: {:?}", name);
-        match self.fonts.entry(name.clone()) {
-            Entry::Occupied (entry) => Some(entry.get().clone_ref()),
-            Entry::Vacant   (entry) => {
-                self.embedded_fonts.definitions.get(&name).map(|definition| {
-                    let font: Font = match definition {
-                        FamilyDefinition::NonVariable(definition) => {
-                            let family = NonVariableFontFamily::from(definition);
-                            family.load_all_faces(&self.embedded_fonts);
-                            NonVariableFont::new(name, family).into()
-                        }
-                        FamilyDefinition::Variable(definition) => {
-                            let family = VariableFontFamily::from(definition);
-                            family.load_all_faces(&self.embedded_fonts);
-                            VariableFont::new(name, family).into()
-                        }
-                    };
-                    entry.insert(font.clone_ref());
-                    font
-                })
-            }
-        }
-    }
-}}
-
-impl Registry {
-    /// Constructor.
-    pub fn init_and_load_embedded_font_data() -> Registry {
-        let embedded_fonts = EmbeddedFonts::init_and_load_embedded_font_data();
-        let fonts = HashMap::new();
-        let data = RegistryData { embedded_fonts, fonts };
-        let rc = Rc::new(RefCell::new(data));
-        Self { rc }
-    }
-}
-
-impl scene::Extension for Registry {
-    fn init(_scene: &Scene) -> Self {
-        Self::init_and_load_embedded_font_data()
-    }
-}
-
-
-
-// ================
-// === FontFace ===
-// ================
-
-/// A face of a font, a particular variation of a font. For non-variable fonts, the variation is
-/// defined as a triple (width, weight, style), see [`NonVariableFaceHeader`]. In case of variable
-/// fonts, the variation is defined by the [`VariationAxes`]. The face consists of a ttf face and
-/// MSDF one. In case of non-variable fonts, each variation is a separate ttf face. In case
-/// of variable fonts, there is only one ttf face. However, in both cases, there is a separate MSDF
-/// face for each variation. This is because MSDF is a
-/// manually.
-#[derive(Debug)]
-pub struct FontFace {
-    pub msdf: msdf::OwnedFace,
-    pub ttf:  ttf::OwnedFace,
-}
-
-
-
-// ==================
-// === FontFamily ===
-// ==================
-
-/// A generalization of a font family. Allows borrowing a font face based on variations. For
-/// non-variable fonts, variations is a triple (width, weight, style), see [`NonVariableFaceHeader`]
-/// to learn more. For variable faces the variation is [`VariationAxes`], however, as variable fonts
-/// have one face only, this parameter is not used while borrowing the face.
-pub trait FontFamily<Variations> {
-    fn with_borrowed_face<F, T>(&self, variations: &Variations, f: F) -> T
-    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T;
-}
-
-
-
-#[derive(Debug)]
-pub struct NonVariableFontFamily {
-    pub definition: NonVariableFamilyDefinition,
-    pub faces:      Rc<RefCell<HashMap<NonVariableFaceHeader, FontFace>>>,
-}
-
-impl NonVariableFontFamily {
-    fn load_all_faces(&self, embedded_fonts: &EmbeddedFonts) {
-        for (header, file_name) in &self.definition.map {
-            // FIXME conversion
-            let x: &str = &*file_name;
-            let face = embedded_fonts
-                .data
-                .get(x)
-                .and_then(|font_data| {
-                    let result = ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_INDEX)
-                        .map(|ttf| {
-                            let msdf = msdf::OwnedFace::load_from_memory(font_data);
-                            FontFace { msdf, ttf }
-                        });
-                    result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
-                })
-                .unwrap(); // FIXME unwrap
-            self.faces.borrow_mut().insert(*header, face);
-        }
-    }
-}
-
-impl From<&NonVariableFamilyDefinition> for NonVariableFontFamily {
-    fn from(definition: &NonVariableFamilyDefinition) -> Self {
-        let definition = definition.clone();
-        Self { definition, faces: default() }
-    }
-}
-
-impl FontFamily<NonVariableFaceHeader> for NonVariableFontFamily {
-    fn with_borrowed_face<F, T>(&self, variations: &NonVariableFaceHeader, f: F) -> T
-    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T {
-        f(self.faces.borrow().get(variations))
-    }
-}
-
-#[derive(Debug)]
-pub struct VariableFontFamily {
-    pub definition: VariableFamilyDefinition,
-    pub face:       Rc<RefCell<Option<FontFace>>>,
-}
-
-impl VariableFontFamily {
-    fn load_all_faces(&self, embedded_fonts: &EmbeddedFonts) {
-        let x: &str = &self.definition.file_name;
-        let face = embedded_fonts
-            .data
-            .get(x)
-            .and_then(|font_data| {
-                let result =
-                    ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_INDEX).map(|ttf| {
-                        let msdf = msdf::OwnedFace::load_from_memory(font_data);
-                        FontFace { msdf, ttf }
-                    });
-                result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
-            })
-            .unwrap(); // FIXME unwrap
-        self.face.borrow_mut().replace(face);
-    }
-}
-
-impl From<&VariableFamilyDefinition> for VariableFontFamily {
-    fn from(definition: &VariableFamilyDefinition) -> Self {
-        let definition = definition.clone();
-        Self { definition, face: default() }
-    }
-}
-
-impl<V> FontFamily<V> for VariableFontFamily {
-    fn with_borrowed_face<F, T>(&self, _variations: &V, f: F) -> T
-    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T {
-        f(self.face.borrow().as_ref())
-    }
-}
-
-
-
-// ====================
-// === VariableFont ===
-// ====================
-
+/// Variation axes of variable fonts. Contains five common axes and a general way of storing
+/// non-common ones. The axe name is [`Tag`], which is a 4-bytes identifier constructed from the axe
+/// name, e.g. by `Tag::from_bytes(b"ital")`. See the following link to learn more:
 /// https://docs.microsoft.com/en-us/typography/opentype/spec/dvaraxisreg#registered-axis-tags
+#[allow(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct VariationAxes {
     pub ital:         NotNan<f32>,
@@ -249,11 +66,13 @@ pub struct VariationAxes {
 }
 
 impl VariationAxes {
+    /// Weight setter. See the following docs to learn more:
     /// https://fonts.google.com/knowledge/glossary/weight_axis
     pub fn set_weight(&mut self, value: Weight) {
         self.wght = value.to_number().into();
     }
 
+    /// Width setter. See the following docs to learn more:
     /// https://fonts.google.com/knowledge/glossary/width_axis
     pub fn set_width(&mut self, value: Width) {
         let wdth = match value {
@@ -270,6 +89,7 @@ impl VariationAxes {
         self.wdth = NotNan::new(wdth).unwrap();
     }
 
+    /// Style setter. See the following docs to learn more:
     /// https://fonts.google.com/knowledge/glossary/italic_axis
     /// https://fonts.google.com/knowledge/glossary/slant_axis
     pub fn set_style(&mut self, value: Style) {
@@ -292,21 +112,211 @@ impl VariationAxes {
 
 
 
+// ================
+// === Registry ===
+// ================
+
+shared! { Registry
+/// Structure keeping all fonts loaded from different sources.
+#[derive(Debug)]
+pub struct RegistryData {
+    embedded: Embedded,
+    fonts:          HashMap<Name,Font>,
+}
+
+impl {
+    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
+    /// registry if not used before. Returns the default font if the name is missing in both cache
+    /// and embedded font list.
+    pub fn load(&mut self, name:impl Into<Name>) -> Font {
+        self.try_load(name).unwrap_or_else(||
+            self.try_load(DEFAULT_FONT).expect("Default font not found."))
+    }
+
+    /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
+    /// registry if not used before. Returns [`None`] if the name is missing in both cache and
+    /// embedded font list.
+    pub fn try_load(&mut self, name:impl Into<Name>) -> Option<Font> {
+        let name = name.into();
+        event!(DEBUG, "Loading font: {:?}", name);
+        match self.fonts.entry(name.clone()) {
+            Entry::Occupied (entry) => Some(entry.get().clone_ref()),
+            Entry::Vacant   (entry) => {
+                self.embedded.definitions.get(&name).map(|definition| {
+                    let font: Font = match definition {
+                        FamilyDefinition::NonVariable(definition) => {
+                            let family = NonVariableFamily::from(definition);
+                            family.load_all_faces(&self.embedded);
+                            NonVariableFont::new(name, family).into()
+                        }
+                        FamilyDefinition::Variable(definition) => {
+                            let family = VariableFamily::from(definition);
+                            family.load_all_faces(&self.embedded);
+                            VariableFont::new(name, family).into()
+                        }
+                    };
+                    entry.insert(font.clone_ref());
+                    font
+                })
+            }
+        }
+    }
+}}
+
+impl Registry {
+    /// Constructor.
+    pub fn init_and_load_embedded_fonts() -> Registry {
+        let embedded = Embedded::init_and_load_embedded_fonts();
+        let fonts = HashMap::new();
+        let data = RegistryData { embedded, fonts };
+        let rc = Rc::new(RefCell::new(data));
+        Self { rc }
+    }
+}
+
+impl scene::Extension for Registry {
+    fn init(_scene: &Scene) -> Self {
+        Self::init_and_load_embedded_fonts()
+    }
+}
+
+
+
+// ============
+// === Face ===
+// ============
+
+/// A face of a font. In case of non-variable fonts, a face corresponds to a font variation defined
+/// as a triple (width, weight, style), see [`NonVariableFaceHeader`]. In case of variable
+/// fonts, the font variation ([`VariationAxes`]) is set up at runtime, so only one face is needed.
+/// The face consists of a ttf face and MSDF one.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct Face {
+    pub msdf: msdf::OwnedFace,
+    pub ttf:  ttf::OwnedFace,
+}
+
+impl Face {
+    /// Load the font face from memory. Corrupted faces will be reported.
+    fn load_from_memory(name: &str, embedded: &Embedded) -> Option<Face> {
+        embedded.data.get(name).and_then(|data| {
+            let result = ttf::OwnedFace::from_vec((**data).into(), FONT_FACE_INDEX).map(|ttf| {
+                let msdf = msdf::OwnedFace::load_from_memory(data);
+                Face { msdf, ttf }
+            });
+            result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
+        })
+    }
+}
+
+
+
+// ==============
+// === Family ===
+// ==============
+
+/// A generalization of a font family, a set of font faces. Allows borrowing a font face based on
+/// variations. For non-variable fonts, variations is a triple (width, weight, style), see
+/// [`NonVariableFaceHeader`] to learn more. For variable faces the variation is [`VariationAxes`],
+/// however, as variable fonts have one face only, this parameter is not used while borrowing the
+/// face.
+pub trait Family<Variations> {
+    fn with_borrowed_face<F, T>(&self, variations: &Variations, f: F) -> T
+    where F: for<'a> FnOnce(Option<&'a Face>) -> T;
+}
+
+/// A non-variable font family. Contains font family definition and a mapping from font variations
+/// to font faces.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct NonVariableFamily {
+    pub definition: NonVariableFamilyDefinition,
+    pub faces:      Rc<RefCell<HashMap<NonVariableFaceHeader, Face>>>,
+}
+
+/// A variable font family. Contains font family definition and the font face.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct VariableFamily {
+    pub definition: VariableFamilyDefinition,
+    pub face:       Rc<RefCell<Option<Face>>>,
+}
+
+impl NonVariableFamily {
+    /// Load all font faces from the embedded font data. Corrupted faces will be reported and
+    /// ignored.
+    fn load_all_faces(&self, embedded: &Embedded) {
+        for (header, file_name) in &self.definition.map {
+            if let Some(face) = Face::load_from_memory(&*file_name, embedded) {
+                self.faces.borrow_mut().insert(*header, face);
+            }
+        }
+    }
+}
+
+impl VariableFamily {
+    /// Load all font faces from the embedded font data. Corrupted faces will be reported and
+    /// ignored.
+    fn load_all_faces(&self, embedded: &Embedded) {
+        if let Some(face) = Face::load_from_memory(&self.definition.file_name, embedded) {
+            self.face.borrow_mut().replace(face);
+        }
+    }
+}
+
+impl Family<NonVariableFaceHeader> for NonVariableFamily {
+    fn with_borrowed_face<F, T>(&self, variations: &NonVariableFaceHeader, f: F) -> T
+    where F: for<'a> FnOnce(Option<&'a Face>) -> T {
+        f(self.faces.borrow().get(variations))
+    }
+}
+
+impl<V> Family<V> for VariableFamily {
+    fn with_borrowed_face<F, T>(&self, _variations: &V, f: F) -> T
+    where F: for<'a> FnOnce(Option<&'a Face>) -> T {
+        f(self.face.borrow().as_ref())
+    }
+}
+
+
+impl From<&VariableFamilyDefinition> for VariableFamily {
+    fn from(definition: &VariableFamilyDefinition) -> Self {
+        let definition = definition.clone();
+        Self { definition, face: default() }
+    }
+}
+
+impl From<&NonVariableFamilyDefinition> for NonVariableFamily {
+    fn from(definition: &NonVariableFamilyDefinition) -> Self {
+        let definition = definition.clone();
+        Self { definition, faces: default() }
+    }
+}
+
+
+
 // ============
 // === Font ===
 // ============
 
+/// A typeface, commonly referred to as a font. See the documentation of [`FontTemplate`] to learn
+/// more.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, CloneRef, From)]
 pub enum Font {
     NonVariable(NonVariableFont),
     Variable(VariableFont),
 }
 
-pub type NonVariableFont = FontTemplate<NonVariableFontFamily, NonVariableFaceHeader>;
-pub type VariableFont = FontTemplate<VariableFontFamily, VariationAxes>;
+/// A non-variable version of [`Font`].
+pub type NonVariableFont = FontTemplate<NonVariableFamily, NonVariableFaceHeader>;
 
+/// A variable version of [`Font`].
+pub type VariableFont = FontTemplate<VariableFamily, VariationAxes>;
 
 impl Font {
+    /// List all possible weights. In case of variable fonts, [`None`] will be returned.
     pub fn possible_weights(&self) -> Option<Vec<Weight>> {
         match self {
             Font::NonVariable(font) => Some(font.family.definition.possible_weights()),
@@ -314,6 +324,7 @@ impl Font {
         }
     }
 
+    /// Get render info for one character, generating one if not found.
     pub fn glyph_info(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
@@ -326,6 +337,7 @@ impl Font {
         }
     }
 
+    /// Get the glyph id of the provided code point.
     pub fn glyph_id_of_code_point(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
@@ -340,6 +352,7 @@ impl Font {
         }
     }
 
+    /// Get number of rows in MSDF texture.
     pub fn msdf_texture_rows(&self) -> usize {
         match self {
             Font::NonVariable(font) => font.msdf_texture_rows(),
@@ -347,6 +360,7 @@ impl Font {
         }
     }
 
+    /// A whole MSDF texture bound for this font.
     pub fn with_borrowed_msdf_texture_data<R>(&self, operation: impl FnOnce(&[u8]) -> R) -> R {
         match self {
             Font::NonVariable(font) => font.with_borrowed_msdf_texture_data(operation),
@@ -354,6 +368,7 @@ impl Font {
         }
     }
 
+    /// Get kerning between two characters.
     pub fn kerning(
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
@@ -375,40 +390,32 @@ impl Font {
 // === FontTemplate ===
 // ====================
 
-/// A single font data used for rendering.
-///
-/// The data for individual characters and kerning are load on demand.
-///
-/// Each distance and transformation values are expressed in normalized coordinates, where `y` = 0.0
-/// is _baseline_ and `y` = 1.0 is _ascender_. For explanation of various font-rendering terms, see
-/// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
-
-// #[derive(Debug, Clone, CloneRef, Deref)]
-// pub struct NonVariableFont {
-//     rc: Rc<NonVariableFontData>,
-// }
-
-#[derive(Debug, Default)]
-pub struct FontDataCache {
-    kerning: HashMap<(GlyphId, GlyphId), f32>,
-    glyphs:  HashMap<GlyphId, GlyphRenderInfo>,
-}
-
+/// Internal representation of [`Font`]. It contains references to the font family definition,
+/// a texture with MSDF-encoded glyph shapes, and a cache for common glyph properties, used to
+/// layout glyphs.
 #[derive(Deref, Derivative, CloneRef, Debug)]
 #[derivative(Clone(bound = ""))]
 pub struct FontTemplate<Family, Variations> {
     rc: Rc<FontTemplateData<Family, Variations>>,
 }
 
+/// Internal representation of [`FontTemplate`].
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct FontTemplateData<Family, Variations> {
-    pub name:               Name,
-    family:                 Family,
-    atlas:                  msdf::Texture,
-    cache:                  RefCell<HashMap<Variations, FontDataCache>>,
+    pub name:                   Name,
+    pub family:                 Family,
+    pub atlas:                  msdf::Texture,
+    pub cache:                  RefCell<HashMap<Variations, FontDataCache>>,
     // FIXME: remove after MSDF-gen API will be updated to handle GlyphIds.
-    glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
+    pub glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
+}
+
+/// A cache for common glyph properties, used to layout glyphs.
+#[derive(Debug, Default)]
+pub struct FontDataCache {
+    kerning: HashMap<(GlyphId, GlyphId), f32>,
+    glyphs:  HashMap<GlyphId, GlyphRenderInfo>,
 }
 
 impl<F, V> From<FontTemplateData<F, V>> for FontTemplate<F, V> {
@@ -418,7 +425,7 @@ impl<F, V> From<FontTemplateData<F, V>> for FontTemplate<F, V> {
     }
 }
 
-impl<F: FontFamily<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
+impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     /// Constructor.
     pub fn new(name: Name, family: impl Into<F>) -> Self {
         let atlas = default();
@@ -429,6 +436,7 @@ impl<F: FontFamily<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
         Self { rc: Rc::new(data) }
     }
 
+    /// Get the glyph id of the provided code point.
     pub fn glyph_id_of_code_point(&self, variations: &V, code_point: char) -> Option<GlyphId> {
         self.family.with_borrowed_face(variations, |opt_face| {
             opt_face.and_then(|face| {
@@ -558,11 +566,11 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
-    const TEST_FONT_NAME: &str = embedded_fonts::DefaultFamily::mono_bold();
+    const TEST_FONT_NAME: &str = embedded::DefaultFamily::mono_bold();
 
     fn create_test_font() -> NonVariableFont {
-        let embedded_fonts = EmbeddedFontsData::create_and_fill();
-        NonVariableFont::try_from_embedded(&embedded_fonts, TEST_FONT_NAME).unwrap()
+        let embedded = EmbeddedFontsData::create_and_fill();
+        NonVariableFont::try_from_embedded(&embedded, TEST_FONT_NAME).unwrap()
     }
 
     wasm_bindgen_test_configure!(run_in_browser);

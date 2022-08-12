@@ -1,3 +1,5 @@
+//! MSDF-gen libraries bindings and utilities.
+
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -31,6 +33,7 @@ pub mod texture;
 
 pub use texture::*;
 
+/// Common types.
 pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_types::*;
@@ -121,6 +124,7 @@ impl OwnedFace {
         OwnedFace { handle }
     }
 
+    /// Mocked version of this struct. Used for testing purposes.
     pub fn mock_font() -> OwnedFace {
         let handle = JsValue::from_f64(0.0);
         OwnedFace { handle }
@@ -137,6 +141,7 @@ impl OwnedFace {
 ///
 /// The structure gathering MSDF generation parameters meant to be same for all rendered glyphs.
 #[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
 pub struct MsdfParameters {
     pub width: usize,
     pub height: usize,
@@ -147,6 +152,14 @@ pub struct MsdfParameters {
     pub overlap_support: bool,
 }
 
+
+
+// ============
+// === Msdf ===
+// ============
+
+/// Binding to the MSDF-gen library.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Msdf {
     handle:          JsValue,
@@ -209,6 +222,7 @@ impl Msdf {
         nalgebra::Vector2::new(scale_x, scale_y)
     }
 
+    /// Mocked version of this struct. Used for testing purposes.
     pub fn mock_results() -> Msdf {
         Msdf {
             handle:      JsValue::from_f64(0.0),

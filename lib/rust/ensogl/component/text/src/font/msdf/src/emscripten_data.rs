@@ -1,3 +1,5 @@
+//! Helpers for working with emscripten libraries.
+
 use crate::prelude::*;
 
 use crate::binding::emscripten_get_value_from_memory;
@@ -15,6 +17,7 @@ use wasm_bindgen::JsValue;
 /// The _emscirpten API_ is a set of functions that are put to library by emscripten SDK, the
 /// especially useful is a function reading value from given address in `msdfgen` library memory
 /// (we cannot do it directly, because each wasm module have separate address space)
+#[allow(missing_docs)]
 pub trait EmscriptenRepresentation: Sized {
     const EMSCRIPTEN_SIZE_IN_BYTES: usize;
     const EMSCRIPTEN_TYPE_NAME: &'static str;
@@ -56,7 +59,7 @@ impl EmscriptenRepresentation for f64 {
 pub struct ArrayMemoryView<F: EmscriptenRepresentation> {
     begin_address: usize,
     end_address:   usize,
-    type_marker:   std::marker::PhantomData<F>,
+    type_marker:   PhantomData<F>,
 }
 
 /// Iterator over values in `msdfgen` library memory
@@ -67,7 +70,7 @@ pub struct ArrayMemoryView<F: EmscriptenRepresentation> {
 pub struct ArrayMemoryViewIterator<'a, F: EmscriptenRepresentation> {
     next_read_address: usize,
     end_address:       usize,
-    view_lifetime:     std::marker::PhantomData<&'a ArrayMemoryView<F>>,
+    view_lifetime:     PhantomData<&'a ArrayMemoryView<F>>,
 }
 
 impl<F: EmscriptenRepresentation> ArrayMemoryView<F> {
@@ -77,17 +80,13 @@ impl<F: EmscriptenRepresentation> ArrayMemoryView<F> {
         ArrayMemoryView {
             begin_address: address,
             end_address:   address + size_in_bytes,
-            type_marker:   std::marker::PhantomData,
+            type_marker:   PhantomData,
         }
     }
 
     /// Create an empty view
     pub fn empty() -> ArrayMemoryView<F> {
-        ArrayMemoryView {
-            begin_address: 0,
-            end_address:   0,
-            type_marker:   std::marker::PhantomData,
-        }
+        ArrayMemoryView { begin_address: 0, end_address: 0, type_marker: PhantomData }
     }
 
     /// Iterator over elements
@@ -95,7 +94,7 @@ impl<F: EmscriptenRepresentation> ArrayMemoryView<F> {
         ArrayMemoryViewIterator {
             next_read_address: self.begin_address,
             end_address:       self.end_address,
-            view_lifetime:     std::marker::PhantomData,
+            view_lifetime:     PhantomData,
         }
     }
 }
