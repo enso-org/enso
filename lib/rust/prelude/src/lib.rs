@@ -210,6 +210,11 @@ pub trait ToImpl: Sized {
 }
 impl<T> ToImpl for T {}
 
+
+// ================
+// === nalgebra ===
+// ================
+
 #[cfg(feature = "nalgebra")]
 impl<T, R, C, S> TypeDisplay for nalgebra::Matrix<T, R, C, S>
 where

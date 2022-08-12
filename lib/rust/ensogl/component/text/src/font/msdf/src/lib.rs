@@ -14,10 +14,6 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-mod binding;
-pub mod emscripten_data;
-pub use enso_prelude as prelude;
-
 use binding::*;
 
 use emscripten_data::ArrayMemoryView;
@@ -28,6 +24,17 @@ use std::task::Context;
 use std::task::Poll;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsValue;
+
+mod binding;
+pub mod emscripten_data;
+pub mod texture;
+
+pub use texture::*;
+
+pub mod prelude {
+    pub use enso_prelude::*;
+    pub use enso_types::*;
+}
 
 
 

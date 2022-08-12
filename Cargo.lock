@@ -2844,11 +2844,13 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
+ "enso-types",
  "ensogl-text-embedded-fonts",
  "ensogl-text-font-family",
  "futures 0.3.21",
  "js-sys",
  "nalgebra 0.26.2",
+ "serde",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]

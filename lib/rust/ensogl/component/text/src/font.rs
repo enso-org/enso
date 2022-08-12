@@ -11,7 +11,7 @@ use ensogl_text_embedded_fonts::Name;
 use ensogl_text_embedded_fonts::NonVariableFaceHeader;
 use ensogl_text_embedded_fonts::NonVariableFamilyDefinition;
 use ensogl_text_embedded_fonts::VariableFamilyDefinition;
-use ensogl_text_msdf as msdf_sys;
+use ensogl_text_msdf as msdf;
 use ordered_float::NotNan;
 use owned_ttf_parser as ttf;
 use owned_ttf_parser::AsFaceRef;
@@ -24,7 +24,6 @@ use std::collections::hash_map::Entry;
 
 pub mod glyph;
 pub mod glyph_render_info;
-pub mod msdf;
 pub mod pen;
 
 pub use glyph_render_info::GlyphRenderInfo;
@@ -130,7 +129,7 @@ impl scene::Extension for Registry {
 /// manually.
 #[derive(Debug)]
 pub struct FontFace {
-    pub msdf: msdf_sys::OwnedFace,
+    pub msdf: msdf::OwnedFace,
     pub ttf:  ttf::OwnedFace,
 }
 
@@ -168,7 +167,7 @@ impl NonVariableFontFamily {
                 .and_then(|font_data| {
                     let result = ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_INDEX)
                         .map(|ttf| {
-                            let msdf = msdf_sys::OwnedFace::load_from_memory(font_data);
+                            let msdf = msdf::OwnedFace::load_from_memory(font_data);
                             FontFace { msdf, ttf }
                         });
                     result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
@@ -208,7 +207,7 @@ impl VariableFontFamily {
             .and_then(|font_data| {
                 let result =
                     ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_INDEX).map(|ttf| {
-                        let msdf = msdf_sys::OwnedFace::load_from_memory(font_data);
+                        let msdf = msdf::OwnedFace::load_from_memory(font_data);
                         FontFace { msdf, ttf }
                     });
                 result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
@@ -511,7 +510,7 @@ impl<F: FontFamily<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
 
     // #[cfg(test)]
     // pub fn mock(name: impl Into<String>) -> Self {
-    //     Self::from_msdf_font(name.into(), msdf_sys::NonVariableFont::mock_font())
+    //     Self::from_msdf_font(name.into(), msdf::NonVariableFont::mock_font())
     // }
     //
     // #[cfg(test)]

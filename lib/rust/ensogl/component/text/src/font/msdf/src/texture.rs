@@ -1,14 +1,15 @@
 //! Multichannel Signed Distance Field handling.
 
-use crate::prelude::*;
-
-use ensogl_text_msdf::Msdf;
+use crate::Msdf;
 use serde;
 
+use crate::prelude::*;
 
-// ====================
-// === MSDF Texture ===
-// ====================
+
+
+// ===============
+// === Texture ===
+// ===============
 
 /// MSDF texture data for all loaded glyph of a font.
 ///
