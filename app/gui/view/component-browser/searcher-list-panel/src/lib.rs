@@ -642,7 +642,6 @@ impl Model {
 
     fn on_hover(&self) {
         if let Some(navigator) = self.navigator.borrow().as_ref() {
-            tracing::warn!("hovering");
             navigator.disable()
         } else {
             tracing::warn!(
@@ -653,7 +652,6 @@ impl Model {
     }
 
     fn on_hover_end(&self) {
-        tracing::warn!("hover end");
         if let Some(navigator) = self.navigator.borrow().as_ref() {
             navigator.enable()
         }
