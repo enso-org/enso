@@ -81,7 +81,8 @@ mod deja_vu {
 
     // const deja_vu: DejaVuSans = DejaVuSans;
 
-    const FILE_NAMES: [&str; 2] = ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf"];
+    const FILE_NAMES: [&str; 4] =
+        ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf"];
 
     pub fn extract_all_fonts(package_path: &path::Path) {
         for file_name in FILE_NAMES {

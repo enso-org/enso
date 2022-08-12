@@ -29,8 +29,8 @@ use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
-#[cfg(target_arch = "wasm32")]
-use ensogl_text_embedded_fonts as embedded_fonts;
+// #[cfg(target_arch = "wasm32")]
+// use ensogl_text_embedded_fonts as embedded_fonts;
 use std::ops::Not;
 
 
@@ -611,7 +611,7 @@ impl AreaModel {
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<typeface::font::Registry>();
-            let font = fonts.load("dejavusans");
+            let font = fonts.load("dejavusansmono");
             let glyph_system = typeface::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))
@@ -904,8 +904,8 @@ impl AreaModel {
     fn line_truncated_with_ellipsis(
         &self,
         line: &str,
-        font_size: style::Size,
-        max_width_px: f32,
+        _font_size: style::Size,
+        _max_width_px: f32,
     ) -> String {
         // const ELLIPSIS: char = '\u{2026}';
         // let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);

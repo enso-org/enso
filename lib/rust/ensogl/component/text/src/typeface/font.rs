@@ -54,7 +54,7 @@ impl {
 impl FontLoaderData {
     pub fn init_and_load_embedded_font_data() -> Self {
         let embedded_fonts_data = EmbeddedFontsData::init_and_load_embedded_font_data();
-        let font_family_definitions = ensogl_text_embedded_fonts::font_family_files_map().clone();
+        let font_family_definitions = ensogl_text_embedded_fonts::font_family_files_map();
         Self { embedded_fonts_data, font_family_definitions }
     }
 }
@@ -190,8 +190,8 @@ impl FaceLoader<NonVariableFaceHeader> for NonVariableFontFamily {
 
     fn get_or_load_face<F>(&self, variations: &NonVariableFaceHeader, loader: &FontLoader, f: F)
     where F: for<'a> FnOnce(&'a FontFace) {
-        if self.faces.borrow().contains_key(&variations) {
-            if let Some(face) = self.faces.borrow().get(&variations) {
+        if self.faces.borrow().contains_key(variations) {
+            if let Some(face) = self.faces.borrow().get(variations) {
                 f(face);
             }
         } else {
@@ -500,8 +500,8 @@ impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     pub fn glyph_info(&self, variations: &V, glyph_id: GlyphId) -> Option<GlyphRenderInfo> {
         let opt_render_info =
             self.cache.borrow().get(variations).and_then(|t| t.glyphs.get(&glyph_id)).copied();
-        if let Some(render_info) = opt_render_info {
-            Some(render_info) // FIXME nicer code
+        if opt_render_info.is_some() {
+            opt_render_info
         } else {
             self.family.with_borrowed_face(variations, |opt_face| {
                 opt_face.map(|face| {

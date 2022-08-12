@@ -210,5 +210,18 @@ pub fn font_family_files_map() -> HashMap<Name, FamilyDefinition> {
             ),
         ])),
     );
+    map.insert(
+        "dejavusansmono".into(),
+        FamilyDefinition::NonVariable(NonVariableFamilyDefinition::from_iter([
+            (
+                NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
+                "DejaVuSansMono.ttf".to_string(),
+            ),
+            (
+                NonVariableFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
+                "DejaVuSansMono-Bold.ttf".to_string(),
+            ),
+        ])),
+    );
     map
 }
