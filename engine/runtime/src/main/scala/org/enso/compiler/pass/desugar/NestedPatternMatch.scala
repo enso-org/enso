@@ -273,6 +273,10 @@ case object NestedPatternMatch extends IRPass {
             remainingBranches,
             freshNameSupply
           )
+        case _: Pattern.Literal =>
+          throw new CompilerError(
+            "Literal patterns cannot be nested. This should be unreachable."
+          )
         case _: Pattern.Name =>
           throw new CompilerError(
             "Name patterns cannot be nested. This should be unreachable."
@@ -363,12 +367,14 @@ case object NestedPatternMatch extends IRPass {
         fields.exists {
           case _: Pattern.Constructor => true
           case _: Pattern.Name        => false
+          case _: Pattern.Literal     => true
           case _: IR.Error.Pattern    => false
           case _: Pattern.Documentation =>
             throw new CompilerError(
               "Branch documentation should be desugared at an earlier stage."
             )
         }
+      case _: Pattern.Literal  => false
       case _: IR.Error.Pattern => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
@@ -386,6 +392,7 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => false
       case _: Pattern.Constructor => true
+      case _: Pattern.Literal     => true
       case _: IR.Error.Pattern    => false
       case _: Pattern.Documentation =>
         throw new CompilerError(
@@ -402,6 +409,7 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => true
       case _: Pattern.Constructor => false
+      case _: Pattern.Literal     => false
       case _: IR.Error.Pattern    => true
       case _: Pattern.Documentation =>
         throw new CompilerError(
