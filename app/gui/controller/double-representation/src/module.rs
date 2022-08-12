@@ -325,6 +325,14 @@ impl TryFrom<String> for QualifiedName {
     }
 }
 
+impl TryFrom<&String> for QualifiedName {
+    type Error = failure::Error;
+
+    fn try_from(text: &String) -> Result<Self, Self::Error> {
+        Self::from_text(text)
+    }
+}
+
 impl TryFrom<engine_protocol::language_server::MethodPointer> for QualifiedName {
     type Error = failure::Error;
 

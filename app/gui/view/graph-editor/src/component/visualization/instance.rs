@@ -18,7 +18,10 @@ use ensogl::display::Scene;
 
 /// An invocable language expression that serialize given input into JSON.
 pub const DEFAULT_VISUALIZATION_EXPRESSION: &str = "x -> x.to_default_visualization_data";
-
+/// A module containing the default visualization function.
+pub const DEFAULT_VISUALIZATION_MODULE: &str = "Default_Visualization";
+/// A name of the default visualization function.
+pub const DEFAULT_VISUALIZATION_FUNCTION: &str = "default_preprocessor";
 
 
 // ====================
@@ -61,7 +64,9 @@ pub struct PreprocessorConfiguration {
     /// that visualizations expect.
     pub code:   enso::Code,
     /// The module that provides context for `code` evaluation.
-    pub module: ContextModule,
+    pub module: enso::Module,
+    /// The method being invoked.
+    pub method: enso::Function,
 }
 
 impl PreprocessorConfiguration {
@@ -69,13 +74,17 @@ impl PreprocessorConfiguration {
     pub fn from_options(
         code: Option<impl Into<enso::Code>>,
         module: Option<impl Into<enso::Module>>,
+        method: Option<impl Into<enso::Function>>,
     ) -> Self {
         let mut ret = Self::default();
         if let Some(code) = code {
-            ret.code = code.into()
+            ret.code = code.into();
         }
         if let Some(module) = module {
-            ret.module = ContextModule::Specific(module.into())
+            ret.module = module.into();
+        }
+        if let Some(method) = method {
+            ret.method = method.into();
         }
         ret
     }
@@ -84,17 +93,23 @@ impl PreprocessorConfiguration {
     pub fn new(
         code: impl Into<enso::Code>,
         module: impl Into<enso::Module>,
+        method: impl Into<enso::Function>,
     ) -> PreprocessorConfiguration {
         PreprocessorConfiguration {
-            module: ContextModule::Specific(module.into()),
             code:   code.into(),
+            module: module.into(),
+            method: method.into(),
         }
     }
 }
 
 impl Default for PreprocessorConfiguration {
     fn default() -> Self {
-        Self { code: DEFAULT_VISUALIZATION_EXPRESSION.into(), module: default() }
+        Self {
+            code:   DEFAULT_VISUALIZATION_EXPRESSION.into(),
+            module: DEFAULT_VISUALIZATION_MODULE.into(),
+            method: DEFAULT_VISUALIZATION_FUNCTION.into(),
+        }
     }
 }
 

@@ -6,15 +6,14 @@ use crate::model::execution_context::AttachedVisualization;
 use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
-use crate::model::module;
 
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::VisualisationConfiguration;
 use futures::future::LocalBoxFuture;
-
 
 
 // ==============
@@ -134,18 +133,16 @@ impl ExecutionContext {
     pub fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
     ) -> FallibleResult {
         let err = || InvalidVisualizationId(id);
         let mut visualizations = self.visualizations.borrow_mut();
         let visualization = &mut visualizations.get_mut(&id).ok_or_else(err)?.visualization;
-        if let Some(expression) = expression {
-            visualization.preprocessor_code = expression;
+
+        if let Some(method_pointer) = method_pointer {
+            visualization.method_pointer = method_pointer;
         }
-        if let Some(module) = module {
-            visualization.context_module = module;
-        }
+
         Ok(())
     }
 
@@ -227,10 +224,9 @@ impl model::execution_context::API for ExecutionContext {
     fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
     ) -> BoxFuture<FallibleResult> {
-        futures::future::ready(self.modify_visualization(id, expression, module)).boxed_local()
+        futures::future::ready(self.modify_visualization(id, method_pointer)).boxed_local()
     }
 
     fn dispatch_visualization_update(

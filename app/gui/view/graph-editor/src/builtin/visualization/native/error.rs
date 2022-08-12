@@ -42,9 +42,16 @@ pub const PREPROCESSOR_CODE: &str = include_str!("inc/error_preprocessor.enso");
 // RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
 pub const PREPROCESSOR_MODULE: &str = "Standard.Base.Main";
 
+/// The method name containing the `PREPROCESSOR_CODE`.
+pub const PREPROCESSOR_METHOD: &str = "error_preprocessor";
+
 /// Get preprocessor configuration for error visualization.
 pub fn preprocessor() -> instance::PreprocessorConfiguration {
-    instance::PreprocessorConfiguration::new(PREPROCESSOR_CODE, PREPROCESSOR_MODULE)
+    instance::PreprocessorConfiguration::new(
+        PREPROCESSOR_CODE,
+        PREPROCESSOR_MODULE,
+        PREPROCESSOR_METHOD,
+    )
 }
 
 /// Get metadata description for error visualization.

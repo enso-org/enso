@@ -651,10 +651,8 @@ pub type ExpressionId = Uuid;
 pub struct VisualisationConfiguration {
     #[allow(missing_docs)]
     pub execution_context_id: ContextId,
-    /// A qualified name of the module containing the expression which creates visualisation.
-    pub visualisation_module: String,
-    /// An enso lambda that will transform the data into expected format, i.e. `a -> a.json`.
-    pub expression:           String,
+    /// An enso function that will transform the data into expected format.
+    pub expression:           MethodPointer,
 }
 
 /// Used to enter deeper in the execution context stack. In general, all consequent stack items

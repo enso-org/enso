@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::model::module::QualifiedName as ModuleQualifiedName;
+use crate::model::module;
 use crate::model::suggestion_database::entry as suggestion;
 use crate::notification::Publisher;
 
@@ -220,6 +220,73 @@ pub struct LocalCall {
 // === Visualization ===
 // =====================
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct QualifiedMethodPointer {
+    pub module:          module::QualifiedName,
+    pub defined_on_type: module::QualifiedName,
+    pub name:            String,
+}
+
+impl QualifiedMethodPointer {
+    pub fn new(
+        module: module::QualifiedName,
+        defined_on_type: module::QualifiedName,
+        name: String,
+    ) -> QualifiedMethodPointer {
+        QualifiedMethodPointer { module, defined_on_type, name }
+    }
+
+    pub fn from_unqualified(
+        module: &str,
+        defined_on_type: &str,
+        name: &str,
+    ) -> FallibleResult<QualifiedMethodPointer> {
+        let resolved_module = module.try_into()?;
+        let resolved_type = defined_on_type.try_into()?;
+        Ok(QualifiedMethodPointer::new(resolved_module, resolved_type, name.to_owned()))
+    }
+}
+
+impl TryFrom<MethodPointer> for QualifiedMethodPointer {
+    type Error = failure::Error;
+
+    fn try_from(method_pointer: MethodPointer) -> Result<Self, Self::Error> {
+        Self::try_from(&method_pointer)
+    }
+}
+
+impl TryFrom<&MethodPointer> for QualifiedMethodPointer {
+    type Error = failure::Error;
+
+    fn try_from(method_pointer: &MethodPointer) -> Result<Self, Self::Error> {
+        let module = method_pointer.module.as_str().try_into()?;
+        let defined_on_type = method_pointer.defined_on_type.as_str().try_into()?;
+        let name = method_pointer.name.clone();
+        Ok(QualifiedMethodPointer { module, defined_on_type, name })
+    }
+}
+
+impl From<QualifiedMethodPointer> for MethodPointer {
+    fn from(qualified_method_pointer: QualifiedMethodPointer) -> Self {
+        Self::from(&qualified_method_pointer)
+    }
+}
+
+impl From<&QualifiedMethodPointer> for MethodPointer {
+    fn from(qualified_method_pointer: &QualifiedMethodPointer) -> Self {
+        let module = qualified_method_pointer.module.clone().into();
+        let defined_on_type = qualified_method_pointer.defined_on_type.clone().into();
+        let name = qualified_method_pointer.name.clone();
+        MethodPointer { module, defined_on_type, name }
+    }
+}
+
+
+
+// =====================
+// === Visualization ===
+// =====================
+
 /// Unique Id for visualization.
 pub type VisualizationId = Uuid;
 
@@ -232,8 +299,8 @@ pub struct Visualization {
     pub expression_id:     ExpressionId,
     /// An enso lambda that will transform the data into expected format, e.g. `a -> a.json`.
     pub preprocessor_code: String,
-    /// Visualization module -- the module in which context the preprocessor code is evaluated.
-    pub context_module:    ModuleQualifiedName,
+    /// A pointer to the enso method that will transform the data into expected format.
+    pub method_pointer:    QualifiedMethodPointer,
 }
 
 impl Visualization {
@@ -242,17 +309,16 @@ impl Visualization {
     pub fn new(
         expression_id: ExpressionId,
         preprocessor_code: String,
-        context_module: ModuleQualifiedName,
+        method_pointer: QualifiedMethodPointer,
     ) -> Visualization {
         let id = VisualizationId::new_v4();
-        Visualization { id, expression_id, preprocessor_code, context_module }
+        Visualization { id, expression_id, preprocessor_code, method_pointer }
     }
 
     /// Creates a `VisualisationConfiguration` that is used in communication with language server.
     pub fn config(&self, execution_context_id: Uuid) -> VisualisationConfiguration {
-        let expression = self.preprocessor_code.clone();
-        let visualisation_module = self.context_module.to_string();
-        VisualisationConfiguration { execution_context_id, visualisation_module, expression }
+        let expression = self.method_pointer.clone().into();
+        VisualisationConfiguration { execution_context_id, expression }
     }
 }
 
@@ -391,8 +457,7 @@ pub trait API: Debug {
     fn modify_visualization<'a>(
         &'a self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<ModuleQualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
     ) -> BoxFuture<'a, FallibleResult>;
 
     /// Dispatches the visualization update data (typically received from as LS binary notification)

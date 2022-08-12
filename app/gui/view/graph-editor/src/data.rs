@@ -20,6 +20,9 @@ pub mod enso {
         /// The Enso type representation. Can be a complex type, like `String|Int`.
         Type,
 
+        /// The Enso function name, like `foo` or `my_cool_method`.
+        Function,
+
         /// The Enso module represented as qualified path, like `Project.Data.Vector`.
         Module,
     }

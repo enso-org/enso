@@ -5,10 +5,10 @@ use crate::prelude::*;
 use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
-use crate::model::module;
 
 use engine_protocol::language_server;
 
@@ -269,10 +269,9 @@ impl model::execution_context::API for ExecutionContext {
     fn modify_visualization(
         &self,
         id: VisualizationId,
-        expression: Option<String>,
-        module: Option<module::QualifiedName>,
+        method_pointer: Option<QualifiedMethodPointer>,
     ) -> BoxFuture<FallibleResult> {
-        let result = self.model.modify_visualization(id, expression, module);
+        let result = self.model.modify_visualization(id, method_pointer);
         let new_config = self.model.visualization_config(id, self.id);
         async move {
             result?;

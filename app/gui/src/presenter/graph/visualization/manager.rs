@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::controller::ExecutedGraph;
 use crate::executor::global::spawn;
+use crate::model::execution_context::QualifiedMethodPointer;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -361,12 +362,17 @@ impl Manager {
 
     fn prepare_visualization(&self, desired: Desired) -> FallibleResult<Visualization> {
         let context_module = desired.metadata.preprocessor.module;
-        let resolved_module = self.resolve_context_module(&context_module)?;
+        let preprocessor_method = desired.metadata.preprocessor.method;
+        let method_pointer = QualifiedMethodPointer::from_unqualified(
+            &context_module,
+            &context_module,
+            &preprocessor_method,
+        )?;
         Ok(Visualization {
-            id:                desired.visualization_id,
-            expression_id:     desired.expression_id,
+            id: desired.visualization_id,
+            expression_id: desired.expression_id,
             preprocessor_code: desired.metadata.preprocessor.code.to_string(),
-            context_module:    resolved_module,
+            method_pointer,
         })
     }
 
@@ -502,10 +508,8 @@ impl Manager {
             Status::BeingModified { from: so_far.clone(), to: new_visualization.clone() };
         self.update_status(target, status);
         let id = so_far.id;
-        let expression = new_visualization.preprocessor_code.clone();
-        let module = new_visualization.context_module.clone();
-        let modifying_result =
-            self.executed_graph.modify_visualization(id, Some(expression), Some(module));
+        let method_pointer = new_visualization.method_pointer.clone();
+        let modifying_result = self.executed_graph.modify_visualization(id, Some(method_pointer));
         match modifying_result.await {
             Ok(_) => {
                 let status = Status::Attached(new_visualization);
