@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
 
 import Standard.Test
 
@@ -189,15 +190,110 @@ spec = Test.group "Vectors" <|
         vec = [1, 2, 3, 4, 5, 6]
         first_four = [1, 2, 3, 4]
         last_four = [3, 4, 5, 6]
-        vec.take 2 4 . should_equal [3, 4]
-        vec.drop_start 2 . should_equal last_four
-        vec.drop_end 2 . should_equal first_four
-        vec.take_start 4 . should_equal first_four
-        vec.take_end 4 . should_equal last_four
 
-        [1, 3, 5, 6, 8, 9, 10, 11, 13].drop_while (x-> x%2 == 1) . should_equal [6, 8, 9, 10, 11, 13]
-        [1, 2, 3] . drop_while (_ > 10) . should_equal [1, 2, 3]
-        [1, 2, 3] . drop_while (_ < 10) . should_equal []
+        vec.take . should_equal [1]
+        vec.drop . should_equal [2, 3, 4, 5, 6]
+
+        vec.take (Range 2 4) . should_equal [3, 4]
+        vec.take (Range 0 0) . should_equal []
+        vec.take (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
+        vec.take (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 6)
+        vec.take (Range 0 100) . should_equal vec
+        [].take (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+        [].take (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
+        vec.take (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+
+        vec.drop (Range 2 4) . should_equal [1, 2, 5, 6]
+        vec.drop (Range 0 0) . should_equal vec
+        vec.drop (Range 100 100) . should_fail_with Index_Out_Of_Bounds_Error
+        vec.drop (Range 100 100) . catch . should_equal (Index_Out_Of_Bounds_Error 100 6)
+        vec.drop (Range 0 100) . should_equal []
+        [].drop (Range 0 0) . should_fail_with Index_Out_Of_Bounds_Error
+        [].drop (Range 0 0) . catch . should_equal (Index_Out_Of_Bounds_Error 0 0)
+        vec.drop (Range 100 99) . should_fail_with Index_Out_Of_Bounds_Error
+
+        vec.take (First 4) . should_equal first_four
+        vec.take (First 0) . should_equal []
+        vec.take (First -1) . should_equal []
+        vec.take (First 100) . should_equal vec
+
+        vec.drop (First 2) . should_equal last_four
+        vec.drop (First 0) . should_equal vec
+        vec.drop (First -1) . should_equal vec
+        vec.drop (First 100) . should_equal []
+
+        vec.take (Last 4) . should_equal last_four
+        vec.take (Last 0) . should_equal []
+        vec.take (Last -1) . should_equal []
+        vec.take (Last 100) . should_equal vec
+
+        vec.drop (Last 2) . should_equal first_four
+        vec.drop (Last 0) . should_equal vec
+        vec.drop (Last -1) . should_equal vec
+        vec.drop (Last 100) . should_equal []
+
+        vec.take (Every 3) . should_equal [1, 4]
+        vec.take (Every 3 first=1) . should_equal [2, 5]
+        vec.take (Every 2 first=1) . should_equal [2, 4, 6]
+        vec.take (Every 2 first=100) . should_equal []
+        vec.take (Every 200) . should_equal [1]
+        [].take (Every 2) . should_equal []
+        vec.take (Every 0) . should_fail_with Illegal_Argument_Error
+        [].take (Every 0) . should_fail_with Illegal_Argument_Error
+
+        vec.drop (Every 3) . should_equal [2, 3, 5, 6]
+        vec.drop (Every 3 first=1) . should_equal [1, 3, 4, 6]
+        vec.drop (Every 2 first=1) . should_equal [1, 3, 5]
+        vec.drop (Every 2 first=100) . should_equal vec
+        vec.drop (Every 200) . should_equal [2, 3, 4, 5, 6]
+        [].drop (Every 2) . should_equal []
+        vec.drop (Every 0) . should_fail_with Illegal_Argument_Error
+        [].drop (Every 0) . should_fail_with Illegal_Argument_Error
+
+        vec.take (By_Index 0) . should_equal [1]
+        [].take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error
+        vec.take (By_Index []) . should_equal []
+        vec.take (By_Index [-1, -1]) . should_equal [6, 6]
+        vec.take (By_Index [0, 0, Range 3 100]) . should_equal [1, 1, 4, 5, 6]
+        vec.take (Range 0 100 2) . should_equal [1, 3, 5]
+        vec.take (By_Index [Range 0 100 2, Range 1 6 2]) . should_equal [1, 3, 5, 2, 4, 6]
+        vec.take (By_Index [Range 1 3, Range 2 5]) . should_equal [2, 3, 3, 4, 5]
+        vec.take (By_Index [Range 2 5, Range 1 3]) . should_equal [3, 4, 5, 2, 3]
+        vec.take (By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
+        vec.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+
+        vec.drop (By_Index 0) . should_equal [2, 3, 4, 5, 6]
+        vec.drop (By_Index []) . should_equal vec
+        vec.drop (By_Index [-1, -1]) . should_equal [1, 2, 3, 4, 5]
+        vec.drop (By_Index [0, 0, Range 3 100]) . should_equal [2, 3]
+        vec.drop (Range 0 100 2) . should_equal [2, 4, 6]
+        vec.drop (By_Index [Range 0 100 2, Range 1 6 2]) . should_equal []
+        vec.drop (By_Index [Range 1 3, Range 2 5]) . should_equal [1, 6]
+        vec.drop (By_Index [Range 2 5, Range 1 3]) . should_equal [1, 6]
+        vec.drop (By_Index [0, 1, Range 100 200]) . should_fail_with Index_Out_Of_Bounds_Error
+        vec.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error
+
+        [1, 3, 5, 6, 8, 9, 10, 11, 13].take (While (x-> x%2 == 1)) . should_equal [1, 3, 5]
+        [1, 2, 3] . take (While (_ > 10)) . should_equal []
+        [1, 2, 3] . take (While (_ < 10)) . should_equal [1, 2, 3]
+
+        [1, 3, 5, 6, 8, 9, 10, 11, 13].drop (While (x-> x%2 == 1)) . should_equal [6, 8, 9, 10, 11, 13]
+        [1, 2, 3] . drop (While (_ > 10)) . should_equal [1, 2, 3]
+        [1, 2, 3] . drop (While (_ < 10)) . should_equal []
+
+        vec.take (Sample 0) . should_equal []
+        [].take (Sample 0) . should_equal []
+        [].take (Sample 1) . should_equal []
+        ["a"].take (Sample 1) . should_equal ["a"]
+        ["a", "a", "a"].take (Sample 1) . should_equal ["a"]
+        ["a", "a", "a"].take (Sample 100) . should_equal ["a", "a", "a"]
+
+        vec.drop (Sample 0) . should_equal vec
+        [].drop (Sample 0) . should_equal []
+        [].drop (Sample 1) . should_equal []
+        ["a"].drop (Sample 1) . should_equal []
+        ["a", "a", "a"].drop (Sample 1) . should_equal ["a", "a"]
+        ["a", "a", "a"].drop (Sample 100) . should_equal []
 
     Test.specify "should allow getting the head element" <|
         non_empty_vec = [1, 2, 3, 4, 5]

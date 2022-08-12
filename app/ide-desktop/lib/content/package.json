@@ -15,27 +15,34 @@
     "url": "https://github.com/enso-org/ide/issues"
   },
   "scripts": {
-    "build": "npx webpack",
-    "watch": "npx webpack-dev-server"
+    "build": "ts-node bundle.ts",
+    "watch": "ts-node watch.ts",
+    "start": "ts-node start.ts"
   },
   "dependencies": {
+    "@types/semver": "^7.3.9",
     "enso-studio-common": "1.0.0",
     "firebase": "^8.6.8",
     "firebaseui": "^4.8.0",
     "html-loader": "^1.3.2",
     "mixpanel-browser": "2.40.1",
-    "@types/semver": "^7.3.9"
+    "enso-gui-server": "^1.0.0"
   },
   "devDependencies": {
-    "compression-webpack-plugin": "^9.2.0",
-    "copy-webpack-plugin": "^11.0.0",
-    "node-polyfill-webpack-plugin": "^1.1.4",
-    "yaml-loader": "^0.8.0",
+    "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
+    "esbuild": "^0.14.43",
+    "esbuild-dev-server": "^0.3.0",
+    "esbuild-copy-static-files": "^0.1.0",
+    "esbuild-plugin-alias": "^0.2.1",
+    "esbuild-plugin-time": "^1.0.0",
+    "esbuild-plugin-yaml": "^0.0.1",
+    "glob": "^8.0.3",
+    "ts-node": "^10.9.1",
     "source-map-loader": "^3.0.1",
     "ts-loader": "^9.3.0",
     "typescript": "^4.7.2",
-    "webpack": "^5.72.1",
-    "webpack-cli": "^4.9.2",
-    "webpack-dev-server": "^4.9.0"
+    "yaml-loader": "^0.8.0",
+    "enso-gui-server": "^1.0.0",
+    "enso-copy-plugin": "^1.0.0"
   }
 }

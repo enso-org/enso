@@ -15,7 +15,7 @@ public class RecursionBenchmarks {
   private static RecursionFixtures recursionFixtures = new RecursionFixtures();
 
   private void runOnHundredMillion(DefaultInterpreterRunner.MainMethod main) {
-    main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundredMillion());
+    main.mainFunction().value().execute(recursionFixtures.hundredMillion());
   }
 
   @Benchmark
@@ -36,7 +36,7 @@ public class RecursionBenchmarks {
   @Benchmark
   public void benchSumRecursive() {
     DefaultInterpreterRunner.MainMethod main = recursionFixtures.sumRecursive();
-    main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundred());
+    main.mainFunction().value().execute(recursionFixtures.hundred());
   }
 
   @Benchmark

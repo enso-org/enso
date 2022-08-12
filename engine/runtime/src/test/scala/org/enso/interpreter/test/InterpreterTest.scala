@@ -156,10 +156,10 @@ trait InterpreterRunner {
     instrumenter.close()
   }
 
-  case class MainMethod(mainConstructor: Value, mainFunction: Function) {
+  case class MainMethod(mainFunction: Function) {
     def execute(args: AnyRef*): Value =
       InterpreterException.rethrowPolyglot(
-        mainFunction.execute(mainConstructor +: args: _*)
+        mainFunction.execute(args: _*)
       )
   }
 
@@ -172,7 +172,7 @@ trait InterpreterRunner {
     )
     val assocCons    = module.getAssociatedConstructor
     val mainFunction = module.getMethod(assocCons, "main").get
-    MainMethod(assocCons, mainFunction)
+    MainMethod(mainFunction)
   }
 
   def eval(

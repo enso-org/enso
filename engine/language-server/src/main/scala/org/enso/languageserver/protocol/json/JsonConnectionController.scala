@@ -298,6 +298,9 @@ class JsonConnectionController(
     case TextProtocol.TextDidChange(changes) =>
       webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
 
+    case TextProtocol.FileAutoSaved(path) =>
+      webActor ! Notification(FileAutoSaved, FileAutoSaved.Params(path))
+
     case PathWatcherProtocol.FileEventResult(event) =>
       webActor ! Notification(
         EventFile,

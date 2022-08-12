@@ -375,7 +375,7 @@ impl Searcher {
         self.model.commit_editing(entry_id)
     }
 
-    /// Expression accepted in Compnent Browser.
+    /// Expression accepted in Component Browser.
     ///
     /// This method takes `self`, as the presenter (with the searcher view) should be dropped once
     /// editing finishes. The `entry_id` might be none in case where the user want to accept

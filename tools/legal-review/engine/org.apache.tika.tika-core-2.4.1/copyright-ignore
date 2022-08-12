@@ -1,0 +1,31 @@
+"The copyright information."
+@deprecated use {@link IPTC#COPYRIGHT_OWNER_ID}
+ARTWORK_OR_OBJECT_DETAIL_COPYRIGHT_NOTICE, ARTWORK_OR_OBJECT_DETAIL_CREATOR,
+COPYRIGHT_OWNER_ID, COPYRIGHT_OWNER_NAME, IMAGE_CREATOR_ID, IMAGE_CREATOR_NAME,
+Contains any necessary copyright notice for claiming the intellectual
+Copyright Owner, Image Supplier and Licensor may be the same or different
+Copyright ownership can be expressed in a more controlled way using the
+DATE_CREATED, DESCRIPTION_WRITER, INSTRUCTIONS, JOB_ID, TITLE, COPYRIGHT_NOTICE,
+Owner or owners of the copyright in the licensed image.
+PREFIX_IPTC_EXT + TikaCoreProperties.NAMESPACE_PREFIX_DELIMITER + "AOCopyrightNotice");
+PREFIX_PLUS + TikaCoreProperties.NAMESPACE_PREFIX_DELIMITER + "CopyrightOwner");
+PREFIX_PLUS + TikaCoreProperties.NAMESPACE_PREFIX_DELIMITER + "CopyrightOwnerID"),
+PREFIX_PLUS + TikaCoreProperties.NAMESPACE_PREFIX_DELIMITER + "CopyrightOwnerId";
+PREFIX_PLUS + TikaCoreProperties.NAMESPACE_PREFIX_DELIMITER + "CopyrightOwnerName");
+Property ARTWORK_OR_OBJECT_DETAIL_COPYRIGHT_NOTICE = Property.internalTextBag(
+Property COPYRIGHT = Property.externalText("xmpDM:copyright");
+Property COPYRIGHT_NOTICE = DublinCore.RIGHTS;
+Property COPYRIGHT_OWNER = Property.internalTextBag(
+Property COPYRIGHT_OWNER_ID = Property.composite(Property.internalTextBag(
+Property COPYRIGHT_OWNER_NAME = Property.internalTextBag(
+Serves to identify the rights holder/s for the image. The Copyright
+String COPYRIGHT_OWNER_ID_WRONG_CASE =
+The ID of the owner or owners of the copyright in the licensed image.
+The name of the owner or owners of the copyright in the licensed image.
+current owner of the copyright of this work with associated intellectual
+in the CopyrightNotice.
+new Property[]{Property.internalTextBag(IPTC.COPYRIGHT_OWNER_ID_WRONG_CASE)});
+regarding copyright ownership.  The ASF licenses this file
+standard. These parts Copyright 2010 International Press Telecommunications
+the copyrights of this image other rights properties may be used.
+this work for additional information regarding copyright ownership.

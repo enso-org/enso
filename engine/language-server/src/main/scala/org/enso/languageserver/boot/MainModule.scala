@@ -196,7 +196,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   lazy val bufferRegistry =
     system.actorOf(
-      BufferRegistry.props(fileManager, runtimeConnector),
+      BufferRegistry.props(
+        fileManager,
+        runtimeConnector,
+        TimingsConfig.default().withAutoSave(6.seconds)
+      ),
       "buffer-registry"
     )
 
