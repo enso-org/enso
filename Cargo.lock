@@ -2828,15 +2828,8 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
- "ensogl-text-embedded-fonts-names",
+ "ensogl-text-font-family",
  "zip 0.5.13",
-]
-
-[[package]]
-name = "ensogl-text-embedded-fonts-names"
-version = "0.1.0"
-dependencies = [
- "owned_ttf_parser",
 ]
 
 [[package]]
@@ -2851,13 +2844,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-text-font-family"
+version = "0.1.0"
+dependencies = [
+ "owned_ttf_parser",
+]
+
+[[package]]
 name = "ensogl-text-msdf-sys"
 version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
  "ensogl-text-embedded-fonts",
- "ensogl-text-embedded-fonts-names",
+ "ensogl-text-font-family",
  "futures 0.3.21",
  "js-sys",
  "nalgebra 0.26.2",

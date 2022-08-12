@@ -1,7 +1,4 @@
-//! TODO - short info
-//!
-//! The implementation of this library has several limitations that should not cause any problems,
-//! however, it is important to be aware of them:
+//! Definition of a font family, a set of related font faces.
 //!
 //! # One font face per file
 //! The implementation of this library has an important limitation that should not cause any
@@ -188,9 +185,8 @@ impl NonVariableFaceHeader {
 // === Embedded Fonts ===
 // ======================
 
-// TOOD:
-
-/// Generated. TODO: docs
+/// List of embedded fonts. For now this list is hardcoded, but it should be generated from the
+/// build.rs script in the future.
 pub fn font_family_files_map() -> HashMap<Name, FamilyDefinition> {
     let mut map = HashMap::new();
     map.insert(

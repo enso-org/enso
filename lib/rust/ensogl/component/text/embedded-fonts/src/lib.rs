@@ -5,6 +5,10 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
+#![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
+#![allow(dead_code)]
+#![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
@@ -15,28 +19,22 @@
 
 use enso_prelude::*;
 
-use ensogl_text_embedded_fonts_names as embedded_fonts_names;
+use ensogl_text_font_family as font_family;
 
-pub use embedded_fonts_names::*;
+pub use font_family::*;
+
 
 // ==============
 // === Export ===
 // ==============
 
-// pub use embedded_fonts_names::FontFamily as Family;
-
-
-
 include!(concat!(env!("OUT_DIR"), "/embedded_fonts_data.rs"));
 
-// /// The default font family used in the app.
-// pub type DefaultFamily = embedded_fonts_names::DejaVuSans;
 
 
-
-// =====================
+// =========================
 // === EmbeddedFontsData ===
-// =====================
+// =========================
 
 /// A base of built-in fonts in application.
 ///
@@ -73,13 +71,10 @@ impl Debug for EmbeddedFontsData {
 mod test {
     use crate::*;
 
-    use ensogl_text_embedded_fonts_names::DejaVuSans;
-    use ensogl_text_embedded_fonts_names::FontFamily;
-
     #[test]
     fn loading_embedded_fonts() {
-        let fonts = EmbeddedFontsData::new();
-        let example_font = fonts.ttf_binary_data.get(DejaVuSans::regular()).unwrap();
+        let fonts = EmbeddedFontsData::init_and_load_embedded_font_data();
+        let example_font = fonts.data.get("DejaVuSans.ttf").unwrap();
 
         assert_eq!(0x00, example_font[0]);
         assert_eq!(0x01, example_font[1]);

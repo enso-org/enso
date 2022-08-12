@@ -1,3 +1,21 @@
+//!
+
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
+#![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
+#![allow(dead_code)]
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+
 /// Commonly used types and functions.
 pub mod prelude {
     pub use ensogl_core::prelude::*;
@@ -19,62 +37,9 @@ pub mod msdf;
 
 
 
-// =============
-// === Cache ===
-// =============
-
-// #[derive(Debug, serde::Serialize, serde::Deserialize)]
-// pub struct Cache<K, V> {
-//     #[serde(bound(serialize = "K: Eq + Hash + serde::Serialize, V: serde::Serialize"))]
-//     #[serde(bound(
-//         deserialize = "K: Eq + Hash + serde::Deserialize<'de>, V: serde::Deserialize<'de>"
-//     ))]
-//     pub map: RefCell<HashMap<K, V>>,
-// }
-//
-// impl<K: Eq + Hash, V: Copy> Cache<K, V> {
-//     pub fn get_or_create<F>(&self, key: K, constructor: F) -> V
-//     where F: FnOnce() -> V {
-//         *self.map.borrow_mut().entry(key).or_insert_with(|| constructor())
-//     }
-//
-//     pub fn get_or_try_creating<F>(&self, key: K, constructor: F) -> Option<V>
-//     where F: FnOnce() -> Option<V> {
-//         let opt_value = self.map.borrow().get(&key).cloned();
-//         opt_value.or_else(|| {
-//             constructor().map(|new_value| {
-//                 self.map.borrow_mut().insert(key, new_value);
-//                 new_value
-//             })
-//         })
-//     }
-// }
-//
-// impl<K: Eq + Hash, V> Cache<K, V> {
-//     pub fn len(&self) -> usize {
-//         self.map.borrow().len()
-//     }
-//
-//     pub fn is_empty(&self) -> bool {
-//         self.map.borrow().is_empty()
-//     }
-//
-//     pub fn invalidate(&self, key: &K) {
-//         self.map.borrow_mut().remove(key);
-//     }
-// }
-//
-// impl<K: Eq + Hash, V> Default for Cache<K, V> {
-//     fn default() -> Self {
-//         Cache { map: default() }
-//     }
-// }
-
-
-
-// ========================
-// === Font render info ===
-// ========================
+// =======================
+// === GlyphRenderInfo ===
+// =======================
 
 /// Data used for rendering a single glyph.
 ///

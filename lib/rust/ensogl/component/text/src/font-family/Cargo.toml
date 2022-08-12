@@ -1,5 +1,5 @@
 [package]
-name = "ensogl-text-embedded-fonts-names"
+name = "ensogl-text-font-family"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
