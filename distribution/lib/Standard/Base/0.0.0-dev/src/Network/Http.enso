@@ -50,7 +50,7 @@ polyglot java import org.enso.base.Http_Utils
             Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
 new : Duration -> Boolean -> Proxy -> Http
 new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
-    Http timeout follow_redirects proxy version
+    Http_Data timeout follow_redirects proxy version
 
 ## Send an Options request.
 
@@ -292,7 +292,7 @@ type Http
        - follow_redirects: Whether or not the client should follow redirects.
        - proxy: The proxy that the client should use, if any.
        - version: The HTTP version supported by the client.
-    type Http timeout follow_redirects proxy version
+    Http_Data timeout follow_redirects proxy version
 
     ## Send an Options request.
 
@@ -644,7 +644,7 @@ type Http
                 Method.Trace -> "TRACE"
                 Method.Connect -> "CONNECT"
             case req_with_body of
-                Pair req body ->
+                Pair_Data req body ->
                     # set method and body
                     builder.method req_http_method body
                     # set headers

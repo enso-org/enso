@@ -624,6 +624,7 @@ type Invalid_Conversion_Target_Error
      - conversion: ...
 @Builtin_Type
 type No_Such_Conversion_Error
+    No_Such_Conversion_Error_Data target that conversion
 
 ## UNSTABLE
 

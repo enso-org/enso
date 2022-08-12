@@ -6,7 +6,7 @@ foreign js my_method a b = """
     return a + b;
 
 type My_Type
-    type My_Type a b
+    My_Type_Data a b
 
     foreign r my_method self = """
         self$a + self$b
@@ -124,14 +124,14 @@ spec =
             num_double_match.should_be_true
 
         Test.specify "should allow Enso to catch R exceptions" <|
-            value = My_Type 1 2
+            value = My_Type_Data 1 2
             result = Panic.recover Any <| value.my_throw
             err = result.catch
             err.to_display_text.should_equal "Polyglot error: Error: error in R code!"
 
         pending="R does not support catching polyglot exceptions"
         Test.specify "should allow R to catch Enso exceptions" pending=pending <|
-            value = My_Type 7 2
+            value = My_Type_Data 7 2
             result = value.do_catch
             result . should_equal 7
 

@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.TypeResolution
+import org.enso.compiler.data.BindingsMap.Resolution
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 
@@ -15,7 +15,7 @@ import scala.annotation.unused
 case object TypeNames extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
-  override type Metadata = BindingsMap.TypeResolution
+  override type Metadata = BindingsMap.Resolution
 
   /** The type of configuration for the pass. */
   override type Config = IRPass.Configuration.Default
@@ -77,7 +77,7 @@ case object TypeNames extends IRPass {
     expression.transformExpressions { case n: IR.Name.Literal =>
       bindingsMap
         .resolveName(n.name)
-        .map(res => n.updateMetadata(this -->> TypeResolution(res)))
+        .map(res => n.updateMetadata(this -->> Resolution(res)))
         .getOrElse(n)
     }
 

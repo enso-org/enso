@@ -51,7 +51,7 @@ find_caller_script stack =
 
     find_caller idx =
         source = stack.at idx . source_location
-        if source.is_a Source_Location then stack.at idx . source_location . file else
+        if source.is_a Source_Location_Data then stack.at idx . source_location . file else
             if (idx + 1 == stack.length) then Nothing else
                 @Tail_Call find_caller (idx + 1)
 
@@ -99,7 +99,7 @@ Suite.run : Any -> Suite_Config -> Any
 Suite.run ~specs config =
     builder = if config.should_output_junit then StringBuilder.new else Nothing
     wrap_junit_testsuites config builder <|
-        State.run Suite (Suite config Nil builder) <|
+        State.run Suite (Suite_Data config Nil builder) <|
             specs
             State.get Suite
 
@@ -168,7 +168,7 @@ specify label ~behavior pending=Nothing =
         Nothing -> run_spec behavior
         reason -> Pending reason
     spec = State.get Spec
-    new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
+    new_spec = Spec spec.name (Cons (Behavior_Data label result) spec.behaviors)
     State.put Spec new_spec
 
 ## PRIVATE
@@ -607,7 +607,7 @@ type Verbs
 
 ## PRVATE
 type Suite_Config
-    type Suite_Config_Data only_group_regexp output_path
+    Suite_Config_Data only_group_regexp output_path
 
     should_run_group self name =
         regexp = self.only_group_regexp
@@ -723,14 +723,14 @@ run_spec ~behavior =
     recovery = Panic.recover Any <|
         result = behavior
         result.catch Any err->
-            Panic.throw (Finished_With_Error err result.get_stack_trace_text)
+            Panic.throw (Finished_With_Error_Data err result.get_stack_trace_text)
         Nothing
     maybeExc = case recovery of
         _ -> Success
     result = maybeExc.catch Any ex->
         case ex of
             Failure _ -> ex
-            Finished_With_Error err stack_trace_text ->
+            Finished_With_Error_Data err stack_trace_text ->
                 Failure ("An unexpected error was returned: " + err.to_display_text + '\n' + stack_trace_text)
             _ -> Failure ("An unexpected panic was thrown: " + ex.to_display_text + '\n' + maybeExc.get_stack_trace_text)
     result

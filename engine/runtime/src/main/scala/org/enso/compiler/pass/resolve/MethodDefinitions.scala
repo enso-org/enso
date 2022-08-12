@@ -105,9 +105,12 @@ case object MethodDefinitions extends IRPass {
               typePointer,
               IR.Error.Resolution.ResolverError(err)
             )
-          case Right(value: BindingsMap.ResolvedConstructor) =>
-            typePointer.updateMetadata(
-              this -->> BindingsMap.Resolution(value)
+          case Right(_: BindingsMap.ResolvedConstructor) =>
+            IR.Error.Resolution(
+              typePointer,
+              IR.Error.Resolution.UnexpectedConstructor(
+                "a method definition target"
+              )
             )
           case Right(value: BindingsMap.ResolvedModule) =>
             typePointer.updateMetadata(

@@ -193,7 +193,7 @@ type Map
     get : Any -> Any ! No_Value_For_Key_Error
     get self key =
         go map = case map of
-            Tip -> Error.throw (No_Value_For_Key_Error key)
+            Tip -> Error.throw (No_Value_For_Key_Error_Data key)
             Bin _ k v l r ->
                 if k == key then v else
                     if k > key then @Tail_Call go l else @Tail_Call go r
@@ -217,7 +217,7 @@ type Map
              example_get_or_else = Examples.map.get_or_else 2 "zero"
     get_or_else : Any -> Any -> Any
     get_or_else self key ~other =
-        self.get key . catch No_Value_For_Key_Error (_ -> other)
+        self.get key . catch No_Value_For_Key_Error_Data (_ -> other)
 
     ## Transforms the map's keys and values to create a new map.
 
@@ -464,7 +464,8 @@ type Map
 
    Arguments:
    - key: The key that was asked for.
-type No_Value_For_Key_Error key
+type No_Value_For_Key_Error
+    No_Value_For_Key_Error_Data key
 
 ## UNSTABLE
 

@@ -158,7 +158,14 @@ case object GlobalNames extends IRPass {
               }
             case Right(res @ BindingsMap.ResolvedType(_, tp)) =>
               val warned = if (tp.members.nonEmpty) {
-                lit.addDiagnostic(IR.Warning.NonUnitTypeUsedOnValueLevel(lit))
+                lit.addDiagnostic(
+                  IR.Warning.NonUnitTypeUsedOnValueLevel(
+                    lit,
+                    if (isInsideApplication) {
+                      "a constructor position"
+                    } else { "an argument position" }
+                  )
+                )
               } else {
                 lit
               }
@@ -241,7 +248,10 @@ case object GlobalNames extends IRPass {
           Some(
             app
               .copy(function = processedFun, arguments = processedArgs)
-              .addDiagnostic(IR.Warning.NonUnitTypeUsedOnValueLevel(funAsVar))
+              .addDiagnostic(
+                IR.Warning
+                  .NonUnitTypeUsedOnValueLevel(funAsVar, "a qualified call")
+              )
           )
         } else { None }
       case (

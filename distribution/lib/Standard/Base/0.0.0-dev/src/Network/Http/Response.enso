@@ -16,7 +16,7 @@ type Response
        Arguments:
        - internal_http_response: The internal represnetation of the HTTP
          response.
-    type Response internal_http_response
+    Response_Data internal_http_response
 
     ## Get the response headers.
 

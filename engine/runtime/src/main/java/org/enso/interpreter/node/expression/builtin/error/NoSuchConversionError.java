@@ -6,6 +6,7 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 
 import java.util.List;
 
+@BuiltinType
 public class NoSuchConversionError extends UniquelyConstructibleBuiltin {
   @Override
   protected List<String> getConstructorParamNames() {

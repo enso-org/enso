@@ -39,7 +39,7 @@ from_pairs contents =
 parse : Text -> Json ! Parse_Error
 parse json_text =
     Panic.catch_java Any (Internal.parse_helper json_text) java_exception->
-        Error.throw (Parse_Error java_exception.getMessage)
+        Error.throw (Parse_Error_Data java_exception.getMessage)
 
 ## Represents a JSON structure.
 type Json
@@ -145,7 +145,8 @@ type Json
    A failure indicating malformed text input into the JSON parser.
 
    Check the `message` field for detailed information on the specific failure.
-type Parse_Error message
+type Parse_Error
+    Parse_Error_Data message
 
 ## UNSTABLE
 

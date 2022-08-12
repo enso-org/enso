@@ -1124,12 +1124,20 @@ class IrToTruffle(
                   tp.module.unsafeAsModule().getScope.getTypes.get(tp.tp.name)
                 )
               case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                ConstructorNode.build(
-                  definitionModule
-                    .unsafeAsModule()
-                    .getScope
-                    .getConstructors
-                    .get(cons.name)
+                val c = definitionModule
+                  .unsafeAsModule()
+                  .getScope
+                  .getConstructors
+                  .get(cons.name)
+                if (c == null) {
+                  throw new CompilerError(s"Constructor for $cons is null")
+                }
+                ConstructorNode.build(c
+//                  definitionModule
+//                    .unsafeAsModule()
+//                    .getScope
+//                    .getConstructors
+//                    .get(cons.name)
                 )
               case BindingsMap.ResolvedModule(module) =>
                 ConstantObjectNode.build(

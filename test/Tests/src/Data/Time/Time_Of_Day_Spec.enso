@@ -19,7 +19,7 @@ spec =
 
         Test.specify "should handle errors when creating a time" <|
             case Time_Of_Day.new 24 0 0 . catch of
-                Time.Time_Error msg ->
+                Time.Time_Error_Data msg ->
                     msg . should_equal "Invalid value for HourOfDay (valid values 0 - 23): 24"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -49,7 +49,7 @@ spec =
 
         Test.specify "should throw error when parsing invalid time" <|
             case Time_Of_Day.parse "1200" . catch of
-                Time.Time_Error msg ->
+                Time.Time_Error_Data msg ->
                     msg . should_equal "Text '1200' could not be parsed at index 2"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -61,7 +61,7 @@ spec =
         Test.specify "should throw error when parsing custom format" <|
             time = Time_Of_Day.parse "12:30" "HH:mm:ss"
             case time.catch of
-                Time.Time_Error msg ->
+                Time.Time_Error_Data msg ->
                     msg . should_equal "Text '12:30' could not be parsed at index 5"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
@@ -91,14 +91,14 @@ spec =
 
         Test.specify "should throw error when adding date-based interval" <|
             case (Time_Of_Day.new + 1.day) . catch of
-                Time.Time_Error message ->
+                Time.Time_Error_Data message ->
                     message . should_equal "Time_Of_Day does not support date intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should throw error when subtracting date-based interval" <|
             case (Time_Of_Day.new - (1.day - 1.minute)) . catch of
-                Time.Time_Error message ->
+                Time.Time_Error_Data message ->
                     message . should_equal "Time_Of_Day does not support date intervals"
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)

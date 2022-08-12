@@ -6617,13 +6617,13 @@ object IR {
       override def diagnosticKeys(): Array[Any] = Array(ir.showCode(), reason)
     }
 
-    case class NonUnitTypeUsedOnValueLevel(ir: IR.Name) extends Warning {
+    case class NonUnitTypeUsedOnValueLevel(ir: IR.Name, context: String) extends Warning {
 
       /** @return a human-readable description of this error condition.
         */
       override def message: String =
-        s"A non-unit type ${ir.name} is used on value level." +
-        " This is probably an error"
+        s"A non-unit type ${ir.name} is used on value level (in ${context})." +
+        " This is probably an error."
 
       /** The location at which the diagnostic occurs. */
       override val location: Option[IdentifiedLocation] = ir.location
@@ -6920,6 +6920,19 @@ object IR {
           s"The name ${originalName.name} resolved to a polyglot symbol, " +
           s"but polyglot symbols are not allowed in $context."
       }
+
+       /** An error coming from an unexpected occurence of a constructor.
+        *
+        * @param context the description of a context in which the error
+        *                happened.
+        */
+      case class UnexpectedConstructor(context: String) extends Reason {
+        override def explain(originalName: Name): String =
+          s"The name ${originalName.name} resolved to a constructor, " +
+            s"but constructors are not allowed in $context."
+      }
+
+
 
       /** An error coming from an unexpected occurence of a static method.
         *

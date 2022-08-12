@@ -28,7 +28,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
         if (builtinType == null) {
-          throw new CompilerError("Unknown @BuiltinType " + tp.name)
+          throw new CompilerError("Unknown @Builtin_Type " + tp.name)
         }
         if (
           Set(tp.members: _*) != Set(builtinType.getConstructors.toIndexedSeq: _*)

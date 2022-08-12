@@ -959,36 +959,6 @@ object BindingsMap {
   case object ResolutionNotFound extends ResolutionError
 
   /** A metadata-friendly storage for resolutions */
-  case class TypeResolution(target: ResolvedName) extends IRPass.Metadata {
-
-    /** The name of the metadata as a string. */
-    override val metadataName: String = "Resolution"
-
-    /** @inheritdoc */
-    override def prepareForSerialization(compiler: Compiler): TypeResolution =
-      this.copy(target = this.target.toAbstract)
-
-    /** @inheritdoc */
-    override def restoreFromSerialization(
-      compiler: Compiler
-    ): Option[TypeResolution] = {
-      val moduleMap = compiler.context.getPackageRepository.getModuleMap
-      this.target.toConcrete(moduleMap).map(t => this.copy(target = t))
-    }
-
-    /** Creates a duplicate of this metadata if applicable.
-      *
-      * This method should employ deep-copy semantics where appropriate. It may
-      * return None to indicate that this metadata should not be preserved
-      * during duplication.
-      *
-      * @return Some duplicate of this metadata or None if this metadata should
-      *         not be preserved
-      */
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
-  }
-
-  /** A metadata-friendly storage for resolutions */
   case class Resolution(target: ResolvedName) extends IRPass.Metadata {
 
     /** The name of the metadata as a string. */
