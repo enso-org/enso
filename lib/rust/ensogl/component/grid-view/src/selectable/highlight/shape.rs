@@ -19,9 +19,10 @@
 
 use crate::prelude::*;
 
+use crate::selectable::highlight::kind;
+
 use ensogl_core::data::color;
 use ensogl_scroll_area::Viewport;
-
 
 
 // ========================
@@ -94,14 +95,7 @@ pub trait AttrSetter {
     fn set_bottom_clip(shape: &View, y: f32, viewport: Viewport);
 }
 
-
-// === HoverAttrSetter ===
-
-/// Struct with setters for all attributes for hover highlight.
-#[derive(Copy, Clone, Debug)]
-pub struct HoverAttrSetter;
-
-impl AttrSetter for HoverAttrSetter {
+impl AttrSetter for kind::Hover {
     fn set_position(shape: &View, position: Vector2, viewport: Viewport) {
         let viewport_position = viewport.center_point();
         let relative_pos = position - viewport_position;
@@ -141,14 +135,7 @@ impl AttrSetter for HoverAttrSetter {
     }
 }
 
-
-// === SelectionAttrSetter ===
-
-/// Struct with setters for all attributes for selection highlight.
-#[derive(Copy, Clone, Debug)]
-pub struct SelectionAttrSetter;
-
-impl AttrSetter for SelectionAttrSetter {
+impl AttrSetter for kind::Selection {
     fn set_position(shape: &View, position: Vector2, viewport: Viewport) {
         let viewport_position = viewport.center_point();
         let relative_pos = position - viewport_position;
@@ -183,14 +170,7 @@ impl AttrSetter for SelectionAttrSetter {
 
     fn set_bottom_clip(shape: &View, y: f32, viewport: Viewport) {
         let mut attr = shape.highlights_y_clip.get();
-        tracing::debug!(
-            "Setting bottom clip {} - {} = {}",
-            y,
-            viewport.bottom,
-            y - viewport.bottom
-        );
         attr.w = y - viewport.bottom;
-        tracing::debug!("The attr value is {:?}", attr);
         shape.highlights_y_clip.set(attr);
     }
 }

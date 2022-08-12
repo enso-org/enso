@@ -208,3 +208,6 @@ pub type SimpleSelectableGridView = selectable::GridView<Entry>;
 /// The Simple version of scrollable and selectable Grid View, where each entry is just a label with
 /// background.
 pub type SimpleScrollableSelectableGridView = scrollable::SelectableGridView<Entry>;
+
+pub type SimpleScrollableSelectableGridViewWithHeaders =
+    scrollable::SelectableGridViewWithHeaders<Entry, Entry>;

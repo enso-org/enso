@@ -61,13 +61,14 @@ fn entry_model(row: Row, col: Col) -> grid_view::simple::EntryModel {
     }
 }
 
-fn setup_grid_view(app: &Application) -> grid_view::simple::SimpleScrollableSelectableGridView {
-    let view = grid_view::simple::SimpleScrollableSelectableGridView::new(app);
-    view.setup_headers();
-    let headers_frp = view.headers_frp();
+fn setup_grid_view(
+    app: &Application,
+) -> grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders {
+    let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
+    let header_frp = view.header_frp();
     frp::new_network! { network
         requested_entry <- view.model_for_entry_needed.map(|&(r, c)| (r, c, entry_model(r, c)));
-        requested_section <- headers_frp.section_info_needed.map(|&(row, col)| {
+        requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
             let sections_size = 2 + col;
             let section_start = row - (row % sections_size);
             let section_end = section_start + sections_size;
@@ -75,7 +76,7 @@ fn setup_grid_view(app: &Application) -> grid_view::simple::SimpleScrollableSele
             (section_start..section_end, col, model)
         });
         view.model_for_entry <+ requested_entry;
-        headers_frp.section_info <+ requested_section;
+        header_frp.section_info <+ requested_section;
         entry_hovered <- view.entry_hovered.filter_map(|l| *l);
         entry_selected <- view.entry_selected.filter_map(|l| *l);
         eval entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));

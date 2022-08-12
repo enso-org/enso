@@ -1,3 +1,5 @@
+//! A module with content related to entries visible in GridView.
+
 use crate::prelude::*;
 
 use crate::entry;
@@ -23,10 +25,13 @@ const MOUSE_MOVEMENT_NEEDED_TO_HOVER_PX: f32 = 1.5;
 // === VisibleEntry ===
 // ====================
 
+/// An `Entry` instance visible inside Grid View.
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "Entry: CloneRef")]
 pub struct VisibleEntry<Entry> {
+    /// The entry instance.
     pub entry:   Entry,
+    /// The overlay shape, catching the mouse events for the entry.
     pub overlay: entry::overlay::View,
 }
 
@@ -43,6 +48,7 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
 // ===================
 
 /// A structure gathering all data required for creating new entry instance.
+#[allow(missing_docs)]
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct CreationCtx<EntryParams> {
@@ -59,6 +65,10 @@ pub struct CreationCtx<EntryParams> {
 impl<EntryParams> CreationCtx<EntryParams>
 where EntryParams: frp::node::Data
 {
+    /// Create new entry instance.
+    ///
+    /// The new instance will have all its FRP endpoints connected to appropriate endpoints of
+    /// `self` and overlay mouse events.
     pub fn create_entry<E: Entry<Params = EntryParams>>(
         &self,
         text_layer: Option<&Layer>,
@@ -115,18 +125,22 @@ where EntryParams: frp::node::Data
 // === Position ===
 // ================
 
+/// Get base X position of entry at given column.
 pub fn position_x(col: Col, entry_size: Vector2) -> f32 {
     (col as f32 + 0.5) * entry_size.x
 }
 
+/// Get base Y position of entry at given row.
 pub fn position_y(row: Row, entry_size: Vector2) -> f32 {
     (row as f32 + 0.5) * -entry_size.y
 }
 
+/// Get base position of entry at given row and column.
 pub fn position(row: Row, col: Col, entry_size: Vector2) -> Vector2 {
     Vector2(position_x(col, entry_size), position_y(row, entry_size))
 }
 
+/// Set the proper position of entry at given row and column.
 pub fn set_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_size: Vector2) {
     entry.set_position_xy(position(row, col, entry_size));
 }

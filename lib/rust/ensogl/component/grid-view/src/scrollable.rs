@@ -47,6 +47,8 @@ pub struct GridViewTemplate<InnerGridView> {
 /// for Models.
 pub type GridView<E> = GridViewTemplate<crate::GridView<E>>;
 
+pub type GridViewWithHeaders<E, H> = GridViewTemplate<header::GridView<E, H>>;
+
 /// Scrollable and Selectable Grid View Component.
 ///
 /// This Component displays any kind of entry `E` in a grid, inside the Scroll area and allowing
@@ -55,6 +57,9 @@ pub type GridView<E> = GridViewTemplate<crate::GridView<E>>;
 /// Essentially, it's a [scrollable `GridView`](GridView) wrapping the [selectable `GridView`]. See
 /// their respective documentations for usage information.
 pub type SelectableGridView<E> = GridViewTemplate<selectable::GridView<E>>;
+
+pub type SelectableGridViewWithHeaders<E, H> =
+    GridViewTemplate<selectable::GridViewWithHeaders<E, H>>;
 
 impl<InnerGridView> GridViewTemplate<InnerGridView> {
     /// Create new Scrollable Grid View component wrapping a created instance of `inner_grid`.
@@ -95,11 +100,12 @@ impl<E: Entry> GridView<E> {
     pub fn new(app: &Application) -> Self {
         Self::new_wrapping(app, crate::GridView::new(app))
     }
+}
 
-    pub fn setup_headers(&self) {
-        let headers_layer = self.area.content_layer().create_sublayer();
-        let text_layer = self.area.content_layer().create_sublayer();
-        self.inner_grid.setup_sections_and_headers(headers_layer, Some(text_layer));
+impl<E: Entry, H: Entry<Params = E::Params>> GridViewWithHeaders<E, H> {
+    /// Create new scrollable [`SelectableGridView`] component.
+    pub fn new(app: &Application) -> Self {
+        Self::new_wrapping(app, header::GridView::new(app))
     }
 }
 
@@ -108,11 +114,12 @@ impl<E: Entry> SelectableGridView<E> {
     pub fn new(app: &Application) -> Self {
         Self::new_wrapping(app, selectable::GridView::new(app))
     }
+}
 
-    pub fn setup_headers(&self) {
-        let headers_layer = self.area.content_layer().create_sublayer();
-        let text_layer = self.area.content_layer().create_sublayer();
-        self.inner_grid.setup_sections_and_headers(headers_layer, Some(text_layer));
+impl<E: Entry, H: Entry<Params = E::Params>> SelectableGridViewWithHeaders<E, H> {
+    /// Create new scrollable [`SelectableGridView`] component.
+    pub fn new(app: &Application) -> Self {
+        Self::new_wrapping(app, selectable::GridViewWithHeaders::new(app))
     }
 }
 
