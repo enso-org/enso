@@ -1,4 +1,4 @@
-package org.enso.syntax2;
+package org.enso.checkparser;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,20 +7,28 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
+import org.enso.compiler.EnsoCompiler;
+import org.enso.compiler.core.IR;
 import org.enso.syntax2.Parser;
+import org.enso.syntax2.Tree;
 import org.enso.syntax2.UnsupportedSyntaxException;
 import org.graalvm.polyglot.Source;
 
 class LoadParser implements FileVisitor<Path>, AutoCloseable {
     private final File root;
     private final Parser parser;
+    private final EnsoCompiler compiler;
     private final Set<Path> visited = new LinkedHashSet<>();
     private final Set<Path> failed = new LinkedHashSet<>();
+    private final Map<Path,Exception> irFailed = new LinkedHashMap<>();
 
     private LoadParser(File root) {
         this.parser = Parser.create();
+        this.compiler = new EnsoCompiler();
         this.root = root;
     }
 
@@ -35,7 +43,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
             checker.scan("distribution");
             checker.scan("tests");
 
-            checker.printSummary(false);
+            checker.printSummary(true);
         }
     }
 
@@ -61,9 +69,18 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
         System.err.println("processing " + file);
         Source src = Source.newBuilder("enso", file.toFile()).build();
         try {
-            Tree text = parser.parse(src.getCharacters().toString());
-            if (text == null) {
+            Tree tree = parser.parse(src.getCharacters().toString());
+            if (tree == null) {
                 failed.add(file);
+            } else {
+                try {
+                    IR.Module m = compiler.generateIR(tree);
+                    if (m == null) {
+                        throw new NullPointerException();
+                    }
+                } catch (Exception ex) {
+                    irFailed.put(file, ex);
+                }
             }
         } catch (UnsupportedSyntaxException ex) {
             failed.add(file);
@@ -85,6 +102,16 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     }
 
     private void printSummary(boolean verbose) {
+        if (verbose) {
+            for (var en : irFailed.entrySet()) {
+                var key = en.getKey();
+                var value = en.getValue();
+                System.err.println("File " + key);
+                value.printStackTrace();
+            }
+        }
         System.out.println("Found " + visited.size() + " files. " + failed.size() + " failed to parse");
+        int remaining = visited.size() - failed.size();
+        System.out.println("From " + remaining + " files " + irFailed.size() + " failed to produce IR");
     }
 }

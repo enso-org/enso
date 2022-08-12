@@ -6,10 +6,10 @@ import org.enso.syntax2.Parser;
 import org.enso.syntax2.Tree;
 import org.enso.syntax2.UnsupportedSyntaxException;
 
-final class EnsoCompiler implements AutoCloseable {
-    private final Parser parser;
+public final class EnsoCompiler implements AutoCloseable {
+  private final Parser parser;
 
-  EnsoCompiler() {
+  public EnsoCompiler() {
     this.parser = Parser.create();
   }
 
@@ -27,7 +27,7 @@ final class EnsoCompiler implements AutoCloseable {
       return parser.parse(src.getCharacters());
   }
 
-  IR.Module generateIR(Tree t) {
+  public IR.Module generateIR(Tree t) {
     return TreeToIr.MODULE.translate(t);
   }
 }
