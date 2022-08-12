@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Operator$Binary;
 import org.enso.compiler.core.IR$Application$Prefix;
 import org.enso.compiler.core.IR$CallArgument$Specified;
+import org.enso.compiler.core.IR$Comment$Documentation;
 import org.enso.compiler.core.IR$DefinitionArgument$Specified;
 import org.enso.compiler.core.IR$Error$Syntax;
 import org.enso.compiler.core.IR$Error$Syntax$InterfaceDefinition$;
@@ -96,8 +97,15 @@ final class TreeToIr {
             }
             case Tree.Function fn -> {
               var t = translateModuleSymbol(fn);
-              bindings= cons(t, bindings);
+              bindings = cons(t, bindings);
             }
+            case Tree.Comment comment -> {
+              var doc = comment.getToken().codeRepr();
+              doc = doc.replace("##", "");
+              var t = new IR$Comment$Documentation(doc, getIdentifiedLocation(comment), meta(), diag());
+              bindings = cons(t, bindings);
+            }
+
             case null -> {
             }
             default -> {

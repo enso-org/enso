@@ -93,6 +93,14 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testComment() throws Exception {
+    parseTest("""
+    ## A type representing computations that may fail.
+    type Maybe
+    """);
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
