@@ -22,7 +22,12 @@ use owned_ttf_parser::Weight;
 use owned_ttf_parser::Width;
 use std::collections::hash_map::Entry;
 
-pub use ensogl_text_font::*;
+pub mod glyph;
+pub mod glyph_render_info;
+pub mod msdf;
+pub mod pen;
+
+pub use glyph_render_info::GlyphRenderInfo;
 
 
 
@@ -30,8 +35,11 @@ pub use ensogl_text_font::*;
 // === Constants ===
 // =================
 
-/// Default font the app will revert to if a desired font could not be loaded.
-pub const DEFAULT_FONT: &str = "dejavusans"; //embedded_fonts::DefaultFamily::regular();
+/// Default non-monospace font the app will revert to if a desired font could not be loaded.
+pub const DEFAULT_FONT: &str = "dejavusans";
+
+/// Default monospace font the app will revert to if a desired font could not be loaded.
+pub const DEFAULT_FONT_MONO: &str = "dejavusansmono";
 
 
 
@@ -45,23 +53,14 @@ shared! { FontLoader
 pub struct FontLoaderData {
     font_family_definitions: HashMap<Name, FamilyDefinition>,
     embedded_fonts_data : EmbeddedFontsData,
-}
-
-impl {
-
 }}
 
-impl FontLoaderData {
+impl FontLoader {
+    /// Constructor.
     pub fn init_and_load_embedded_font_data() -> Self {
         let embedded_fonts_data = EmbeddedFontsData::init_and_load_embedded_font_data();
         let font_family_definitions = ensogl_text_embedded_fonts::font_family_files_map();
-        Self { embedded_fonts_data, font_family_definitions }
-    }
-}
-
-impl FontLoader {
-    pub fn init_and_load_embedded_font_data() -> Self {
-        let data = FontLoaderData::init_and_load_embedded_font_data();
+        let data = FontLoaderData { embedded_fonts_data, font_family_definitions };
         let rc = Rc::new(RefCell::new(data));
         Self { rc }
     }
@@ -91,10 +90,16 @@ impl {
                 let definition =
                     self.font_loader.rc.borrow().font_family_definitions.get(&name).unwrap().clone();
                 let font: Font = match definition {
-                    FamilyDefinition::NonVariable(definition) =>
-                        NonVariableFont::new(name, definition, self.font_loader.clone_ref()).into(),
-                    FamilyDefinition::Variable(definition) =>
-                        VariableFont::new(name, definition, self.font_loader.clone_ref()).into(),
+                    FamilyDefinition::NonVariable(definition) => {
+                        let family: NonVariableFontFamily = definition.into();
+                        family.load_all_faces(&self.font_loader);
+                        NonVariableFont::new(name, family).into()
+                    }
+                    FamilyDefinition::Variable(definition) => {
+                        let family: VariableFontFamily = definition.into();
+                        family.load_all_faces(&self.font_loader);
+                        VariableFont::new(name, family).into()
+                    }
                 };
                 entry.insert(font.clone_ref());
                 font
@@ -136,9 +141,6 @@ const FONT_FACE_NUMBER: u32 = 0;
 pub trait FaceLoader<Variations> {
     fn with_borrowed_face<F, T>(&self, variations: &Variations, f: F) -> T
     where F: for<'a> FnOnce(Option<&'a FontFace>) -> T;
-    fn load_all_faces(&self, loader: &FontLoader);
-    fn get_or_load_face<F>(&self, variations: &Variations, loader: &FontLoader, f: F)
-    where F: for<'a> FnOnce(&'a FontFace);
 }
 
 #[derive(Debug)]
@@ -153,18 +155,7 @@ pub struct NonVariableFontFamily {
     pub faces:      Rc<RefCell<HashMap<NonVariableFaceHeader, FontFace>>>,
 }
 
-impl From<NonVariableFamilyDefinition> for NonVariableFontFamily {
-    fn from(definition: NonVariableFamilyDefinition) -> Self {
-        Self { definition, faces: default() }
-    }
-}
-
-impl FaceLoader<NonVariableFaceHeader> for NonVariableFontFamily {
-    fn with_borrowed_face<F, T>(&self, variations: &NonVariableFaceHeader, f: F) -> T
-    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T {
-        f(self.faces.borrow().get(variations))
-    }
-
+impl NonVariableFontFamily {
     fn load_all_faces(&self, loader: &FontLoader) {
         for (header, file_name) in &self.definition.map {
             // FIXME conversion
@@ -187,32 +178,18 @@ impl FaceLoader<NonVariableFaceHeader> for NonVariableFontFamily {
             self.faces.borrow_mut().insert(*header, face);
         }
     }
+}
 
-    fn get_or_load_face<F>(&self, variations: &NonVariableFaceHeader, loader: &FontLoader, f: F)
-    where F: for<'a> FnOnce(&'a FontFace) {
-        if self.faces.borrow().contains_key(variations) {
-            if let Some(face) = self.faces.borrow().get(variations) {
-                f(face);
-            }
-        } else {
-            let opt_face = self.definition.map.get(variations).and_then(|file_name| {
-                // FIXME conversion
-                let x: &str = &*file_name;
-                // FIXME: warning when trying to load font not from embedded resources.
-                loader.rc.borrow().embedded_fonts_data.data.get(x).and_then(|font_data| {
-                    let result = ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_NUMBER)
-                        .map(|ttf| {
-                            let msdf = msdf_sys::Font::load_from_memory(font_data);
-                            FontFace { msdf, ttf }
-                        });
-                    result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
-                })
-            });
-            if let Some(face) = opt_face {
-                self.faces.borrow_mut().insert(*variations, face);
-                f(self.faces.borrow().get(variations).unwrap());
-            }
-        }
+impl From<NonVariableFamilyDefinition> for NonVariableFontFamily {
+    fn from(definition: NonVariableFamilyDefinition) -> Self {
+        Self { definition, faces: default() }
+    }
+}
+
+impl FaceLoader<NonVariableFaceHeader> for NonVariableFontFamily {
+    fn with_borrowed_face<F, T>(&self, variations: &NonVariableFaceHeader, f: F) -> T
+    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T {
+        f(self.faces.borrow().get(variations))
     }
 }
 
@@ -222,18 +199,7 @@ pub struct VariableFontFamily {
     pub face:       Rc<RefCell<Option<FontFace>>>,
 }
 
-impl From<VariableFamilyDefinition> for VariableFontFamily {
-    fn from(definition: VariableFamilyDefinition) -> Self {
-        Self { definition, face: default() }
-    }
-}
-
-impl<V> FaceLoader<V> for VariableFontFamily {
-    fn with_borrowed_face<F, T>(&self, _variations: &V, f: F) -> T
-    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T {
-        f(self.face.borrow().as_ref())
-    }
-
+impl VariableFontFamily {
     fn load_all_faces(&self, loader: &FontLoader) {
         let x: &str = &self.definition.file_name;
         let face = loader
@@ -253,30 +219,18 @@ impl<V> FaceLoader<V> for VariableFontFamily {
             .unwrap(); // FIXME unwrap
         self.face.borrow_mut().replace(face);
     }
+}
 
-    fn get_or_load_face<F>(&self, _variations: &V, loader: &FontLoader, f: F)
-    where F: for<'a> FnOnce(&'a FontFace) {
-        if self.face.borrow().is_some() {
-            if let Some(face) = self.face.borrow().as_ref() {
-                f(face);
-            }
-        } else {
-            let x: &str = &self.definition.file_name;
-            let opt_face =
-                loader.rc.borrow().embedded_fonts_data.data.get(x).and_then(|font_data| {
-                    let result = ttf::OwnedFace::from_vec((**font_data).into(), FONT_FACE_NUMBER)
-                        .map(|ttf| {
-                            let msdf = msdf_sys::Font::load_from_memory(font_data);
-                            FontFace { msdf, ttf }
-                        });
-                    result.map_err(|err| event!(ERROR, "Error parsing font: {}", err)).ok()
-                });
+impl From<VariableFamilyDefinition> for VariableFontFamily {
+    fn from(definition: VariableFamilyDefinition) -> Self {
+        Self { definition, face: default() }
+    }
+}
 
-            if let Some(face) = opt_face {
-                *self.face.borrow_mut() = Some(face);
-                f(self.face.borrow().as_ref().unwrap());
-            }
-        }
+impl<V> FaceLoader<V> for VariableFontFamily {
+    fn with_borrowed_face<F, T>(&self, _variations: &V, f: F) -> T
+    where F: for<'a> FnOnce(Option<&'a FontFace>) -> T {
+        f(self.face.borrow().as_ref())
     }
 }
 
@@ -456,7 +410,6 @@ pub struct FontTemplateData<Family, Variations> {
     family:                 Family,
     atlas:                  msdf::Texture,
     cache:                  RefCell<HashMap<Variations, FontDataCache>>,
-    loader:                 FontLoader,
     // FIXME: remove after MSDF-gen API will be updated to handle GlyphIds.
     glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
 }
@@ -470,18 +423,13 @@ impl<F, V> From<FontTemplateData<F, V>> for FontTemplate<F, V> {
 
 impl<F: FaceLoader<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     /// Constructor.
-    pub fn new(name: Name, family: impl Into<F>, loader: FontLoader) -> Self {
+    pub fn new(name: Name, family: impl Into<F>) -> Self {
         let atlas = default();
         let cache = default();
         let family = family.into();
         let glyph_id_to_code_point = default();
-        let data = FontTemplateData { name, family, atlas, cache, loader, glyph_id_to_code_point };
-        Self { rc: Rc::new(data) }.init()
-    }
-
-    fn init(self) -> Self {
-        self.family.load_all_faces(&self.loader);
-        self
+        let data = FontTemplateData { name, family, atlas, cache, glyph_id_to_code_point };
+        Self { rc: Rc::new(data) }
     }
 
     pub fn glyph_id_of_code_point(&self, variations: &V, code_point: char) -> Option<GlyphId> {

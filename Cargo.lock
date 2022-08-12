@@ -2813,7 +2813,6 @@ dependencies = [
  "enso-types",
  "ensogl-core",
  "ensogl-text-embedded-fonts",
- "ensogl-text-font",
  "ensogl-text-msdf-sys",
  "ordered-float",
  "owned_ttf_parser",
@@ -2830,17 +2829,6 @@ dependencies = [
  "enso-prelude",
  "ensogl-text-font-family",
  "zip 0.5.13",
-]
-
-[[package]]
-name = "ensogl-text-font"
-version = "0.1.0"
-dependencies = [
- "enso-prelude",
- "ensogl-core",
- "ensogl-text-msdf-sys",
- "owned_ttf_parser",
- "serde",
 ]
 
 [[package]]

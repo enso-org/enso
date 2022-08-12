@@ -1,20 +1,4 @@
-//!
-
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
-// === Non-Standard Linter Configuration ===
-#![allow(clippy::option_map_unit_fn)]
-#![allow(clippy::precedence)]
-#![allow(dead_code)]
-#![deny(unconditional_recursion)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
+//! Defines a helper structure containing information about a glyph's render layout.
 
 /// Commonly used types and functions.
 pub mod prelude {
@@ -23,17 +7,10 @@ pub mod prelude {
 
 use prelude::*;
 
+use crate::font::msdf;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
-
-
-
-// ==============
-// === Export ===
-// ==============
-
-pub mod msdf;
 
 
 

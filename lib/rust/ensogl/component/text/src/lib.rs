@@ -28,8 +28,7 @@
 
 pub mod buffer;
 pub mod component;
-pub mod typeface;
-
+pub mod font;
 
 
 /// Commonly used types and functions.

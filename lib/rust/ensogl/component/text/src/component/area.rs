@@ -12,12 +12,12 @@ use crate::buffer::Transform;
 use crate::component::selection;
 use crate::component::Selection;
 #[cfg(target_arch = "wasm32")]
-use crate::typeface;
+use crate::font;
 #[cfg(target_arch = "wasm32")]
-use crate::typeface::glyph;
-use crate::typeface::glyph::Glyph;
+use crate::font::glyph;
+use crate::font::glyph::Glyph;
 #[cfg(target_arch = "wasm32")]
-use crate::typeface::pen;
+use crate::font::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
@@ -610,9 +610,9 @@ impl AreaModel {
         let display_object = display::object::Instance::new(&logger);
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
-            let fonts = scene.extension::<typeface::font::Registry>();
+            let fonts = scene.extension::<font::Registry>();
             let font = fonts.load("dejavusansmono");
-            let glyph_system = typeface::glyph::System::new(&scene, font);
+            let glyph_system = font::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))
         };
@@ -1045,9 +1045,9 @@ impl AreaModel {
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
         let scene = &app.display.default_scene;
-        let fonts = scene.extension::<typeface::font::Registry>();
+        let fonts = scene.extension::<font::Registry>();
         let font = fonts.load(font_name);
-        let glyph_system = typeface::glyph::System::new(&scene, font);
+        let glyph_system = font::glyph::System::new(&scene, font);
         self.display_object.add_child(&glyph_system);
         let old_glyph_system = self.glyph_system.replace(glyph_system);
         self.display_object.remove_child(&old_glyph_system);

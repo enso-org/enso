@@ -4,9 +4,9 @@
 use crate::prelude::*;
 use ensogl_core::display::world::*;
 
-use crate::typeface::font;
+use crate::font;
 
-use crate::typeface::font::VariationAxes;
+use crate::font::VariationAxes;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;
@@ -41,6 +41,7 @@ pub struct Glyph {
 }
 
 /// Internal structure of [`Glyph`].
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct GlyphData {
     pub glyph_id:    Cell<GlyphId>,
@@ -61,6 +62,9 @@ pub struct GlyphData {
 
 macro_rules! define_prop_setters_and_getters {
     ($prop:ident ($($name:ident),* $(,)?)) => { paste! {
+        #[doc = "Setter of the glyph `"]
+        #[doc = stringify!($prop)]
+        #[doc = "` property."]
         pub fn [<set_ $prop:snake:lower>](&self, value: $prop) {
             self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
             self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
@@ -68,10 +72,20 @@ macro_rules! define_prop_setters_and_getters {
         }
 
         $(
+            #[doc = "Set the `"]
+            #[doc = stringify!($prop)]
+            #[doc = "` property to `"]
+            #[doc = stringify!($name)]
+            #[doc = "`."]
             pub fn [<set_ $prop:snake:lower _ $name:snake:lower>](&self) {
                 self.[<set_ $prop:snake:lower>]($prop::$name)
             }
 
+            #[doc = "Checks whether the `"]
+            #[doc = stringify!($prop)]
+            #[doc = "` property is set to `"]
+            #[doc = stringify!($name)]
+            #[doc = "`."]
             pub fn [<is_ $prop:snake:lower _ $name:snake:lower>](&self) -> bool {
                 self.properties.get().[<$prop:snake:lower>] == $prop::$name
             }
@@ -137,6 +151,7 @@ impl Glyph {
         }
     }
 
+    /// Change the displayed character.
     pub fn set_char(&self, ch: char) {
         let opt_glyph_id =
             self.font.glyph_id_of_code_point(self.properties.get(), &self.variations.borrow(), ch);

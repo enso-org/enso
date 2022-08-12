@@ -2,11 +2,11 @@
 //! with each glyph rendered. For details, see
 //! [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
 
+use crate::font::VariationAxes;
 use crate::prelude::*;
-use crate::typeface::font::VariationAxes;
 use ensogl_text_embedded_fonts::NonVariableFaceHeader;
 
-use super::font::Font;
+use super::Font;
 
 
 
@@ -39,6 +39,7 @@ pub struct CharInfo {
 }
 
 impl CharInfo {
+    /// Constructor.
     pub fn new(
         char: char,
         size: f32,
@@ -139,7 +140,7 @@ impl Pen {
 mod tests {
     use super::*;
 
-    use crate::typeface::font::GlyphRenderInfo;
+    use crate::font::font::GlyphRenderInfo;
 
     use wasm_bindgen_test::wasm_bindgen_test;
 
