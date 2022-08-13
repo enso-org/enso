@@ -783,7 +783,7 @@ type Table
             Sample _ _ -> take_by_indices
             Every step start ->
                 if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                    if start >= self.length then [] else
+                    if start >= self.length then self.slice 0 0 else
                         range = Range start self.length step
                         self.take (Index_Sub_Range.By_Index range)
 
