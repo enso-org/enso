@@ -256,9 +256,9 @@ final class TreeToIr {
               meta(), diag()
             );
           } else if (!containsAtomDefOrInclude) {
-            yield new IR$Error$Syntax(null, IR$Error$Syntax$InterfaceDefinition$.MODULE$, meta(), diag());
+            yield new IR$Error$Syntax(inputAst, IR$Error$Syntax$InterfaceDefinition$.MODULE$, meta(), diag());
           } else {
-            yield new IR$Error$Syntax(null, IR$Error$Syntax$InvalidTypeDefinition$.MODULE$, meta(), diag());
+            yield new IR$Error$Syntax(inputAst, IR$Error$Syntax$InvalidTypeDefinition$.MODULE$, meta(), diag());
           }
         }
       }
@@ -381,7 +381,7 @@ final class TreeToIr {
       case _ => Error.Syntax(inputAst, Error.Syntax.UnexpectedExpression)
     }
     */
-      default -> new IR$Error$Syntax(null, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
+      default -> new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
     };
   }
 
@@ -476,7 +476,7 @@ final class TreeToIr {
     }
     */
       default ->
-        new IR$Error$Syntax(null, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
+        new IR$Error$Syntax(inputAst.getExpression(), IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
     };
   }
 
@@ -1433,7 +1433,7 @@ final class TreeToIr {
         IR.Error.Syntax(imp, IR.Error.Syntax.InvalidImport)
     }
     */
-    return new IR$Error$Syntax(null, IR$Error$Syntax$InvalidImport$.MODULE$, meta(), diag());
+    return new IR$Error$Syntax(imp, IR$Error$Syntax$InvalidImport$.MODULE$, meta(), diag());
   }
 
   @SuppressWarnings("unchecked")

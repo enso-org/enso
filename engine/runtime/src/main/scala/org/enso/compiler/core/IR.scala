@@ -6991,7 +6991,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Syntax(
-      ast: AST,
+      at: Any,
       reason: Syntax.Reason,
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -7001,6 +7001,8 @@ object IR {
         with IR.Module.Scope.Import
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
+
+      def ast: AST = at.asInstanceOf[AST]
 
       /** Creates a copy of `this`.
         *
@@ -7012,7 +7014,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        ast: AST                       = ast,
+        ast: Any                       = at,
         reason: Syntax.Reason          = reason,
         passData: MetadataStorage      = passData,
         diagnostics: DiagnosticStorage = diagnostics,
@@ -7043,8 +7045,11 @@ object IR {
         this
 
       /** @inheritdoc */
-      override val location: Option[IdentifiedLocation] =
+      override val location: Option[IdentifiedLocation] = try {
         ast.location.map(IdentifiedLocation(_, ast.id))
+      } catch {
+        case _ : ClassCastException => None
+      }
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Syntax = this
@@ -7053,7 +7058,7 @@ object IR {
       override def toString: String =
         s"""
         |IR.Error.Syntax(
-        |ast = $ast,
+        |ast = $at,
         |reason = $reason,
         |location = $location,
         |passData = ${this.showPassData},
