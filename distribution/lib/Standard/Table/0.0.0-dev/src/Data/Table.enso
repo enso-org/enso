@@ -752,10 +752,34 @@ type Table
        Arguments:
        - range: The selection of rows from the table to return.
     take : (Index_Sub_Range | Range) -> Table
-    take range =
-        indices = (Range 0 self.row_count . to_vector).take range
-        mask = OrderMask.new indices.to_array
-        Table <| self.java_table.applyMask mask
+    take range=(First 1) =
+        take_by_indices =
+            indices = (Range 0 self.row_count . to_vector).take range
+            mask = OrderMask.new indices.to_array
+            Table <| self.java_table.applyMask mask
+        case range of
+            Range _ _ _ -> self.take (By_Index range)
+            First count -> self.slice 0 count
+            Last count -> self.slice self.length-count self.length
+            While predicate ->
+                unimplemented "Table.take While cannot be implemented before the Row type is."
+            By_Index one_or_many_descriptors ->
+                indices = case one_or_many_descriptors of
+                    Vector _ -> one_or_many_descriptors
+                    _ -> [one_or_many_descriptors]
+                case indices.length == 1 of
+                    False -> take_by_indices
+                    True -> case indices.first of
+                        Range start end step -> case step == 1 of
+                            True -> self.slice start end
+                            False -> take_by_indices
+                        _ -> take_by_indices
+            Sample _ _ -> take_by_indices
+            Every step start ->
+                if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+                    if start >= self.length then [] else
+                        range = Range start self.length step
+                        self.take (By_Index range)
 
     ## UNSTABLE
        Creates a new Table from the input with the specified range of rows
@@ -765,10 +789,34 @@ type Table
        Arguments:
        - range: The selection of rows from the table to remove.
     drop : (Index_Sub_Range | Range) -> Table
-    drop range =
-        indices = (Range 0 self.row_count . to_vector).drop range
-        mask = OrderMask.new indices.to_array
-        Table <| self.java_table.applyMask mask
+    drop range=(First 1) =
+        drop_by_indices =
+            indices = (Range 0 self.row_count . to_vector).drop range
+            mask = OrderMask.new indices.to_array
+            Table <| self.java_table.applyMask mask
+        case range of
+            Range _ _ _ -> self.drop (By_Index range)
+            First count -> self.slice count self.length
+            Last count -> self.slice 0 self.length-count
+            While predicate ->
+                unimplemented "Table.drop While cannot be implemented before the Row type is."
+            By_Index one_or_many_descriptors ->
+                indices = case one_or_many_descriptors of
+                    Vector _ -> one_or_many_descriptors
+                    _ -> [one_or_many_descriptors]
+                case indices.length == 1 of
+                    False -> drop_by_indices
+                    True -> case indices.first of
+                        Range start end step -> case step == 1 of
+                            True -> self.slice start end
+                            False -> drop_by_indices
+                        _ -> drop_by_indices
+            Sample count seed -> drop_by_indices
+            Every step start ->
+                if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+                    if start >= self.length then self else
+                        range = Range start self.length step
+                        self.drop (By_Index range)
 
     ## ALIAS Add Column
 
@@ -966,45 +1014,13 @@ type Table
     concat : Table -> Table
     concat self other = Table (Java_Table.concat [self.java_table, other.java_table].to_array)
 
-    ## DEPRECATED
-
-       Returns a table containing the first `count` elements in this table.
-
-       Arguments:
-       - count: The number of elements to take from the start of this table.
-
-       If `self` has a number of rows in it less than `count`, the entire table
-       will be returned.
-
-       > Example
-         Get the first four rows from the table.
-
-             import Standard.Examples
-
-             example_take_start = Examples.inventory_table.take_start 4
-    take_start : Integer -> Table
-    take_start self count = Table (self.java_table.slice 0 count)
-
-    ## DEPRECATED
-
-       Returns a table containing the last `count` elements in this table.
-
-       Arguments:
-       - count: The number of elements to take from the end of this table.
-
-       If `self` has a number of rows in it less than `count`, the entire table
-       will be returned.
-
-       > Example
-         Get the last four rows from the table.
-
-             import Standard.Examples
-
-             example_take_end = Examples.inventory_table.take_end 4
-    take_end : Integer -> Table
-    take_end self count =
-        start_point = Math.max (self.row_count - count) 0
-        Table (self.java_table.slice start_point count)
+    ## PRIVATE
+       Returns a table with a continuous sub-range of rows taken.
+    slice : Integer -> Integer -> Table
+    slice self start end =
+        offset = start
+        limit = Math.max (end - start) 0
+        Table (self.java_table.slice offset limit)
 
     ## UNSTABLE
 
