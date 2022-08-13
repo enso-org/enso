@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.enso.compiler.EnsoCompiler;
 import org.enso.compiler.core.IR;
 import org.enso.syntax2.Parser;
@@ -24,6 +25,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     private final EnsoCompiler compiler;
     private final Set<Path> visited = new LinkedHashSet<>();
     private final Set<Path> failed = new LinkedHashSet<>();
+    private final Set<Path> irTested = new LinkedHashSet<>();
     private final Map<Path,Exception> irFailed = new LinkedHashMap<>();
 
     private LoadParser(File root) {
@@ -73,6 +75,10 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
             if (tree == null) {
                 failed.add(file);
             } else {
+                if (skipIrTest(file)) {
+                    return FileVisitResult.CONTINUE;
+                }
+                irTested.add(file);
                 try {
                     IR.Module m = compiler.generateIR(tree);
                     if (m == null) {
@@ -111,7 +117,16 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
             }
         }
         System.out.println("Found " + visited.size() + " files. " + failed.size() + " failed to parse");
-        int remaining = visited.size() - failed.size();
-        System.out.println("From " + remaining + " files " + irFailed.size() + " failed to produce IR");
+        System.out.println("From " + irTested.size() + " files " + irFailed.size() + " failed to produce IR");
+    }
+
+    private static boolean skipIrTest(Path file) throws IOException {
+        var caseOf = Pattern.compile("case.*of");
+        for (var line : Files.readAllLines(file)) {
+            if (caseOf.matcher(line).find()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
