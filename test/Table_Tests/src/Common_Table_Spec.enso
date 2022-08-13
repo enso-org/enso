@@ -10,6 +10,8 @@ from Standard.Table.Data.Position import all
 import Standard.Test
 import Standard.Test.Problems
 
+from project.Util import all
+
 type Test_Selection supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True
 
 ## A common test suite for shared operations on the Table API.
@@ -857,6 +859,11 @@ spec prefix table_builder test_selection pending=Nothing =
             table.take (Every 3) . at "alpha" . to_vector . should_equal [1, 4, 7]
             table.take (Every 3 first=1) . at "alpha" . to_vector . should_equal [2, 5, 8]
             table.take (Every 2 first=1) . at "beta" . to_vector . should_equal ["B", "D", "F", "H"]
+            IO.println "TABLE = "+table.to_text
+            table.print
+            taken = table.take (Every 2 first=100)
+            IO.println "TABLE.take = "+taken.to_text
+            taken.print
             table.take (Every 2 first=100) . at "alpha" . to_vector . should_equal []
             table.take (Every 200) . should_equal [1]
             empty.take (Every 2) . should_equal []
@@ -892,8 +899,8 @@ spec prefix table_builder test_selection pending=Nothing =
             three.drop (Sample 100) . should_equal empty
 
             rnd = table.take (Sample 3 seed=42)
-            # TODO
-            rnd.print
+            rnd.at "alpha" . to_vector . should_equal [6, 7, 3]
+            rnd.at "beta" . to_vector . should_equal ["F", "G", "C"]
 
         Test.specify "should allow selecting rows as long as they satisfy a predicate" pending="While is not implemented for Table until the Row type is implemented." <|
             Nothing

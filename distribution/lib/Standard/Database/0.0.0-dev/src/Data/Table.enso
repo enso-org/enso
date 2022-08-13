@@ -361,7 +361,7 @@ type Table
        Arguments:
        - range: The selection of rows from the table to return.
     take : (Index_Sub_Range | Range) -> Table
-    take range=(First 1) =
+    take self range=(First 1) =
         _ = range
         msg = "`Table.take` is not yet implemented."
         Error.throw (Unsupported_Database_Operation_Error msg)
@@ -374,7 +374,7 @@ type Table
        Arguments:
        - range: The selection of rows from the table to remove.
     drop : (Index_Sub_Range | Range) -> Table
-    drop range=(First 1) =
+    drop self range=(First 1) =
         _ = range
         msg = "`Table.drop` is not yet implemented."
         Error.throw (Unsupported_Database_Operation_Error msg)

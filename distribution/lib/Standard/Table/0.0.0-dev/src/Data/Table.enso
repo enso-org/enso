@@ -18,6 +18,8 @@ from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Aut
 from Standard.Table.Data.Data_Formatter import Data_Formatter
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error
 import Standard.Table.Data.Match_Columns
+from Standard.Base.Data.Index_Sub_Range import First, Last, While, Sample, Every
+import Standard.Base.Data.Index_Sub_Range
 
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
@@ -30,6 +32,7 @@ import Standard.Visualization
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
+polyglot java import org.enso.table.data.mask.OrderMask
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -508,7 +511,7 @@ type Table
                 Nothing -> Nothing
                 _ -> val.to_text
         new_names = self.columns.map mapper
-        self.take_end (self.row_count - 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
+        self.drop (First 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
 
     ## ALIAS group, summarize
 
@@ -752,20 +755,23 @@ type Table
        Arguments:
        - range: The selection of rows from the table to return.
     take : (Index_Sub_Range | Range) -> Table
-    take range=(First 1) =
+    take self range=(First 1) =
         take_by_indices =
             indices = (Range 0 self.row_count . to_vector).take range
             mask = OrderMask.new indices.to_array
-            Table <| self.java_table.applyMask mask
+            IO.println mask
+            res = Table (self.java_table.applyMask mask)
+            IO.println "res="+res.to_text
+            res
         case range of
-            Range _ _ _ -> self.take (By_Index range)
+            Range _ _ _ -> self.take (Index_Sub_Range.By_Index range)
             First count -> self.slice 0 count
             Last count -> self.slice self.length-count self.length
-            While predicate ->
+            While _ ->
                 unimplemented "Table.take While cannot be implemented before the Row type is."
-            By_Index one_or_many_descriptors ->
+            Index_Sub_Range.By_Index one_or_many_descriptors ->
                 indices = case one_or_many_descriptors of
-                    Vector _ -> one_or_many_descriptors
+                    Vector.Vector _ -> one_or_many_descriptors
                     _ -> [one_or_many_descriptors]
                 case indices.length == 1 of
                     False -> take_by_indices
@@ -779,7 +785,7 @@ type Table
                 if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
                     if start >= self.length then [] else
                         range = Range start self.length step
-                        self.take (By_Index range)
+                        self.take (Index_Sub_Range.By_Index range)
 
     ## UNSTABLE
        Creates a new Table from the input with the specified range of rows
@@ -789,20 +795,20 @@ type Table
        Arguments:
        - range: The selection of rows from the table to remove.
     drop : (Index_Sub_Range | Range) -> Table
-    drop range=(First 1) =
+    drop self range=(First 1) =
         drop_by_indices =
             indices = (Range 0 self.row_count . to_vector).drop range
             mask = OrderMask.new indices.to_array
             Table <| self.java_table.applyMask mask
         case range of
-            Range _ _ _ -> self.drop (By_Index range)
+            Range _ _ _ -> self.drop (Index_Sub_Range.By_Index range)
             First count -> self.slice count self.length
             Last count -> self.slice 0 self.length-count
-            While predicate ->
+            While _ ->
                 unimplemented "Table.drop While cannot be implemented before the Row type is."
-            By_Index one_or_many_descriptors ->
+            Index_Sub_Range.By_Index one_or_many_descriptors ->
                 indices = case one_or_many_descriptors of
-                    Vector _ -> one_or_many_descriptors
+                    Vector.Vector _ -> one_or_many_descriptors
                     _ -> [one_or_many_descriptors]
                 case indices.length == 1 of
                     False -> drop_by_indices
@@ -811,12 +817,12 @@ type Table
                             True -> self.slice start end
                             False -> drop_by_indices
                         _ -> drop_by_indices
-            Sample count seed -> drop_by_indices
+            Sample _ _ -> drop_by_indices
             Every step start ->
                 if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
                     if start >= self.length then self else
                         range = Range start self.length step
-                        self.drop (By_Index range)
+                        self.drop (Index_Sub_Range.By_Index range)
 
     ## ALIAS Add Column
 
@@ -1018,8 +1024,8 @@ type Table
        Returns a table with a continuous sub-range of rows taken.
     slice : Integer -> Integer -> Table
     slice self start end =
-        offset = start
-        limit = Math.max (end - start) 0
+        offset = Math.max start 0
+        limit = Math.max (end - offset) 0
         Table (self.java_table.slice offset limit)
 
     ## UNSTABLE
@@ -1189,8 +1195,8 @@ print_table header rows indices_count format_term =
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
         x = r.zip content_lengths pad
-        ixes = x.take_start indices_count . map (ansi_bold format_term)
-        with_bold_ix = ixes + x.drop_start indices_count
+        ixes = x.take (First indices_count) . map (ansi_bold format_term)
+        with_bold_ix = ixes + x.drop (First indices_count)
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
