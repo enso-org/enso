@@ -30,8 +30,11 @@ import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.syntax.text.Location;
+import org.enso.syntax2.Either;
 import org.enso.syntax2.Line;
+import org.enso.syntax2.MultipleOperatorError;
 import org.enso.syntax2.Token;
+import org.enso.syntax2.Token.Operator;
 import org.enso.syntax2.Tree;
 import scala.Option;
 import scala.collection.immutable.List;
@@ -403,7 +406,9 @@ final class TreeToIr {
     List<IR> result = nil();
     for (var line : def.getBlock()) {
       var expr = translateTypeBodyExpression(line);
-      result = cons(expr, result);
+      if (expr != null) {
+        result = cons(expr, result);
+      }
     }
     return result.reverse();
   }
@@ -415,13 +420,9 @@ final class TreeToIr {
     * @return the [[IR]] representation of `maybeParensedInput`
     */
   private IR translateTypeBodyExpression(Line maybeParensedInput) {
-    var inputAst = maybeParensedInput;
-    /*
-        AstView.MaybeManyParensed
-      .unapply(maybeParensedInput)
-      .getOrElse(maybeParensedInput)
-    */
-    return switch (inputAst.getExpression()) {
+    var inputAst = maybeManyParensed(maybeParensedInput.getExpression());
+    return switch (inputAst) {
+      case null -> null;
     /*
     inputAst match {
       case AST.Ident.Annotation.any(ann) =>
@@ -429,6 +430,16 @@ final class TreeToIr {
       case AST.Ident.Cons.any(include) => translateIdent(include)
       */
       case Tree.TypeDef def -> translateModuleSymbol(def);
+      case Tree.ArgumentBlockApplication app -> {
+        if (app.getLhs() instanceof Tree.Comment comment) {
+          var doc = new StringBuilder();
+          doc.append(comment.getToken().codeRepr());
+          yield new IR$Comment$Documentation(
+            doc.toString(), getIdentifiedLocation(comment), meta(), diag()
+          );
+        }
+        yield null;
+      }
       /*
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
@@ -476,7 +487,7 @@ final class TreeToIr {
     }
     */
       default ->
-        new IR$Error$Syntax(inputAst.getExpression(), IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
+        new IR$Error$Syntax(inputAst, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$, meta(), diag());
     };
   }
 
@@ -935,16 +946,23 @@ final class TreeToIr {
   /** Translates an arbitrary expression, making sure to properly recognize
     * qualified names. Qualified names should, probably, at some point be
     * handled deeper in the compiler pipeline.
-
-  private def translateQualifiedNameOrExpression(arg: AST): IR.Expression =
-    arg match {
-      case AstView.QualifiedName(segments) =>
-        IR.Name.Qualified(
-          segments.map(buildName(_)),
-          getIdentifiedLocation(arg)
-        )
-      case _ => translateExpression(arg)
+    */
+  IR.Expression translateQualifiedNameOrExpression(Tree arg) {
+    IR$Name$Qualified name = buildQualifiedName(arg, false);
+    if (name != null) {
+      return name;
+    } else {
+      return translateExpression(arg, false);
     }
+  }
+
+  private static boolean isOperator(String txt, Either<MultipleOperatorError, Operator> op) {
+    if (op.getRight() == null) {
+      return false;
+    }
+    return txt.equals(op.getRight().codeRepr());
+  }
+
 
   /** Translates an argument definition from [[AST]] into [[IR]].
     *
@@ -954,8 +972,41 @@ final class TreeToIr {
     * @tailrec
     */
   IR.DefinitionArgument translateArgumentDefinition(Tree arg, boolean isSuspended) {
-    return switch (arg) {
+    var core = maybeManyParensed(arg);
+    return switch (core) {
       case null -> null;
+      case Tree.OprApp app when isOperator(":", app.getOpr()) -> {
+        yield switch (translateIdent(app.getLhs(), false)) {
+          case IR.Name name -> {
+            var type = translateQualifiedNameOrExpression(app.getRhs());
+            yield new IR$DefinitionArgument$Specified(
+              name,
+              Option.apply(type), Option.empty(),
+              false, getIdentifiedLocation(app), meta(), diag()
+            );
+          }
+          default -> throw new UnhandledEntity(app.getLhs(), "translateArgumentDefinition");
+        };
+      }
+      case Tree.OprApp withValue when isOperator("=", withValue.getOpr()) -> {
+        var defaultValue = translateExpression(withValue.getRhs(), false);
+        yield switch (withValue.getLhs()) {
+          case Tree.OprApp app when isOperator(":", app.getOpr()) -> {
+            yield switch (translateIdent(app.getLhs(), false)) {
+              case IR.Name name -> {
+                var type = translateQualifiedNameOrExpression(app.getRhs());
+                yield new IR$DefinitionArgument$Specified(
+                  name,
+                  Option.apply(type), Option.apply(defaultValue),
+                  false, getIdentifiedLocation(app), meta(), diag()
+                );
+              }
+              default -> throw new UnhandledEntity(app.getLhs(), "translateArgumentDefinition");
+            };
+          }
+          default -> throw new UnhandledEntity(withValue.getLhs(), "translateArgumentDefinition");
+        };
+      }
       /*
       case AstView.AscribedArgument(name, ascType, mValue, isSuspended) =>
         translateIdent(name) match {
@@ -1015,7 +1066,7 @@ final class TreeToIr {
             throw new UnhandledEntity(arg, "translateArgumentDefinition")
         }
       */
-      default -> throw new UnhandledEntity(arg, "translateArgumentDefinition");
+      default -> throw new UnhandledEntity(core, "translateArgumentDefinition");
     };
   }
 
@@ -1356,11 +1407,14 @@ final class TreeToIr {
   */
 
   private IR$Name$Qualified buildQualifiedName(Tree t) {
-    var segments = buildQualifiedSegments(t);
-    return new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
+    return buildQualifiedName(t, true);
+  }
+  private IR$Name$Qualified buildQualifiedName(Tree t, boolean fail) {
+    var segments = buildQualifiedSegments(t, fail);
+    return segments == null ? null : new IR$Name$Qualified(segments, Option.empty(), meta(), diag());
   }
 
-  private List<IR.Name> buildQualifiedSegments(Tree t) {
+  private List<IR.Name> buildQualifiedSegments(Tree t, boolean fail) {
     List<IR.Name> segments = nil();
     for (;;) {
       switch (t) {
@@ -1373,7 +1427,11 @@ final class TreeToIr {
           return segments;
         }
         default -> {
-          throw new UnhandledEntity(t, "buildQualifiedName");
+          if (fail) {
+            throw new UnhandledEntity(t, "buildQualifiedName");
+          } else {
+            return null;
+          }
         }
       }
     }
@@ -1397,7 +1455,7 @@ final class TreeToIr {
           meta(), diag()
         );
       } else if (imp.getPolyglot() != null) {
-        List<IR.Name> qualifiedName = buildQualifiedSegments(imp.getImport().getBody());
+        List<IR.Name> qualifiedName = buildQualifiedSegments(imp.getImport().getBody(), true);
         StringBuilder pkg = new StringBuilder();
         String cls = extractPackageAndName(qualifiedName, pkg);
         Option<String> rename = imp.getImportAs() == null ? Option.empty() :
@@ -1591,5 +1649,23 @@ final class TreeToIr {
   }
   private static final <T> scala.collection.immutable.List<T> cons(T head, scala.collection.immutable.List<T> tail) {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
+  }
+
+  private static Tree maybeManyParensed(Tree t) {
+    for (;;) {
+      switch (t) {
+        case null -> {
+          return null;
+        }
+        case Tree.Group g -> {
+          assert "(".equals(g.getOpen().codeRepr());
+          assert ")".equals(g.getClose().codeRepr());
+          t = g.getBody();
+        }
+        default -> {
+          return t;
+        }
+      }
+    }
   }
 }
