@@ -13,6 +13,8 @@ import org.enso.compiler.core.IR$Error$Syntax$InvalidTypeDefinition$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedDeclarationInType$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
+import org.enso.compiler.core.IR$Expression$Binding;
+import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.compiler.core.IR$Module$Scope$Definition;
 import org.enso.compiler.core.IR$Module$Scope$Definition$Atom;
@@ -561,6 +563,7 @@ final class TreeToIr {
 
   IR.Expression translateExpression(Tree tree, Tree moreArgs, boolean insideTypeSignature, boolean isMethod) {
     return switch (tree) {
+      case null -> null;
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
         yield switch (op.codeRepr()) {
@@ -641,6 +644,41 @@ final class TreeToIr {
         }
         var fn = new IR$Name$Literal(fnName.toString(), true, Option.empty(), meta(), diag());
         yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
+      }
+      case Tree.BodyBlock body -> {
+        List<IR.Expression> expressions = nil();
+        IR.Expression last = null;
+        for (var line : body.getStatements()) {
+          final Tree expr = line.getExpression();
+          if (expr == null) {
+            continue;
+          }
+          if (last != null) {
+            expressions = cons(last, expressions);
+          }
+          last = translateExpression(expr, insideTypeSignature);
+        }
+        yield new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
+      }
+      case Tree.Assignment assign -> {
+        var name = buildName(assign.getPattern());
+        var expr = translateExpression(assign.getExpr(), insideTypeSignature);
+        yield new IR$Expression$Binding(name, expr, getIdentifiedLocation(tree), meta(), diag());
+      }
+      case Tree.ArgumentBlockApplication body -> {
+        List<IR.Expression> expressions = nil();
+        IR.Expression last = null;
+        for (var line : body.getArguments()) {
+          final Tree expr = line.getExpression();
+          if (expr == null) {
+            continue;
+          }
+          if (last != null) {
+            expressions = cons(last, expressions);
+          }
+          last = translateExpression(expr, insideTypeSignature);
+        }
+        yield new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
       }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
@@ -1006,6 +1044,9 @@ final class TreeToIr {
           }
           default -> throw new UnhandledEntity(withValue.getLhs(), "translateArgumentDefinition");
         };
+      }
+      case Tree.OprSectionBoundary bound -> {
+          yield translateArgumentDefinition(bound.getAst(), isSuspended);
       }
       /*
       case AstView.AscribedArgument(name, ascType, mValue, isSuspended) =>

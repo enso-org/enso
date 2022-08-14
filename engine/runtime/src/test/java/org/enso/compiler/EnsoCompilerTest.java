@@ -12,6 +12,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 
 public class EnsoCompilerTest {
   private static EnsoCompiler ensoCompiler;
@@ -102,6 +103,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  @Ignore
   public void testColumnSelector() throws Exception {
     parseTest("""
     type Column_Selector
@@ -128,6 +130,27 @@ public class EnsoCompilerTest {
            of columns of some other table, for example, when preparing for a join.
         type By_Column (columns : Vector Column)
     """);
+  }
+
+  @Test
+  public void testAssignments() throws Exception {
+    parseTest("""
+      from_java_set java_set =
+        owner = Vector.new_builder
+        group = Vector.new_builder
+        others = Vector.new_builder
+        """);
+  }
+
+  @Test
+  public void testIfThenBlock() throws Exception {
+    parseTest("""
+      from_java_set java_set =
+        if java_set.contains PosixFilePermission.OWNER_READ then
+            owner.append Read
+        if java_set.contains PosixFilePermission.OWNER_WRITE then
+            owner.append Write
+        """);
   }
 
   @SuppressWarnings("unchecked")
