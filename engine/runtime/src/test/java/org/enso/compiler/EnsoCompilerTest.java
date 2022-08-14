@@ -1,6 +1,11 @@
 package org.enso.compiler;
 
 import com.oracle.truffle.api.source.Source;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.function.Function;
 import org.enso.compiler.codegen.AstToIr;
 import org.enso.compiler.core.IR;
@@ -153,8 +158,16 @@ public class EnsoCompilerTest {
         """);
   }
 
+  @Test
+  public void testInvokeFilePermissions() throws Exception {
+    parseTest("""
+      from_java_set java_set =
+        File_Permissions owner.to_vector group.to_vector others.to_vector
+        """);
+  }
+
   @SuppressWarnings("unchecked")
-  private void parseTest(String code) throws UnsupportedSyntaxException {
+  private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
     var ir = ensoCompiler.compile(src);
     assertNotNull("IR was generated", ir);
@@ -186,6 +199,21 @@ public class EnsoCompilerTest {
 
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);
-    assertEquals("IR for " + code + " shall be equal", old, now);
+    if (!old.equals(now)) {
+      var name = findTestMethodName();
+      var home = new File(System.getProperty("user.home")).toPath();
+      Files.writeString(home.resolve(name + ".old") , old, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      Files.writeString(home.resolve(name + ".now") , now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      assertEquals("IR for " + code + " shall be equal", old, now);
+    }
+  }
+
+  private static String findTestMethodName() {
+    for (var e : new Exception().getStackTrace()) {
+      if (e.getMethodName().startsWith("test")) {
+        return e.getMethodName();
+      }
+    }
+    throw new IllegalStateException();
   }
 }

@@ -558,21 +558,21 @@ final class TreeToIr {
     * @return the {@link IR} representation of `maybeParensedInput`
     */
   IR.Expression translateExpression(Tree tree, boolean insideTypeSignature) {
-    return translateExpression(tree, null, insideTypeSignature, false);
+    return translateExpression(tree, nil(), insideTypeSignature, false);
   }
 
-  IR.Expression translateExpression(Tree tree, Tree moreArgs, boolean insideTypeSignature, boolean isMethod) {
+  IR.Expression translateExpression(Tree tree, List<Tree> moreArgs, boolean insideTypeSignature, boolean isMethod) {
     return switch (tree) {
       case null -> null;
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
         yield switch (op.codeRepr()) {
           case "." -> {
-            var rhs = translateExpression(app.getRhs(), null, insideTypeSignature, true);
+            var rhs = translateExpression(app.getRhs(), nil(), insideTypeSignature, true);
             var lhs = translateExpression(app.getLhs(), insideTypeSignature);
             IR.CallArgument callArgument = new IR$CallArgument$Specified(Option.empty(), lhs, getIdentifiedLocation(tree), meta(), diag());
             var firstArg = cons(callArgument, nil());
-            var args = moreArgs == null ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
+            var args = moreArgs.isEmpty() ? firstArg : translateCallArguments(moreArgs, firstArg, insideTypeSignature);
             var prefix = new IR$Application$Prefix(
                 rhs, args,
                 false,
@@ -604,7 +604,7 @@ final class TreeToIr {
       }
 
       case Tree.App app -> {
-        var fn = translateExpression(app.getFunc(), app.getArg(), insideTypeSignature, false);
+        var fn = translateExpression(app.getFunc(), cons(app.getArg(), moreArgs), insideTypeSignature, false);
         yield fn;
       }
       case Tree.Number n -> new IR$Literal$Number(
@@ -614,7 +614,7 @@ final class TreeToIr {
       );
       case Tree.Ident id -> {
         var exprId = translateIdent(id, isMethod);
-        if (moreArgs == null) {
+        if (moreArgs.isEmpty()) {
           yield exprId;
         } else {
           var args = translateCallArguments(moreArgs, nil(), insideTypeSignature);
@@ -1111,15 +1111,13 @@ final class TreeToIr {
     };
   }
 
-  private List<IR.CallArgument> translateCallArguments(Tree args, List<IR.CallArgument> res, boolean insideTypeSignature) {
-    for (;;) {
-      var a = translateCallArgument(args, insideTypeSignature);
+  private List<IR.CallArgument> translateCallArguments(List<Tree> args, List<IR.CallArgument> res, boolean insideTypeSignature) {
+    while (args.nonEmpty()) {
+      var a = translateCallArgument(args.head(), insideTypeSignature);
       if (a != null) {
         res = cons(a, res);
-      } else {
-        break;
       }
-      break;
+      args = (List<Tree>) args.tail();
     }
     return res.reverse();
   }
