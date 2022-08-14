@@ -1534,8 +1534,16 @@ lazy val `engine-runner` = project
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
-          "--allow-incomplete-classpath"
+          "--allow-incomplete-classpath",
+          "--macro:truffle",
+          "--language:js",
+//          "-g",
+//          "-H:+DashboardAll",
+//          "-H:DashboardDump=runner.bgv"
+          "-Dnic=nic"
         ),
+        mainClass = Option("org.enso.runner.Main"),
+        cp = Option("runtime.jar"),
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
