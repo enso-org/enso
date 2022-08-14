@@ -25,6 +25,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
     private final EnsoCompiler compiler;
     private final Set<Path> visited = new LinkedHashSet<>();
     private final Set<Path> failed = new LinkedHashSet<>();
+    private final Set<Path> irComment = new LinkedHashSet<>();
     private final Set<Path> irTested = new LinkedHashSet<>();
     private final Map<Path,Exception> irFailed = new LinkedHashMap<>();
 
@@ -70,7 +71,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
 
         System.err.println("processing " + file);
         Source src = Source.newBuilder("enso", file.toFile()).build();
-        try {
+        TEST: try {
             Tree tree = parser.parse(src.getCharacters().toString());
             if (tree == null) {
                 failed.add(file);
@@ -78,13 +79,18 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
                 if (skipIrTest(file)) {
                     return FileVisitResult.CONTINUE;
                 }
-                irTested.add(file);
                 try {
+                    irTested.add(file);
                     IR.Module m = compiler.generateIR(tree);
                     if (m == null) {
                         throw new NullPointerException();
                     }
                 } catch (Exception ex) {
+                    if (ex.getClass().getSimpleName().equals("UnhandledEntity") && ex.getMessage().contains("Comment[")) {
+                        irTested.remove(file);
+                        irComment.add(file);
+                        break TEST;
+                    }
                     irFailed.put(file, ex);
                 }
             }
@@ -117,6 +123,7 @@ class LoadParser implements FileVisitor<Path>, AutoCloseable {
             }
         }
         System.out.println("Found " + visited.size() + " files. " + failed.size() + " failed to parse");
+        System.out.println(irComment.size() + " files failed because they have comments");
         System.out.println("From " + irTested.size() + " files " + irFailed.size() + " failed to produce IR");
     }
 
