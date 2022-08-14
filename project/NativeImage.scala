@@ -47,7 +47,7 @@ object NativeImage {
     staticOnLinux: Boolean,
     initializeAtBuildtime: Boolean    = true,
     additionalOptions: Seq[String]    = Seq.empty,
-    memoryLimitMegabytes: Option[Int] = Some(5608),
+    memoryLimitMegabytes: Option[Int] = Some(15608),
     initializeAtRuntime: Seq[String]  = Seq.empty,
     mainClass: Option[String]         = None,
     cp: Option[String]                = None
