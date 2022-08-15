@@ -19,7 +19,7 @@ use ensogl::display::Scene;
 /// An invocable language expression that serialize given input into JSON.
 pub const DEFAULT_VISUALIZATION_EXPRESSION: &str = "x -> x.to_default_visualization_data";
 /// A module containing the default visualization function.
-pub const DEFAULT_VISUALIZATION_MODULE: &str = "Default_Visualization";
+pub const DEFAULT_VISUALIZATION_MODULE: &str = "Standard.Visualization.Preprocessor";
 /// A name of the default visualization function.
 pub const DEFAULT_VISUALIZATION_FUNCTION: &str = "default_preprocessor";
 
@@ -62,11 +62,11 @@ impl ContextModule {
 pub struct PreprocessorConfiguration {
     /// The code of the preprocessor. Should be a lambda that transforms node value into whatever
     /// that visualizations expect.
-    pub code:   enso::Code,
+    pub code:     enso::Code,
     /// The module that provides context for `code` evaluation.
-    pub module: enso::Module,
-    /// The method being invoked.
-    pub method: enso::Function,
+    pub module:   enso::Module,
+    /// The function being invoked.
+    pub function: enso::Function,
 }
 
 impl PreprocessorConfiguration {
@@ -74,7 +74,7 @@ impl PreprocessorConfiguration {
     pub fn from_options(
         code: Option<impl Into<enso::Code>>,
         module: Option<impl Into<enso::Module>>,
-        method: Option<impl Into<enso::Function>>,
+        function: Option<impl Into<enso::Function>>,
     ) -> Self {
         let mut ret = Self::default();
         if let Some(code) = code {
@@ -83,8 +83,8 @@ impl PreprocessorConfiguration {
         if let Some(module) = module {
             ret.module = module.into();
         }
-        if let Some(method) = method {
-            ret.method = method.into();
+        if let Some(function) = function {
+            ret.function = function.into();
         }
         ret
     }
@@ -93,12 +93,12 @@ impl PreprocessorConfiguration {
     pub fn new(
         code: impl Into<enso::Code>,
         module: impl Into<enso::Module>,
-        method: impl Into<enso::Function>,
+        function: impl Into<enso::Function>,
     ) -> PreprocessorConfiguration {
         PreprocessorConfiguration {
-            code:   code.into(),
-            module: module.into(),
-            method: method.into(),
+            code:     code.into(),
+            module:   module.into(),
+            function: function.into(),
         }
     }
 }
@@ -106,9 +106,9 @@ impl PreprocessorConfiguration {
 impl Default for PreprocessorConfiguration {
     fn default() -> Self {
         Self {
-            code:   DEFAULT_VISUALIZATION_EXPRESSION.into(),
-            module: DEFAULT_VISUALIZATION_MODULE.into(),
-            method: DEFAULT_VISUALIZATION_FUNCTION.into(),
+            code:     DEFAULT_VISUALIZATION_EXPRESSION.into(),
+            module:   DEFAULT_VISUALIZATION_MODULE.into(),
+            function: DEFAULT_VISUALIZATION_FUNCTION.into(),
         }
     }
 }

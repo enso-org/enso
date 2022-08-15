@@ -17,6 +17,7 @@ export class Visualization {
         // invoke `__emitPreprocessorChange__()` on this.
         this.__preprocessorCode__ = null
         this.__preprocessorModule__ = null
+        this.__preprocessorFunction__ = null
 
         this.dom = api.root()
         this.theme = api.theme()
@@ -30,7 +31,8 @@ export class Visualization {
     __emitPreprocessorChange__() {
         this.__api__.emit_preprocessor_change(
             this.__preprocessorCode__,
-            this.__preprocessorModule__
+            this.__preprocessorModule__,
+            this.__preprocessorFunction__
         )
     }
 

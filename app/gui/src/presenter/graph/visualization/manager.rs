@@ -353,20 +353,13 @@ impl Manager {
         }
     }
 
-    fn resolve_context_module(
-        &self,
-        context_module: &ContextModule,
-    ) -> FallibleResult<model::module::QualifiedName> {
-        resolve_context_module(context_module, || self.project.main_module())
-    }
-
     fn prepare_visualization(&self, desired: Desired) -> FallibleResult<Visualization> {
         let context_module = desired.metadata.preprocessor.module;
-        let preprocessor_method = desired.metadata.preprocessor.method;
+        let preprocessor_function = desired.metadata.preprocessor.function;
         let method_pointer = QualifiedMethodPointer::from_unqualified(
             &context_module,
             &context_module,
-            &preprocessor_method,
+            &preprocessor_function,
         )?;
         Ok(Visualization {
             id: desired.visualization_id,

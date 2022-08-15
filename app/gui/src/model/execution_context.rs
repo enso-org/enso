@@ -220,14 +220,19 @@ pub struct LocalCall {
 // === Visualization ===
 // =====================
 
+/// A method pointer containing the qualified module and type names.
 #[derive(Clone, Debug, PartialEq)]
 pub struct QualifiedMethodPointer {
+    /// A module name containing the method.
     pub module:          module::QualifiedName,
+    /// A type on which the method is defined.
     pub defined_on_type: module::QualifiedName,
+    /// A method name.
     pub name:            String,
 }
 
 impl QualifiedMethodPointer {
+    /// Creates a new method pointer from its components.
     pub fn new(
         module: module::QualifiedName,
         defined_on_type: module::QualifiedName,
@@ -236,6 +241,7 @@ impl QualifiedMethodPointer {
         QualifiedMethodPointer { module, defined_on_type, name }
     }
 
+    /// Tries to create a new method pointer from string components.
     pub fn from_unqualified(
         module: &str,
         defined_on_type: &str,
