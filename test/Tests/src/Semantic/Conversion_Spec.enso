@@ -20,19 +20,19 @@ type My_Error
 type Not_Foo
     Not_Foo_Data notfoo
 
-Foo.from (that:Bar) = Foo that.bar
-Foo.from (that:Baz) = Foo that.baz
-Foo.from (that:Text) = Foo that.length
-Foo.from (that:Number) first_param=0 second_param=0 third_param=0 = Foo [that, first_param, second_param, third_param]
-Foo.from (that:Function) = Foo (that 5)
-Foo.from (that:Boolean) = Foo that
-Foo.from (that:Array) = Foo that.length
+Foo.from (that:Bar) = Foo_Data that.bar
+Foo.from (that:Baz) = Foo_Data that.baz
+Foo.from (that:Text) = Foo_Data that.length
+Foo.from (that:Number) first_param=0 second_param=0 third_param=0 = Foo_Data [that, first_param, second_param, third_param]
+Foo.from (that:Function) = Foo_Data (that 5)
+Foo.from (that:Boolean) = Foo_Data that
+Foo.from (that:Array) = Foo_Data that.length
 
-Not_Foo.from (that:Boolean) = Not_Foo True
-Not_Foo.from (_:Any) = Not_Foo "ANY!!!"
+Not_Foo.from (that:Boolean) = Not_Foo_Data True
+Not_Foo.from (_:Any) = Not_Foo_Data "ANY!!!"
 
-Foo.from (_:Quaffle) = Foo "quaffle"
-Foo.from (_:Error) = Foo "oops"
+Foo.from (_:Quaffle) = Foo_Data "quaffle"
+Foo.from (_:Error) = Foo_Data "oops"
 
 foreign js make_str x = """
    return "js string"
@@ -75,7 +75,7 @@ spec =
             Text.from Methods.get_bar . should_equal "'bar'"
 
         Test.specify "should fail graciously when there is no conversion" <|
-            Panic.recover Any (Foo.from (Quux_Data 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux` to `Foo`"
+            Panic.recover Any (Foo.from (Quux_Data 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux_Data` to `Foo`"
         Test.specify "should fail graciously when the conversion target is invalid" <|
             Panic.recover Any (123.from (Quux_Data 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
 
@@ -94,7 +94,7 @@ spec =
                 _ -> False
             is_symbol.should_be_true
 
-            .from . is_a Meta.Unresolved_Symbol_Data . should_be_true
+            .from . is_a Meta.Unresolved_Symbol . should_be_true
 
             meta_from.name.should_equal "from"
 

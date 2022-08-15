@@ -382,7 +382,11 @@ type Panic
                     Polyglot_Error_Data java_exception ->
                         case java_exception.is_a panic_type of
                             True -> handler caught_panic
-                            False -> Panic.throw caught_panic
+                            False ->
+                                IO.println java_exception
+                                java_exception.is_a panic_type
+                                IO.println panic_type
+                                Panic.throw caught_panic
                     _ -> Panic.throw caught_panic
 
     ## Executes the provided action and if a Java exception matching the provided type was

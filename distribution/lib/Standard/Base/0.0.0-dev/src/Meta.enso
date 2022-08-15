@@ -235,7 +235,7 @@ meta : Any -> Meta
 meta value = if is_atom value then Atom_Data value else
     if is_atom_constructor value then Constructor_Data value else
         if is_polyglot value then Polyglot_Data value else
-            if is_unresolved_symbol value then Unresolved_Symbol value else
+            if is_unresolved_symbol value then Unresolved_Symbol_Data value else
                 if is_error value then Error_Data value.catch else
                     Primitive_Data value
 
@@ -308,7 +308,8 @@ is_a value typ = if typ == Any then True else
             Number -> if typ == Number then True else case value of
                 Integer -> typ == Integer
                 Decimal -> typ == Decimal
-            Base.Polyglot -> typ == Base.Polyglot
+            Base.Polyglot ->
+                typ==Base.Polyglot || java_instance_check value typ
             _ ->
                 meta_val = meta value
                 case meta_val of
@@ -323,6 +324,12 @@ is_a value typ = if typ == Any then True else
                     Error_Data _ -> typ == Error
                     Unresolved_Symbol_Data _ -> typ == Unresolved_Symbol
                     _ -> False
+
+## PRIVATE
+java_instance_check value typ =
+    val_java = get_polyglot_language value == "java"
+    typ_java = get_polyglot_language typ == "java"
+    val_java && typ_java && Base.Java.is_instance value typ
 
 ## UNSTABLE
    ADVANCED

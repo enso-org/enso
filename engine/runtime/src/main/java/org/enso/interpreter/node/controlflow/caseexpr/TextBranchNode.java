@@ -34,9 +34,9 @@ public abstract class TextBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doConstructor(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(text == target.getConstructor().getType())) {
-      accept(frame, state, target.getFields());
+  void doConstructor(VirtualFrame frame, Object state, Type target) {
+    if (profile.profile(text == target)) {
+      accept(frame, state, new Object[0]);
     }
   }
 
