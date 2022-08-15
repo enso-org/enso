@@ -1,4 +1,4 @@
-# set-expression-value
+# apply-edit
 
 Benchmark for command that applies text edit. It sends the `text/applyEdit`
 message and waits for the visualization message on binary WebSocket.
@@ -48,7 +48,7 @@ Analyze logs
 cargo run -p logstat -- \
   --median \
   --spec tools/language-server/logstat/apply-edit-spec.txt \
-  --wstest-log wstest.log
+  --wstest-log wstest.log \
   language-server.log
 ```
 
