@@ -37,6 +37,6 @@ public abstract class EqualsNode extends Node {
 
   @Fallback
   boolean doOther(Object self, Object that) {
-    return false;
+    return self == that;
   }
 }

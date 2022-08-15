@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Big_Integer", name = "==", description = "Big integer equality.")
 public abstract class EqualsNode extends Node {
 
-  abstract boolean execute(EnsoBigInteger self, Object that);
+  abstract boolean execute(Object self, Object that);
 
   static EqualsNode build() {
     return EqualsNodeGen.create();
@@ -31,8 +31,7 @@ public abstract class EqualsNode extends Node {
   }
 
   @Fallback
-  boolean doOther(EnsoBigInteger self, Object that) {
-    return false;
+  boolean doOther(Object self, Object that) {
+    return self == that;
   }
-
 }

@@ -85,7 +85,7 @@ spec =
             obj.compare 11 . should_be_true
 
         Test.specify "should expose array interfaces for Python arrays" <|
-            vec = Vector.Vector make_array
+            vec = Vector.Vector_Data make_array
             vec.map .x . should_equal [10, 20, 30]
 
         Test.specify "should correctly marshall strings" <|

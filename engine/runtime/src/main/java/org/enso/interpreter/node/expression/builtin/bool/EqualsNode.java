@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 @BuiltinMethod(type = "Boolean", name = "==", description = "Computes the equality of two booleans")
 public abstract class EqualsNode extends Node {
-  abstract boolean execute(boolean self, Object that);
+  abstract boolean execute(Object self, Object that);
 
   static EqualsNode build() {
     return EqualsNodeGen.create();
@@ -23,7 +23,7 @@ public abstract class EqualsNode extends Node {
   }
 
   @Fallback
-  boolean doOther(boolean self, Object that) {
-    return false;
+  boolean doOther(Object self, Object that) {
+    return self == that;
   }
 }

@@ -48,4 +48,9 @@ type Maybe
 
              example_is_some = Maybe.Some "yes!" . is_some
     is_some : Boolean
-    is_some self = self.is_nothing.not
+    is_some self = case self of
+        None -> False
+        Some _ -> True
+
+    is_none : Boolean
+    is_none self = self.is_some.not

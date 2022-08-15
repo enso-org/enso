@@ -67,33 +67,33 @@ type Encoding
 
        Encoding for Western European (Windows).
     windows_1252 : Encoding
-    windows_1252 = Encoding "windows-1252"
+    windows_1252 = Encoding_Data "windows-1252"
 
     ## Encoding for Greek (Windows).
     windows_1253 : Encoding
-    windows_1253 = Encoding "windows-1253"
+    windows_1253 = Encoding_Data "windows-1253"
 
     ## ALIAS ISO-8859-9
 
        Encoding for Turkish (Windows).
     windows_1254 : Encoding
-    windows_1254 = Encoding "windows-1254"
+    windows_1254 = Encoding_Data "windows-1254"
 
     ## Encoding for Hebrew (Windows).
     windows_1255 : Encoding
-    windows_1255 = Encoding "windows-1255"
+    windows_1255 = Encoding_Data "windows-1255"
 
     ## Encoding for Arabic (Windows).
     windows_1256 : Encoding
-    windows_1256 = Encoding "windows-1256"
+    windows_1256 = Encoding_Data "windows-1256"
 
     ## Encoding for Baltic (Windows).
     windows_1257 : Encoding
-    windows_1257 = Encoding "windows-1257"
+    windows_1257 = Encoding_Data "windows-1257"
 
     ## Encoding for Vietnamese (Windows).
     windows_1258 : Encoding
-    windows_1258 = Encoding "windows-1258"
+    windows_1258 = Encoding_Data "windows-1258"
 
 ## One or more byte sequences were not decodable using the Encoding.
 type Encoding_Error

@@ -75,6 +75,7 @@ public class Type implements TruffleObject {
         methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
       }
       this.definitionScope = scope;
+      generateQualifiedAccessor();
     } else {
       throw new RuntimeException(
           "Attempting to modify scope of a non-builtin type post-construction is not allowed");

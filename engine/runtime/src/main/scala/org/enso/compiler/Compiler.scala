@@ -826,14 +826,14 @@ class Compiler(
     source: Source
   ): Boolean = {
     val errors   = diagnostics.collect { case e: IR.Error => e }
-    val warnings = diagnostics.collect { case w: IR.Warning => w }
-
-    if (warnings.nonEmpty) {
-      context.getOut.println("Compiler encountered warnings:")
-      warnings.foreach { warning =>
-        context.getOut.println(formatDiagnostic(warning, source))
-      }
-    }
+//    val warnings = diagnostics.collect { case w: IR.Warning => w }
+//
+//    if (warnings.nonEmpty) {
+//      context.getOut.println("Compiler encountered warnings:")
+//      warnings.foreach { warning =>
+//        context.getOut.println(formatDiagnostic(warning, source))
+//      }
+//    }
 
     if (errors.nonEmpty) {
       context.getOut.println("Compiler encountered errors:")
