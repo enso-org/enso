@@ -73,7 +73,7 @@ type Postgres_Connection
         if schema == self.schema then self else
             self.make_new Nothing schema
 
-    ## Gets a list of the table types
+    ## Gets a list of the table types.
     table_types : [Text]
     table_types self = self.connection.table_types
 
