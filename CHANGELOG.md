@@ -2,6 +2,7 @@
 
 #### Visual Environment
 
+- [Camera is panned to newly created nodes.][3552]
 - [Long names on the Node Searcher's list are truncated.][3373] The part of the
   name that doesn't fit in the Searcher's window is replaced with an ellipsis
   character ("…").
@@ -49,12 +50,22 @@
   node cration.][3186]
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
+- [New Version of the Node Searcher - the Component Browser][3530] The available
+  methods, atoms and functions are presented in nice, categorized view. The most
+  popular tools are available at hand. The The panel is unstable, and thus is
+  available under the `--enable-new-component-browser` flag.
 
 #### EnsoGL (rendering engine)
 
 - [You can change font and set letters bold in the <code>text::Area</code>
   component][3385]. Use the <code>set_font</code> and
   <code>set_bold_bytes</code> respectively.
+- [Fixed a text rendering issue in nested sublayer][3486].
+- [Added a new component: Grid View.][3588] It's parametrized by Entry object,
+  display them arranged in a Grid. It does not instantiate all entries, only
+  those visible, and re-use created entries during scrolling thus achieving
+  great performance. There are variants of grid view with selection and
+  highlight, scrollbars, and both.
 
 #### Enso Standard Library
 
@@ -124,6 +135,44 @@
   specified type.][3455]
 - [Promote with, take, finalize to be methods of Managed_Resource
   instance][3460]
+- [Implemented automatic type detection for `Table.parse_values`.][3462]
+- [Integrated value parsing with the `Delimited` file reader.][3463]
+- [Implemented the `Infer` setting for headers in the `Delimited` file format
+  and made it the default.][3472]
+- [Implemented a `Table.from Text` conversion allowing to parse strings
+  representing `Delimited` files without storing them on the filesystem.][3478]
+- [Added rank data, correlation and covariance statistics for `Vector`][3484]
+- [Implemented `Table.order_by` for the SQLite backend.][3502]
+- [Implemented `Table.order_by` for the PostgreSQL backend.][3514]
+- [Implemented `Table.order_by` for the in-memory table.][3515]
+- [Renamed `File_Format.Text` to `Plain_Text`, updated `File_Format.Delimited`
+  API and added builders for customizing less common settings.][3516]
+- [Allow control of sort direction in `First` and `Last` aggregations.][3517]
+- [Implemented `Text.write`, replacing `File.write_text`.][3518]
+- [Removed obsolete `select`, `group`, `sort` and releated types from tables.]
+  [3519]
+- [Removed obsolete `from_xls` and `from_xlsx` functions. Added support for
+  reading column names from first row in `File_Format.Excel`][3523]
+- [Added `File_Format.Delimited` support to `Table.write` for new files.][3528]
+- [Adjusted `Database.connect` API to new design.][3542]
+- [Added `File_Format.Excel` support to `Table.write` for new files.][3551]
+- [identity,const,flip,curry,uncurry functions][3554]
+- [Added append support for `File_Format.Excel`.][3558]
+- [Added support for custom encodings in `File_Format.Delimited` writing.][3564]
+- [Allow filtering caught error type in `Error.catch`.][3574]
+- [Implemented `Append` mode for `File_Format.Delimited`.][3573]
+- [Added `Vector.write_bytes` function and removed old `File.write_bytes`][3583]
+- [Added `line_endings` and `comment_character` options to
+  `File_Format.Delimited`.][3581]
+- [Fixed the case of various type names and library paths][3590]
+- [Added support for parsing `.pgpass` file and `PG*` environment variables for
+  the Postgres connection][3593]
+- [Added `Regression` to the `Standard.Base` library and removed legacy `Model`
+  type from `Standard.Table`.][3601]
+- [Created `Index_Sub_Range` type and updated `Text.take` and
+  `Text.drop`.][3617]
+- [Updated `Vector.take` and `Vector.drop` and removed their obsolete
+  counterparts.][3629]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -192,6 +241,38 @@
 [3457]: https://github.com/enso-org/enso/pull/3457
 [3455]: https://github.com/enso-org/enso/pull/3455
 [3460]: https://github.com/enso-org/enso/pull/3460
+[3462]: https://github.com/enso-org/enso/pull/3462
+[3463]: https://github.com/enso-org/enso/pull/3463
+[3472]: https://github.com/enso-org/enso/pull/3472
+[3486]: https://github.com/enso-org/enso/pull/3486
+[3478]: https://github.com/enso-org/enso/pull/3478
+[3484]: https://github.com/enso-org/enso/pull/3484
+[3502]: https://github.com/enso-org/enso/pull/3502
+[3514]: https://github.com/enso-org/enso/pull/3514
+[3515]: https://github.com/enso-org/enso/pull/3515
+[3516]: https://github.com/enso-org/enso/pull/3516
+[3517]: https://github.com/enso-org/enso/pull/3517
+[3518]: https://github.com/enso-org/enso/pull/3518
+[3519]: https://github.com/enso-org/enso/pull/3519
+[3523]: https://github.com/enso-org/enso/pull/3523
+[3528]: https://github.com/enso-org/enso/pull/3528
+[3530]: https://github.com/enso-org/enso/pull/3530
+[3542]: https://github.com/enso-org/enso/pull/3542
+[3551]: https://github.com/enso-org/enso/pull/3551
+[3552]: https://github.com/enso-org/enso/pull/3552
+[3554]: https://github.com/enso-org/enso/pull/3554
+[3558]: https://github.com/enso-org/enso/pull/3558
+[3564]: https://github.com/enso-org/enso/pull/3564
+[3574]: https://github.com/enso-org/enso/pull/3574
+[3573]: https://github.com/enso-org/enso/pull/3573
+[3583]: https://github.com/enso-org/enso/pull/3583
+[3581]: https://github.com/enso-org/enso/pull/3581
+[3588]: https://github.com/enso-org/enso/pull/3588
+[3590]: https://github.com/enso-org/enso/pull/3590
+[3593]: https://github.com/enso-org/enso/pull/3593
+[3601]: https://github.com/enso-org/enso/pull/3601
+[3617]: https://github.com/enso-org/enso/pull/3617
+[3629]: https://github.com/enso-org/enso/pull/3629
 
 #### Enso Compiler
 
@@ -201,7 +282,8 @@
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
-- [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Converting Enso Date to java.time.LocalDate and back][3559]
+- [Incremental Reparsing of a Simple Edits][3508]
 - [Functions with all-defaulted arguments now execute automatically][3414]
 - [Provide `tagValues` for function arguments in the language server][3422]
 - [Delay construction of Truffle nodes to speed initialization][3429]
@@ -212,6 +294,22 @@
   signatures][3444]
 - [Generate boilerplate classes related to error handling and varargs in
   builtins from method signatures][3454]
+- [Avoid needless concatenations of warning/error messages][3465]
+- [Added a full-blown DSL for builtins][3471]
+- [Integration of Enso with Ideal Graph Visualizer][3533]
+- [Lazy evaluation of RHS argument for || and &&][3492]
+- [Drop Core implementation of IR][3512]
+- [Replace `this` with `self`][3524]
+- [Introduce a smaller version of the standard library, just for testing][3531]
+- [Remove `here` and make method name resolution case-sensitive][3531]
+- [Explicit `self`][3569]
+- [Added benchmarking tool for the language server][3578]
+- [Support module imports using a qualified name][3608]
+- [Enable caching in visualisation functions][3618]
+- [Update Scala compiler and libraries][3631]
+- [Support importing module methods][3633]
+- [Support Autosave for open buffers][3637]
+- [Support pattern matching on constants][3641]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -220,7 +318,8 @@
 [3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
-[3374]: https://github.com/enso-org/enso/pull/3374
+[3559]: https://github.com/enso-org/enso/pull/3559
+[3508]: https://github.com/enso-org/enso/pull/3508
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414
 [3417]: https://github.com/enso-org/enso/pull/3417
@@ -232,6 +331,26 @@
 [3444]: https://github.com/enso-org/enso/pull/3444
 [3453]: https://github.com/enso-org/enso/pull/3453
 [3454]: https://github.com/enso-org/enso/pull/3454
+[3461]: https://github.com/enso-org/enso/pull/3461
+[3465]: https://github.com/enso-org/enso/pull/3465
+[3471]: https://github.com/enso-org/enso/pull/3471
+[3533]: https://github.com/enso-org/enso/pull/3533
+[3492]: https://github.com/enso-org/enso/pull/3492
+[3493]: https://github.com/enso-org/enso/pull/3493
+[3505]: https://github.com/enso-org/enso/pull/3505
+[3512]: https://github.com/enso-org/enso/pull/3512
+[3524]: https://github.com/enso-org/enso/pull/3524
+[3531]: https://github.com/enso-org/enso/pull/3531
+[3562]: https://github.com/enso-org/enso/pull/3562
+[3538]: https://github.com/enso-org/enso/pull/3538
+[3538]: https://github.com/enso-org/enso/pull/3569
+[3618]: https://github.com/enso-org/enso/pull/3618
+[3608]: https://github.com/enso-org/enso/pull/3608
+[3608]: https://github.com/enso-org/enso/pull/3608
+[3631]: https://github.com/enso-org/enso/pull/3631
+[3633]: https://github.com/enso-org/enso/pull/3633
+[3637]: https://github.com/enso-org/enso/pull/3637
+[3633]: https://github.com/enso-org/enso/pull/3641
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

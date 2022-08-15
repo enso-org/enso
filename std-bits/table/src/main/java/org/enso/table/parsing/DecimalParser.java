@@ -1,22 +1,27 @@
 package org.enso.table.parsing;
 
-import java.text.DecimalFormat;
-import java.text.ParsePosition;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.parsing.problems.NumericProblemAggregator;
+import org.enso.table.formatting.DecimalFormatter;
+import org.enso.table.parsing.problems.ProblemAggregator;
 
-public class DecimalParser extends DatatypeParser<NumericProblemAggregator> {
+import java.text.DecimalFormat;
+import java.text.ParsePosition;
+
+public class DecimalParser extends IncrementalDatatypeParser {
   private final String thousandsSeparator;
   private final char decimalPoint;
   private final DecimalFormat decimalFormat;
   private final boolean leadingZerosAllowed;
+  private final boolean scientificNotationAllowed;
 
   public DecimalParser(
       final String decimalPoint,
       final String thousandsSeparator,
-      final boolean leadingZerosAllowed) {
+      final boolean leadingZerosAllowed,
+      boolean scientificNotationAllowed) {
     this.leadingZerosAllowed = leadingZerosAllowed;
+    this.scientificNotationAllowed = scientificNotationAllowed;
 
     if (decimalPoint.length() != 1) {
       throw new IllegalArgumentException(
@@ -34,11 +39,12 @@ public class DecimalParser extends DatatypeParser<NumericProblemAggregator> {
     decimalFormat = new DecimalFormat();
     var symbols = decimalFormat.getDecimalFormatSymbols();
     symbols.setDecimalSeparator(this.decimalPoint);
+    symbols.setInfinity(DecimalFormatter.INFINITY);
     decimalFormat.setDecimalFormatSymbols(symbols);
   }
 
   @Override
-  public Object parseSingleValue(String text, NumericProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     if (thousandsSeparator != null
         && (text.startsWith(thousandsSeparator) || text.endsWith(thousandsSeparator))) {
       problemAggregator.reportInvalidFormat(text);
@@ -65,6 +71,11 @@ public class DecimalParser extends DatatypeParser<NumericProblemAggregator> {
       return null;
     }
 
+    if (!scientificNotationAllowed && hasExponentSymbol(replaced)) {
+      problemAggregator.reportInvalidFormat(text);
+      return null;
+    }
+
     return result.doubleValue();
   }
 
@@ -83,13 +94,12 @@ public class DecimalParser extends DatatypeParser<NumericProblemAggregator> {
         && s.charAt(firstDigitPos + 1) != decimalPoint;
   }
 
-  @Override
-  public Builder makeBuilderWithCapacity(long capacity) {
-    return NumericBuilder.createDoubleBuilder((int) capacity);
+  private boolean hasExponentSymbol(String s) {
+    return s.contains(decimalFormat.getDecimalFormatSymbols().getExponentSeparator());
   }
 
   @Override
-  public NumericProblemAggregator makeProblemAggregator() {
-    return new NumericProblemAggregator();
+  protected Builder makeBuilderWithCapacity(int capacity) {
+    return NumericBuilder.createDoubleBuilder(capacity);
   }
 }

@@ -1,13 +1,7 @@
 //! Module that contains the logic for selecting nodes. This includes selecting single nodes
 //! by clicking on them separately, as well as click+drag for selecting with a selection area.
 
-
-
-mod bounding_box;
-
 use ensogl::prelude::*;
-
-pub use bounding_box::BoundingBox;
 
 use crate::NodeId;
 use crate::Nodes;
@@ -16,6 +10,13 @@ use crate::TouchState;
 use ensogl::frp;
 use ensogl::gui::cursor;
 use ensogl::gui::cursor::Cursor;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use ensogl::data::bounding_box::BoundingBox;
 
 
 
@@ -325,8 +326,9 @@ impl Controller {
             enable_area_selection  <- source();
 
             // ===  Graph Editor Internal API ===
-            eval editor.input.select_node   ((node_id) nodes.select(node_id));
-            eval editor.input.deselect_node ((node_id)  nodes.select(node_id));
+            eval editor.input.select_node       ((node_id) nodes.select(node_id));
+            eval editor.input.deselect_node     ((node_id) nodes.deselect(node_id));
+            eval_ editor.input.select_all_nodes (nodes.select_all());
             editor.output.node_selected   <+  editor.input.select_node;
             editor.output.node_deselected <+ editor.input.deselect_node;
 

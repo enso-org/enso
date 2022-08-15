@@ -87,7 +87,7 @@ impl Model {
         }
     }
 
-    fn editing_committed(
+    fn editing_committed_old_searcher(
         &self,
         node: ViewNodeId,
         entry_id: Option<view::searcher::entry::Id>,
@@ -100,6 +100,24 @@ impl Model {
                 if is_example {
                     self.view.graph().enable_visualization(node);
                 }
+                false
+            } else {
+                true
+            }
+        } else {
+            false
+        }
+    }
+
+    fn editing_committed(
+        &self,
+        node: ViewNodeId,
+        entry_id: Option<view::component_browser::list_panel::EntryId>,
+    ) -> bool {
+        let searcher = self.searcher.take();
+        if let Some(searcher) = searcher {
+            if let Some(created_node) = searcher.expression_accepted(entry_id) {
+                self.graph.assign_node_view_explicitly(node, created_node);
                 false
             } else {
                 true
@@ -176,7 +194,8 @@ impl Project {
     ) -> Self {
         let network = frp::Network::new("presenter::Project");
         let model = Model::new(ide_controller, controller, init_result, view, status_bar);
-        Self { network, model: Rc::new(model) }.init()
+        let model = Rc::new(model);
+        Self { network, model }.init()
     }
 
     #[profile(Detail)]
@@ -195,6 +214,9 @@ impl Project {
                 }
             });
 
+            graph_view.remove_node <+ view.editing_committed_old_searcher.filter_map(f!([model]((node_view, entry)) {
+                model.editing_committed_old_searcher(*node_view, *entry).as_some(*node_view)
+            }));
             graph_view.remove_node <+ view.editing_committed.filter_map(f!([model]((node_view, entry)) {
                 model.editing_committed(*node_view, *entry).as_some(*node_view)
             }));
@@ -208,6 +230,7 @@ impl Project {
             values_computed <- source::<()>();
             values_computed_first_time <- values_computed.constant(true).on_change().constant(());
             view.show_prompt <+ values_computed_first_time;
+            view.values_updated <+ values_computed;
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();
@@ -221,7 +244,6 @@ impl Project {
         let network = &self.network;
         let project = &self.model.view;
         let graph = self.model.view.graph();
-        let searcher = self.model.view.searcher();
         frp::extend! { network
             eval_ graph.node_editing_started([]analytics::remote_log_event("graph_editor::node_editing_started"));
             eval_ graph.node_editing_finished([]analytics::remote_log_event("graph_editor::node_editing_finished"));
@@ -234,7 +256,6 @@ impl Project {
             eval_ graph.visualization_shown([]analytics::remote_log_event("graph_editor::visualization_shown"));
             eval_ graph.visualization_hidden([]analytics::remote_log_event("graph_editor::visualization_hidden"));
             eval_ graph.on_edge_endpoint_unset([]analytics::remote_log_event("graph_editor::connection_removed"));
-            eval_ searcher.used_as_suggestion([]analytics::remote_log_event("searcher::used_as_suggestion"));
             eval_ project.editing_committed([]analytics::remote_log_event("project::editing_committed"));
         }
         self

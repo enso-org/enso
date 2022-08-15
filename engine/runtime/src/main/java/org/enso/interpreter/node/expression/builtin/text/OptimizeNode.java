@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.text;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -11,7 +10,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 @BuiltinMethod(
     type = "Prim_Text_Helper",
     name = "optimize",
-    description = "Forces flattening of a text value, for testing or purposes.")
+    description = "Forces flattening of a text value, for testing purposes.")
 public abstract class OptimizeNode extends Node {
   private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
 
@@ -19,16 +18,16 @@ public abstract class OptimizeNode extends Node {
     return OptimizeNodeGen.create();
   }
 
-  abstract Object execute(Object _this, Object text);
+  abstract Object execute(Object text);
 
   @Specialization
-  Text doText(Object _this, Text text) {
+  Text doText(Text text) {
     toJavaStringNode.execute(text);
     return text;
   }
 
   @Fallback
-  Object doOther(Object _this, Object that) {
+  Object doOther(Object that) {
     return that;
   }
 }

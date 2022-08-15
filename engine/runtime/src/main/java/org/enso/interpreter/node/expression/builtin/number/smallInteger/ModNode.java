@@ -13,16 +13,16 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "%", description = "Modulo division of numbers.")
 public abstract class ModNode extends Node {
-  abstract Object execute(long _this, Object that);
+  abstract Object execute(long self, Object that);
 
   static ModNode build() {
     return ModNodeGen.create();
   }
 
   @Specialization
-  Object doLong(long _this, long that) {
+  Object doLong(long self, long that) {
     try {
-      return _this % that;
+      return self % that;
     } catch (ArithmeticException e) {
       return DataflowError.withoutTrace(
           Context.get(this).getBuiltins().error().getDivideByZeroError(), this);
@@ -30,20 +30,20 @@ public abstract class ModNode extends Node {
   }
 
   @Specialization
-  double doDouble(long _this, double that) {
+  double doDouble(long self, double that) {
     // No need to trap, as floating-point modulo returns NaN for division by zero instead of
     // throwing.
-    return _this % that;
+    return self % that;
   }
 
   @Specialization
-  long doBigInteger(long _this, EnsoBigInteger that) {
+  long doBigInteger(long self, EnsoBigInteger that) {
     // No need to trap, as 0 is never represented as an EnsoBigInteger.
-    return _this;
+    return self;
   }
 
   @Fallback
-  Object doOther(long _this, Object that) {
+  Object doOther(long self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

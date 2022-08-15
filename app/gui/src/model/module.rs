@@ -290,7 +290,8 @@ pub enum NotificationKind {
 }
 
 /// Notification about change in module content.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Derivative)]
+#[derivative(PartialEq, Eq)]
 pub struct Notification {
     /// The expected state of the source file at the point when this notification is emit.
     ///
@@ -301,6 +302,20 @@ pub struct Notification {
     pub new_file: SourceFile,
     /// Describes the notified event.
     pub kind:     NotificationKind,
+    // A profiler from the notification's creation site; by using this object as the parent of the
+    // notification handlers' profilers, we carry cause-and-effect debug information between
+    // operations that are otherwise difficult to relate, because they are not coupled by explicit
+    // control flow.
+    #[derivative(PartialEq = "ignore")]
+    profiler:     profiler::Debug,
+}
+
+impl Notification {
+    /// Create a new notification.
+    pub fn new(new_file: SourceFile, kind: NotificationKind) -> Self {
+        let profiler = profiler::create_debug!("Notification");
+        Self { new_file, kind, profiler }
+    }
 }
 
 
@@ -353,6 +368,18 @@ pub struct IdeMetadata {
     project: Option<ProjectMetadata>,
 }
 
+/// Metadata about a nodes edit status.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, Eq)]
+pub enum NodeEditStatus {
+    /// The node was edited and had a previous expression.
+    Edited {
+        /// Expression of the node before the edit was started.
+        previous_expression: String,
+    },
+    /// The node was created and did not previously exist.
+    Created,
+}
+
 /// Metadata of specific node.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct NodeMetadata {
@@ -377,6 +404,11 @@ pub struct NodeMetadata {
     /// Information about enabled visualization. Exact format is defined by the integration layer.
     #[serde(default)]
     pub visualization:   serde_json::Value,
+    /// Information about the edit status of ths node. If the value is `Some` the node is being
+    /// edited and the value contains the original expression.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
+    pub edit_status:     Option<NodeEditStatus>,
 }
 
 /// Used for storing node position.

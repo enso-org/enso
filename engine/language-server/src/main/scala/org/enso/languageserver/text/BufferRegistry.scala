@@ -2,6 +2,7 @@ package org.enso.languageserver.text
 
 import akka.actor.{Actor, ActorRef, Props, Stash, Terminated}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.languageserver.boot.TimingsConfig
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquisitionBadRequest,
@@ -15,8 +16,10 @@ import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextProtocol.{
   ApplyEdit,
+  ApplyExpressionValue,
   CloseFile,
   FileNotOpened,
+  OpenBuffer,
   OpenFile,
   SaveFile
 }
@@ -56,10 +59,12 @@ import org.enso.text.ContentBasedVersioning
   * @param fileManager a file manager
   * @param runtimeConnector a gateway to the runtime
   * @param versionCalculator a content based version calculator
+  * @param timingsConfig a config with timeout/delay values
   */
 class BufferRegistry(
   fileManager: ActorRef,
-  runtimeConnector: ActorRef
+  runtimeConnector: ActorRef,
+  timingsConfig: TimingsConfig
 )(implicit
   versionCalculator: ContentBasedVersioning
 ) extends Actor
@@ -98,7 +103,26 @@ class BufferRegistry(
             CollaborativeBuffer.props(
               path,
               fileManager,
-              runtimeConnector
+              runtimeConnector,
+              timingsConfig = timingsConfig
+            )
+          )
+        context.watch(bufferRef)
+        bufferRef.forward(msg)
+        context.become(running(registry + (path -> bufferRef)))
+      }
+
+    case msg @ OpenBuffer(_, path) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        val bufferRef =
+          context.actorOf(
+            CollaborativeBuffer.props(
+              path,
+              fileManager,
+              runtimeConnector,
+              timingsConfig = timingsConfig
             )
           )
         context.watch(bufferRef)
@@ -130,7 +154,14 @@ class BufferRegistry(
         sender() ! CapabilityReleaseBadRequest
       }
 
-    case msg @ ApplyEdit(_, FileEdit(path, _, _, _)) =>
+    case msg @ ApplyEdit(_, FileEdit(path, _, _, _), _) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        sender() ! FileNotOpened
+      }
+
+    case msg @ ApplyExpressionValue(_, _, path, _, _, _) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)
       } else {
@@ -154,14 +185,16 @@ object BufferRegistry {
     * @param fileManager a file manager actor
     * @param runtimeConnector a gateway to the runtime
     * @param versionCalculator a content based version calculator
+    * @param timingsConfig a config with timout/delay values
     * @return a configuration object
     */
   def props(
     fileManager: ActorRef,
-    runtimeConnector: ActorRef
+    runtimeConnector: ActorRef,
+    timingsConfig: TimingsConfig
   )(implicit
     versionCalculator: ContentBasedVersioning
   ): Props =
-    Props(new BufferRegistry(fileManager, runtimeConnector))
+    Props(new BufferRegistry(fileManager, runtimeConnector, timingsConfig))
 
 }

@@ -29,7 +29,7 @@
 
 #![recursion_limit = "512"]
 // === Features ===
-#![feature(arbitrary_self_types)]
+#![feature(arc_unwrap_or_clone)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
 #![feature(bool_to_option)]
@@ -56,6 +56,7 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+use prelude::*;
 use wasm_bindgen::prelude::*;
 
 
@@ -129,31 +130,38 @@ mod examples {
 use examples::*;
 mod profile_workflow;
 
-use prelude::profiler;
-use prelude::profiler::prelude::*;
+
+
+// ===================
+// === Entry Point ===
+// ===================
 
 /// IDE startup function.
 #[profile(Objective)]
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_ide() {
-    ensogl_text_msdf_sys::run_once_initialized(|| {
-        // Logging of build information.
-        #[cfg(debug_assertions)]
-        analytics::remote_log_value(
-            "debug_mode",
-            "debug_mode_is_active",
-            analytics::AnonymousData(true),
-        );
-        #[cfg(not(debug_assertions))]
-        analytics::remote_log_value(
-            "debug_mode",
-            "debug_mode_is_active",
-            analytics::AnonymousData(false),
-        );
-
-        let config =
-            crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
-        crate::ide::Initializer::new(config).start_and_forget();
+    init_tracing(WARN);
+    // Logging of build information.
+    #[cfg(debug_assertions)]
+    let debug_mode = true;
+    #[cfg(not(debug_assertions))]
+    let debug_mode = false;
+    analytics::remote_log_value(
+        "debug_mode",
+        "debug_mode_is_active",
+        analytics::AnonymousData(debug_mode),
+    );
+    let config =
+        crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
+    let executor = crate::ide::initializer::setup_global_executor();
+    let initializer = crate::ide::initializer::Initializer::new(config);
+    executor::global::spawn(async move {
+        let ide = initializer.start().await;
+        ensogl::system::web::document
+            .get_element_by_id("loader")
+            .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
+        std::mem::forget(ide);
     });
+    std::mem::forget(executor);
 }

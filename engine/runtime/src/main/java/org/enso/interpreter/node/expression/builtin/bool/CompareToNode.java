@@ -15,14 +15,14 @@ public abstract class CompareToNode extends Node {
     return CompareToNodeGen.create();
   }
 
-  abstract Atom execute(Boolean _this, Object that);
+  abstract Atom execute(Boolean self, Object that);
 
   @Specialization
-  Atom doBoolean(Boolean _this, Boolean that) {
+  Atom doBoolean(Boolean self, Boolean that) {
     Ordering ordering = Context.get(this).getBuiltins().ordering();
-    if (_this == that) {
+    if (self == that) {
       return ordering.newEqual();
-    } else if (_this) {
+    } else if (self) {
       return ordering.newGreater();
     } else {
       return ordering.newLess();
@@ -30,7 +30,7 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doOther(Boolean _this, Object that) {
+  Atom doOther(Boolean self, Object that) {
     CompilerDirectives.transferToInterpreter();
     var bool = Context.get(this).getBuiltins().bool().getBool().newInstance();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, bool, "that");

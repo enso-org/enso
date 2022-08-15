@@ -1,0 +1,14 @@
+[package]
+name = "logstat"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+clap = { version = "3", features = ["derive"] }
+lazy_static = "1.4.0"
+enso-prelude = { path = "../../../lib/rust/prelude" }
+regex = "1.6.0"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1.9", features = ["io-util"] }

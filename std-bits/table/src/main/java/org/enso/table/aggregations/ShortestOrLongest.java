@@ -7,9 +7,7 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 
 import java.util.List;
 
-/***
- * Aggregate Column finding the longest or shortest string in a group.
- */
+/** Aggregate Column finding the longest or shortest string in a group. */
 public class ShortestOrLongest extends Aggregator {
   private final Storage storage;
   private final int minOrMax;
@@ -25,7 +23,7 @@ public class ShortestOrLongest extends Aggregator {
     long length = 0;
     Object current = null;
 
-    for (int row: indexes) {
+    for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         if (!(value instanceof String)) {
@@ -33,7 +31,7 @@ public class ShortestOrLongest extends Aggregator {
           return null;
         }
 
-        long valueLength = GraphemeLength((String)value);
+        long valueLength = GraphemeLength((String) value);
         if (current == null || Long.compare(valueLength, length) == minOrMax) {
           length = valueLength;
           current = value;

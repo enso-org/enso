@@ -69,6 +69,7 @@ import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
+import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
@@ -113,6 +114,7 @@ class JsonConnectionController(
 ) extends Actor
     with Stash
     with LazyLogging
+    with ActorMessageLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -279,7 +281,7 @@ class JsonConnectionController(
     webActor: ActorRef,
     rpcSession: JsonSession,
     requestHandlers: Map[Method, Props]
-  ): Receive = {
+  ): Receive = LoggingReceive {
     case Request(InitProtocolConnection, id, _) =>
       sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
 
@@ -295,6 +297,9 @@ class JsonConnectionController(
 
     case TextProtocol.TextDidChange(changes) =>
       webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
+
+    case TextProtocol.FileAutoSaved(path) =>
+      webActor ! Notification(FileAutoSaved, FileAutoSaved.Params(path))
 
     case PathWatcherProtocol.FileEventResult(event) =>
       webActor ! Notification(
@@ -432,11 +437,15 @@ class JsonConnectionController(
         .props(capabilityRouter, requestTimeout, rpcSession),
       ReleaseCapability -> ReleaseCapabilityHandler
         .props(capabilityRouter, requestTimeout, rpcSession),
+      OpenBuffer -> OpenBufferHandler
+        .props(bufferRegistry, requestTimeout, rpcSession),
       OpenFile -> OpenFileHandler
         .props(bufferRegistry, requestTimeout, rpcSession),
       CloseFile -> CloseFileHandler
         .props(bufferRegistry, requestTimeout, rpcSession),
       ApplyEdit -> ApplyEditHandler
+        .props(bufferRegistry, requestTimeout, rpcSession),
+      ApplyExpressionValue -> ApplyExpressionValueHandler
         .props(bufferRegistry, requestTimeout, rpcSession),
       SaveFile -> SaveFileHandler
         .props(bufferRegistry, requestTimeout, rpcSession),

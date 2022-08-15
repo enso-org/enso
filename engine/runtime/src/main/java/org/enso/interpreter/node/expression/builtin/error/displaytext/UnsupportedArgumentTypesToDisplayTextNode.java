@@ -4,14 +4,12 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -22,12 +20,12 @@ public abstract class UnsupportedArgumentTypesToDisplayTextNode extends Node {
     return UnsupportedArgumentTypesToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  abstract Text execute(Object self);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  Text doAtom(Atom _this, @Cached TypeToDisplayTextNode displayTypeNode) {
-    Object args = _this.getFields()[0];
+  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
+    Object args = self.getFields()[0];
     String argsRep;
     if (args instanceof Array) {
       Object[] arguments = ((Array) args).getItems();
@@ -42,7 +40,7 @@ public abstract class UnsupportedArgumentTypesToDisplayTextNode extends Node {
   }
 
   @Specialization
-  Text doConstructor(AtomConstructor _this) {
+  Text doConstructor(AtomConstructor self) {
     return Text.create("Unsupported argument types.");
   }
 }

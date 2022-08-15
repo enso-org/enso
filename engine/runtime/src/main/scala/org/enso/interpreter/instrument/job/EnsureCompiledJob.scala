@@ -12,12 +12,16 @@ import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
 }
-import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
+import org.enso.interpreter.instrument.{
+  CacheInvalidation,
+  InstrumentFrame,
+  Visualisation
+}
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.service.error.ModuleNotFoundForFileException
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.{ModuleExports, Suggestion}
+import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
 
 import java.io.File
@@ -30,12 +34,10 @@ import scala.jdk.OptionConverters._
   *
   * @param files a files to compile
   */
-class EnsureCompiledJob(protected val files: Iterable[File])
+final class EnsureCompiledJob(protected val files: Iterable[File])
     extends Job[EnsureCompiledJob.CompilationStatus](List.empty, true, false) {
 
   import EnsureCompiledJob.CompilationStatus
-
-  private val exportsBuilder = new ExportsBuilder
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
@@ -43,17 +45,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
 
     try {
       val compilationResult = ensureCompiledFiles(files)
-      ctx.contextManager.getAll.values.foreach { stack =>
-        getCacheMetadata(stack).foreach { metadata =>
-          CacheInvalidation.run(
-            stack,
-            CacheInvalidation(
-              CacheInvalidation.StackSelector.Top,
-              CacheInvalidation.Command.SetMetadata(metadata)
-            )
-          )
-        }
-      }
+      setCacheWeights()
       compilationResult
     } finally {
       ctx.locking.releaseWriteCompilationLock()
@@ -76,7 +68,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     val modulesInScope =
       getModulesInScope.filterNot(m => modules.exists(_ == m))
     val scopeCompilationStatus = ensureCompiledScope(modulesInScope)
-    (moduleCompilationStatus ++ scopeCompilationStatus).maxOption
+    (moduleCompilationStatus.flatten ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
   }
 
@@ -88,40 +80,23 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def ensureCompiledModule(
     module: Module
-  )(implicit ctx: RuntimeContext): CompilationStatus = {
+  )(implicit ctx: RuntimeContext): Option[CompilationStatus] = {
     compile(module)
-    val changeset = applyEdits(new File(module.getPath))
-    compile(module)
-      .map { compilerResult =>
-        val cacheInvalidationCommands =
-          buildCacheInvalidationCommands(
-            changeset,
-            module.getSource.getCharacters
+    applyEdits(new File(module.getPath)).map { changeset =>
+      compile(module)
+        .map { compilerResult =>
+          invalidateCaches(module, changeset)
+          ctx.jobProcessor.runBackground(
+            AnalyzeModuleInScopeJob(
+              module.getName,
+              compilerResult.compiledModules
+            )
           )
-        runInvalidationCommands(cacheInvalidationCommands)
-        // There are two runtime flags that can disable suggestions for project
-        // and global modules (libraries). They are used primarily in tests to
-        // disable the suggestion updates and reduce the number of messages that
-        // runtime sends.
-        if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
-          // When the project module is compiled it can involve compilation of
-          // global (library) modules, so we need to check if the global
-          // suggestions are enabled as well.
-          if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
-            compilerResult.compiledModules.foreach(analyzeModuleInScope)
-          } else {
-            // When the global suggestions are disabled, we will skip indexing
-            // of external libraries, but still want to index the modules that
-            // belongs to the project.
-            val projectModules = compilerResult.compiledModules
-              .filter(m => rootName(m.getName) == rootName(module.getName))
-            projectModules.foreach(analyzeModuleInScope)
-          }
-          analyzeModule(module, changeset)
+          ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
+          runCompilationDiagnostics(module)
         }
-        runCompilationDiagnostics(module)
-      }
-      .getOrElse(CompilationStatus.Failure)
+        .getOrElse(CompilationStatus.Failure)
+    }
   }
 
   /** Compile all modules in the scope and send the extracted suggestions.
@@ -131,11 +106,11 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def ensureCompiledScope(modulesInScope: Iterable[Module])(implicit
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
-    ctx.executionService.getLogger
-      .log(Level.FINEST, s"Modules in scope: ${modulesInScope.map(_.getName)}")
-    modulesInScope
-      .filter(!_.isIndexed)
-      .map { module =>
+    val notIndexedModulesInScope = modulesInScope.filter(!_.isIndexed)
+    val (modulesToAnalyze, compilationStatuses) =
+      notIndexedModulesInScope.foldLeft(
+        (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])
+      ) { case ((modules, statuses), module) =>
         compile(module) match {
           case Left(err) =>
             ctx.executionService.getLogger
@@ -146,89 +121,19 @@ class EnsureCompiledJob(protected val files: Iterable[File])
                 Option(module.getPath).map(new File(_))
               )
             )
-            CompilationStatus.Failure
+            (modules, statuses += CompilationStatus.Failure)
           case Right(compilerResult) =>
-            if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
-              compilerResult.compiledModules.foreach(analyzeModuleInScope)
-              analyzeModuleInScope(module)
-            }
-            runCompilationDiagnostics(module)
+            val status = runCompilationDiagnostics(module)
+            (
+              modules.addAll(compilerResult.compiledModules).addOne(module),
+              statuses += status
+            )
         }
       }
-  }
-
-  private def analyzeModuleInScope(module: Module)(implicit
-    ctx: RuntimeContext
-  ): Unit = {
-    if (!module.isIndexed && module.getSource != null) {
-      ctx.executionService.getLogger
-        .log(Level.FINEST, s"Analyzing module in scope ${module.getName}")
-      val moduleName = module.getName
-      val newSuggestions = SuggestionBuilder(module.getSource.getCharacters)
-        .build(moduleName, module.getIr)
-        .filter(isSuggestionGlobal)
-      val version     = ctx.versioning.evalVersion(module.getSource.getCharacters)
-      val prevExports = ModuleExports(moduleName.toString, Set())
-      val newExports  = exportsBuilder.build(module.getName, module.getIr)
-      val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        module  = moduleName.toString,
-        version = version,
-        actions =
-          Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
-        exports = ModuleExportsDiff.compute(prevExports, newExports),
-        updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
-      )
-      sendModuleUpdate(notification)
-      module.setIndexed(true)
-    }
-  }
-
-  private def analyzeModule(
-    module: Module,
-    changeset: Changeset[Rope]
-  )(implicit ctx: RuntimeContext): Unit = {
-    val moduleName = module.getName
-    val version    = ctx.versioning.evalVersion(module.getSource.getCharacters)
-    if (module.isIndexed) {
-      ctx.executionService.getLogger
-        .log(Level.FINEST, s"Analyzing indexed module $moduleName")
-      val prevSuggestions = SuggestionBuilder(changeset.source)
-        .build(moduleName, changeset.ir)
-      val newSuggestions =
-        SuggestionBuilder(module.getSource.getCharacters)
-          .build(moduleName, module.getIr)
-      val diff = SuggestionDiff
-        .compute(prevSuggestions, newSuggestions)
-      val prevExports = exportsBuilder.build(moduleName, changeset.ir)
-      val newExports  = exportsBuilder.build(moduleName, module.getIr)
-      val exportsDiff = ModuleExportsDiff.compute(prevExports, newExports)
-      val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        module  = moduleName.toString,
-        version = version,
-        actions = Vector(),
-        exports = exportsDiff,
-        updates = diff
-      )
-      sendModuleUpdate(notification)
-    } else {
-      ctx.executionService.getLogger
-        .log(Level.FINEST, s"Analyzing not-indexed module ${module.getName}")
-      val newSuggestions =
-        SuggestionBuilder(module.getSource.getCharacters)
-          .build(moduleName, module.getIr)
-      val prevExports = ModuleExports(moduleName.toString, Set())
-      val newExports  = exportsBuilder.build(moduleName, module.getIr)
-      val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        module  = moduleName.toString,
-        version = version,
-        actions =
-          Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
-        exports = ModuleExportsDiff.compute(prevExports, newExports),
-        updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
-      )
-      sendModuleUpdate(notification)
-      module.setIndexed(true)
-    }
+    ctx.jobProcessor.runBackground(
+      AnalyzeModuleInScopeJob(modulesToAnalyze.result())
+    )
+    compilationStatuses.result()
   }
 
   /** Extract compilation diagnostics from the module and send the diagnostic
@@ -323,15 +228,31 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def applyEdits(
     file: File
-  )(implicit ctx: RuntimeContext): Changeset[Rope] = {
+  )(implicit ctx: RuntimeContext): Option[Changeset[Rope]] = {
     ctx.locking.acquireFileLock(file)
     ctx.locking.acquireReadCompilationLock()
+    ctx.locking.acquirePendingEditsLock()
     try {
-      val edits = ctx.state.pendingEdits.dequeue(file)
-      val suggestionBuilder = ctx.executionService
-        .modifyModuleSources(file, edits.asJava)
-      suggestionBuilder.build(edits)
+      val pendingEdits = ctx.state.pendingEdits.dequeue(file)
+      val edits        = pendingEdits.map(_.edit)
+      val shouldExecute =
+        pendingEdits.isEmpty || pendingEdits.exists(_.execute)
+      val module = ctx.executionService.getContext
+        .getModuleForFile(file)
+        .orElseThrow(() => new ModuleNotFoundForFileException(file))
+      val changesetBuilder = new ChangesetBuilder(
+        module.getLiteralSource,
+        module.getIr
+      )
+      val changeset = changesetBuilder.build(pendingEdits)
+      ctx.executionService.modifyModuleSources(
+        module,
+        edits,
+        changeset.simpleUpdate.orNull
+      )
+      Option.when(shouldExecute)(changeset)
     } finally {
+      ctx.locking.releasePendingEditsLock()
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)
     }
@@ -371,35 +292,45 @@ class EnsureCompiledJob(protected val files: Iterable[File])
 
   /** Run the invalidation commands.
     *
-    * @param invalidationCommands the invalidation command to run
+    * @param module the compiled module
+    * @param changeset the changeset containing the list of invalidated expressions
     * @param ctx the runtime context
     */
-  private def runInvalidationCommands(
-    invalidationCommands: Iterable[CacheInvalidation]
+  private def invalidateCaches(
+    module: Module,
+    changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
-    ctx.contextManager.getAll.values
+    val invalidationCommands =
+      buildCacheInvalidationCommands(
+        changeset,
+        module.getSource.getCharacters
+      )
+    ctx.contextManager.getAllContexts.values
       .foreach { stack =>
-        if (stack.nonEmpty) {
+        if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
           CacheInvalidation.runAll(stack, invalidationCommands)
         }
       }
-  }
+    CacheInvalidation.runAllVisualisations(
+      ctx.contextManager.getVisualisations(module.getName),
+      invalidationCommands
+    )
 
-  /** Send notification about module updates.
-    *
-    * @param payload the module update
-    * @param ctx the runtime context
-    */
-  private def sendModuleUpdate(
-    payload: Api.SuggestionsDatabaseModuleUpdateNotification
-  )(implicit ctx: RuntimeContext): Unit =
-    if (
-      payload.actions.nonEmpty ||
-      payload.exports.nonEmpty ||
-      !payload.updates.isEmpty
-    ) {
-      ctx.endpoint.sendToClient(Api.Response(payload))
+    val invalidatedVisualisations =
+      ctx.contextManager.getInvalidatedVisualisations(
+        module.getName,
+        changeset.invalidated
+      )
+    invalidatedVisualisations.foreach { visualisation =>
+      UpsertVisualisationJob.upsertVisualisation(visualisation)
     }
+    if (invalidatedVisualisations.nonEmpty) {
+      ctx.executionService.getLogger.log(
+        Level.FINE,
+        s"Invalidated visualisations [${invalidatedVisualisations.map(_.id)}]"
+      )
+    }
+  }
 
   /** Send notification about the compilation status.
     *
@@ -411,7 +342,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     diagnostics: Seq[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit =
     if (diagnostics.nonEmpty) {
-      ctx.contextManager.getAll.keys.foreach { contextId =>
+      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
         ctx.endpoint.sendToClient(
           Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
         )
@@ -426,20 +357,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def sendFailureUpdate(
     failure: Api.ExecutionResult.Failure
   )(implicit ctx: RuntimeContext): Unit =
-    ctx.contextManager.getAll.keys.foreach { contextId =>
+    ctx.contextManager.getAllContexts.keys.foreach { contextId =>
       ctx.endpoint.sendToClient(
         Api.Response(Api.ExecutionFailed(contextId, failure))
       )
-    }
-
-  private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
-    suggestion match {
-      case _: Suggestion.Module     => true
-      case _: Suggestion.Atom       => true
-      case _: Suggestion.Method     => true
-      case _: Suggestion.Conversion => true
-      case _: Suggestion.Function   => false
-      case _: Suggestion.Local      => false
     }
 
   private def getCompilationStatus(
@@ -449,6 +370,27 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       CompilationStatus.Error
     else
       CompilationStatus.Success
+
+  private def setCacheWeights()(implicit ctx: RuntimeContext): Unit = {
+    ctx.contextManager.getAllContexts.values.foreach { stack =>
+      getCacheMetadata(stack).foreach { metadata =>
+        CacheInvalidation.run(
+          stack,
+          CacheInvalidation(
+            CacheInvalidation.StackSelector.Top,
+            CacheInvalidation.Command.SetMetadata(metadata)
+          )
+        )
+      }
+    }
+    val visualisations = ctx.contextManager.getAllVisualisations
+    visualisations.flatMap(getCacheMetadata).foreach { metadata =>
+      CacheInvalidation.runVisualisations(
+        visualisations,
+        CacheInvalidation.Command.SetMetadata(metadata)
+      )
+    }
+  }
 
   private def getCacheMetadata(
     stack: Iterable[InstrumentFrame]
@@ -466,14 +408,37 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       case _ => None
     }
 
+  private def getCacheMetadata(
+    visualisation: Visualisation
+  ): Option[CachePreferenceAnalysis.Metadata] = {
+    val module = visualisation.module
+    module.getIr.getMetadata(CachePreferenceAnalysis)
+  }
+
   /** Get all modules in the current compiler scope. */
   private def getModulesInScope(implicit
     ctx: RuntimeContext
   ): Iterable[Module] =
     ctx.executionService.getContext.getTopScope.getModules.asScala
 
-  private def rootName(name: QualifiedName): String =
-    name.path.headOption.getOrElse(name.item)
+  /** Check if stack belongs to the provided module.
+    *
+    * @param module the qualified module name
+    * @param stack the execution stack
+    */
+  private def isStackInModule(
+    module: QualifiedName,
+    stack: Iterable[InstrumentFrame]
+  ): Boolean =
+    stack.headOption match {
+      case Some(
+            InstrumentFrame(StackItem.ExplicitCall(methodPointer, _, _), _, _)
+          ) =>
+        methodPointer.module == module.toString
+      case _ =>
+        false
+    }
+
 }
 
 object EnsureCompiledJob {

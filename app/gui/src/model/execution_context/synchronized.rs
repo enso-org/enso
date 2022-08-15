@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
@@ -61,6 +62,7 @@ impl ExecutionContext {
     ///
     /// NOTE: By itself this execution context will not be able to receive any updates from the
     /// language server.
+    #[profile(Debug)]
     pub fn create(
         parent: impl AnyLogger,
         language_server: Rc<language_server::Connection>,
@@ -95,6 +97,25 @@ impl ExecutionContext {
         result.map(|res| res.map_err(|err| err.into()))
     }
 
+    /// Load the component groups defined in libraries imported into the execution context.
+    async fn load_component_groups(&self) {
+        match self.language_server.get_component_groups(&self.id).await {
+            Ok(ls_response) => {
+                let ls_groups = ls_response.component_groups;
+                let groups = ls_groups.into_iter().map(|group| group.into()).collect();
+                *self.model.component_groups.borrow_mut() = Rc::new(groups);
+                info!(self.logger, "Loaded component groups.");
+            }
+            Err(err) => {
+                let msg = iformat!(
+                    "Failed to load component groups. No groups will appear in the Favorites \
+                    section of the Component Browser. Error: {err}"
+                );
+                error!(self.logger, "{msg}");
+            }
+        }
+    }
+
     /// Detach visualization from current execution context.
     ///
     /// Necessary because the Language Server requires passing both visualization ID and expression
@@ -117,11 +138,15 @@ impl ExecutionContext {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_notification(&self, notification: Notification) -> FallibleResult {
+    pub fn handle_notification(self: &Rc<Self>, notification: Notification) -> FallibleResult {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
                     info!(self.logger, "Context {self.id} Became ready");
+                    let this = self.clone();
+                    executor::global::spawn(async move {
+                        this.load_component_groups().await;
+                    });
                 },
             Notification::ExpressionUpdates(updates) => {
                 self.model.computed_value_info_registry.apply_updates(updates);
@@ -150,6 +175,10 @@ impl model::execution_context::API for ExecutionContext {
 
     fn active_visualizations(&self) -> Vec<VisualizationId> {
         self.model.active_visualizations()
+    }
+
+    fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
+        self.model.component_groups()
     }
 
     /// Access the registry of computed values information, like types or called method pointers.
@@ -279,10 +308,11 @@ pub mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::execution_context::plain::test::MockData;
+    use crate::model::execution_context::ComponentGroup;
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
-    use engine_protocol::language_server::response::CreateExecutionContext;
+    use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;
     use json_rpc::expect_call;
@@ -302,9 +332,15 @@ pub mod test {
         fn new_customized(
             ls_setup: impl FnOnce(&mut language_server::MockClient, &MockData),
         ) -> Fixture {
-            let data = MockData::new();
+            Self::new_customized_with_data(MockData::new(), ls_setup)
+        }
+
+        fn new_customized_with_data(
+            data: MockData,
+            ls_setup: impl FnOnce(&mut language_server::MockClient, &MockData),
+        ) -> Fixture {
             let mut ls_client = language_server::MockClient::default();
-            Self::mock_create_push_destroy_calls(&data, &mut ls_client);
+            Self::mock_default_calls(&data, &mut ls_client);
             ls_setup(&mut ls_client, &data);
             ls_client.require_all_calls();
             let connection = language_server::Connection::new_mock_rc(ls_client);
@@ -317,13 +353,13 @@ pub mod test {
         }
 
         /// What is expected server's response to a successful creation of this context.
-        fn expected_creation_response(data: &MockData) -> CreateExecutionContext {
+        fn expected_creation_response(data: &MockData) -> response::CreateExecutionContext {
             let context_id = data.context_id;
             let can_modify =
                 CapabilityRegistration::create_can_modify_execution_context(context_id);
             let receives_updates =
                 CapabilityRegistration::create_receives_execution_context_updates(context_id);
-            CreateExecutionContext { context_id, can_modify, receives_updates }
+            response::CreateExecutionContext { context_id, can_modify, receives_updates }
         }
 
         /// Sets up mock client expectations for context creation and destruction.
@@ -334,12 +370,9 @@ pub mod test {
             expect_call!(ls.destroy_execution_context(id) => Ok(()));
         }
 
-        /// Sets up mock client expectations for context creation, initial frame push
-        /// and destruction.
-        pub fn mock_create_push_destroy_calls(
-            data: &MockData,
-            ls: &mut language_server::MockClient,
-        ) {
+        /// Sets up mock client expectations for all the calls issued by default by the
+        /// [`ExecutionContext::create`] and [`ExecutionContext::drop`] methods.
+        pub fn mock_default_calls(data: &MockData, ls: &mut language_server::MockClient) {
             Self::mock_create_destroy_calls(data, ls);
             let id = data.context_id;
             let root_frame = language_server::ExplicitCall {
@@ -510,6 +543,75 @@ pub mod test {
             let expression = Some(new_expression.to_owned());
             let module = Some(QualifiedName::from_text(new_module).unwrap());
             context.modify_visualization(vis_id, expression, module).await.unwrap();
+        });
+    }
+
+    /// Check that the [`ExecutionContext::load_component_groups`] method correctly parses
+    /// a mocked Language Server response and loads the result into a field of the
+    /// [`ExecutionContext`].
+    #[test]
+    fn loading_component_groups() {
+        // Prepare sample component groups to be returned by a mock Language Server client.
+        fn library_component(name: &str) -> language_server::LibraryComponent {
+            language_server::LibraryComponent { name: name.to_string(), shortcut: None }
+        }
+        let sample_ls_component_groups = vec![
+            // A sample component group in local namespace, with non-empty color, and with exports
+            // from the local namespace as well as from the standard library.
+            language_server::LibraryComponentGroup {
+                library: "local.Unnamed_10".to_string(),
+                name:    "Test Group 1".to_string(),
+                color:   Some("#C047AB".to_string()),
+                icon:    None,
+                exports: vec![
+                    library_component("Standard.Base.System.File.new"),
+                    library_component("local.Unnamed_10.Main.main"),
+                ],
+            },
+            // A sample component group from the standard library, without a predefined color.
+            language_server::LibraryComponentGroup {
+                library: "Standard.Base".to_string(),
+                name:    "Input".to_string(),
+                color:   None,
+                icon:    None,
+                exports: vec![library_component("Standard.Base.System.File.new")],
+            },
+        ];
+
+        // Create a test fixture based on the sample data.
+        let fixture = Fixture::new_customized(move |client, data| {
+            let component_groups = language_server::response::GetComponentGroups {
+                component_groups: sample_ls_component_groups,
+            };
+            let id = data.context_id;
+            expect_call!(client.get_component_groups(id) => Ok(component_groups));
+        });
+        let Fixture { mut test, context, .. } = fixture;
+
+        // Run a test and verify that the sample component groups were parsed correctly and have
+        // expected contents.
+        test.run_task(async move {
+            context.load_component_groups().await;
+            let groups = context.model.component_groups.borrow();
+            assert_eq!(groups.len(), 2);
+
+            // Verify that the first component group was parsed and has expected contents.
+            let first_group = &groups[0];
+            assert_eq!(first_group.name, "Test Group 1".to_string());
+            let color = first_group.color.unwrap();
+            assert_eq!((color.red * 255.0) as u8, 0xC0);
+            assert_eq!((color.green * 255.0) as u8, 0x47);
+            assert_eq!((color.blue * 255.0) as u8, 0xAB);
+            let expected_components =
+                vec!["Standard.Base.System.File.new".into(), "local.Unnamed_10.Main.main".into()];
+            assert_eq!(first_group.components, expected_components);
+
+            // Verify that the second component group was parsed and has expected contents.
+            assert_eq!(groups[1], ComponentGroup {
+                name:       "Input".into(),
+                color:      None,
+                components: vec!["Standard.Base.System.File.new".into(),],
+            });
         });
     }
 }

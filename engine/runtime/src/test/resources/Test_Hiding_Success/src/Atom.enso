@@ -2,4 +2,4 @@ type X a
 
 type Y b
 
-X.method = 20
+X.method self = 20

@@ -6,10 +6,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.node.expression.builtin.text.util.ExpectTextNode;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -22,7 +19,7 @@ public class InvokeNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object _this, Object target, Object name, Array arguments) {
+  Object execute(Object target, Object name, Array arguments) {
     try {
       return library.invokeMember(target, expectStringNode.execute(name), arguments.getItems());
     } catch (UnsupportedMessageException

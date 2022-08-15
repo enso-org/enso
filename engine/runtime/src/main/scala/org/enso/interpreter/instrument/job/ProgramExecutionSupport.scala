@@ -7,7 +7,7 @@ import java.util.UUID
 
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
-import org.enso.interpreter.instrument.IdExecutionInstrument.{
+import org.enso.interpreter.instrument.IdExecutionService.{
   ExpressionCall,
   ExpressionValue
 }
@@ -429,12 +429,14 @@ object ProgramExecutionSupport {
       Either
         .catchNonFatal {
           ctx.executionService.getLogger.log(
-            Level.FINEST,
+            Level.FINE,
             s"Executing visualisation ${visualisation.expressionId}"
           )
-          ctx.executionService.callFunction(
+          ctx.executionService.callFunctionWithInstrument(
+            visualisation.module,
             visualisation.callback,
-            expressionValue
+            expressionValue,
+            visualisation.cache
           )
         }
         .flatMap {

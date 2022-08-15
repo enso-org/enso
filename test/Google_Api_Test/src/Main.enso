@@ -1,9 +1,10 @@
 from Standard.Base import all
 import Standard.Google_Api
+
 import Standard.Test
 
 main = Test.Suite.run_main <|
-    secret = Enso_Project.data / 'secret.json'
+    secret = enso_project.data / 'secret.json'
     api = Google_Api.initialize secret
 
     Test.group "Google Spreadsheets"

@@ -3,6 +3,7 @@ package org.enso.languageserver.text
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash}
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.languageserver.boot.TimingsConfig
 import org.enso.languageserver.capability.CapabilityProtocol._
 import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
 import org.enso.languageserver.event.{
@@ -21,30 +22,28 @@ import org.enso.languageserver.filemanager.{
   Path
 }
 import org.enso.languageserver.session.JsonSession
-import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
+import org.enso.languageserver.text.CollaborativeBuffer.{AutoSave, IOTimeout}
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
-
-import scala.concurrent.duration._
-import scala.language.postfixOps
 
 /** An actor enabling multiple users edit collaboratively a file.
   *
   * @param bufferPath a path to a file
   * @param fileManager a file manger actor
   * @param runtimeConnector a gateway to the runtime
-  * @param timeout a request timeout
   * @param versionCalculator a content based version calculator
+  * @param timingsConfig a config with timeout/delay values
   */
 class CollaborativeBuffer(
   bufferPath: Path,
   fileManager: ActorRef,
   runtimeConnector: ActorRef,
-  timeout: FiniteDuration
+  timingsConfig: TimingsConfig
 )(implicit
   versionCalculator: ContentBasedVersioning
 ) extends Actor
@@ -61,34 +60,45 @@ class CollaborativeBuffer(
 
   override def receive: Receive = uninitialized
 
-  private def uninitialized: Receive = { case OpenFile(client, path) =>
-    context.system.eventStream.publish(BufferOpened(path))
-    logger.info(
-      "Buffer opened for [path:{}, client:{}].",
-      path,
-      client.clientId
-    )
-    readFile(client, path)
+  private def uninitialized: Receive = {
+    case OpenFile(client, path) =>
+      context.system.eventStream.publish(BufferOpened(path))
+      logger.info(
+        "Buffer opened for [path:{}, client:{}].",
+        path,
+        client.clientId
+      )
+      readFile(client, path)
+
+    case OpenBuffer(client, path) =>
+      context.system.eventStream.publish(BufferOpened(path))
+      logger.info(
+        "Buffer opened in-memory for [path:{}, client:{}].",
+        path,
+        client.clientId
+      )
+      openBuffer(client, path)
   }
 
   private def waitingForFileContent(
     rpcSession: JsonSession,
     replyTo: ActorRef,
-    timeoutCancellable: Cancellable
+    timeoutCancellable: Cancellable,
+    inMemoryBuffer: Boolean
   ): Receive = {
     case ReadTextualFileResult(Right(content)) =>
-      handleFileContent(rpcSession, replyTo, content)
+      handleFileContent(rpcSession, replyTo, content, inMemoryBuffer, Map.empty)
       unstashAll()
-      timeoutCancellable.cancel(): Unit
+      timeoutCancellable.cancel()
 
     case ReadTextualFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
       timeoutCancellable.cancel()
-      stop()
+      stop(Map.empty)
 
     case IOTimeout =>
       replyTo ! OpenFileResponse(Left(OperationTimeout))
-      stop()
+      stop(Map.empty)
 
     case _ => stash()
   }
@@ -96,32 +106,53 @@ class CollaborativeBuffer(
   private def collaborativeEditing(
     buffer: Buffer,
     clients: Map[ClientId, JsonSession],
-    lockHolder: Option[JsonSession]
+    lockHolder: Option[JsonSession],
+    autoSave: Map[ClientId, Cancellable]
   ): Receive = {
     case OpenFile(client, _) =>
-      openFile(buffer, clients, lockHolder, client)
+      openFile(buffer, clients, lockHolder, client, autoSave)
 
     case AcquireCapability(client, CapabilityRegistration(CanEdit(path))) =>
-      acquireWriteLock(buffer, clients, lockHolder, client, path)
+      acquireWriteLock(buffer, clients, lockHolder, client, path, autoSave)
 
     case ReleaseCapability(client, CapabilityRegistration(CanEdit(_))) =>
-      releaseWriteLock(buffer, clients, lockHolder, client.clientId)
+      releaseWriteLock(buffer, clients, lockHolder, client.clientId, autoSave)
 
     case JsonSessionTerminated(client) =>
       if (clients.contains(client.clientId)) {
-        removeClient(buffer, clients, lockHolder, client.clientId)
+        removeClient(buffer, clients, lockHolder, client.clientId, autoSave)
       }
 
     case CloseFile(clientId, _) =>
       if (clients.contains(clientId)) {
-        removeClient(buffer, clients, lockHolder, clientId)
+        removeClient(buffer, clients, lockHolder, clientId, autoSave)
         sender() ! FileClosed
       } else {
         sender() ! FileNotOpened
       }
 
-    case ApplyEdit(clientId, change) =>
-      edit(buffer, clients, lockHolder, clientId, change)
+    case ApplyEdit(clientId, change, execute) =>
+      edit(buffer, clients, lockHolder, clientId, change, execute, autoSave)
+
+    case ApplyExpressionValue(
+          clientId,
+          expressionId,
+          path,
+          edit,
+          oldVersion,
+          newVersion
+        ) =>
+      val change = FileEdit(path, List(edit), oldVersion, newVersion)
+      editExpressionValue(
+        buffer,
+        clients,
+        lockHolder,
+        clientId,
+        change,
+        expressionId,
+        edit.text,
+        autoSave
+      )
 
     case SaveFile(clientId, _, clientVersion) =>
       saveFile(
@@ -129,35 +160,61 @@ class CollaborativeBuffer(
         clients,
         lockHolder,
         clientId,
-        ContentVersion(clientVersion)
+        ContentVersion(clientVersion),
+        autoSave,
+        isAutoSave = false
+      )
+    case AutoSave(clientId, clientVersion) =>
+      saveFile(
+        buffer,
+        clients,
+        lockHolder,
+        clientId,
+        clientVersion,
+        autoSave.removed(clientId),
+        isAutoSave = true
       )
   }
 
   private def saving(
     buffer: Buffer,
     clients: Map[ClientId, JsonSession],
+    autoSave: Map[ClientId, Cancellable],
     lockHolder: Option[JsonSession],
-    replyTo: ActorRef,
+    replyTo: Option[ActorRef],
     timeoutCancellable: Cancellable
   ): Receive = {
     case IOTimeout =>
-      replyTo ! SaveFailed(OperationTimeout)
+      replyTo.foreach(_ ! SaveFailed(OperationTimeout))
       unstashAll()
-      context.become(collaborativeEditing(buffer, clients, lockHolder))
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
 
     case WriteFileResult(Left(failure)) =>
-      replyTo ! SaveFailed(failure)
+      replyTo.foreach(_ ! SaveFailed(failure))
       unstashAll()
       timeoutCancellable.cancel()
-      context.become(collaborativeEditing(buffer, clients, lockHolder))
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
 
     case WriteFileResult(Right(())) =>
-      replyTo ! FileSaved
+      replyTo match {
+        case Some(replyTo) => replyTo ! FileSaved
+        case None =>
+          clients.values.foreach {
+            _.rpcController ! FileAutoSaved(bufferPath)
+          }
+      }
       unstashAll()
       timeoutCancellable.cancel()
-      context.become(collaborativeEditing(buffer, clients, lockHolder))
+      context.become(
+        collaborativeEditing(buffer, clients, lockHolder, autoSave)
+      )
 
-    case _ => stash()
+    case _ =>
+      stash()
   }
 
   private def saveFile(
@@ -165,7 +222,9 @@ class CollaborativeBuffer(
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
     clientId: ClientId,
-    clientVersion: ContentVersion
+    clientVersion: ContentVersion,
+    currentAutoSaves: Map[ClientId, Cancellable],
+    isAutoSave: Boolean
   ): Unit = {
     val hasLock = lockHolder.exists(_.clientId == clientId)
     if (hasLock) {
@@ -174,29 +233,63 @@ class CollaborativeBuffer(
           bufferPath,
           buffer.contents.toString
         )
+        currentAutoSaves.get(clientId).foreach(_.cancel())
 
         val timeoutCancellable = context.system.scheduler
-          .scheduleOnce(timeout, self, IOTimeout)
+          .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
         context.become(
-          saving(buffer, clients, lockHolder, sender(), timeoutCancellable)
+          saving(
+            buffer,
+            clients,
+            currentAutoSaves.removed(clientId),
+            lockHolder,
+            if (isAutoSave) None else Some(sender()),
+            timeoutCancellable
+          )
         )
-      } else {
+      } else if (!isAutoSave)
         sender() ! SaveFileInvalidVersion(
           clientVersion.toHexString,
           buffer.version.toHexString
         )
-      }
     } else {
-      sender() ! SaveDenied
+      if (!isAutoSave) {
+        sender() ! SaveDenied
+      }
     }
   }
 
-  private def edit(
+  private def upsertAutoSaveTimer(
+    currentAutoSave: Map[ClientId, Cancellable],
+    clientId: ClientId,
+    clientVersion: ContentVersion
+  ): Map[ClientId, Cancellable] = {
+    currentAutoSave.get(clientId).foreach(_.cancel())
+    val updatedAutoSave = currentAutoSave.removed(clientId)
+    timingsConfig.autoSaveDelay
+      .map(delay =>
+        updatedAutoSave.updated(
+          clientId,
+          context.system.scheduler
+            .scheduleOnce(
+              delay,
+              self,
+              AutoSave(clientId, clientVersion)
+            )
+        )
+      )
+      .getOrElse(updatedAutoSave)
+  }
+
+  private def editExpressionValue(
     buffer: Buffer,
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
     clientId: ClientId,
-    change: FileEdit
+    change: FileEdit,
+    expressionId: ExpressionId,
+    expressionValue: String,
+    autoSave: Map[ClientId, Cancellable]
   ): Unit = {
     applyEdits(buffer, lockHolder, clientId, change) match {
       case Left(failure) =>
@@ -207,10 +300,49 @@ class CollaborativeBuffer(
         val subscribers = clients.filterNot(_._1 == clientId).values
         subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
         runtimeConnector ! Api.Request(
-          Api.EditFileNotification(buffer.file, change.edits)
+          Api.SetExpressionValueNotification(
+            buffer.file,
+            change.edits,
+            expressionId,
+            expressionValue
+          )
+        )
+        val newAutoSave: Map[ClientId, Cancellable] =
+          if (buffer.inMemory) autoSave
+          else upsertAutoSaveTimer(autoSave, clientId, modifiedBuffer.version)
+        context.become(
+          collaborativeEditing(modifiedBuffer, clients, lockHolder, newAutoSave)
+        )
+    }
+  }
+
+  private def edit(
+    buffer: Buffer,
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
+    clientId: ClientId,
+    change: FileEdit,
+    execute: Boolean,
+    autoSave: Map[ClientId, Cancellable]
+  ): Unit = {
+    applyEdits(buffer, lockHolder, clientId, change) match {
+      case Left(failure) =>
+        sender() ! failure
+
+      case Right(modifiedBuffer) =>
+        sender() ! ApplyEditSuccess
+        val subscribers = clients.filterNot(_._1 == clientId).values
+        subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
+        runtimeConnector ! Api.Request(
+          Api.EditFileNotification(buffer.file, change.edits, execute)
+        )
+        val newAutoSave: Map[ClientId, Cancellable] = upsertAutoSaveTimer(
+          autoSave,
+          clientId,
+          modifiedBuffer.version
         )
         context.become(
-          collaborativeEditing(modifiedBuffer, clients, lockHolder)
+          collaborativeEditing(modifiedBuffer, clients, lockHolder, newAutoSave)
         )
     }
   }
@@ -267,7 +399,12 @@ class CollaborativeBuffer(
       .applyEdits(buffer.contents, edits)
       .leftMap(toEditFailure)
       .map(rope =>
-        Buffer(buffer.file, rope, versionCalculator.evalVersion(rope.toString))
+        Buffer(
+          buffer.file,
+          rope,
+          buffer.inMemory,
+          versionCalculator.evalVersion(rope.toString)
+        )
       )
   }
 
@@ -280,21 +417,48 @@ class CollaborativeBuffer(
       TextEditValidationFailed(s"Invalid position: $position")
   }
 
-  private def readFile(rpcSession: JsonSession, path: Path): Unit = {
+  private def readFile(
+    rpcSession: JsonSession,
+    path: Path
+  ): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
     val timeoutCancellable = context.system.scheduler
-      .scheduleOnce(timeout, self, IOTimeout)
+      .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
     context.become(
-      waitingForFileContent(rpcSession, sender(), timeoutCancellable)
+      waitingForFileContent(
+        rpcSession,
+        sender(),
+        timeoutCancellable,
+        inMemoryBuffer = false
+      )
+    )
+  }
+
+  private def openBuffer(
+    rpcSession: JsonSession,
+    path: Path
+  ): Unit = {
+    fileManager ! FileManagerProtocol.OpenBuffer(path)
+    val timeoutCancellable = context.system.scheduler
+      .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
+    context.become(
+      waitingForFileContent(
+        rpcSession,
+        sender(),
+        timeoutCancellable,
+        inMemoryBuffer = true
+      )
     )
   }
 
   private def handleFileContent(
     rpcSession: JsonSession,
     originalSender: ActorRef,
-    file: TextualFileContent
+    file: TextualFileContent,
+    inMemoryBuffer: Boolean,
+    autoSave: Map[ClientId, Cancellable]
   ): Unit = {
-    val buffer = Buffer(file.path, file.content)
+    val buffer = Buffer(file.path, file.content, inMemoryBuffer)
     val cap    = CapabilityRegistration(CanEdit(bufferPath))
     originalSender ! OpenFileResponse(
       Right(OpenFileResult(buffer, Some(cap)))
@@ -306,7 +470,8 @@ class CollaborativeBuffer(
       collaborativeEditing(
         buffer,
         Map(rpcSession.clientId -> rpcSession),
-        Some(rpcSession)
+        Some(rpcSession),
+        autoSave
       )
     )
   }
@@ -315,7 +480,8 @@ class CollaborativeBuffer(
     buffer: Buffer,
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
-    rpcSession: JsonSession
+    rpcSession: JsonSession,
+    autoSave: Map[ClientId, Cancellable]
   ): Unit = {
     val writeCapability =
       if (lockHolder.isEmpty)
@@ -327,7 +493,8 @@ class CollaborativeBuffer(
       collaborativeEditing(
         buffer,
         clients + (rpcSession.clientId -> rpcSession),
-        lockHolder
+        lockHolder,
+        autoSave
       )
     )
   }
@@ -336,19 +503,29 @@ class CollaborativeBuffer(
     buffer: Buffer,
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
-    clientId: ClientId
+    clientId: ClientId,
+    autoSave: Map[ClientId, Cancellable]
   ): Unit = {
     val newLock =
       lockHolder.flatMap {
         case holder if holder.clientId == clientId => None
         case holder                                => Some(holder)
       }
+
+    autoSave.get(clientId).foreach(_.cancel())
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
       runtimeConnector ! Api.Request(Api.CloseFileNotification(buffer.file))
-      stop()
+      stop(autoSave)
     } else {
-      context.become(collaborativeEditing(buffer, newClientMap, newLock))
+      context.become(
+        collaborativeEditing(
+          buffer,
+          newClientMap,
+          newLock,
+          autoSave.removed(clientId)
+        )
+      )
     }
   }
 
@@ -356,20 +533,25 @@ class CollaborativeBuffer(
     buffer: Buffer,
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
-    clientId: ClientId
+    clientId: ClientId,
+    autoSave: Map[ClientId, Cancellable]
   ): Unit = {
     lockHolder match {
       case None =>
         sender() ! CapabilityReleaseBadRequest
-        context.become(collaborativeEditing(buffer, clients, lockHolder))
+        context.become(
+          collaborativeEditing(buffer, clients, lockHolder, autoSave)
+        )
 
       case Some(holder) if holder.clientId != clientId =>
         sender() ! CapabilityReleaseBadRequest
-        context.become(collaborativeEditing(buffer, clients, lockHolder))
+        context.become(
+          collaborativeEditing(buffer, clients, lockHolder, autoSave)
+        )
 
       case Some(_) =>
         sender() ! CapabilityReleased
-        context.become(collaborativeEditing(buffer, clients, None))
+        context.become(collaborativeEditing(buffer, clients, None, autoSave))
     }
   }
 
@@ -378,27 +560,35 @@ class CollaborativeBuffer(
     clients: Map[ClientId, JsonSession],
     lockHolder: Option[JsonSession],
     clientId: JsonSession,
-    path: Path
+    path: Path,
+    autoSave: Map[ClientId, Cancellable]
   ): Unit = {
     lockHolder match {
       case None =>
         sender() ! CapabilityAcquired
-        context.become(collaborativeEditing(buffer, clients, Some(clientId)))
+        context.become(
+          collaborativeEditing(buffer, clients, Some(clientId), autoSave)
+        )
 
       case Some(holder) if holder == clientId =>
         sender() ! CapabilityAcquisitionBadRequest
-        context.become(collaborativeEditing(buffer, clients, lockHolder))
+        context.become(
+          collaborativeEditing(buffer, clients, lockHolder, autoSave)
+        )
 
       case Some(holder) =>
         sender() ! CapabilityAcquired
         holder.rpcController ! CapabilityForceReleased(
           CapabilityRegistration(CanEdit(path))
         )
-        context.become(collaborativeEditing(buffer, clients, Some(clientId)))
+        context.become(
+          collaborativeEditing(buffer, clients, Some(clientId), autoSave)
+        )
     }
   }
 
-  def stop(): Unit = {
+  def stop(autoSave: Map[ClientId, Cancellable]): Unit = {
+    autoSave.foreach(_._2.cancel())
     context.system.eventStream.publish(BufferClosed(bufferPath))
     context.stop(self)
   }
@@ -409,12 +599,17 @@ object CollaborativeBuffer {
 
   case object IOTimeout
 
+  private case class AutoSave(
+    clientId: ClientId,
+    clientVersion: ContentVersion
+  )
+
   /** Creates a configuration object used to create a [[CollaborativeBuffer]]
     *
     * @param bufferPath a path to a file
     * @param fileManager a file manager actor
     * @param runtimeConnector a gateway to the runtime
-    * @param timeout a request timeout
+    * @param timingsConfig a config with timing/delay values
     * @param versionCalculator a content based version calculator
     * @return a configuration object
     */
@@ -422,14 +617,14 @@ object CollaborativeBuffer {
     bufferPath: Path,
     fileManager: ActorRef,
     runtimeConnector: ActorRef,
-    timeout: FiniteDuration = 10 seconds
+    timingsConfig: TimingsConfig
   )(implicit versionCalculator: ContentBasedVersioning): Props =
     Props(
       new CollaborativeBuffer(
         bufferPath,
         fileManager,
         runtimeConnector,
-        timeout
+        timingsConfig
       )
     )
 

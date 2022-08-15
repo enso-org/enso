@@ -7,8 +7,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
 
-import java.io.File;
-
 @BuiltinMethod(
     type = "Polyglot",
     name = "is_language_installed",
@@ -19,11 +17,11 @@ public abstract class IsLanguageInstalledNode extends Node {
     return IsLanguageInstalledNodeGen.create();
   }
 
+  abstract boolean execute(Object language_name);
+
   @Specialization
-  boolean doExecute(Object _this, Object language_name, @Cached ExpectStringNode expectStringNode) {
+  boolean doExecute(Object language_name, @Cached ExpectStringNode expectStringNode) {
     String name = expectStringNode.execute(language_name);
     return Context.get(this).getEnvironment().getPublicLanguages().get(name) != null;
   }
-
-  abstract boolean execute(Object _this, Object language_name);
 }

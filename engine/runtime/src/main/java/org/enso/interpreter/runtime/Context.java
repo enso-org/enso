@@ -128,12 +128,14 @@ public class Context {
 
     Optional<String> languageHome =
         OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
+    var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
     packageRepository =
         PackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
             OptionConverters.toScala(languageHome),
+            OptionConverters.toScala(editionOverride),
             distributionManager,
             resourceManager,
             this,
@@ -465,28 +467,5 @@ public class Context {
    */
   public long clockTick() {
     return clock.getAndIncrement();
-  }
-
-  /**
-   * Return the {@code Standard.Base.Data.Time.Date} constructor.
-   *
-   * @return optional with {@link AtomConstructor} for the date, if it can be found
-   */
-  public Optional<AtomConstructor> getDateConstructor() {
-    if (date == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      final String stdDateModuleName = "Standard.Base.Data.Time.Date";
-      final String stdDateConstructorName = "Date";
-      ensureModuleIsLoaded(stdDateModuleName);
-      Optional<Module> dateModule = findModule(stdDateModuleName);
-      if (dateModule.isPresent()) {
-        date =
-            Optional.ofNullable(
-                dateModule.get().getScope().getConstructors().get(stdDateConstructorName));
-      } else {
-        date = Optional.empty();
-      }
-    }
-    return date;
   }
 }

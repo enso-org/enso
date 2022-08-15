@@ -845,6 +845,7 @@ object AstView {
       ast match {
         case ConstructorPattern(_, _) => Some(ast)
         case CatchAllPattern(pat)     => Some(pat)
+        case LiteralPattern(lit)      => Some(lit)
         case Parensed(Pattern(p)) =>
           println(p)
           Some(p)
@@ -894,6 +895,16 @@ object AstView {
             case _ => None
           }
         case _ => None
+      }
+    }
+  }
+
+  object LiteralPattern {
+    def unapply(ast: AST): Option[AST.Literal] = {
+      MaybeManyParensed.unapply(ast).getOrElse(ast) match {
+        case AST.Literal.Number.any(number) => Some(number)
+        case AST.Literal.Text.any(text)     => Some(text)
+        case _                              => None
       }
     }
   }

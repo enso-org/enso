@@ -60,10 +60,10 @@ class ModifyVisualisationCmd(
           ctx.jobProcessor.run(
             new UpsertVisualisationJob(
               maybeRequestId,
+              Api.VisualisationModified(),
               request.visualisationId,
               visualisation.expressionId,
-              request.visualisationConfig,
-              Api.VisualisationModified()
+              request.visualisationConfig
             )
           )
         maybeFutureExecutable flatMap {

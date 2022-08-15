@@ -14,7 +14,7 @@ all_character_sets =
 ## Get all available Encodings.
 all_encodings : Vector Encoding
 all_encodings =
-    here.all_character_sets . map Encoding
+    all_character_sets.map Encoding
 
 ## Represents a character encoding.
 type Encoding
@@ -27,9 +27,9 @@ type Encoding
     ## PRIVATE
        Convert an Encoding to it's corresponding Java Charset
     to_java_charset : Charset
-    to_java_charset =
-        Panic.catch UnsupportedCharsetException (Charset.forName this.character_set) _->
-            Error.throw (Illegal_Argument_Error ("Unknown Character Set: " + this.character_set))
+    to_java_charset self =
+        Panic.catch UnsupportedCharsetException (Charset.forName self.character_set) _->
+            Error.throw (Illegal_Argument_Error ("Unknown Character Set: " + self.character_set))
 
     ## Encoding for ASCII.
     ascii : Encoding
@@ -99,4 +99,4 @@ type Encoding
 type Encoding_Error (message:Text)
 
 Encoding_Error.to_display_text : Text
-Encoding_Error.to_display_text = "Encoding_Error: " + this.message
+Encoding_Error.to_display_text self = "Encoding_Error: " + self.message

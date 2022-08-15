@@ -144,6 +144,16 @@ impl WeakNetwork {
         self.data.upgrade().map(|data| Network { data })
     }
 
+    /// Upgrade to string reference, printing warning if returning `None`. To be used in places
+    /// where we assume the Network should still exist.
+    pub fn upgrade_or_warn(&self) -> Option<Network> {
+        let result = self.upgrade();
+        if result.is_none() {
+            tracing::warn!("The Network is dropped in a place where we don't expect.");
+        }
+        result
+    }
+
     /// ID getter of this network.
     pub fn id(&self) -> NetworkId {
         NetworkId(self.data.as_ptr() as *const () as usize)

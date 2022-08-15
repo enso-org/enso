@@ -94,6 +94,10 @@ object Runtime {
         name  = "editFileNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.SetExpressionValueNotification],
+        name  = "setExpressionValueNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.CloseFileNotification],
         name  = "closeFileNotification"
       ),
@@ -192,6 +196,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.SuggestionsDatabaseModuleUpdateNotification],
         name  = "suggestionsDatabaseModuleUpdateNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.AnalyzeModuleInScopeJobFinished],
+        name  = "analyzeModuleInScopeJobFinished"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexRequest],
@@ -469,26 +477,76 @@ object Runtime {
       expressionId: ExpressionId
     )
 
+    /** A visualization expression. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[VisualisationExpression.Text],
+          name  = "visualisationExpressionText"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[VisualisationExpression.ModuleMethod],
+          name  = "visualisationExpressionModuleMethod"
+        )
+      )
+    )
+    sealed trait VisualisationExpression extends ToLogString {
+      def module: String
+    }
+    object VisualisationExpression {
+
+      /** Visualization expression represented as a text.
+        *
+        * @param module a qualified module name containing the expression
+        * @param expression an expression that creates a visualization
+        */
+      case class Text(module: String, expression: String)
+          extends VisualisationExpression {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"Text(module=$module" +
+          s",expression=" +
+          (if (shouldMask) STUB else expression) +
+          ")"
+      }
+
+      /** Visualization expression represented as a module method.
+        *
+        * @param methodPointer a pointer to a method definition
+        */
+      case class ModuleMethod(methodPointer: MethodPointer)
+          extends VisualisationExpression {
+
+        /** @inheritdoc */
+        override val module: String = methodPointer.module
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"ModuleMethod(methodPointer=$methodPointer)"
+      }
+    }
+
     /** A configuration object for properties of the visualisation.
       *
       * @param executionContextId an execution context of the visualisation
-      * @param visualisationModule a qualified name of the module containing
-      *                            the expression which creates visualisation
       * @param expression the expression that creates a visualisation
       */
     case class VisualisationConfiguration(
       executionContextId: ContextId,
-      visualisationModule: String,
-      expression: String
+      expression: VisualisationExpression
     ) extends ToLogString {
+
+      /** A qualified module name containing the expression. */
+      def visualisationModule: String =
+        expression.module
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         s"VisualisationConfiguration(" +
         s"executionContextId=$executionContextId," +
-        s"visualisationModule=$visualisationModule,expression=" +
-        (if (shouldMask) STUB else expression) +
-        ")"
+        s"expression=${expression.toLogString(shouldMask)})"
     }
 
     /** An operation applied to the suggestion argument. */
@@ -1214,11 +1272,15 @@ object Runtime {
     /** A notification sent to the server about in-memory file contents being
       * edited.
       *
-      * @param path the file being edited.
-      * @param edits the diffs to apply to the contents.
+      * @param path the file being edited
+      * @param edits the diffs to apply to the contents
+      * @param execute whether to execute the program after applying the edits
       */
-    final case class EditFileNotification(path: File, edits: Seq[TextEdit])
-        extends ApiRequest
+    final case class EditFileNotification(
+      path: File,
+      edits: Seq[TextEdit],
+      execute: Boolean
+    ) extends ApiRequest
         with ToLogString {
 
       /** @inheritdoc */
@@ -1226,6 +1288,32 @@ object Runtime {
         "EditFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
         (if (shouldMask) edits.map(_ => STUB) else edits) +
+        ",execute=" + execute + ")"
+    }
+
+    /** A notification sent to the server about in-memory file contents being
+      * edited.
+      *
+      * @param path the file being edited
+      * @param edits the diffs to apply to the contents
+      * @param expressionId the expression to update
+      * @param expressionValue the new value of the expression
+      */
+    final case class SetExpressionValueNotification(
+      path: File,
+      edits: Seq[TextEdit],
+      expressionId: ExpressionId,
+      expressionValue: String
+    ) extends ApiRequest
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "SetExpressionValueNotification(" +
+        s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
+        (if (shouldMask) edits.map(_ => STUB) else edits) +
+        s",expressionId=$expressionId,expressionValue=" +
+        (if (shouldMask) STUB else expressionValue) +
         ")"
     }
 
@@ -1374,6 +1462,9 @@ object Runtime {
         s"updates=${updates.map(_.toLogString(shouldMask))}" +
         ")"
     }
+
+    /** A notification about the finished background analyze job. */
+    final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
     final case class InvalidateModulesIndexRequest() extends ApiRequest

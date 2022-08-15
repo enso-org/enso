@@ -13,4 +13,3 @@ ensogl-text = { path = "../text" }
 
 [dev-dependencies]
 approx = "0.5.1"
-

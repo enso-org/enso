@@ -17,33 +17,33 @@ type Project_Description
        > Example
          Get the root directory of the project.
 
-             Enso_Project.root
+             enso_project.root
     root : File.File
-    root = File.new this.prim_root_file.getPath
+    root self = File.new self.prim_root_file
 
     ## Returns the root data directory of the project.
 
        > Example
          Get the data directory of the project.
 
-             Enso_Project.data
+             enso_project.data
     data : File.File
-    data = this.root / "data"
+    data self = self.root / "data"
 
     ## Returns the name of the project.
 
        > Example
          Get the name of the project.
 
-             Enso_Project.name
+             enso_project.name
     name : Text
-    name = this.prim_config.name
+    name self = self.prim_config.name
 
     ## Returns the namespace of the project.
 
        > Example
          Get the namespace of the project.
 
-             Enso_Project.namespace
+             enso_project.namespace
     namespace : Text
-    namespace = this.prim_config.namespace
+    namespace self = self.prim_config.namespace

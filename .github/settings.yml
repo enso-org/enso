@@ -214,23 +214,32 @@ branches:
         # Require branches to be up-to-date before merging.
         strict: true
         contexts:
-          - "Engine (Linux)"
-          - "Engine (Windows)"
+          - "Engine (linux)"
+          - "Engine (windows)"
           # The macOS job is intentionally omitted.
-          - "Docs Check"
           - "Verify Notice Package"
+          - "Test Formatting"
           - "license/cla"
 
           # GUI jobs
-          - "Build Info (macOS-latest)"
-          - "Assertions (macOS-latest)"
-          - "Linter (Linux, linter)"
-          - "Native Tests (Linux, test_native)"
-          - "WASM Tests (Linux, test_wasm)"
-          - "Build WASM (Linux, build_wasm)"
-          - "Build package (macOS-latest)"
-          - "Build package (windows-latest)"
-          - "Build package (Linux, package)"
+          # macOS is not required because it is slow and not as reliable as other checks.
+          # - "Build Project Manager (macos)"
+          # - "Build GUI (WASM) (macos)"
+          # - "Package IDE (macos)"
+          - "Native GUI tests (linux)"
+          - "Cancel Previous Runs"
+          - "Build GUI (WASM) (linux)"
+          - "Lint (linux)"
+          - "Build GUI (WASM) (windows)"
+          - "Build Backend (windows)"
+          - "Assert if CHANGELOG.md was updated (on pull request)"
+          - "WASM GUI tests (linux)"
+          - "Build Backend (linux)"
+          - "Package IDE (windows)"
+          - "Package IDE (linux)"
+          # Integration tests are currently not reliable.
+          # TODO [mwu]: Restore once https://www.pivotaltracker.com/story/show/182278293 is fixed.
+          # - "IDE integration tests (linux)"
       enforce_admins: null
       restrictions: null
   - name: "release/*.x"
@@ -248,7 +257,6 @@ branches:
           - "Build and Test (macOS-latest)"
           - "Build and Test (ubuntu-18.04)"
           - "Build and Test (windows-latest)"
-          - "Docs Check"
           - "Build Engine"
           - "Rust Check"
           - "Rust Lint"

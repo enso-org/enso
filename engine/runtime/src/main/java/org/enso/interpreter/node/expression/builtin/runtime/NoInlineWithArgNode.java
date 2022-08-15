@@ -28,12 +28,7 @@ public class NoInlineWithArgNode extends Node {
     invokeCallableNode.setTailStatus(TailStatus.NOT_TAIL);
   }
 
-  Stateful execute(
-      VirtualFrame frame,
-      @MonadicState Object state,
-      Object _this,
-      Object action,
-      Object argument) {
+  Stateful execute(VirtualFrame frame, @MonadicState Object state, Object action, Object argument) {
     MaterializedFrame materializedFrame = null;
     if (frame != null) {
       materializedFrame = frame.materialize();

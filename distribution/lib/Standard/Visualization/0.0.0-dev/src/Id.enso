@@ -11,13 +11,13 @@ type Id
 
     ## Serializes this ID to a JSON format understandable by the graphical
        interface.
-    to_json =
-        project = case this of
+    to_json self =
+        project = case self of
             Builtin _ -> Nothing
             Library project _ ->
                 full_name = project.namespace + "." + project.name
                 Base.Json.from_pairs [["name", full_name]]
-        Base.Json.from_pairs [["library", project], ["name", this.name]]
+        Base.Json.from_pairs [["library", project], ["name", self.name]]
 
 ## UNSTABLE
    ADVANCED
@@ -99,4 +99,4 @@ from_module module visualization_name =
 
    Specifies that the builtin JSON visualization should be used for any type,
    unless specified otherwise.
-Any.default_visualization = here.json
+Any.default_visualization self = json

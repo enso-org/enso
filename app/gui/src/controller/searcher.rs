@@ -6,8 +6,10 @@ use crate::prelude::*;
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::NewNodeInfo;
 use crate::model::module::MethodId;
+use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
+use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
@@ -28,6 +30,7 @@ use parser::Parser;
 // ==============
 
 pub mod action;
+pub mod component;
 
 pub use action::Action;
 
@@ -308,7 +311,7 @@ impl Display for ParsedInput {
 // === ThisNode ===
 // ================
 
-/// Information about a node that is used as a `this` argument.
+/// Information about a node that is used as a `self` argument.
 ///
 /// "This" node is either:
 /// 1. A node that was selected when the searcher was brought up.
@@ -410,6 +413,8 @@ pub struct Data {
     pub input: ParsedInput,
     /// The action list which should be displayed.
     pub actions: Actions,
+    /// The component list which should be displayed.
+    pub components: component::List,
     /// All fragments of input which were added by picking suggestions. If the fragment will be
     /// changed by user, it will be removed from this list.
     pub fragments_added_by_picking: Vec<FragmentAddedByPickingSuggestion>,
@@ -432,9 +437,10 @@ impl Data {
         let edited_node = graph.node(edited_node_id)?;
         let current_module = graph.module.path().qualified_module_name(project_name);
         let input = ParsedInput::new_from_ast(edited_node.info.expression());
-        let suggestions = default();
+        let actions = default();
+        let components = default();
         let intended_method = edited_node.metadata.and_then(|md| md.intended_method);
-        let initial_entry = intended_method.and_then(|m| database.lookup_method(m));
+        let initial_entry = intended_method.and_then(|metadata| database.lookup_method(metadata));
         let initial_fragment = initial_entry.and_then(|entry| {
             let fragment = FragmentAddedByPickingSuggestion {
                 id:                CompletedFragmentId::Function,
@@ -447,7 +453,7 @@ impl Data {
         });
         let mut fragments_added_by_picking = Vec::<FragmentAddedByPickingSuggestion>::new();
         initial_fragment.for_each(|f| fragments_added_by_picking.push(f));
-        Ok(Data { input, actions: suggestions, fragments_added_by_picking })
+        Ok(Data { input, actions, components, fragments_added_by_picking })
     }
 
     fn find_picked_fragment(
@@ -473,17 +479,22 @@ impl Data {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger:           Logger,
-    data:             Rc<RefCell<Data>>,
-    notifier:         notification::Publisher<Notification>,
-    graph:            controller::ExecutedGraph,
-    mode:             Immutable<Mode>,
-    database:         Rc<model::SuggestionDatabase>,
-    language_server:  Rc<language_server::Connection>,
-    ide:              controller::Ide,
-    this_arg:         Rc<Option<ThisNode>>,
+    logger: Logger,
+    data: Rc<RefCell<Data>>,
+    notifier: notification::Publisher<Notification>,
+    graph: controller::ExecutedGraph,
+    mode: Immutable<Mode>,
+    database: Rc<model::SuggestionDatabase>,
+    language_server: Rc<language_server::Connection>,
+    ide: controller::Ide,
+    this_arg: Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location>,
-    project:          model::Project,
+    project: model::Project,
+    /// A component list builder with favorites prepopulated with
+    /// [`controller::ExecutedGraph::component_groups`]. Stored to reduce the number of
+    /// [`database`] lookups performed when updating [`Data::components`].
+    list_builder_with_favorites: Rc<component::builder::List>,
+    node_edit_guard: Rc<Option<EditGuard>>,
 }
 
 impl Searcher {
@@ -521,6 +532,11 @@ impl Searcher {
         } else {
             default()
         };
+        let node_metadata_guard = if let Mode::EditNode { node_id } = mode {
+            Rc::new(Some(EditGuard::new(node_id, graph.clone_ref())))
+        } else {
+            default()
+        };
         let module_ast = graph.graph().module.ast();
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
@@ -530,6 +546,10 @@ impl Searcher {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
         });
+        let favorites = graph.component_groups();
+        let module_name = graph.module_qualified_name(&*project);
+        let list_builder_with_favs =
+            component_list_builder_with_favorites(&database, &module_name, &*favorites);
         let ret = Self {
             logger,
             graph,
@@ -542,6 +562,8 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
+            list_builder_with_favorites: Rc::new(list_builder_with_favs),
+            node_edit_guard: node_metadata_guard,
         };
         ret.reload_list();
         Ok(ret)
@@ -562,6 +584,11 @@ impl Searcher {
         self.data.borrow().actions.clone_ref()
     }
 
+    /// Get the current component list.
+    pub fn components(&self) -> component::List {
+        self.data.borrow().components.clone_ref()
+    }
+
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
@@ -579,10 +606,14 @@ impl Searcher {
         if expression_changed {
             debug!(self.logger, "Reloading list.");
             self.reload_list();
-        } else if let Actions::Loaded { list } = self.data.borrow().actions.clone_ref() {
-            debug!(self.logger, "Update filtering.");
-            list.update_filtering(&self.data.borrow().input.pattern);
-            executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+        } else {
+            let data = self.data.borrow();
+            data.components.update_filtering(&data.input.pattern);
+            if let Actions::Loaded { list } = &data.actions {
+                debug!(self.logger, "Update filtering.");
+                list.update_filtering(&data.input.pattern);
+                executor::global::spawn(self.notifier.publish(Notification::NewActionList));
+            }
         }
         Ok(())
     }
@@ -593,7 +624,7 @@ impl Searcher {
 
     /// Code that will be inserted by expanding given suggestion at given location.
     ///
-    /// Code depends on the location, as the first fragment can introduce `this` variable access,
+    /// Code depends on the location, as the first fragment can introduce `self` variable access,
     /// and then we don't want to put any module name.
     fn code_to_insert(&self, fragment: &FragmentAddedByPickingSuggestion) -> CodeToInsert {
         fragment.code_to_insert(&self.module_qualified_name(), self.this_arg.as_ref())
@@ -733,6 +764,9 @@ impl Searcher {
     #[profile(Debug)]
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
+        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
+            guard.prevent_revert()
+        }
         let expr_and_method = || {
             let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
 
@@ -832,7 +866,7 @@ impl Searcher {
             .drain_filter(|frag| !frag.is_still_unmodified(input, &current_module));
     }
 
-
+    #[profile(Debug)]
     fn add_required_imports(&self) -> FallibleResult {
         let data_borrowed = self.data.borrow();
         let fragments = data_borrowed.fragments_added_by_picking.iter();
@@ -924,31 +958,41 @@ impl Searcher {
         };
         executor::global::spawn(async move {
             let this_type = this_type.await;
-            info!(this.logger, "Requesting new suggestion list. Type of `this` is {this_type:?}.");
+            info!(this.logger, "Requesting new suggestion list. Type of `self` is {this_type:?}.");
             let requests = return_types_for_engine.into_iter().map(|return_type| {
                 info!(this.logger, "Requesting suggestions for returnType {return_type:?}.");
                 let file = graph.module.path().file_path();
                 ls.completion(file, &position, &this_type, &return_type, &tags)
             });
-            let responses = futures::future::join_all(requests).await;
-            info!(this.logger, "Received suggestions from Language Server.");
-            let new_list = match this.make_action_list(responses, this_type, return_types) {
-                Ok(list) => Actions::Loaded { list: Rc::new(list) },
-                Err(error) => Actions::Error(Rc::new(error)),
-            };
-            this.data.borrow_mut().actions = new_list;
+            let responses: Result<Vec<language_server::response::Completion>, _> =
+                futures::future::join_all(requests).await.into_iter().collect();
+            match responses {
+                Ok(responses) => {
+                    info!(this.logger, "Received suggestions from Language Server.");
+                    let list = this.make_action_list(responses.iter());
+                    let mut data = this.data.borrow_mut();
+                    data.actions = Actions::Loaded { list: Rc::new(list) };
+                    let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
+                    data.components = this.make_component_list(completions);
+                }
+                Err(err) => {
+                    let msg = "Request for completions to the Language Server returned error";
+                    error!(this.logger, "{msg}: {err}");
+                    let mut data = this.data.borrow_mut();
+                    data.actions = Actions::Error(Rc::new(err.into()));
+                    data.components = this.make_component_list(this.database.keys());
+                }
+            }
             this.notifier.publish(Notification::NewActionList).await;
         });
     }
 
     /// Process multiple completion responses from the engine into a single list of suggestion.
     #[profile(Debug)]
-    fn make_action_list(
+    fn make_action_list<'a>(
         &self,
-        completion_responses: Vec<json_rpc::Result<language_server::response::Completion>>,
-        _this_type: Option<String>,
-        _return_types: Vec<String>,
-    ) -> FallibleResult<action::List> {
+        completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
+    ) -> action::List {
         let creating_new_node = matches!(self.mode.deref(), Mode::NewNode { .. });
         let should_add_additional_entries = creating_new_node && self.this_arg.is_none();
         let mut actions = action::ListWithSearchResultBuilder::new();
@@ -974,10 +1018,9 @@ impl Searcher {
         let libraries_cat =
             libraries_root_cat.add_category("Libraries", libraries_icon.clone_ref());
         if should_add_additional_entries {
-            Self::add_enso_project_entries(&libraries_cat)?;
+            Self::add_enso_project_entries(&libraries_cat);
         }
         for response in completion_responses {
-            let response = response?;
             let entries = response.results.iter().filter_map(|id| {
                 self.database
                     .lookup(*id)
@@ -993,7 +1036,17 @@ impl Searcher {
             libraries_cat.extend(entries);
         }
 
-        Ok(actions.build())
+        actions.build()
+    }
+
+    #[profile(Debug)]
+    fn make_component_list<'a>(
+        &self,
+        entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
+    ) -> component::List {
+        let mut builder = self.list_builder_with_favorites.deref().clone();
+        builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
+        builder.build()
     }
 
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {
@@ -1073,7 +1126,7 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        self.graph.graph().module.path().qualified_module_name(self.project.qualified_name())
+        self.graph.module_qualified_name(&*self.project)
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1085,24 +1138,26 @@ impl Searcher {
     ///
     /// This is a workaround for Engine bug https://github.com/enso-org/enso/issues/1605.
     //TODO[ao] this is a temporary workaround.
-    fn add_enso_project_entries(libraries_cat_builder: &action::CategoryBuilder) -> FallibleResult {
+    fn add_enso_project_entries(libraries_cat_builder: &action::CategoryBuilder) {
+        // We may unwrap here, because the constant is tested to be convertible to
+        // [`QualifiedName`].
+        let module = QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
+        let self_type = tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE).unwrap();
         for method in &["data", "root"] {
             let entry = model::suggestion_database::Entry {
                 name:               (*method).to_owned(),
                 kind:               model::suggestion_database::entry::Kind::Method,
-                module:             QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?,
+                module:             module.clone(),
                 arguments:          vec![],
                 return_type:        "Standard.Base.System.File.File".to_owned(),
                 documentation_html: None,
-                self_type:          Some(tp::QualifiedName::from_text(
-                    ENSO_PROJECT_SPECIAL_MODULE,
-                )?),
+                self_type:          Some(self_type.clone()),
                 scope:              model::suggestion_database::entry::Scope::Everywhere,
+                icon_name:          None,
             };
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);
         }
-        Ok(())
     }
 
     //TODO[ao] The usage of add_hardcoded_entries_to_list is currently commented out. It should be
@@ -1122,6 +1177,139 @@ impl Searcher {
         Ok(())
     }
 }
+
+
+// === Searcher helpers ===
+
+fn component_list_builder_with_favorites<'a>(
+    suggestion_db: &model::SuggestionDatabase,
+    local_scope_module: &QualifiedName,
+    groups: impl IntoIterator<Item = &'a model::execution_context::ComponentGroup>,
+) -> component::builder::List {
+    let mut builder = component::builder::List::new();
+    if let Some((id, _)) = suggestion_db.lookup_by_qualified_name(local_scope_module) {
+        builder = builder.with_local_scope_module_id(id);
+    }
+    builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
+    builder
+}
+
+
+// === Node Edit Metadata Guard ===
+
+/// On creation the `EditGuard` saves the current expression of the node to its metadata.
+/// When dropped the metadata is cleared again and, by default, the node content is reverted to the
+/// previous expression. The expression reversion can be prevented by calling `prevent_revert`.
+#[derive(Debug)]
+struct EditGuard {
+    node_id:           ast::Id,
+    graph:             controller::ExecutedGraph,
+    revert_expression: Cell<bool>,
+}
+
+impl EditGuard {
+    pub fn new(node_id: ast::Id, graph: controller::ExecutedGraph) -> Self {
+        let ret = Self { node_id, graph, revert_expression: Cell::new(true) };
+        ret.save_node_expression_to_metadata().unwrap_or_else(|e| {
+            tracing::error!("Failed to save the node edit metadata due to error: {}", e)
+        });
+        ret
+    }
+
+    pub fn prevent_revert(&self) {
+        self.revert_expression.set(false);
+    }
+
+    /// Mark the node as edited in its metadata and save the current expression, so it can later be
+    /// restored.
+    fn save_node_expression_to_metadata(&self) -> FallibleResult {
+        let node = self.graph.graph().node(self.node_id)?;
+        let previous_expression = node.info.main_line.expression().to_string();
+        let module = &self.graph.graph().module;
+        module.with_node_metadata(
+            self.node_id,
+            Box::new(|metadata| {
+                metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
+            }),
+        )
+    }
+
+    /// Mark the node as no longer edited and discard the edit metadata.
+    fn clear_node_edit_metadata(&self) -> FallibleResult {
+        let module = &self.graph.graph().module;
+        module.with_node_metadata(
+            self.node_id,
+            Box::new(|metadata| {
+                metadata.edit_status = None;
+            }),
+        )
+    }
+
+    fn get_saved_expression(&self) -> FallibleResult<Option<NodeEditStatus>> {
+        let module = &self.graph.graph().module;
+        let mut edit_status = None;
+        module.with_node_metadata(
+            self.node_id,
+            Box::new(|metadata| {
+                edit_status = metadata.edit_status.clone();
+            }),
+        )?;
+        Ok(edit_status)
+    }
+
+    fn revert_node_expression_edit(&self) -> FallibleResult {
+        let edit_status = self.get_saved_expression()?;
+        match edit_status {
+            None => {
+                tracing::warn!(
+                    "Tried to revert the expression of the edited node, \
+                but found no edit metadata."
+                );
+            }
+            Some(NodeEditStatus::Created) => {
+                tracing::debug!("Deleting temporary node {} after aborting edit.", self.node_id);
+                self.graph.graph().remove_node(self.node_id)?;
+            }
+            Some(NodeEditStatus::Edited { previous_expression }) => {
+                tracing::debug!(
+                    "Reverting expression of node {} to {} after aborting edit.",
+                    self.node_id,
+                    &previous_expression
+                );
+                let graph = self.graph.graph();
+                graph.set_expression(self.node_id, previous_expression)?;
+            }
+        };
+        Ok(())
+    }
+}
+
+impl Drop for EditGuard {
+    fn drop(&mut self) {
+        if self.revert_expression.get() {
+            self.revert_node_expression_edit().unwrap_or_else(|e| {
+                tracing::error!(
+                    "Failed to revert node edit after editing ended because of an error: {}",
+                    e
+                )
+            });
+        } else {
+            tracing::debug!("Not reverting node expression after edit.")
+        }
+        if self.graph.graph().node_exists(self.node_id) {
+            self.clear_node_edit_metadata().unwrap_or_else(|e| {
+                tracing::error!(
+                "Failed to clear node edit metadata after editing ended because of an error: {}",
+                e
+            )
+            });
+        }
+    }
+}
+
+
+
+// === SimpleFunctionCall ===
 
 /// A simple function call is an AST where function is a single identifier with optional
 /// argument applied by `ACCESS` operator (dot).
@@ -1183,6 +1371,7 @@ pub mod test {
 
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::model::module;
     use crate::model::suggestion_database::entry::Argument;
     use crate::model::suggestion_database::entry::Kind;
     use crate::model::suggestion_database::entry::Scope;
@@ -1194,8 +1383,17 @@ pub mod test {
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
     use json_rpc::expect_call;
+    use std::assert_matches::assert_matches;
 
 
+
+    #[test]
+    fn enso_project_special_module_is_convertible_to_qualified_names() {
+        module::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)
+            .expect("ENSO_PROJECT_SPECIAL_MODULE should be convertible to module::QualifiedName.");
+        tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)
+            .expect("ENSO_PROJECT_SPECIAL_MODULE should be convertible to tp::QualifiedName.");
+    }
 
     pub fn completion_response(results: &[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
@@ -1256,6 +1454,9 @@ pub mod test {
         entry2:   Rc<model::suggestion_database::Entry>,
         entry3:   Rc<model::suggestion_database::Entry>,
         entry4:   Rc<model::suggestion_database::Entry>,
+        // The 5th entry is put into database, but not read in any test yet.
+        #[allow(dead_code)]
+        entry5:   Rc<model::suggestion_database::Entry>,
         entry9:   Rc<model::suggestion_database::Entry>,
         entry10:  Rc<model::suggestion_database::Entry>,
     }
@@ -1270,12 +1471,14 @@ pub mod test {
             client_setup(&mut data, &mut client);
             let end_of_code = enso_text::Text::from(&data.graph.module.code).location_of_text_end();
             let code_range = enso_text::Location::default()..=end_of_code;
+            let scope = Scope::InModule { range: code_range };
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
-            let database = Rc::new(SuggestionDatabase::new_empty(&logger));
+            let module_name = crate::test::mock::data::module_qualified_name();
+            let database = suggestion_database_with_mock_entries(&logger, module_name, scope);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();
@@ -1288,9 +1491,11 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let module_name =
-                QualifiedName::from_segments(data.graph.graph.project_name.clone(), &[MODULE_NAME])
-                    .unwrap();
+            let favorites = graph.component_groups();
+            let module_qn = graph.module_qualified_name(&*project);
+            let list_builder_with_favs =
+                component_list_builder_with_favorites(&database, &module_qn, &*favorites);
+            let node_metadata_guard = default();
             let searcher = Searcher {
                 graph,
                 logger,
@@ -1303,111 +1508,146 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
+                list_builder_with_favorites: Rc::new(list_builder_with_favs),
+                node_edit_guard: node_metadata_guard,
             };
-            let entry1 = model::suggestion_database::Entry {
-                name:               "testFunction1".to_string(),
-                kind:               Kind::Function,
-                module:             crate::test::mock::data::module_qualified_name(),
-                arguments:          vec![],
-                return_type:        "Number".to_string(),
-                documentation_html: default(),
-                self_type:          None,
-                scope:              Scope::InModule { range: code_range },
-            };
-            let entry2 = model::suggestion_database::Entry {
-                name: "TestVar1".to_string(),
-                kind: Kind::Local,
-                ..entry1.clone()
-            };
-            let entry3 = model::suggestion_database::Entry {
-                name: "testMethod1".to_string(),
-                kind: Kind::Method,
-                self_type: Some(module_name.into()),
-                scope: Scope::Everywhere,
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Any".to_string(),
-                        name:          "this".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "Number".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry1.clone()
-            };
-            let entry4 = model::suggestion_database::Entry {
-                self_type: Some("test.Test.Test".to_owned().try_into().unwrap()),
-                module: "test.Test.Test".to_owned().try_into().unwrap(),
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Any".to_string(),
-                        name:          "this".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "String".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry3.clone()
-            };
-            let entry9 = model::suggestion_database::Entry {
-                name: "testFunction2".to_string(),
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Text".to_string(),
-                        name:          "text_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "Number".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry1.clone()
-            };
-            let entry10 = model::suggestion_database::Entry {
-                name: "testFunction3".to_string(),
-                module: "test.Test.Other".to_owned().try_into().unwrap(),
-                scope: Scope::Everywhere,
-                ..entry9.clone()
-            };
-
-            searcher.database.put_entry(1, entry1);
             let entry1 = searcher.database.lookup(1).unwrap();
-            searcher.database.put_entry(2, entry2);
             let entry2 = searcher.database.lookup(2).unwrap();
-            searcher.database.put_entry(3, entry3);
             let entry3 = searcher.database.lookup(3).unwrap();
-            searcher.database.put_entry(4, entry4);
             let entry4 = searcher.database.lookup(4).unwrap();
-            searcher.database.put_entry(9, entry9);
+            let entry5 = searcher.database.lookup(5).unwrap();
             let entry9 = searcher.database.lookup(9).unwrap();
-            searcher.database.put_entry(10, entry10);
             let entry10 = searcher.database.lookup(10).unwrap();
-            Fixture { data, test, searcher, entry1, entry2, entry3, entry4, entry9, entry10 }
+            Fixture {
+                data,
+                test,
+                searcher,
+                entry1,
+                entry2,
+                entry3,
+                entry4,
+                entry5,
+                entry9,
+                entry10,
+            }
         }
 
         fn new() -> Self {
             Self::new_custom(|_, _| {})
         }
+    }
+
+    fn suggestion_database_with_mock_entries(
+        logger: &Logger,
+        module_name: QualifiedName,
+        scope: Scope,
+    ) -> Rc<SuggestionDatabase> {
+        let database = Rc::new(SuggestionDatabase::new_empty(logger));
+        let entry1 = model::suggestion_database::Entry {
+            name: "testFunction1".to_string(),
+            kind: Kind::Function,
+            module: crate::test::mock::data::module_qualified_name(),
+            arguments: vec![],
+            return_type: "Number".to_string(),
+            documentation_html: default(),
+            self_type: None,
+            scope,
+            icon_name: None,
+        };
+        let entry2 = model::suggestion_database::Entry {
+            name: "TestVar1".to_string(),
+            kind: Kind::Local,
+            ..entry1.clone()
+        };
+        let entry3 = model::suggestion_database::Entry {
+            name: "testMethod1".to_string(),
+            kind: Kind::Method,
+            self_type: Some(module_name.into()),
+            scope: Scope::Everywhere,
+            arguments: vec![
+                Argument {
+                    repr_type:     "Any".to_string(),
+                    name:          "self".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "Number".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry1.clone()
+        };
+        let entry4 = model::suggestion_database::Entry {
+            self_type: Some("test.Test.Test".to_owned().try_into().unwrap()),
+            module: "test.Test.Test".to_owned().try_into().unwrap(),
+            arguments: vec![
+                Argument {
+                    repr_type:     "Any".to_string(),
+                    name:          "self".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "String".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry3.clone()
+        };
+        let entry5 = model::suggestion_database::Entry {
+            kind:               Kind::Module,
+            module:             entry1.module.clone(),
+            name:               MODULE_NAME.to_owned(),
+            arguments:          default(),
+            return_type:        entry1.module.to_string(),
+            documentation_html: None,
+            self_type:          None,
+            scope:              Scope::Everywhere,
+            icon_name:          None,
+        };
+        let entry9 = model::suggestion_database::Entry {
+            name: "testFunction2".to_string(),
+            arguments: vec![
+                Argument {
+                    repr_type:     "Text".to_string(),
+                    name:          "text_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "Number".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry1.clone()
+        };
+        let entry10 = model::suggestion_database::Entry {
+            name: "testFunction3".to_string(),
+            module: "test.Test.Other".to_owned().try_into().unwrap(),
+            scope: Scope::Everywhere,
+            ..entry9.clone()
+        };
+        database.put_entry(1, entry1);
+        database.put_entry(2, entry2);
+        database.put_entry(3, entry3);
+        database.put_entry(4, entry4);
+        database.put_entry(5, entry5);
+        database.put_entry(9, entry9);
+        database.put_entry(10, entry10);
+        database
     }
 
 
@@ -1443,7 +1683,7 @@ pub mod test {
                     data.selected_node = true;
                     // We expect following calls:
                     // 1) for the function - with the "this" filled (if the test case says so);
-                    // 2) for subsequent completions - without "this"
+                    // 2) for subsequent completions - without "self"
                     data.expect_completion(client, case.sets_this.as_some(mock_type), None, &[
                         1, 5, 9,
                     ]);
@@ -1592,12 +1832,63 @@ pub mod test {
         test.run_until_stalled();
         let list = searcher.actions().list().unwrap().to_action_vec();
         // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
-        // and all of these are repeasted in "All Search Result" category.
+        // and all of these are repeated in "All Search Result" category.
         assert_eq!(list.len(), 8);
         assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(entry1)));
         assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(entry9)));
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewActionList));
+    }
+
+    #[wasm_bindgen_test]
+    fn loading_components() {
+        // Prepare a sample component group to be returned by a mock Language Server client.
+        let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
+        let sample_ls_component_group = language_server::LibraryComponentGroup {
+            library: "".to_string(),
+            name:    "Test Group 1".to_string(),
+            color:   None,
+            icon:    None,
+            exports: vec![
+                language_server::LibraryComponent {
+                    name:     module_qualified_name.clone() + ".testFunction1",
+                    shortcut: None,
+                },
+                language_server::LibraryComponent {
+                    name:     module_qualified_name + ".testMethod1",
+                    shortcut: None,
+                },
+            ],
+        };
+        // Create a test fixture with mocked Engine responses.
+        let Fixture { mut test, searcher, entry1, entry9, .. } =
+            Fixture::new_custom(|data, client| {
+                // Entry with id 99999 does not exist, so only two actions from suggestions db
+                // should be displayed in searcher.
+                data.expect_completion(client, None, None, &[1, 99999, 9]);
+                data.graph.ctx.component_groups = vec![sample_ls_component_group];
+            });
+        // Reload the components list in the Searcher.
+        searcher.reload_list();
+        test.run_until_stalled();
+        // Verify the contents of the components list loaded by the Searcher.
+        let components = searcher.components();
+        if let [module_group] = &components.top_modules()[..] {
+            let expected_group_name =
+                format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
+            assert_eq!(module_group.name, expected_group_name);
+            let entries = module_group.entries.borrow();
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
+        } else {
+            ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
+        }
+        let favorites = &components.favorites;
+        assert_eq!(favorites.len(), 1);
+        let favorites_group = &favorites[0];
+        assert_eq!(favorites_group.name, "Test Group 1");
+        let favorites_entries = favorites_group.entries.borrow();
+        assert_eq!(favorites_entries.len(), 1);
+        assert_eq!(*favorites_entries[0].id, 1);
     }
 
     #[wasm_bindgen_test]
@@ -2043,5 +2334,75 @@ pub mod test {
         searcher.add_example(&example, None).unwrap();
         searcher.add_example(&example, None).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
+    }
+
+    #[wasm_bindgen_test]
+    fn edit_guard() {
+        let Fixture { test: _test, mut searcher, .. } = Fixture::new();
+        let graph = searcher.graph.graph();
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let initial_node_expression = node.main_line.expression().clone();
+        let node_id = node.info.id();
+        searcher.mode = Immutable(Mode::EditNode { node_id });
+        searcher.node_edit_guard =
+            Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
+
+        // Apply an edit to the node.
+        graph.set_expression(node_id, "Edited Node").unwrap();
+
+        // Verify the metadata was initialised after the guard creation.
+        let module = graph.module.clone_ref();
+        module
+            .with_node_metadata(
+                node_id,
+                Box::new(|metadata| {
+                    assert_eq!(
+                        metadata.edit_status,
+                        Some(NodeEditStatus::Edited {
+                            previous_expression: node.info.expression().to_string(),
+                        })
+                    );
+                }),
+            )
+            .unwrap();
+
+        // Verify the metadata is cleared after the searcher is dropped.
+        drop(searcher);
+        module
+            .with_node_metadata(
+                node_id,
+                Box::new(|metadata| {
+                    assert_eq!(metadata.edit_status, None);
+                }),
+            )
+            .unwrap();
+        // Verify the node was reverted.
+
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let final_node_expression = node.main_line.expression().clone();
+        assert_eq!(initial_node_expression.to_string(), final_node_expression.to_string());
+    }
+
+    #[wasm_bindgen_test]
+    fn edit_guard_no_revert() {
+        let Fixture { test: _test, mut searcher, .. } = Fixture::new();
+        let graph = searcher.graph.graph();
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let node_id = node.info.id();
+        searcher.mode = Immutable(Mode::EditNode { node_id });
+        searcher.node_edit_guard =
+            Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
+
+        // Apply an edit to the node.
+        let new_expression = "Edited Node";
+        graph.set_expression(node_id, new_expression).unwrap();
+        // Prevent reverting the node by calling the `prevent_revert` method.
+        searcher.node_edit_guard.deref().as_ref().unwrap().prevent_revert();
+
+        // Verify the node is not reverted after the searcher is dropped.
+        drop(searcher);
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let final_node_expression = node.main_line.expression().clone();
+        assert_eq!(final_node_expression.to_string(), new_expression);
     }
 }

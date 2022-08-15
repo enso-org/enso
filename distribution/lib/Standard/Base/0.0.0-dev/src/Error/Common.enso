@@ -2,6 +2,8 @@ from Standard.Base import all
 import Standard.Base.Data.Json
 import Standard.Base.Runtime
 
+polyglot java import java.lang.IllegalArgumentException
+
 ## Dataflow errors.
 type Error
 
@@ -39,14 +41,14 @@ type Error
        Arguments:
        - handler: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
-    catch_primitive handler = @Builtin_Method "Error.catch_primitive"
+    catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
 
     ## PRIVATE
        UNSTABLE
 
        Returns a textual representation of the stack trace attached to an error.
     get_stack_trace_text : Text
-    get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
+    get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
 
     ## Converts an error to a corresponding textual representation.
 
@@ -55,30 +57,45 @@ type Error
 
              Error.throw "foo" . to_text
     to_text : Text
-    to_text = @Builtin_Method "Error.to_text"
+    to_text self = @Builtin_Method "Error.to_text"
 
     ## UNSTABLE
 
        Returns a human-readable text representing this error.
     to_display_text : Text
-    to_display_text  = "Error: " + (this.catch .to_display_text)
+    to_display_text self = "Error: " + (self.catch Any .to_display_text)
 
-    ## Executes the provided handler on a dataflow error, or returns a non-error
-       value unchanged.
+    ## Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
-       - handler: The function to call on this if it is an error value. By default
-         this is identity.
+       - error_type: The type of error to handle. Defaults to `Any` to handle
+         all errors.
+       - handler: The function to call on this if it is an error value of a
+         matching type. By default this is identity.
 
        > Example
-         Catching an erroneous value and getting the length of its message.
+         Catching an `Illegal_Argument_Error` and returning its message.
 
-             import Standard.Examples
+             from Standard.Base import all
 
              example_catch =
-                 Examples.throw_error.catch (err -> err.message.length)
-    catch : (Error -> Any) -> Any
-    catch (handler = x->x) = this.catch_primitive handler
+                 error = Error.throw (Illegal_Argument_Error "My message")
+                 error.catch Illegal_Argument_Error (err -> err.message)
+
+       > Example
+         Catching any dataflow error and turning it into a regular value.
+
+             from Standard.Base import all
+
+             example_catch =
+                 error = Error.throw 42
+                 error.catch == 42
+    catch : Any -> (Error -> Any) -> Any
+    catch self (error_type = Any) (handler = x->x) =
+        self.catch_primitive error_value->
+            case error_value.is_a error_type of
+                True -> handler error_value
+                False -> self
 
     ## UNSTABLE
 
@@ -91,7 +108,7 @@ type Error
 
              example_display = Examples.throw_error.to_default_visualization_data
     to_default_visualization_data : Text
-    to_default_visualization_data = this.catch .to_default_visualization_data
+    to_default_visualization_data self = self.catch Any .to_default_visualization_data
 
     ## UNSTABLE
 
@@ -104,10 +121,11 @@ type Error
 
              example_to_json = Examples.throw_error.to_json
     to_json : Json.Object
-    to_json =
+    to_json self =
         error_type = ["type", "Error"]
-        error_content = ["content", this.catch .to_json]
-        error_message = ["message", this.catch .to_display_text]
+        caught = self.catch
+        error_content = ["content", caught.to_json]
+        error_message = ["message", caught.to_display_text]
         Json.from_pairs [error_type, error_content, error_message]
 
     ## Transforms an error.
@@ -115,7 +133,7 @@ type Error
        Arguments:
        - f: The function used to transform the error.
 
-       If `this` is a non-error value it is returned unchanged. However, if `this`
+       If `self` is a non-error value it is returned unchanged. However, if `self`
        is an error, the error is transformed using the provided function
 
        > Example
@@ -127,7 +145,7 @@ type Error
                  map = Examples.map
                  map.get 10 . map_error (_ -> "The element 10 was not found.")
     map_error : (Error -> Error) -> Any
-    map_error f = this.catch (x -> Error.throw (f x))
+    map_error self f = self.catch Any (x -> Error.throw (f x))
 
     ## ADVANCED
        UNSTABLE
@@ -137,17 +155,17 @@ type Error
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
     stack_trace : Vector.Vector Runtime.Stack_Trace_Element
-    stack_trace =
-        Panic.get_attached_stack_trace this
+    stack_trace self =
+        Panic.get_attached_stack_trace self
 
-    ## Checks if `this` is an error.
+    ## Checks if `self` is an error.
 
        > Example
          Checking if the value 1 is an error.
 
              1.is_error
     is_error : Boolean
-    is_error = True
+    is_error self = True
 
 
 type Illegal_State_Error
@@ -175,6 +193,27 @@ type Illegal_Argument_Error
        - cause: (optional) another error that is the cause of this one.
     type Illegal_Argument_Error message cause=Nothing
 
+    ## PRIVATE
+       Capture a Java IllegalArgumentException and rethrow
+    handle_java_exception =
+        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument_Error cause.getMessage cause))
+
+## UNSTABLE
+
+   An error indicating that a requested index was out of bounds of a collection.
+
+   Arguments:
+   - index: The requested index.
+   - length: The length of the collection.
+type Index_Out_Of_Bounds_Error index length
+
+## UNSTABLE
+
+   Pretty prints an index out of bounds error.
+Index_Out_Of_Bounds_Error.to_display_text : Text
+Index_Out_Of_Bounds_Error.to_display_text self =
+    "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
+
 ## PRIVATE
    Wraps a dataflow error lifted to a panic, making possible to distinguish it
    from other panics.
@@ -182,7 +221,7 @@ type Wrapped_Dataflow_Error payload
 
 ## PRIVATE
    Throws the original error.
-Wrapped_Dataflow_Error.unwrap = Error.throw this.payload
+Wrapped_Dataflow_Error.unwrap self = Error.throw self.payload
 
 type Caught_Panic
     ## A wrapper for a caught panic.
@@ -199,12 +238,12 @@ type Caught_Panic
     ## Converts this caught panic into a dataflow error containing the same
        payload and stack trace.
     convert_to_dataflow_error : Error
-    convert_to_dataflow_error = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
+    convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
     ## Returns the stack trace of the caught panic.
     stack_trace : Vector.Vector Runtime.Stack_Trace_Element
-    stack_trace =
-        Panic.get_attached_stack_trace this
+    stack_trace self =
+        Panic.get_attached_stack_trace self
 
 ## Panics.
 type Panic
@@ -297,7 +336,7 @@ type Panic
 
              example_rethrow = Panic.rethrow Examples.throw_error
     rethrow : (Any ! Any) -> Any
-    rethrow value = value.catch Panic.throw
+    rethrow value = value.catch Any Panic.throw
 
     ## Executes the provided action and if a panic matching the provided type was
        thrown, calls the provided callback.
@@ -346,10 +385,40 @@ type Panic
                     False -> Panic.throw caught_panic
                 True -> case caught_panic.payload of
                     Polyglot_Error java_exception ->
-                        case Java.is_instance java_exception panic_type of
+                        case java_exception.is_a panic_type of
                             True -> handler caught_panic
                             False -> Panic.throw caught_panic
                     _ -> Panic.throw caught_panic
+
+    ## Executes the provided action and if a Java exception matching the provided type was
+       thrown, calls the provided callback.
+
+       Normally, Java exceptions are wrapped in a `Polyglot_Error` instance, so
+       using a `Panic.catch` requires unwrapping the error by calling
+       `caught_panic.payload.cause`. This helper function allows the handler to
+       work with the Java exception directly. The downside is that if the Java
+       exception is rethrown, it will be rethrown as a Java exception object
+       wrapped in an Enso panic. So if the handler needs to rethrow the original
+       exception preserving its shape and stacktrace, `Panic.catch` should still
+       be preferred.`
+
+       > Example
+         Convert a string to an integer, catching the Java `NumberFormatException`
+         and converting it to a more Enso-friendly dataflow error.
+
+             polyglot java import java.lang.Long
+             polyglot java import java.lang.NumberFormatException
+             parse str =
+                 Panic.catch_java NumberFormatException (Long.parseLong str) java_exception->
+                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+java_exception.getMessage)
+    catch_java : Any -> Any -> (Throwable -> Any) -> Any
+    catch_java panic_type ~action handler =
+        Panic.catch_primitive action caught_panic-> case caught_panic.payload of
+            Polyglot_Error java_exception ->
+                case (panic_type == Any) || (java_exception.is_a panic_type) of
+                    True -> handler java_exception
+                    False -> Panic.throw caught_panic
+            _ -> Panic.throw caught_panic
 
     ## Executes the provided action and converts a possible panic matching any of
        the provided types into a dataflow Error.
@@ -385,6 +454,23 @@ type Panic
             case is_matched of
                 True -> caught_panic.convert_to_dataflow_error
                 False -> Panic.throw caught_panic
+
+    ## If a dataflow error had occurred, wrap it in a `Wrapped_Dataflow_Error` and promote to a Panic.
+
+       Arguments:
+       - value: value to return if not an error, or rethrow as a Panic.
+    throw_wrapped_if_error : Any -> Any
+    throw_wrapped_if_error ~value =
+        if value.is_error then Panic.throw (Wrapped_Dataflow_Error value.catch) else value
+
+    ## Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
+
+       Arguments:
+       - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
+    handle_wrapped_dataflow_error : Any -> Any
+    handle_wrapped_dataflow_error ~action =
+        Panic.catch Wrapped_Dataflow_Error action caught_panic->
+            Error.throw caught_panic.payload.payload
 
 ## The runtime representation of a syntax error.
 
@@ -457,8 +543,8 @@ type No_Such_Method_Error target symbol
              error = Examples.no_such_method
              error.method_name
 No_Such_Method_Error.method_name : Text
-No_Such_Method_Error.method_name =
-    Meta.meta this.symbol . name
+No_Such_Method_Error.method_name self =
+    Meta.meta self.symbol . name
 
 
 ## An error that occurred across a polyglot boundary.
@@ -542,7 +628,7 @@ type Unimplemented_Error message
 
    Converts the unimplemented error to a human-readable error message.
 Unimplemented_Error.to_display_text : Text
-Unimplemented_Error.to_display_text = "An implementation is missing: " + this.message
+Unimplemented_Error.to_display_text self = "An implementation is missing: " + self.message
 
 ## ADVANCED
 

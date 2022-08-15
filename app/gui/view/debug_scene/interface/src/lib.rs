@@ -21,7 +21,6 @@ use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application::Application;
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatch;
 use ensogl::gui::text;
@@ -105,8 +104,6 @@ fn init(app: &Application) {
 
     let world = &app.display;
     let scene = &world.default_scene;
-    let camera = scene.camera();
-    let navigator = Navigator::new(scene, &camera);
 
     app.views.register::<root::View>();
     app.views.register::<project::View>();
@@ -256,7 +253,6 @@ fn init(app: &Application) {
         .on
         .before_frame
         .add(move |_| {
-            let _keep_alive = &navigator;
             let _keep_alive = &root_view;
 
             if to_theme_switch == 0 {
@@ -330,7 +326,7 @@ pub fn expression_mock() -> Expression {
     let code = "[1,2,3]".to_string();
     let parser = Parser::new_or_panic();
     let this_param =
-        span_tree::ArgumentInfo { name: Some("this".to_owned()), tp: Some("Text".to_owned()) };
+        span_tree::ArgumentInfo { name: Some("self".to_owned()), tp: Some("Text".to_owned()) };
     let parameters = vec![this_param];
     let ast = parser.parse_line_ast(&code).unwrap();
     let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
@@ -387,7 +383,7 @@ pub fn expression_mock3() -> Expression {
     let code = "Vector x y z".to_string();
     let parser = Parser::new_or_panic();
     let this_param =
-        span_tree::ArgumentInfo { name: Some("this".to_owned()), tp: Some("Image".to_owned()) };
+        span_tree::ArgumentInfo { name: Some("self".to_owned()), tp: Some("Image".to_owned()) };
     let param0 = span_tree::ArgumentInfo {
         name: Some("radius".to_owned()),
         tp:   Some("Number".to_owned()),

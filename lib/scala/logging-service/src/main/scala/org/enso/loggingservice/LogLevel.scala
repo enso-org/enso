@@ -132,4 +132,16 @@ object LogLevel {
     case Debug   => akka.event.Logging.DebugLevel
     case Trace   => akka.event.Logging.DebugLevel
   }
+
+  /** Converts our internal [[LogLevel]] to the corresponding instance of
+    * Java log level.
+    */
+  def toJava(logLevel: LogLevel): java.util.logging.Level = logLevel match {
+    case Off     => java.util.logging.Level.OFF
+    case Error   => java.util.logging.Level.SEVERE
+    case Warning => java.util.logging.Level.WARNING
+    case Info    => java.util.logging.Level.INFO
+    case Debug   => java.util.logging.Level.FINER
+    case Trace   => java.util.logging.Level.FINEST
+  }
 }

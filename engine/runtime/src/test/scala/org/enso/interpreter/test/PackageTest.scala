@@ -25,8 +25,12 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option(RuntimeOptions.PROJECT_ROOT, pkgPath.getAbsolutePath)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution/component").toFile.getAbsolutePath
+        Paths
+          .get("../../test/micro-distribution/component")
+          .toFile
+          .getAbsolutePath
       )
+      .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .out(output)
@@ -41,7 +45,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       val mainModuleScope = topScope.getModule(mainModule.toString)
       val assocCons       = mainModuleScope.getAssociatedConstructor
       val mainFun         = mainModuleScope.getMethod(assocCons, "main").get
-      mainFun.execute(assocCons)
+      mainFun.execute()
     }
   }
 

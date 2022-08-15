@@ -7,7 +7,6 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectTextNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Root node for the builtin Debug.eval function. */
@@ -23,8 +22,7 @@ public class DebugEvalNode extends Node {
     evalNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Stateful execute(
-      CallerInfo callerInfo, @MonadicState Object state, Object _this, Object expression) {
+  Stateful execute(CallerInfo callerInfo, @MonadicState Object state, Object expression) {
     return evalNode.execute(callerInfo, state, expectTextNode.execute(expression));
   }
 }

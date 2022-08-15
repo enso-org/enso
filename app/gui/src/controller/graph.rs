@@ -541,6 +541,11 @@ impl Handle {
         Ok(Node { info, metadata })
     }
 
+    /// Check whether the given ID corresponds to an existing node.
+    pub fn node_exists(&self, id: ast::Id) -> bool {
+        self.node_info(id).is_ok()
+    }
+
     /// Returns information about all the nodes currently present in this graph.
     pub fn nodes(&self) -> FallibleResult<Vec<Node>> {
         let node_infos = self.all_node_infos()?;
@@ -755,6 +760,7 @@ impl Handle {
     }
 
     /// Updates the AST of the definition of this graph.
+    #[profile(Debug)]
     pub fn update_definition_ast<F>(&self, f: F) -> FallibleResult
     where F: FnOnce(definition::DefinitionInfo) -> FallibleResult<definition::DefinitionInfo> {
         let ast_so_far = self.module.ast();
@@ -834,6 +840,7 @@ impl Handle {
     }
 
     /// Sets the given's node expression.
+    #[profile(Debug)]
     pub fn set_expression(&self, id: ast::Id, expression_text: impl Str) -> FallibleResult {
         info!(self.logger, "Setting node {id} expression to `{expression_text.as_ref()}`");
         let new_expression_ast = self.parse_node_expression(expression_text)?;
@@ -870,6 +877,7 @@ impl Handle {
     /// Collapses the selected nodes.
     ///
     /// Lines corresponding to the selection will be extracted to a new method definition.
+    #[profile(Task)]
     pub fn collapse(
         &self,
         nodes: impl IntoIterator<Item = node::Id>,

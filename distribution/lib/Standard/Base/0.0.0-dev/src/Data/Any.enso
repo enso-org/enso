@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+from Standard.Base.Error.Common import dataflow_error_handler
+
 # The type that subsumes all types.
 type Any
 
@@ -18,7 +20,7 @@ type Any
        Arguments:
        - handler: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
-    catch_primitive handler = @Builtin_Method "Any.catch"
+    catch_primitive handler = @Builtin_Method "Any.catch_primitive"
 
     ## Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
@@ -28,7 +30,7 @@ type Any
 
              7.to_text
     to_text : Text
-    to_text = @Builtin_Method "Any.to_text"
+    to_text self = @Builtin_Method "Any.to_text"
 
     ## Generic conversion of an arbitrary Enso value to a corresponding human-readable
        representation.
@@ -38,19 +40,19 @@ type Any
 
              7.to_text
     to_display_text : Text
-    to_display_text = @Builtin_Method "Any.to_display_text"
+    to_display_text self = @Builtin_Method "Any.to_display_text"
 
     ## ALIAS Equality
 
-       Checks if `this` is equal to `that`.
+       Checks if `self` is equal to `that`.
 
        Arguments:
-       - that: The object to compare `this` with.
+       - that: The object to compare `self` with.
 
        Two values are considered to be equal in Enso when they obey the following
        recursive properties:
        - At each level, they have the same structure.
-       - The value of each field in `this` is equal (by this definition) to the
+       - The value of each field in `self` is equal (by this definition) to the
          corresponding field in `that`.
 
        ! Implementing Your Own Equality
@@ -73,34 +75,34 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == that = if Meta.is_same_object this that then True else
-        this_meta = Meta.meta this
+    == self that = if Meta.is_same_object self that then True else
+        self_meta = Meta.meta self
         that_meta = Meta.meta that
-        case Cons this_meta that_meta of
+        case Cons self_meta that_meta of
             Cons (Meta.Atom _) (Meta.Atom _) ->
-                c_1 = this_meta.constructor
+                c_1 = self_meta.constructor
                 c_2 = that_meta.constructor
                 if Meta.is_same_object c_1 c_2 . not then False else
-                    f_1 = this_meta.fields
+                    f_1 = self_meta.fields
                     f_2 = that_meta.fields
                     0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
-            Cons (Meta.Error _) (Meta.Error _) -> this_meta.payload == that_meta.payload
+            Cons (Meta.Error _) (Meta.Error _) -> self_meta.payload == that_meta.payload
             Cons (Meta.Polyglot o_1) (Meta.Polyglot o_2) ->
-                langs_match = (this_meta.get_language == Meta.Java) && (that_meta.get_language == Meta.Java)
+                langs_match = (self_meta.get_language == Meta.Java) && (that_meta.get_language == Meta.Java)
                 if langs_match.not then False else o_1.equals o_2
             Cons (Meta.Unresolved_Symbol _) (Meta.Unresolved_Symbol _) ->
-                (this_meta.name == that_meta.name) && (this_meta.scope == that_meta.scope)
+                (self_meta.name == that_meta.name) && (self_meta.scope == that_meta.scope)
             ## Constructor comparison is covered by the identity equality.
                Primitive objects should define their own equality.
-               Therefore, there are no more cases to handle in this method.
+               Therefore, there are no more cases to handle in self method.
             _ -> False
 
     ## ALIAS Inequality
 
-       Checks if `this` is not equal to `that`.
+       Checks if `self` is not equal to `that`.
 
        Arguments:
-       - that: The object to compare `this` against.
+       - that: The object to compare `self` against.
 
        ! Implementing Your Own Inequality
          We recommend that you do not implement your own inequality, instead relying
@@ -116,14 +118,14 @@ type Any
                  a = 7 * 21
                  a != 147
     != : Any -> Boolean
-    != that = (this == that).not
+    != self that = (self == that).not
 
     ## ALIAS Greater Than
 
-       Checks if `this` is greater than `that`.
+       Checks if `self` is greater than `that`.
 
        Arguments:
-       - that: The value to compare `this` against.
+       - that: The value to compare `self` against.
 
        To have `>` defined, a type must define `compare_to`, returning an Ordering.
 
@@ -141,14 +143,14 @@ type Any
                  a = 7 * 28
                  a > 147
     > : Any -> Boolean
-    > that = this.compare_to that == Ordering.Greater
+    > self that = self.compare_to that == Ordering.Greater
 
     ## ALIAS Greater Than or Equal
 
-       Checks if `this` is greater than or equal to `that`.
+       Checks if `self` is greater than or equal to `that`.
 
        Arguments:
-       - that: The value to compare `this` against.
+       - that: The value to compare `self` against.
 
        To have `>=` defined, a type must define both `>` and `==`.
 
@@ -167,16 +169,16 @@ type Any
                  a = 6 * 21
                  a >= 147
     >= : Any -> Boolean
-    >= that =
-        ordering = this.compare_to that
+    >= self that =
+        ordering = self.compare_to that
         (ordering == Ordering.Greater) || (ordering == Ordering.Equal)
 
     ## ALIAS Less Than
 
-       Checks if `this` is less than `that`.
+       Checks if `self` is less than `that`.
 
        Arguments:
-       - that: The value to compare `this` against.
+       - that: The value to compare `self` against.
 
        To have `<` defined, a type must define `compare_to`, returning an Ordering.
 
@@ -194,14 +196,14 @@ type Any
                  a = 7 * 21
                  a < 147
     < : Any -> Boolean
-    < that = this.compare_to that == Ordering.Less
+    < self that = self.compare_to that == Ordering.Less
 
     ## ALIAS Less Than or Equal
 
-       Checks if `this` is less than or equal to `that`.
+       Checks if `self` is less than or equal to `that`.
 
        Arguments:
-       - that: The value to compare `this` against.
+       - that: The value to compare `self` against.
 
        To have `<=` defined, a type must define both `<` and `==`.
 
@@ -220,8 +222,8 @@ type Any
                  a = 7 * 21
                  a < 147
     <= : Any -> Boolean
-    <= that =
-        ordering = this.compare_to that
+    <= self that =
+        ordering = self.compare_to that
         (ordering == Ordering.Less) || (ordering == Ordering.Equal)
 
     ## Checks if the type is an instance of `Nothing`.
@@ -234,42 +236,56 @@ type Any
 
              1.is_nothing
     is_nothing : Boolean
-    is_nothing = False
+    is_nothing self = False
 
     ## UNSTABLE
-       If this is Nothing then returns `function`.
+       If `self` is Nothing then returns `function`.
 
        > Example
          If the value "Hello" is nothing return "".
 
              "Hello".if_nothing ""
     if_nothing : Any -> Any
-    if_nothing ~_ = this
+    if_nothing self ~_ = self
 
-    ## Executes the provided handler on an error, or returns a non-error value
-       unchanged.
+    ## Executes the provided handler on an error, or returns the value unchanged.
 
        Arguments:
-       - handler: The function to call on this if it is an error value. By default
-         this is identity.
+       - error_type: The type of error to handle. Defaults to `Any` to handle
+         all errors.
+       - handler: The function to call on this if it is an error value of a
+         matching type. By default this is identity.
 
        > Example
-         Catching an erroneous value and getting the length of its message.
+         Catching an `Illegal_Argument_Error` and returning its message.
 
              from Standard.Base import all
 
              example_catch =
-                 error = Error.throw "My message"
-                 error.catch (err -> err.length)
-    catch : (Error -> Any) -> Any
-    catch (handler = x->x) = this.catch_primitive handler
+                 error = Error.throw (Illegal_Argument_Error "My message")
+                 error.catch Illegal_Argument_Error (err -> err.message)
+
+       > Example
+         Catching any dataflow error and turning it into a regular value.
+
+             from Standard.Base import all
+
+             example_catch =
+                 error = Error.throw 42
+                 error.catch == 42
+    catch : Any -> (Error -> Any) -> Any
+    catch self (error_type = Any) (handler = x->x) =
+        self.catch_primitive error_value->
+            case error_value.is_a error_type of
+                True -> handler error_value
+                False -> self
 
     ## Transforms an error.
 
        Arguments:
        - f: The function used to transform the error.
 
-       If `this` is a non-error value it is returned unchanged. However, if `this`
+       If `self` is a non-error value it is returned unchanged. However, if `self`
        is an error, the error is transformed using the provided function.
 
        > Example
@@ -283,36 +299,36 @@ type Any
                 error = my_map.get "x"
                 error.map_error (_ -> Example_Error_Type "x is missing")
     map_error : (Error -> Error) -> Any
-    map_error _ = this
+    map_error self _ = self
 
-    ## Checks if `this` is an error.
+    ## Checks if `self` is an error.
 
        > Example
          Checking if the provided value is an error.
 
              1.is_error
     is_error : Boolean
-    is_error = False
+    is_error self = False
 
-    ## Applies the provided function to `this` unless `this` is `Nothing`, which is
+    ## Applies the provided function to `self` unless `self` is `Nothing`, which is
        returned unchanged.
 
        Arguments:
-       - f: The function to apply to `this` if `this` is not `Nothing`.
+       - f: The function to apply to `self` if `self` is not `Nothing`.
 
        > Example
          Applying a function over a value 10.
 
              10.map_nothing *2
     map_nothing : (a -> b) -> b | Nothing
-    map_nothing f = case this of
+    map_nothing self f = case self of
         Nothing -> Nothing
         a -> f a
 
-    ## Applies the function `this` to the provided argument.
+    ## Applies the function `self` to the provided argument.
 
        Arguments:
-       - argument: The argument to apply `this` to.
+       - argument: The argument to apply `self` to.
 
        ? Piping Blocks to Functions
          This construction is particularly useful for passing a block as an argument
@@ -326,12 +342,12 @@ type Any
                 y = 1 ^ 3
                 3 + y
     <| : Any -> Any
-    <| ~argument = this argument
+    <| self ~argument = self argument
 
     ## Applies the function on the right hand side to the argument on the left.
 
        Arguments
-       - function: The function to apply to `this`.
+       - function: The function to apply to `self`.
 
        ? `|>` or `.`?
          The eagle-eyed reader will notice that the operator dot (`.`) is very
@@ -347,33 +363,33 @@ type Any
 
              1 |> (* 2) |> (/ 100) |> .to_text
     |> : (Any -> Any) -> Any
-    |> ~function = function this
+    |> self ~function = function self
 
     ## Composes two functions together, for `f << g` creating the function
        composition `f ∘ g` (equivalent to `x -> f (g x)`).
 
        Arguments:
-       - that: The function to compose with `this`.
+       - that: The function to compose with `self`.
 
        > Example
          Multiply by 2 and then add 1 as a function applied to 2.
 
              (+1 << *2) 2
     << : (Any -> Any) -> (Any -> Any) -> Any -> Any
-    << ~that = x -> this (that x)
+    << self ~that = x -> self (that x)
 
     ## Composes two functions together in the forward direction, for `f >> g`
        creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
 
        Arguments:
-       - that: The function to compose with `this`.
+       - that: The function to compose with `self`.
 
        > Example
          Add one and then multiply by two as a function applied to 2.
 
              (+1 >> *2) 2
     >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
-    >> ~that = x -> that (this x)
+    >> self ~that = x -> that (self x)
 
     ## UNSTABLE
        ADVANCED
@@ -392,4 +408,4 @@ type Any
 
              2.to_default_visualization_data
     to_default_visualization_data : Text
-    to_default_visualization_data = this.to_json.to_text
+    to_default_visualization_data self = self.to_json.to_text

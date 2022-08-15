@@ -10,10 +10,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
-enso-logger = { path = "../../../../lib/rust/logger"}
-enso-prelude = { path = "../../../../lib/rust/prelude"}
-enso-shapely = { path = "../../../../lib/rust/shapely"}
-enso-text = { path = "../../../../lib/rust/text"}
+enso-logger = { path = "../../../../lib/rust/logger" }
+enso-prelude = { path = "../../../../lib/rust/prelude" }
+enso-shapely = { path = "../../../../lib/rust/shapely" }
+enso-text = { path = "../../../../lib/rust/text" }
 failure = { version = "0.1.8" }
 flatbuffers = { version = "0.5" }
 futures = { version = "0.3.1" }

@@ -23,20 +23,20 @@ public abstract class GetUnresolvedSymbolNameNode extends Node {
 
   public static Text fromText = Text.create(Constants.Names.FROM_MEMBER);
 
-  abstract Text execute(Object _this, Object symbol);
+  abstract Text execute(Object symbol);
 
   @Specialization
-  Text doSymbol(Object _this, UnresolvedSymbol symbol) {
+  Text doSymbol(UnresolvedSymbol symbol) {
     return Text.create(symbol.getName());
   }
 
   @Specialization
-  Text doConversion(Object _this, UnresolvedConversion symbol) {
+  Text doConversion(UnresolvedConversion symbol) {
     return fromText;
   }
 
   @Fallback
-  Text doFallback(Object _this, Object symbol) {
+  Text doFallback(Object symbol) {
     Builtins builtins = Context.get(this).getBuiltins();
     throw new PanicException(
         builtins.error().makeTypeError("Unresolved_Symbol", symbol, "symbol"), this);

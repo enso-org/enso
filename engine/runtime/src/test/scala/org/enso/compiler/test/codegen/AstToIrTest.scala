@@ -213,6 +213,38 @@ class AstToIrTest extends CompilerTest with Inside {
       val pattern = ir.branches.head.pattern
       pattern shouldBe an[IR.Pattern.Constructor]
     }
+
+    "support literal numeric patterns" in {
+      val ir =
+        """
+          |case foo of
+          |    1 -> 10
+          |    2 -> 20
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.branches(0).pattern shouldBe an[IR.Pattern.Literal]
+      ir.branches(1).pattern shouldBe an[IR.Pattern.Literal]
+    }
+
+    "support constructor patterns with nested literals" in {
+      val ir =
+        """
+          |case foo of
+          |    Cons 1 b -> a + b
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.branches.head.pattern shouldBe an[IR.Pattern.Constructor]
+
+      val consPat =
+        ir.branches.head.pattern.asInstanceOf[IR.Pattern.Constructor]
+
+      consPat.constructor.name shouldEqual "Cons"
+      consPat.fields.length shouldEqual 2
+
+      consPat.fields(0) shouldBe an[IR.Pattern.Literal]
+      consPat.fields(1) shouldBe an[IR.Pattern.Name]
+    }
+
   }
 
   "AST translation of function definitions" should {
@@ -341,8 +373,7 @@ class AstToIrTest extends CompilerTest with Inside {
       val fn = ir.asInstanceOf[IR.Application.Prefix]
       fn.function shouldEqual IR.Name.Literal(
         "negate",
-        isReferent = false,
-        isMethod   = true,
+        isMethod = true,
         None
       )
 
@@ -421,7 +452,7 @@ class AstToIrTest extends CompilerTest with Inside {
       val tp = tpIr.asInstanceOf[IR.Type.Ascription]
       tp.typed shouldBe a[IR.Name.MethodReference]
       val methodRef = tp.typed.asInstanceOf[IR.Name.MethodReference]
-      methodRef.typePointer.name shouldEqual "My"
+      methodRef.typePointer.get.name shouldEqual "My"
       methodRef.methodName.name shouldEqual "=="
 
       val methodIr = bindings(1)
@@ -429,7 +460,7 @@ class AstToIrTest extends CompilerTest with Inside {
       val method =
         methodIr.asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
       method.methodReference.methodName.name shouldEqual "=="
-      method.methodReference.typePointer.name shouldEqual "My"
+      method.methodReference.typePointer.get.name shouldEqual "My"
     }
 
     "not recognise pattern match bindings" in {
@@ -1049,6 +1080,8 @@ class AstToIrTest extends CompilerTest with Inside {
         "from project import all",
         "from Username.Bar.Quux import Baz",
         "from Username.Bar.Test import Baz, Spam",
+        "from Username.Bar.Test import Baz, Spam, foo, Bar",
+        "from Username.Bar.Test import foo, bar",
         "from username.Foo.Bar import all",
         "from username.Foo.Bar as Eggs import all hiding Spam",
         "from project.Foo.Bar import all hiding Spam, Eggs"

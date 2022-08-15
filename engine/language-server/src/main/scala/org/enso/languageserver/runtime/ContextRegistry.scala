@@ -13,7 +13,6 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
-import org.enso.profiling.MethodsSampler
 import org.enso.searcher.SuggestionsRepo
 
 import java.util.UUID
@@ -59,15 +58,13 @@ import scala.concurrent.duration._
   * @param runtimeFailureMapper mapper for runtime failures
   * @param runtime reference to the [[RuntimeConnector]]
   * @param sessionRouter the session router
-  * @param sampler the methods sampler
   */
 final class ContextRegistry(
   repo: SuggestionsRepo[Future],
   config: Config,
   runtimeFailureMapper: RuntimeFailureMapper,
   runtime: ActorRef,
-  sessionRouter: ActorRef,
-  sampler: MethodsSampler
+  sessionRouter: ActorRef
 ) extends Actor
     with LazyLogging
     with ActorMessageLogging
@@ -75,7 +72,8 @@ final class ContextRegistry(
 
   import ContextRegistryProtocol._
 
-  private val timeout: FiniteDuration = config.executionContext.requestTimeout
+  private val timeout: FiniteDuration =
+    config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -110,11 +108,9 @@ final class ContextRegistry(
           .foreach(_ ! update)
 
       case update: Api.ExecutionFailed =>
-        sampler.stop(6.seconds)(context.dispatcher)
         store.getListener(update.contextId).foreach(_ ! update)
 
       case update: Api.ExecutionComplete =>
-        sampler.stop(6.seconds)(context.dispatcher)
         store.getListener(update.contextId).foreach(_ ! update)
 
       case update: Api.ExecutionUpdate =>
@@ -123,27 +119,31 @@ final class ContextRegistry(
       case update: Api.VisualisationEvaluationFailed =>
         store.getListener(update.contextId).foreach(_ ! update)
 
-      case CreateContextRequest(client) =>
-        val contextId = UUID.randomUUID()
-        val handler = context.actorOf(
-          CreateContextHandler.props(runtimeFailureMapper, timeout, runtime)
-        )
-        val listener =
-          context.actorOf(
-            ContextEventsListener.props(
-              runtimeFailureMapper,
-              repo,
-              client,
-              contextId,
-              sessionRouter
-            )
+      case CreateContextRequest(client, contextIdOpt) =>
+        val contextId = contextIdOpt.getOrElse(UUID.randomUUID())
+        if (!store.hasContext(client.clientId, contextId)) {
+          val handler = context.actorOf(
+            CreateContextHandler.props(runtimeFailureMapper, timeout, runtime)
           )
-        handler.forward(Api.CreateContextRequest(contextId))
-        context.become(
-          withStore(store.addContext(client.clientId, contextId, listener))
-        )
-        context.system.eventStream
-          .publish(ExecutionContextCreated(contextId, client.clientId))
+          val listener =
+            context.actorOf(
+              ContextEventsListener.props(
+                runtimeFailureMapper,
+                repo,
+                client,
+                contextId,
+                sessionRouter
+              )
+            )
+          handler.forward(Api.CreateContextRequest(contextId))
+          context.become(
+            withStore(store.addContext(client.clientId, contextId, listener))
+          )
+          context.system.eventStream
+            .publish(ExecutionContextCreated(contextId, client.clientId))
+        } else {
+          sender() ! CreateContextResponse(contextId)
+        }
 
       case DestroyContextRequest(client, contextId) =>
         if (store.hasContext(client.clientId, contextId)) {
@@ -166,7 +166,6 @@ final class ContextRegistry(
         }
 
       case PushContextRequest(client, contextId, stackItem) =>
-        sampler.start()
         if (store.hasContext(client.clientId, contextId)) {
           val item = getRuntimeStackItem(stackItem)
           val handler =
@@ -244,7 +243,7 @@ final class ContextRegistry(
             Api.AttachVisualisation(
               visualisationId,
               expressionId,
-              convertVisualisationConfig(cfg)
+              cfg.toApi
             )
           )
         } else {
@@ -264,7 +263,7 @@ final class ContextRegistry(
             Api.AttachVisualisation(
               visualisationId,
               expressionId,
-              convertVisualisationConfig(cfg)
+              cfg.toApi
             )
           )
         } else {
@@ -302,24 +301,13 @@ final class ContextRegistry(
             )
           )
 
-          val configuration = convertVisualisationConfig(cfg)
-
           handler.forward(
-            Api.ModifyVisualisation(visualisationId, configuration)
+            Api.ModifyVisualisation(visualisationId, cfg.toApi)
           )
         } else {
           sender() ! AccessDenied
         }
     }
-
-  private def convertVisualisationConfig(
-    config: VisualisationConfiguration
-  ): Api.VisualisationConfiguration =
-    Api.VisualisationConfiguration(
-      executionContextId  = config.executionContextId,
-      visualisationModule = config.visualisationModule,
-      expression          = config.expression
-    )
 
   private def getRuntimeStackItem(
     stackItem: StackItem
@@ -400,15 +388,13 @@ object ContextRegistry {
     * @param runtimeFailureMapper mapper for runtime failures
     * @param runtime reference to the [[RuntimeConnector]]
     * @param sessionRouter the session router
-    * @param sampler the methods sampler
     */
   def props(
     repo: SuggestionsRepo[Future],
     config: Config,
     runtimeFailureMapper: RuntimeFailureMapper,
     runtime: ActorRef,
-    sessionRouter: ActorRef,
-    sampler: MethodsSampler
+    sessionRouter: ActorRef
   ): Props =
     Props(
       new ContextRegistry(
@@ -416,8 +402,7 @@ object ContextRegistry {
         config,
         runtimeFailureMapper,
         runtime,
-        sessionRouter,
-        sampler
+        sessionRouter
       )
     )
 }

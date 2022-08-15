@@ -61,7 +61,7 @@ public class DefaultBooleanExports {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Boolean _this,
+        Boolean self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("resolveMethodOnPrimBoolean(cachedSymbol)") Function function) {
@@ -72,16 +72,16 @@ public class DefaultBooleanExports {
         guards = {
           "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
-          "unbox(_this)",
+          "unbox(self)",
           "function != null"
         },
         limit = "CACHE_SIZE",
         replaces = "resolveCached")
     static Function resolveTrueCached(
-        Boolean _this,
+        Boolean self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("resolveMethodOnBool(_this, cachedSymbol)") Function function) {
+        @Cached("resolveMethodOnBool(self, cachedSymbol)") Function function) {
       return function;
     }
 
@@ -89,23 +89,23 @@ public class DefaultBooleanExports {
         guards = {
           "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
-          "!unbox(_this)",
+          "!unbox(self)",
           "function != null"
         },
         limit = "CACHE_SIZE",
         replaces = "resolveCached")
     static Function resolveFalseCached(
-        Boolean _this,
+        Boolean self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("resolveMethodOnBool(_this, cachedSymbol)") Function function) {
+        @Cached("resolveMethodOnBool(self, cachedSymbol)") Function function) {
       return function;
     }
 
     @Specialization(replaces = {"resolveTrueCached", "resolveFalseCached"})
-    static Function resolve(Boolean _this, UnresolvedSymbol symbol)
+    static Function resolve(Boolean self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = resolveMethodOnBool(_this, symbol);
+      Function function = resolveMethodOnBool(self, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }
@@ -162,7 +162,7 @@ public class DefaultBooleanExports {
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        Boolean _this,
+        Boolean self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
@@ -176,18 +176,18 @@ public class DefaultBooleanExports {
           "!getContext().isInlineCachingDisabled()",
           "cachedConversion == conversion",
           "cachedTarget == target",
-          "unbox(_this)",
+          "unbox(self)",
           "function != null"
         },
         limit = "CACHE_SIZE",
         replaces = "resolveCached")
     static Function resolveTrueCached(
-        Boolean _this,
+        Boolean self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("target") AtomConstructor cachedTarget,
         @Cached("conversion") UnresolvedConversion cachedConversion,
-        @Cached("resolveMethodOnBool(_this, cachedTarget, cachedConversion)") Function function) {
+        @Cached("resolveMethodOnBool(self, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
@@ -196,25 +196,25 @@ public class DefaultBooleanExports {
           "!getContext().isInlineCachingDisabled()",
           "cachedConversion == conversion",
           "cachedTarget == target",
-          "!unbox(_this)",
+          "!unbox(self)",
           "function != null"
         },
         limit = "CACHE_SIZE",
         replaces = "resolveCached")
     static Function resolveFalseCached(
-        Boolean _this,
+        Boolean self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("target") AtomConstructor cachedTarget,
-        @Cached("resolveMethodOnBool(_this, cachedTarget, cachedConversion)") Function function) {
+        @Cached("resolveMethodOnBool(self, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = {"resolveTrueCached", "resolveFalseCached"})
-    static Function resolve(Boolean _this, AtomConstructor target, UnresolvedConversion symbol)
+    static Function resolve(Boolean self, AtomConstructor target, UnresolvedConversion symbol)
         throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = resolveMethodOnBool(_this, target, symbol);
+      Function function = resolveMethodOnBool(self, target, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
       }

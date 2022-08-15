@@ -5,9 +5,7 @@ import org.enso.table.data.table.Column;
 
 import java.util.List;
 
-/***
- * Aggregate Column getting the grouping key.
- */
+/** Aggregate Column getting the grouping key. */
 public class GroupBy extends Aggregator {
   private final Storage storage;
 

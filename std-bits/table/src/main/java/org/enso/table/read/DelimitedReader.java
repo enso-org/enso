@@ -3,42 +3,32 @@ package org.enso.table.read;
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.enso.table.data.column.builder.string.StorageBuilder;
 import org.enso.table.data.column.builder.string.StringStorageBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.parsing.DatatypeParser;
+import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
-import org.enso.table.parsing.problems.ParsingProblem;
+import org.enso.table.parsing.problems.NoOpProblemAggregator;
+import org.enso.table.problems.Problem;
+import org.enso.table.problems.WithProblems;
 import org.enso.table.util.NameDeduplicator;
+
+import java.io.Reader;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /** A helper for reading delimited (CSV-like) files. */
 public class DelimitedReader {
 
-  /** Specifies how to set the headers for the returned table. */
-  public enum HeaderBehavior {
-    /** Tries to infer if the headers are present in the file. */
-    INFER,
-
-    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
-    USE_FIRST_ROW_AS_HEADERS,
-
-    /**
-     * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
-     */
-    GENERATE_HEADERS
-  }
-
   private static final String COLUMN_NAME = "Column";
-
+  private static final char noQuoteCharacter = '\0';
+  private static final long invalidRowsLimit = 10;
   private final char delimiter;
   private final char quoteCharacter;
   private final char quoteEscapeCharacter;
@@ -46,12 +36,19 @@ public class DelimitedReader {
   private final long skipRows;
   private final long rowLimit;
   private final int maxColumns;
-  private final List<ParsingProblem> warnings = new ArrayList<>();
+  private final List<Problem> warnings = new ArrayList<>();
   private final CsvParser parser;
+  private final DatatypeParser valueParser;
+  private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
+  private String newlineSetting;
   private final boolean warningsAsErrors;
-
-  private static final char noQuoteCharacter = '\0';
+  private final NoOpProblemAggregator noOpProblemAggregator = new NoOpProblemAggregator();
+  private long invalidRowsCount = 0;
+  private long targetTableIndex = 0;
+  /** The line number of the start of the current row in the input file. */
+  private long currentLine = 0;
+  private StringStorageBuilder[] builders = null;
 
   /**
    * Creates a new reader.
@@ -70,7 +67,13 @@ public class DelimitedReader {
    * @param skipRows specifies how many rows from the input to skip
    * @param rowLimit specifies how many rows to read (does not include the header row)
    * @param maxColumns specifies how many columns can be expected at most
+   * @param valueParser an optional parser that is applied to each column to convert it to more
+   *     specific datatype
+   * @param cellTypeGuesser a helper used to guess cell types, used for the purpose of inferring the
+   *     headers, it must not be null if {@code headerBehavior} is set to {@code INFER}.
    * @param keepInvalidRows specifies whether to keep rows that had an unexpected number of columns
+   * @param newline specifies what newline character to assume; if set to null, the newline character is autodetected
+   * @param commentCharacter specifies what character indicates start of comments; if set to null, comments are disabled
    * @param warningsAsErrors specifies if the first warning should be immediately raised as an error
    *     (used as a fast-path for the error-reporting mode to avoid computing a value that is going
    *     to be discarded anyway)
@@ -84,7 +87,11 @@ public class DelimitedReader {
       long skipRows,
       long rowLimit,
       int maxColumns,
+      DatatypeParser valueParser,
+      TypeInferringParser cellTypeGuesser,
       boolean keepInvalidRows,
+      String newline,
+      String commentCharacter,
       boolean warningsAsErrors) {
     if (delimiter.isEmpty()) {
       throw new IllegalArgumentException("Empty delimiters are not supported.");
@@ -136,76 +143,61 @@ public class DelimitedReader {
     this.keepInvalidRows = keepInvalidRows;
     this.warningsAsErrors = warningsAsErrors;
 
-    parser = setupCsvParser(input);
+    this.valueParser = valueParser;
+    this.cellTypeGuesser = cellTypeGuesser;
+    this.newlineSetting = newline;
+    parser = setupCsvParser(input, commentCharacter);
   }
 
   /** Creates a {@code CsvParser} according to the settings specified at construction. */
-  private CsvParser setupCsvParser(Reader input) {
+  private CsvParser setupCsvParser(Reader input, String commentCharacter) {
     CsvParserSettings settings = new CsvParserSettings();
     settings.setHeaderExtractionEnabled(false);
     CsvFormat format = new CsvFormat();
     format.setDelimiter(delimiter);
     format.setQuote(quoteCharacter);
     format.setQuoteEscape(quoteEscapeCharacter);
-    settings.setFormat(format);
     settings.setMaxCharsPerColumn(-1);
     settings.setMaxColumns(maxColumns);
     settings.setSkipEmptyLines(false);
     settings.setKeepQuotes(true);
-    settings.setLineSeparatorDetectionEnabled(true);
+
+    if (newlineSetting == null) {
+      settings.setLineSeparatorDetectionEnabled(true);
+    } else {
+      if (newlineSetting.length() > 2 || newlineSetting.isEmpty()) {
+        throw new IllegalArgumentException("The newline sequence should consist of at least 1 and at most 2 characters (codepoints).");
+      }
+      settings.setLineSeparatorDetectionEnabled(false);
+      format.setLineSeparator(newlineSetting);
+    }
+
+    if (commentCharacter == null) {
+      format.setComment('\0');
+    } else {
+      if (commentCharacter.length() != 1) {
+        throw new IllegalArgumentException("The comment character should be set to Nothing or consist of exactly one character (codepoint).");
+      }
+
+      format.setComment(commentCharacter.charAt(0));
+    }
+
+    settings.setFormat(format);
+    settings.setNumberOfRowsToSkip(skipRows);
     CsvParser parser = new CsvParser(settings);
     parser.beginParsing(input);
     return parser;
   }
 
-  /** Parses a cell, removing surrounding quotes (if applicable). */
-  private String parseCell(String cell) {
-    if (cell == null) return null;
-
-    if (cell.isEmpty()) return cell;
-    if (cell.charAt(0) == quoteCharacter) {
-      return stripQuotes(cell);
-    }
-
-    return cell;
-  }
-
   /** Parses a header cell, removing surrounding quotes (if applicable). */
   private String parseHeader(String cell) {
-    if (cell == null) return COLUMN_NAME;
-
-    if (cell.isEmpty()) return cell;
-    if (cell.charAt(0) == quoteCharacter) {
-      return stripQuotes(cell);
-    }
-
-    return cell;
-  }
-
-  /**
-   * If the first character of a string is a quote, will remove the surrounding quotes.
-   *
-   * <p>If the first character of a string is a quote but the last one is not, mismatched quote
-   * problem is reported.
-   */
-  private String stripQuotes(String cell) {
-    assert cell.charAt(0) == quoteCharacter;
-
-    if (cell.length() < 2 || cell.charAt(cell.length() - 1) != quoteCharacter) {
-      reportMismatchedQuote();
-      return cell.substring(1);
-    } else {
-      // Strip quotes.
-      return cell.substring(1, cell.length() - 1);
-    }
+    if (cell == null) return null;
+    return QuoteHelper.stripQuotes(quoteCharacter, this::reportMismatchedQuote, cell);
   }
 
   private void reportMismatchedQuote() {
     reportProblem(new MismatchedQuote());
   }
-
-  private long invalidRowsCount = 0;
-  private static final long invalidRowsLimit = 10;
 
   private void reportInvalidRow(long source_row, Long table_index, String[] row) {
     if (invalidRowsCount < invalidRowsLimit) {
@@ -216,8 +208,10 @@ public class DelimitedReader {
   }
 
   /** Returns a list of currently reported problems encountered when parsing the input. */
-  public List<ParsingProblem> getReportedProblems() {
-    List<ParsingProblem> result = new ArrayList<>(warnings);
+  private List<Problem> getReportedProblems(List<Problem> nameProblems) {
+    List<Problem> result = new ArrayList<>(nameProblems.size() + warnings.size() + 1);
+    result.addAll(nameProblems);
+    result.addAll(warnings);
     if (invalidRowsCount > invalidRowsLimit) {
       long additionalInvalidRows = invalidRowsCount - invalidRowsLimit;
       result.add(new AdditionalInvalidRows(additionalInvalidRows));
@@ -225,7 +219,7 @@ public class DelimitedReader {
     return result;
   }
 
-  private void reportProblem(ParsingProblem problem) {
+  private void reportProblem(Problem problem) {
     if (warningsAsErrors) {
       throw new ParsingFailedException(problem);
     } else {
@@ -233,105 +227,262 @@ public class DelimitedReader {
     }
   }
 
-  private long target_table_index = 0;
+  /**
+   * Loads a next row from the CSV file.
+   *
+   * <p>This is an internal function that just loads the row but does not update the state nor take
+   * into consideration pending rows. The regular reading process should use {@code readNextRow}
+   * instead.
+   */
+  private Row loadNextRow() {
+    long line = parser.getContext().currentLine() + 1;
+    String[] cells = parser.parseNext();
+    if (cells == null) return null;
+    return new Row(line, cells);
+  }
 
-  /** The line number of the start of the current row in the input file. */
-  private long current_line = 0;
+  private record Row(long lineNumber, String[] cells) {}
+
+  private final Queue<Row> pendingRows = new ArrayDeque<>(2);
 
   /**
-   * Reads the next row and updates the current line accordingly.
+   * Reads the next row and updates the current line accordingly. It takes into consideration the
+   * pending rows that have already been loaded when inferring the headers but were still not
+   * processed.
    *
    * <p>Will return {@code null} if no more rows are available.
    */
-  private String[] nextRow() {
-    current_line = parser.getContext().currentLine() + 1;
-    return parser.parseNext();
+  private String[] readNextRow() {
+    Row row = pendingRows.isEmpty() ? loadNextRow() : pendingRows.remove();
+    if (row == null) {
+      return null;
+    }
+
+    currentLine = row.lineNumber;
+    return row.cells;
+  }
+
+  private void appendRow(String[] row) {
+    assert builders != null;
+    assert canFitMoreRows();
+
+    if (row.length != builders.length) {
+      reportInvalidRow(currentLine, keepInvalidRows ? targetTableIndex : null, row);
+
+      if (keepInvalidRows) {
+        for (int i = 0; i < builders.length && i < row.length; i++) {
+          builders[i] = builders[i].parseAndAppend(row[i]);
+        }
+
+        // If the current row had fewer columns than expected, nulls are inserted for the missing
+        // values.
+        // If it had more columns, the excess columns are discarded.
+        for (int i = row.length; i < builders.length; i++) {
+          builders[i] = builders[i].parseAndAppend(null);
+        }
+
+        targetTableIndex++;
+      }
+    } else {
+      for (int i = 0; i < builders.length; i++) {
+        builders[i] = builders[i].parseAndAppend(row[i]);
+      }
+
+      targetTableIndex++;
+    }
+  }
+
+  private boolean canFitMoreRows() {
+    return rowLimit < 0 || targetTableIndex < rowLimit;
+  }
+
+  private void appendRowIfLimitPermits(String[] row) {
+    if (canFitMoreRows()) {
+      appendRow(row);
+    }
+  }
+
+  private WithProblems<List<String>> headersFromRow(String[] row) {
+    List<String> preprocessedHeaders =
+        Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
+
+    NameDeduplicator deduplicator = new NameDeduplicator();
+    List<String> names = deduplicator.makeUnique(preprocessedHeaders);
+    return new WithProblems<>(names, deduplicator.getProblems());
+  }
+
+  private WithProblems<List<String>> generateDefaultHeaders(int columnCount) {
+    List<String> headerNames = new ArrayList<>(columnCount);
+    for (int i = 0; i < columnCount; ++i) {
+      headerNames.add(COLUMN_NAME + "_" + (i + 1));
+    }
+    return new WithProblems<>(headerNames, Collections.emptyList());
+  }
+
+  /**
+   * Checks if the given cell contains just plain text that is not null and is not convertible to
+   * any more specific type according to the {@code cellTypeGuesser}. This is used for checking the
+   * types when inferring the headers.
+   */
+  private boolean isPlainText(String cell) {
+    if (cell == null) return false;
+    Object parsed = cellTypeGuesser.parseSingleValue(cell, noOpProblemAggregator);
+    return parsed instanceof String;
+  }
+
+  /** The column names as defined in the input (if applicable, otherwise null). */
+  private String[] definedColumnNames = null;
+
+  /** The effective column names.
+   *
+   * If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found, this will be populated with automatically generated column names. */
+  private String[] effectiveColumnNames;
+
+  private List<Problem> headerProblems;
+
+  /** Returns the column names that are defined in the input.
+   *
+   * Will return {@code null} if {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers were found inside of the file. */
+  public String[] getDefinedColumnNames() {
+    ensureHeadersDetected();
+    return definedColumnNames;
+  }
+
+  public int getColumnCount() {
+    ensureHeadersDetected();
+    return effectiveColumnNames.length;
+  }
+
+  /** Returns the line separator.
+   *
+   * If it was provided explicitly at construction, the selected separator is used.
+   * If the initial separator was set to {@code null}, the reader tries to detect
+   * the separator from file contents.
+   */
+  public String getEffectiveLineSeparator() {
+    if (newlineSetting == null) {
+      ensureHeadersDetected();
+    }
+    return newlineSetting;
+  }
+
+  public long getVisitedCharactersCount() {
+    ensureHeadersDetected();
+    return parser.getContext().currentChar();
+  }
+
+  private void ensureHeadersDetected() {
+    if (effectiveColumnNames == null) {
+      detectHeaders();
+    }
+  }
+
+  private void detectHeaders() {
+    Row firstRow = loadNextRow();
+
+    // Resolve the newline separator:
+    if (newlineSetting == null) {
+      newlineSetting = parser.getDetectedFormat().getLineSeparatorString();
+    }
+
+    if (firstRow == null) {
+      effectiveColumnNames = new String[0];
+      headerProblems = Collections.emptyList();
+      return;
+    }
+
+    int expectedColumnCount = firstRow.cells.length;
+    boolean wereHeadersDefined = false;
+    WithProblems<List<String>> headerNames;
+
+    switch (headerBehavior) {
+      case INFER -> {
+        Row secondRow = loadNextRow();
+        if (secondRow == null) {
+          /* If there is only one row in the file, we generate the headers and
+           * stop further processing (as nothing more to process). */
+          headerNames = generateDefaultHeaders(expectedColumnCount);
+          pendingRows.add(firstRow);
+        } else {
+          assert cellTypeGuesser != null;
+          boolean firstAllText = Arrays.stream(firstRow.cells).allMatch(this::isPlainText);
+          boolean secondAllText = Arrays.stream(secondRow.cells).allMatch(this ::isPlainText);
+          boolean useFirstRowAsHeader = firstAllText && !secondAllText;
+          if (useFirstRowAsHeader) {
+            headerNames = headersFromRow(firstRow.cells);
+            wereHeadersDefined = true;
+            pendingRows.add(secondRow);
+          } else {
+            headerNames = generateDefaultHeaders(expectedColumnCount);
+            pendingRows.add(firstRow);
+            pendingRows.add(secondRow);
+          }
+        }
+      }
+      case USE_FIRST_ROW_AS_HEADERS -> {
+        headerNames = headersFromRow(firstRow.cells);
+        wereHeadersDefined = true;
+      }
+      case GENERATE_HEADERS -> {
+        headerNames = generateDefaultHeaders(expectedColumnCount);
+        pendingRows.add(firstRow);
+      }
+      default -> throw new IllegalStateException("Impossible branch.");
+    }
+
+    headerProblems = headerNames.problems();
+    effectiveColumnNames = headerNames.value().toArray(new String[0]);
+    if (wereHeadersDefined) {
+      definedColumnNames = effectiveColumnNames;
+    }
   }
 
   /** Reads the input stream and returns a Table. */
-  public Table read() {
-    List<String> headerNames;
-    String[] currentRow = nextRow();
-
-    // Skip the first N rows.
-    for (long i = 0; currentRow != null && i < skipRows; ++i) {
-      currentRow = nextRow();
-    }
-
-    // If there are no rows to even infer the headers, we return an empty table.
-    if (currentRow == null) {
-      return new Table(new Column[0]);
-    }
-
-    switch (headerBehavior) {
-      case INFER:
-        throw new IllegalStateException("Inferring headers is not yet implemented");
-      case USE_FIRST_ROW_AS_HEADERS:
-        List<String> preprocessedHeaders =
-            Arrays.stream(currentRow).map(this::parseHeader).collect(Collectors.toList());
-        headerNames = NameDeduplicator.deduplicate(preprocessedHeaders, "_");
-        // We have 'used up' the first row, so we load a next one.
-        currentRow = nextRow();
-        break;
-      case GENERATE_HEADERS:
-        headerNames = new ArrayList<>(currentRow.length);
-        for (int i = 0; i < currentRow.length; ++i) {
-          headerNames.add(COLUMN_NAME + "_" + (i + 1));
-        }
-        break;
-      default:
-        throw new IllegalStateException("Impossible branch.");
-    }
-
-    StorageBuilder[] builders = initBuilders(headerNames.size());
-
-    while (currentRow != null && (rowLimit < 0 || target_table_index < rowLimit)) {
-      if (currentRow.length != builders.length) {
-        reportInvalidRow(current_line, keepInvalidRows ? target_table_index : null, currentRow);
-
-        if (keepInvalidRows) {
-          for (int i = 0; i < builders.length && i < currentRow.length; i++) {
-            String item = parseCell(currentRow[i]);
-            builders[i] = builders[i].parseAndAppend(item);
-          }
-
-          // If the current row had less columns than expected, nulls are inserted for the missing
-          // values.
-          // If it had more columns, the excess columns are discarded.
-          for (int i = currentRow.length; i < builders.length; i++) {
-            builders[i] = builders[i].parseAndAppend(null);
-          }
-
-          target_table_index++;
-        }
-      } else {
-        for (int i = 0; i < builders.length; i++) {
-
-          String item = parseCell(currentRow[i]);
-          builders[i] = builders[i].parseAndAppend(item);
-        }
-
-        target_table_index++;
-      }
-
-      currentRow = nextRow();
+  public WithProblems<Table> read() {
+    ensureHeadersDetected();
+    initBuilders(getColumnCount());
+    while (canFitMoreRows()) {
+      var currentRow = readNextRow();
+      if (currentRow == null) break;
+      appendRow(currentRow);
     }
 
     parser.stopParsing();
 
     Column[] columns = new Column[builders.length];
     for (int i = 0; i < builders.length; i++) {
-      Storage col = builders[i].seal();
-      columns[i] = new Column(headerNames.get(i), new DefaultIndex(col.size()), col);
+      String columnName = effectiveColumnNames[i];
+      StringStorage col = builders[i].seal();
+
+      WithProblems<Storage> parseResult = valueParser.parseColumn(columnName, col);
+      for (var problem : parseResult.problems()) {
+        reportProblem(problem);
+      }
+      Storage storage = parseResult.value();
+
+      columns[i] = new Column(columnName, new DefaultIndex(storage.size()), storage);
     }
-    return new Table(columns);
+    return new WithProblems<>(new Table(columns), getReportedProblems(headerProblems));
   }
 
-  private StorageBuilder[] initBuilders(int count) {
-    StorageBuilder[] res = new StorageBuilder[count];
+  private void initBuilders(int count) {
+    builders = new StringStorageBuilder[count];
     for (int i = 0; i < count; i++) {
-      res[i] = new StringStorageBuilder();
+      builders[i] = new StringStorageBuilder();
     }
-    return res;
+  }
+
+  /** Specifies how to set the headers for the returned table. */
+  public enum HeaderBehavior {
+    /** Tries to infer if the headers are present in the file. */
+    INFER,
+
+    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
+    USE_FIRST_ROW_AS_HEADERS,
+
+    /**
+     * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
+     */
+    GENERATE_HEADERS
   }
 }

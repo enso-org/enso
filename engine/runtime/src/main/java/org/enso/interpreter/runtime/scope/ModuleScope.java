@@ -111,7 +111,6 @@ public class ModuleScope implements TruffleObject {
    * @param function the {@link Function} associated with this definition
    */
   public void registerMethod(AtomConstructor atom, String method, Function function) {
-    method = method.toLowerCase();
     Map<String, Function> methodMap = ensureMethodMapFor(atom);
 
     if (methodMap.containsKey(method)) {
@@ -191,13 +190,12 @@ public class ModuleScope implements TruffleObject {
    */
   @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(AtomConstructor atom, String name) {
-    String lowerName = name.toLowerCase();
-    Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(lowerName);
+    Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(name);
     if (definedWithAtom != null) {
       return definedWithAtom;
     }
 
-    Function definedHere = getMethodMapFor(atom).get(lowerName);
+    Function definedHere = getMethodMapFor(atom).get(name);
     if (definedHere != null) {
       return definedHere;
     }

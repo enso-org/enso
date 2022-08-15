@@ -19,9 +19,9 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
+  GlobalNames,
   MethodDefinitions,
-  Patterns,
-  UppercaseNames
+  Patterns
 }
 import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -39,12 +39,7 @@ import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
-import org.enso.interpreter.node.expression.literal.{
-  BigIntegerLiteralNode,
-  DecimalLiteralNode,
-  IntegerLiteralNode,
-  TextLiteralNode
-}
+import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
   BaseNode,
@@ -61,6 +56,7 @@ import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
 }
+import org.enso.interpreter.runtime.callable.atom.Atom
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
@@ -251,7 +247,7 @@ class IrToTruffle(
         .unsafeGetMetadata(
           AliasAnalysis,
           s"Missing scope information for method " +
-          s"`${methodDef.typeName.name}.${methodDef.methodName.name}`."
+          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
@@ -260,28 +256,34 @@ class IrToTruffle(
       )
 
       val consOpt =
-        methodDef.methodReference.typePointer
-          .getMetadata(MethodDefinitions)
-          .map { res =>
-            res.target match {
-              case BindingsMap.ResolvedModule(module) =>
-                module.unsafeAsModule().getScope.getAssociatedType
-              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                definitionModule
-                  .unsafeAsModule()
-                  .getScope
-                  .getConstructors
-                  .get(cons.name)
-              case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-                throw new CompilerError(
-                  "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-                )
-              case _: BindingsMap.ResolvedMethod =>
-                throw new CompilerError(
-                  "Impossible here, should be caught by MethodDefinitions pass."
-                )
-            }
-          }
+        methodDef.methodReference.typePointer match {
+          case None =>
+            Some(moduleScope.getAssociatedType)
+          case Some(tpePointer) =>
+            tpePointer
+              .getMetadata(MethodDefinitions)
+              .map { res =>
+                res.target match {
+                  case BindingsMap.ResolvedModule(module) =>
+                    module.unsafeAsModule().getScope.getAssociatedType
+                  case BindingsMap
+                        .ResolvedConstructor(definitionModule, cons) =>
+                    definitionModule
+                      .unsafeAsModule()
+                      .getScope
+                      .getConstructors
+                      .get(cons.name)
+                  case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                    throw new CompilerError(
+                      "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                    )
+                  case _: BindingsMap.ResolvedMethod =>
+                    throw new CompilerError(
+                      "Impossible here, should be caught by MethodDefinitions pass."
+                    )
+                }
+              }
+        }
 
       consOpt.foreach { cons =>
         val expressionProcessor = new ExpressionProcessor(
@@ -325,7 +327,7 @@ class IrToTruffle(
               expressionProcessor.scope,
               moduleScope,
               () => bodyBuilder.bodyNode(),
-              makeSection(methodDef.location),
+              makeSection(moduleScope, methodDef.location),
               cons,
               methodDef.methodName.name
             )
@@ -369,7 +371,7 @@ class IrToTruffle(
         .unsafeGetMetadata(
           AliasAnalysis,
           s"Missing scope information for conversion " +
-          s"`${methodDef.typeName.name}.${methodDef.methodName.name}`."
+          s"`${methodDef.typeName.map(_.name + ".").getOrElse("")}${methodDef.methodName.name}`."
         )
         .unsafeAs[AliasAnalysis.Info.Scope.Root]
       val dataflowInfo = methodDef.unsafeGetMetadata(
@@ -378,7 +380,12 @@ class IrToTruffle(
       )
 
       val toOpt =
-        getConstructorResolution(methodDef.methodReference.typePointer)
+        methodDef.methodReference.typePointer match {
+          case Some(tpePointer) =>
+            getConstructorResolution(tpePointer)
+          case None =>
+            Some(moduleScope.getAssociatedType)
+        }
       val fromOpt = getConstructorResolution(methodDef.sourceTypeName)
       toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
         val expressionProcessor = new ExpressionProcessor(
@@ -397,7 +404,7 @@ class IrToTruffle(
               expressionProcessor.scope,
               moduleScope,
               () => bodyBuilder.bodyNode(),
-              makeSection(methodDef.location),
+              makeSection(moduleScope, methodDef.location),
               toType,
               methodDef.methodName.name
             )
@@ -435,16 +442,25 @@ class IrToTruffle(
       )
   }
 
-  /** Creates a source section from a given location in the code.
+  /** Creates a source section from a given location in the module's code.
     *
+    * @param module the module that owns/provides the source code
     * @param location the location to turn into a section
     * @return the source section corresponding to `location`
     */
   private def makeSection(
+    module: ModuleScope,
     location: Option[IdentifiedLocation]
   ): SourceSection = {
     location
-      .map(loc => source.createSection(loc.start, loc.length))
+      .map(loc => {
+        val m = module.getModule()
+        if (m.isModuleSource(source)) {
+          module.getModule().createSection(loc.start, loc.length)
+        } else {
+          source.createSection(loc.start, loc.length)
+        }
+      })
       .getOrElse(source.createUnavailableSection())
   }
 
@@ -519,7 +535,7 @@ class IrToTruffle(
     val schema = new FunctionSchema(
       new ArgumentDefinition(
         0,
-        "this",
+        Constants.Names.SELF_ARGUMENT,
         ArgumentDefinition.ExecutionMode.EXECUTE
       )
     )
@@ -537,7 +553,7 @@ class IrToTruffle(
         new FunctionSchema(
           new ArgumentDefinition(
             0,
-            "this",
+            Constants.Names.SELF_ARGUMENT,
             ArgumentDefinition.ExecutionMode.EXECUTE
           )
         )
@@ -646,13 +662,15 @@ class IrToTruffle(
       * @param ir the IR to generate code for
       * @return a truffle expression that represents the same program as `ir`
       */
-    def run(ir: IR.Expression): RuntimeExpression = {
+    def run(ir: IR.Expression): RuntimeExpression = run(ir, false)
+
+    private def run(ir: IR.Expression, binding: Boolean): RuntimeExpression = {
       val runtimeExpression = ir match {
         case block: IR.Expression.Block     => processBlock(block)
         case literal: IR.Literal            => processLiteral(literal)
         case app: IR.Application            => processApplication(app)
         case name: IR.Name                  => processName(name)
-        case function: IR.Function          => processFunction(function)
+        case function: IR.Function          => processFunction(function, binding)
         case binding: IR.Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case              => processCase(caseExpr)
         case typ: IR.Type                   => processType(typ)
@@ -712,8 +730,10 @@ class IrToTruffle(
           childScope,
           moduleScope,
           blockNode,
-          makeSection(block.location),
-          currentVarName
+          makeSection(moduleScope, block.location),
+          currentVarName,
+          false,
+          false
         )
 
         val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
@@ -880,6 +900,7 @@ class IrToTruffle(
           runtimeConsOpt.map { atomCons =>
             val any          = context.getBuiltins.any
             val array        = context.getBuiltins.array
+            val file         = context.getBuiltins.file
             val builtinBool  = context.getBuiltins.bool().getBool
             val builtinTrue  = context.getBuiltins.bool().getTrue
             val builtinFalse = context.getBuiltins.bool().getFalse
@@ -911,6 +932,8 @@ class IrToTruffle(
                 NumberBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == array) {
                 ArrayBranchNode.build(atomCons, branchCodeNode.getCallTarget)
+              } else if (atomCons == file) {
+                FileBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == polyglot) {
                 PolyglotBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == any) {
@@ -923,6 +946,50 @@ class IrToTruffle(
               }
 
             branchNode
+          }
+        case literalPattern: Pattern.Literal =>
+          val branchCodeNode = childProcessor.processFunctionBody(
+            Nil,
+            branch.expression,
+            branch.location
+          )
+
+          literalPattern.literal match {
+            case num: IR.Literal.Number =>
+              num.numericValue match {
+                case doubleVal: Double =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      doubleVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case longVal: Long =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      longVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case bigIntVal: BigInteger =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      bigIntVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case _ =>
+                  throw new CompilerError(
+                    "Invalid literal numeric value"
+                  )
+              }
+            case text: IR.Literal.Text =>
+              Right(
+                StringLiteralBranchNode.build(
+                  text.text,
+                  branchCodeNode.getCallTarget
+                )
+              )
           }
         case _: Pattern.Documentation =>
           throw new CompilerError(
@@ -983,7 +1050,7 @@ class IrToTruffle(
       val slot = scope.createVarSlot(occInfo.id)
 
       setLocation(
-        AssignmentNode.build(this.run(binding.expression), slot),
+        AssignmentNode.build(this.run(binding.expression, true), slot),
         binding.location
       )
     }
@@ -991,9 +1058,13 @@ class IrToTruffle(
     /** Generates code for an Enso function.
       *
       * @param function the function to generate code for
+      * @param binding whether the function is right inside a binding
       * @return the truffle nodes corresponding to `function`
       */
-    def processFunction(function: IR.Function): RuntimeExpression = {
+    private def processFunction(
+      function: IR.Function,
+      binding: Boolean
+    ): RuntimeExpression = {
       val scopeInfo = function
         .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
         .unsafeAs[AliasAnalysis.Info.Scope.Child]
@@ -1016,7 +1087,8 @@ class IrToTruffle(
       val fn = child.processFunctionBody(
         function.arguments,
         function.body,
-        function.location
+        function.location,
+        binding
       )
 
       fn
@@ -1029,7 +1101,7 @@ class IrToTruffle(
       */
     def processName(name: IR.Name): RuntimeExpression = {
       val nameExpr = name match {
-        case IR.Name.Literal(nameStr, _, _, _, _, _) =>
+        case IR.Name.Literal(nameStr, _, _, _, _) =>
           val useInfo = name
             .unsafeGetMetadata(
               AliasAnalysis,
@@ -1038,7 +1110,7 @@ class IrToTruffle(
             .unsafeAs[AliasAnalysis.Info.Occurrence]
 
           val slot   = scope.getFramePointer(useInfo.id)
-          val global = name.getMetadata(UppercaseNames)
+          val global = name.getMetadata(GlobalNames)
           if (slot.isDefined) {
             ReadLocalVariableNode.build(slot.get)
           } else if (global.isDefined) {
@@ -1064,26 +1136,23 @@ class IrToTruffle(
                     .getPolyglotSymbols
                     .get(symbol.name)
                 )
-              case BindingsMap.ResolvedMethod(_, _) =>
+              case BindingsMap.ResolvedMethod(_, method) =>
                 throw new CompilerError(
-                  "Impossible here, should be desugared by UppercaseNames resolver"
+                  s"Impossible here, ${method.name} should be caught when translating application"
                 )
             }
-          } else if (nameStr == "from") {
+          } else if (nameStr == Constants.Names.FROM_MEMBER) {
             ConstantObjectNode.build(UnresolvedConversion.build(moduleScope))
           } else {
             DynamicSymbolNode.build(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
-        case IR.Name.Here(_, _, _) =>
-          ConstructorNode.build(moduleScope.getAssociatedType)
-        case IR.Name.This(location, passData, _) =>
+        case IR.Name.Self(location, _, passData, _) =>
           processName(
             IR.Name.Literal(
-              Constants.Names.THIS_ARGUMENT,
-              isReferent = false,
-              isMethod   = false,
+              Constants.Names.SELF_ARGUMENT,
+              isMethod = false,
               location,
               passData
             )
@@ -1126,44 +1195,18 @@ class IrToTruffle(
       * @param literal the literal to generate code for
       * @return the truffle nodes corresponding to `literal`
       */
+    @throws[CompilerError]
     def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
-        case lit @ IR.Literal.Number(base, value, location, _, _) =>
-          val node = if (lit.isFractional) {
-            DecimalLiteralNode.build(value.toDouble)
-          } else if (base.isDefined) {
-            val baseNum =
-              try {
-                Integer.parseInt(base.get)
-              } catch {
-                case _: NumberFormatException =>
-                  throw new CompilerError(
-                    s"Invalid number base $base seen during codegen."
-                  )
-              }
-            try {
-              val longVal = java.lang.Long.parseLong(value, baseNum)
-              IntegerLiteralNode.build(longVal)
-            } catch {
-              case _: NumberFormatException =>
-                try {
-                  val bigInt = new BigInteger(value, baseNum)
-                  BigIntegerLiteralNode.build(bigInt)
-                } catch {
-                  case _: NumberFormatException =>
-                    throw new CompilerError(
-                      s"Invalid number base $base seen during codegen."
-                    )
-                }
-            }
-          } else {
-            value.toLongOption
-              .map(IntegerLiteralNode.build)
-              .getOrElse(BigIntegerLiteralNode.build(new BigInteger(value)))
+        case lit @ IR.Literal.Number(_, _, location, _, _) =>
+          val node = lit.numericValue match {
+            case l: Long       => LiteralNode.build(l)
+            case d: Double     => LiteralNode.build(d)
+            case b: BigInteger => LiteralNode.build(b)
           }
           setLocation(node, location)
         case IR.Literal.Text(text, location, _, _) =>
-          setLocation(TextLiteralNode.build(text), location)
+          setLocation(LiteralNode.build(text), location)
       }
 
     /** Generates a runtime implementation for compile error nodes.
@@ -1172,7 +1215,7 @@ class IrToTruffle(
       * @return a runtime node representing the error.
       */
     def processError(error: IR.Error): RuntimeExpression = {
-      val payload: AnyRef = error match {
+      val payload: Atom = error match {
         case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: Error.Syntax =>
@@ -1199,7 +1242,7 @@ class IrToTruffle(
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
-        case err: Error.Redefined.ThisArg =>
+        case err: Error.Redefined.SelfArg =>
           context.getBuiltins
             .error()
             .makeCompileError(Text.create(err.message))
@@ -1323,12 +1366,14 @@ class IrToTruffle(
       * @param arguments the arguments to the function
       * @param body      the body of the function
       * @param location  the location at which the function exists in the source
+      * @param binding whether the function is right inside a binding
       * @return a truffle node representing the described function
       */
     def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
-      location: Option[IdentifiedLocation]
+      location: Option[IdentifiedLocation],
+      binding: Boolean = false
     ): CreateFunctionNode = {
       val bodyBuilder = new BuildFunctionBody(arguments, body)
       val fnRootNode = ClosureRootNode.build(
@@ -1336,8 +1381,10 @@ class IrToTruffle(
         scope,
         moduleScope,
         bodyBuilder.bodyNode(),
-        makeSection(location),
-        scopeName
+        makeSection(moduleScope, location),
+        scopeName,
+        false,
+        binding
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
@@ -1379,37 +1426,8 @@ class IrToTruffle(
       application match {
         case IR.Application.Prefix(fn, Nil, true, _, _, _) =>
           run(fn)
-        case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =>
-          val callArgFactory = new CallArgumentProcessor(scope, scopeName)
-
-          val arguments = args
-          val callArgs  = new ArrayBuffer[CallArgument]()
-
-          for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
-            val arg = callArgFactory.run(unprocessedArg, position)
-            callArgs.append(arg)
-          }
-
-          val defaultsExecutionMode = if (hasDefaultsSuspended) {
-            InvokeCallableNode.DefaultsExecutionMode.IGNORE
-          } else {
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE
-          }
-
-          val appNode = application.getMetadata(ApplicationSaturation) match {
-            case Some(
-                  ApplicationSaturation.CallSaturation.Exact(createOptimised)
-                ) =>
-              createOptimised(moduleScope)(scope)(callArgs.toList)
-            case _ =>
-              ApplicationNode.build(
-                this.run(fn),
-                callArgs.toArray,
-                defaultsExecutionMode
-              )
-          }
-
-          setLocation(appNode, loc)
+        case app: IR.Application.Prefix =>
+          processApplicationWithArgs(app)
         case IR.Application.Force(expr, location, _, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
         case IR.Application.Literal.Sequence(items, location, _, _) =>
@@ -1438,6 +1456,44 @@ class IrToTruffle(
             s"$sec found"
           )
       }
+
+    private def processApplicationWithArgs(
+      application: IR.Application.Prefix
+    ): RuntimeExpression = {
+      val IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =
+        application
+      val callArgFactory = new CallArgumentProcessor(scope, scopeName)
+
+      val arguments = args
+      val callArgs  = new ArrayBuffer[CallArgument]()
+
+      for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
+        val arg = callArgFactory.run(unprocessedArg, position)
+        callArgs.append(arg)
+      }
+
+      val defaultsExecutionMode = if (hasDefaultsSuspended) {
+        InvokeCallableNode.DefaultsExecutionMode.IGNORE
+      } else {
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE
+      }
+
+      val appNode = application.getMetadata(ApplicationSaturation) match {
+        case Some(
+              ApplicationSaturation.CallSaturation.Exact(createOptimised)
+            ) =>
+          createOptimised(moduleScope)(scope)(callArgs.toList)
+        case _ =>
+          ApplicationNode.build(
+            this.run(fn),
+            callArgs.toArray,
+            defaultsExecutionMode
+          )
+      }
+
+      setLocation(appNode, loc)
+    }
+
   }
 
   // ==========================================================================
@@ -1514,7 +1570,9 @@ class IrToTruffle(
                 moduleScope,
                 argumentExpression,
                 section,
-                displayName
+                displayName,
+                true,
+                false
               )
             )
 
@@ -1590,7 +1648,9 @@ class IrToTruffle(
               moduleScope,
               defaultExpression,
               null,
-              s"<default::$scopeName::${arg.name}>"
+              s"<default::$scopeName::${arg.name}>",
+              false,
+              false
             )
 
             CreateThunkNode.build(

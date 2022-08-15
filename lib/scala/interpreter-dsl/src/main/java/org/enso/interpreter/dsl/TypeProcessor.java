@@ -4,6 +4,7 @@ import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -18,6 +19,7 @@ import org.openide.util.lookup.ServiceProvider;
 public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeMetadataEntry> {
 
   private final Map<Filer, Map<String, BuiltinTypeConstr>> builtinTypes = new HashMap<>();
+  private JavaFileObject jfo = null;
 
   private class BuiltinTypeConstr {
     private String tpeName;
@@ -50,6 +52,17 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
   @Override
   protected boolean handleProcess(
       Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+    if (jfo == null) {
+      // Create generator for Java source file once(!) so that it can be used at the last
+      // round of processing. Otherwise, javac complains that the generated file won't be
+      // used in further processing. That's fine, we know it won't.
+      try {
+        jfo = processingEnv.getFiler().createSourceFile(ConstantsGenFullClassname);
+      } catch (IOException e) {
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
+        return false;
+      }
+    }
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
@@ -85,9 +98,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
    */
   @Override
   protected void storeMetadata(Writer writer, Map<String, TypeMetadataEntry> pastEntries) throws IOException {
-    JavaFileObject gen = processingEnv.getFiler().createSourceFile(ConstantsGenFullClassname);
     for (Filer f : builtinTypes.keySet()) {
-      System.out.println("foo" + f.toString());
       for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
         BuiltinTypeConstr constr = entry.getValue();
         writer.append(
@@ -104,7 +115,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
         }
       }
     }
-    try (PrintWriter out = new PrintWriter(gen.openWriter())) {
+    try (PrintWriter out = new PrintWriter(jfo.openWriter())) {
       out.println("package " + ConstantsGenPkg + ";");
       out.println();
       out.println("public class " + ConstantsGenClass + " {");

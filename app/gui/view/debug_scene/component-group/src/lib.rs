@@ -16,17 +16,37 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
+use enso_text::Bytes;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::frp;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
+use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_selector as selector;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
+use ide_view_component_group::entry;
+use ide_view_component_group::icon;
+use ide_view_component_group::set::GroupId;
+use ide_view_component_group::set::SectionId::Favorites;
+use ide_view_component_group::Entry;
+use ide_view_component_group::Selected;
 use list_view::entry::AnyModelProvider;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
+const COMPONENT_GROUP_WIDTH: f32 = 150.0;
+const SCROLL_AREA_HEIGHT: f32 = list_view::entry::HEIGHT * 10.0;
+const SCROLL_AREA_WIDTH: f32 = COMPONENT_GROUP_WIDTH * 4.0 + 20.0;
 
 
 
@@ -50,15 +70,15 @@ pub fn main() {
 // === Mock Entries ===
 // ====================
 
-const PREPARED_ITEMS: &[&str; 8] = &[
-    "long sample entry with text overflowing the width",
-    "convert",
-    "table input",
-    "text input",
-    "number input",
-    "table output",
-    "data output",
-    "data input",
+const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
+    ("long sample entry with text overflowing the width", icon::Id::Star),
+    ("convert", icon::Id::Convert),
+    ("table input", icon::Id::DataInput),
+    ("text input", icon::Id::TextInput),
+    ("number input", icon::Id::NumberInput),
+    ("table output", icon::Id::TableEdit),
+    ("dataframe clean", icon::Id::DataframeClean),
+    ("data input", icon::Id::DataInput),
 ];
 
 #[derive(Debug)]
@@ -69,23 +89,40 @@ struct MockEntries {
 
 impl MockEntries {
     fn new(count: usize) -> Rc<Self> {
+        const HIGHLIGHTED_ENTRY_NAME: &str = "convert";
+        const HIGHLIGHTED_RANGE: Range<Bytes> = Bytes(0)..Bytes(3);
         Rc::new(Self {
-            entries: PREPARED_ITEMS.iter().cycle().take(count).map(|&label| label.into()).collect(),
+            entries: PREPARED_ITEMS
+                .iter()
+                .cycle()
+                .take(count)
+                .map(|&(label, icon)| entry::Model {
+                    icon,
+                    highlighted_text: GlyphHighlightedLabelModel {
+                        label:       label.to_owned(),
+                        highlighted: if label == HIGHLIGHTED_ENTRY_NAME {
+                            vec![HIGHLIGHTED_RANGE.into()]
+                        } else {
+                            default()
+                        },
+                    },
+                })
+                .collect(),
             count:   Cell::new(count),
         })
     }
 
-    fn get_entry(&self, id: list_view::entry::Id) -> Option<component_group::entry::Model> {
+    fn get_entry(&self, id: list_view::entry::Id) -> Option<entry::Model> {
         self.entries.get(id).cloned()
     }
 }
 
-impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
+impl list_view::entry::ModelProvider<Entry> for MockEntries {
     fn entry_count(&self) -> usize {
         self.count.get()
     }
 
-    fn get(&self, id: list_view::entry::Id) -> Option<component_group::entry::Model> {
+    fn get(&self, id: list_view::entry::Id) -> Option<entry::Model> {
         self.get_entry(id)
     }
 }
@@ -157,8 +194,20 @@ fn create_component_group(
     let component_group = app.new_view::<component_group::View>();
     component_group.model().set_layers(layers);
     component_group.set_header(header.to_string());
-    component_group.set_width(150.0);
-    component_group.set_position_x(75.0);
+    component_group.set_width(COMPONENT_GROUP_WIDTH);
+    component_group.set_position_x(COMPONENT_GROUP_WIDTH * 3.5);
+    component_group
+}
+
+fn create_wide_component_group(
+    app: &Application,
+    layers: &component_group::Layers,
+) -> component_group::wide::View {
+    let component_group = app.new_view::<component_group::wide::View>();
+    component_group.model().set_layers(layers);
+    component_group.set_width(COMPONENT_GROUP_WIDTH * 3.0);
+    let padding = 5.0;
+    component_group.set_position_xy(Vector2(COMPONENT_GROUP_WIDTH * 1.5 - padding, -150.0));
     component_group
 }
 
@@ -189,33 +238,47 @@ mod transparent_circle {
     }
 }
 
-
 fn init(app: &Application) {
     theme::builtin::dark::register(&app);
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let network = frp::Network::new("Component Group Debug Scene");
 
+    // === Layers setup ===
+
+    let main_camera = app.display.default_scene.layers.main.camera();
+    let selection_layer = Layer::new_with_cam(app.logger.sub("selection"), &main_camera);
+    let groups_layer = Layer::new_with_cam(app.logger.sub("component_groups"), &main_camera);
+    app.display.default_scene.layers.main.add_sublayer(&groups_layer);
+    app.display.default_scene.layers.main.add_sublayer(&selection_layer);
+
+
+    // === Scroll area ===
+
+    let network = frp::Network::new("Component Group Debug Scene");
     let scroll_area = ScrollArea::new(app);
-    scroll_area.set_position_xy(Vector2(0.0, 100.0));
-    scroll_area.resize(Vector2(170.0, 400.0));
-    scroll_area.set_content_width(150.0);
+    scroll_area.set_position_xy(Vector2(-COMPONENT_GROUP_WIDTH * 2.0, 100.0));
+    scroll_area.resize(Vector2(SCROLL_AREA_WIDTH, SCROLL_AREA_HEIGHT));
+    scroll_area.set_content_width(COMPONENT_GROUP_WIDTH * 4.0);
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
+    groups_layer.add_exclusive(&scroll_area);
 
-    let camera = &scroll_area.content_layer().camera();
-    let parent_layer = scroll_area.content_layer();
-    let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
 
+    // === Component groups ===
+
+    let normal_parent = &scroll_area.content_layer();
+    let selected_parent = &selection_layer;
+    let layers = component_group::Layers::new(&app.logger, normal_parent, selected_parent);
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
     let second_component_group = create_component_group(app, group_name, &layers);
-    second_component_group.set_dimmed(true);
+    let wide_component_group = create_wide_component_group(app, &layers);
 
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
+    scroll_area.content().add_child(&wide_component_group);
 
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
     // [`transparent_circle`].
@@ -227,14 +290,6 @@ fn init(app: &Application) {
         std::mem::forget(transparent_circle);
     }
 
-    // === Regular Component Group ===
-
-    frp::extend! { network
-        eval first_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
-        eval first_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
-        eval_ first_component_group.header_accepted ([] DEBUG!("Accepted Header"));
-    }
-
     ComponentGroupController::init(
         &[first_component_group.clone_ref(), second_component_group.clone_ref()],
         &network,
@@ -244,7 +299,8 @@ fn init(app: &Application) {
     let mock_entries = MockEntries::new(15);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
-    second_component_group.set_entries(model_provider);
+    second_component_group.set_entries(model_provider.clone_ref());
+    wide_component_group.set_entries(model_provider);
 
     // === Color sliders ===
 
@@ -263,7 +319,7 @@ fn init(app: &Application) {
     blue_slider.set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
     let blue_slider_frp = &blue_slider.frp;
 
-    let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
+    let default_color = COMPONENT_GROUP_COLOR;
     frp::extend! { network
         init <- source_();
         red_slider_frp.set_value <+ init.constant(default_color.red);
@@ -276,9 +332,45 @@ fn init(app: &Application) {
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
         first_component_group.set_color <+ color;
         second_component_group.set_color <+ color;
+        wide_component_group.set_color <+ color;
     }
     init.emit(());
 
+
+    // === Components groups set ===
+
+    let groups: Rc<HashMap<GroupId, component_group::set::Group>> = Rc::new(
+        [
+            (GroupId { section: Favorites, index: 0 }, first_component_group.clone_ref().into()),
+            (GroupId { section: Favorites, index: 1 }, second_component_group.clone_ref().into()),
+            (GroupId::local_scope_group(), wide_component_group.clone_ref().into()),
+        ]
+        .into_iter()
+        .collect(),
+    );
+    let multiview = component_group::set::Wrapper::new();
+    for (id, group) in groups.iter() {
+        multiview.add(*id, group.clone_ref());
+    }
+
+    frp::extend! { network
+        selected <- multiview.selected.on_change();
+        eval selected([](s) match s {
+            Some((g, Selected::Header)) => DEBUG!("Header selected in group {g:?}"),
+            Some((g, Selected::Entry(id))) => DEBUG!("Entry {id} from group {g:?} selected"),
+            _ => {},
+        });
+        eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g:?}"));
+        eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g:?}"));
+        eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g:?}"));
+
+        eval multiview.focused([groups]((g, f)) {
+            match &groups[g] {
+                component_group::set::Group::OneColumn(group) => group.set_dimmed(!f),
+                component_group::set::Group::Wide(group) => group.set_dimmed(!f),
+            }
+        });
+    }
 
     // === Forget ===
 
@@ -287,7 +379,10 @@ fn init(app: &Application) {
     std::mem::forget(blue_slider);
     std::mem::forget(scroll_area);
     std::mem::forget(network);
+    std::mem::forget(multiview);
     std::mem::forget(first_component_group);
     std::mem::forget(second_component_group);
+    std::mem::forget(wide_component_group);
     std::mem::forget(layers);
+    std::mem::forget(groups_layer);
 }

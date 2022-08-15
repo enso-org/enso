@@ -2,9 +2,7 @@ package org.enso.base.statistics;
 
 import java.util.Arrays;
 
-/***
- * Set of descriptive statistics for numerical data sets
- */
+/** Set of descriptive statistics for numerical data sets */
 public class Moments {
 
   /** Statistic to compute the total of the values. */

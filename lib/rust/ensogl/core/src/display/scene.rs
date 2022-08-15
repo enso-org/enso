@@ -25,6 +25,7 @@ use crate::display::symbol::Symbol;
 use crate::system;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
+use crate::system::gpu::shader;
 use crate::system::gpu::Context;
 use crate::system::gpu::ContextLostHandler;
 use crate::system::web;
@@ -745,6 +746,7 @@ pub struct SceneData {
     pub bg_color_change: callback::Handle,
     pub frp: Frp,
     pub pointer_position_changed: Rc<Cell<bool>>,
+    pub shader_compiler: shader::compiler::Controller,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
 }
@@ -798,6 +800,7 @@ impl SceneData {
         let context = default();
         let context_lost_handler = default();
         let pointer_position_changed = default();
+        let shader_compiler = default();
         Self {
             display_object,
             dom,
@@ -821,6 +824,7 @@ impl SceneData {
             bg_color_change,
             frp,
             pointer_position_changed,
+            shader_compiler,
             extensions,
             disable_context_menu,
         }
@@ -1134,7 +1138,7 @@ impl Scene {
                 scene_was_dirty = self.update_shape() || scene_was_dirty;
                 scene_was_dirty = self.update_symbols() || scene_was_dirty;
                 self.handle_mouse_over_and_out_events();
-                scene_was_dirty = context.shader_compiler.run(time) || scene_was_dirty;
+                scene_was_dirty = self.shader_compiler.run(context, time) || scene_was_dirty;
 
                 let pointer_position_changed = self.pointer_position_changed.get();
                 self.pointer_position_changed.set(false);

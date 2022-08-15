@@ -22,19 +22,19 @@ public abstract class ErrorToTextNode extends Node {
     return ErrorToTextNodeGen.create();
   }
 
-  public abstract Text execute(@AcceptsError Object _this);
+  public abstract Text execute(@AcceptsError Object self);
 
   @Specialization
-  public Text doDataflowError(DataflowError _this) {
+  public Text doDataflowError(DataflowError self) {
     try {
-      return Text.create(strings.asString(displays.toDisplayString(_this)));
+      return Text.create(strings.asString(displays.toDisplayString(self)));
     } catch (UnsupportedMessageException ignored) {
       throw new IllegalStateException("Unreachable");
     }
   }
 
   @Specialization
-  public Text doAtom(Atom _this) {
+  public Text doAtom(Atom self) {
     return Text.create("Error");
   }
 }

@@ -17,16 +17,16 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class ModNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
 
-  abstract Object execute(EnsoBigInteger _this, Object that);
+  abstract Object execute(EnsoBigInteger self, Object that);
 
   static ModNode build() {
     return ModNodeGen.create();
   }
 
   @Specialization
-  Object doLong(EnsoBigInteger _this, long that) {
+  Object doLong(EnsoBigInteger self, long that) {
     try {
-      return toEnsoNumberNode.execute(BigIntegerOps.modulo(_this.getValue(), that));
+      return toEnsoNumberNode.execute(BigIntegerOps.modulo(self.getValue(), that));
     } catch (ArithmeticException e) {
       return DataflowError.withoutTrace(
           Context.get(this).getBuiltins().error().getDivideByZeroError(), this);
@@ -34,20 +34,20 @@ public abstract class ModNode extends Node {
   }
 
   @Specialization
-  double doDouble(EnsoBigInteger _this, double that) {
+  double doDouble(EnsoBigInteger self, double that) {
     // No need to trap, as floating-point modulo returns NaN for division by zero instead of
     // throwing.
-    return BigIntegerOps.toDouble(_this.getValue()) % that;
+    return BigIntegerOps.toDouble(self.getValue()) % that;
   }
 
   @Specialization
-  Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
+  Object doBigInteger(EnsoBigInteger self, EnsoBigInteger that) {
     // No need to trap, as 0 is never represented as an EnsoBigInteger.
-    return toEnsoNumberNode.execute(BigIntegerOps.modulo(_this.getValue(), that.getValue()));
+    return toEnsoNumberNode.execute(BigIntegerOps.modulo(self.getValue(), that.getValue()));
   }
 
   @Fallback
-  Object doOther(EnsoBigInteger _this, Object that) {
+  Object doOther(EnsoBigInteger self, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);

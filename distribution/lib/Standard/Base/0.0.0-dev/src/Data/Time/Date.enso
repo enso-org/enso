@@ -4,11 +4,8 @@ import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.Data.Time.Zone
+import Standard.Base.Polyglot
 
-polyglot java import java.time.format.DateTimeFormatter
-polyglot java import java.time.Instant
-polyglot java import java.time.LocalDate
-polyglot java import java.time.temporal.WeekFields
 polyglot java import org.enso.base.Time_Utils
 
 ## Obtains the current date from the system clock in the system timezone.
@@ -16,11 +13,9 @@ polyglot java import org.enso.base.Time_Utils
    > Example
      Get the current date.
 
-         import Standard.Base.Data.Time.Date
-
          example_now = Date.now
 now : Date
-now = LocalDate.now
+now = @Builtin_Method "Date.now"
 
 ## ALIAS Current Date
 
@@ -29,11 +24,9 @@ now = LocalDate.now
    > Example
      Get the current date.
 
-         import Standard.Base.Data.Time.Date
-
          example_today = Date.today
 today : Date
-today = here.now
+today = now
 
 ## Constructs a new Date from a year, month, and day.
 
@@ -54,15 +47,20 @@ today = here.now
    > Example
      Get the local date of 5th August 1986.
 
-         import Standard.Base.Data.Time.Date
-
          example_new = Date.new 1986 8 5
 
 new : Integer -> Integer -> Integer -> Date ! Time.Time_Error
 new year (month = 1) (day = 1) =
-    Panic.recover Any (LocalDate.of year month day) . catch e-> case e of
+    ## TODO This is left using the old error handling approach, because
+       magically, changing this to the `catch_java` (which is now preferred way
+       of catching Polyglot_Errors) lead to the "should format local date using
+       provided pattern" test failing because it called the `LocalDate.format`
+       instead of Enso format. Hopefully this will be fixed with
+       https://github.com/enso-org/enso/pull/3559
+       Then this should be switched to use `Panic.catch_java`.
+    Panic.recover Any (Date.internal_new year month day) . catch Any e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
-        x -> x
+        ex -> ex
 
 ## ALIAS Date from Text
 
@@ -104,11 +102,10 @@ new year (month = 1) (day = 1) =
    > Example
      Recover from an error due to a wrong format.
 
-         import Standard.Base.Data.Time.Date
          import Standard.Base.Data.Time
 
-         example_parse_err = Date.parse "my birthday" . catch e-> case e of
-             Time.Time_Error _ -> Date.new 2000 1 1
+         example_parse_err = Date.parse "my birthday" . catch Time.Time_Error _->
+             Date.new 2000 1 1
 
    > Example
      Parse "1999-1-1" as Date using a custom format.
@@ -120,22 +117,20 @@ new year (month = 1) (day = 1) =
    > Example
      Recover from the parse error.
 
-         import Standard.Base.Data.Time.Date
          import Standard.base.Data.Time
 
          example_parse_err =
              date = Date.parse "1999-1-1" "yyyy-MM-dd"
-             date.catch e-> case e of
-                 Time.Time_Error _ -> Date.new 2000 1 1
+             date.catch Time.Time_Error (_->Date.new 2000 1 1)
 parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
 parse text pattern=Nothing =
     result = Panic.recover Any <| case pattern of
-        Nothing -> LocalDate.parse text
-        Text -> LocalDate.parse text (DateTimeFormatter.ofPattern pattern)
+        Nothing -> Date.internal_parse text 0
+        Text -> Date.internal_parse text pattern
         _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
-    Date result . map_error <| case _ of
+    result . map_error <| case _ of
         Polyglot_Error err -> Time.Time_Error err.getMessage
-        x -> x
+        ex -> ex
 
 type Date
 
@@ -150,7 +145,8 @@ type Date
        is a description of the date, as used for birthdays. It cannot represent
        an instant on the time-line without additional information such as an
        offset or timezone.
-    type Date internal_local_date
+    @Builtin_Type
+    type Date
 
     ## Get the year field.
 
@@ -161,18 +157,16 @@ type Date
 
              example_year = Date.now.year
     year : Integer
-    year = this . internal_local_date . getYear
+    year self = @Builtin_Method "Date.year"
 
     ## Get the month of year field, as a number from 1 to 12.
 
        > Example
          Get the current month.
 
-             import Standard.Base.Data.Time.Date
-
              example_month = Date.now.month
     month : Integer
-    month = this . internal_local_date . getMonthValue
+    month self = @Builtin_Method "Date.month"
 
     ## Get the day of month field.
 
@@ -183,7 +177,7 @@ type Date
 
              example_day = Date.now.day
     day : Integer
-    day = this . internal_local_date . getDayOfMonth
+    day self = @Builtin_Method "Date.day"
 
     ## Returns the number of week of year this date falls into.
 
@@ -199,9 +193,7 @@ type Date
          containing the first Thursday of the year. Therefore it is important to
          properly specify the `locale` argument.
     week_of_year : Locale.Locale -> Integer
-    week_of_year locale=Locale.default =
-        field = WeekFields.of locale.java_locale . weekOfYear
-        this.internal_local_date.get field
+    week_of_year self locale=Locale.default = Time_Utils.week_of_year self locale.java_locale
 
     ## ALIAS Date to Time
 
@@ -214,13 +206,12 @@ type Date
        > Example
          Convert this date to midnight UTC time.
 
-             import Standard.Base.Data.Time.Date
              import Standard.Base.Data.Time.Time_Of_Day
              import Standard.Base.Data.Time.Zone
 
              example_to_time = Date.new 2020 2 3 . to_time Time_Of_Day.new Zone.utc
     to_time : Time_Of_Day -> Zone -> Time
-    to_time time_of_day (zone = Zone.system) = Time.time (this . internal_local_date . atTime time_of_day.internal_local_time . atZone zone.internal_zone_id)
+    to_time self time_of_day (zone = Zone.system) = Time.Time (Time_Utils.date_with_time self time_of_day.internal_local_time zone.internal_zone_id)
 
     ## Add the specified amount of time to this instant to get another date.
 
@@ -230,13 +221,12 @@ type Date
        > Example
          Add 6 months to a local date.
 
-             import Standard.Base.Data.Time.Date
              import Standard.Base.Data.Time.Duration
 
              example_add = Date.new 2020 + 6.months
     + : Duration -> Date
-    + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        Date (this . internal_local_date . plus amount.internal_period)
+    + self amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
+        (Time_Utils.date_adjust self 1 amount.internal_period) . internal_local_date
 
     ## Subtract the specified amount of time from this instant to get another
        date.
@@ -252,30 +242,18 @@ type Date
 
              example_subtract = Date.new 2020 - 7.days
     - : Duration -> Date
-    - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        (this . internal_local_date . minus amount.internal_period)
+    - self amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
+        (Time_Utils.date_adjust self -1 amount.internal_period) . internal_local_date
 
-    ## Format this date using the default formatter.
-
-       > Example
-         Convert the current date to text.
-
-             import Standard.Base.Data.Time.Date
-
-             example_to_text = Date.now.to_text
-    to_text : Text
-    to_text = Time_Utils.default_date_formatter . format this.internal_local_date
 
     ## A Date to Json conversion.
 
        > Example
          Convert the current date to JSON.
 
-             import Standard.Base.Data.Time.Date
-
              example_to_json = Date.now.to_json
     to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Date"], ["day", this.day], ["month", this.month], ["year", this.year]]
+    to_json self = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
 
     ## Format this date using the provided format specifier.
 
@@ -296,34 +274,26 @@ type Date
        > Example
          Format "2020-06-02" as "2 June 20"
 
-             import Standard.Base.Data.Time.Date
-
              example_format = Date.new 2020 6 2 . format "d MMMM yy"
 
        > Example
          Format "2020-06-02" as "Tuesday, 02 June 2020"
-
-             import Standard.Base.Data.Time.Date
 
              example_format = Date.new 2020 6 2 . format "EEEE, dd MMMM yyyy"
 
        > Example
          Format "2020-06-02" as "Tue Jun 2"
 
-             import Standard.Base.Data.Time.Date
-
              example_format = Date.new 2020 6 2 . format "EEE MMM d"
 
        > Example
          Format "2020-06-02" as "2020AD"
 
-             import Standard.Base.Data.Time.Date
-
              example_format = Date.new 2020 6 2 . format "yyyyGG"
     format : Text -> Text
-    format pattern = DateTimeFormatter.ofPattern pattern . format this.internal_local_date
+    format self pattern = Time_Utils.local_date_format self pattern
 
-    ## Compares `this` to `that` to produce an ordering.
+    ## Compares `self` to `that` to produce an ordering.
 
        Arguments:
        - that: The other `Date` to compare against.
@@ -333,6 +303,12 @@ type Date
 
          (Date.new 2000).compare_to (Date.new 2001)
     compare_to : Date -> Ordering
-    compare_to that =
-        sign = this.internal_local_date.compareTo that.internal_local_date
+    compare_to self that =
+        sign = Time_Utils.compare_to self that
         Ordering.from_sign sign
+
+    ## Compares two Dates for equality.
+    == : Date -> Boolean
+    == self that =
+        sign = Time_Utils.compare_to self that
+        0 == sign

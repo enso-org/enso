@@ -1,39 +1,43 @@
-from Standard.Base import all
+from Standard.Base import all hiding First, Last
 
+import Standard.Base.Error.Common as Errors
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
+import Standard.Database.Data.Sql
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
+import Standard.Database.Data.Internal.IR
+from Standard.Database.Error import Unsupported_Database_Operation_Error
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
-postgresql : Dialect
-postgresql =
-    Postgresql_Dialect here.make_internal_generator_dialect
+postgres : Dialect
+postgres =
+    Postgres_Dialect make_internal_generator_dialect
 
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
-type Postgresql_Dialect
+type Postgres_Dialect
     ## PRIVATE
 
        The dialect of PostgreSQL databases.
-    type Postgresql_Dialect internal_generator_dialect
+    type Postgres_Dialect internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name = "postgresql"
+    name self = "PostgreSQL"
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> Sql.Statement
-    generate_sql query =
-        Base_Generator.generate_query this.internal_generator_dialect query . build
+    generate_sql self query =
+        Base_Generator.generate_query self.internal_generator_dialect query . build
 
     ## PRIVATE
        Deduces the result type for an aggregation operation.
@@ -41,17 +45,27 @@ type Postgresql_Dialect
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
-    resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
+    resolve_target_sql_type self aggregate = resolve_target_sql_type aggregate
+
+    ## PRIVATE
+       Prepares an ordering descriptor.
+
+       One of the purposes of this method is to verify if the expected ordering
+       settings are supported by the given database backend.
+    prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor self internal_column sort_direction text_ordering =
+        make_order_descriptor internal_column sort_direction text_ordering
 
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [here.starts_with, here.contains, here.ends_with, here.agg_shortest, here.agg_longest]+here.concat_ops
-    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
+    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest]+concat_ops+cases
+    counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
-    stats = [here.agg_median, here.agg_mode, here.agg_percentile, stddev_pop, stddev_samp]
-    my_mappings = text + counts + stats + here.first_last_aggregators
+    stats = [agg_median, agg_mode, agg_percentile, stddev_pop, stddev_samp]
+    my_mappings = text + counts + stats + first_last_aggregators
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -129,23 +143,21 @@ agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
    compatible with other group-by aggregations out-of-the-box. In the future, we
    may want to consider some alternative solutions.
 first_last_aggregators =
-    first = here.make_first_aggregator reverse=False ignore_null=False
-    first_not_null = here.make_first_aggregator reverse=False ignore_null=True
-    last = here.make_first_aggregator reverse=True ignore_null=False
-    last_not_null = here.make_first_aggregator reverse=True ignore_null=True
+    first = make_first_aggregator reverse=False ignore_null=False
+    first_not_null = make_first_aggregator reverse=False ignore_null=True
+    last = make_first_aggregator reverse=True ignore_null=False
+    last_not_null = make_first_aggregator reverse=True ignore_null=True
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
 make_first_aggregator reverse ignore_null args =
     if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
         result_expr = args.head
-        order_exprs = args.tail
+        order_bys = args.tail
 
         filter_clause = if ignore_null.not then Sql.code "" else
             Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
-        modified_order_exprs =
-            order_exprs.map expr-> expr ++ Sql.code " ASC NULLS LAST"
         order_clause =
-            Sql.code " ORDER BY " ++ Sql.join "," modified_order_exprs
+            Sql.code " ORDER BY " ++ Sql.join "," order_bys
         index_expr = case reverse of
             True -> if ignore_null.not then Sql.code "COUNT(*)" else
                 Sql.code "COUNT(" ++ result_expr ++ Sql.code ")"
@@ -167,7 +179,7 @@ agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
 concat_ops =
     make_raw_concat_expr expr separator =
         Sql.code "string_agg(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
-    concat = Helpers.make_concat make_raw_concat_expr here.make_contains_expr
+    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
@@ -206,4 +218,28 @@ make_contains_expr expr substring =
     Sql.code "position(" ++ substring ++ Sql.code " in " ++ expr ++ Sql.code ") > 0"
 
 ## PRIVATE
-contains = Base_Generator.lift_binary_op "contains" here.make_contains_expr
+contains = Base_Generator.lift_binary_op "contains" make_contains_expr
+
+## PRIVATE
+make_order_descriptor internal_column sort_direction text_ordering =
+    nulls = case sort_direction of
+        Sort_Direction.Ascending -> IR.Nulls_First
+        Sort_Direction.Descending -> IR.Nulls_Last
+    case internal_column.sql_type.is_likely_text of
+        True ->
+            ## In the future we can modify this error to suggest using a custom defined collation.
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
+                case text_ordering.case_sensitive of
+                    Nothing ->
+                        IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+                    True ->
+                        IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
+                    Case_Insensitive locale -> case locale == Locale.default of
+                        False ->
+                            Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
+                        True ->
+                            upper = IR.Operation "UPPER" [internal_column.expression]
+                            folded_expression = IR.Operation "LOWER" [upper]
+                            IR.Order_Descriptor folded_expression sort_direction nulls_order=nulls collation=Nothing
+        False ->
+            IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation=Nothing

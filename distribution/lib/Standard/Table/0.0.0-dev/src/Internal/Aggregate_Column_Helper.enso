@@ -1,16 +1,18 @@
-from Standard.Base import all
+from Standard.Base import all hiding First, Last
 
-from Standard.Table.Data.Table as Table_Module import No_Such_Column_Error
-from Standard.Table.Data.Column as Column_Module import Column
+from Standard.Table.Data.Column import Column
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
+from Standard.Table.Data.Column_Selector import Column_Selector, By_Name, By_Index, By_Column
 import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Table_Helpers
 
+import Standard.Table.Data.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column
+
 import Standard.Base.Data.Ordering.Comparator
 
-from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
@@ -49,7 +51,7 @@ prepare_aggregate_columns aggregates table =
     problem_builder = Problem_Builder.new
 
     # Validate and resolve the columns
-    valid_resolved_aggregate_columns = aggregates.map (here.resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
+    valid_resolved_aggregate_columns = aggregates.map (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 
     # Grouping Key
     is_a_key c = case c of
@@ -67,16 +69,16 @@ prepare_aggregate_columns aggregates table =
     pass_1 = valid_resolved_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
     renamed_columns = pass_1.map_with_index i->name->
         agg = valid_resolved_aggregate_columns.at i
-        new_name = name.if_nothing (unique.make_unique (here.default_aggregate_column_name agg))
+        new_name = name.if_nothing (unique.make_unique (default_aggregate_column_name agg))
         Pair new_name agg
 
     # Build Problems Output
     if renamed_columns.is_empty then
         problem_builder.report_other_warning No_Output_Columns
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names.to_vector)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames.to_vector)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames)
 
     Validated_Aggregate_Columns unique_key_columns renamed_columns problem_builder.build_problemset
 
@@ -103,6 +105,9 @@ default_aggregate_column_name aggregate_column =
    indices or column references potentially from a different table) are
    replaced with column references from the provided table.
 
+   Sort_Column_Selectors are resolved to Sort_Column_Select.By_Column with the
+   matched columns coming from the provided table.
+
    This preprocess step is required by some helper function, to avoid having
    to pass the table reference and resolve the column descriptors all the
    time.
@@ -120,12 +125,16 @@ resolve_aggregate table problem_builder aggregate_column =
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=False problem_builder
+        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
-    resolve_selector_or_nothing selector = case selector of
+    resolve_order_by selector = case selector of
         Nothing -> Nothing
-        _ -> resolve_selector_to_vector selector
+        _ ->
+            columns_for_ordering = Table_Helpers.prepare_order_by table_columns selector problem_builder
+            sort_columns = columns_for_ordering.map c->
+                Sort_Column.Column c.column c.associated_selector.direction
+            Sort_Column_Selector.By_Column sort_columns
 
     result = case aggregate_column of
         Group_By c new_name -> Group_By (resolve c) new_name
@@ -149,8 +158,8 @@ resolve_aggregate table problem_builder aggregate_column =
         Mode c new_name -> Mode (resolve c) new_name
         Standard_Deviation c new_name population -> Standard_Deviation (resolve c) new_name population
         Concatenate c new_name separator prefix suffix quote_char -> Concatenate (resolve c) new_name separator prefix suffix quote_char
-        First c new_name ignore_nothing order_by -> First (resolve c) new_name ignore_nothing (resolve_selector_or_nothing order_by)
-        Last c new_name ignore_nothing order_by -> Last (resolve c) new_name ignore_nothing (resolve_selector_or_nothing order_by)
+        First c new_name ignore_nothing order_by -> First (resolve c) new_name ignore_nothing (resolve_order_by order_by)
+        Last c new_name ignore_nothing order_by -> Last (resolve c) new_name ignore_nothing (resolve_order_by order_by)
         Maximum c new_name -> Maximum (resolve c) new_name
         Minimum c new_name -> Minimum (resolve c) new_name
         Shortest c new_name -> Shortest (resolve c) new_name
@@ -158,9 +167,7 @@ resolve_aggregate table problem_builder aggregate_column =
 
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.
-    result.catch err-> case err of
-        Internal_Missing_Column_Error -> Nothing
-        _ -> result
+    result.catch Internal_Missing_Column_Error (_->Nothing)
 
 ## PRIVATE
    A marker for missing columns during resolution.
@@ -175,7 +182,7 @@ java_aggregator name column =
         Count _ -> CountAggregator.new name
         Count_Distinct columns _ ignore_nothing ->
             resolved = columns.map .java_column
-            CountDistinctAggregator.new name resolved.to_array ignore_nothing
+            CountDistinctAggregator.new name resolved.to_array ignore_nothing Comparator.new
         Count_Not_Nothing c _ -> CountNothingAggregator.new name c.java_column False
         Count_Nothing c _ -> CountNothingAggregator.new name c.java_column True
         Count_Not_Empty c _ -> CountEmptyAggregator.new name c.java_column False
@@ -188,12 +195,14 @@ java_aggregator name column =
         Mode c _ -> ModeAggregator.new name c.java_column
         First c _ ignore_nothing ordering ->
             if ordering.is_nothing then FirstAggregator.new name c.java_column ignore_nothing else
-                ordering_array = ordering.map .java_column
-                FirstAggregator.new name c.java_column ignore_nothing ordering_array.to_array Comparator.new
+                order_columns = ordering.columns.map c->c.column.java_column
+                order_directions = ordering.columns.map c->c.direction.to_sign
+                FirstAggregator.new name c.java_column ignore_nothing order_columns.to_array order_directions.to_array Comparator.new
         Last c _ ignore_nothing ordering ->
             if ordering.is_nothing then LastAggregator.new name c.java_column ignore_nothing else
-                ordering_array = ordering.map .java_column
-                LastAggregator.new name c.java_column ignore_nothing ordering_array.to_array Comparator.new
+                order_columns = ordering.columns.map c->c.column.java_column
+                order_direction = ordering.columns.map c->c.direction.to_sign
+                LastAggregator.new name c.java_column ignore_nothing order_columns.to_array order_direction.to_array Comparator.new
         Maximum c _ -> MinOrMaxAggregator.new name c.java_column 1 Comparator.new
         Minimum c _ -> MinOrMaxAggregator.new name c.java_column -1 Comparator.new
         Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1

@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "type": "module",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
+  "homepage": "https://github.com/enso-org/enso",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:enso-org/enso.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enso-org/enso/issues"
+  },
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "lib/client",
+    "lib/common",
+    "lib/content",
+    "lib/copy-plugin",
+    "lib/icons",
+    "lib/server"
+  ],
+  "scripts": {
+    "watch": "npm run watch --workspace enso-studio-content"
+  }
+}

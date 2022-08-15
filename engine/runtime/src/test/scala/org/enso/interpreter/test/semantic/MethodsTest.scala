@@ -22,7 +22,7 @@ class MethodsTest extends InterpreterTest {
       eval(code) shouldEqual 11
     }
 
-    "execute `this` argument once" in {
+    "execute `self` argument once" in {
       val code =
         """from Standard.Base.IO import all
           |import Standard.Base.Nothing
@@ -90,8 +90,8 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Any import all
           |
-          |Any.Any.method =
-          |    x = this * this
+          |Any.Any.method self =
+          |    x = self * self
           |    y = x * 2
           |    y + 1
           |
@@ -104,8 +104,8 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.List import all
           |
-          |Nil.sum = acc -> acc
-          |Cons.sum = acc -> case this of
+          |Nil.sum self = acc -> acc
+          |Cons.sum self = acc -> case self of
           |  Cons h t -> t.sum (h + acc)
           |
           |main = Cons 1 (Cons 2 Nil) . sum 0
@@ -134,7 +134,7 @@ class MethodsTest extends InterpreterTest {
           |type Bar
           |type Baz
           |
-          |Any.Any.method = case this of
+          |Any.Any.method self = case self of
           |  Foo -> 1
           |  Bar -> 2
           |  Baz -> 3
@@ -170,8 +170,8 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.List import all
           |
-          |Nil.sum = 0
-          |Cons.sum = case this of
+          |Nil.sum self = 0
+          |Cons.sum self = case self of
           |  Cons h t -> h + t.sum
           |
           |main =

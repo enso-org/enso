@@ -1,0 +1,3 @@
+run key local_state ~computation = @Builtin_Method "State.run"
+get key = @Builtin_Method "State.get"
+put key new_state = @Builtin_Method "State.put"

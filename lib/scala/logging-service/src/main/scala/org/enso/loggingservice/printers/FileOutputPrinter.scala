@@ -70,7 +70,7 @@ object FileOutputPrinter {
   def create(
     logDirectory: Path,
     suffix: String,
-    printExceptions: Boolean = true
+    printExceptions: Boolean
   ): FileOutputPrinter =
     new FileOutputPrinter(logDirectory, suffix, printExceptions)
 }

@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
-import org.enso.languageserver.boot.LanguageServerConfig
+import org.enso.languageserver.boot.{LanguageServerConfig, ProfilingConfig}
 import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
@@ -16,20 +16,21 @@ import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
 import java.io.File
-import java.nio.file.Path
-import java.util.UUID
+import java.nio.file.{Path, Paths}
+import java.util.{HashMap, UUID}
 
 import scala.Console.err
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
-import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
-import java.util.Collections
+import scala.util.{Failure, Success, Try}
 
 /** The main CLI entry point class. */
 object Main {
 
   private val RUN_OPTION                     = "run"
   private val INSPECT_OPTION                 = "inspect"
+  private val DUMP_GRAPHS_OPTION             = "dump-graphs"
   private val HELP_OPTION                    = "help"
   private val NEW_OPTION                     = "new"
   private val PROJECT_NAME_OPTION            = "new-project-name"
@@ -40,7 +41,10 @@ object Main {
   private val DOCS_OPTION                    = "docs"
   private val PREINSTALL_OPTION              = "preinstall-dependencies"
   private val LANGUAGE_SERVER_OPTION         = "server"
-  private val LANGUAGE_SERVER_PROFILING      = "server-profiling"
+  private val LANGUAGE_SERVER_PROFILING_PATH = "server-profiling-path"
+  private val LANGUAGE_SERVER_PROFILING_TIME = "server-profiling-time"
+  private val LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH =
+    "server-profiling-events-log-path"
   private val DAEMONIZE_OPTION               = "daemon"
   private val INTERFACE_OPTION               = "interface"
   private val RPC_PORT_OPTION                = "rpc-port"
@@ -95,6 +99,10 @@ object Main {
     val inspect = CliOption.builder
       .longOpt(INSPECT_OPTION)
       .desc("Start the Chrome inspector when --run is used.")
+      .build
+    val dumpGraphs = CliOption.builder
+      .longOpt(DUMP_GRAPHS_OPTION)
+      .desc("Dumps IGV graphs when --run is used.")
       .build
     val docs = CliOption.builder
       .longOpt(DOCS_OPTION)
@@ -153,11 +161,26 @@ object Main {
       .longOpt(LANGUAGE_SERVER_OPTION)
       .desc("Runs Language Server")
       .build()
-    val lsProfilingOption = CliOption.builder
-      .longOpt(LANGUAGE_SERVER_PROFILING)
-      .desc(
-        "Enables the Language Server profiling. The output is written to system temp directory."
-      )
+    val lsProfilingPathOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("file")
+      .longOpt(LANGUAGE_SERVER_PROFILING_PATH)
+      .desc("The path to the Language Server profiling file.")
+      .build()
+    val lsProfilingTimeOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("seconds")
+      .longOpt(LANGUAGE_SERVER_PROFILING_TIME)
+      .desc("The duration in seconds limiting the profiling time.")
+      .build()
+    val lsProfilingEventsLogPathOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("file")
+      .longOpt(LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH)
+      .desc("The path to the runtime events log file.")
       .build()
     val deamonizeOption = CliOption.builder
       .longOpt(DAEMONIZE_OPTION)
@@ -327,6 +350,7 @@ object Main {
       .addOption(repl)
       .addOption(run)
       .addOption(inspect)
+      .addOption(dumpGraphs)
       .addOption(docs)
       .addOption(preinstall)
       .addOption(newOpt)
@@ -335,7 +359,9 @@ object Main {
       .addOption(newProjectAuthorNameOpt)
       .addOption(newProjectAuthorEmailOpt)
       .addOption(lsOption)
-      .addOption(lsProfilingOption)
+      .addOption(lsProfilingPathOption)
+      .addOption(lsProfilingTimeOption)
+      .addOption(lsProfilingEventsLogPathOption)
       .addOption(deamonizeOption)
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
@@ -485,6 +511,7 @@ object Main {
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
     * @param inspect        shall inspect option be enabled
+    * @param dump           shall graphs be sent to the IGV
     */
   private def run(
     path: String,
@@ -493,7 +520,8 @@ object Main {
     logMasking: Boolean,
     enableIrCaches: Boolean,
     enableAutoParallelism: Boolean,
-    inspect: Boolean
+    inspect: Boolean,
+    dump: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -515,6 +543,14 @@ object Main {
         }
         file.getAbsolutePath
       } else projectPath.getOrElse("")
+    val options = new HashMap[String, String]()
+    if (dump) {
+      options.put("engine.TraceCompilation", "true")
+      options.put("engine.MultiTier", "false")
+    }
+    if (inspect) {
+      options.put("inspect", "")
+    }
     val context = new ContextFactory().create(
       projectRoot,
       System.in,
@@ -525,9 +561,7 @@ object Main {
       enableIrCaches,
       strictErrors          = true,
       enableAutoParallelism = enableAutoParallelism,
-      options =
-        if (inspect) Collections.singletonMap("inspect", "")
-        else Collections.emptyMap
+      options               = options
     )
     if (projectMode) {
       PackageManager.Default.loadPackage(file) match {
@@ -718,11 +752,14 @@ object Main {
     rootPkgPath: Option[File],
     mainMethodName: String = "main"
   ): Unit = {
-    val mainCons = mainModule.getAssociatedConstructor
-    val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
     try {
+      val mainCons = mainModule.getAssociatedConstructor
+      val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
       mainFun match {
-        case Some(main) => main.execute(mainCons.newInstance())
+        case Some(main) if mainMethodName != "main" =>
+          main.execute(mainCons.newInstance())
+        case Some(main) =>
+          main.execute()
         case None =>
           err.println(
             s"The module ${mainModule.getName} does not contain a `main` " +
@@ -823,14 +860,29 @@ object Main {
       dataPort <- Either
         .catchNonFatal(dataPortStr.toInt)
         .leftMap(_ => "Port must be integer")
-      profilingEnabled = line.hasOption(LANGUAGE_SERVER_PROFILING)
+      profilingPathStr =
+        Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_PATH))
+      profilingPath <- Either
+        .catchNonFatal(profilingPathStr.map(Paths.get(_)))
+        .leftMap(_ => "Profiling path is invalid")
+      profilingTimeStr = Option(
+        line.getOptionValue(LANGUAGE_SERVER_PROFILING_TIME)
+      )
+      profilingTime <- Either
+        .catchNonFatal(profilingTimeStr.map(_.toInt.seconds))
+        .leftMap(_ => "Profiling time should be an integer")
+      profilingEventsLogPathStr =
+        Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_EVENTS_LOG_PATH))
+      profilingEventsLogPath <- Either
+        .catchNonFatal(profilingEventsLogPathStr.map(Paths.get(_)))
+        .leftMap(_ => "Profiling events log path is invalid")
     } yield boot.LanguageServerConfig(
       interface,
       rpcPort,
       dataPort,
       rootId,
       rootPath,
-      profilingEnabled
+      ProfilingConfig(profilingEventsLogPath, profilingPath, profilingTime)
     )
 
   /** Prints the version of the Enso executable.
@@ -978,7 +1030,8 @@ object Main {
         logMasking,
         shouldEnableIrCaches(line),
         line.hasOption(AUTO_PARALLELISM_OPTION),
-        line.hasOption(INSPECT_OPTION)
+        line.hasOption(INSPECT_OPTION),
+        line.hasOption(DUMP_GRAPHS_OPTION)
       )
     }
     if (line.hasOption(REPL_OPTION)) {

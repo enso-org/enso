@@ -30,6 +30,8 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_text::buffer;
 use ensogl_text::style;
 use ensogl_text::Area;
+use ensogl_text_embedded_fonts as embedded_fonts;
+use ensogl_text_embedded_fonts::Family;
 use ensogl_text_msdf_sys::run_once_initialized;
 
 
@@ -54,7 +56,7 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let text = quote.to_string() + snowman + zalgo;
     area.set_content(text.clone() + "\n" + text.as_str());
-    area.set_font("DejaVuSans");
+    area.set_font(embedded_fonts::DefaultFamily::regular());
     area.focus();
     area.hover();
     area.set_cursor_at_end();
@@ -77,7 +79,7 @@ fn init(app: Application) {
     let text = "red green blue";
     let colored_area = app.new_view::<Area>();
     app.display.default_scene.add_child(&colored_area);
-    colored_area.set_font("DejaVuSans");
+    colored_area.set_font(embedded_fonts::DefaultFamily::regular());
     colored_area.set_position_xy(Vector2::new(200.0, 200.0));
 
     colored_area.set_default_color(color::Rgba::black());

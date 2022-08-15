@@ -162,7 +162,9 @@ public final class AtomConstructor implements TruffleObject {
             definitionScope,
             instantiateBlock,
             instantiateNode.getSourceSection(),
-            definitionScope.getModule().getName().item() + "." + name);
+            definitionScope.getModule().getName().item() + "." + name,
+            null,
+            false);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(callTarget, null, new FunctionSchema(args));
   }
@@ -182,9 +184,8 @@ public final class AtomConstructor implements TruffleObject {
             callTarget,
             null,
             new FunctionSchema(
-                new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
-    definitionScope.registerMethod(
-        definitionScope.getAssociatedType(), this.name.toLowerCase(), function);
+                new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
+    definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
   }
 
   private Function generateGetter(int position) {
@@ -194,7 +195,7 @@ public final class AtomConstructor implements TruffleObject {
         callTarget,
         null,
         new FunctionSchema(
-            new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
+            new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
   }
 
   /**
@@ -325,23 +326,23 @@ public final class AtomConstructor implements TruffleObject {
         guards = {
           "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
-          "_this == cachedConstructor",
+          "self == cachedConstructor",
           "function != null"
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        AtomConstructor _this,
+        AtomConstructor self,
         UnresolvedSymbol symbol,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("_this") AtomConstructor cachedConstructor,
+        @Cached("self") AtomConstructor cachedConstructor,
         @Cached("doResolve(cachedConstructor, cachedSymbol)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(AtomConstructor _this, UnresolvedSymbol symbol)
+    static Function resolve(AtomConstructor self, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(_this, symbol);
+      Function function = doResolve(self, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }
@@ -373,26 +374,26 @@ public final class AtomConstructor implements TruffleObject {
           "!getContext().isInlineCachingDisabled()",
           "cachedConversion == conversion",
           "cachedTarget == target",
-          "_this == cachedConstructor",
+          "self == cachedConstructor",
           "function != null"
         },
         limit = "CACHE_SIZE")
     static Function resolveCached(
-        AtomConstructor _this,
+        AtomConstructor self,
         AtomConstructor target,
         UnresolvedConversion conversion,
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("target") AtomConstructor cachedTarget,
-        @Cached("_this") AtomConstructor cachedConstructor,
+        @Cached("self") AtomConstructor cachedConstructor,
         @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        AtomConstructor _this, AtomConstructor target, UnresolvedConversion conversion)
+        AtomConstructor self, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
-      Function function = doResolve(_this, target, conversion);
+      Function function = doResolve(self, target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
       }

@@ -20,8 +20,8 @@ use ensogl_core::display::style;
 /// A displayed entry in select component.
 ///
 /// The Display Object position of this component is docked to the middle of left entry's boundary.
-/// It differs from usual behaviour of EnsoGL components, but makes the entries alignment much
-/// simpler: In vast majority of cases we want to align list elements to the left.
+/// It differs from usual behaviour of EnsoGL components, but makes the entries' alignment much
+/// simpler: In the vast majority of cases we want to align list elements to the left.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "E:CloneRef")]
@@ -165,7 +165,7 @@ impl<E: Entry> ListData<E, E::Params> {
         &self,
         mut range: Range<entry::Id>,
         max_width_px: f32,
-        style_prefix: style::Path,
+        style_prefix: &style::Path,
     ) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
@@ -173,7 +173,7 @@ impl<E: Entry> ListData<E, E::Params> {
             let provider = self.provider.get();
             let current_entries: HashSet<entry::Id> =
                 with(self.entries.borrow_mut(), |mut entries| {
-                    entries.resize_with(range.len(), || self.create_new_entry(&style_prefix));
+                    entries.resize_with(range.len(), || self.create_new_entry(style_prefix));
                     entries.iter().filter_map(|entry| entry.id.get()).collect()
                 });
             let missing = range.clone().filter(|id| !current_entries.contains(id));
@@ -220,6 +220,11 @@ impl<E: Entry> ListData<E, E::Params> {
     ) {
         self.entry_params.replace(params);
         self.recreate_entries_with_style_prefix(style_prefix);
+    }
+
+    /// Get previously set entry params.
+    pub fn entry_params(&self) -> E::Params {
+        self.entry_params.borrow().clone_ref()
     }
 
     /// Update displayed entries, giving new provider. New entries created by the function have
@@ -271,7 +276,6 @@ impl<E: Entry> ListData<E, E::Params> {
         let entry = E::new(&self.app, style_prefix, &self.entry_params.borrow());
         let entry = DisplayedEntry { id: default(), entry };
         entry.entry.set_label_layer(&layer);
-        entry.entry.set_position_x(entry::PADDING);
         self.add_child(&entry.entry);
         entry
     }

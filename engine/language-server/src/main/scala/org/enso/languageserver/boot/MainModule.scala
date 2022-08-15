@@ -12,7 +12,7 @@ import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
-import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.effect
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
@@ -44,7 +44,6 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
-import org.enso.profiling.{NoopSampler, TempFileSampler}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -56,6 +55,7 @@ import java.net.URI
 import java.time.Clock
 
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
   *
@@ -83,11 +83,23 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
-    directoriesConfig
+    directoriesConfig,
+    serverConfig.profilingConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
-  val zioExec = ZioExec(zio.Runtime.default)
+  implicit val system: ActorSystem =
+    ActorSystem(
+      serverConfig.name,
+      None,
+      None,
+      Some(serverConfig.computeExecutionContext)
+    )
+  log.trace(s"Created ActorSystem $system.")
+
+  private val zioRuntime =
+    effect.Runtime.fromExecutionContext(system.dispatcher)
+  private val zioExec = effect.ZioExec(zioRuntime)
   log.trace("Created ZIO executor [{}].", zioExec)
 
   val fileSystem: FileSystem = new FileSystem
@@ -96,15 +108,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
   log.trace("Created Version Calculator [{}].", versionCalculator)
-
-  implicit val system =
-    ActorSystem(
-      serverConfig.name,
-      None,
-      None,
-      Some(serverConfig.computeExecutionContext)
-    )
-  log.trace(s"Created ActorSystem $system.")
 
   val sqlDatabase =
     DeploymentType.fromEnvironment() match {
@@ -148,8 +151,20 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   )
 
   val runtimeEventsMonitor =
-    if (logLevel == LogLevel.Trace) ApiEventsMonitor()
-    else new NoopEventsMonitor
+    languageServerConfig.profiling.runtimeEventsLogPath match {
+      case Some(path) =>
+        ApiEventsMonitor(path) match {
+          case Success(monitor) =>
+            monitor
+          case Failure(exception) =>
+            log.error(
+              s"Failed to create runtime events monitor for $path ($exception)."
+            )
+            new NoopEventsMonitor
+        }
+      case None =>
+        new NoopEventsMonitor
+    }
   log.trace(
     s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
   )
@@ -181,7 +196,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   lazy val bufferRegistry =
     system.actorOf(
-      BufferRegistry.props(fileManager, runtimeConnector),
+      BufferRegistry.props(
+        fileManager,
+        runtimeConnector,
+        TimingsConfig.default().withAutoSave(6.seconds)
+      ),
       "buffer-registry"
     )
 
@@ -228,12 +247,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           languageServerConfig,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
-          sessionRouter,
-          if (serverConfig.isProfilingEnabled) {
-            val s = TempFileSampler("context-registry")
-            JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
-            s
-          } else NoopSampler()
+          sessionRouter
         ),
       "context-registry"
     )

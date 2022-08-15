@@ -10,7 +10,6 @@ use crate::FailedIde;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
 use ensogl::application::Application;
-use ensogl::system::web;
 use uuid::Uuid;
 
 
@@ -58,27 +57,13 @@ impl Initializer {
     }
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
-    /// and forget them to keep them alive.
-    #[profile(Task)]
-    pub fn start_and_forget(self) {
-        let executor = setup_global_executor();
-        executor::global::spawn(async move {
-            let ide = self.start().await;
-            web::document
-                .get_element_by_id("loader")
-                .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
-            std::mem::forget(ide);
-        });
-        std::mem::forget(executor);
-    }
-
-    /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
     #[profile(Task)]
     pub async fn start(self) -> Result<Ide, FailedIde> {
         info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
+        ensogl_text_msdf_sys::initialized().await;
         let ensogl_app = ensogl::application::Application::new(self.config.dom_parent_id());
-        Initializer::register_views(&ensogl_app);
+        register_views(&ensogl_app);
         let view = ensogl_app.new_view::<ide_view::root::View>();
 
         // IDE was opened with `project` argument, we should skip the Welcome Screen.
@@ -107,29 +92,6 @@ impl Initializer {
                 status_bar.add_event(ide_view::status_bar::event::Label::new(message));
                 Err(FailedIde { view })
             }
-        }
-    }
-
-    fn register_views(app: &Application) {
-        app.views.register::<ide_view::root::View>();
-        app.views.register::<ide_view::graph_editor::GraphEditor>();
-        app.views.register::<ide_view::graph_editor::component::breadcrumbs::ProjectName>();
-        app.views.register::<ide_view::code_editor::View>();
-        app.views.register::<ide_view::project::View>();
-        app.views.register::<ide_view::searcher::View>();
-        app.views.register::<ide_view::welcome_screen::View>();
-        app.views.register::<ensogl_component::text::Area>();
-        app.views.register::<ensogl_component::selector::NumberPicker>();
-        app.views.register::<ensogl_component::selector::NumberRangePicker>();
-
-        // As long as .label() of a View is the same, shortcuts and commands are currently also
-        // expected to be the same, so it should not be important which concrete type parameter of
-        // ListView we use below.
-        type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
-        app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
-
-        if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
-            app.views.register::<ide_view::window_control_buttons::View>();
         }
     }
 
@@ -225,7 +187,7 @@ impl WithProjectManager {
     pub async fn create_project(&self) -> FallibleResult<Uuid> {
         use project_manager::MissingComponentAction::Install;
         info!(self.logger, "Creating a new project named '{self.project_name}'.");
-        let version = Some(enso_config::engine_version_supported.to_owned());
+        let version = enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
         let name = &self.project_name;
         let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
@@ -264,6 +226,35 @@ pub fn setup_global_executor() -> executor::web::EventLoopExecutor {
     let executor = executor::web::EventLoopExecutor::new_running();
     executor::global::set_spawner(executor.spawner.clone());
     executor
+}
+
+/// Register all the standard views for the IDE.
+pub fn register_views(app: &Application) {
+    app.views.register::<ide_view::root::View>();
+    app.views.register::<ide_view::graph_editor::GraphEditor>();
+    app.views.register::<ide_view::graph_editor::component::breadcrumbs::ProjectName>();
+    app.views.register::<ide_view::code_editor::View>();
+    app.views.register::<ide_view::project::View>();
+    app.views.register::<ide_view::searcher::View>();
+    app.views.register::<ide_view::welcome_screen::View>();
+    app.views.register::<ide_view::component_browser::View>();
+    app.views.register::<ide_view::component_browser::list_panel::ComponentBrowserPanel>();
+    app.views.register::<ide_view::component_browser::list_panel::column_grid::ColumnGrid>();
+    app.views.register::<ide_view::component_browser::component_group::View>();
+    app.views.register::<ide_view::component_browser::component_group::wide::View>();
+    app.views.register::<ensogl_component::text::Area>();
+    app.views.register::<ensogl_component::selector::NumberPicker>();
+    app.views.register::<ensogl_component::selector::NumberRangePicker>();
+
+    // As long as .label() of a View is the same, shortcuts and commands are currently also
+    // expected to be the same, so it should not be important which concrete type parameter of
+    // ListView we use below.
+    type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
+    app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
+
+    if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
+        app.views.register::<ide_view::window_control_buttons::View>();
+    }
 }
 
 
