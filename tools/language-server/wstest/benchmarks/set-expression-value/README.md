@@ -49,7 +49,7 @@ Analyze logs
 cargo run -p logstat -- \
   --median \
   --spec tools/language-server/logstat/apply-expression-value-spec.txt \
-  --wstest-log wstest.log
+  --wstest-log wstest.log \
   language-server.log
 ```
 
