@@ -476,26 +476,45 @@ let mainWindow = null
 let origin = null
 
 async function main(args) {
-    runBackend()
-    console.log('Starting the IDE service.')
-    if (args.server !== false) {
-        let serverCfg = Object.assign({}, args)
-        serverCfg.dir = root
-        serverCfg.fallback = '/assets/index.html'
-        server = await Server.create(serverCfg)
-        origin = `http://localhost:${server.port}`
-    }
-    if (args.window !== false) {
-        console.log('Starting the IDE client.')
-        mainWindow = createWindow()
-        mainWindow.on('close', evt => {
-            if (hideInsteadOfQuit) {
-                evt.preventDefault()
-                mainWindow.hide()
-            }
-        })
+    // Note [Main error handling]
+    try {
+        runBackend()
+
+        console.log('Starting the IDE service.')
+        if (args.server !== false) {
+            let serverCfg = Object.assign({}, args)
+            serverCfg.dir = root
+            serverCfg.fallback = '/assets/index.html'
+            server = await Server.create(serverCfg)
+            origin = `http://localhost:${server.port}`
+        }
+        if (args.window !== false) {
+            console.log('Starting the IDE client.')
+            mainWindow = createWindow()
+            mainWindow.on('close', evt => {
+                if (hideInsteadOfQuit) {
+                    evt.preventDefault()
+                    mainWindow.hide()
+                }
+            })
+        }
+    } catch (err) {
+        // Note [Main error handling]
+        console.error('Failed to setup IDE. Error:', err)
+        Electron.app.quit()
     }
 }
+
+// Note [Main error handling]
+// ==========================
+// It is critical that the main function runs in its entirety. Otherwise, IDE enters a "zombie
+// process" state, where Electron processes have been spawned, but there is no window and user can't
+// observe anything. Usually they will try to spawn another instance of the IDE, but this can fail
+// because of these zombie process presence.
+//
+// The solution is to catch all errors and exit the process if any part of the initial setup fails.
+// If it succeeds, at least the Window will be shown, allowing the user to observe the error and
+// close it.
 
 function urlParamsFromObject(obj) {
     let params = []
