@@ -53,7 +53,7 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
     # TODO [RW] Should we truncate Vectors?
     # We also visualize Vectors and arrays
     Vector.Vector _ ->
-        truncated = x.take_start max_rows
+        truncated = x.take (First max_rows)
         Json.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
     Array ->
         prepare_visualization (Vector.Vector x) max_rows

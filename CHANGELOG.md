@@ -171,6 +171,8 @@
   type from `Standard.Table`.][3601]
 - [Created `Index_Sub_Range` type and updated `Text.take` and
   `Text.drop`.][3617]
+- [Updated `Vector.take` and `Vector.drop` and removed their obsolete
+  counterparts.][3629]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -270,6 +272,7 @@
 [3593]: https://github.com/enso-org/enso/pull/3593
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
+[3629]: https://github.com/enso-org/enso/pull/3629
 
 #### Enso Compiler
 
@@ -305,6 +308,8 @@
 - [Enable caching in visualisation functions][3618]
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
+- [Support Autosave for open buffers][3637]
+- [Support pattern matching on constants][3641]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -344,6 +349,8 @@
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
+[3637]: https://github.com/enso-org/enso/pull/3637
+[3633]: https://github.com/enso-org/enso/pull/3641
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -173,8 +173,8 @@ rename_columns internal_columns mapping on_problems =
         Column_Name_Mapping.By_Position vec ->
             good_names = case vec.length > col_count of
                 True ->
-                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided (vec.drop_start col_count))
-                    vec.take_start col_count
+                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided (vec.drop (First col_count)))
+                    vec.take (First col_count)
                 False -> vec
 
             new_names = 0.up_to col_count . map i->if i>=good_names.length then Nothing else

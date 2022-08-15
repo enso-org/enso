@@ -861,7 +861,7 @@ type Column
         size = ['length', self.length]
         name = ['name', self.name]
         max_data = 100
-        data = ['data', self.to_vector.take_start max_data]
+        data = ['data', self.to_vector.take (First max_data)])
         Json.from_pairs [size, name, data] . to_text
 
     ## ALIAS Sum Columns
@@ -1021,7 +1021,7 @@ type Column
 
              import Standard.Examples
 
-             example_take_start = Examples.integer_column.take_start 2
+             example_take_start = Examples.integer_column.take (First 2)
     take_start : Integer -> Column
     take_start self count =
         Column (self.java_column.slice 0 count)
