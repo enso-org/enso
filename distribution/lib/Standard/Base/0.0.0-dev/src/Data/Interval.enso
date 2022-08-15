@@ -58,7 +58,7 @@ type Interval
        Arguments:
        - start: The start of the interval.
        - end: The end of the interval.
-    Interval_Data (start : Number) (end : Number)
+    Interval_Data (start : Bound.Bound) (end : Bound.Bound)
 
     ## Checks if the interval contains `that`.
 

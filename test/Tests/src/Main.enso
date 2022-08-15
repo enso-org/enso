@@ -3,8 +3,8 @@ from Standard.Base import all
 import Standard.Test
 
 import project.Semantic.Any_Spec
-#import project.Semantic.Case_Spec
-#import project.Semantic.Conversion_Spec
+import project.Semantic.Case_Spec
+import project.Semantic.Conversion_Spec
 #import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
 #import project.Semantic.Error_Spec
 #import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
@@ -18,10 +18,10 @@ import project.Semantic.Any_Spec
 #import project.Semantic.Python_Interop_Spec
 #import project.Semantic.R_Interop_Spec
 
-#import project.Data.Array_Spec
-#import project.Data.Bool_Spec
-#import project.Data.Function_Spec
-#import project.Data.Interval_Spec
+import project.Data.Array_Spec
+import project.Data.Bool_Spec
+import project.Data.Function_Spec
+import project.Data.Interval_Spec
 #import project.Data.Json_Spec
 #import project.Data.List_Spec
 #import project.Data.Locale_Spec
@@ -71,11 +71,11 @@ import project.Semantic.Any_Spec
 
 main = Test.Suite.run_main <|
     Any_Spec.spec
-    #Array_Spec.spec
-    #Bool_Spec.spec
-    #Function_Spec.spec
-    #Case_Spec.spec
-    #Conversion_Spec.spec
+    Array_Spec.spec
+    Bool_Spec.spec
+    Function_Spec.spec
+    Case_Spec.spec
+    Conversion_Spec.spec
     #Deep_Export_Spec.spec
     #Error_Spec.spec
     #Environment_Spec.spec
@@ -86,7 +86,7 @@ main = Test.Suite.run_main <|
     #Http_Request_Spec.spec
     #Http_Spec.spec
     #Import_Loop_Spec.spec
-    #Interval_Spec.spec
+    Interval_Spec.spec
     #Java_Interop_Spec.spec
     #Js_Interop_Spec.spec
     #Json_Spec.spec

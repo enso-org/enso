@@ -234,10 +234,10 @@ Constructor.new self fields = new_atom self.value fields.to_array
 meta : Any -> Meta
 meta value = if is_atom value then Atom_Data value else
     if is_atom_constructor value then Constructor_Data value else
-        if is_polyglot value then Polyglot value else
+        if is_polyglot value then Polyglot_Data value else
             if is_unresolved_symbol value then Unresolved_Symbol value else
                 if is_error value then Error_Data value.catch else
-                    Primitive value
+                    Primitive_Data value
 
 ## UNSTABLE
    ADVANCED
