@@ -73,12 +73,12 @@ spec = Test.group "Dataflow Warnings" <|
         z = Warning.attach (My_Warning_Data "warn!!!") 3
         y = Warning.attach (My_Warning_Data "warn!!") 2
         x = Warning.attach (My_Warning_Data "warn!") 1
-        mtp = My_Type x y z
-        mtp.should_equal (My_Type 1 2 3)
+        mtp = My_Type_Data x y z
+        mtp.should_equal (My_Type_Data 1 2 3)
         Warning.get_all mtp . map .value . should_equal [My_Warning_Data "warn!", My_Warning_Data "warn!!", My_Warning_Data "warn!!!"]
 
     Test.specify "should thread warnings through method calls"
-        mtp = My_Type 1 2 3
+        mtp = My_Type_Data 1 2 3
         warned = Warning.attach "omgggg" mtp
         r = warned.my_method
         r.should_equal 6

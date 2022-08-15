@@ -724,8 +724,10 @@ class Compiler(
         List((module, errors))
       }
       if (reportDiagnostics(diagnostics)) {
-        val count = diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
-        val warnCount = diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
+        val count =
+          diagnostics.map(_._2.collect { case e: IR.Error => e }.length).sum
+        val warnCount =
+          diagnostics.map(_._2.collect { case e: IR.Warning => e }.length).sum
         println(s"Aborting due to ${count} errors and ${warnCount} warnings.")
         throw new CompilationAbortedException
       }
@@ -824,14 +826,14 @@ class Compiler(
     source: Source
   ): Boolean = {
     val errors   = diagnostics.collect { case e: IR.Error => e }
-//    val warnings = diagnostics.collect { case w: IR.Warning => w }
+    val warnings = diagnostics.collect { case w: IR.Warning => w }
 
-//    if (warnings.nonEmpty) {
-//      context.getOut.println("Compiler encountered warnings:")
-//      warnings.foreach { warning =>
-//        context.getOut.println(formatDiagnostic(warning, source))
-//      }
-//    }
+    if (warnings.nonEmpty) {
+      context.getOut.println("Compiler encountered warnings:")
+      warnings.foreach { warning =>
+        context.getOut.println(formatDiagnostic(warning, source))
+      }
+    }
 
     if (errors.nonEmpty) {
       context.getOut.println("Compiler encountered errors:")

@@ -3,67 +3,62 @@ from Standard.Base import all
 ## UNSTABLE
    ADVANCED
 
-   A meta-representation of a runtime value.
+   An Atom meta-representation.
 
-   ! Warning
-     The functionality contained in this module exposes certain implementation
-     details of the language. As such, the API has no stability guarantees and
-     is subject to change as the Enso interpreter evolves.
-type Meta
+   Arguments:
+   - value: The value of the atom in the meta representation.
+type Atom
+    Atom_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       An Atom meta-representation.
+   A constructor meta-representation.
 
-       Arguments:
-       - value: The value of the atom in the meta representation.
-    Atom value
+   Arguments:
+   - value: The value of the constructor in the meta representation.
+type Constructor
+    Constructor_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       A constructor meta-representation.
+   A primitive value meta-prepresentation.
 
-       Arguments:
-       - value: The value of the constructor in the meta representation.
-    Constructor value
+   Arguments:
+   - value: The value of the primitive object in the meta representation.
+type Primitive
+    Primitive_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       A primitive value meta-prepresentation.
+   An unresolved symbol meta-representation.
 
-       Arguments:
-       - value: The value of the primitive object in the meta representation.
-    Primitive value
+   Arguments:
+   - value: The value of the unresolved symbol in the meta representation.
+type Unresolved_Symbol
+    Unresolved_Symbol_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       An unresolved symbol meta-representation.
+   An error meta-representation, containing the payload of a dataflow error.
 
-       Arguments:
-       - value: The value of the unresolved symbol in the meta representation.
-    Unresolved_Symbol value
+   Arguments:
+   - value: The payload of the error.
+type Error
+    Error_Data value
 
-    ## UNSTABLE
-       ADVANCED
+## UNSTABLE
+   ADVANCED
 
-       An error meta-representation, containing the payload of a dataflow error.
+   A polyglot value meta-representation.
 
-       Arguments:
-       - value: The payload of the error.
-    Error value
-
-    ## UNSTABLE
-       ADVANCED
-
-       A polyglot value meta-representation.
-
-       Arguments:
-       - value: The polyglot value contained in the meta representation.
-    Polyglot value
+   Arguments:
+   - value: The polyglot value contained in the meta representation.
+type Polyglot
+    Polyglot_Data value
 
 
 ## Atom methods
@@ -237,11 +232,11 @@ Constructor.new self fields = new_atom self.value fields.to_array
    Arguments:
    - value: The runtime entity to get the meta representation of.
 meta : Any -> Meta
-meta value = if is_atom value then Atom value else
-    if is_atom_constructor value then Constructor value else
+meta value = if is_atom value then Atom_Data value else
+    if is_atom_constructor value then Constructor_Data value else
         if is_polyglot value then Polyglot value else
             if is_unresolved_symbol value then Unresolved_Symbol value else
-                if is_error value then Error value.catch else
+                if is_error value then Error_Data value.catch else
                     Primitive value
 
 ## UNSTABLE
@@ -317,16 +312,16 @@ is_a value typ = if typ == Any then True else
             _ ->
                 meta_val = meta value
                 case meta_val of
-                    Atom _ -> if is_atom typ then typ == value else
+                    Atom_Data _ -> if is_atom typ then typ == value else
                         meta_val.constructor == typ
-                    Constructor _ ->
+                    Constructor_Data _ ->
                         meta_typ = meta typ
                         case meta_typ of
-                            Atom _ -> meta_val == meta_typ.constructor
-                            Constructor _ -> meta_val == meta_typ
+                            Atom_Data _ -> meta_val == meta_typ.constructor
+                            Constructor_Data _ -> meta_val == meta_typ
                             _ -> False
-                    Error _ -> typ == Error
-                    Unresolved_Symbol _ -> typ == Unresolved_Symbol
+                    Error_Data _ -> typ == Error
+                    Unresolved_Symbol_Data _ -> typ == Unresolved_Symbol
                     _ -> False
 
 ## UNSTABLE

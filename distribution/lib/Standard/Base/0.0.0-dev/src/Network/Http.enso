@@ -606,14 +606,14 @@ type Http
             # prepare headers and body
             req_with_body = case req.body of
                 Request_Body.Empty ->
-                    Pair req body_publishers.noBody
+                    Pair_Data req body_publishers.noBody
                 Request_Body.Text text ->
                     builder.header Header.text_plain.name Header.text_plain.value
-                    Pair req (body_publishers.ofString text)
+                    Pair_Data req (body_publishers.ofString text)
                 Request_Body.Json json ->
                     builder.header Header.application_json.name Header.application_json.value
                     json_body = if json.is_a Text then json else json.to_text
-                    Pair req (body_publishers.ofString json_body)
+                    Pair_Data req (body_publishers.ofString json_body)
                 Request_Body.Form form ->
                     add_multipart form =
                         body_builder = Http_Utils.multipart_body_builder
@@ -621,18 +621,18 @@ type Http
                             Form.Part_Text text -> body_builder.add_part_text part.key text
                             Form.Part_File file -> body_builder.add_part_file part.key file.path
                         boundary = body_builder.get_boundary
-                        Pair (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
+                        Pair_Data (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
                     add_urlencoded form =
                         body_builder = Http_Utils.urlencoded_body_builder
                         form.parts.map part-> case part.value of
                             Form.Part_Text text -> body_builder.add_part_text part.key text
                             Form.Part_File file -> body_builder.add_part_file part.key file.path
-                        Pair req body_builder.build
+                        Pair_Data req body_builder.build
                     if req.headers.contains Header.multipart_form_data then add_multipart form else
                         add_urlencoded form
                 Request_Body.Bytes bytes ->
                     builder.header Header.application_octet_stream.name Header.application_octet_stream.value
-                    Pair req (body_publishers.ofByteArray bytes.to_array)
+                    Pair_Data req (body_publishers.ofByteArray bytes.to_array)
             # method
             req_http_method = case req.method of
                 Method.Options -> "OPTIONS"
@@ -651,7 +651,7 @@ type Http
                     req.headers.map h-> builder.header h.name h.value
             http_request = builder.build
             body_handler = HttpResponse.BodyHandlers . ofByteArray
-            Response.Response (self.internal_http_client.send http_request body_handler)
+            Response.Response_Data (self.internal_http_client.send http_request body_handler)
 
     ## PRIVATE
 
@@ -660,7 +660,7 @@ type Http
     internal_http_client self =
         builder = HttpClient.newBuilder
         # timeout
-        if self.timeout.is_date then Panic.throw (Time.Time_Error "Connection timeout does not support date intervals") else
+        if self.timeout.is_date then Panic.throw (Time.Time_Error_Data "Connection timeout does not support date intervals") else
             builder.connectTimeout self.timeout.internal_duration
         # redirect
         redirect = HttpClient.Redirect

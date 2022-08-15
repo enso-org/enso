@@ -75,7 +75,7 @@ config_from_env =
             False ->
                 (File.new junit_folder) / project_root.name / "JUnit.xml"
 
-    Suite_Config only_group_regexp results_path
+    Suite_Config_Data only_group_regexp results_path
 
 
 ## Creates a new test group, describing properties of the object
@@ -127,11 +127,11 @@ group name ~behaviors pending=Nothing =
     if config.should_run_group name then
         case pending of
             Nothing ->
-                r = State.run Spec (Spec name  Nil) <|
+                r = State.run Spec (Spec_Data name  Nil) <|
                     behaviors
                     State.get Spec
                 r.print_report config suite.builder
-                new_suite = Suite suite.config (Cons r suite.specs) suite.builder
+                new_suite = Suite_Data suite.config (Cons r suite.specs) suite.builder
                 State.put Suite new_suite
             reason ->
                 report_pending_group name reason config suite.builder
@@ -168,7 +168,7 @@ specify label ~behavior pending=Nothing =
         Nothing -> run_spec behavior
         reason -> Pending reason
     spec = State.get Spec
-    new_spec = Spec spec.name (Cons (Behavior_Data label result) spec.behaviors)
+    new_spec = Spec_Data spec.name (Cons (Behavior_Data label result) spec.behaviors)
     State.put Spec new_spec
 
 ## PRIVATE

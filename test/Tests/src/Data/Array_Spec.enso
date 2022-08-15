@@ -9,7 +9,7 @@ spec = Test.group "Arrays" <|
         arr = Vector.fill 1000 0 . to_array
         text = arr.to_default_visualization_data
         json = Json.parse text
-        as_vec = json.into (Vector.Vector Number)
+        as_vec = json.into (Vector.Vector_Data Number)
         as_vec.should_equal <| Vector.fill 100 0
 
     Test.specify "should allow accessing elements" <|
@@ -25,17 +25,17 @@ spec = Test.group "Arrays" <|
 
     Test.specify "should panic on out of bounds access" <|
         arr = [1, 2, 3] . to_array
-        Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error
-        Test.expect_panic_with (arr.at 3) Invalid_Array_Index_Error
-        Test.expect_panic_with (arr.set_at 3 100) Invalid_Array_Index_Error
+        Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error_Data
+        Test.expect_panic_with (arr.at 3) Invalid_Array_Index_Error_Data
+        Test.expect_panic_with (arr.set_at 3 100) Invalid_Array_Index_Error_Data
 
     Test.specify "should allow for functional dispatch on a method defined in this module"
         arr = [1, 2, 3] . to_array
         arr.method . should_equal 0
 
     Test.specify "should propagate dataflow errors" <|
-        err = Error.throw (Illegal_State_Error "Foo")
+        err = Error.throw (Illegal_State_Error_Data "Foo")
         res = Array.new err
-        res . should_fail_with Illegal_State_Error
+        res . should_fail_with Illegal_State_Error_Data
 
 main = Test.Suite.run_main spec
