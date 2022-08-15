@@ -307,8 +307,7 @@ pub mod mock {
                 .add_node(new_node)
                 .expect("Failed to create target node for searcher in fixture customisation.");
 
-            let searcher_mode =
-                controller::searcher::Mode::NewNode { node_id: node, source_node: None };
+            let searcher_mode = controller::searcher::Mode::EditNode { node_id: node };
             let searcher = controller::Searcher::new_from_graph_controller(
                 &logger,
                 ide.clone_ref(),
