@@ -97,17 +97,6 @@ pub enum Action {
     // In the future, other action types will be added (like module/method management, etc.).
 }
 
-impl Action {
-    /// Get the name of the icon associated with given action.
-    pub fn icon(&self) -> ImString {
-        use Suggestion::*;
-        match self {
-            Self::Suggestion(Hardcoded(s)) => s.icon.clone_ref(),
-            _ => hardcoded::ICONS.with(|ics| ics.default.clone_ref()),
-        }
-    }
-}
-
 impl Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

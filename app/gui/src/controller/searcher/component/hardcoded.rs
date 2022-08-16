@@ -60,9 +60,9 @@ pub struct Snippet {
     pub return_types:       Vec<tp::QualifiedName>,
     /// The documentation bound to the snippet.
     pub documentation_html: Option<String>,
-    /// The name of the icon bound to this snippet's entry in the [Component
+    /// The ID of the icon bound to this snippet's entry in the [Component
     /// Browser](crate::controller::searcher).
-    pub icon:               ImString,
+    pub icon:               IconId,
 }
 
 impl Snippet {
@@ -72,7 +72,6 @@ impl Snippet {
         code: &'static str,
         icon: IconId,
     ) -> Self {
-        let icon = icon.as_str().into();
         Self { name, code, icon, ..default() }
     }
 

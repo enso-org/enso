@@ -193,19 +193,7 @@ impl list_view::entry::ModelProvider<component_group_view::Entry> for Component 
                 let icon = icon_name.and_then(|n| n.to_pascal_case().parse().ok());
                 icon.unwrap_or_else(|| for_each_kind_variant!(kind_to_icon(kind)))
             }
-            component::Data::Virtual { snippet } => {
-                let icon = &snippet.icon;
-                let parsed_icon = component_group_view::icon::Id::from_str(icon);
-                parsed_icon.unwrap_or_else(|_| {
-                    let msg = iformat!(
-                        "A virtual component named " snippet.name;?
-                        " uses an icon name " icon
-                        " which is not found among predefined icons. A default icon will be used."
-                    );
-                    event!(ERROR, "{msg}");
-                    default()
-                })
-            }
+            component::Data::Virtual { snippet } => snippet.icon,
         };
         Some(component_group_view::entry::Model {
             icon,
