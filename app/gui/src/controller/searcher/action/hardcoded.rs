@@ -1,8 +1,5 @@
 use crate::prelude::*;
 
-use crate::model::module::MethodId;
-
-use double_representation::module;
 use double_representation::tp;
 
 
