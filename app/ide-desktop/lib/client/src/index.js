@@ -508,12 +508,12 @@ async function main(args) {
 // Note [Main error handling]
 // ==========================
 // It is critical that the main function runs in its entirety. Otherwise, IDE enters a "zombie
-// process" state, where Electron processes have been spawned, but there is no window and user can't
-// observe anything. Usually they will try to spawn another instance of the IDE, but this can fail
-// because of these zombie process presence.
+// process" state, where Electron processes have been spawned, but there is no window and the user
+// can't observe anything. Usually they will try to spawn another instance of the IDE, but this can
+// fail because of these zombie process presence.
 //
 // The solution is to catch all errors and exit the process if any part of the initial setup fails.
-// If it succeeds, at least the Window will be shown, allowing the user to observe the error and
+// If it succeeds, at least the window will be shown, allowing the user to observe the error and
 // close it.
 
 function urlParamsFromObject(obj) {
