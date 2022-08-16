@@ -1049,8 +1049,8 @@ impl Searcher {
             let snippets = if return_types.is_empty() {
                 component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
             } else {
-                let qn_of_type_from_text = |s| tp::QualifiedName::from_text(s).ok();
-                let rt_qns = return_types.iter().filter_map(qn_of_type_from_text);
+                let parse_type_qn = |s| tp::QualifiedName::from_text(s).ok();
+                let rt_qns = return_types.iter().filter_map(parse_type_qn);
                 component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
             };
             let group_name = component::hardcoded::INPUT_GROUP_NAME;
