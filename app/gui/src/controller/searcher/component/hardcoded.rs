@@ -70,7 +70,7 @@ pub struct Snippet {
 }
 
 impl Snippet {
-    /// Construct a suggestion with given name, code, and icon.
+    /// Construct a snippet with given name, code, and icon.
     fn new_with_name_and_code_and_icon(
         name: &'static str,
         code: &'static str,
