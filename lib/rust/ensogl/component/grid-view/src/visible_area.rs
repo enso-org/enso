@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::Col;
+use crate::ColumnWidths;
 use crate::Row;
 use crate::Viewport;
 
@@ -31,12 +32,24 @@ pub fn visible_rows(v: &Viewport, entry_size: Vector2, row_count: usize) -> Rang
 }
 
 /// Return range of visible columns.
-pub fn visible_columns(v: &Viewport, entry_size: Vector2, col_count: usize) -> Range<Col> {
-    let first_visible_unrestricted = (v.left / entry_size.x).floor() as isize;
-    let first_visible = first_visible_unrestricted.clamp(0, col_count as isize) as Col;
+pub fn visible_columns(
+    v: &Viewport,
+    entry_size: Vector2,
+    col_count: usize,
+    column_widths: &ColumnWidths,
+) -> Range<Col> {
+    let column_left = |idx: usize| idx as f32 * entry_size.x + column_widths.pos_offset(idx);
+    let column_right = |idx: usize| column_left(idx + 1);
+    let index = |(idx, _): (usize, _)| idx;
+
+    let visible = |(_, x): &(_, f32)| v.left < *x;
+    let mut right_borders = (0..col_count).map(|idx| (idx, column_right(idx)));
+    let first_visible = right_borders.find(visible).map(index).unwrap_or(col_count);
+
     let first_not_visible = if has_size(v) {
-        let first_not_visible_unrestricted = (v.right / entry_size.x).ceil() as isize;
-        first_not_visible_unrestricted.clamp(0, col_count as isize) as Col
+        let not_visible = |(_, x): &(_, f32)| v.right <= *x;
+        let mut left_borders = (0..col_count).map(|idx| (idx, column_left(idx)));
+        left_borders.find(not_visible).map(index).unwrap_or(col_count)
     } else {
         first_visible
     };
@@ -55,9 +68,10 @@ pub fn all_visible_locations(
     entry_size: Vector2,
     row_count: usize,
     col_count: usize,
+    column_widths: &ColumnWidths,
 ) -> impl Iterator<Item = (Row, Col)> {
     let visible_rows = visible_rows(v, entry_size, row_count);
-    let visible_cols = visible_columns(v, entry_size, col_count);
+    let visible_cols = visible_columns(v, entry_size, col_count, column_widths);
     itertools::iproduct!(visible_rows, visible_cols)
 }
 
@@ -70,18 +84,18 @@ pub fn all_visible_locations(
 #[cfg(test)]
 mod tests {
     use super::*;
+    const ENTRY_SIZE: Vector2 = Vector2(20.0, 10.0);
+    const ROW_COUNT: usize = 100;
+    const COL_COUNT: usize = 100;
 
     #[test]
     fn visible_rows_and_columns() {
-        const ENTRY_SIZE: Vector2 = Vector2(20.0, 10.0);
-        const ROW_COUNT: usize = 100;
-        const COL_COUNT: usize = 100;
-
         #[derive(Clone, Debug)]
         struct Case {
             viewport:      Viewport,
             expected_rows: Range<Row>,
             expected_cols: Range<Col>,
+            column_widths: ColumnWidths,
         }
 
         impl Case {
@@ -94,7 +108,8 @@ mod tests {
                 let right = left + size_x;
                 let bottom = top - size_y;
                 let viewport = Viewport { left, top, right, bottom };
-                Self { viewport, expected_rows, expected_cols }
+                let column_widths = ColumnWidths::new(COL_COUNT);
+                Self { viewport, expected_rows, expected_cols, column_widths }
             }
 
             fn run(&self) {
@@ -104,7 +119,7 @@ mod tests {
                     "Wrong visible rows in {self:?}"
                 );
                 assert_eq!(
-                    visible_columns(&self.viewport, ENTRY_SIZE, COL_COUNT),
+                    visible_columns(&self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
                     self.expected_cols,
                     "Wrong visible cols in {self:?}"
                 );
@@ -130,5 +145,60 @@ mod tests {
         ] {
             case.run()
         }
+    }
+
+    #[test]
+    fn visible_rows_and_columns_with_resizing_columns() {
+        #[derive(Clone, Debug)]
+        struct Case {
+            viewport:      Viewport,
+            expected_cols: Range<Col>,
+            column_widths: ColumnWidths,
+        }
+
+        impl Case {
+            fn new(
+                left: f32,
+                size_x: f32,
+                expected_cols: Range<Col>,
+                column_widths: &ColumnWidths,
+            ) -> Self {
+                let right = left + size_x;
+                let viewport = Viewport { left, top: 0.0, right, bottom: -ENTRY_SIZE.y };
+                let column_widths = column_widths.clone_ref();
+                Self { viewport, expected_cols, column_widths }
+            }
+
+            fn run(self) {
+                assert_eq!(
+                    visible_columns(&self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
+                    self.expected_cols,
+                    "Wrong visible cols in {self:?}"
+                );
+            }
+        }
+
+        let first_column_shrinked = adjusted_column_widths(0, -15.0);
+        let second_column_shrinked = adjusted_column_widths(1, -10.0);
+        let first_column_extended = adjusted_column_widths(0, 20.0);
+        let second_column_extended = adjusted_column_widths(1, 20.0);
+
+        for case in [
+            Case::new(0.0, 40.0, 0..3, &first_column_shrinked),
+            Case::new(0.0, 40.0, 0..3, &second_column_shrinked),
+            Case::new(1.0, 40.0, 0..3, &second_column_shrinked),
+            Case::new(19.9, 40.0, 0..4, &second_column_shrinked),
+            Case::new(21.1, 40.0, 1..4, &second_column_shrinked),
+            Case::new(39.9, 20.0, 0..2, &first_column_extended),
+            Case::new(59.9, 20.0, 1..3, &second_column_extended),
+        ] {
+            case.run()
+        }
+    }
+
+    fn adjusted_column_widths(adjusted_column: usize, adjusted_by: f32) -> ColumnWidths {
+        let widths = ColumnWidths::new(COL_COUNT);
+        widths.set_width_diff(adjusted_column, adjusted_by);
+        widths
     }
 }

@@ -7,6 +7,7 @@
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
+#![feature(bool_to_option)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -101,6 +102,8 @@ ensogl_core::define_endpoints_2! {
         request_model_for_visible_entries(),
         /// Set the entries size. All entries have the same size.
         set_entries_size(Vector2),
+        /// Set the width of the specified column.
+        set_column_width((Col, f32)),
         /// Set the entries parameters.
         set_entries_params(EntryParams),
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
@@ -147,6 +150,66 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
 
 
 
+// ====================
+// === ColumnWidths ===
+// ====================
+
+type SegmentTree = segment_tree::SegmentPoint<f32, segment_tree::ops::Add>;
+
+fn segment_tree(width_diffs: Vec<f32>) -> SegmentTree {
+    segment_tree::SegmentPoint::build(width_diffs, segment_tree::ops::Add)
+}
+
+fn segment_tree_noalloc(width_diffs: Vec<f32>) -> SegmentTree {
+    segment_tree::SegmentPoint::build_noalloc(width_diffs, segment_tree::ops::Add)
+}
+
+/// TODO docs
+#[derive(Clone, CloneRef, Debug)]
+pub struct ColumnWidths {
+    width_diffs: Rc<RefCell<segment_tree::SegmentPoint<f32, segment_tree::ops::Add>>>,
+}
+
+impl ColumnWidths {
+    pub fn new(number_of_columns: usize) -> Self {
+        let init_vec = (0..number_of_columns).map(|_| 0.0).collect();
+        let tree = segment_tree(init_vec);
+        Self { width_diffs: Rc::new(RefCell::new(tree)) }
+    }
+
+    pub fn set_width_diff(&self, column: usize, width_diff: f32) {
+        self.width_diffs.borrow_mut().modify(column, width_diff);
+    }
+
+    pub fn resize(&self, col_count: usize) {
+        let mut borrowed = self.width_diffs.borrow_mut();
+        let old_length = borrowed.len();
+        let length = col_count;
+        let double_length = length * 2;
+        if old_length < length {
+            let mut new_vec = Vec::with_capacity(double_length);
+            new_vec.resize(double_length, 0.0);
+            new_vec[length..length + old_length].copy_from_slice(&borrowed.view()[..]);
+            *borrowed = segment_tree_noalloc(new_vec);
+        }
+    }
+
+    pub fn pos_offset(&self, column: usize) -> f32 {
+        self.width_diffs.borrow().query(0, column)
+    }
+
+    pub fn width_diff(&self, column: usize) -> f32 {
+        if let Some(diff) = self.width_diffs.borrow().view().get(column) {
+            *diff
+        } else {
+            tracing::warn!("Column width diff not found for column {}", column);
+            0.0
+        }
+    }
+}
+
+
+
 // =============
 // === Model ===
 // =============
@@ -157,13 +220,14 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 struct EntryCreationCtx<EntryParams> {
-    app:              Application,
-    network:          frp::WeakNetwork,
-    set_entry_size:   frp::Stream<Vector2>,
-    set_entry_params: frp::Stream<EntryParams>,
-    entry_hovered:    frp::Any<Option<(Row, Col)>>,
-    entry_selected:   frp::Any<Option<(Row, Col)>>,
-    entry_accepted:   frp::Any<(Row, Col)>,
+    app:                   Application,
+    network:               frp::WeakNetwork,
+    set_entry_size:        frp::Stream<Vector2>,
+    set_entry_params:      frp::Stream<EntryParams>,
+    entry_hovered:         frp::Any<Option<(Row, Col)>>,
+    entry_selected:        frp::Any<Option<(Row, Col)>>,
+    entry_accepted:        frp::Any<(Row, Col)>,
+    override_column_width: frp::Any<(Col, f32)>,
 }
 
 impl<EntryParams> EntryCreationCtx<EntryParams>
@@ -190,6 +254,7 @@ where EntryParams: frp::node::Data
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
                 let location = entry_frp.set_location.clone_ref();
+                column <- location._1();
 
                 // We make a distinction between "hovered" state and "mouse_in" state, because
                 // we want to highlight entry as hovered only when mouse moves a bit.
@@ -211,6 +276,10 @@ where EntryParams: frp::node::Data
                 self.entry_hovered <+ location.sample(&hovered).map(|l| Some(*l));
                 self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
                 self.entry_accepted <+ location.sample(&accepted);
+                self.override_column_width <+ entry_frp.override_column_width.map2(
+                    &column,
+                    |width, col| (*col, *width)
+                );
             }
             init.emit(());
         }
@@ -218,14 +287,26 @@ where EntryParams: frp::node::Data
     }
 }
 
-fn entry_position(row: Row, col: Col, entry_size: Vector2) -> Vector2 {
-    let x = (col as f32 + 0.5) * entry_size.x;
+fn entry_position(
+    row: Row,
+    col: Col,
+    entry_size: Vector2,
+    column_widths: &ColumnWidths,
+) -> Vector2 {
+    let x_offset = column_widths.pos_offset(col) + column_widths.width_diff(col) / 2.0;
+    let x = (col as f32 + 0.5) * entry_size.x + x_offset;
     let y = (row as f32 + 0.5) * -entry_size.y;
     Vector2(x, y)
 }
 
-fn set_entry_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_size: Vector2) {
-    entry.set_position_xy(entry_position(row, col, entry_size));
+fn set_entry_position<E: display::Object>(
+    entry: &E,
+    row: Row,
+    col: Col,
+    entry_size: Vector2,
+    column_widths: &ColumnWidths,
+) {
+    entry.set_position_xy(entry_position(row, col, entry_size, column_widths));
 }
 
 
@@ -240,8 +321,13 @@ struct Properties {
 }
 
 impl Properties {
-    fn all_visible_locations(&self) -> impl Iterator<Item = (Row, Col)> {
-        all_visible_locations(&self.viewport, self.entries_size, self.row_count, self.col_count)
+    fn all_visible_locations(
+        &self,
+        column_widths: &ColumnWidths,
+    ) -> impl Iterator<Item = (Row, Col)> {
+        let rows = self.row_count;
+        let cols = self.col_count;
+        all_visible_locations(&self.viewport, self.entries_size, rows, cols, column_widths)
     }
 }
 
@@ -255,6 +341,7 @@ pub struct Model<Entry, EntryParams> {
     visible_entries:    RefCell<HashMap<(Row, Col), VisibleEntry<Entry>>>,
     free_entries:       RefCell<Vec<VisibleEntry<Entry>>>,
     entry_creation_ctx: EntryCreationCtx<EntryParams>,
+    column_widths:      ColumnWidths,
 }
 
 impl<Entry, EntryParams> Model<Entry, EntryParams> {
@@ -263,17 +350,18 @@ impl<Entry, EntryParams> Model<Entry, EntryParams> {
         let display_object = display::object::Instance::new(&logger);
         let visible_entries = default();
         let free_entries = default();
-        Model { display_object, visible_entries, free_entries, entry_creation_ctx }
+        let column_widths = ColumnWidths::new(0);
+        Model { display_object, visible_entries, free_entries, entry_creation_ctx, column_widths }
     }
 }
 
-impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
+impl<Entry: display::Object + entry::Entry, EntryParams> Model<Entry, EntryParams> {
     fn update_entries_visibility(&self, properties: Properties) -> Vec<(Row, Col)> {
-        let Properties { viewport, entries_size, row_count, col_count } = properties;
+        let Properties { viewport, entries_size, row_count: rows, col_count: cols } = properties;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
-        let visible_rows = visible_rows(&viewport, entries_size, row_count);
-        let visible_cols = visible_columns(&viewport, entries_size, col_count);
+        let visible_rows = visible_rows(&viewport, entries_size, rows);
+        let visible_cols = visible_columns(&viewport, entries_size, cols, &self.column_widths);
         let no_longer_visible = visible_entries.drain_filter(|(row, col), _| {
             !visible_rows.contains(row) || !visible_cols.contains(col)
         });
@@ -282,7 +370,8 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
             entry
         });
         free_entries.extend(detached);
-        let uncovered = all_visible_locations(&viewport, entries_size, row_count, col_count)
+        let widths = &self.column_widths;
+        let uncovered = all_visible_locations(&viewport, entries_size, rows, cols, widths)
             .filter(|loc| !visible_entries.contains_key(loc));
         uncovered.collect_vec()
     }
@@ -290,7 +379,28 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
     fn update_after_entries_size_change(&self, properties: Properties) -> Vec<(Row, Col)> {
         let to_model_request = self.update_entries_visibility(properties);
         for ((row, col), visible_entry) in &*self.visible_entries.borrow() {
-            set_entry_position(visible_entry, *row, *col, properties.entries_size);
+            let size = properties.entries_size;
+            let widths = &self.column_widths;
+            set_entry_position(visible_entry, *row, *col, size, widths);
+        }
+        to_model_request
+    }
+
+    fn update_after_column_resize(
+        &self,
+        resized_column: Col,
+        properties: Properties,
+    ) -> Vec<(Row, Col)> {
+        let to_model_request = self.update_entries_visibility(properties);
+        for ((row, col), visible_entry) in &*self.visible_entries.borrow() {
+            // We are not interested in columns to the left of the resized column.
+            if *col < resized_column {
+                continue;
+            }
+            let size = properties.entries_size;
+            set_entry_position(visible_entry, *row, *col, size, &self.column_widths);
+            let width_diff = self.column_widths.width_diff(*col);
+            visible_entry.entry.frp().set_size(size + Vector2(width_diff, 0.0));
         }
         to_model_request
     }
@@ -303,13 +413,27 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
             entry
         });
         free_entries.extend(detached);
-        properties.all_visible_locations().collect_vec()
+        properties.all_visible_locations(&self.column_widths).collect_vec()
     }
 
     fn drop_all_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
         let to_model_request = self.reset_entries(properties);
         self.free_entries.borrow_mut().clear();
         to_model_request
+    }
+
+    fn resize_column(&self, col: Col, width: f32, properties: Properties) {
+        let current_width = properties.entries_size.x;
+        let width_diff = width - current_width;
+        self.column_widths.set_width_diff(col, width_diff);
+    }
+
+    fn content_size(&self, row_count: Row, col_count: Col, entries_size: Vector2) -> Vector2 {
+        self.column_widths.resize(col_count);
+        let columns_offset = self.column_widths.pos_offset(col_count);
+        let x = col_count as f32 * entries_size.x + columns_offset;
+        let y = row_count as f32 * entries_size.y;
+        Vector2(x, y)
     }
 }
 
@@ -323,23 +447,28 @@ impl<E: Entry> Model<E, E::Params> {
         text_layer: &Option<WeakLayer>,
     ) {
         use std::collections::hash_map::Entry::*;
-        let mut visible_entries = self.visible_entries.borrow_mut();
-        let mut free_entries = self.free_entries.borrow_mut();
         let create_new_entry = || {
             let text_layer = text_layer.as_ref().and_then(|l| l.upgrade());
             self.entry_creation_ctx.create_entry(text_layer.as_ref())
         };
-        let entry = match visible_entries.entry((row, col)) {
-            Occupied(entry) => entry.into_mut(),
-            Vacant(lack_of_entry) => {
-                let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
-                set_entry_position(&new_entry, row, col, entry_size);
-                new_entry.entry.frp().set_location((row, col));
-                self.display_object.add_child(&new_entry);
-                lack_of_entry.insert(new_entry)
-            }
+        let entry_frp = {
+            let mut visible_entries = self.visible_entries.borrow_mut();
+            let mut free_entries = self.free_entries.borrow_mut();
+            let entry = match visible_entries.entry((row, col)) {
+                Occupied(entry) => entry.into_mut(),
+                Vacant(lack_of_entry) => {
+                    let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
+                    set_entry_position(&new_entry, row, col, entry_size, &self.column_widths);
+                    new_entry.entry.frp().set_location((row, col));
+                    self.display_object.add_child(&new_entry);
+                    lack_of_entry.insert(new_entry)
+                }
+            };
+            entry.entry.frp().clone_ref()
         };
-        entry.entry.frp().set_model(model);
+        let width_offset = self.column_widths.width_diff(col);
+        entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
+        entry_frp.set_model(model);
     }
 }
 
@@ -396,7 +525,7 @@ pub struct GridViewTemplate<
 /// **Important**. The [`Frp::model_for_entry_needed`] are emitted once when needed and not repeated
 /// anymore, after adding connections to this FRP node in particular. Therefore, be sure, that you
 /// connect providing models logic before emitting any of [`Frp::set_entries_size`] or
-/// [`Frp::set_viewport`].  
+/// [`Frp::set_viewport`].
 ///
 /// # Hovering, Selecting and Accepting Entries
 ///
@@ -418,15 +547,17 @@ impl<E: Entry> GridView<E> {
         frp::extend! { network
             set_entry_size <- input.set_entries_size.sampler();
             set_entry_params <- input.set_entries_params.sampler();
+            override_column_width <- any(...);
         }
         let entry_creation_ctx = EntryCreationCtx {
-            app:              app.clone_ref(),
-            network:          network.downgrade(),
-            set_entry_size:   set_entry_size.into(),
-            set_entry_params: set_entry_params.into(),
-            entry_hovered:    out.entry_hovered.clone_ref(),
-            entry_selected:   out.entry_selected.clone_ref(),
-            entry_accepted:   out.entry_accepted.clone_ref(),
+            app:                   app.clone_ref(),
+            network:               network.downgrade(),
+            set_entry_size:        set_entry_size.into(),
+            set_entry_params:      set_entry_params.into(),
+            entry_hovered:         out.entry_hovered.clone_ref(),
+            entry_selected:        out.entry_selected.clone_ref(),
+            entry_accepted:        out.entry_accepted.clone_ref(),
+            override_column_width: override_column_width.clone_ref(),
         };
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
@@ -442,8 +573,18 @@ impl<E: Entry> GridView<E> {
                 }
             );
 
-            content_size_params <- all(out.grid_size, input.set_entries_size);
-            out.content_size <+ content_size_params.map(|&((rows, cols), esz)| Self::content_size(rows, cols, esz));
+            set_column_width <- any(&input.set_column_width, &override_column_width);
+            resized_column <- set_column_width.map2(
+                &prop,
+                f!(((col, width), prop) {
+                    model.resize_column(*col,*width, *prop);
+                    *col
+                })
+            );
+
+            column_resized <- resized_column.constant(());
+            content_size_params <- all(out.grid_size, input.set_entries_size, column_resized);
+            out.content_size <+ content_size_params.map(f!((&((rows, cols), esz, _)) model.content_size(rows, cols, esz)));
 
             request_models_after_vis_area_change <=
                 input.set_viewport.map2(&prop, f!((_, p) model.update_entries_visibility(*p)));
@@ -455,15 +596,18 @@ impl<E: Entry> GridView<E> {
             );
             request_models_after_reset <=
                 input.reset_entries.map2(&prop, f!((_, p) model.reset_entries(*p)));
+            request_models_after_column_resize <=
+                resized_column.map2(&prop, f!((col, p) model.update_after_column_resize(*col, *p)));
             request_models_after_text_layer_change <=
                 input.set_text_layer.map2(&prop, f!((_, p) model.drop_all_entries(*p)));
             request_models_for_request <= input.request_model_for_visible_entries.map2(
                 &prop,
-                |_, p| p.all_visible_locations().collect_vec()
+                f!([model](_, p) p.all_visible_locations(&model.column_widths).collect_vec()),
             );
             out.model_for_entry_needed <+ request_models_after_vis_area_change;
             out.model_for_entry_needed <+ request_model_after_grid_size_change;
             out.model_for_entry_needed <+ request_models_after_entry_size_change;
+            out.model_for_entry_needed <+ request_models_after_column_resize;
             out.model_for_entry_needed <+ request_models_after_reset;
             out.model_for_entry_needed <+ request_models_after_text_layer_change;
             out.model_for_entry_needed <+ request_models_for_request;
@@ -486,12 +630,6 @@ impl<E: Entry> GridView<E> {
         let display_object = model.display_object.clone_ref();
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget }
-    }
-
-    fn content_size(row_count: Row, col_count: Col, entries_size: Vector2) -> Vector2 {
-        let x = col_count as f32 * entries_size.x;
-        let y = row_count as f32 * entries_size.y;
-        Vector2(x, y)
     }
 }
 
@@ -650,5 +788,41 @@ mod tests {
         assert_eq!(updates_requested.value(), 11); // Count should not change.
         assert_eq!(grid_view.model().visible_entries.borrow().len(), 25);
         assert_eq!(grid_view.model().free_entries.borrow().len(), 11);
+    }
+
+    #[test]
+    fn overriding_column_width() {
+        let app = Application::new("root");
+        let grid_view = GridView::<TestEntry>::new(&app);
+        let network = grid_view.network();
+        frp::extend! { network
+            updates_requested <- grid_view.model_for_entry_needed.count().sampler();
+        }
+
+        let initial_vis_area = Viewport { left: 0.0, top: 0.0, right: 100.0, bottom: -100.0 };
+        grid_view.set_entries_size(Vector2(20.0, 20.0));
+        grid_view.reset_entries(100, 100);
+        grid_view.set_viewport(initial_vis_area);
+
+        assert_eq!(grid_view.model().visible_entries.borrow().len(), 0);
+        assert_eq!(updates_requested.value(), 25);
+
+        for i in 0..5 {
+            for j in 0..5 {
+                grid_view.model_for_entry(i, j, Immutable(i * 200 + j));
+            }
+        }
+        assert_eq!(grid_view.model().visible_entries.borrow().len(), 25);
+
+        assert_eq!(updates_requested.value(), 25);
+        grid_view.set_column_width((0, 5.0));
+        assert_eq!(updates_requested.value(), 30);
+        for i in 0..5 {
+            for j in 0..6 {
+                grid_view.model_for_entry(i, j, Immutable(200 * i + 5));
+            }
+        }
+
+        assert_eq!(grid_view.model().visible_entries.borrow().len(), 30);
     }
 }

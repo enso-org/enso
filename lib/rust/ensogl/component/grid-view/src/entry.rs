@@ -56,6 +56,8 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         /// defines the shape of the selection/hover highlight (in case of
         /// [selectable](crate::selectable) grid views.).
         contour(Contour),
+        /// Override column's width.
+        override_column_width(f32),
         selection_highlight_color(color::Rgba),
         hover_highlight_color(color::Rgba)
     }
