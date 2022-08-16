@@ -35,7 +35,7 @@ thread_local! {
     /// enter primitive literals in code.
     pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
         snippet_with_name_and_code_and_icon("text input", "\"\"", IconId::TextInput)
-            .with_return_type("Standard.Base.Data.Text.Text")
+            .with_return_types(["Standard.Base.Data.Text.Text"])
             .with_documentation(
                 "A text input node.\n\n\
                 An empty text. The value can be edited and used as an input for other nodes."

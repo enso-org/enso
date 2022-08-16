@@ -1000,10 +1000,6 @@ impl Searcher {
         let mut actions = action::ListWithSearchResultBuilder::new();
         let (libraries_icon, default_icon) =
             action::hardcoded::ICONS.with(|i| (i.libraries.clone_ref(), i.default.clone_ref()));
-        //TODO[ao] should be uncommented once new searcher GUI will be integrated + the order of
-        // added entries should be adjusted.
-        // https://github.com/enso-org/ide/issues/1681
-        // Self::add_hardcoded_entries(&mut actions,this_type,return_types)?;
         if should_add_additional_entries && self.ide.manage_projects().is_ok() {
             let mut root_cat = actions.add_root_category("Projects", default_icon.clone_ref());
             let category = root_cat.add_category("Projects", default_icon.clone_ref());
@@ -1184,23 +1180,6 @@ impl Searcher {
             let action = Action::Suggestion(action::Suggestion::FromDatabase(Rc::new(entry)));
             libraries_cat_builder.add_action(action);
         }
-    }
-
-    //TODO[ao] The usage of add_hardcoded_entries_to_list is currently commented out. It should be
-    // uncommented when working on https://github.com/enso-org/ide/issues/1681.
-    #[allow(dead_code)]
-    fn add_hardcoded_entries(
-        list: &mut action::ListBuilder,
-        this_type: Option<String>,
-        return_types: Vec<String>,
-    ) -> FallibleResult {
-        let this_type = this_type.map(tp::QualifiedName::from_text).transpose()?;
-        let rt_converted = return_types.iter().map(tp::QualifiedName::from_text);
-        let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
-        let return_types = rt_result?;
-        let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
-        action::hardcoded::add_hardcoded_entries_to_list(list, this_type.as_ref(), return_types);
-        Ok(())
     }
 }
 

@@ -40,7 +40,7 @@ impl Suggestion {
             Suggestion::FromDatabase(s) => s.code_to_insert(current_module, generate_this),
             Suggestion::Hardcoded(s) => CodeToInsert {
                 code:    s.code.to_owned(),
-                imports: s.imports.iter().cloned().collect(),
+                imports: default(),
             },
         }
     }
@@ -50,8 +50,7 @@ impl Suggestion {
         match self {
             Suggestion::FromDatabase(suggestion) =>
                 suggestion.arguments.iter().map(|a| a.repr_type.clone()).collect(),
-            Suggestion::Hardcoded(suggestion) =>
-                suggestion.argument_types.iter().map(|t| t.into()).collect(),
+            Suggestion::Hardcoded(_) => vec![],
         }
     }
 
@@ -69,7 +68,7 @@ impl Suggestion {
     pub fn method_id(&self) -> Option<MethodId> {
         match self {
             Suggestion::FromDatabase(s) => s.method_id(),
-            Suggestion::Hardcoded(s) => s.method_id.clone(),
+            Suggestion::Hardcoded(_) => None,
         }
     }
 }
