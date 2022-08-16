@@ -63,7 +63,7 @@ find_caller_script stack =
 config_from_env : Suite_Config
 config_from_env =
     only_group_regexp = Environment.get "TEST_ONLY_GROUP"
-
+    print_only_failures = Environment.get "REPORT_ONLY_FAILED" != ""
     junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
     results_path = if junit_folder.is_nothing then Nothing else
         caller_script = find_caller_script Runtime.get_stack_trace
@@ -75,7 +75,7 @@ config_from_env =
             False ->
                 (File.new junit_folder) / project_root.name / "JUnit.xml"
 
-    Suite_Config_Data only_group_regexp results_path
+    Suite_Config_Data only_group_regexp print_only_failures results_path
 
 
 ## Creates a new test group, describing properties of the object
@@ -472,7 +472,7 @@ Error.should_be_false self = fail_match_on_unexpected_error self 1
 
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Assertion
-Any.should_be_a self typ = if self.is_a typ then Success else
+Any.should_be_a self typ = if self.is_a typ || self==typ then Success else
     loc = Meta.get_source_location 0
     expected_type = Meta.get_qualified_type_name typ
     actual_type = Meta.get_qualified_type_name self
@@ -607,7 +607,7 @@ type Verbs
 
 ## PRVATE
 type Suite_Config
-    Suite_Config_Data only_group_regexp output_path
+    Suite_Config_Data only_group_regexp print_only_failures output_path
 
     should_run_group self name =
         regexp = self.only_group_regexp
@@ -796,17 +796,21 @@ Spec.print_report self config builder =
             builder.append '</testcase>\n'
         builder.append '    </testsuite>\n'
 
-    IO.println (self.name + ":")
-    self.behaviors.reverse.each behavior->
-        case behavior.result of
-            Success ->
-                IO.println ("    - " + behavior.name)
-            Failure msg ->
-                IO.println ("    - [FAILED] " + behavior.name)
-                IO.println ("        Reason: " + msg)
-            Pending reason ->
-                IO.println ("    - [PENDING] " + behavior.name)
-                IO.println ("        Reason: " + reason)
+    should_print_behavior = config.print_only_failures.not || self.behaviors.any (b -> b.result.is_a Failure)
+    if should_print_behavior then
+        IO.println (self.name + ":")
+        self.behaviors.reverse.each behavior->
+            case behavior.result of
+                Success ->
+                    if config.print_only_failures.not then
+                        IO.println ("    - " + behavior.name)
+                Failure msg ->
+                    IO.println ("    - [FAILED] " + behavior.name)
+                    IO.println ("        Reason: " + msg)
+                Pending reason ->
+                    if config.print_only_failures.not then
+                        IO.println ("    - [PENDING] " + behavior.name)
+                        IO.println ("        Reason: " + reason)
 
 
 ## PRIVATE

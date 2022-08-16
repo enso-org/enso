@@ -194,11 +194,6 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  boolean isNull() {
-    return this.getConstructor().getType() == Context.get(null).getBuiltins().nothing();
-  }
-
-  @ExportMessage
   boolean hasType() {
     return true;
   }
