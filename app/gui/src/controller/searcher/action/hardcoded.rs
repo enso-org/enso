@@ -142,7 +142,10 @@ impl Suggestion {
         self
     }
 
-    pub(crate) fn with_return_types<'a>(mut self, return_types: impl IntoIterator<Item = &'a str>) -> Self {
+    pub(crate) fn with_return_types<'a>(
+        mut self,
+        return_types: impl IntoIterator<Item = &'a str>,
+    ) -> Self {
         let types = return_types.into_iter().map(|rt| rt.try_into().unwrap()).collect_vec();
         self.return_types = types;
         self
@@ -293,12 +296,7 @@ pub fn add_hardcoded_entries_to_list(
                         true
                     };
                     let return_type_matches = if let Some(return_types) = return_types {
-                        suggestion
-                            .return_types
-                            .iter()
-                            .any(|rt| return_types.contains(rt))
-                            // .as_ref()
-                            // .map_or(false, |rt| return_types.contains(rt))
+                        suggestion.return_types.iter().any(|rt| return_types.contains(rt))
                     } else {
                         true
                     };

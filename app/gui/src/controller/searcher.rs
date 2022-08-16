@@ -973,14 +973,16 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
-                    data.components = this.make_component_list(completions, &this_type, &return_types);
+                    data.components =
+                        this.make_component_list(completions, &this_type, &return_types);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    data.components = this.make_component_list(this.database.keys(), &this_type, &return_types);
+                    data.components =
+                        this.make_component_list(this.database.keys(), &this_type, &return_types);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1047,41 +1049,32 @@ impl Searcher {
         return_types: &[String],
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
-
         DEBUG!("MCDBG this=" this_type;? " ret_types=" return_types;?);
-
         // TODO[LATER]: maybe extract to separate helper method/func
         // FIXME: instead, filter by snippets.this_type
         if this_type.is_none() {
-            let all_snippets = return_types.is_empty();
+            let return_types_empty = return_types.is_empty();
             // FIXME: log errors?
-            let rt_converted = return_types.iter().filter_map(|s| tp::QualifiedName::from_text(s).ok());
-            // let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
+            let rt_converted =
+                return_types.iter().filter_map(|s| tp::QualifiedName::from_text(s).ok());
             let return_types: HashSet<_> = rt_converted.collect();
-            // FIXME: log error
-            // let return_types = rt_result.unwrap_or_default();
-            DEBUG!("MCDBG return_types: " return_types;?);
-            // FIXME: refactor to smart methods
-            // let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
             let base_lib_qn = project::QualifiedName::standard_base_library();
             let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
             let snippets = component::hardcoded::INPUT_SNIPPETS.with(|snippets| {
-                snippets.iter().filter(|s| all_snippets || s.return_types.iter().any(|rt| {
-                    let contains = return_types.contains(rt);
-                    DEBUG!("MCDBG  " s.name ": " contains " @ " rt;?);
-                    contains
-                })).cloned().collect_vec()
-                // s.clone()
+                snippets
+                    .iter()
+                    .filter(|s| {
+                        return_types_empty
+                            || s.return_types.iter().any(|rt| return_types.contains(rt))
+                    })
+                    .cloned()
+                    .collect_vec()
             });
-            /*
-        let this_type = this_type.map(tp::QualifiedName::from_text).transpose()?;
-        let rt_converted = return_types.iter().map(tp::QualifiedName::from_text);
-        let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
-        let return_types = rt_result?;
-        let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
-        action::hardcoded::add_hardcoded_entries_to_list(list, this_type.as_ref(), return_types);
-             */
-            builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
+            builder.insert_virtual_components_in_favorites_group(
+                input_group_name,
+                base_lib_qn,
+                snippets,
+            );
         }
 
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
@@ -1230,10 +1223,6 @@ fn component_list_builder_with_favorites<'a>(
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
-    // let base_lib_qn = project::QualifiedName::standard_base_library();
-    // let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
-    // let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
-    // builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
     builder
 }
 
