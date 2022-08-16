@@ -93,8 +93,6 @@ pub struct Suggestion {
     pub name:               &'static str,
     /// The code inserted when picking suggestion.
     pub code:               &'static str,
-    /// The type of expected `self` argument.
-    pub this_arg:           Option<tp::QualifiedName>,
     /// The list of argument types which may be applied to the code returned by this suggestion.
     pub argument_types:     Vec<tp::QualifiedName>,
     /// The type returned by the suggestion's code.
@@ -114,11 +112,6 @@ impl Suggestion {
     pub(crate) fn new(name: &'static str, code: &'static str, icon: &ImString) -> Self {
         let icon = icon.clone_ref();
         Self { name, code, icon, ..default() }
-    }
-
-    fn with_this_arg(mut self, this_arg: impl TryInto<tp::QualifiedName, Error: Debug>) -> Self {
-        self.this_arg = Some(this_arg.try_into().unwrap());
-        self
     }
 
     fn with_argument_types<Iter>(mut self, argument_types: Iter) -> Self
@@ -171,19 +164,6 @@ impl Suggestion {
         self
     }
 
-    fn marked_as_method_call(
-        mut self,
-        name: &'static str,
-        module: impl TryInto<module::QualifiedName, Error: Debug>,
-    ) -> Self {
-        self.method_id = Some(MethodId {
-            module:          module.try_into().unwrap(),
-            defined_on_type: self.this_arg.as_ref().unwrap().clone(),
-            name:            name.to_owned(),
-        });
-        self
-    }
-
     fn marked_as_module_method_call(
         mut self,
         name: &'static str,
@@ -230,18 +210,6 @@ thread_local! {
                         ),
                     ]
                 },
-                Subcategory {
-                    name        : "Text",
-                    icon        : icons.text.clone_ref(),
-                    suggestions : vec![
-                        Rc::new(
-                            Suggestion::new("Text Length","length",&icons.default)
-                            .with_this_arg("Standard.Base.Data.Text.Text")
-                            .with_return_type("Standard.Base.Data.Numbers.Integer")
-                            .marked_as_method_call("length","Standard.Base.Data.Text.Extensions")
-                        )
-                    ]
-                }
             ]
         },
         RootCategory {
@@ -290,16 +258,10 @@ pub fn add_hardcoded_entries_to_list(
                 let icon = hc_root_category.icon.clone_ref();
                 let category = root_cat.add_category(hc_category.name, icon);
                 category.extend(hc_category.suggestions.iter().cloned().filter_map(|suggestion| {
-                    let this_type_matches = if let Some(this_type) = this_type {
-                        suggestion.this_arg.contains(this_type)
-                    } else {
-                        true
-                    };
-                    let return_type_matches = if let Some(return_types) = return_types {
+                    let this_type_matches = this_type.is_none();
+                    let return_type_matches = return_types.map_or(true, |return_types| {
                         suggestion.return_types.iter().any(|rt| return_types.contains(rt))
-                    } else {
-                        true
-                    };
+                    });
                     let filtered_in = this_type_matches && return_type_matches;
                     filtered_in.as_some_from(|| {
                         action::Action::Suggestion(action::Suggestion::Hardcoded(suggestion))
