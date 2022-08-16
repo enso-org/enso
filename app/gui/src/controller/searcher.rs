@@ -1057,7 +1057,6 @@ impl Searcher {
             let project = project::QualifiedName::standard_base_library();
             builder.insert_virtual_components_in_favorites_group(group_name, project, snippets);
         }
-
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
