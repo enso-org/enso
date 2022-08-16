@@ -38,10 +38,8 @@ impl Suggestion {
     ) -> CodeToInsert {
         match self {
             Suggestion::FromDatabase(s) => s.code_to_insert(current_module, generate_this),
-            Suggestion::Hardcoded(s) => CodeToInsert {
-                code:    s.code.to_owned(),
-                imports: default(),
-            },
+            Suggestion::Hardcoded(s) =>
+                CodeToInsert { code: s.code.to_owned(), imports: default() },
         }
     }
 
