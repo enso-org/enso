@@ -26,7 +26,7 @@ pub enum Suggestion {
     /// The suggestion from Suggestion Database received from the Engine.
     FromDatabase(Rc<model::suggestion_database::Entry>),
     /// The one of the hard-coded suggestion.
-    Hardcoded(Rc<hardcoded::Suggestion>),
+    Hardcoded(Rc<controller::searcher::component::hardcoded::Snippet>),
 }
 
 impl Suggestion {

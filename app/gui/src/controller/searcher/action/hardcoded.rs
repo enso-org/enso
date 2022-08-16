@@ -2,15 +2,6 @@ use crate::prelude::*;
 
 
 
-// ====================
-// === Type Aliases ===
-// ====================
-
-/// The hardcoded suggestion.
-pub type Suggestion = controller::searcher::component::hardcoded::Snippet;
-
-
-
 // =============
 // === Icons ===
 // =============
