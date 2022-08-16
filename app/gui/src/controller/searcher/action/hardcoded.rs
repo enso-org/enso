@@ -1,3 +1,5 @@
+//! A module containing the hard-coded names of [`Icons`] displayed in Searcher.
+
 use crate::prelude::*;
 
 
