@@ -45,9 +45,9 @@ thread_local! {
 
 
 
-// ====================
-// === Type Aliases ===
-// ====================
+// ===============
+// === Snippet ===
+// ===============
 
 /// A hardcoded snippet of code with a description and syntactic metadata.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
