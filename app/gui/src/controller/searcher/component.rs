@@ -64,14 +64,17 @@ pub enum Order {
 /// [`hardcoded::Snippet`]).
 #[derive(Clone, CloneRef, Debug)]
 pub enum Data {
-    /// A component from the [`suggestion_database`].
+    /// A component from the [`suggestion_database`]. When this component is picked in the
+    /// Component Browser, the stored [`suggestion_database::Entry`] will be used to insert code
+    /// into the program.
     FromDatabase {
         /// The ID of the component in the [`suggestion_database`].
         id:    Immutable<Id>,
         /// The component's entry in the [`suggestion_database`].
         entry: Rc<suggestion_database::Entry>,
     },
-    /// A virtual component containing a hardcoded snippet of code.
+    /// A virtual component containing a hardcoded snippet of code. When this component is picked
+    /// in the Component Browser, the [`Snippet::code`] will be inserted into the program.
     Virtual {
         /// A hardcoded snippet of code.
         snippet: Rc<hardcoded::Snippet>,
@@ -90,8 +93,8 @@ pub enum Data {
 /// The components are usually stored in [`List`], which may be filtered; the single component keeps
 /// then information how it matches the current filtering pattern.
 ///
-/// The component corresponds to some Suggestion Database Entry, and the entry will be used to
-/// properly insert code into the program.
+/// See the documentation of the [`Data`] variants for information on what will happen when the
+/// component is picked in the Component Browser panel.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
