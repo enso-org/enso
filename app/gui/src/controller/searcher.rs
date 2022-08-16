@@ -1053,27 +1053,21 @@ impl Searcher {
         // TODO[LATER]: maybe extract to separate helper method/func
         // FIXME: instead, filter by snippets.this_type
         if this_type.is_none() {
-            let return_types_empty = return_types.is_empty();
             // FIXME: log errors?
-            let rt_converted =
-                return_types.iter().filter_map(|s| tp::QualifiedName::from_text(s).ok());
-            let return_types: HashSet<_> = rt_converted.collect();
+            let type_qn_from_text = |s| tp::QualifiedName::from_text(s).ok();
+            let rt_qn_set: HashSet<_> = return_types.iter().filter_map(type_qn_from_text).collect();
+            let rt_of_snippet_in_set_or_set_empty = |s: &&Rc<component::hardcoded::Snippet>| {
+                s.return_types.iter().any(|rt| rt_qn_set.contains(rt)) || rt_qn_set.is_empty()
+            };
+            let snippets_with_matching_rt = component::hardcoded::INPUT_SNIPPETS.with(|snippets| {
+                snippets.iter().filter(rt_of_snippet_in_set_or_set_empty).cloned().collect_vec()
+            });
             let base_lib_qn = project::QualifiedName::standard_base_library();
             let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
-            let snippets = component::hardcoded::INPUT_SNIPPETS.with(|snippets| {
-                snippets
-                    .iter()
-                    .filter(|s| {
-                        return_types_empty
-                            || s.return_types.iter().any(|rt| return_types.contains(rt))
-                    })
-                    .cloned()
-                    .collect_vec()
-            });
             builder.insert_virtual_components_in_favorites_group(
                 input_group_name,
                 base_lib_qn,
-                snippets,
+                snippets_with_matching_rt,
             );
         }
 
