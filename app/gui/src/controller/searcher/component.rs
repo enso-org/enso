@@ -65,8 +65,8 @@ pub enum Order {
 #[derive(Clone, CloneRef, Debug)]
 pub enum Data {
     /// A component from the [`suggestion_database`]. When this component is picked in the
-    /// Component Browser, the stored [`suggestion_database::Entry`] will be used to insert code
-    /// into the program.
+    /// Component Browser, the code returned by [`suggestion_database::Entry::code_to_insert`] will
+    /// be inserted into the program.
     FromDatabase {
         /// The ID of the component in the [`suggestion_database`].
         id:    Immutable<Id>,
