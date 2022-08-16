@@ -693,11 +693,11 @@ impl<'s> Lexer<'s> {
     fn comment(&mut self) {
         if let Some(current) = self.current_char {
             if current == '#' {
-                self.submit_line_as(token::Variant::comment());
+                self.submit_line_as(token::Variant::newline());
                 let initial_ident = self.current_block_indent;
                 let check_indent = |this: &mut Self| this.current_block_indent > initial_ident;
                 while self.run_and_check_if_progressed(|t| t.newline()) && check_indent(self) {
-                    self.submit_line_as(token::Variant::comment());
+                    self.submit_line_as(token::Variant::newline());
                 }
             }
         }

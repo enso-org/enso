@@ -121,10 +121,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         Number {
             pub token: token::Number<'s>,
         },
-        /// A comment.
-        Comment {
-            pub token: token::Comment<'s>,
-        },
         /// A text section.
         TextSection {
             pub token: token::TextSection<'s>,

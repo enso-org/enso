@@ -267,7 +267,6 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub unary_prefix_precedence: Option<Precedence>,
         },
         Modifier,
-        Comment,
         DocComment,
         Number,
         TextStart,

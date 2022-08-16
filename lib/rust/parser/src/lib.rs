@@ -104,12 +104,14 @@
 use crate::prelude::*;
 
 
+
 // ==============
 // === Export ===
 // ==============
 
 pub mod lexer;
 pub mod macros;
+pub mod metadata;
 pub mod serialization;
 pub mod source;
 pub mod syntax;
