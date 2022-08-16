@@ -1045,8 +1045,6 @@ impl Searcher {
         return_types: &[String],
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
-        DEBUG!("MCDBG this=" this_type;? " ret_types=" return_types;?);
-        // TODO[LATER]: maybe extract to separate helper method/func
         if this_type.is_none() {
             let snippets = if return_types.is_empty() {
                 component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
