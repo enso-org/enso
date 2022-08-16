@@ -176,6 +176,7 @@
   `Text.drop`.][3617]
 - [Updated `Vector.take` and `Vector.drop` and removed their obsolete
   counterparts.][3629]
+- [Short-hand syntax for `order_by` added.][3643]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -276,6 +277,7 @@
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3629]: https://github.com/enso-org/enso/pull/3629
+[3643]: https://github.com/enso-org/enso/pull/3643
 [3648]: https://github.com/enso-org/enso/pull/3648
 
 #### Enso Compiler

@@ -560,23 +560,42 @@ type Table
            `Incomparable_Values_Error`.
 
        > Example
-         Order the table by the column "alpha" in ascending order.
+         Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity'])
+
+       > Example
+         Sorting `table` in descending order by the value in column `'Quantity'`.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity' Sort_Direction.Descending])
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` for breaking ties.
+
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity', 'Rating'])
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` in descending order for breaking
+         ties.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
 
        > Example
          Order the table by the second column in ascending order. In case of any
          ties, break them based on the 7th column from the end of the table in
          descending order.
 
-             table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
+             table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
+
        > Example
          Sorting the shop inventory based on the per-item price in ascending
          order.
 
              import Standard.Examples
 
-             example_sort = Examples.inventory_table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "price"])
+             example_sort = Examples.inventory_table.order_by (Sort_Column_Selector.By_Name ["price"])
 
        > Example
          Sort the shop inventory based on the per-item price in descending order
@@ -606,7 +625,7 @@ type Table
 
              example_sort =
                  table = Examples.inventory_table
-                 table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
+                 table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning =
