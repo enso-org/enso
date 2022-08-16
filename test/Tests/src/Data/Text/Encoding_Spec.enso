@@ -16,7 +16,7 @@ spec =
 
         Test.specify "Catches invalid character sets" <|
             invalid = Encoding_Data "NotAValidCharacterSet"
-            invalid.to_java_charset . should_fail_with Illegal_Argument_Error
+            invalid.to_java_charset . should_fail_with Illegal_Argument_Error_Data
 
         Test.specify "Can get full set of character sets" <|
             character_sets = all_character_sets

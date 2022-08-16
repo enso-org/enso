@@ -122,7 +122,7 @@ type Engine
         internal_pattern = maybe_java_pattern.map_error case _ of
             Polyglot_Error_Data err ->
                 if err.is_a PatternSyntaxException . not then err else
-                    Syntax_Error ("The regex could not be compiled: " + err.getMessage)
+                    Syntax_Error_Data ("The regex could not be compiled: " + err.getMessage)
             other -> other
 
         Pattern_Data internal_pattern all_options self
@@ -263,7 +263,7 @@ type Pattern
                 internal_matcher = self.build_matcher input start end
 
                 if internal_matcher . find start . not then Nothing else
-                    Match internal_matcher start end input
+                    Match_Data internal_matcher start end input
             Integer ->
                 if mode < 0 then Panic.throw <|
                     Mode_Error_Data "Cannot match a negative number of times."
@@ -278,7 +278,7 @@ type Pattern
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
-                            builder.append (Match internal_matcher start end input)
+                            builder.append (Match_Data internal_matcher start end input)
                             match_end = internal_matcher.end 0
                             # Ensure progress even if the match is an empty string.
                             new_offset = if match_end > offset then match_end else offset+1
@@ -298,7 +298,7 @@ type Pattern
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
-                            builder.append (Match internal_matcher start end input)
+                            builder.append (Match_Data internal_matcher start end input)
                             match_end = internal_matcher.end 0
                             # Ensure progress even if the match is an empty string.
                             new_offset = if match_end > offset then match_end else offset+1
@@ -311,7 +311,7 @@ type Pattern
             Mode.Full ->
                 internal_matcher = self.build_matcher input start end
                 if internal_matcher.matches.not then Nothing else
-                    Match internal_matcher start end input
+                    Match_Data internal_matcher start end input
             Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error_Data "Modes cannot be recursive."
 
@@ -827,7 +827,7 @@ handle_error error id = case error of
         maps_to_no_such_group = is_ioob || is_iae
 
         if maps_to_no_such_group.not then err else
-            Regex.No_Such_Group_Error id
+            Regex.No_Such_Group_Error_Data id
     other -> other
 
 ## Options specific to the `Default` regular expression engine.

@@ -6,11 +6,14 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.state.Stateful;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
 public class GetFieldNode extends RootNode {
   private final int index;
+  private final String name;
+  private final Type type;
 
   /**
    * Creates a new instance of this node.
@@ -18,9 +21,11 @@ public class GetFieldNode extends RootNode {
    * @param language the current language instance.
    * @param index the index this node should use for field lookup.
    */
-  public GetFieldNode(TruffleLanguage<?> language, int index) {
+  public GetFieldNode(TruffleLanguage<?> language, int index, Type type, String name) {
     super(language);
     this.index = index;
+    this.type = type;
+    this.name = name;
   }
 
   /**
@@ -34,5 +39,15 @@ public class GetFieldNode extends RootNode {
     Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     return new Stateful(state, atom.getFields()[index]);
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return type.getQualifiedName().createChild(name).toString();
+  }
+
+  @Override
+  public String getName() {
+    return type.getName() + "." + name;
   }
 }

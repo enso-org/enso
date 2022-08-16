@@ -10,7 +10,7 @@ import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
 import project.Semantic.Names_Spec
-#import project.Semantic.Runtime_Spec
+import project.Semantic.Runtime_Spec
 #import project.Semantic.Warnings_Spec
 
 import project.Semantic.Java_Interop_Spec
@@ -42,12 +42,12 @@ import project.Data.Statistics_Spec
 #import project.Data.Regression_Spec
 
 #import project.Data.Text_Spec
-#import project.Data.Text.Codepoint_Ranges_Spec
-#import project.Data.Text.Default_Regex_Engine_Spec
-#import project.Data.Text.Encoding_Spec
-#import project.Data.Text.Matching_Spec
-#import project.Data.Text.Regex_Spec
-#import project.Data.Text.Span_Spec
+import project.Data.Text.Codepoint_Ranges_Spec
+import project.Data.Text.Default_Regex_Engine_Spec
+import project.Data.Text.Encoding_Spec
+import project.Data.Text.Matching_Spec
+import project.Data.Text.Regex_Spec
+import project.Data.Text.Span_Spec
 #import project.Data.Text.Utils_Spec
 
 import project.Network.Http.Header_Spec as Http_Header_Spec
@@ -55,10 +55,10 @@ import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http_Spec
 import project.Network.URI_Spec
 
-#import project.Resource.Bracket_Spec
+import project.Resource.Bracket_Spec
 
 #import project.Runtime.Stack_Traces_Spec
-#import project.Runtime.Lazy_Generator_Spec
+import project.Runtime.Lazy_Generator_Spec
 
 import project.System.Environment_Spec
 import project.System.File_Spec
@@ -108,15 +108,15 @@ main = Test.Suite.run_main <|
     R_Interop_Spec.spec
     Range_Spec.spec
     Ref_Spec.spec
-    #Default_Regex_Engine_Spec.spec
-    #Regex_Spec.spec
-    #Matching_Spec.spec
-    #Runtime_Spec.spec
-    #Span_Spec.spec
-    #Encoding_Spec.spec
-    #Codepoint_Ranges_Spec.spec
-    #Bracket_Spec.spec
-    #Lazy_Generator_Spec.spec
+    Default_Regex_Engine_Spec.spec
+    Regex_Spec.spec
+    Matching_Spec.spec
+    Runtime_Spec.spec
+    Span_Spec.spec
+    Encoding_Spec.spec
+    Codepoint_Ranges_Spec.spec
+    Bracket_Spec.spec
+    Lazy_Generator_Spec.spec
     #Stack_Traces_Spec.spec
     #Utils_Spec.spec
     #Text_Spec.spec

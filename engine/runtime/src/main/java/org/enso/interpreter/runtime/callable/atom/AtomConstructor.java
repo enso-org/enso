@@ -110,7 +110,7 @@ public final class AtomConstructor implements TruffleObject {
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
-    generateMethods(args);
+    generateQualifiedAccessor();
     if (args.length == 0) {
       cachedInstance = new Atom(this);
     } else {
@@ -154,13 +154,6 @@ public final class AtomConstructor implements TruffleObject {
     return new Function(callTarget, null, new FunctionSchema(args));
   }
 
-  private void generateMethods(ArgumentDefinition[] args) {
-    generateQualifiedAccessor();
-    //    for (ArgumentDefinition arg : args) {
-    //      definitionScope.registerMethod(this, arg.getName(), generateGetter(arg.getPosition()));
-    //    }
-  }
-
   private void generateQualifiedAccessor() {
     QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
@@ -171,16 +164,6 @@ public final class AtomConstructor implements TruffleObject {
             new FunctionSchema(
                 new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
     definitionScope.registerMethod(definitionScope.getAssociatedType(), this.name, function);
-  }
-
-  private Function generateGetter(int position) {
-    GetFieldNode node = new GetFieldNode(null, position);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
-    return new Function(
-        callTarget,
-        null,
-        new FunctionSchema(
-            new ArgumentDefinition(0, "self", ArgumentDefinition.ExecutionMode.EXECUTE)));
   }
 
   /**

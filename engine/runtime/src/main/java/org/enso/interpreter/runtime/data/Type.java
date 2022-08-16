@@ -126,7 +126,9 @@ public class Type implements TruffleObject {
       Arrays.stream(cons.getFields())
           .forEach(
               field -> {
-                roots.put(field.getName(), new GetFieldNode(null, field.getPosition()));
+                roots.put(
+                    field.getName(),
+                    new GetFieldNode(null, field.getPosition(), this, field.getName()));
               });
     }
     roots.forEach(
