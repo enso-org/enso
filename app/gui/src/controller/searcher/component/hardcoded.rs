@@ -96,3 +96,15 @@ impl Snippet {
         self
     }
 }
+
+/// Return a filtered copy of [`INPUT_SNIPPETS`] containing only snippets which have at least one
+/// of their return types on the given list of return types.
+pub fn input_snippets_with_matching_return_type(
+    return_types: impl IntoIterator<Item = tp::QualifiedName>,
+) -> Vec<Rc<Snippet>> {
+    let rt_set: HashSet<_> = return_types.into_iter().collect();
+    let rt_of_snippet_in_set =
+        |s: &&Rc<Snippet>| s.return_types.iter().any(|rt| rt_set.contains(rt));
+    INPUT_SNIPPETS
+        .with(|snippets| snippets.iter().filter(rt_of_snippet_in_set).cloned().collect_vec())
+}

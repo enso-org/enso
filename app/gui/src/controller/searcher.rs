@@ -1047,24 +1047,17 @@ impl Searcher {
         let mut builder = self.list_builder_with_favorites.deref().clone();
         DEBUG!("MCDBG this=" this_type;? " ret_types=" return_types;?);
         // TODO[LATER]: maybe extract to separate helper method/func
-        // FIXME: instead, filter by snippets.this_type
         if this_type.is_none() {
-            // FIXME: log errors?
-            let type_qn_from_text = |s| tp::QualifiedName::from_text(s).ok();
-            let rt_qn_set: HashSet<_> = return_types.iter().filter_map(type_qn_from_text).collect();
-            let rt_of_snippet_in_set_or_set_is_empty = |s: &&Rc<component::hardcoded::Snippet>| {
-                s.return_types.iter().any(|rt| rt_qn_set.contains(rt)) || rt_qn_set.is_empty()
+            let snippets = if return_types.is_empty() {
+                component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
+            } else {
+                let qn_of_type_from_text = |s| tp::QualifiedName::from_text(s).ok();
+                let rt_qns = return_types.iter().filter_map(qn_of_type_from_text);
+                component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
             };
-            let snippets_with_matching_rt = component::hardcoded::INPUT_SNIPPETS.with(|snippets| {
-                snippets.iter().filter(rt_of_snippet_in_set_or_set_is_empty).cloned().collect_vec()
-            });
-            let base_lib_qn = project::QualifiedName::standard_base_library();
-            let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
-            builder.insert_virtual_components_in_favorites_group(
-                input_group_name,
-                base_lib_qn,
-                snippets_with_matching_rt,
-            );
+            let group_name = component::hardcoded::INPUT_GROUP_NAME;
+            let project = project::QualifiedName::standard_base_library();
+            builder.insert_virtual_components_in_favorites_group(group_name, project, snippets);
         }
 
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
