@@ -560,9 +560,27 @@ type Table
            `Incomparable_Values_Error`.
 
        > Example
-         Order the table by the column "alpha" in ascending order.
+         Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name ["alpha"])
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity'])
+
+       > Example
+         Sorting `table` in descending order by the value in column `'Quantity'`.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity' Sort_Direction.Descending])
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` for breaking ties.
+
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity', 'Rating'])
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` in descending order for breaking
+         ties.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
 
        > Example
          Order the table by the second column in ascending order. In case of any
@@ -570,6 +588,7 @@ type Table
          descending order.
 
              table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
+
        > Example
          Sorting the shop inventory based on the per-item price in ascending
          order.
