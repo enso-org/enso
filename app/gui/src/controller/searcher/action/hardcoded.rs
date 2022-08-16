@@ -110,7 +110,7 @@ pub struct Suggestion {
 }
 
 impl Suggestion {
-    /// Construct a suggestion with given name, code, and icon.
+    /// Construct a hardcoded suggestion with given name, code, and icon.
     pub(crate) fn new(name: &'static str, code: &'static str, icon: &ImString) -> Self {
         let icon = icon.clone_ref();
         Self { name, code, icon, ..default() }
