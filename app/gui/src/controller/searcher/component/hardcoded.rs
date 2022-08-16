@@ -26,14 +26,14 @@ thread_local! {
     /// displayed in the Component Browser as virtual components they allow the users to easily
     /// enter primitive literals in code.
     pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
-        snippet_with_name_and_code_and_icon("text input", "\"\"", IconId::TextInput)
+        Snippet::new_with_name_and_code_and_icon("text input", "\"\"", IconId::TextInput)
             .with_return_types(["Standard.Base.Data.Text.Text"])
             .with_documentation(
                 "A text input node.\n\n\
                 An empty text. The value can be edited and used as an input for other nodes."
             )
             .into(),
-        snippet_with_name_and_code_and_icon("number input", "0", IconId::NumberInput)
+        Snippet::new_with_name_and_code_and_icon("number input", "0", IconId::NumberInput)
             .with_return_types(["Standard.Base.Data.Numbers.Number", "Standard.Base.Data.Numbers.Decimal", "Standard.Base.Data.Numbers.Integer"])
             .with_documentation(
                  "A number input node.\n\n\
@@ -41,17 +41,6 @@ thread_local! {
             )
             .into(),
     ];
-}
-
-
-// === Constants helpers ===
-
-fn snippet_with_name_and_code_and_icon(
-    name: &'static str,
-    code: &'static str,
-    icon: IconId,
-) -> Snippet {
-    Snippet::new(name, code, &ImString::new(icon.as_str()))
 }
 
 
@@ -78,8 +67,12 @@ pub struct Snippet {
 
 impl Snippet {
     /// Construct a suggestion with given name, code, and icon.
-    fn new(name: &'static str, code: &'static str, icon: &ImString) -> Self {
-        let icon = icon.clone_ref();
+    fn new_with_name_and_code_and_icon(
+        name: &'static str,
+        code: &'static str,
+        icon: IconId,
+    ) -> Self {
+        let icon = icon.as_str().into();
         Self { name, code, icon, ..default() }
     }
 
