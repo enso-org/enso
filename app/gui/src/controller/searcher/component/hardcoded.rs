@@ -75,7 +75,8 @@ pub struct Snippet {
     pub name:               &'static str,
     /// The code inserted when picking the snippet.
     pub code:               &'static str,
-    /// The type returned by the snippet's code.
+    /// Types that this snippet's code can return. When the Component Browser filters components
+    /// by type, this snippet will be displayed iff the filtered type is one of the listed types.
     pub return_types:       Vec<tp::QualifiedName>,
     /// The documentation bound to the snippet.
     pub documentation_html: Option<String>,
@@ -90,8 +91,8 @@ impl Snippet {
         Self { name, code, icon, ..default() }
     }
 
-    /// Returns a modified suggestion with [`Suggestion::return_types`] field set. This method is
-    /// only intended to be used when defining hardcoded suggestions and panics if any of the given
+    /// Returns a modified suggestion with [`Snippet::return_types`] field set. This method is only
+    /// intended to be used when defining hardcoded suggestions and panics if any of the given
     /// return types fail to convert to a valid type name.
     fn with_return_types<'a>(mut self, return_types: impl IntoIterator<Item = &'a str>) -> Self {
         let types = return_types.into_iter().map(|rt| rt.try_into().unwrap()).collect_vec();
@@ -99,8 +100,8 @@ impl Snippet {
         self
     }
 
-    /// Returns a modified suggestion with [`Suggestion::documentation_html`] field set. This
-    /// method is only intended to be used when defining hardcoded suggestions and panics if a
+    /// Returns a modified suggestion with [`Snippet::documentation_html`] field set. This method
+    /// is only intended to be used when defining hardcoded suggestions and panics if a
     /// documentation parser cannot be created or the argument fails to parse as valid
     /// documentation.
     fn with_documentation(mut self, documentation: &str) -> Self {
