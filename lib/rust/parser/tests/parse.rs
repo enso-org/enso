@@ -137,7 +137,7 @@ fn type_def_full() {
     #[rustfmt::skip]
     let expected = block![
         (TypeDef (Ident type) (Ident Geo) #()
-         #(((Circle #() #((OprApp (Ident radius) (Ok ":") (Ident float)) (Number 4))))
+         #(((Circle #() #((TypeAnnotated (Ident radius) ":" (Ident float)) (Number 4))))
            ((Rectangle #((Ident width) (Ident height)) #()))
            ((Point #() #()))
            (()))
@@ -521,6 +521,32 @@ main =
     let (meta, code) = enso_parser::metadata::parse(code).unwrap();
     let _ast = enso_parser::Parser::new().run(code);
     let _meta: enso_parser::metadata::Metadata = meta.unwrap();
+}
+
+
+// === Type annotations and signatures ===
+
+#[test]
+fn type_signatures() {
+    let cases = [
+        ("val : Bool", block![(TypeSignature val ":" (Ident Bool))]),
+        ("val : List Int", block![(TypeSignature val ":" (App (Ident List) (Ident Int)))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+}
+
+#[test]
+fn type_annotations() {
+    #[rustfmt::skip]
+    let cases = [
+        ("val = 123 : Int", block![
+            (Assignment (Ident val) "=" (TypeAnnotated (Number 123) ":" (Ident Int)))]),
+        ("val = foo (123 : Int)", block![
+            (Assignment (Ident val) "="
+             (App (Ident foo)
+              (Group "(" (TypeAnnotated (Number 123) ":" (Ident Int)) ")")))]),
+    ];
+    cases.into_iter().for_each(|(code, expected)| test(code, expected));
 }
 
 
