@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::controller::searcher::action::Suggestion;
+use crate::controller::searcher::component;
 use crate::controller::searcher::Notification;
 use crate::controller::searcher::UserAction;
 use crate::executor::global::spawn_stream_handler;
@@ -134,7 +135,11 @@ impl Model {
         let component: FallibleResult<_> =
             self.component_by_view_id(id).ok_or_else(|| NoSuchComponent(id).into());
         let new_code = component.and_then(|component| {
-            let suggestion = Suggestion::FromDatabase(component.suggestion.clone_ref());
+            let suggestion = match component.data {
+                component::Data::FromDatabase { entry, .. } =>
+                    Suggestion::FromDatabase(entry.clone_ref()),
+                component::Data::Virtual { snippet } => Suggestion::Hardcoded(snippet.clone_ref()),
+            };
             self.controller.use_suggestion(suggestion)
         });
         match new_code {
@@ -201,11 +206,24 @@ impl Model {
     ) -> String {
         let component = id.and_then(|id| self.component_by_view_id(id));
         if let Some(component) = component {
-            if let Some(documentation) = &component.suggestion.documentation_html {
-                let title = title_for_docs(&component.suggestion);
-                format!("<div class=\"enso docs summary\"><p />{title}</div>{documentation}")
-            } else {
-                doc_placeholder_for(&component.suggestion)
+            match component.data {
+                component::Data::FromDatabase { entry, .. } => {
+                    if let Some(documentation) = &entry.documentation_html {
+                        let title = title_for_docs(&entry);
+                        format!(
+                            "<div class=\"enso docs summary\"><p />{title}</div>{documentation}"
+                        )
+                    } else {
+                        doc_placeholder_for(&entry)
+                    }
+                }
+                component::Data::Virtual { snippet } => {
+                    if let Some(documentation) = &snippet.documentation_html {
+                        documentation.to_string()
+                    } else {
+                        default()
+                    }
+                }
             }
         } else {
             default()
