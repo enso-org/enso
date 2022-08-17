@@ -36,7 +36,7 @@ spec =
 
         Test.specify "should correctly translate a series of codepoint indices to a grapheme indices in a batch" <|
             translate_indices text ixes =
-                Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices text ixes.to_array
+                Vector.Vector_Data <| Text_Utils.utf16_indices_to_grapheme_indices text ixes.to_array
             codepoint_indices = Vector.new text.char_vector.length ix->ix
             translate_indices text codepoint_indices . should_equal codepoints_to_graphemes
 
@@ -55,7 +55,7 @@ spec =
                 folded.findGrapheme ix . index
             grapheme_ixes . should_equal [0, 0, 1, 2, 3, 3, 4, 4, 4, 5, 6]
 
-            Test.expect_panic_with (folded.findGrapheme -1) Polyglot_Error
-            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) Polyglot_Error
+            Test.expect_panic_with (folded.findGrapheme -1) Polyglot_Error_Data
+            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) Polyglot_Error_Data
 
 main = Test.Suite.run_main spec

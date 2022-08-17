@@ -41,14 +41,14 @@ import project.Data.Vector_Spec
 import project.Data.Statistics_Spec
 #import project.Data.Regression_Spec
 
-#import project.Data.Text_Spec
+import project.Data.Text_Spec
 import project.Data.Text.Codepoint_Ranges_Spec
 import project.Data.Text.Default_Regex_Engine_Spec
 import project.Data.Text.Encoding_Spec
 import project.Data.Text.Matching_Spec
 import project.Data.Text.Regex_Spec
 import project.Data.Text.Span_Spec
-#import project.Data.Text.Utils_Spec
+import project.Data.Text.Utils_Spec
 
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
@@ -57,7 +57,7 @@ import project.Network.URI_Spec
 
 import project.Resource.Bracket_Spec
 
-#import project.Runtime.Stack_Traces_Spec
+import project.Runtime.Stack_Traces_Spec
 import project.Runtime.Lazy_Generator_Spec
 
 import project.System.Environment_Spec
@@ -117,9 +117,9 @@ main = Test.Suite.run_main <|
     Codepoint_Ranges_Spec.spec
     Bracket_Spec.spec
     Lazy_Generator_Spec.spec
-    #Stack_Traces_Spec.spec
-    #Utils_Spec.spec
-    #Text_Spec.spec
+    Stack_Traces_Spec.spec
+    Utils_Spec.spec
+    Text_Spec.spec
     Time_Spec.spec
     URI_Spec.spec
     Vector_Spec.spec

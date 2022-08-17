@@ -4,15 +4,10 @@
    to matching on the `Full` content of the input text.
 
 from Standard.Base import all
+from Standard.Base.Data.Text.Matching_Mode import First, Last
+from Standard.Base.Data.Text.Matching_Mode export First, Last
 
 type Mode
-
-    ## The regex will only match the first instance it finds.
-    First
-
-    ## The regex will match up to some `Integer` number of instances.
-    Integer
-
     ## The regex will make all possible matches.
     All
 

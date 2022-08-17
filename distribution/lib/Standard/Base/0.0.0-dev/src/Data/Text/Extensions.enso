@@ -361,7 +361,7 @@ Text.find self pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothin
 
          'abc  def\tghi'.split '\\s+' Regex_Matcher == ["abc", "def", "ghi"]
 Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector.Vector Text
-Text.split self delimiter="," matcher=Text_Matcher_Data = if delimiter.is_empty then Error.throw (Illegal_Argument_Error "The delimiter cannot be empty.") else
+Text.split self delimiter="," matcher=Text_Matcher_Data = if delimiter.is_empty then Error.throw (Illegal_Argument_Error_Data "The delimiter cannot be empty.") else
     case matcher of
         Text_Matcher_Data case_sensitivity ->
             delimiters = Vector.Vector_Data <| case case_sensitivity of
@@ -1223,7 +1223,7 @@ Text.to_case self case_option=Case.Lower locale=Locale.default = case case_optio
 Text.pad : Integer -> Text -> (Location.Start | Location.End) -> Text
 Text.pad self length=0 with_pad=' ' at=Location.End =
     with_pad_length = with_pad.length
-    if with_pad_length == 0 then Error.throw (Illegal_Argument_Error "`with_pad` must not be an empty string.") else
+    if with_pad_length == 0 then Error.throw (Illegal_Argument_Error_Data "`with_pad` must not be an empty string.") else
         pad_size = length - self.length
         if pad_size <= 0 then self else
             full_repetitions = pad_size.div with_pad_length

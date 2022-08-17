@@ -92,7 +92,7 @@ find_codepoint_ranges text subrange =
             indices = Random.random_indices text.length count rng
             find_codepoint_ranges text (By_Index indices)
         Every step start ->
-            if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
+            if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
                 len = text.length
                 if start >= len then Range_Data 0 0 else
                     range = Range_Data start text.length step
@@ -233,7 +233,7 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_B
 
 ## PRIVATE
 panic_on_non_positive_step =
-    Panic.throw (Illegal_Argument_Error "Range step must be positive.")
+    Panic.throw (Illegal_Argument_Error_Data "Range step must be positive.")
 
 ## PRIVATE
    Ensures that the range is valid and trims it to the length of the collection.
@@ -241,7 +241,7 @@ normalize_range range length =
     if range.step <= 0 then panic_on_non_positive_step
     # We may add support for negative indices in the future.
     if (range.start < 0) || (range.end < 0) then
-        Panic.throw (Illegal_Argument_Error "Ranges with negative indices are not supported for indexing.")
+        Panic.throw (Illegal_Argument_Error_Data "Ranges with negative indices are not supported for indexing.")
     if (range.start >= length) then
         Panic.throw (Index_Out_Of_Bounds_Error_Data range.start length)
     if range.end >= length then Range_Data range.start length range.step else
