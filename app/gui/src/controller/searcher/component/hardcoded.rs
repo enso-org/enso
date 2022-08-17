@@ -26,14 +26,14 @@ thread_local! {
     /// displayed in the Component Browser as virtual components they allow the users to easily
     /// enter primitive literals in code.
     pub static INPUT_SNIPPETS: Vec<Rc<Snippet>> = vec![
-        Snippet::new_with_name_and_code_and_icon("text input", "\"\"", IconId::TextInput)
+        Snippet::new("text input", "\"\"", IconId::TextInput)
             .with_return_types(["Standard.Base.Data.Text.Text"])
             .with_documentation(
                 "A text input node.\n\n\
                 An empty text. The value can be edited and used as an input for other nodes.",
             )
             .into(),
-        Snippet::new_with_name_and_code_and_icon("number input", "0", IconId::NumberInput)
+        Snippet::new("number input", "0", IconId::NumberInput)
             .with_return_types([
                 "Standard.Base.Data.Numbers.Number",
                 "Standard.Base.Data.Numbers.Decimal",
@@ -86,11 +86,7 @@ pub struct Snippet {
 
 impl Snippet {
     /// Construct a hardcoded snippet with given name, code, and icon.
-    fn new_with_name_and_code_and_icon(
-        name: &'static str,
-        code: &'static str,
-        icon: IconId,
-    ) -> Self {
+    fn new(name: &'static str, code: &'static str, icon: IconId) -> Self {
         Self { name, code, icon, ..default() }
     }
 
