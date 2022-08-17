@@ -160,27 +160,40 @@ fn segment_tree(width_diffs: Vec<f32>) -> SegmentTree {
     segment_tree::SegmentPoint::build(width_diffs, segment_tree::ops::Add)
 }
 
+/// Create a new segment tree using an already allocated vector. [`width_diffs`] must have a size
+/// of at least `2N`, where `N` is a count of columns.
 fn segment_tree_noalloc(width_diffs: Vec<f32>) -> SegmentTree {
     segment_tree::SegmentPoint::build_noalloc(width_diffs, segment_tree::ops::Add)
 }
 
-/// TODO docs
+/// Storage for column widths.
+///
+/// It stores not the actual widths but rather the differences between [`Frp::set_entry_size`] and
+/// the width updated through [`Frp::set_column_width`] or [`EntryFrp::override_column_width`].
+///
+/// It uses a segment tree data structure, allowing efficient access to cumulative differences
+/// across column ranges. We use it in the [`ColumnWidths::pos_offset`] method to calculate the
+/// position of the entry inside the grid view.
 #[derive(Clone, CloneRef, Debug)]
 pub struct ColumnWidths {
     width_diffs: Rc<RefCell<segment_tree::SegmentPoint<f32, segment_tree::ops::Add>>>,
 }
 
 impl ColumnWidths {
+    /// Constructor. Initializes the storage with every column having the default size inherited
+    /// from [`Frp::set_entry_size`].
     pub fn new(number_of_columns: usize) -> Self {
         let init_vec = (0..number_of_columns).map(|_| 0.0).collect();
         let tree = segment_tree(init_vec);
         Self { width_diffs: Rc::new(RefCell::new(tree)) }
     }
 
+    /// Set a width difference for the specified column.
     pub fn set_width_diff(&self, column: usize, width_diff: f32) {
         self.width_diffs.borrow_mut().modify(column, width_diff);
     }
 
+    /// Resize the storage to accommodate the new number of columns.
     pub fn resize(&self, col_count: usize) {
         let mut borrowed = self.width_diffs.borrow_mut();
         let old_length = borrowed.len();
@@ -189,15 +202,23 @@ impl ColumnWidths {
         if old_length < length {
             let mut new_vec = Vec::with_capacity(double_length);
             new_vec.resize(double_length, 0.0);
-            new_vec[length..length + old_length].copy_from_slice(&borrowed.view()[..]);
+            new_vec[length..length + old_length].copy_from_slice(borrowed.view());
             *borrowed = segment_tree_noalloc(new_vec);
         }
     }
 
+    /// A cumulative sum of the differences for the columns to the left of the specified
+    /// one. The result is a position offset from the normal position of the [`column`] inside
+    /// the grid view.
+    ///
+    /// Works in O(log(N)) time.
     pub fn pos_offset(&self, column: usize) -> f32 {
         self.width_diffs.borrow().query(0, column)
     }
 
+    /// The difference between the original and overridden width of the column.
+    ///
+    /// Works in O(1) time.
     pub fn width_diff(&self, column: usize) -> f32 {
         if let Some(diff) = self.width_diffs.borrow().view().get(column) {
             *diff
@@ -535,6 +556,23 @@ pub struct GridViewTemplate<
 /// you   want to have full support, use [`selectable::GridView`] instead.
 ///
 /// The entries are both selected accepted with LMB-click, and selected with any other mouse click.
+///
+/// # Resizing Columns
+///
+/// By default, each column has a width specified by [`Frp::set_entry_size`]. However, you can
+/// override this size in two ways:
+/// 1. Using the [`Frp::set_column_width`] input.
+/// 2. Using the [`EntryFrp::override_column_width`] output.
+///
+/// The resizing is permanent and can only be canceled using either method to return the width
+/// to the original value. Both ways have the same priority; the last one applied wins.
+/// [`EntryFrp::override_column_width`] can be called from different entries in the same column,
+/// but only the last one has the effect. Each resize has performance implications proportional
+/// to the number of visible entries.
+///
+/// After either method of resizing, each visible entry in the affected column will receive
+/// the [`EntryFrp::set_size`] event. It is up to the entry implementation to avoid loops between
+/// [`EntryFrp::set_size`] and [`EntryFrp::override_column_width`].
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
 impl<E: Entry> GridView<E> {
