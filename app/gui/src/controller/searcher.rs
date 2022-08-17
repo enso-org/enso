@@ -4,12 +4,14 @@ use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
+use crate::controller::graph::NewNodeInfo;
 use crate::model::module::MethodId;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
+use crate::presenter;
 
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
@@ -20,7 +22,10 @@ use double_representation::tp;
 use engine_protocol::language_server;
 use enso_text::Location;
 use flo_stream::Subscriber;
+use ide_view::graph_editor::GraphEditor;
+use ide_view::project::SearcherParams;
 use parser::Parser;
+
 
 
 // ==============
@@ -384,6 +389,54 @@ impl Mode {
             Mode::EditNode { node_id } => *node_id,
         }
     }
+
+    fn with_new_node(
+        parameters: SearcherParams,
+        graph: &presenter::Graph,
+        graph_editor: &GraphEditor,
+        graph_controller: &controller::Graph,
+    ) -> FallibleResult<Self> {
+        /// The expression to be used for newly created nodes when initialising the searcher without
+        /// an existing node.
+        const DEFAULT_INPUT_EXPRESSION: &str = "Nothing";
+        let SearcherParams { input, source_node } = parameters;
+
+        let view_data = graph_editor.model.nodes.get_cloned_ref(&input);
+
+        let position = view_data.map(|node| node.position().xy());
+        let position = position.map(|vector| model::module::Position { vector });
+
+        let metadata = NodeMetadata { position, ..default() };
+        let mut new_node = NewNodeInfo::new_pushed_back(DEFAULT_INPUT_EXPRESSION);
+        new_node.metadata = Some(metadata);
+        new_node.introduce_pattern = false;
+        let created_node = graph_controller.add_node(new_node)?;
+
+        graph.assign_node_view_explicitly(input, created_node);
+        graph.allow_expression_auto_updates(created_node, false);
+
+        let source_node = source_node.and_then(|id| graph.ast_node_of_view(id.node));
+
+        Ok(Mode::NewNode { node_id: created_node, source_node })
+    }
+
+    /// Initiate the operating mode for the searcher based on the given [`SearcherParams`]. If the
+    /// view associated with the input node given in the parameters does not yet exist, it will
+    /// be created.
+    pub fn from_parameters(
+        parameters: SearcherParams,
+        graph: &presenter::Graph,
+        graph_editor: &GraphEditor,
+        graph_controller: &controller::Graph,
+    ) -> FallibleResult<Mode> {
+        let SearcherParams { input, .. } = parameters;
+        let ast_node = graph.ast_node_of_view(input);
+
+        match ast_node {
+            Some(node_id) => Ok(Mode::EditNode { node_id }),
+            None => Self::with_new_node(parameters, graph, graph_editor, graph_controller),
+        }
+    }
 }
 
 /// A fragment filled by single picked suggestion.
@@ -646,11 +699,11 @@ impl Searcher {
     /// searcher's input will be updated and returned by this function.
     #[profile(Debug)]
     pub fn use_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
-        info!(self.logger, "Picking suggestion: {picked_suggestion:?}");
+        tracing::info!("Picking suggestion: {:?}", picked_suggestion);
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        debug!(self.logger, "Code to insert: \"{code_to_insert}\"");
+        tracing::debug!("Code to insert: \"{}\"", code_to_insert);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
         let new_expression = match self.data.borrow_mut().input.expression.take() {
@@ -795,6 +848,9 @@ impl Searcher {
         self.add_required_imports()?;
         let (expression, intended_method) = expr_and_method();
         self.graph.graph().set_expression(node_id, expression)?;
+        if let Mode::NewNode { .. } = self.mode.as_ref() {
+            self.graph.graph().introduce_name_on(node_id)?;
+        }
         self.graph
             .graph()
             .module
@@ -1438,8 +1494,8 @@ pub mod test {
     }
 
     impl MockData {
-        fn change_main_body(&mut self, line: &str) {
-            let code: enso_text::Text = dbg!(crate::test::mock::main_from_lines(&[line])).into();
+        fn change_main_body(&mut self, lines: &[&str]) {
+            let code: enso_text::Text = dbg!(crate::test::mock::main_from_lines(lines)).into();
             let location = code.location_of_text_end();
             // TODO [mwu] Not nice that we ended up with duplicated mock data for code.
             self.graph.module.code = (&code).into();
@@ -1494,6 +1550,7 @@ pub mod test {
             let scope = Scope::InModule { range: code_range };
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
+            let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
@@ -1523,7 +1580,7 @@ pub mod test {
                 ide: Rc::new(ide),
                 data: default(),
                 notifier: default(),
-                mode: Immutable(Mode::NewNode { node_id: node.id(), source_node: None }),
+                mode: Immutable(Mode::NewNode { node_id: searcher_target, source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
@@ -1699,7 +1756,7 @@ pub mod test {
         for case in &cases {
             let Fixture { mut test, searcher, entry1, entry9, .. } =
                 Fixture::new_custom(|data, client| {
-                    data.change_main_body(case.node_line);
+                    data.change_main_body(&[case.node_line]);
                     data.selected_node = true;
                     // We expect following calls:
                     // 1) for the function - with the "this" filled (if the test case says so);
@@ -2150,7 +2207,7 @@ pub mod test {
         for case in cases.into_iter() {
             let mut fixture = Fixture::new_custom(|data, client| {
                 data.selected_node = true;
-                data.change_main_body(case.line);
+                data.change_main_body(&[case.line, "Nothing"]); // The last node will be used as searcher target.
                 data.expect_completion(client, None, None, &[]);
             });
             (case.run)(&mut fixture);
@@ -2204,8 +2261,13 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn committing_node() {
-        let Fixture { test: _test, mut searcher, entry4, .. } = Fixture::new();
-        let (node1, node2) = searcher.graph.graph().nodes().unwrap().expect_tuple();
+        let Fixture { test: _test, mut searcher, entry4, .. } =
+            Fixture::new_custom(|data, _client| {
+                data.change_main_body(&["2 + 2", "Nothing"]); // The last node will be used as
+                                                              // searcher target.
+            });
+
+        let (node1, searcher_target) = searcher.graph.graph().nodes().unwrap().expect_tuple();
 
         let module = searcher.graph.graph().module.clone_ref();
         // Setup searcher.
@@ -2220,23 +2282,26 @@ pub mod test {
         });
 
         // Add new node.
-        searcher.mode = Immutable(Mode::NewNode { node_id: node1.id(), source_node: None });
+        searcher.mode =
+            Immutable(Mode::NewNode { node_id: searcher_target.id(), source_node: None });
         searcher.commit_node().unwrap();
 
         let expected_code =
-            "import test.Test.Test\nmain = \n    2 + 2\n    operator1 = Test.testMethod1";
+            "import test.Test.Test\nmain =\n    2 + 2\n    operator1 = Test.testMethod1";
         assert_eq!(module.ast().repr(), expected_code);
         let expected_intended_method = Some(MethodId {
             module:          "test.Test.Test".to_string().try_into().unwrap(),
             defined_on_type: "test.Test.Test".to_string().try_into().unwrap(),
             name:            "testMethod1".to_string(),
         });
-        assert_eq!(node2.metadata.unwrap().intended_method, expected_intended_method);
+        let (_, searcher_target) = searcher.graph.graph().nodes().unwrap().expect_tuple();
+        assert_eq!(searcher_target.metadata.unwrap().intended_method, expected_intended_method);
 
         // Edit existing node.
         searcher.mode = Immutable(Mode::EditNode { node_id: node1.info.id() });
         searcher.commit_node().unwrap();
-        let expected_code = "import test.Test.Test\nmain = \n    Test.testMethod1\n    operator1 = Test.testMethod1";
+        let expected_code =
+            "import test.Test.Test\nmain =\n    Test.testMethod1\n    operator1 = Test.testMethod1";
         let (node1, _) = searcher.graph.graph().nodes().unwrap().expect_tuple();
         assert_eq!(node1.metadata.unwrap().intended_method, expected_intended_method);
         assert_eq!(module.ast().repr(), expected_code);

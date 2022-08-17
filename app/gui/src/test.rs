@@ -301,13 +301,11 @@ pub mod mock {
             );
             let executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
-            let mut new_node = controller::graph::NewNodeInfo::new_pushed_back("Nothing");
-            new_node.introduce_pattern = false;
-            let node = graph
-                .add_node(new_node)
-                .expect("Failed to create target node for searcher in fixture customisation.");
-
-            let searcher_mode = controller::searcher::Mode::EditNode { node_id: node };
+            let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
+            let searcher_mode = controller::searcher::Mode::NewNode {
+                node_id:     searcher_target,
+                source_node: None,
+            };
             let searcher = controller::Searcher::new_from_graph_controller(
                 &logger,
                 ide.clone_ref(),

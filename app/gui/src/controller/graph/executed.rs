@@ -416,6 +416,7 @@ pub mod tests {
         // Setup the controller.
         let mut fixture = crate::test::mock::Unified::new().fixture();
         let Fixture { executed_graph, execution, executor, .. } = &mut fixture;
+        executor.run_until_stalled();
 
         // Generate notification.
         let updated_id = ExpressionId::new_v4();
