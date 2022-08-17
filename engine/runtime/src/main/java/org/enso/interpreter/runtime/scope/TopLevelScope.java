@@ -117,6 +117,7 @@ public class TopLevelScope implements TruffleObject {
   /** Handles member invocation through the polyglot API. */
   @ExportMessage
   abstract static class InvokeMember {
+    @CompilerDirectives.TruffleBoundary
     private static Module getModule(TopLevelScope scope, Object[] arguments)
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
       String moduleName = Types.extractArguments(arguments, String.class);

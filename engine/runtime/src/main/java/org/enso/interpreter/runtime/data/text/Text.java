@@ -20,7 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Text implements TruffleObject {
   private volatile Object contents;
   private volatile boolean isFlat;
-  private final Lock lock = new ReentrantLock();
+  private static final Lock lock = new ReentrantLock();
 
   private Text(String string) {
     this.contents = string;
