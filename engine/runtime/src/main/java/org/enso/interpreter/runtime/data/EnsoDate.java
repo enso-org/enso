@@ -104,6 +104,7 @@ public final class EnsoDate implements TruffleObject {
     return Context.get(thisLib).getBuiltins().date();
   }
 
+  @CompilerDirectives.TruffleBoundary
   @ExportMessage
   public final Object toDisplayString(boolean allowSideEffects) {
     return DateTimeFormatter.ISO_LOCAL_DATE.format(date);
