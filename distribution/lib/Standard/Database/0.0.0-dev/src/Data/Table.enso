@@ -473,20 +473,9 @@ type Table
        Missing (`Nothing`) values are sorted as less than any other object.
 
        > Example
-         Order the table by the column "alpha" in ascending order.
-
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
-
-       > Example
-         Order the table by the second column in ascending order. In case of any
-         ties, break them based on the 7th column from the end of the table in
-         descending order.
-
-             table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
-       > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity'])
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity'])
 
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`.
@@ -497,7 +486,7 @@ type Table
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` for breaking ties.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating'])
+             table.order_by (Sort_Column_Selector.By_Name ['Quantity', 'Rating'])
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
@@ -505,6 +494,12 @@ type Table
          ties.
 
              table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
+       > Example
+         Order the table by the second column in ascending order. In case of any
+         ties, break them based on the 7th column from the end of the table in
+         descending order.
+
+             table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new
@@ -598,8 +593,8 @@ type Table
             right_names_before = right_new_columns.map .name
             new_names = combine_names left_names_before right_names_before left_suffix right_suffix
             left_indices_count = left_new_meta_index.length
-            left_new_meta_index_names = new_names.first.take_start left_indices_count
-            left_new_columns_names = new_names.first.drop_start left_indices_count
+            left_new_meta_index_names = new_names.first.take (First left_indices_count)
+            left_new_columns_names = new_names.first.drop (First left_indices_count)
             right_new_columns_names = new_names.second
 
             # Rename columns to the newly allocated names

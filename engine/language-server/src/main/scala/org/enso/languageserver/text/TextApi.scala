@@ -87,6 +87,13 @@ object TextApi {
     }
   }
 
+  case object FileAutoSaved extends Method("text/autoSave") {
+    case class Params(path: Path)
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = FileAutoSaved.Params
+    }
+  }
+
   case object FileNotOpenedError extends Error(3001, "File not opened")
 
   case class TextEditValidationError(msg: String) extends Error(3002, msg)

@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding First, Last
 from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 
 from Standard.Table.Data.Aggregate_Column import all

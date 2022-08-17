@@ -541,6 +541,11 @@ impl Handle {
         Ok(Node { info, metadata })
     }
 
+    /// Check whether the given ID corresponds to an existing node.
+    pub fn node_exists(&self, id: ast::Id) -> bool {
+        self.node_info(id).is_ok()
+    }
+
     /// Returns information about all the nodes currently present in this graph.
     pub fn nodes(&self) -> FallibleResult<Vec<Node>> {
         let node_infos = self.all_node_infos()?;

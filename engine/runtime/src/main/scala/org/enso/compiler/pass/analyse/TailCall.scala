@@ -396,6 +396,9 @@ case object TailCall extends IRPass {
             fields      = fields.map(analysePattern)
           )
           .updateMetadata(this -->> TailPosition.NotTail)
+      case literal: Pattern.Literal =>
+        literal
+          .updateMetadata(this -->> TailPosition.NotTail)
       case err: IR.Error.Pattern =>
         err.updateMetadata(this -->> TailPosition.NotTail)
       case _: Pattern.Documentation =>

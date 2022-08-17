@@ -77,6 +77,16 @@ spec = Test.group "Range" <|
             x = cell.get
             cell.put x+1
         cell.get . should_equal n
+    Test.specify "should allow iteration with index" <|
+        vec_mut = Vector.new_builder
+        5.up_to 8 . each_with_index ix-> elem->
+            vec_mut.append (Pair ix elem)
+        vec_mut.to_vector . should_equal [Pair 0 5, Pair 1 6, Pair 2 7]
+
+        vec_mut_2 = Vector.new_builder
+        5.up_to 10 . with_step 2 . each_with_index ix-> elem->
+            vec_mut_2.append (Pair ix elem)
+        vec_mut_2.to_vector . should_equal [Pair 0 5, Pair 1 7, Pair 2 9]
     Test.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
     Test.specify "should check all" <|
