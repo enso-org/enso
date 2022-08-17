@@ -75,8 +75,9 @@ pub struct Snippet {
     pub name:               &'static str,
     /// The code inserted when picking the snippet.
     pub code:               &'static str,
-    /// Types that this snippet's code can return. When the Component Browser filters components
-    /// by type, this snippet will be displayed iff the filtered type is one of the listed types.
+    /// A list of types that the return value of this snippet's code typechecks as. Used by the
+    /// [Component Browser](crate::controller::searcher) to decide whether to display the
+    /// snippet when filtering components by return type.
     pub return_types:       Vec<tp::QualifiedName>,
     /// The documentation bound to the snippet.
     pub documentation_html: Option<String>,
