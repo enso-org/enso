@@ -48,7 +48,7 @@ thread_local! {
 }
 
 
-// === Constants utilities ===
+// === Filtering by Return Type ===
 
 /// Return a filtered copy of [`INPUT_SNIPPETS`] containing only snippets which have at least one
 /// of their return types on the given list of return types.
