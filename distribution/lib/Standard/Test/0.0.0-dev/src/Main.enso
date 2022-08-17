@@ -63,7 +63,7 @@ find_caller_script stack =
 config_from_env : Suite_Config
 config_from_env =
     only_group_regexp = Environment.get "TEST_ONLY_GROUP"
-    print_only_failures = Environment.get "REPORT_ONLY_FAILED" != ""
+    print_only_failures = Environment.get "REPORT_ONLY_FAILED" != Nothing
     junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
     results_path = if junit_folder.is_nothing then Nothing else
         caller_script = find_caller_script Runtime.get_stack_trace

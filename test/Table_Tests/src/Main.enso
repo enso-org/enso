@@ -9,6 +9,6 @@ import project.Data_Formatter_Spec
 
 main = Test.Suite.run_main <|
     In_Memory_Tests.in_memory_spec
-    Database_Tests.databases_spec
-    File_Read_Spec.spec
-    Data_Formatter_Spec.spec
+    #Database_Tests.databases_spec
+    #File_Read_Spec.spec
+    #Data_Formatter_Spec.spec

@@ -15,14 +15,14 @@ import project.Aggregate_Spec
 
 in_memory_spec =
     Column_Spec.spec
-    Csv_Spec.spec
-    Delimited_Read_Spec.spec
-    Delimited_Write_Spec.spec
-    Excel_Spec.spec
-    Json_Spec.spec
-    Table_Spec.spec
-    Table_Date_Spec.spec
-    Aggregate_Column_Spec.spec
-    Aggregate_Spec.spec
+    #Csv_Spec.spec
+    #Delimited_Read_Spec.spec
+    #Delimited_Write_Spec.spec
+    #Excel_Spec.spec
+    #Json_Spec.spec
+    #Table_Spec.spec
+    #Table_Date_Spec.spec
+    #Aggregate_Column_Spec.spec
+    #Aggregate_Spec.spec
 
 main = Test.Suite.run_main in_memory_spec

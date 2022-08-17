@@ -244,7 +244,7 @@ case object GlobalNames extends IRPass {
     } yield (thisArgPos, funAsVar, cons)
 
     val newApp = appData.flatMap {
-      case (_, funAsVar, BindingsMap.ResolvedType(_, tp)) =>
+      case (_, _, BindingsMap.ResolvedType(_, tp)) =>
         if (tp.members.nonEmpty) {
           Some(
             app
