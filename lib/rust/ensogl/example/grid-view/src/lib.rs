@@ -115,9 +115,12 @@ fn init(app: &Application) {
     let hover_layer = main_layer.create_sublayer();
     let selection_layer = main_layer.create_sublayer();
 
-    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
-    let with_hover_mask = [&grid_views[2]];
-    let with_selection_mask = [&grid_views[1], &grid_views[2]];
+    let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(1).collect_vec();
+    let with_hover_mask = [&grid_views[0]];
+    let with_selection_mask = [&grid_views[0]];
+    // let grid_views = std::iter::repeat_with(|| setup_grid_view(app)).take(3).collect_vec();
+    // let with_hover_mask = [&grid_views[2]];
+    // let with_selection_mask = [&grid_views[1], &grid_views[2]];
     let positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]);
 
     for (view, (x, y)) in grid_views.iter().zip(positions) {
