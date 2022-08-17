@@ -1045,18 +1045,7 @@ impl Searcher {
         return_types: &[String],
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
-        if this_type.is_none() {
-            let snippets = if return_types.is_empty() {
-                component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
-            } else {
-                let parse_type_qn = |s| tp::QualifiedName::from_text(s).ok();
-                let rt_qns = return_types.iter().filter_map(parse_type_qn);
-                component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
-            };
-            let group_name = component::hardcoded::INPUT_GROUP_NAME;
-            let project = project::QualifiedName::standard_base_library();
-            builder.insert_virtual_components_in_favorites_group(group_name, project, snippets);
-        }
+        add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
@@ -1187,6 +1176,25 @@ fn component_list_builder_with_favorites<'a>(
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     builder
+}
+
+fn add_virtual_entries_to_builder(
+    builder: &mut component::builder::List,
+    this_type: &Option<String>,
+    return_types: &[String],
+) {
+    if this_type.is_none() {
+        let snippets = if return_types.is_empty() {
+            component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
+        } else {
+            let parse_type_qn = |s| tp::QualifiedName::from_text(s).ok();
+            let rt_qns = return_types.iter().filter_map(parse_type_qn);
+            component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
+        };
+        let group_name = component::hardcoded::INPUT_GROUP_NAME;
+        let project = project::QualifiedName::standard_base_library();
+        builder.insert_virtual_components_in_favorites_group(group_name, project, snippets);
+    }
 }
 
 
