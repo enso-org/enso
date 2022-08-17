@@ -118,7 +118,7 @@ spec = Test.group "Dataflow Warnings" <|
         r = reassign_test x
         warn = Warning.get_all r . head
         reassignments = warn.reassignments.map .name
-        reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Warnings_Spec.Wrap', 'Warnings_Spec.unwrap', 'Warnings_Spec.rewrap', 'Warnings_Spec.Wrap']
+        reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Warnings_Spec.Wrap_Data', 'Warnings_Spec.unwrap', 'Warnings_Spec.rewrap', 'Warnings_Spec.Wrap_Data']
 
     Test.specify "should allow to set all warnings" <|
         warned = Warning.attach 1 <| Warning.attach 2 <| Warning.attach 3 <| Warning.attach 4 "foo"
