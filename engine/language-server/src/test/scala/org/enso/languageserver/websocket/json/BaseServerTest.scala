@@ -12,7 +12,7 @@ import org.enso.editions.{EditionResolver, Editions}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.TestClock
-import org.enso.languageserver.boot.ProfilingConfig
+import org.enso.languageserver.boot.{ProfilingConfig, TimingsConfig}
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   RepoInitialization,
@@ -144,9 +144,12 @@ class BaseServerTest
 
   var cleanupCallbacks: List[() => Unit] = Nil
 
+  var timingsConfig = TimingsConfig.default()
+
   override def afterEach(): Unit = {
     cleanupCallbacks.foreach(_())
     cleanupCallbacks = Nil
+    timingsConfig    = TimingsConfig.default()
     super.afterEach()
   }
 
@@ -165,7 +168,8 @@ class BaseServerTest
       system.actorOf(
         BufferRegistry.props(
           fileManager,
-          runtimeConnectorProbe.ref
+          runtimeConnectorProbe.ref,
+          timingsConfig
         )(
           Sha3_224VersionCalculator
         )

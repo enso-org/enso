@@ -22,17 +22,17 @@ public class AtomBenchmarks {
   @Benchmark
   public void benchGenerateList() {
     DefaultInterpreterRunner.MainMethod main = fixtures.generateList();
-    main.mainFunction().value().execute(main.mainConstructor(), fixtures.million());
+    main.mainFunction().value().execute(fixtures.million());
   }
 
   @Benchmark
   public void benchGenerateListQualified() {
     DefaultInterpreterRunner.MainMethod main = fixtures.generateListQualified();
-    main.mainFunction().value().execute(main.mainConstructor(), fixtures.million());
+    main.mainFunction().value().execute(fixtures.million());
   }
 
   private void benchOnList(DefaultInterpreterRunner.MainMethod main) {
-    main.mainFunction().value().execute(main.mainConstructor(), fixtures.millionElementList());
+    main.mainFunction().value().execute(fixtures.millionElementList());
   }
 
   @Benchmark

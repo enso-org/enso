@@ -39,7 +39,7 @@ class RenameProjectCmd(
           request.oldName,
           request.newName
         )
-        ctx.contextManager.getAll.values
+        ctx.contextManager.getAllContexts.values
           .foreach(updateMethodPointers(request.newName, _))
         reply(Api.ProjectRenamed(request.namespace, request.newName))
         logger.log(

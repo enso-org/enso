@@ -107,7 +107,7 @@ spec = Test.group "Dataflow Warnings" <|
         current = Runtime.get_stack_trace
         warned = foo "value"
         warning_stack = Warning.get_all warned . head . origin
-        relevant = warning_stack . drop_end current.length
+        relevant = warning_stack . drop (Last current.length)
         relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
 
     Test.specify "should attach reassignment info in the last-reassigned-first order" <|

@@ -22,7 +22,7 @@ public class CallableBenchmarks {
       new CallableFixtures();
 
   private void runOnHundredMillion(DefaultInterpreterRunner.MainMethod main) {
-    main.mainFunction().value().execute(main.mainConstructor(), argumentFixtures.hundredMillion());
+    main.mainFunction().value().execute(argumentFixtures.hundredMillion());
   }
 
   @Benchmark

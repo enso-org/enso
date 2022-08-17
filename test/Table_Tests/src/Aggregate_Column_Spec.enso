@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding First, Last
 
 import Standard.Table.Data.Table
 from Standard.Table.Data.Aggregate_Column import all

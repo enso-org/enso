@@ -214,7 +214,7 @@ newline_at_eof file encoding =
     file_last_bytes = file.read_last_bytes most_bytes
     result = newlines.zip newline_bytes . find pair->
         bytes = pair.second
-        bytes == (file_last_bytes.take_end bytes.length)
+        bytes == (file_last_bytes.take (Last bytes.length))
     result.first . catch Nothing
 
 ## PRIVATE

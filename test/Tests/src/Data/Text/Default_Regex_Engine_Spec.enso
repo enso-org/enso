@@ -8,10 +8,6 @@ polyglot java import java.util.regex.Pattern as Java_Pattern
 
 import Standard.Test
 
-Text.slice_utf_16 self start end =
-    chars = self.utf_16.drop_start start . drop_end (self.length - end)
-    Text.from_utf_16 chars
-
 default_mask = Java_Pattern.CANON_EQ.bit_or Java_Pattern.UNICODE_CASE . bit_or Java_Pattern.UNICODE_CHARACTER_CLASS
 
 spec =

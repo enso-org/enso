@@ -119,7 +119,8 @@ impl component::Frp<Model> for Frp {
             eval list_position_x ((x) model.list.set_position_x(*x));
             eval doc_position_x ((x) model.documentation.set_position_x(*x));
 
-            model.list.input.shown <+ any(&input.show, &init);
+            model.list.input.show <+ input.show;
+            model.list.input.hide <+ input.hide;
             out.is_visible <+ bool(&input.hide, &input.show);
             out.size <+ size;
             out.expression_input_position <+ all_with3(

@@ -15,7 +15,7 @@ spec = Test.group "Stack traces" <|
         modname = Meta.Constructor (Meta.meta Stack_Traces_Spec . constructor) . name
         stack = My_Type.foo
         names = [modname + ".bar", modname + ".baz", "Number.foo", modname + ".foo", "My_Type.foo"]
-        stack.take_start 5 . map .name . should_equal names
+        stack.take (First 5) . map .name . should_equal names
         file = enso_project.root / 'src' / 'Runtime' / 'Stack_Traces_Spec.enso'
-        stack.take_start 5 . map (.source_location >> .file) . each (_.should_equal file)
+        stack.take (First 5) . map (.source_location >> .file) . each (_.should_equal file)
 

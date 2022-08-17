@@ -213,6 +213,38 @@ class AstToIrTest extends CompilerTest with Inside {
       val pattern = ir.branches.head.pattern
       pattern shouldBe an[IR.Pattern.Constructor]
     }
+
+    "support literal numeric patterns" in {
+      val ir =
+        """
+          |case foo of
+          |    1 -> 10
+          |    2 -> 20
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.branches(0).pattern shouldBe an[IR.Pattern.Literal]
+      ir.branches(1).pattern shouldBe an[IR.Pattern.Literal]
+    }
+
+    "support constructor patterns with nested literals" in {
+      val ir =
+        """
+          |case foo of
+          |    Cons 1 b -> a + b
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.branches.head.pattern shouldBe an[IR.Pattern.Constructor]
+
+      val consPat =
+        ir.branches.head.pattern.asInstanceOf[IR.Pattern.Constructor]
+
+      consPat.constructor.name shouldEqual "Cons"
+      consPat.fields.length shouldEqual 2
+
+      consPat.fields(0) shouldBe an[IR.Pattern.Literal]
+      consPat.fields(1) shouldBe an[IR.Pattern.Name]
+    }
+
   }
 
   "AST translation of function definitions" should {
