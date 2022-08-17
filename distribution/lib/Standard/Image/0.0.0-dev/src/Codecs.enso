@@ -78,18 +78,18 @@ type Read_Flag
     ## UNSTABLE
 
        Read the image with its alpha channel, otherwise the channel gets cropped.
-    type Read_Alpha_Channel
+    Read_Alpha_Channel
 
     ## UNSTABLE
 
        Always convert the image to a single channel grayscale image.
-    type Read_Grayscale
+    Read_Grayscale
 
     ## UNSTABLE
 
        Use Geographic Data Abstraction Library (GDAL) driver to load images in
        geospatial raster data formats.
-    type Read_Gdal
+    Read_Gdal
 
 ## UNSTABLE
 type Write_Flag
@@ -99,18 +99,18 @@ type Write_Flag
        Sets the quality used when writing a JPEG.
 
        Arguments:
-       - value: A quality value from 0 to 100 (the higher, the better).
-    type Write_Jpeg_Quality value=95
+       - val: A quality value from 0 to 100 (the higher, the better).
+    Write_Jpeg_Quality val=95
 
     ## UNSTABLE
 
        Enable progressive JPEG compression format. Disabled by default.
-    type Write_Jpeg_Progressive
+    Write_Jpeg_Progressive
 
     ## UNSTABLE
 
        Enable optimized JPEG encoding algorithms. Disabled by default.
-    type Write_Jpeg_Optimize
+    Write_Jpeg_Optimize
 
     ## UNSTABLE
 
@@ -118,7 +118,7 @@ type Write_Flag
 
        Arguments:
        - value: A quality value from 0 to 100 (the higher, the better).
-    type Write_Jpeg_Luma_Quality value=0
+    Write_Jpeg_Luma_Quality val=0
 
     ## UNSTABLE
 
@@ -126,7 +126,7 @@ type Write_Flag
 
        Arguments:
        - value: A quality value from 0 to 100 (the higher, the better).
-    type Write_Jpeg_Chroma_Quality value=0
+    Write_Jpeg_Chroma_Quality val=0
 
     ## UNSTABLE
 
@@ -135,7 +135,7 @@ type Write_Flag
        Arguments:
        - value: A compression level from 0 to 9. A higher value means a smaller
          size but a longer compression time.
-    type Write_Png_Compression value=3
+    Write_Png_Compression val=3
 
     ## UNSTABLE
 
@@ -144,5 +144,11 @@ type Write_Flag
        Arguments:
        - value: A quality from 0 to 100 (the higher, the better). A quality
          above 100 indicates that the encoder should use lossless compression.
-    type Write_Webp_Quality value=101
+    Write_Webp_Quality val=101
+
+    ## PRIVATE
+    value self = case self of
+        Write_Jpeg_Progressive -> 1
+        Write_Jpeg_Optimize -> 1
+        _ -> self.val
 

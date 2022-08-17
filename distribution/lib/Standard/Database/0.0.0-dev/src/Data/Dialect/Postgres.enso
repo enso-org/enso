@@ -15,7 +15,7 @@ from Standard.Database.Error import Unsupported_Database_Operation_Error
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres =
-    Postgres_Dialect make_internal_generator_dialect
+    Postgres_Dialect_Data make_internal_generator_dialect
 
 
 ## PRIVATE
@@ -25,7 +25,7 @@ type Postgres_Dialect
     ## PRIVATE
 
        The dialect of PostgreSQL databases.
-    type Postgres_Dialect internal_generator_dialect
+    Postgres_Dialect_Data internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.

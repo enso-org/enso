@@ -21,7 +21,7 @@ polyglot java import org.enso.table.operations.OrderBuilder
          example_from_vector =
              Table.Column.from_vector "My Column" [1, 2, 3, 4, 5]
 from_vector : Text -> Vector -> Column
-from_vector name items = Column (Java_Column.fromItems name items.to_array)
+from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
 
 type Column
 
@@ -31,7 +31,7 @@ type Column
 
        Arguments:
        - java_column: The internal representation of the column.
-    type Column java_column
+    Column_Data java_column
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
@@ -472,13 +472,13 @@ type Column
         index = self.java_column.getIndex
         name = self.java_column.getName
         new_st = case default of
-            Column java_col ->
+            Column_Data java_col ->
                 other_storage = java_col.getStorage
                 storage.fillMissingFrom other_storage
             _ ->
                 storage.fillMissing default
         col = Java_Column.new name index new_st
-        Column col
+        Column_Data col
 
     ## ALIAS Drop Missing
 
@@ -592,7 +592,7 @@ type Column
         index = self.java_column.getIndex
         new_st = storage.map Nothing function
         col = Java_Column.new "Result" index new_st
-        Column col
+        Column_Data col
 
     ## ALIAS Transform Columns
 
@@ -622,7 +622,7 @@ type Column
         ix = self.java_column.getIndex
         s2 = that.java_column.getStorage
         rs = s1.zip Nothing function s2 skip_missing
-        Column (Java_Column.new "Result" ix rs)
+        Column_Data (Java_Column.new "Result" ix rs)
 
     ## ALIAS Rename Column
 
@@ -639,7 +639,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column
-    rename self name = Column (self.java_column.rename name)
+    rename self name = Column_Data (self.java_column.rename name)
 
     ## Returns the name of this column.
 
@@ -698,7 +698,7 @@ type Column
     index : Column ! Table.No_Index_Set_Error
     index self = case self.java_column.getIndex.toColumn of
         Nothing -> Error.throw Table.No_Index_Set_Error
-        i -> Column i
+        i -> Column_Data i
 
     ## Sets the index of this column, using the provided column.
 
@@ -713,7 +713,7 @@ type Column
              example_set_index =
                 Examples.decimal_column.set_index Examples.integer_column
     set_index : Column -> Column
-    set_index self index = Column (self.java_column.setIndex index.java_column)
+    set_index self index = Column_Data (self.java_column.setIndex index.java_column)
 
     ## Returns the value contained in this column at the given index.
 
@@ -756,7 +756,7 @@ type Column
                  Examples.text_column_1.where (Examples.text_column_1.map .length > 2)
     where : Column -> Column
     where self indexes =
-        Column (self.java_column.mask indexes.java_column)
+        Column_Data (self.java_column.mask indexes.java_column)
 
     ## Returns a vector containing all the elements in this column.
 
@@ -1004,7 +1004,7 @@ type Column
         rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
         mask = OrderBuilder.buildOrderMask [rule].to_array
         new_col = self.java_column.applyMask mask
-        Column new_col
+        Column_Data new_col
 
     ## UNSTABLE
 
@@ -1024,7 +1024,7 @@ type Column
              example_take_start = Examples.integer_column.take_start 2
     take_start : Integer -> Column
     take_start self count =
-        Column (self.java_column.slice 0 count)
+        Column_Data (self.java_column.slice 0 count)
 
     ## UNSTABLE
 
@@ -1045,7 +1045,7 @@ type Column
     take_end : Integer -> Column
     take_end self count =
         start_point = Math.max (self.length - count) 0
-        Column (self.java_column.slice start_point count)
+        Column_Data (self.java_column.slice start_point count)
 
     ## UNSTABLE
 
@@ -1109,7 +1109,7 @@ type Column
     reverse : Column
     reverse self =
         mask = OrderBuilder.buildReversedMask self.length
-        Column <| self.java_column.applyMask mask
+        Column_Data <| self.java_column.applyMask mask
 
     ## UNSTABLE
 
@@ -1123,7 +1123,7 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count : Column
-    duplicate_count self = Column self.java_column.duplicateCount
+    duplicate_count self = Column_Data self.java_column.duplicateCount
 
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.
@@ -1155,7 +1155,7 @@ type Aggregate_Column
     reduce self function skip_missing=True name_suffix="_result" =
         f arr = function (Vector.Vector arr)
         r = self.java_column.aggregate Nothing name_suffix f skip_missing
-        Column r
+        Column_Data r
 
     ## Sums the values in each group.
 
@@ -1173,7 +1173,7 @@ type Aggregate_Column
     sum : Text -> Column
     sum self name_suffix='_sum' =
         r = self.java_column.aggregate 'sum' name_suffix (x-> Vector.Vector x . reduce (+)) True
-        Column r
+        Column_Data r
 
     ## Computes the maximum element of each group.
 
@@ -1190,7 +1190,7 @@ type Aggregate_Column
     max : Text -> Column
     max self name_suffix='_max' =
         r = self.java_column.aggregate 'max' name_suffix (x-> Vector.Vector x . reduce Math.max) True
-        Column r
+        Column_Data r
 
     ## Computes the minimum element of each group.
 
@@ -1207,7 +1207,7 @@ type Aggregate_Column
     min : Text -> Column
     min self name_suffix='_min' =
         r = self.java_column.aggregate 'min' name_suffix (x-> Vector.Vector x . reduce Math.min) True
-        Column r
+        Column_Data r
 
     ## Computes the number of non-missing elements in each group.
 
@@ -1225,7 +1225,7 @@ type Aggregate_Column
     count : Text -> Column
     count self name_suffix='_count' =
         r = self.java_column.aggregate 'count' name_suffix (x-> x.length) True
-        Column r
+        Column_Data r
 
     ## Computes the mean of non-missing elements in each group.
 
@@ -1244,7 +1244,7 @@ type Aggregate_Column
         vec_mean v = if v.length == 0 then Nothing else
             (Vector.Vector v).reduce (+) / v.length
         r = self.java_column.aggregate 'mean' name_suffix vec_mean True
-        Column r
+        Column_Data r
 
     ## Gathers all elements in a group into a vector and returns a column of
        such vectors.
@@ -1262,7 +1262,7 @@ type Aggregate_Column
     values : Text -> Column
     values self name_suffix='_values' =
         r = self.java_column.aggregate Nothing name_suffix Vector.Vector False
-        Column r
+        Column_Data r
 
     ## Prints an ASCII-art column with this data to the standard output.
 
@@ -1310,17 +1310,17 @@ Empty_Error.to_display_text self = "The column is empty."
    - operand: The operand to apply to the function after `column`.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Column
 run_vectorized_binary_op column name fallback_fn operand = case operand of
-    Column col2 ->
+    Column_Data col2 ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         s2 = col2.getStorage
         rs = s1.zip name fallback_fn s2 True
-        Column (Java_Column.new "Result" ix rs)
+        Column_Data (Java_Column.new "Result" ix rs)
     _ ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         rs = s1.bimap name fallback_fn operand
-        Column (Java_Column.new "Result" ix rs)
+        Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
 
@@ -1335,7 +1335,7 @@ run_vectorized_unary_op column name fallback_fn =
     s = column.java_column.getStorage
     ix = column.java_column.getIndex
     rs = s.map name fallback_fn
-    Column (Java_Column.new "Result" ix rs)
+    Column_Data (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
 

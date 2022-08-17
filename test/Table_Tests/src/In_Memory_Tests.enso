@@ -3,15 +3,15 @@ from Standard.Base import all
 import Standard.Test
 
 import project.Column_Spec
-import project.Csv_Spec
-import project.Delimited_Read_Spec
-import project.Delimited_Write_Spec
-import project.Excel_Spec
-import project.Json_Spec
-import project.Table_Spec
-import project.Table_Date_Spec
-import project.Aggregate_Column_Spec
-import project.Aggregate_Spec
+#import project.Csv_Spec
+#import project.Delimited_Read_Spec
+#import project.Delimited_Write_Spec
+#import project.Excel_Spec
+#import project.Json_Spec
+#import project.Table_Spec
+#import project.Table_Date_Spec
+#import project.Aggregate_Column_Spec
+#import project.Aggregate_Spec
 
 in_memory_spec =
     Column_Spec.spec

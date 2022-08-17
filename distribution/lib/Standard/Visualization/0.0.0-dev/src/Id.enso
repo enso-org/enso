@@ -5,9 +5,9 @@ from Standard.Base import all
 type Id
     ## A builtin visulization, implemented in the graphical interface and not
        imported from any library.
-    type Builtin name
+    Builtin name
     ## A visualization implemented in a library.
-    type Library project name
+    Library project name
 
     ## Serializes this ID to a JSON format understandable by the graphical
        interface.

@@ -26,24 +26,24 @@ polyglot java import org.enso.table.util.problems.InvalidNames
 
 type Excel_Section
     ## Gets a list of sheets within a workbook.
-    type Sheet_Names
+    Sheet_Names
 
     ## Gets a list of named ranges within a workbook.
-    type Range_Names
+    Range_Names
 
     ## Gets the data from a specific sheet. Column names are the Excel column
        names.
-    type Sheet (sheet:(Integer|Text)=1) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
+    Sheet (sheet:(Integer|Text)=1) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
 
     ## Gets a specific range (taking either a defined name or external style
        address) from the workbook.
        If it is a single cell, it will be treated as the top left cell and will
        expand right and down to cover the connected cells.
-    type Cell_Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
+    Cell_Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
 
 type Excel_Range
     ## Specifies a range within an Excel Workbook.
-    type Excel_Range java_range:Java_Range
+    Excel_Range_Data java_range:Java_Range
 
     ## Gets the name of the sheet.
     sheet_name : Text
@@ -114,7 +114,7 @@ type Excel_Range
     from_address : Text -> Excel_Range
     from_address address =
         Illegal_Argument_Error.handle_java_exception <|
-            Excel_Range (Java_Range.new address)
+            Excel_Range_Data (Java_Range.new address)
 
     ## Create a Range for a single cell.
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
@@ -125,7 +125,7 @@ type Excel_Range
         row_valid = validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
 
         col_valid <| row_valid <|
-            Excel_Range (Java_Range.new sheet col_index row)
+            Excel_Range_Data (Java_Range.new sheet col_index row)
 
     ## Create an Excel_Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
@@ -139,7 +139,7 @@ type Excel_Range
         bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         left_valid <| right_valid <| top_valid <| bottom_valid <|
-            Excel_Range (Java_Range.new sheet left_index top right_index bottom)
+            Excel_Range_Data (Java_Range.new sheet left_index top right_index bottom)
 
     ## Create an Excel_Range for a set of columns.
     for_columns : Text -> (Text|Integer) -> (Text|Integer) -> Excel_Range
@@ -151,7 +151,7 @@ type Excel_Range
         right_valid = validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
 
         left_valid <| right_valid <|
-            Excel_Range (Java_Range.forColumns sheet left_index right_index)
+            Excel_Range_Data (Java_Range.forColumns sheet left_index right_index)
 
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
@@ -160,7 +160,7 @@ type Excel_Range
         bottom_valid = validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
         top_valid <| bottom_valid <|
-            Excel_Range (Java_Range.forRows sheet top bottom)
+            Excel_Range_Data (Java_Range.forRows sheet top bottom)
 
 
 ## PRIVATE
@@ -192,7 +192,7 @@ read_excel file section headers on_problems xls_format=False =
                 Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format
         Cell_Range address skip_rows row_limit ->
             prepare_reader_table on_problems <| case address of
-                Excel_Range _ -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
+                Excel_Range_Data _ -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
                 Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format
 
     handle_reader file reader
@@ -213,7 +213,7 @@ write_excel file table on_existing_file section headers match_columns _ xls_form
         Sheet sheet skip_rows row_limit ->
             ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
         Cell_Range address skip_rows row_limit -> case address of
-            Excel_Range java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
+            Excel_Range_Data java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
             Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
 
     if result.is_error then result else

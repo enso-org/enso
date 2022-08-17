@@ -144,10 +144,10 @@ type Detected_Headers
     Nothing
 
     ## Represents the headers found in the file.
-    type Existing_Headers (column_names : Vector Text)
+    Existing_Headers (column_names : Vector Text)
 
     ## Indicates that the file exists but no headers have been found, so only positional column matching is possible.
-    type No_Headers (column_count : Integer)
+    No_Headers (column_count : Integer)
 
 type Detected_File_Metadata
     ## PRIVATE
@@ -160,7 +160,7 @@ type Detected_File_Metadata
        - ends_with_newline: specifies if the last line ends with a line
          separator that is consistent with the detected one.
        - has_any_content: specifies if the file contains any content.
-    type Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
+    Detected_File_Metadata (headers : Detected_Headers) (line_separator : Text|Nothing) (ends_with_newline : Boolean) (has_any_content : Boolean)
 
 ## PRIVATE
    Reads the beginning of the file to detect the existing headers and column
