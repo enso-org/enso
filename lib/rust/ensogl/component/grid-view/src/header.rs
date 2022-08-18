@@ -10,8 +10,8 @@ use crate::Entry;
 use crate::Properties;
 use crate::Row;
 
-use ensogl_core::application::Application;
 use ensogl_core::application;
+use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
@@ -317,13 +317,17 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> 
     }
 }
 
-impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> FrpNetworkProvider for GridView<E, HeaderEntry> {
+impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> FrpNetworkProvider
+    for GridView<E, HeaderEntry>
+{
     fn network(&self) -> &frp::Network {
         self.model.grid.network()
     }
 }
 
-impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View for GridView<E, HeaderEntry> {
+impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View
+    for GridView<E, HeaderEntry>
+{
     fn label() -> &'static str {
         "GridViewWithHeaders"
     }

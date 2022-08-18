@@ -62,9 +62,9 @@ pub mod prelude {
 use crate::prelude::*;
 
 use enso_frp as frp;
+use ensogl_core::application;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
-use ensogl_core::application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::gui::Widget;
@@ -93,7 +93,10 @@ pub type Col = usize;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Direction {
-    Up, Down, Left, Right,
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 
@@ -477,7 +480,8 @@ impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::
     }
 }
 
-// impl<Entry, EntryModel, EntryParams> application::command::CommandApi for GridViewTemplate<Entry, EntryModel, EntryParams> {
+// impl<Entry, EntryModel, EntryParams> application::command::CommandApi for GridViewTemplate<Entry,
+// EntryModel, EntryParams> {
 impl<E: Entry> application::command::CommandApi for GridView<E> {
     fn command_api(&self) -> Rc<RefCell<HashMap<String, application::command::Command>>> {
         self.widget.command_api()
