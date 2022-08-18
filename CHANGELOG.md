@@ -173,6 +173,8 @@
   `Text.drop`.][3617]
 - [Updated `Vector.take` and `Vector.drop` and removed their obsolete
   counterparts.][3629]
+- [Expanded `Table.at` to support index access and added `Table.column_count`
+  method.][3644] 
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -273,6 +275,7 @@
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3629]: https://github.com/enso-org/enso/pull/3629
+[3644]: https://github.com/enso-org/enso/pull/3644
 
 #### Enso Compiler
 
