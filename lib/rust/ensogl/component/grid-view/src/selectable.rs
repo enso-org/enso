@@ -108,7 +108,7 @@ where
                 if *row > 0 {
                     grid_frp.select_entry(Some((row - 1, *col)));
                 } else {
-                    internal.output.selection_movement_would_leave_grid.emit(Some(Direction::Up));
+                    internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Up));
                 }
             });
             eval selected_on_move_down ([grid_frp]((row, col)) {
@@ -118,7 +118,7 @@ where
                 if *col > 0 {
                     grid_frp.select_entry(Some((*row, col - 1)));
                 } else {
-                    internal.output.selection_movement_would_leave_grid.emit(Some(Direction::Left));
+                    internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Left));
                 }
             });
             eval selected_on_move_right ([grid_frp]((row, col)) {
