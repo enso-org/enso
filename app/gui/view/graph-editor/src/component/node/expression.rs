@@ -32,10 +32,6 @@ impl Expression {
         let whole_expression_id = default();
         Self { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
     }
-
-    // pub fn empty() -> Self {
-    //     Self::new_plain("")
-    // }
 }
 
 impl Display for Expression {
