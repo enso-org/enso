@@ -9,9 +9,10 @@
 //!
 //! When using the methods of the [`List`] type to build a [`component::List`]:
 //!  - The components and groups are sorted once.
-//!  - The [`component::List::favorites`] contain only components with IDs that were passed both to
-//!    [`List::set_grouping_and_order_of_favorites`] and to
-//!    [`List::extend_list_and_allow_favorites_with_ids`].
+//!  - The [`component::List::favorites`] will contain:
+//!    - components with IDs that were passed both to [`List::set_grouping_and_order_of_favorites`]
+//!      and to [`List::extend_list_and_allow_favorites_with_ids`],
+//!    - virtual components inserted with [`List::insert_virtual_components_in_favorites_group`].
 //!  - Empty component groups are allowed in favorites. (This simplifies distributing groups of
 //!    favorites over columns in [Component Browser](crate::controller::Searcher) consistently.
 //!    That's because for the same input to [`List::set_grouping_and_order_of_favorites`], the same
@@ -25,6 +26,7 @@ use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::module;
+use double_representation::project;
 
 
 
@@ -99,9 +101,10 @@ impl List {
     /// returned object, components passed to the method which have their parent module ID equal
     /// to `module_id` will be cloned into [`component::List::local_scope`].
     pub fn with_local_scope_module_id(self, module_id: component::Id) -> Self {
+        use crate::controller::searcher::component::Group;
         const LOCAL_SCOPE_GROUP_NAME: &str = "Local Scope";
         let id = Some(module_id);
-        let local_scope = component::Group::from_name_and_id(LOCAL_SCOPE_GROUP_NAME, id);
+        let local_scope = Group::from_name_and_project_and_id(LOCAL_SCOPE_GROUP_NAME, None, id);
         Self { local_scope, ..self }
     }
 
@@ -111,22 +114,23 @@ impl List {
     pub fn extend_list_and_allow_favorites_with_ids(
         &mut self,
         db: &model::SuggestionDatabase,
-        entries: impl IntoIterator<Item = component::Id>,
+        entry_ids: impl IntoIterator<Item = component::Id>,
     ) {
         use suggestion_database::entry::Kind;
         let local_scope_id = self.local_scope.component_id;
-        let lookup_component_by_id = |id| Some(Component::new(id, db.lookup(id).ok()?));
-        let components = entries.into_iter().filter_map(lookup_component_by_id);
-        for component in components {
-            self.allowed_favorites.insert(*component.id);
+        let id_and_looked_up_entry = |id| Some((id, db.lookup(id).ok()?));
+        let ids_and_entries = entry_ids.into_iter().filter_map(id_and_looked_up_entry);
+        for (id, entry) in ids_and_entries {
+            self.allowed_favorites.insert(id);
+            let component = Component::new_from_database_entry(id, entry.clone_ref());
             let mut component_inserted_somewhere = false;
-            if let Some(parent_module) = component.suggestion.parent_module() {
+            if let Some(parent_module) = entry.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, &parent_module) {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
                     let parent_id = parent_group.content.component_id;
                     let in_local_scope = parent_id == local_scope_id && local_scope_id.is_some();
-                    let not_module = component.suggestion.kind != Kind::Module;
+                    let not_module = entry.kind != Kind::Module;
                     if in_local_scope && not_module {
                         self.local_scope.entries.borrow_mut().push(component.clone_ref());
                     }
@@ -155,6 +159,33 @@ impl List {
             .into_iter()
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
             .collect();
+    }
+
+    fn take_grouping_and_order_of_favorites_as_vec(&mut self) -> Vec<component::Group> {
+        std::mem::take(&mut self.grouping_and_order_of_favorites).into_iter().collect_vec()
+    }
+
+    /// Insert virtual components at the beginning of a favorites group with given name defined in
+    /// given project. If a group with that name and project does not exist, it is created. The
+    /// virtual components are created from the given snippets.
+    pub fn insert_virtual_components_in_favorites_group(
+        &mut self,
+        group_name: &str,
+        project: project::QualifiedName,
+        snippets: impl IntoIterator<Item = Rc<component::hardcoded::Snippet>>,
+    ) {
+        use component::Group;
+        let mut favorites_grouping = self.take_grouping_and_order_of_favorites_as_vec();
+        let name_and_project_match =
+            |g: &&mut Group| g.name == group_name && g.project.as_ref() == Some(&project);
+        let group_with_matching_name = favorites_grouping.iter_mut().find(name_and_project_match);
+        if let Some(group) = group_with_matching_name {
+            group.insert_entries(&snippets.into_iter().map(Into::into).collect_vec());
+        } else {
+            let group = Group::from_name_and_project_and_snippets(group_name, project, snippets);
+            favorites_grouping.insert(0, group);
+        }
+        self.grouping_and_order_of_favorites = component::group::List::new(favorites_grouping);
     }
 
     fn lookup_module_group(
@@ -212,10 +243,12 @@ impl List {
     }
 
     fn build_favorites_and_add_to_all_components(&mut self) -> component::group::List {
-        let grouping_and_order = std::mem::take(&mut self.grouping_and_order_of_favorites);
-        let mut favorites_groups = grouping_and_order.into_iter().collect_vec();
+        let mut favorites_groups = self.take_grouping_and_order_of_favorites_as_vec();
         for group in favorites_groups.iter_mut() {
-            group.retain_entries(|e| self.allowed_favorites.contains(&e.id));
+            group.retain_entries(|e| match e.data {
+                component::Data::FromDatabase { id, .. } => self.allowed_favorites.contains(&id),
+                component::Data::Virtual { .. } => true,
+            });
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
         component::group::List::new(favorites_groups)
@@ -234,6 +267,8 @@ mod tests {
 
     use crate::controller::searcher::component::tests::mock_suggestion_db;
 
+    use double_representation::project;
+
 
     #[derive(Clone, Debug, Eq, PartialEq)]
     struct ComparableGroupData<'a> {
@@ -247,7 +282,7 @@ mod tests {
             Self {
                 name:         component.name.as_str(),
                 component_id: component.component_id,
-                entries:      component.entries.borrow().iter().map(|e| *e.id).collect(),
+                entries:      component.entries.borrow().iter().map(|e| e.id().unwrap()).collect(),
             }
         }
     }
@@ -350,7 +385,8 @@ mod tests {
         assert_eq!(module_subgroups, expected);
 
         let local_scope_entries = &list.local_scope.entries;
-        let local_scope_ids = local_scope_entries.borrow().iter().map(|e| *e.id).collect_vec();
+        let component_id = |c: &Component| c.id().unwrap();
+        let local_scope_ids = local_scope_entries.borrow().iter().map(component_id).collect_vec();
         let expected_ids = vec![5, 6];
         assert_eq!(local_scope_ids, expected_ids);
     }
@@ -369,6 +405,7 @@ mod tests {
         assert_eq!(db.lookup_by_qualified_name_str(QN_NOT_IN_DB), None);
         let groups = [
             execution_context::ComponentGroup {
+                project:    project::QualifiedName::standard_base_library(),
                 name:       "Group 1".into(),
                 color:      None,
                 components: vec![
@@ -382,6 +419,7 @@ mod tests {
                 ],
             },
             execution_context::ComponentGroup {
+                project:    project::QualifiedName::standard_base_library(),
                 name:       "Group 2".into(),
                 color:      None,
                 components: vec![
@@ -409,5 +447,72 @@ mod tests {
             },
         ];
         assert_eq!(favorites, expected);
+    }
+
+    fn check_names_and_order_of_group_entries(group: &component::Group, expected_names: &[&str]) {
+        let entries = group.entries.borrow();
+        let entry_names = entries.iter().map(|c| c.name()).collect_vec();
+        assert_eq!(&entry_names, expected_names);
+    }
+
+    /// Test building a component list with a virtual component. The virtual component will be
+    /// inserted into an existing favorites group.
+    #[test]
+    fn building_component_list_with_virtual_component_in_existing_favorites_group() {
+        let logger = Logger::new("tests::virtual_component_in_existing_favorites_group");
+        let db = mock_suggestion_db(logger);
+        let mut builder = List::new();
+        let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let project = project::QualifiedName::standard_base_library();
+        const GROUP_NAME: &str = "Group";
+        let groups = [execution_context::ComponentGroup {
+            project:    project.clone(),
+            name:       GROUP_NAME.into(),
+            color:      None,
+            components: vec![qn_of_db_entry_0],
+        }];
+        builder.set_grouping_and_order_of_favorites(&db, &groups);
+        let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
+        let snippet_iter = std::iter::once(Rc::new(snippet));
+        builder.insert_virtual_components_in_favorites_group(GROUP_NAME, project, snippet_iter);
+        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
+        let list = builder.build();
+        let favorites = list.favorites;
+        assert_eq!(favorites.len(), 1, "Expected one group of favorites, got: {:?}.", favorites);
+        let expected_entry_names = ["test snippet", "TopModule1"];
+        check_names_and_order_of_group_entries(&favorites[0], &expected_entry_names);
+    }
+
+    /// Test building a component list with a virtual component. The virtual component will be
+    /// inserted into a new favorites group.
+    #[test]
+    fn building_component_list_with_virtual_component_in_new_favorites_group() {
+        let logger = Logger::new("tests::virtual_component_in_new_favorites_group");
+        let db = mock_suggestion_db(logger);
+        let mut builder = List::new();
+        let qn_of_db_entry_0 = db.lookup(0).unwrap().qualified_name();
+        let project = project::QualifiedName::standard_base_library();
+        const GROUP_1_NAME: &str = "Group 1";
+        let groups = [execution_context::ComponentGroup {
+            project:    project.clone(),
+            name:       GROUP_1_NAME.into(),
+            color:      None,
+            components: vec![qn_of_db_entry_0],
+        }];
+        builder.set_grouping_and_order_of_favorites(&db, &groups);
+        let snippet = component::hardcoded::Snippet { name: "test snippet", ..default() };
+        let snippet_iter = std::iter::once(Rc::new(snippet));
+        const GROUP_2_NAME: &str = "Group 2";
+        builder.insert_virtual_components_in_favorites_group(GROUP_2_NAME, project, snippet_iter);
+        builder.extend_list_and_allow_favorites_with_ids(&db, std::iter::once(0));
+        let list = builder.build();
+        let favorites = list.favorites;
+        assert_eq!(favorites.len(), 2, "Expected two groups of favorites, got: {:?}.", favorites);
+        let group_at_0 = &favorites[0];
+        assert_eq!(group_at_0.name, "Group 2");
+        check_names_and_order_of_group_entries(group_at_0, &["test snippet"]);
+        let group_at_1 = &favorites[1];
+        assert_eq!(group_at_1.name, "Group 1");
+        check_names_and_order_of_group_entries(group_at_1, &["TopModule1"]);
     }
 }
