@@ -7,6 +7,7 @@ use crate::header;
 use crate::Entry;
 
 use ensogl_core::application::Application;
+use ensogl_core::application;
 use ensogl_core::display;
 
 
@@ -157,6 +158,38 @@ where
     fn display_object(&self) -> &display::object::Instance {
         self.grid.display_object()
     }
+}
+
+impl<E: Entry> FrpNetworkProvider for GridView<E> {
+    fn network(&self) -> &frp::Network {
+        self.widget.network()
+    }
+}
+
+impl<E: Entry> application::View for GridView<E> {
+    fn label() -> &'static str {
+        "GridView"
+    }
+
+    fn new(app: &Application) -> Self {
+        GridView::<E>::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        &self.widget.app()
+    }
+
+    // fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    //     use shortcut::ActionType::*;
+    //     (&[
+    //         (Press, "!node_editing", "tab", "start_node_creation"),
+    //         // === Drag ===
+    //         (Press, "", "left-mouse-button", "node_press"),
+    //     ])
+    //         .iter()
+    //         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+    //         .collect()
+    // }
 }
 
 

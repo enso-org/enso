@@ -53,6 +53,7 @@ use crate::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
+use ensogl_core::application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::gui::Widget;
@@ -446,6 +447,16 @@ impl<Entry, EntryModel: frp::node::Data, EntryParams: frp::node::Data> display::
 {
     fn display_object(&self) -> &display::object::Instance {
         self.widget.display_object()
+    }
+}
+
+// impl<Entry, EntryModel, EntryParams> application::command::CommandApi for GridViewTemplate<Entry, EntryModel, EntryParams> {
+impl<E: Entry> application::command::CommandApi for GridView<E> {
+    fn command_api(&self) -> Rc<RefCell<HashMap<String, application::command::Command>>> {
+        self.widget.command_api()
+    }
+    fn status_api(&self) -> Rc<RefCell<HashMap<String, frp::Sampler<bool>>>> {
+        self.widget.status_api()
     }
 }
 
