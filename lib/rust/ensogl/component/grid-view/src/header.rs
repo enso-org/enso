@@ -349,7 +349,6 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View
             (PressAndRepeat, "right", "move_selection_right"),
         ])
             .iter()
-            // .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
             .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
             .collect()
     }

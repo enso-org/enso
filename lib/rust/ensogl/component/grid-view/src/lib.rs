@@ -133,8 +133,6 @@ ensogl_core::define_endpoints_2! {
         move_selection_left(),
         /// Move selection one position to the right.
         move_selection_right(),
-        /// Deselect all entries.
-        deselect_entries(),
 
         /// Declare what area of the GridView is visible. The area position is relative to left-top
         /// corner of the Grid View.

@@ -115,7 +115,6 @@ where
             eval grid_frp.viewport ([highlights](&vp) {
                 highlight::shape::set_viewport(&highlights, vp);
             });
-            trace internal.input.move_selection_up;
             entry_selected <- grid_frp.entry_selected.filter_map(|v| *v);
             selected_on_move_up <- entry_selected.sample(&internal.input.move_selection_up);
             selected_on_move_down <- entry_selected.sample(&internal.input.move_selection_down);
