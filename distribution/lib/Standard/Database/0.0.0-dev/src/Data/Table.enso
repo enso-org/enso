@@ -95,10 +95,9 @@ type Table
             internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column_Error selector)
             self.make_column internal_column
 
-    ## UNSTABLE
-       Returns the number of columns in the table.
-    length : Integer
-    length self = self.internal_columns.length
+    ## Returns the number of columns in the table.
+    column_count : Integer
+    column_count self = self.internal_columns.length
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be

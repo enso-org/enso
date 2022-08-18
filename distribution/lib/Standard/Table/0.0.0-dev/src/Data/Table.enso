@@ -263,10 +263,9 @@ type Table
                 Nothing -> Error.throw (No_Such_Column_Error selector)
                 c -> Column.Column c
 
-    ## UNSTABLE
-       Returns the number of columns in the table.
-    length : Integer
-    length self = self.java_table.getColumns.length
+    ## Returns the number of columns in the table.
+    column_count : Integer
+    column_count self = self.java_table.getColumns.length
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
