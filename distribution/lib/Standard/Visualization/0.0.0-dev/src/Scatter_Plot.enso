@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Table.Data.Column
 import Standard.Table.Data.Table
 import Standard.Visualization.Helpers
+from Standard.Base.Data.Index_Sub_Range import Sample
 
 ## PRIVATE
 
@@ -132,10 +133,26 @@ Table.Table.axes self =
     if axes_obj.fields.size > 0 then axes_obj else Nothing
 
 ## PRIVATE
-Vector.Vector.point_data : Vector -> Object
-Vector.Vector.point_data self =
-        self.map_with_index <| i-> elem->
-            Json.from_pairs [[X.name,i],[Y.name,elem]]
+Vector.Vector.point_data : Vector -> [Int]|Nothing -> Int|Nothing-> Object
+Vector.Vector.point_data self bounds limit =
+    data = case bounds of
+        Nothing ->
+            self.map_with_index <| i-> elem->
+                Json.from_pairs [[X.name,i],[Y.name,elem]]
+        _ ->
+            minX = bounds.at 0
+            minY = bounds.at 1
+            maxX = bounds.at 2
+            maxY = bounds.at 3
+            pairs = self.map_with_index <| i-> elem->
+                if minX>i || i>maxX || minY>elem || elem>maxY then Nothing else
+                    Json.from_pairs [[X.name,i],[Y.name,elem]]
+            pairs.filter case _ of
+                Nothing -> False
+                _ -> True
+    case limit of
+        Nothing -> data
+        n -> data.take (Sample n)
 
 ## PRIVATE
 json_from_table : Table -> Json
@@ -146,8 +163,8 @@ json_from_table table =
 
 ## PRIVATE
 json_from_vector : Vector Any -> Json
-json_from_vector vec =
-    data = [data_field, vec.point_data]
+json_from_vector vec bounds=Nothing limit=Nothing =
+    data = [data_field, vec.point_data bounds limit]
     axes = [axis_field, Nothing]
     Json.from_pairs [data, axes]
 
@@ -160,11 +177,11 @@ json_from_vector vec =
    Arguments:
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value =
+process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
         Column.Column _ -> json_from_table  value.to_table
         Table.Table _   -> json_from_table  value
-        Vector.Vector _ -> json_from_vector value
+        Vector.Vector _ -> json_from_vector value bounds=bounds limit=limit
         _               -> json_from_vector value.to_vector
 
     json.to_text

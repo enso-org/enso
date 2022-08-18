@@ -10,8 +10,7 @@ import Standard.Test
 import project
 
 spec =
-    expect value axis_expected_text data_expected_text =
-        text = Scatter_Plot.process_to_json_text value
+    expect_text text axis_expected_text data_expected_text =
         json = Json.parse text
         json.fields.keys.should_equal ['axis','data']
 
@@ -19,6 +18,10 @@ spec =
         expected_data_pair     = ['data', Json.parse data_expected_text]
         expected_result        = Json.from_pairs [expected_axis_labels, expected_data_pair]
         json.should_equal expected_result
+
+    expect value axis_expected_text data_expected_text =
+        text = Scatter_Plot.process_to_json_text value
+        expect_text text axis_expected_text data_expected_text
 
     index = Scatter_Plot.index_name
     axis label = Json.from_pairs [['label',label]]
@@ -95,6 +98,20 @@ spec =
         Test.specify "using indices for x if given a vector" <|
             vector = [0,10,20]
             expect vector no_labels '[{"x":0,"y":0},{"x":1,"y":10},{"x":2,"y":20}]'
+
+        Test.specify "limit the number of elements" <|
+            vector = [0,10,20,30]
+            text = Scatter_Plot.process_to_json_text vector limit=2
+            json = Json.parse text
+            json.fields.keys.should_equal ['axis','data']
+            data = json.fields.get 'data'
+            data.unwrap.length . should_equal 2
+
+        Test.specify "filter the elements" <|
+            vector = [0,10,20,30]
+            bounds = [0,5,10,25]
+            text = Scatter_Plot.process_to_json_text vector bounds
+            expect_text text no_labels '[{"x":1,"y":10},{"x":2,"y":20}]'
 
         Test.specify "using indices for x if given a column" <|
             column = Column.from_vector 'some_col' [10,2,3]
