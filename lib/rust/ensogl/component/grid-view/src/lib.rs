@@ -99,6 +99,17 @@ impl Properties {
 ensogl_core::define_endpoints_2! {
     <EntryModel: (frp::node::Data), EntryParams: (frp::node::Data)>
     Input {
+        /// Move selection one position up.
+        move_selection_up(),
+        /// Move selection one position down.
+        move_selection_down(),
+        /// Move selection one position to the left.
+        move_selection_left(),
+        /// Move selection one position to the right.
+        move_selection_right(),
+        /// Deselect all entries.
+        deselect_entries(),
+
         /// Declare what area of the GridView is visible. The area position is relative to left-top
         /// corner of the Grid View.
         set_viewport(Viewport),
