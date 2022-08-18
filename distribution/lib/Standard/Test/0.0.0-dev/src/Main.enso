@@ -743,7 +743,7 @@ fail_match_on_unexpected_error error frames_to_skip =
     payload = error.catch
     loc = Meta.get_source_location 1+frames_to_skip
     msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
-    fail msg
+    fail msg+'\n'+error.get_stack_trace_text
 
 
 ## PRIVATE
