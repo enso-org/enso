@@ -79,6 +79,8 @@ pub type Col = usize;
 
 // === Properties ===
 
+/// A set of GridView properties used in many operations.
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Properties {
     pub row_count:    usize,
@@ -88,6 +90,7 @@ pub struct Properties {
 }
 
 impl Properties {
+    /// Return iterator over all visible locations (row-column pairs).
     pub fn all_visible_locations(&self) -> impl Iterator<Item = (Row, Col)> {
         all_visible_locations(self.viewport, self.entries_size, self.row_count, self.col_count)
     }
@@ -153,6 +156,7 @@ ensogl_core::define_endpoints_2! {
 // === Model ===
 
 /// The Model of [`GridView`].
+#[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Model<Entry, EntryParams> {
     display_object:         display::object::Instance,
@@ -410,6 +414,8 @@ where
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
 {
+    /// Get the entry instance for given row and column, or `None` if no entry is instantiated at
+    /// given location.
     pub fn get_entry(&self, row: Row, column: Col) -> Option<Entry>
     where Entry: CloneRef {
         let entries = self.widget.model().visible_entries.borrow();
@@ -417,6 +423,7 @@ where
         entry.map(|e| e.entry.clone_ref())
     }
 
+    /// Return the position of the Entry instance for given row and column.
     pub fn entry_position(&self, row: Row, column: Col) -> Vector2 {
         entry::visible::position(row, column, self.entries_size.value())
     }

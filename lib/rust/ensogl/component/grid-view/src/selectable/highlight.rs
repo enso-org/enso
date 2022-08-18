@@ -6,12 +6,12 @@ use crate::prelude::*;
 use crate::entry;
 use crate::header;
 use crate::selectable::highlight::connected_entry::ConnectedEntry;
-use crate::selectable::highlight::connected_entry::EntryEndpoints;
+use crate::selectable::highlight::connected_entry::EndpointsGetter;
+use crate::selectable::highlight::layer::HasConstructor as TRAIT_HasConstructor;
 use crate::Col;
 use crate::Entry;
 use crate::Row;
 
-use crate::selectable::highlight::layer::HasConstructor as TRAIT_HasConstructor;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::scene::layer::WeakLayer;
@@ -27,14 +27,19 @@ pub mod layer;
 pub mod shape;
 
 
+
 // ============
 // === Kind ===
 // ============
 
+/// A module with marker types for each highlight kind. Those structs may implement various traits
+/// with operations specific for given highlight, for example [shape::AttrSetter] or
+/// [connected_entry::EndpointsGetter].
+#[allow(missing_docs, missing_copy_implementations)]
 pub mod kind {
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Debug)]
     pub struct Selection;
-    #[derive(Copy, Clone, Debug)]
+    #[derive(Debug)]
     pub struct Hover;
 }
 
@@ -231,11 +236,14 @@ where InnerGrid: AsRef<crate::GridView<E>>
 ///
 /// This is a helper structure for [`selectable::GridView`] which handles a single highlight:
 /// selection or hover:
-/// * It provides an FRP API for given highlight, where the exact position, contour and color may be
-///   read, and the _Masked layer_ highlight mode may be configured (see the [grid
-///   view](`selectable::GridView`) documentation for more info about modes.
-/// * It can be connected to highlight shape, so it's position, contour and color will be updated.
+/// * It provides an FRP API for given highlight, where the exact position, contour, color and
+///   clipping may be read, and the _Masked layer_ highlight mode may be configured (see the [grid
+///   view](`selectable::GridView`) documentation for more info about modes).
+/// * It can be connected to highlight shape, so it's position, contour, color and clipping will be
+///   updated.
 /// * It sets/unsets the proper flag on [`Entry`] instance (`set_selected` or `set_hovered`).
+///
+/// The `Kind` parameter should be any from [`kind`] module.
 #[allow(missing_docs)]
 #[derive(CloneRef, Debug, Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
@@ -246,8 +254,11 @@ pub struct Handler<Kind, InnerGridView, Entry, EntryParams: frp::node::Data> {
     kind_type: PhantomData<Kind>,
 }
 
+/// The handler of selection highlight.
 pub type SelectionHandler<InnerGridView, Entry, EntryParams> =
     Handler<kind::Selection, InnerGridView, Entry, EntryParams>;
+
+/// The handler of mouse hover highlight.
 pub type HoverHandler<InnerGridView, Entry, EntryParams> =
     Handler<kind::Hover, InnerGridView, Entry, EntryParams>;
 
@@ -259,7 +270,7 @@ where InnerGridView: AsRef<crate::GridView<E>>
     /// The returned handler will have `entry_highlighted` properly connected to the passed `grid`.
     pub fn new_connected(app: &Application, grid: &InnerGridView) -> Self
     where Self: HasConstructor<InnerGridView = InnerGridView> {
-        let this = Self::new::<kind::Selection>(app, grid);
+        let this = Self::new(app, grid);
         this.entry_highlighted.attach(&grid.as_ref().entry_selected);
         this
     }
@@ -273,7 +284,7 @@ where InnerGridView: AsRef<crate::GridView<E>>
     /// The returned handler will have `entry_highlighted` properly connected to the passed `grid`.
     pub fn new_connected(app: &Application, grid: &InnerGridView) -> Self
     where Self: HasConstructor<InnerGridView = InnerGridView> {
-        let this = Self::new::<kind::Hover>(app, grid);
+        let this = Self::new(app, grid);
         this.entry_highlighted.attach(&grid.as_ref().entry_hovered);
         this
     }
@@ -285,7 +296,7 @@ where InnerGridView: AsRef<crate::GridView<E>>
     /// Connects shape with the handler.
     ///
     /// The shape will be updated (using the specified `shape::AttrSetter`) according to the
-    /// `position`, `contour` and `color` outputs.
+    /// `position`, `contour`, `color` and `top_clip` outputs.
     pub fn connect_with_shape(&self, shape: &shape::View) {
         let network = self.frp.network();
         let shape_hidden = (&self.frp.is_masked_layer_set).into();
@@ -296,6 +307,12 @@ where InnerGridView: AsRef<crate::GridView<E>>
 impl<Kind: shape::AttrSetter, E: Entry, HeaderEntry: Entry>
     Handler<Kind, header::GridView<E, HeaderEntry>, E, E::Params>
 {
+    /// Connects shape designed for highlighting headers with the handler.
+    ///
+    /// The shape will be updated (using the specified `shape::AttrSetter`) according to the
+    /// `position`, `contour`, `color` and `top_clip` outputs, and it's bottom clip will be always
+    /// set to the current column's pushed-down header bottom (the `header_separator` value of
+    /// [`header::FRP`]).
     pub fn connect_with_header_shape(&self, shape: &shape::View) {
         let network = self.frp.network();
         let shape_hidden = (&self.frp.is_masked_layer_set).into();
@@ -310,9 +327,10 @@ impl<Kind: shape::AttrSetter, E: Entry, HeaderEntry: Entry>
     }
 }
 
+/// A trait implemented by every [`Handler`] able to be constructed.
 pub trait HasConstructor {
+    /// The exact type of the _inner_ Grid View.
     type InnerGridView;
-    type Entry: Entry;
 
     /// Create new Handler.
     ///
@@ -322,23 +340,86 @@ pub trait HasConstructor {
     ///
     /// Use [`new_for_selection_connected`] or [`new_for_hover_connected`] to create a fully working
     /// handler for specific highlight.
-    fn new<Getter: EntryEndpointsGetter>(app: &Application, grid: &Self::InnerGridView) -> Self;
+    fn new(app: &Application, grid: &Self::InnerGridView) -> Self;
 }
 
-impl<Kind, E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
-    for Handler<Kind, header::GridView<E, HeaderEntry>, E, E::Params>
+impl<Kind: EndpointsGetter, E: Entry> HasConstructor
+    for Handler<Kind, crate::GridView<E>, E, E::Params>
 {
-    type InnerGridView = header::GridView<E, HeaderEntry>;
-    type Entry = E;
+    type InnerGridView = crate::GridView<E>;
 
-    fn new<Getter: EntryEndpointsGetter>(app: &Application, grid: &Self::InnerGridView) -> Self {
+    fn new(app: &Application, grid: &Self::InnerGridView) -> Self {
         let frp = Frp::new();
         let network = frp.network();
         let animations = Animations::new(&frp);
-        let entry_getter = f!((r, c) grid.get_entry(r, c).map(|e| Getter::endpoints(&e)));
-        let header_getter = f!((r, c) grid.get_header(r, c).map(|e| Getter::endpoints(&e)));
-        let connected_entry_out = connected_entry::Output::new(&network);
-        let connected_header_out = connected_entry::Output::new(&network);
+        let entry_getter =
+            f!((r, c) grid.get_entry(r, c).map(|e| Kind::get_endpoints_from_entry(&e)));
+        let connected_entry_out = connected_entry::Output::new(network);
+        let connected_entry = ConnectedEntry::new(entry_getter, connected_entry_out.clone_ref());
+        let model = Rc::new(Data::new(app, grid, animations.clone_ref()));
+        let out = &frp.private.output;
+        let grid_frp = grid.frp();
+        frp::extend! {network
+
+            // === Updating `connected_entry` Field ===
+            shown_with_highlighted <-
+                grid_frp.entry_shown.map2(&frp.entry_highlighted, |a, b| (*a, *b));
+            highlighted_is_shown <-
+                shown_with_highlighted.filter_map(|(sh, hlt)| hlt.contains(sh).and_option(Some(*hlt)));
+            should_reconnect_entry <- any(frp.entry_highlighted, highlighted_is_shown);
+            eval should_reconnect_entry ((loc) connected_entry.connect_new_highlighted_entry(*loc));
+
+
+            // === Highlight Position ===
+
+            became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
+            position_after_highlight <- became_highlighted.map(
+                f!((&(row, col)) model.grid.entry_position(row, col))
+            );
+            out.position <+ position_after_highlight;
+            prev_position <- out.position.previous();
+            new_jump <- position_after_highlight.map2(&prev_position, |pos, prev| prev - pos);
+            animations.position_jump.target <+ new_jump;
+            animations.position_jump.skip <+ new_jump.constant(());
+            animations.position_jump.target <+ new_jump.constant(Vector2(0.0, 0.0));
+
+
+            // === Color and Contour ===
+
+            out.contour <+ connected_entry_out.contour;
+            out.color <+ connected_entry_out.color;
+
+            none_highlighted <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
+            out.contour <+ none_highlighted.constant(default());
+
+
+            // === Setting up Masked Layer ===
+
+            out.entries_params <+ frp.set_entries_params;
+            let entries_params = out.entries_params.clone_ref();
+            out.is_masked_layer_set <+
+                frp.setup_masked_layer.map(f!([model, entries_params](layer) model.setup_masked_layer(layer.as_ref(), (&entries_params).into())));
+        }
+
+        Self { frp, model, kind_type: default() }
+    }
+}
+
+impl<Kind: EndpointsGetter, E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
+    for Handler<Kind, header::GridView<E, HeaderEntry>, E, E::Params>
+{
+    type InnerGridView = header::GridView<E, HeaderEntry>;
+
+    fn new(app: &Application, grid: &Self::InnerGridView) -> Self {
+        let frp = Frp::new();
+        let network = frp.network();
+        let animations = Animations::new(&frp);
+        let entry_getter =
+            f!((r, c) grid.get_entry(r, c).map(|e| Kind::get_endpoints_from_entry(&e)));
+        let header_getter =
+            f!((r, c) grid.get_header(r, c).map(|e| Kind::get_endpoints_from_entry(&e)));
+        let connected_entry_out = connected_entry::Output::new(network);
+        let connected_header_out = connected_entry::Output::new(network);
         let connected_entry = ConnectedEntry::new(entry_getter, connected_entry_out.clone_ref());
         let connected_header = ConnectedEntry::new(header_getter, connected_header_out.clone_ref());
         let model = Rc::new(Data::new(app, grid, animations.clone_ref()));
@@ -346,12 +427,19 @@ impl<Kind, E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
         let grid_frp = grid.frp();
         let headers_frp = grid.header_frp();
         frp::extend! {network
+
+
+            // === Updating `connected_entry` Field ===
+
             shown_with_highlighted <-
                 grid_frp.entry_shown.map2(&frp.entry_highlighted, |a, b| (*a, *b));
             highlighted_is_shown <-
                 shown_with_highlighted.filter_map(|(sh, hlt)| hlt.contains(sh).and_option(Some(*hlt)));
             should_reconnect_entry <- any(frp.entry_highlighted, highlighted_is_shown);
             eval should_reconnect_entry ((loc) connected_entry.connect_new_highlighted_entry(*loc));
+
+
+            // === Updating `connected_header` Field ===
 
             header_shown_with_highlighted <-
                 headers_frp.header_shown.map2(&frp.entry_highlighted, |a, b| (*a, *b));
@@ -363,6 +451,9 @@ impl<Kind, E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
                 headers_frp.header_hidden.map2(&frp.entry_highlighted, |a, b| (*a, *b));
             should_disconnect_header <- header_hidden_with_highlighted.filter_map(|(hd, hlt)| hlt.contains(hd).and_option(*hlt));
             eval_ should_disconnect_header (connected_header.drop_guard());
+
+
+            // === Highlight Position ===
 
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
             position_after_highlight <- became_highlighted.map(
@@ -385,6 +476,9 @@ impl<Kind, E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
             animations.position_jump.skip <+ new_jump.constant(());
             animations.position_jump.target <+ new_jump.constant(Vector2(0.0, 0.0));
 
+
+            // === Contour and Color ===
+
             let header_connected = &connected_header_out.is_entry_connected;
             out.contour <+ all_with3(
                 header_connected,
@@ -402,10 +496,16 @@ impl<Kind, E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
             none_highlighted <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
             out.contour <+ none_highlighted.constant(default());
 
+
+            // === Setting up Masked Layer ===
+
             out.entries_params <+ frp.set_entries_params;
             let entries_params = out.entries_params.clone_ref();
             out.is_masked_layer_set <+
                 frp.setup_masked_layer.map(f!([model, entries_params](layer) model.setup_masked_layer(layer.as_ref(), (&entries_params).into())));
+
+
+            // === Highlight Shape Clipping ===
 
             highlight_column <- became_highlighted._1();
             header_moved_in_highlight_column <- headers_frp.header_position_changed.map2(
@@ -423,84 +523,5 @@ impl<Kind, E: Entry, HeaderEntry: Entry<Params = E::Params>> HasConstructor
         }
 
         Self { frp, model, kind_type: default() }
-    }
-}
-
-impl<Kind, E: Entry> HasConstructor for Handler<Kind, crate::GridView<E>, E, E::Params> {
-    type InnerGridView = crate::GridView<E>;
-    type Entry = E;
-
-    fn new<Getter: EntryEndpointsGetter>(app: &Application, grid: &Self::InnerGridView) -> Self {
-        let frp = Frp::new();
-        let network = frp.network();
-        let animations = Animations::new(&frp);
-        let entry_getter = f!((r, c) grid.get_entry(r, c).map(|e| Getter::endpoints(&e)));
-        let connected_entry_out = connected_entry::Output::new(&network);
-        let connected_entry = ConnectedEntry::new(entry_getter, connected_entry_out.clone_ref());
-        let model = Rc::new(Data::new(app, grid, animations.clone_ref()));
-        let out = &frp.private.output;
-        let grid_frp = grid.frp();
-        frp::extend! {network
-            shown_with_highlighted <-
-                grid_frp.entry_shown.map2(&frp.entry_highlighted, |a, b| (*a, *b));
-            highlighted_is_shown <-
-                shown_with_highlighted.filter_map(|(sh, hlt)| hlt.contains(sh).and_option(Some(*hlt)));
-            should_reconnect_entry <- any(frp.entry_highlighted, highlighted_is_shown);
-            eval should_reconnect_entry ((loc) connected_entry.connect_new_highlighted_entry(*loc));
-
-            became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
-            position_after_highlight <- became_highlighted.map(
-                f!((&(row, col)) model.grid.entry_position(row, col))
-            );
-            out.position <+ position_after_highlight;
-            prev_position <- out.position.previous();
-            new_jump <- position_after_highlight.map2(&prev_position, |pos, prev| prev - pos);
-            animations.position_jump.target <+ new_jump;
-            animations.position_jump.skip <+ new_jump.constant(());
-            animations.position_jump.target <+ new_jump.constant(Vector2(0.0, 0.0));
-
-            out.contour <+ connected_entry_out.contour;
-            out.color <+ connected_entry_out.color;
-
-            none_highlighted <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
-            out.contour <+ none_highlighted.constant(default());
-
-            out.entries_params <+ frp.set_entries_params;
-            let entries_params = out.entries_params.clone_ref();
-            out.is_masked_layer_set <+
-                frp.setup_masked_layer.map(f!([model, entries_params](layer) model.setup_masked_layer(layer.as_ref(), (&entries_params).into())));
-        }
-
-        Self { frp, model, kind_type: default() }
-    }
-}
-
-/// A trait describing how to extract [`EntryEndpoints`] from any implementor of [`Entry`]
-/// trait.
-pub trait EntryEndpointsGetter {
-    fn endpoints<E: Entry>(entry: &E) -> EntryEndpoints;
-}
-
-impl EntryEndpointsGetter for kind::Selection {
-    fn endpoints<E: Entry>(entry: &E) -> EntryEndpoints {
-        let frp = entry.frp();
-        EntryEndpoints {
-            flag:     frp.set_selected.clone_ref(),
-            location: frp.set_location.clone_ref().into(),
-            contour:  frp.highlight_contour.clone_ref().into(),
-            color:    frp.selection_highlight_color.clone_ref().into(),
-        }
-    }
-}
-
-impl EntryEndpointsGetter for kind::Hover {
-    fn endpoints<E: Entry>(entry: &E) -> EntryEndpoints {
-        let frp = entry.frp();
-        EntryEndpoints {
-            flag:     frp.set_hovered.clone_ref(),
-            location: frp.set_location.clone_ref().into(),
-            contour:  frp.highlight_contour.clone_ref().into(),
-            color:    frp.hover_highlight_color.clone_ref().into(),
-        }
     }
 }

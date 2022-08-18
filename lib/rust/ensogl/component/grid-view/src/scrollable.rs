@@ -47,6 +47,14 @@ pub struct GridViewTemplate<InnerGridView> {
 /// for Models.
 pub type GridView<E> = GridViewTemplate<crate::GridView<E>>;
 
+/// Scrollable Grid View with Headers
+///
+/// This Component displays any kind of entry `E` in a grid, where each column is organized in
+/// sections. The headers of each section will remain visible during scrolling down
+///
+/// Essentially, it's a [scrollable `GridView`](GridView) wrapping the
+/// [`GridView` with headers](selectable::GridView). See their respective documentations for usage
+/// information.
 pub type GridViewWithHeaders<E, H> = GridViewTemplate<header::GridView<E, H>>;
 
 /// Scrollable and Selectable Grid View Component.
@@ -54,10 +62,21 @@ pub type GridViewWithHeaders<E, H> = GridViewTemplate<header::GridView<E, H>>;
 /// This Component displays any kind of entry `E` in a grid, inside the Scroll area and allowing
 /// displaying highlights for hovered and selected entries.
 ///
-/// Essentially, it's a [scrollable `GridView`](GridView) wrapping the [selectable `GridView`]. See
-/// their respective documentations for usage information.
+/// Essentially, it's a [scrollable `GridView`](GridView) wrapping the
+/// [selectable `GridView`](selectable::GridView). See their respective documentations for usage
+/// information.
 pub type SelectableGridView<E> = GridViewTemplate<selectable::GridView<E>>;
 
+/// Scrollable and Selectable Grid View Component With Headers.
+///
+/// This Component displays any kind of entry `E` in a grid, inside the Scroll area and allowing
+/// displaying highlights for hovered and selected entries. Each column is organized in
+/// sections. The headers of each section will remain visible during scrolling down
+///
+/// This is a most feature-rich Grid View versin in this crate, thus the most complex.
+/// Inside it is a [scrollable `GridView`](GridView) wrapping the
+/// [selectable `GridView`](selectable::GridViewWithHeaders) version
+/// [with headers](header::GridView) See their respective documentations for usage information.
 pub type SelectableGridViewWithHeaders<E, H> =
     GridViewTemplate<selectable::GridViewWithHeaders<E, H>>;
 

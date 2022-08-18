@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate::header;
-
 use crate::Entry;
 
 use ensogl_core::application::Application;
@@ -65,6 +64,27 @@ pub struct GridViewTemplate<InnerGridView, Entry, EntryParams: frp::node::Data> 
 /// [`highlight::FRP::setup_masked_layer`] on the proper highlight API.
 pub type GridView<E> = GridViewTemplate<crate::GridView<E>, E, <E as Entry>::Params>;
 
+/// The Selectable Grid View with Headers.
+///
+/// An extension of [the `GridView` with headers](header::GridView), where hovered and selected
+/// entries or pushed-down headers will be highlighted.
+///
+/// # Highlight Shape
+///
+/// The selection shape in this case is implemented in a pretty tricky way. We want to render the
+/// highlight between specific `Entry` elements (e.g. between the text and the background). However,
+/// the headers are rendered in different layer, and we want the selection to be above the header
+/// background and below the text entries at the same time, which is not possible.
+///
+/// Therefore, this version has two highlight shapes instantiated, one for normal entries and one
+/// for headers, the latter being clipped at the header bottom (using the [highlight shape clipping
+/// ability](highlight::shape::AttrSetter::top_clip)).
+///
+/// # Highlight Mask in *Masked Layer* Mode.
+///
+/// The grid view displayed in the masked layer also is a grid view with headers. As In a scrolled
+/// grid view, the user can select a partially visible entry behind the group's header, we manually
+/// clip the highlight shape in the mask in such case, so the highlight will not be over the header.
 pub type GridViewWithHeaders<E, HeaderEntry> =
     GridViewTemplate<header::GridView<E, HeaderEntry>, E, <E as Entry>::Params>;
 
