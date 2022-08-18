@@ -1,6 +1,17 @@
 //! Grid View EnsoGL Component.
 //!
-//! The main structure is [`GridView`] - see its docs for details.
+//! There are many variants of the Grid View component:
+//! * the basic one: [`GridView`],
+//! * with scroll bars: [`scrollable::GridView`],
+//! * with selection and mouse hover highlights: [`selectable::GridView`],
+//! * with sections and headers visible even when scrolled down: [`header::GridView`].
+//! * The combinations of the features of above three, like [`selectable::GridViewWithHeaders`] or
+//!   [`scrollable::SeleectableGridViewWithHeraders`].
+//!
+//! Each variant expose the [`FRP`] structure as its main API - additional APIs (like for handling
+//! highlight or headers) are available through accessors (like `header_frp` or
+//! `selection_highlight_frp`). Also, as every variant is based on the basic [`GridView`], they
+//! implement `AsRef<GridView>`.
 
 #![recursion_limit = "1024"]
 // === Features ===
@@ -88,6 +99,8 @@ pub enum Direction {
 
 // === Properties ===
 
+/// A set of GridView properties used in many operations.
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Properties {
     pub row_count:    usize,
@@ -97,6 +110,7 @@ pub struct Properties {
 }
 
 impl Properties {
+    /// Return iterator over all visible locations (row-column pairs).
     pub fn all_visible_locations(&self) -> impl Iterator<Item = (Row, Col)> {
         all_visible_locations(self.viewport, self.entries_size, self.row_count, self.col_count)
     }
@@ -174,6 +188,7 @@ ensogl_core::define_endpoints_2! {
 // === Model ===
 
 /// The Model of [`GridView`].
+#[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Model<Entry, EntryParams> {
     display_object:         display::object::Instance,
@@ -431,6 +446,8 @@ where
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
 {
+    /// Get the entry instance for given row and column, or `None` if no entry is instantiated at
+    /// given location.
     pub fn get_entry(&self, row: Row, column: Col) -> Option<Entry>
     where Entry: CloneRef {
         let entries = self.widget.model().visible_entries.borrow();
@@ -438,6 +455,7 @@ where
         entry.map(|e| e.entry.clone_ref())
     }
 
+    /// Return the position of the Entry instance for given row and column.
     pub fn entry_position(&self, row: Row, column: Col) -> Vector2 {
         entry::visible::position(row, column, self.entries_size.value())
     }

@@ -1,11 +1,23 @@
-use crate::entry;
+//! A module containing [`ConnectedEntry`] structure.
+
 use crate::prelude::*;
+
+use crate::entry;
+use crate::selectable::highlight;
 use crate::Col;
+use crate::Entry;
 use crate::Row;
+
 use ensogl_core::data::color;
 
 
-/// A subset of [`entry::FRP`] endpoints used by the specific highlight [`Handler`].
+
+// ======================
+// === EntryEndpoints ===
+// ======================
+
+/// A subset of [`entry::FRP`] endpoints used by the specific [kind of highlight](highlight::kind)
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct EntryEndpoints {
     /// The "is_highlighted" input: may be `is_selected` or `is_hovered`.
@@ -16,10 +28,49 @@ pub struct EntryEndpoints {
 }
 
 
-/// A guard managing the connections between highlighted entry and the [`Handler`] FRP outputs.
+// === EntryEndpointsGetter ===
+
+/// A trait implemented by [all highlight kinds](highlight::kind), with method for extracting
+/// endpoints related to this kind from any [`Entry`].
+#[allow(missing_docs)]
+pub trait EndpointsGetter {
+    fn get_endpoints_from_entry<E: Entry>(entry: &E) -> EntryEndpoints;
+}
+
+impl EndpointsGetter for highlight::kind::Selection {
+    fn get_endpoints_from_entry<E: Entry>(entry: &E) -> EntryEndpoints {
+        let frp = entry.frp();
+        EntryEndpoints {
+            flag:     frp.set_selected.clone_ref(),
+            location: frp.set_location.clone_ref().into(),
+            contour:  frp.highlight_contour.clone_ref().into(),
+            color:    frp.selection_highlight_color.clone_ref().into(),
+        }
+    }
+}
+
+impl EndpointsGetter for highlight::kind::Hover {
+    fn get_endpoints_from_entry<E: Entry>(entry: &E) -> EntryEndpoints {
+        let frp = entry.frp();
+        EntryEndpoints {
+            flag:     frp.set_hovered.clone_ref(),
+            location: frp.set_location.clone_ref().into(),
+            contour:  frp.highlight_contour.clone_ref().into(),
+            color:    frp.hover_highlight_color.clone_ref().into(),
+        }
+    }
+}
+
+
+
+// =============
+// === Guard ===
+// =============
+
+/// A guard managing the connections between highlighted entry and the FRP [`Output`]s.
 ///
 /// Until dropped, this structure keeps connected the entry endpoints declaring the highlight
-/// appearance (`position`, `contour` and `color`) to the appropriate [`Handler`] endpoints.
+/// appearance (`position`, `contour` and `color`) to the appropriate [`Output`]'s endpoints.
 /// Also, the entry's flag (`is_selected` or `is_hovered`) will be set to `true` on construction and
 /// set back to `false` on drop.
 #[derive(Debug)]
@@ -64,8 +115,13 @@ impl Drop for Guard {
 }
 
 
-pub trait Getter = Fn(Row, Col) -> Option<EntryEndpoints> + 'static;
 
+// ==============
+// === Output ===
+// ==============
+
+/// An output information from the [`ConnectedEntry`] regarding e.g. highlight contour and shape.
+#[allow(missing_docs)]
 #[derive(CloneRef, Clone, Debug)]
 pub struct Output {
     pub is_entry_connected: frp::Source<bool>,
@@ -74,6 +130,7 @@ pub struct Output {
 }
 
 impl Output {
+    /// Create Output endpoints in given `network`.
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             is_entry_connected <- source::<bool>();
@@ -84,6 +141,24 @@ impl Output {
     }
 }
 
+
+
+// ======================
+// === ConnectedEntry ===
+// ======================
+
+/// Get the Entry Endpoints for given row and column, or `None` if no entry is instantiated at
+/// this location.
+pub trait Getter = Fn(Row, Col) -> Option<EntryEndpoints> + 'static;
+
+/// The structure containing information of the entry which is currently connected to the defined
+/// set of [`Output`]s.
+///
+/// It is used in [`highlight::Handler`], which is responsible for updating this struct to the
+/// actually highlighted entry using [`connect_new_highlighted_entry`] method. The handler should
+/// also decide which connected entry output should be propagated to [its API](highlight::FRP)
+/// (there may be more than one, for example the base entry and the pushed-down header in
+/// [`selectable::GridViewWithHeaders`]).
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct ConnectedEntry<EntryGetter> {
@@ -95,6 +170,7 @@ pub struct ConnectedEntry<EntryGetter> {
 }
 
 impl<EntryGetter> ConnectedEntry<EntryGetter> {
+    /// Create new structure. No entry will be connected.
     pub fn new(entry_getter: EntryGetter, output: Output) -> Rc<Self> {
         Rc::new(Self { entry_getter, output, location: default(), guard: default() })
     }
@@ -123,13 +199,14 @@ impl<EntryGetter> ConnectedEntry<EntryGetter> {
         }
     }
 
+    /// Drop old [`ConnectedEntryGuard`]
     pub fn drop_guard(&self) {
         self.location.set(None);
         self.guard.take();
         self.output.is_entry_connected.emit(false);
     }
 
-    pub fn set_up_guard_dropping(self: &Rc<Self>)
+    fn set_up_guard_dropping(self: &Rc<Self>)
     where EntryGetter: 'static {
         if let Some(guard) = &*self.guard.borrow() {
             let network = &guard.network;

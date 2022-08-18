@@ -13,6 +13,7 @@ use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
+use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::module::QualifiedName;
@@ -47,7 +48,9 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 
 /// The special module used for mock `Enso_Project.data` entry.
 /// See also [`Searcher::add_enso_project_entries`].
-const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
+const ENSO_PROJECT_SPECIAL_MODULE: &str =
+    concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
+
 
 
 // ==============
@@ -1191,6 +1194,10 @@ fn component_list_builder_with_favorites<'a>(
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
+    let base_lib_qn = project::QualifiedName::standard_base_library();
+    let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
+    let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
+    builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
     builder
 }
 
@@ -1845,7 +1852,7 @@ pub mod test {
         // Prepare a sample component group to be returned by a mock Language Server client.
         let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
         let sample_ls_component_group = language_server::LibraryComponentGroup {
-            library: "".to_string(),
+            library: project::QualifiedName::standard_base_library().to_string(),
             name:    "Test Group 1".to_string(),
             color:   None,
             icon:    None,
@@ -1878,17 +1885,19 @@ pub mod test {
                 format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
             assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
-            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry1.name && e2.name() == entry9.name);
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
         let favorites = &components.favorites;
-        assert_eq!(favorites.len(), 1);
-        let favorites_group = &favorites[0];
-        assert_eq!(favorites_group.name, "Test Group 1");
-        let favorites_entries = favorites_group.entries.borrow();
+        assert_eq!(favorites.len(), 2);
+        let favorites_group_0 = &favorites[0];
+        assert_eq!(favorites_group_0.name, component::hardcoded::INPUT_GROUP_NAME);
+        let favorites_group_1 = &favorites[1];
+        assert_eq!(favorites_group_1.name, "Test Group 1");
+        let favorites_entries = favorites_group_1.entries.borrow();
         assert_eq!(favorites_entries.len(), 1);
-        assert_eq!(*favorites_entries[0].id, 1);
+        assert_eq!(favorites_entries[0].id().unwrap(), 1);
     }
 
     #[wasm_bindgen_test]

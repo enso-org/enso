@@ -21,7 +21,7 @@ use ensogl_core::display::scene::Layer;
 ///
 /// The handler can be created for some specific layer and _base_ grid view. It will add two
 /// sub-layers:
-/// * one with the new _inner_ [`crate::GridView`] component;
+/// * one with the new _inner_ [Grid View component variant](crate);
 /// * second being set up as a text layer of aforementioned grid view.
 /// The _inner_ Grid View will be fully synchronized with the _base_ one except the entries'
 /// parameters. The layers will be masked with highlight [`shape`], so only the highlighted fragment
@@ -91,10 +91,12 @@ impl<InnerGridView> Handler<InnerGridView> {
     }
 }
 
+/// A trait implemented by every [`Handler`] able to be constructed.
 pub trait HasConstructor {
+    /// The exact type of the _inner_ Grid View.
     type InnerGrid;
 
-    /// Create new handler for given layer and _base_ [`GridView`](crate::GridView).
+    /// Create new handler for given layer and _base_ Grid View.
     fn new(app: &Application, parent_layer: &Layer, base_grid: &Self::InnerGrid) -> Self;
 }
 

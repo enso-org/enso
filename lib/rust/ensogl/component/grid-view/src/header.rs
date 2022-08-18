@@ -26,6 +26,7 @@ use ensogl_scroll_area::Viewport;
 /// A structure with layers where the headers are displayed.
 ///
 /// The references are weak so the structure may be safely propagated through FRP networks.
+#[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct WeakLayers {
     pub header: WeakLayer,
@@ -67,6 +68,7 @@ ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
 // === Model ===
 // =============
 
+/// A pushed-down header visible on the top of the viewport.
 #[derive(Clone, Debug)]
 pub struct VisibleHeader<HeaderEntry> {
     section_rows: Range<Row>,
@@ -247,7 +249,8 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
 // === GridView ===
 // ================
 
-
+/// A template for [`GridView`] structure, wrapping any version of Grid View, and where entry
+/// parameters and model are separate generic arguments.
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct GridViewTemplate<
@@ -272,6 +275,32 @@ impl<Entry, InnerGridView, HeaderEntry, HeaderModel: frp::node::Data, HeaderPara
     }
 }
 
+/// Grid View with Headers.
+///
+/// This is an extended version of [the base Grid View](crate::GridView). Here each column is
+/// assumed to be arranged in sections. The first entry of each section is treated as header. When
+/// the section is scrolled down, the header remains visible.
+///
+/// The structure derefs to the [base GridView FRP API](crate::Frp). To access the API specific
+/// to headers use [`Self::header_frp`] method.
+///
+/// # Headers
+///
+/// Those headers which are pushed down can (and should) be instantiated in a separate layer, passed
+/// with `set_layers` input. User should ensure, that the layer is displayed over the normal
+/// entries. Those headers can be the same type as main entries, but does not have to. They should
+/// have the same [`Entry::Params`] type, however.
+///
+/// ## Requesting for Models
+///
+/// Only the pushed-down, currently visible headers are instantiated. The models for the header
+/// instances and information about their section should be provided on demand, as a reaction
+/// for [`Frp::section_info_needed`] event, by emitting [`Frp::section_info`] with proper data.
+///
+/// **Important**. The [`Frp::section_info_needed`] are emitted once when needed and not repeated
+/// anymore, after adding connections to this FRP node in particular. Therefore, be sure, that you
+/// connect providing models logic before emitting any of [`crate::Frp::set_entries_size`] or
+/// [`crate::Frp::set_viewport`].  
 pub type GridView<Entry, HeaderEntry> = GridViewTemplate<
     Entry,
     crate::GridView<Entry>,
@@ -281,6 +310,7 @@ pub type GridView<Entry, HeaderEntry> = GridViewTemplate<
 >;
 
 impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> {
+    /// Create new Grid View with headers.
     pub fn new(app: &Application) -> Self {
         let grid = crate::GridView::<E>::new(app);
         Self::new_wrapping(grid)
@@ -329,6 +359,7 @@ where
     InnerGridView: AsRef<crate::GridView<E>> + display::Object + 'static,
     HeaderEntry: Entry,
 {
+    /// Add the "headers" feature to an arbitrary `InnerGridView` and returns as a new component.
     pub fn new_wrapping(grid: InnerGridView) -> Self {
         let frp = Frp::new();
         let entry_creation_ctx = grid.as_ref().model().entry_creation_ctx.clone_ref();
@@ -339,32 +370,52 @@ where
         let out = &frp.private.output;
         frp::extend! { network
             headers_hidden_after_viewport_change <=
-                grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.hide_no_longer_visible_headers(*props)));
-            headers_hidden_after_entry_size_change <=
-                grid_frp.entries_size.map2(&grid_frp.properties, f!((_, props) model.hide_no_longer_visible_headers(*props)));
+                grid_frp.viewport.map2(&grid_frp.properties,
+                f!((_, props) model.hide_no_longer_visible_headers(*props))
+            );
+            headers_hidden_after_entry_size_change <= grid_frp.entries_size.map2(
+                &grid_frp.properties,
+                f!((_, props) model.hide_no_longer_visible_headers(*props))
+            );
             out.header_hidden <+ headers_hidden_after_viewport_change;
             out.header_hidden <+ headers_hidden_after_entry_size_change;
 
-            request_sections_after_viewport_change <=
-                grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.needed_info_for_uncovered_sections(*props)));
-            request_sections_after_entry_size_change <=
-                grid_frp.entries_size.map2(&grid_frp.properties, f!((_, props) model.needed_info_for_uncovered_sections(*props)));
-            request_sections_after_reset <=
-                grid_frp.reset_entries.map2(&grid_frp.properties, f!((_, props) model.reset_entries(*props)));
-            request_sections_after_sections_reset <=
-                frp.reset_sections.map2(&grid_frp.properties, f!((_, props) model.reset_entries(*props)));
-            request_sections_after_layer_change <=
-                frp.set_layers.map2(&grid_frp.properties, f!((_, props) model.drop_all_entries(*props)));
+            request_sections_after_viewport_change <= grid_frp.viewport.map2(
+                &grid_frp.properties,
+                f!((_, props) model.needed_info_for_uncovered_sections(*props))
+            );
+            request_sections_after_entry_size_change <= grid_frp.entries_size.map2(
+                &grid_frp.properties,
+                f!((_, props) model.needed_info_for_uncovered_sections(*props))
+            );
+            request_sections_after_reset <= grid_frp.reset_entries.map2(
+                &grid_frp.properties,
+                f!((_, props) model.reset_entries(*props))
+            );
+            request_sections_after_sections_reset <= frp.reset_sections.map2(
+                &grid_frp.properties,
+                f!((_, props) model.reset_entries(*props))
+            );
+            request_sections_after_layer_change <= frp.set_layers.map2(
+                &grid_frp.properties,
+                f!((_, props) model.drop_all_entries(*props))
+            );
             out.section_info_needed <+ request_sections_after_viewport_change;
             out.section_info_needed <+ request_sections_after_entry_size_change;
             out.section_info_needed <+ request_sections_after_reset;
             out.section_info_needed <+ request_sections_after_sections_reset;
             out.section_info_needed <+ request_sections_after_layer_change;
 
-            position_update <= grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.update_headers_positions(*props)));
+            position_update <= grid_frp.viewport.map2(
+                &grid_frp.properties,
+                f!((_, props) model.update_headers_positions(*props))
+            );
             out.header_position_changed <+ position_update;
-            section_update <- input.section_info.map3(&grid_frp.properties, &frp.set_layers,
-                f!(((rows, col, m): &(Range<usize>, usize, HeaderEntry::Model), props, layers) model.update_section(rows.clone(), *col, m.clone(), props.entries_size, props.viewport, layers))
+            section_update <- input.section_info.map3(
+                &grid_frp.properties,
+                &frp.set_layers,
+                f!(((rows, col, m): &(Range<usize>, usize, HeaderEntry::Model), props, layers)
+                    model.update_section(rows.clone(), *col, m.clone(), props.entries_size, props.viewport, layers))
             );
             out.header_shown <+ section_update.map(|&(row, col, _)| (row, col));
             out.header_position_changed <+ section_update;
@@ -373,18 +424,29 @@ where
         Self { frp, model, entry_type }
     }
 
+    /// Returns the current header position by its row and column index.
+    ///
+    /// If the entry at given location is not a pushed-down header, the method returns `None`.
+    /// You may be also interested in [`header_or_entry_position`] method.
     pub fn header_position(&self, row: Row, col: Col) -> Option<Vector2> {
         let entry_size = self.model.grid.as_ref().entries_size.value();
         let viewport = self.model.grid.as_ref().viewport.value();
         self.model.header_position(row, col, entry_size, viewport)
     }
 
+    /// Returns the y position where pushed-down header ends, and below which the standard entries
+    /// are visible.
+    ///
+    /// If the column does not have pushed-down header visible, the top of the viewport is returned.
     pub fn header_separator(&self, col: Col) -> f32 {
         let entry_size = self.model.grid.as_ref().entries_size.value();
         let viewport = self.model.grid.as_ref().viewport.value();
         self.model.header_separator(col, entry_size, viewport)
     }
 
+    /// If the entry at given location is a pushed-down header, return its current (pushed-down
+    /// position), otherwise returns the base position for that entry (same as
+    /// [`crate::GridView::entry_position`]).
     pub fn header_or_entry_position(&self, row: Row, column: Col) -> Vector2 {
         let header_pos = self.header_position(row, column);
         header_pos.unwrap_or_else(|| self.model.grid.as_ref().entry_position(row, column))
@@ -397,6 +459,8 @@ where
     HeaderModel: frp::node::Data,
     HeaderParams: frp::node::Data,
 {
+    /// Return the pushed-down header instance at given position, or `None` if the entry at this
+    /// position is not a pushed-down header.  
     pub fn get_header(&self, row: Row, col: Col) -> Option<HeaderEntry>
     where HeaderEntry: CloneRef {
         let headers = self.model.visible_headers.borrow();
@@ -404,6 +468,7 @@ where
         header.map(|e| e.entry.entry.clone_ref())
     }
 
+    /// Return the FRP API related to headers.
     pub fn header_frp(&self) -> &Frp<HeaderModel> {
         &self.frp
     }
@@ -494,7 +559,7 @@ mod tests {
             header_frp.section_info <+ header_frp.section_info_needed.map(move |&(row, col)| {
                 let (&section_start, model) = headers[col].range(..=row).last().unwrap();
                 let section_end = headers[col].range((row+1)..).next().map_or(row_count, |(row, _)| *row);
-                (section_start..section_end, col, model.clone())
+                (section_start..section_end, col, *model)
             });
         }
         grid_view.set_entries_size(Vector2(10.0, 10.0));
