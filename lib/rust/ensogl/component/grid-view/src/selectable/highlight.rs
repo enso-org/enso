@@ -212,7 +212,6 @@ where InnerGrid: AsRef<crate::GridView<E>>
         if let Some(bottom_clip) = bottom_clip {
             frp::extend! {network
                 bottom_clip <- all(&init, bottom_clip)._1();
-                trace bottom_clip;
                 bottom_clip_and_viewport <- all(bottom_clip, grid_frp.viewport);
                 eval bottom_clip_and_viewport ([shape](&(c, v)) Setter::set_bottom_clip(&shape, c, v));
             }
