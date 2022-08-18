@@ -84,7 +84,11 @@ fn setup_grid_view(
         eval view.entry_accepted ([]((row, col)) tracing::debug!("ACCEPTED entry ({row}, {col})."));
         eval view.selection_movement_confined_to_grid ([](dir)
             if let Some(dir) = dir {
-                tracing::debug!("Tried to select an entry outside of the grid in {dir:?} direction.")
+                let msg = iformat!(
+                    "An attempt to select an entry outside of the grid in " dir;?
+                    " direction was stopped."
+                );
+                tracing::debug!("{msg}");
             }
         );
     }
