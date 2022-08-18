@@ -78,6 +78,7 @@ where
         highlight::HasConstructor<InnerGridView = InnerGridView>,
 {
     fn new_wrapping(app: &Application, grid: InnerGridView) -> Self {
+        use crate::Direction;
         let highlights = highlight::shape::View::new(Logger::new("highlights"));
         let header_highlights = Immutable(None);
         let selection_handler = highlight::SelectionHandler::new_connected(app, &grid);
@@ -103,14 +104,22 @@ where
             selected_on_move_right <- entry_selected.sample(&internal.input.move_selection_right);
             trace selected_on_move_up;
             // FIXME: detect 0/max row/column and stop + emit a "leaving" event
-            eval selected_on_move_up ([grid_frp]((row, col)) {
-                grid_frp.select_entry(Some((row - 1, *col)));
+            eval selected_on_move_up ([grid_frp, internal]((row, col)) {
+                if *row > 0 {
+                    grid_frp.select_entry(Some((row - 1, *col)));
+                } else {
+                    internal.output.selection_movement_would_leave_grid.emit(Some(Direction::Up));
+                }
             });
             eval selected_on_move_down ([grid_frp]((row, col)) {
                 grid_frp.select_entry(Some((row + 1, *col)));
             });
-            eval selected_on_move_left ([grid_frp]((row, col)) {
-                grid_frp.select_entry(Some((*row, col - 1)));
+            eval selected_on_move_left ([grid_frp, internal]((row, col)) {
+                if *col > 0 {
+                    grid_frp.select_entry(Some((*row, col - 1)));
+                } else {
+                    internal.output.selection_movement_would_leave_grid.emit(Some(Direction::Left));
+                }
             });
             eval selected_on_move_right ([grid_frp]((row, col)) {
                 grid_frp.select_entry(Some((*row, col + 1)));

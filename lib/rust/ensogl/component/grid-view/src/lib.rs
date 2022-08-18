@@ -78,6 +78,14 @@ pub type Row = usize;
 pub type Col = usize;
 
 
+// === Direction ===
+
+#[derive(Copy, Clone, Debug)]
+pub enum Direction {
+    Up, Down, Left, Right,
+}
+
+
 // === Properties ===
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -153,6 +161,7 @@ ensogl_core::define_endpoints_2! {
         entry_hovered(Option<(Row, Col)>),
         entry_selected(Option<(Row, Col)>),
         entry_accepted(Row, Col),
+        selection_movement_would_leave_grid(Option<Direction>),
     }
 }
 
