@@ -102,7 +102,7 @@ pub struct Suggestion {
     /// An import required by the suggestion.
     pub imports:            Vec<module::QualifiedName>,
     /// The documentation bound to the suggestion.
-    pub documentation_html: Option<&'static str>,
+    pub documentation_html: Option<String>,
     /// The id of the method called by the suggestion.
     pub method_id:          Option<MethodId>,
     /// The name of the icon bound to this entry.
@@ -110,7 +110,8 @@ pub struct Suggestion {
 }
 
 impl Suggestion {
-    fn new(name: &'static str, code: &'static str, icon: &ImString) -> Self {
+    /// Construct a hardcoded suggestion with given name, code, and icon.
+    pub(crate) fn new(name: &'static str, code: &'static str, icon: &ImString) -> Self {
         let icon = icon.clone_ref();
         Self { name, code, icon, ..default() }
     }
@@ -130,7 +131,10 @@ impl Suggestion {
         self
     }
 
-    fn with_return_type(
+    /// Returns a modified suggestion with [`Suggestion::return_type`] field set. This method is
+    /// only intended to be used when defining hardcoded suggestions and panics if the argument
+    /// fails to convert to a valid type name.
+    pub(crate) fn with_return_type(
         mut self,
         return_type: impl TryInto<tp::QualifiedName, Error: Debug>,
     ) -> Self {
@@ -143,6 +147,18 @@ impl Suggestion {
         import: impl TryInto<module::QualifiedName, Error: Debug>,
     ) -> Self {
         self.imports.push(import.try_into().unwrap());
+        self
+    }
+
+    /// Returns a modified suggestion with [`Suggestion::documentation_html`] field set. This
+    /// method is only intended to be used when defining hardcoded suggestions and panics if a
+    /// documentation parser cannot be created or the argument fails to parse as valid
+    /// documentation.
+    pub(crate) fn with_documentation(mut self, documentation: &str) -> Self {
+        let doc_parser = parser::DocParser::new().unwrap();
+        let doc_string = documentation.to_string();
+        let documentation_html = doc_parser.generate_html_doc_pure(doc_string);
+        self.documentation_html = Some(documentation_html.unwrap());
         self
     }
 

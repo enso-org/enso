@@ -365,11 +365,23 @@ prepare_order_by : Vector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
         Sort_Column_Selector.By_Name name_selectors matcher ->
-            select_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor=(_.name)
+            unified_name_selectors = name_selectors.map selector-> case selector of
+                Text -> Sort_Column.Name selector
+                Sort_Column.Name _ _ -> selector
+            select_columns_by_name internal_columns unified_name_selectors matcher problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Index index_selectors ->
-            select_columns_by_index internal_columns index_selectors problem_builder index_extractor=(_.index)
+            unified_index_selectors = index_selectors.map selector-> case selector of
+                Integer -> Sort_Column.Index selector
+                Sort_Column.Index _ _ -> selector
+            select_columns_by_index internal_columns unified_index_selectors problem_builder index_extractor=(_.index)
         Sort_Column_Selector.By_Column column_selectors ->
-            select_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor=(_.column)
+            unified_column_selectors = column_selectors.map selector-> case selector of
+                Sort_Column.Column _ _ -> selector
+                ## We cannot match by type here, as there is no common `Column`
+                   type - the type is different for In-Memory and Database
+                   tables, and we do not have interfaces yet.
+                column_reference -> Sort_Column.Column column_reference
+            select_columns_by_column_reference internal_columns unified_column_selectors problem_builder column_extractor=(_.column)
     if selected_elements.is_empty then
         problem_builder.report_other_warning No_Input_Columns_Selected
     selected_elements

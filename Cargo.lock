@@ -1659,6 +1659,7 @@ name = "double-representation"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "const_format",
  "engine-protocol",
  "enso-data-structures",
  "enso-logger",
@@ -1960,6 +1961,7 @@ dependencies = [
  "ast",
  "bimap",
  "console_error_panic_hook",
+ "const_format",
  "convert_case 0.5.0",
  "double-representation",
  "engine-protocol",
