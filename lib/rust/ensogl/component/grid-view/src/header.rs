@@ -304,16 +304,15 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View for Gri
 
     fn app(&self) -> &Application {
         self.model.grid.app()
-        // &self.widget.app()
     }
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use application::shortcut::ActionType::*;
         (&[
             (PressAndRepeat, "up", "move_selection_up"),
-    //         (Press, "!node_editing", "tab", "start_node_creation"),
-    //         // === Drag ===
-    //         (Press, "", "left-mouse-button", "node_press"),
+            (PressAndRepeat, "down", "move_selection_down"),
+            (PressAndRepeat, "left", "move_selection_left"),
+            (PressAndRepeat, "right", "move_selection_right"),
         ])
             .iter()
             // .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

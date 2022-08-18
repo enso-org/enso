@@ -96,15 +96,25 @@ where
             });
             trace internal.input.move_selection_up;
             // TODO: why won't work (has None)?: selected_on_mouse_up <- internal.input.select_entry.sample(&internal.input.move_selection_up);
-            selected_on_move_up <- grid_frp.entry_selected.sample(&internal.input.move_selection_up);
+            entry_selected <- grid_frp.entry_selected.filter_map(|v| *v);
+            selected_on_move_up <- entry_selected.sample(&internal.input.move_selection_up);
+            selected_on_move_down <- entry_selected.sample(&internal.input.move_selection_down);
+            selected_on_move_left <- entry_selected.sample(&internal.input.move_selection_left);
+            selected_on_move_right <- entry_selected.sample(&internal.input.move_selection_right);
             trace selected_on_move_up;
-            eval selected_on_move_up ([grid_frp](location) {
-                if let Some((row, col)) = location {
-                    // TODO: what happens when bottom-most/top-most row?
-                    grid_frp.select_entry(Some((row - 1, *col)));
-                }
+            // FIXME: detect 0/max row/column and stop + emit a "leaving" event
+            eval selected_on_move_up ([grid_frp]((row, col)) {
+                grid_frp.select_entry(Some((row - 1, *col)));
             });
-            // eval internal.input.move_selection_up ([]() {
+            eval selected_on_move_down ([grid_frp]((row, col)) {
+                grid_frp.select_entry(Some((row + 1, *col)));
+            });
+            eval selected_on_move_left ([grid_frp]((row, col)) {
+                grid_frp.select_entry(Some((*row, col - 1)));
+            });
+            eval selected_on_move_right ([grid_frp]((row, col)) {
+                grid_frp.select_entry(Some((*row, col + 1)));
+            });
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }
