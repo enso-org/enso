@@ -69,9 +69,9 @@ spec prefix table_builder test_selection pending=Nothing =
 
             table.at 100 . should_fail_with Index_Out_Of_Bounds_Error
 
-    Test.group prefix+"Table.length" pending=pending <|
+    Test.group prefix+"Table.column_count" pending=pending <|
         Test.specify "should allow getting the column count" <|
-            table.length . should_equal 7
+            table.column_count . should_equal 7
 
     Test.group prefix+"Table.select_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|

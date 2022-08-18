@@ -55,7 +55,7 @@ spec prefix connection pending=Nothing =
             ix2.to_vector . should_equal [1, 4]
         Test.specify "should work correctly when there are no columns" <|
             empty = t1.select_columns (By_Name [])
-            empty.to_dataframe.columns.length . should_equal 0
+            empty.to_dataframe.column_count . should_equal 0
             empty.to_dataframe.row_count . should_equal empty.row_count
         Test.specify "should handle bigger result sets" <|
             n = 1000
@@ -206,8 +206,8 @@ spec prefix connection pending=Nothing =
             r.at "a" . to_vector . should_equal [1, 2, 3]
 
             empty = t4.drop_missing_columns
-            empty.columns.length . should_equal 0
-            empty.to_dataframe.columns.length . should_equal 0
+            empty.column_count . should_equal 0
+            empty.to_dataframe.column_count . should_equal 0
 
     Test.group prefix+"Column-wide statistics" pending=pending <|
         Test.specify 'should allow computing basic column-wide stats' <|

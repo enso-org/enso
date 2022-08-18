@@ -511,7 +511,7 @@ type Table
                 Nothing -> Nothing
                 _ -> val.to_text
         new_names = self.columns.map mapper
-        self.take_end (self.length - 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
+        self.take_end (self.row_count - 1) . rename_columns (Column_Name_Mapping.By_Position new_names) on_problems=on_problems
 
     ## ALIAS group, summarize
 
