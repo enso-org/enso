@@ -95,7 +95,16 @@ where
                 highlight::shape::set_viewport(&highlights, vp);
             });
             trace internal.input.move_selection_up;
-            // eval internal.move_selection_up ([]() {
+            // TODO: why won't work (has None)?: selected_on_mouse_up <- internal.input.select_entry.sample(&internal.input.move_selection_up);
+            selected_on_move_up <- grid_frp.entry_selected.sample(&internal.input.move_selection_up);
+            trace selected_on_move_up;
+            eval selected_on_move_up ([grid_frp](location) {
+                if let Some((row, col)) = location {
+                    // TODO: what happens when bottom-most/top-most row?
+                    grid_frp.select_entry(Some((row - 1, *col)));
+                }
+            });
+            // eval internal.input.move_selection_up ([]() {
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }
