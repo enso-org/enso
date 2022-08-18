@@ -11,6 +11,7 @@ use crate::Properties;
 use crate::Row;
 
 use ensogl_core::application::Application;
+use ensogl_core::application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
@@ -285,6 +286,40 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridView<E, HeaderEntry> 
         Self::new_wrapping(grid)
     }
 }
+
+impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> FrpNetworkProvider for GridView<E, HeaderEntry> {
+    fn network(&self) -> &frp::Network {
+        self.model.grid.network()
+    }
+}
+
+impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View for GridView<E, HeaderEntry> {
+    fn label() -> &'static str {
+        "GridViewWithHeaders"
+    }
+
+    fn new(app: &Application) -> Self {
+        GridView::<E, HeaderEntry>::new(app)
+    }
+
+    fn app(&self) -> &Application {
+        self.model.grid.app()
+        // &self.widget.app()
+    }
+
+    // fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+    //     use shortcut::ActionType::*;
+    //     (&[
+    //         (Press, "!node_editing", "tab", "start_node_creation"),
+    //         // === Drag ===
+    //         (Press, "", "left-mouse-button", "node_press"),
+    //     ])
+    //         .iter()
+    //         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+    //         .collect()
+    // }
+}
+
 
 impl<E, InnerGridView, HeaderEntry>
     GridViewTemplate<E, InnerGridView, HeaderEntry, HeaderEntry::Model, HeaderEntry::Params>
