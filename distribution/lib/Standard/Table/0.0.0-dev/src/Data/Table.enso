@@ -4,8 +4,6 @@ import Standard.Base.System.Platform
 import Standard.Table.Data.Column
 import Standard.Visualization
 import Standard.Table.IO.File_Format
-import Standard.Base.System.File
-import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.Error.Common as Errors
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
