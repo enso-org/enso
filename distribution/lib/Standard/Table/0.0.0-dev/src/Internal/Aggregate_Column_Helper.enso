@@ -39,7 +39,8 @@ polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
    - key_columns: Vector of Columns from the table to group by
    - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column
    - problems: Set of any problems when validating the input
-type Validated_Aggregate_Columns (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
+type Validated_Aggregate_Columns
+    Validated_Aggregate_Columns_Data (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
 
 ## PRIVATE
    Prepares an aggregation input for further processing:
@@ -80,7 +81,7 @@ prepare_aggregate_columns aggregates table =
     if unique.renames.not_empty then
         problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames)
 
-    Validated_Aggregate_Columns unique_key_columns renamed_columns problem_builder.build_problemset
+    Validated_Aggregate_Columns_Data unique_key_columns renamed_columns problem_builder.build_problemset
 
 ## PRIVATE
    Defines the default name of an `Aggregate_Column`.

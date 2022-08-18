@@ -13,13 +13,13 @@ Codecs.Read_Flag.to_integer self = case self of
 
 ## PRIVATE
 Codecs.Write_Flag.to_integer self = case self of
-    Codecs.Write_Jpeg_Quality -> Imgcodecs.IMWRITE_JPEG_QUALITY
+    Codecs.Write_Jpeg_Quality _ -> Imgcodecs.IMWRITE_JPEG_QUALITY
     Codecs.Write_Jpeg_Progressive -> Imgcodecs.IMWRITE_JPEG_PROGRESSIVE
     Codecs.Write_Jpeg_Optimize -> Imgcodecs.IMWRITE_JPEG_OPTIMIZE
-    Codecs.Write_Jpeg_Luma_Quality -> Imgcodecs.IMWRITE_JPEG_LUMA_QUALITY
-    Codecs.Write_Jpeg_Chroma_Quality -> Imgcodecs.IMWRITE_JPEG_CHROMA_QUALITY
-    Codecs.Write_Png_Compression -> Imgcodecs.IMWRITE_PNG_COMPRESSION
-    Codecs.Write_Webp_Quality -> Imgcodecs.IMWRITE_WEBP_QUALITY
+    Codecs.Write_Jpeg_Luma_Quality _ -> Imgcodecs.IMWRITE_JPEG_LUMA_QUALITY
+    Codecs.Write_Jpeg_Chroma_Quality _ -> Imgcodecs.IMWRITE_JPEG_CHROMA_QUALITY
+    Codecs.Write_Png_Compression _ -> Imgcodecs.IMWRITE_PNG_COMPRESSION
+    Codecs.Write_Webp_Quality _ -> Imgcodecs.IMWRITE_WEBP_QUALITY
 
 ## PRIVATE
 

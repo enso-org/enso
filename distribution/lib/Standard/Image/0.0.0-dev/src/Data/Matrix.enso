@@ -23,7 +23,7 @@ polyglot java import org.enso.image.data.Matrix as Java_Matrix
          example_zeros = Matrix.zeros rows=2 columns=2
 zeros : Integer -> Integer -> Integer -> Matrix
 zeros rows columns channels=1 =
-    Matrix (Java_Matrix.zeros rows columns channels)
+    Matrix_Data (Java_Matrix.zeros rows columns channels)
 
 ## UNSTABLE
 
@@ -42,7 +42,7 @@ zeros rows columns channels=1 =
          example_ones = Matrix.zeros rows=2 columns=2 channels=3
 ones : Integer -> Integer -> Integer -> Matrix
 ones rows columns channels=1 =
-    Matrix (Java_Matrix.ones rows columns channels)
+    Matrix_Data (Java_Matrix.ones rows columns channels)
 
 ## UNSTABLE
 
@@ -61,7 +61,7 @@ ones rows columns channels=1 =
          example_identity = Matrix.identity rows=2 columns=2 channels=3
 identity : Integer -> Integer -> Integer -> Matrix
 identity rows columns channels=1 =
-    Matrix (Java_Matrix.identity rows columns channels)
+    Matrix_Data (Java_Matrix.identity rows columns channels)
 
 ## UNSTABLE
 
@@ -79,7 +79,7 @@ identity rows columns channels=1 =
          example_from_vector = Matrix.from_vector [1, 1, 0, 0] rows=2
 from_vector : Vector -> Integer -> Integer -> Matrix
 from_vector values rows=1 channels=1 =
-    Matrix (Java_Matrix.from_vector values.to_array channels rows)
+    Matrix_Data (Java_Matrix.from_vector values.to_array channels rows)
 
 ## UNSTABLE
 type Matrix
@@ -94,7 +94,7 @@ type Matrix
        Each value of the matrix is represented with an array of
        channels. In contrast to an Image data type, Matrix values are
        not normalized.
-    type Matrix opencv_mat
+    Matrix_Data opencv_mat
 
     ## UNSTABLE
 
@@ -171,8 +171,8 @@ type Matrix
     reshape : Integer -> Integer -> Matrix
     reshape self rows channels=Nothing =
         case channels of
-            Nothing -> Matrix (self.opencv_mat.reshape self.channels rows)
-            _ -> Matrix (self.opencv_mat.reshape channels rows)
+            Nothing -> Matrix_Data (self.opencv_mat.reshape self.channels rows)
+            _ -> Matrix_Data (self.opencv_mat.reshape channels rows)
 
     ## UNSTABLE
 
@@ -385,7 +385,7 @@ type Matrix
              example_normalize = Matrix.identity 3 3 . normalize
     normalize : Number -> Number -> Matrix
     normalize self min_value=0.0 max_value=1.0 =
-        Matrix (Java_Matrix.normalize self.opencv_mat min_value max_value)
+        Matrix_Data (Java_Matrix.normalize self.opencv_mat min_value max_value)
 
     ## UNSTABLE
 
@@ -439,13 +439,13 @@ type Matrix_Error
        - rows: The number of rows in the matrix.
        - columns: The number of columns in the matrix.
        - index: The requested index in the matrix.
-    type Index_Out_Of_Bounds_Error rows columns index
+    Index_Out_Of_Bounds_Error rows columns index
 
     ## UNSTABLE
 
        An error indicating that an operation has failed due to a mismatch of
        matrix dimensions.
-    type Dimensions_Not_Equal
+    Dimensions_Not_Equal
 
     ## UNSTABLE
 
