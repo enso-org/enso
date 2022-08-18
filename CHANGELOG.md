@@ -178,7 +178,7 @@
   counterparts.][3629]
 - [Short-hand syntax for `order_by` added.][3643]
 - [Expanded `Table.at` to support index access and added `Table.column_count`
-  method.][3644] 
+  method.][3644]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
