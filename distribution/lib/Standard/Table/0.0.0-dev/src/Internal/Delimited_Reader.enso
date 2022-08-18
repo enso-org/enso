@@ -4,7 +4,7 @@ import Standard.Table
 import Standard.Base.Data.Statistics
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Ignore, Report_Error
-from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
+from Standard.Table.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows_Data
 from Standard.Base.Data.Text.Encoding import Encoding, Encoding_Error
 from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Data.Data_Formatter import Data_Formatter_Data
@@ -105,7 +105,9 @@ prepare_delimited_reader java_reader format max_columns on_problems newline_over
     row_limit = case format.row_limit of
         Nothing -> -1
         Integer -> format.row_limit
-        _ -> Error.throw (Illegal_Argument_Error_Data "`row_limit` should be Integer or Nothing.")
+        _ ->
+            IO.println format.row_limit
+            Error.throw (Illegal_Argument_Error_Data "`row_limit` should be Integer or Nothing.")
     warnings_as_errors = on_problems == Report_Error
     quote_characters = case format.quote_style of
         Quote_Style.No_Quotes -> Pair_Data Nothing Nothing
@@ -126,11 +128,11 @@ prepare_delimited_reader java_reader format max_columns on_problems newline_over
     DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 translate_reader_problem problem =
-    invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row))]
-    additional_invalid_rows = [AdditionalInvalidRows, (java_problem-> Additional_Invalid_Rows java_problem.count)]
+    invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector_Data java_problem.row))]
+    additional_invalid_rows = [AdditionalInvalidRows, (java_problem-> Additional_Invalid_Rows_Data java_problem.count)]
     mismatched_quote = [MismatchedQuote, (_-> Mismatched_Quote)]
-    duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames))]
-    invalid_names = [InvalidNames, (java_problem-> Invalid_Output_Column_Names (Vector.Vector java_problem.invalidNames))]
+    duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names_Data (Vector.Vector_Data java_problem.duplicatedNames))]
+    invalid_names = [InvalidNames, (java_problem-> Invalid_Output_Column_Names_Data (Vector.Vector_Data java_problem.invalidNames))]
 
     translations = [invalid_row, additional_invalid_rows, mismatched_quote, duplicate_names, invalid_names]
     found = translations.find t-> Java.is_instance problem t.first
@@ -140,9 +142,6 @@ translate_reader_problem problem =
 ## PRIVATE
    An internal type representing columns deduced from an existing file.
 type Detected_Headers
-    ## Indicates that the file did not exist or was empty.
-    Nothing
-
     ## Represents the headers found in the file.
     Existing_Headers (column_names : Vector Text)
 
@@ -187,7 +186,7 @@ detect_metadata file format =
                         column_count = reader.getColumnCount
                         if column_count == 0 then Nothing else
                             No_Headers column_count
-                    _ -> Existing_Headers (Vector.Vector defined_columns)
+                    _ -> Existing_Headers (Vector.Vector_Data defined_columns)
                 line_separator_from_parser = reader.getEffectiveLineSeparator
                 has_seen_newline = newline_detecting_reader.newlineEncountered
                 ## If the parser has seen a newline, we can trust that it

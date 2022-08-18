@@ -30,8 +30,8 @@ type Auto
         output = Ref.new Nothing
         if ".txt".equals_ignore_case extension then output.put File_Format.Plain_Text
         if ".log".equals_ignore_case extension then output.put File_Format.Plain_Text
-        if ".csv".equals_ignore_case extension then output.put (File_Format.Delimited ',')
-        if ".tsv".equals_ignore_case extension then output.put (File_Format.Delimited '\t')
+        if ".csv".equals_ignore_case extension then output.put (File_Format.Delimited_Data ',')
+        if ".tsv".equals_ignore_case extension then output.put (File_Format.Delimited_Data '\t')
         if ".xlsx".equals_ignore_case extension then output.put File_Format.Excel
         if ".xlsm".equals_ignore_case extension then output.put File_Format.Excel
         if ".xls".equals_ignore_case extension then output.put File_Format.Excel
@@ -134,7 +134,7 @@ type Delimited
        Note: This function is internal until such time as Atom cloning with modification is built into Enso.
     clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->(Text|Nothing)->(Text|Nothing)->Delimited
     clone self (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
-        Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
+        Delimited_Data self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 
     ## Create a clone of this with specified quoting settings.
     with_quotes : Text->Text->Boolean->Delimited

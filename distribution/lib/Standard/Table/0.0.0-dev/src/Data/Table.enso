@@ -750,7 +750,7 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns self = Vector.Vector_Data self.java_table.getColumns . map Column.Column
+    columns self = Vector.Vector_Data self.java_table.getColumns . map Column.Column_Data
 
     ## Sets the index of this table, using the column with the provided name.
 
@@ -1221,5 +1221,5 @@ Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width =
         Errors.unimplemented "Table.from for fixed-width files is not yet implemented."
 
 Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited_Data '\t') =
-    if format.is_a File_Format.Delimited then Delimited_Writer.write_text that format else
+    if format.is_a File_Format.Delimited_Data then Delimited_Writer.write_text that format else
         Errors.unimplemented "Text.from for fixed-width files is not yet implemented."

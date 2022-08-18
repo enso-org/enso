@@ -15,7 +15,7 @@ import project.Csv_Spec
 
 in_memory_spec =
     Column_Spec.spec
-    #Csv_Spec.spec
+    Csv_Spec.spec
     #Delimited_Read_Spec.spec
     #Delimited_Write_Spec.spec
     #Excel_Spec.spec
