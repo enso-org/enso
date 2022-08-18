@@ -22,34 +22,36 @@ use ensogl_scroll_area::Viewport;
 // === FRP ===
 // ===========
 
-/// A structure with layers where the headers are displayed.
+/// A structure with layers where the headers are displayed. Designed to be used in FRP networks.
 ///
-/// The references are weak so the structure may be safely propagated through FRP networks.
+/// To avoid unpredictable layer lifetime, all the references are weak.
 #[allow(missing_docs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct WeakLayers {
-    pub header: WeakLayer,
+    pub header: Option<WeakLayer>,
     pub text:   Option<WeakLayer>,
 }
 
 impl WeakLayers {
     /// Constructor.
     pub fn new(header: &Layer, text: Option<&Layer>) -> Self {
-        Self { header: header.downgrade(), text: text.map(|l| l.downgrade()) }
+        Self { header: Some(header.downgrade()), text: text.map(|l| l.downgrade()) }
     }
 
-    fn upgrade_header(this: &Option<Self>) -> Option<Layer> {
-        this.as_ref()?.header.upgrade()
+    /// Upgrade the main layer for headers.
+    pub fn upgrade_header(&self) -> Option<Layer> {
+        self.header.as_ref()?.upgrade()
     }
 
-    fn upgrade_text(this: &Option<Self>) -> Option<Layer> {
-        this.as_ref()?.text.as_ref()?.upgrade()
+    /// Upgrade the text layer for headers.
+    pub fn upgrade_text(&self) -> Option<Layer> {
+        self.text.as_ref()?.upgrade()
     }
 }
 
 ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
     Input {
-        set_layers(Option<WeakLayers>),
+        set_layers(WeakLayers),
         section_info(Range<Row>, Col, HeaderModel),
         reset_sections(),
     }
@@ -204,7 +206,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         model: HeaderEntry::Model,
         entry_size: Vector2,
         viewport: Viewport,
-        layers: &Option<WeakLayers>,
+        layers: &WeakLayers,
     ) -> (Row, Col, Vector2)
     where
         InnerGrid: display::Object,
@@ -213,9 +215,9 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
         let create_new_entry = || {
-            let text_layer = WeakLayers::upgrade_text(layers);
+            let text_layer = layers.upgrade_text();
             let entry = self.entry_creation_ctx.create_entry(text_layer.as_ref());
-            if let Some(layer) = WeakLayers::upgrade_header(layers) {
+            if let Some(layer) = layers.upgrade_header() {
                 layer.add_exclusive(&entry);
             }
             entry
@@ -447,6 +449,15 @@ where
 {
     fn as_ref(&self) -> &crate::GridView<E> {
         self.model.grid.as_ref()
+    }
+}
+
+impl<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams> AsRef<Self>
+    for GridViewTemplate<Entry, InnerGridView, HeaderEntry, HeaderModel, HeaderParams>
+where HeaderModel: frp::node::Data
+{
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 

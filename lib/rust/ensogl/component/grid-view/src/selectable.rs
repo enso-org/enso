@@ -134,9 +134,13 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridViewWithHeaders<E, He
         this.hover_handler.connect_with_header_shape(&header_highlights);
 
         let network = this.grid.frp().network();
+        let header_frp = this.grid.header_frp();
         frp::extend! { network
             eval this.grid.viewport ([header_highlights](&vp) {
                 highlight::shape::set_viewport(&header_highlights, vp);
+            });
+            eval header_frp.set_layers([header_highlights](layers) if let Some(layer) = layers.upgrade_header() {
+                layer.add_exclusive(&header_highlights);
             });
         }
         this.header_highlights = Immutable(Some(header_highlights));
@@ -159,11 +163,10 @@ where EntryParams: frp::node::Data
     }
 }
 
-impl<InnerGridView, E: Entry> AsRef<crate::GridView<E>>
-    for GridViewTemplate<InnerGridView, E, E::Params>
-where InnerGridView: AsRef<crate::GridView<E>>
+impl<InnerGridView, E: Entry, T> AsRef<T> for GridViewTemplate<InnerGridView, E, E::Params>
+where InnerGridView: AsRef<T>
 {
-    fn as_ref(&self) -> &crate::GridView<E> {
+    fn as_ref(&self) -> &T {
         self.grid.as_ref()
     }
 }
