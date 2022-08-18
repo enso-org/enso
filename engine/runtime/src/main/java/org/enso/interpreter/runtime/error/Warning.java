@@ -86,6 +86,7 @@ public class Warning implements TruffleObject {
       name = "get_all_array",
       description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize
+  @CompilerDirectives.TruffleBoundary
   public static Array getAll(WithWarnings value) {
     Warning[] warnings = value.getWarningsArray();
     Arrays.sort(warnings, Comparator.comparing(Warning::getCreationTime).reversed());
@@ -173,6 +174,7 @@ public class Warning implements TruffleObject {
     return creationTime;
   }
 
+  @CompilerDirectives.TruffleBoundary
   public Warning reassign(Node location) {
     RootNode root = location.getRootNode();
     SourceSection section = location.getEncapsulatingSourceSection();

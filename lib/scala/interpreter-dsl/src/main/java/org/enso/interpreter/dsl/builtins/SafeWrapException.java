@@ -27,12 +27,14 @@ public record SafeWrapException(Attribute.Class from, Attribute.Class to) {
         if (to.equals(PanicExceptionClassName)) {
             return List.of(
                 "  } catch (" + from + " e) {",
+                "    com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();",
                 "    Builtins builtins = Context.get(this).getBuiltins();",
                 "    throw new PanicException(e.getMessage(), this);"
             );
         } else {
             return List.of(
                 "  } catch (" + from + " e) {",
+                "    com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();",
                 "    Context ctx = Context.get(this);",
                 "    Builtins builtins = ctx.getBuiltins();",
                 "    throw new PanicException(builtins.error().get" + to + "().wrap(ctx, e), this);"
