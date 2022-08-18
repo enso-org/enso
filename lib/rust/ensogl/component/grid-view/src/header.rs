@@ -285,10 +285,10 @@ impl<Entry, InnerGridView, HeaderEntry, HeaderModel: frp::node::Data, HeaderPara
 ///
 /// # Headers
 ///
-/// Those headers which are pushed down are instantiated in a separate layer, passed with
-/// `set_layers` input. User should ensure, that the layer is displayed over the normal entries.
-/// Those headers can be the same type as main entries, but does not have to. They should have,
-/// the same [`Entry::Params`] type however.
+/// Those headers which are pushed down can (and should) be instantiated in a separate layer, passed
+/// with `set_layers` input. User should ensure, that the layer is displayed over the normal
+/// entries. Those headers can be the same type as main entries, but does not have to. They should
+/// have the same [`Entry::Params`] type, however.
 ///
 /// ## Requesting for Models
 ///
@@ -334,32 +334,52 @@ where
         let out = &frp.private.output;
         frp::extend! { network
             headers_hidden_after_viewport_change <=
-                grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.hide_no_longer_visible_headers(*props)));
-            headers_hidden_after_entry_size_change <=
-                grid_frp.entries_size.map2(&grid_frp.properties, f!((_, props) model.hide_no_longer_visible_headers(*props)));
+                grid_frp.viewport.map2(&grid_frp.properties,
+                f!((_, props) model.hide_no_longer_visible_headers(*props))
+            );
+            headers_hidden_after_entry_size_change <= grid_frp.entries_size.map2(
+                &grid_frp.properties,
+                f!((_, props) model.hide_no_longer_visible_headers(*props))
+            );
             out.header_hidden <+ headers_hidden_after_viewport_change;
             out.header_hidden <+ headers_hidden_after_entry_size_change;
 
-            request_sections_after_viewport_change <=
-                grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.needed_info_for_uncovered_sections(*props)));
-            request_sections_after_entry_size_change <=
-                grid_frp.entries_size.map2(&grid_frp.properties, f!((_, props) model.needed_info_for_uncovered_sections(*props)));
-            request_sections_after_reset <=
-                grid_frp.reset_entries.map2(&grid_frp.properties, f!((_, props) model.reset_entries(*props)));
-            request_sections_after_sections_reset <=
-                frp.reset_sections.map2(&grid_frp.properties, f!((_, props) model.reset_entries(*props)));
-            request_sections_after_layer_change <=
-                frp.set_layers.map2(&grid_frp.properties, f!((_, props) model.drop_all_entries(*props)));
+            request_sections_after_viewport_change <= grid_frp.viewport.map2(
+                &grid_frp.properties,
+                f!((_, props) model.needed_info_for_uncovered_sections(*props))
+            );
+            request_sections_after_entry_size_change <= grid_frp.entries_size.map2(
+                &grid_frp.properties,
+                f!((_, props) model.needed_info_for_uncovered_sections(*props))
+            );
+            request_sections_after_reset <= grid_frp.reset_entries.map2(
+                &grid_frp.properties,
+                f!((_, props) model.reset_entries(*props))
+            );
+            request_sections_after_sections_reset <= frp.reset_sections.map2(
+                &grid_frp.properties,
+                f!((_, props) model.reset_entries(*props))
+            );
+            request_sections_after_layer_change <= rp.set_layers.map2(
+                &grid_frp.properties,
+                f!((_, props) model.drop_all_entries(*props))
+            );
             out.section_info_needed <+ request_sections_after_viewport_change;
             out.section_info_needed <+ request_sections_after_entry_size_change;
             out.section_info_needed <+ request_sections_after_reset;
             out.section_info_needed <+ request_sections_after_sections_reset;
             out.section_info_needed <+ request_sections_after_layer_change;
 
-            position_update <= grid_frp.viewport.map2(&grid_frp.properties, f!((_, props) model.update_headers_positions(*props)));
+            position_update <= grid_frp.viewport.map2(
+                &grid_frp.properties,
+                f!((_, props) model.update_headers_positions(*props))
+            );
             out.header_position_changed <+ position_update;
-            section_update <- input.section_info.map3(&grid_frp.properties, &frp.set_layers,
-                f!(((rows, col, m): &(Range<usize>, usize, HeaderEntry::Model), props, layers) model.update_section(rows.clone(), *col, m.clone(), props.entries_size, props.viewport, layers))
+            section_update <- input.section_info.map3(
+                &grid_frp.properties,
+                &frp.set_layers,
+                f!(((rows, col, m): &(Range<usize>, usize, HeaderEntry::Model), props, layers)
+                    model.update_section(rows.clone(), *col, m.clone(), props.entries_size, props.viewport, layers))
             );
             out.header_shown <+ section_update.map(|&(row, col, _)| (row, col));
             out.header_position_changed <+ section_update;

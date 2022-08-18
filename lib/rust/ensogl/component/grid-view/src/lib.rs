@@ -1,6 +1,17 @@
 //! Grid View EnsoGL Component.
 //!
-//! The main structure is [`GridView`] - see its docs for details.
+//! There are many variants of the Grid View component:
+//! * the basic one: [`GridView`],
+//! * with scroll bars: [`scrollable::GridView`],
+//! * with selection and mouse hover highlights: [`selectable::GridView`],
+//! * with sections and headers visible even when scrolled down: [`header::GridView`].
+//! * The combinations of the features of above three, like [`selectable::GridViewWithHeaders`] or
+//!   [`scrollable::SeleectableGridViewWithHeraders`].
+//!
+//! Each variant expose the [`FRP`] structure as its main API - additional APIs (like for handling
+//! highlight or headers) are available through accessors (like `header_frp` or
+//! `selection_highlight_frp`). Also, as every variant is based on the basic [`GridView`], they
+//! implement `AsRef<GridView>`.
 
 #![recursion_limit = "1024"]
 // === Features ===
