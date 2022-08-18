@@ -908,7 +908,9 @@ define_endpoints_2! {
         set_favourites_section(Vec<LabeledAnyModelProvider>),
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
         /// The component browser is displayed on screen.
-        shown(),
+        show(),
+        /// The component browser is hidden from screen.
+        hide(),
     }
     Output{
         selected(Option<Selected>),
@@ -930,6 +932,7 @@ impl component::Frp<Model> for Frp {
         let header_height = style.get_number(component_group_theme::header::height);
         let layout_frp = Style::from_theme(network, style);
         let scene = &app.display.default_scene;
+        let input = &frp_api.input;
         let output = &frp_api.output;
         let groups = &model.groups_wrapper;
         let selection = &model.selection;
@@ -954,10 +957,11 @@ impl component::Frp<Model> for Frp {
 
             eval_ model.scroll_area.viewport( model.update_scroll_viewport() );
 
+            is_visible <- bool(&input.hide, &input.show);
             is_hovered <- app.cursor.frp.screen_position.map(f!([model,scene](pos) {
                 let pos = scene.screen_to_object_space(&model, pos.xy());
                 model.is_hovered(pos.xy())
-            })).on_change();
+            })).gate(&is_visible).on_change();
 
             on_hover <- is_hovered.on_true();
             on_hover_end <- is_hovered.on_false();
@@ -1015,7 +1019,7 @@ impl component::Frp<Model> for Frp {
 
             // === Section navigator ===
 
-            eval_ frp_api.input.shown(model.section_navigator.select_section(Section::Favorites));
+            eval_ input.show(model.section_navigator.select_section(Section::Favorites));
 
             chosen_section <- model.section_navigator.chosen_section.filter_map(|s| *s);
             scroll_to_section <- all(&chosen_section, &layout_frp.update);

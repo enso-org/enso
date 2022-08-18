@@ -54,6 +54,9 @@
   methods, atoms and functions are presented in nice, categorized view. The most
   popular tools are available at hand. The panel is unstable, and thus is
   available under the `--enable-new-component-browser` flag.
+- [Fixed error handling during startup.][3648] This prevents entering IDE into a
+  "zombie" state, where processes were started but not visible to user. They
+  could cause issues with starting further IDE instances.
 - [New nodes are created in the project source when the searcher is opened  
   and a new node is created.][5250]
 
@@ -175,6 +178,7 @@
   `Text.drop`.][3617]
 - [Updated `Vector.take` and `Vector.drop` and removed their obsolete
   counterparts.][3629]
+- [Short-hand syntax for `order_by` added.][3643]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -275,6 +279,8 @@
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3629]: https://github.com/enso-org/enso/pull/3629
+[3643]: https://github.com/enso-org/enso/pull/3643
+[3648]: https://github.com/enso-org/enso/pull/3648
 [5250]: https://github.com/enso-org/enso/pull/5250
 
 #### Enso Compiler
@@ -312,6 +318,7 @@
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
 - [Support Autosave for open buffers][3637]
+- [Support pattern matching on constants][3641]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -352,6 +359,7 @@
 [3631]: https://github.com/enso-org/enso/pull/3631
 [3633]: https://github.com/enso-org/enso/pull/3633
 [3637]: https://github.com/enso-org/enso/pull/3637
+[3633]: https://github.com/enso-org/enso/pull/3641
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

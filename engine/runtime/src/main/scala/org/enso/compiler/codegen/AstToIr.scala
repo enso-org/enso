@@ -1115,6 +1115,11 @@ object AstToIr {
           translateIdent(name).asInstanceOf[IR.Name],
           getIdentifiedLocation(pattern)
         )
+      case AstView.LiteralPattern(literal) =>
+        Pattern.Literal(
+          translateLiteral(literal).asInstanceOf[IR.Literal],
+          getIdentifiedLocation(pattern)
+        )
       case _ =>
         throw new UnhandledEntity(pattern, "translatePattern")
     }
