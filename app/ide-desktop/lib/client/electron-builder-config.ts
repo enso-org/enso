@@ -1,6 +1,7 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import { Configuration } from 'electron-builder'
+import {CliOptions, Configuration} from 'electron-builder'
+import builder from 'electron-builder'
 
 import { require_env } from '../../utils.js'
 import { project_manager_bundle } from './paths.js'
@@ -39,8 +40,10 @@ const config: Configuration = {
     },
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: ['nsis'],
+        target: [process.env['ENSO_BUILD_IDE_TARGET'] ?? 'nsis'],
         icon: `${icons}/icon.ico`,
+        certificateFile: 'C:\\Users\\mwurb\\Downloads\\New Byte Order Sp. z o.o._cert_49517.p12',
+        certificatePassword: '#BJfe2pUeLgEQ9&#',
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
@@ -101,6 +104,9 @@ const config: Configuration = {
     // TODO [mwu]: Temporarily disabled, signing should be revised.
     //             In particular, engine should handle signing of its artifacts.
     // afterPack: 'tasks/prepareToSign.js',
+
+    publish: null,
+
 }
 
 // `electron-builder` checks for presence of `node_modules` directory. If it is not present, it will
@@ -110,4 +116,11 @@ const config: Configuration = {
 // Without this workaround, `electron-builder` will end up erasing its own dependencies and failing
 // because of that.
 await fs.mkdir('node_modules', { recursive: true })
-await fs.writeFile('electron-builder-config.json', JSON.stringify(config, null, 2))
+
+let cli_opts: CliOptions = {
+    config: config,
+    targets: builder.Platform.current().createTarget()
+}
+
+const result = await builder.build(cli_opts)
+console.log("Result:", result)
