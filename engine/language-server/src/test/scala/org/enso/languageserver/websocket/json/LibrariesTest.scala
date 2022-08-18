@@ -1,16 +1,17 @@
 package org.enso.languageserver.websocket.json
 
+import akka.testkit._
 import io.circe.literal._
 import io.circe.{Json, JsonObject}
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
+import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.languageserver.libraries.{
   LibraryComponentGroup,
   LibraryComponentGroups,
   LibraryEntry
 }
-import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.{
@@ -22,6 +23,8 @@ import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
+
+import scala.concurrent.duration._
 
 class LibrariesTest extends BaseServerTest {
   private val libraryRepositoryPort: Int = 47308
@@ -434,7 +437,7 @@ class LibrariesTest extends BaseServerTest {
 
         var found = false
         while (!found) {
-          val rawResponse = client.expectSomeJson()
+          val rawResponse = client.expectSomeJson(timeout = 8.seconds.dilated)
           val response    = rawResponse.asObject.value
           val idMatches = response("id")
             .flatMap(_.asNumber)

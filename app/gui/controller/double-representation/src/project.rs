@@ -4,8 +4,24 @@ use crate::prelude::*;
 
 use crate::identifier::ReferentName;
 
+use const_format::concatcp;
 use serde::Deserialize;
 use serde::Serialize;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The namespace of the standard library.
+pub const STANDARD_NAMESPACE: &str = "Standard";
+
+/// The name of the project in the [`STANDARD_NAMESPACE`] containing the base standard library.
+pub const BASE_LIBRARY_NAME: &str = "Base";
+
+/// The full path of the [`BASE_LIBRARY_NAME`] project in the [`STANDARD_NAMESPACE`].
+pub const STANDARD_BASE_LIBRARY_PATH: &str = concatcp!(STANDARD_NAMESPACE, ".", BASE_LIBRARY_NAME);
 
 
 
@@ -74,6 +90,12 @@ impl QualifiedName {
             [_] => Err(InvalidQualifiedName::NoNamespace { source }.into()),
             _ => Err(InvalidQualifiedName::TooManySegments { source }.into()),
         }
+    }
+
+    /// Return the fully qualified name of the [`BASE_LIBRARY_NAME`] project in the
+    /// [`STANDARD_NAMESPACE`].
+    pub fn standard_base_library() -> Self {
+        Self::from_segments(STANDARD_NAMESPACE, BASE_LIBRARY_NAME).unwrap()
     }
 
     /// The iterator over name's segments: the namespace and project name.
@@ -151,5 +173,10 @@ mod test {
         invalid_case(".Project");
         invalid_case("namespace.");
         invalid_case(".");
+    }
+
+    #[test]
+    fn qualified_name_of_standard_base_library_does_not_panic() {
+        let _ = QualifiedName::standard_base_library();
     }
 }
