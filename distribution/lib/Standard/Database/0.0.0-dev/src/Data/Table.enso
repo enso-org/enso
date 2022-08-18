@@ -16,7 +16,7 @@ import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Database.Data.Column import Column, Aggregate_Column_Builder
 from Standard.Database.Data.Internal.IR import Internal_Column
-from Standard.Table.Data.Table import No_Such_Column_Error
+from Standard.Table.Errors import No_Such_Column_Error
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
 from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 from Standard.Table.Data.Data_Formatter import Data_Formatter
@@ -86,12 +86,18 @@ type Table
        Returns the column with the given name.
 
        Arguments:
-       - name: The name of the column to get.
-    at : Text -> Column ! No_Such_Column_Error
-    at self name =
-        candidates = self.internal_columns + self.context.meta_index
-        internal = candidates.find (p -> p.name == name)
-        self.make_column internal . map_error (_ -> No_Such_Column_Error name)
+       - selector: The name or index of the column to get.
+    at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
+    at self selector=0 = case selector of
+        Integer -> self.make_column (self.internal_columns.at selector)
+        Text ->
+            candidates = self.internal_columns + self.context.meta_index
+            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column_Error selector)
+            self.make_column internal_column
+
+    ## Returns the number of columns in the table.
+    column_count : Integer
+    column_count self = self.internal_columns.length
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -423,7 +429,7 @@ type Table
        - index: The column to use as the index of the table.
     set_index : Text | Column | Vector Text -> Table
     set_index self index = Panic.recover Any <|
-        new_index = (Helpers.unify_vector_singleton index).map (self.at >> .as_internal)
+        new_index = (Helpers.unify_vector_singleton index).map ((self.at _) >> .as_internal)
         new_ctx = self.context.set_index new_index
         new_cols = self.internal_columns.filter col->
             turned_into_index = new_index.exists i-> i.name == col.name

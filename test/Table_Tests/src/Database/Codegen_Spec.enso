@@ -4,8 +4,7 @@ from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Nam
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table import No_Such_Column_Error
-from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
+from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column_Error
 
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
@@ -65,7 +64,7 @@ spec =
             empty = t1.select_columns (By_Name [])
             json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
             empty.to_json . should_equal json
-            empty.columns.length . should_equal 0
+            empty.column_count . should_equal 0
             empty.to_sql . should_fail_with Unsupported_Database_Operation_Error
 
     Test.group "[Codegen] Building Expressions" <|

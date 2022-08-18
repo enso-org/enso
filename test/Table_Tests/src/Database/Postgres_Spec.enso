@@ -62,7 +62,7 @@ postgres_specific_spec connection pending =
 
         Test.specify "Counts" <|
             r = t.aggregate [Count, Count_Empty "txt", Count_Not_Empty "txt", Count_Distinct "i1", Count_Not_Nothing "i2", Count_Nothing "i3"]
-            r.columns.length . should_equal 6
+            r.column_count . should_equal 6
             r.columns.each column->
                 column.sql_type . should_equal Sql_Type.bigint
 

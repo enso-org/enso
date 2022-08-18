@@ -976,14 +976,16 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
-                    data.components = this.make_component_list(completions);
+                    data.components =
+                        this.make_component_list(completions, &this_type, &return_types);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    data.components = this.make_component_list(this.database.keys());
+                    data.components =
+                        this.make_component_list(this.database.keys(), &this_type, &return_types);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1001,10 +1003,6 @@ impl Searcher {
         let mut actions = action::ListWithSearchResultBuilder::new();
         let (libraries_icon, default_icon) =
             action::hardcoded::ICONS.with(|i| (i.libraries.clone_ref(), i.default.clone_ref()));
-        //TODO[ao] should be uncommented once new searcher GUI will be integrated + the order of
-        // added entries should be adjusted.
-        // https://github.com/enso-org/ide/issues/1681
-        // Self::add_hardcoded_entries(&mut actions,this_type,return_types)?;
         if should_add_additional_entries && self.ide.manage_projects().is_ok() {
             let mut root_cat = actions.add_root_category("Projects", default_icon.clone_ref());
             let category = root_cat.add_category("Projects", default_icon.clone_ref());
@@ -1046,8 +1044,11 @@ impl Searcher {
     fn make_component_list<'a>(
         &self,
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
+        this_type: &Option<String>,
+        return_types: &[String],
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
+        add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
@@ -1162,23 +1163,6 @@ impl Searcher {
             libraries_cat_builder.add_action(action);
         }
     }
-
-    //TODO[ao] The usage of add_hardcoded_entries_to_list is currently commented out. It should be
-    // uncommented when working on https://github.com/enso-org/ide/issues/1681.
-    #[allow(dead_code)]
-    fn add_hardcoded_entries(
-        list: &mut action::ListBuilder,
-        this_type: Option<String>,
-        return_types: Vec<String>,
-    ) -> FallibleResult {
-        let this_type = this_type.map(tp::QualifiedName::from_text).transpose()?;
-        let rt_converted = return_types.iter().map(tp::QualifiedName::from_text);
-        let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
-        let return_types = rt_result?;
-        let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
-        action::hardcoded::add_hardcoded_entries_to_list(list, this_type.as_ref(), return_types);
-        Ok(())
-    }
 }
 
 
@@ -1194,11 +1178,26 @@ fn component_list_builder_with_favorites<'a>(
         builder = builder.with_local_scope_module_id(id);
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
-    let base_lib_qn = project::QualifiedName::standard_base_library();
-    let input_group_name = component::hardcoded::INPUT_GROUP_NAME;
-    let snippets = component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone());
-    builder.insert_virtual_components_in_favorites_group(input_group_name, base_lib_qn, snippets);
     builder
+}
+
+fn add_virtual_entries_to_builder(
+    builder: &mut component::builder::List,
+    this_type: &Option<String>,
+    return_types: &[String],
+) {
+    if this_type.is_none() {
+        let snippets = if return_types.is_empty() {
+            component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
+        } else {
+            let parse_type_qn = |s| tp::QualifiedName::from_text(s).ok();
+            let rt_qns = return_types.iter().filter_map(parse_type_qn);
+            component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
+        };
+        let group_name = component::hardcoded::INPUT_GROUP_NAME;
+        let project = project::QualifiedName::standard_base_library();
+        builder.insert_virtual_components_in_favorites_group(group_name, project, snippets);
+    }
 }
 
 
