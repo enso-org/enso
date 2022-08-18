@@ -150,6 +150,8 @@ fn init(app: &Application) {
             ..default()
         };
         view.selection_highlight_frp().set_entries_params(params);
+        // FIXME[mc] do this only for one GV
+        view.frp().focus();
     }
 
     let navigator = Navigator::new(

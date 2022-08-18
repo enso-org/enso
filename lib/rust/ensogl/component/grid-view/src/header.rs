@@ -307,17 +307,19 @@ impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> application::View for Gri
         // &self.widget.app()
     }
 
-    // fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
-    //     use shortcut::ActionType::*;
-    //     (&[
+    fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
+        use application::shortcut::ActionType::*;
+        (&[
+            (PressAndRepeat, "up", "move_selection_up"),
     //         (Press, "!node_editing", "tab", "start_node_creation"),
     //         // === Drag ===
     //         (Press, "", "left-mouse-button", "node_press"),
-    //     ])
-    //         .iter()
-    //         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
-    //         .collect()
-    // }
+        ])
+            .iter()
+            // .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
+            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
+            .collect()
+    }
 }
 
 

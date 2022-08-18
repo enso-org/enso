@@ -88,10 +88,14 @@ where
 
         let grid_frp = grid.as_ref().frp();
         let network = grid_frp.network();
+        // FIXME[mc] rename as in other places
+        let internal = &grid_frp.private;
         frp::extend! { network
             eval grid_frp.viewport ([highlights](&vp) {
                 highlight::shape::set_viewport(&highlights, vp);
             });
+            trace internal.input.move_selection_up;
+            // eval internal.move_selection_up ([]() {
         }
 
         Self { grid, highlights, header_highlights, selection_handler, hover_handler }
