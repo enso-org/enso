@@ -102,27 +102,35 @@ where
             selected_on_move_down <- entry_selected.sample(&internal.input.move_selection_down);
             selected_on_move_left <- entry_selected.sample(&internal.input.move_selection_left);
             selected_on_move_right <- entry_selected.sample(&internal.input.move_selection_right);
-            trace selected_on_move_up;
-            // FIXME: detect 0/max row/column and stop + emit a "leaving" event
             eval selected_on_move_up ([grid_frp, internal]((row, col)) {
-                if *row > 0 {
-                    grid_frp.select_entry(Some((row - 1, *col)));
-                } else {
+                if *row == 0 {
                     internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Up));
+                } else {
+                    grid_frp.select_entry(Some((row - 1, *col)));
                 }
             });
-            eval selected_on_move_down ([grid_frp]((row, col)) {
-                grid_frp.select_entry(Some((row + 1, *col)));
+            eval selected_on_move_down ([grid_frp, internal]((row, col)) {
+                let (rows, _) = grid_frp.grid_size.value();
+                if *row + 1 >= rows {
+                    internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Down));
+                } else {
+                    grid_frp.select_entry(Some((row + 1, *col)));
+                }
             });
             eval selected_on_move_left ([grid_frp, internal]((row, col)) {
-                if *col > 0 {
-                    grid_frp.select_entry(Some((*row, col - 1)));
-                } else {
+                if *col == 0 {
                     internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Left));
+                } else {
+                    grid_frp.select_entry(Some((*row, col - 1)));
                 }
             });
-            eval selected_on_move_right ([grid_frp]((row, col)) {
-                grid_frp.select_entry(Some((*row, col + 1)));
+            eval selected_on_move_right ([grid_frp, internal]((row, col)) {
+                let (_, cols) = grid_frp.grid_size.value();
+                if *col + 1 >= cols {
+                    internal.output.selection_movement_confined_to_grid.emit(Some(Direction::Right));
+                } else {
+                    grid_frp.select_entry(Some((*row, col + 1)));
+                }
             });
         }
 
