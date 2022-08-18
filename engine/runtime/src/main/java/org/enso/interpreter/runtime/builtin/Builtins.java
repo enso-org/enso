@@ -76,6 +76,9 @@ public class Builtins {
   private final BuiltinAtomConstructor projectDescription;
   private final BuiltinAtomConstructor file;
   private final BuiltinAtomConstructor date;
+  private final BuiltinAtomConstructor dateTime;
+  private final BuiltinAtomConstructor timeOfDay;
+  private final BuiltinAtomConstructor zone;
   private final BuiltinAtomConstructor warning;
 
   /**
@@ -117,6 +120,15 @@ public class Builtins {
     date =
         new BuiltinAtomConstructor(
             this, org.enso.interpreter.node.expression.builtin.date.Date.class);
+    dateTime =
+        new BuiltinAtomConstructor(
+            this, org.enso.interpreter.node.expression.builtin.date.DateTime.class);
+    timeOfDay =
+        new BuiltinAtomConstructor(
+            this, org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
+    zone =
+        new BuiltinAtomConstructor(
+            this, org.enso.interpreter.node.expression.builtin.date.Zone.class);
     special = new Special(language);
     warning = new BuiltinAtomConstructor(this, Warning.class);
   }
@@ -316,8 +328,12 @@ public class Builtins {
    */
   public Optional<Function> getBuiltinFunction(
       AtomConstructor atom, String methodName, Language language) {
-    // TODO: move away from String mapping once Builtins is gone
-    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(atom.getName());
+    return getBuiltinFunction(atom.getName(), methodName, language);
+  }
+
+  public Optional<Function> getBuiltinFunction(
+      String methodOwner, String methodName, Language language) {
+    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(methodOwner);
     if (atomNodes == null) return Optional.empty();
     Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
     if (clazz == null) return Optional.empty();
@@ -424,6 +440,33 @@ public class Builtins {
    */
   public AtomConstructor date() {
     return date.constructor();
+  }
+
+  /**
+   * Returns the {@code DateTime} atom constructor.
+   *
+   * @return the {@code DateTime} atom constructor
+   */
+  public AtomConstructor dateTime() {
+    return dateTime.constructor();
+  }
+
+  /**
+   * Returns the {@code Zone} atom constructor.
+   *
+   * @return the {@code Zone} atom constructor
+   */
+  public AtomConstructor timeOfDay() {
+    return timeOfDay.constructor();
+  }
+
+  /**
+   * Returns the {@code Zone} atom constructor.
+   *
+   * @return the {@code Zone} atom constructor
+   */
+  public AtomConstructor zone() {
+    return zone.constructor();
   }
 
   /**

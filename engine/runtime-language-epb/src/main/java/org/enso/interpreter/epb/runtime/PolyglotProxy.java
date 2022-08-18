@@ -16,6 +16,9 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+
 import org.enso.interpreter.epb.node.ContextRewrapExceptionNode;
 import org.enso.interpreter.epb.node.ContextRewrapNode;
 
@@ -931,6 +934,56 @@ public class PolyglotProxy implements TruffleObject {
     Object p = enterOrigin(node);
     try {
       return datume.asDate(delegate);
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  boolean isTime(
+      @CachedLibrary("this.delegate") InteropLibrary times,
+      @CachedLibrary("this") InteropLibrary node) {
+    Object p = enterOrigin(node);
+    try {
+      return times.isTime(delegate);
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  LocalTime asTime(
+      @CachedLibrary("this.delegate") InteropLibrary times,
+      @CachedLibrary("this") InteropLibrary node)
+      throws UnsupportedMessageException {
+    Object p = enterOrigin(node);
+    try {
+      return times.asTime(delegate);
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  boolean isTimeZone(
+      @CachedLibrary("this.delegate") InteropLibrary times,
+      @CachedLibrary("this") InteropLibrary node) {
+    Object p = enterOrigin(node);
+    try {
+      return times.isTimeZone(delegate);
+    } finally {
+      leaveOrigin(node, p);
+    }
+  }
+
+  @ExportMessage
+  ZoneId asTimeZone(
+      @CachedLibrary("this.delegate") InteropLibrary times,
+      @CachedLibrary("this") InteropLibrary node)
+      throws UnsupportedMessageException {
+    Object p = enterOrigin(node);
+    try {
+      return times.asTimeZone(delegate);
     } finally {
       leaveOrigin(node, p);
     }

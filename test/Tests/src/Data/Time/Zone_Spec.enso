@@ -29,3 +29,5 @@ spec =
                 Json.from_pairs [["type", "Zone"], ["id", "+01:02:03"]]
             Zone.utc.to_json.should_equal <|
                 Json.from_pairs [["type", "Zone"], ["id", "UTC"]]
+
+main = Test.Suite.run_main spec

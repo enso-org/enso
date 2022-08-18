@@ -67,15 +67,15 @@ spec =
                     Test.fail ("Unexpected result: " + result.to_text)
 
         Test.specify "should convert to time" <|
-            time = Time_Of_Day.new 1 0 0 . to_time (Date.new 2000 12 21) Zone.utc
-            time . year . should_equal 2000
-            time . month . should_equal 12
-            time . day . should_equal 21
-            time . hour . should_equal 1
-            time . minute . should_equal 0
-            time . second . should_equal 0
-            time . nanosecond . should_equal 0
-            time . zone . zone_id . should_equal Zone.utc.zone_id
+            datetime = Time_Of_Day.new 1 0 0 . to_time (Date.new 2000 12 21) Zone.utc
+            datetime . year . should_equal 2000
+            datetime . month . should_equal 12
+            datetime . day . should_equal 21
+            datetime . hour . should_equal 1
+            datetime . minute . should_equal 0
+            datetime . second . should_equal 0
+            datetime . nanosecond . should_equal 0
+            datetime . zone . zone_id . should_equal Zone.utc.zone_id
 
         Test.specify "should add time-based interval" <|
             time = Time_Of_Day.new + 1.minute
@@ -112,3 +112,4 @@ spec =
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
 
+main = Test.Suite.run_main spec
