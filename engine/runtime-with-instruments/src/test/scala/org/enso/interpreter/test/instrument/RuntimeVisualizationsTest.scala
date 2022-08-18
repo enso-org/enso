@@ -20,8 +20,6 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-import scala.io.Source
-
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeVisualizationsTest
     extends AnyFlatSpec
@@ -1921,10 +1919,11 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(86, 28)
+    val idMain = metadata.addItem(116, 28)
 
     val code =
       """import Standard.Base.Data.List
+        |import Standard.Visualization
         |from Standard.Base.Error.Common import all
         |
         |main =
@@ -1934,9 +1933,8 @@ class RuntimeVisualizationsTest
     val mainFile = context.writeMain(contents)
 
     // NOTE: below values need to be kept in sync with what is used internally by Rust IDE code
-    val visualisationModule = "Standard.Base.Main"
-    val visualisationCode =
-      Source.fromResource("error_preprocessor.enso").mkString
+    val visualisationModule = "Standard.Visualization.Preprocessor"
+    val visualisationFunction = "error_preprocessor"
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1959,7 +1957,7 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushContextResponses = context.receiveN(4)
+    val pushContextResponses = context.receiveNIgnoreStdLib(3)
     pushContextResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
@@ -1969,11 +1967,6 @@ class RuntimeVisualizationsTest
       ),
       context.executionComplete(contextId)
     )
-    val loadedLibraries = pushContextResponses.collect {
-      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
-        (namespace, name)
-    }
-    loadedLibraries should contain(("Standard", "Base"))
 
     // attach visualisation
     context.send(
@@ -1984,9 +1977,12 @@ class RuntimeVisualizationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            Api.VisualisationExpression.Text(
-              visualisationModule,
-              visualisationCode
+            Api.VisualisationExpression.ModuleMethod(
+              Api.MethodPointer(
+                visualisationModule,
+                visualisationModule,
+                visualisationFunction
+              )
             )
           )
         )

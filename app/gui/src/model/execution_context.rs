@@ -232,15 +232,6 @@ pub struct QualifiedMethodPointer {
 }
 
 impl QualifiedMethodPointer {
-    /// Creates a new method pointer from its components.
-    pub fn new(
-        module: module::QualifiedName,
-        defined_on_type: module::QualifiedName,
-        name: String,
-    ) -> QualifiedMethodPointer {
-        QualifiedMethodPointer { module, defined_on_type, name }
-    }
-
     /// Tries to create a new method pointer from string components.
     pub fn from_unqualified(
         module: &str,
@@ -249,7 +240,11 @@ impl QualifiedMethodPointer {
     ) -> FallibleResult<QualifiedMethodPointer> {
         let resolved_module = module.try_into()?;
         let resolved_type = defined_on_type.try_into()?;
-        Ok(QualifiedMethodPointer::new(resolved_module, resolved_type, name.to_owned()))
+        Ok(QualifiedMethodPointer {
+            module:          resolved_module,
+            defined_on_type: resolved_type,
+            name:            name.to_owned(),
+        })
     }
 }
 
@@ -300,13 +295,11 @@ pub type VisualizationId = Uuid;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Visualization {
     /// Unique identifier of this visualization.
-    pub id:                VisualizationId,
+    pub id:             VisualizationId,
     /// Expression that is to be visualized.
-    pub expression_id:     ExpressionId,
-    /// An enso lambda that will transform the data into expected format, e.g. `a -> a.json`.
-    pub preprocessor_code: String,
+    pub expression_id:  ExpressionId,
     /// A pointer to the enso method that will transform the data into expected format.
-    pub method_pointer:    QualifiedMethodPointer,
+    pub method_pointer: QualifiedMethodPointer,
 }
 
 impl Visualization {
@@ -314,11 +307,10 @@ impl Visualization {
     /// identifier.
     pub fn new(
         expression_id: ExpressionId,
-        preprocessor_code: String,
         method_pointer: QualifiedMethodPointer,
     ) -> Visualization {
         let id = VisualizationId::new_v4();
-        Visualization { id, expression_id, preprocessor_code, method_pointer }
+        Visualization { id, expression_id, method_pointer }
     }
 
     /// Creates a `VisualisationConfiguration` that is used in communication with language server.

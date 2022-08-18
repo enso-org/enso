@@ -16,8 +16,6 @@ use ensogl::display::Scene;
 // === Constants ===
 // =================
 
-/// An invocable language expression that serialize given input into JSON.
-pub const DEFAULT_VISUALIZATION_EXPRESSION: &str = "x -> x.to_default_visualization_data";
 /// A module containing the default visualization function.
 pub const DEFAULT_VISUALIZATION_MODULE: &str = "Standard.Visualization.Preprocessor";
 /// A name of the default visualization function.
@@ -60,10 +58,7 @@ impl ContextModule {
 /// Information on how the preprocessor should be set up for the visualization.
 #[derive(Clone, CloneRef, Debug, PartialEq, Eq)]
 pub struct PreprocessorConfiguration {
-    /// The code of the preprocessor. Should be a lambda that transforms node value into whatever
-    /// that visualizations expect.
-    pub code:     enso::Code,
-    /// The module that provides context for `code` evaluation.
+    /// The module containing the `function`.
     pub module:   enso::Module,
     /// The function being invoked.
     pub function: enso::Function,
@@ -72,14 +67,10 @@ pub struct PreprocessorConfiguration {
 impl PreprocessorConfiguration {
     /// Like `new` but arguments are optional. If `None` is given, default value will be used.
     pub fn from_options(
-        code: Option<impl Into<enso::Code>>,
         module: Option<impl Into<enso::Module>>,
         function: Option<impl Into<enso::Function>>,
     ) -> Self {
         let mut ret = Self::default();
-        if let Some(code) = code {
-            ret.code = code.into();
-        }
         if let Some(module) = module {
             ret.module = module.into();
         }
@@ -91,22 +82,16 @@ impl PreprocessorConfiguration {
 
     /// Create a configuration that runs the given code in the context of the given module.
     pub fn new(
-        code: impl Into<enso::Code>,
         module: impl Into<enso::Module>,
         function: impl Into<enso::Function>,
     ) -> PreprocessorConfiguration {
-        PreprocessorConfiguration {
-            code:     code.into(),
-            module:   module.into(),
-            function: function.into(),
-        }
+        PreprocessorConfiguration { module: module.into(), function: function.into() }
     }
 }
 
 impl Default for PreprocessorConfiguration {
     fn default() -> Self {
         Self {
-            code:     DEFAULT_VISUALIZATION_EXPRESSION.into(),
             module:   DEFAULT_VISUALIZATION_MODULE.into(),
             function: DEFAULT_VISUALIZATION_FUNCTION.into(),
         }

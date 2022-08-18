@@ -49,7 +49,7 @@ class ScatterPlot extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessor('process_to_json_text', 'Standard.Visualization.Scatter_Plot')
+        this.setPreprocessor('Standard.Visualization.Scatter_Plot', 'process_to_json_text')
         this.dataPoints = []
         this.axis = {
             x: { scale: LINEAR_SCALE },
@@ -726,7 +726,7 @@ class ScatterPlot extends Visualization {
         addStyleToElem(
             'button',
             `
-            margin-left: 5px; 
+            margin-left: 5px;
             margin-bottom: 5px;
             display: inline-block;
             padding: 2px 10px;

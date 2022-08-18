@@ -55,7 +55,7 @@ fn constructor_graph() -> visualization::java_script::Definition {
                         console.log("pressed",e);
                     })
                 }
-                this.setPreprocessor(`x ->\n IO.println "Preprocessor set after receiving ${data}`)
+                // this.setPreprocessor(`x ->\n IO.println "Preprocessor set after receiving ${data}`)
 
                 let first = data.shift();
                 if (first) {

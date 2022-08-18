@@ -226,7 +226,6 @@ pub struct Manager {
     logger:              Logger,
     visualizations:      SharedHashMap<ast::Id, Description>,
     executed_graph:      ExecutedGraph,
-    project:             model::Project,
     notification_sender: futures::channel::mpsc::UnboundedSender<Notification>,
 }
 
@@ -238,17 +237,10 @@ impl Manager {
     pub fn new(
         logger: impl AnyLogger,
         executed_graph: ExecutedGraph,
-        project: model::Project,
     ) -> (Rc<Self>, UnboundedReceiver<Notification>) {
         let logger = logger.sub("visualization::Manager");
         let (notification_sender, notification_receiver) = futures::channel::mpsc::unbounded();
-        let ret = Self {
-            logger,
-            visualizations: default(),
-            executed_graph,
-            project,
-            notification_sender,
-        };
+        let ret = Self { logger, visualizations: default(), executed_graph, notification_sender };
         (Rc::new(ret), notification_receiver)
     }
 
@@ -364,7 +356,6 @@ impl Manager {
         Ok(Visualization {
             id: desired.visualization_id,
             expression_id: desired.expression_id,
-            preprocessor_code: desired.metadata.preprocessor.code.to_string(),
             method_pointer,
         })
     }
