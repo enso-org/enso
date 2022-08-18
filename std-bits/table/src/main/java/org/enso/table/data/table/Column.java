@@ -120,9 +120,21 @@ public class Column {
   public static Column fromItems(String name, List<Value> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
     for (var item : items) {
-      builder.appendNoGrow(item.isDate() ? item.asDate() : item.as(Object.class));
+      builder.appendNoGrow(convertDateOrTime(item));
     }
     return new Column(name, new DefaultIndex(items.size()), builder.seal());
+  }
+
+  private static Object convertDateOrTime(Value item) {
+    if (item.isDate()) {
+      if (item.isTime()) {
+        return item.asDate().atTime(item.asTime());
+      }
+      return item.asDate();
+    } else if (item.isTime()) {
+      return item.asTime();
+    }
+    return item.as(Object.class);
   }
 
   /**

@@ -150,9 +150,6 @@ type Date_Time
        A date-time with a timezone in the ISO-8601 calendar system, such as
        "2007-12-03T10:15:30+01:00 Europe/Paris".
 
-       Arguments:
-       - internal_zoned_date_time: The internal repreentation of the time.
-
        Time is a representation of a date-time with a timezone. This class
        stores all date and time fields, to a precision of nanoseconds, and a
        timezone, with a zone offset used to handle ambiguous local
