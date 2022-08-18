@@ -360,7 +360,7 @@ where
                 &grid_frp.properties,
                 f!((_, props) model.reset_entries(*props))
             );
-            request_sections_after_layer_change <= rp.set_layers.map2(
+            request_sections_after_layer_change <= frp.set_layers.map2(
                 &grid_frp.properties,
                 f!((_, props) model.drop_all_entries(*props))
             );
