@@ -429,7 +429,7 @@ spec =
 
             r = t_1.concat t_2
 
-            r.columns.length.should_equal 2
+            r.column_count.should_equal 2
             r.at 'foo' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
             r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', False, True, False]
 
@@ -444,7 +444,7 @@ spec =
 
             r = t_1.concat t_2
 
-            r.columns.length.should_equal 3
+            r.column_count.should_equal 3
             r.at 'foo' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
             r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', Nothing, Nothing, Nothing]
             r.at 'baz' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, False, True, False]

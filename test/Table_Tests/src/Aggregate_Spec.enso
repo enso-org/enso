@@ -59,7 +59,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Count Nothing]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Count"
             materialized.columns.at 0 . at 0 . should_equal 2500
 
@@ -67,7 +67,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
             materialized.columns.at 0 . at 0 . should_equal 236
             materialized.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
@@ -81,7 +81,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Count Distinct Code"
             materialized.columns.at 0 . at 0 . should_equal 2333
             materialized.columns.at 1 . name . should_equal "Count Distinct Index"
@@ -93,7 +93,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Count_Distinct (By_Name ["Index", "Flag"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Count Distinct Index Flag"
             materialized.columns.at 0 . at 0 . should_equal 20
 
@@ -101,7 +101,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Sum Value"
             materialized.columns.at 0 . at 0 . should_equal -932.411550 epsilon=0.000001
             materialized.columns.at 1 . name . should_equal "Sum ValueWithNothing"
@@ -115,7 +115,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Standard Deviation Value"
             materialized.columns.at 0 . at 0 . should_equal 56.708660 epsilon=0.000001
             materialized.columns.at 1 . name . should_equal "Standard Deviation ValueWithNothing"
@@ -129,7 +129,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 6
+            materialized.column_count . should_equal 6
             materialized.columns.at 0 . name . should_equal "Median Index"
             materialized.columns.at 0 . at 0 . should_equal 5 epsilon=0.000001
             materialized.columns.at 1 . name . should_equal "Median Value"
@@ -147,7 +147,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
             materialized.columns.at 0 . at 0 . should_equal 5
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
@@ -157,7 +157,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "First TextWithNothing"
             materialized.columns.at 0 . at 0 . should_equal "riwaiqq1io"
             materialized.columns.at 1 . name . should_equal "First TextWithNothing_1"
@@ -169,7 +169,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [First "Index", Last "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
             materialized.columns.at 0 . at 0 . should_equal 7
             materialized.columns.at 1 . name . should_equal "Last Value"
@@ -179,7 +179,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Minimum Value"
             materialized.columns.at 0 . at 0 . should_equal -99.964200 epsilon=0.000001
             materialized.columns.at 1 . name . should_equal "Maximum Value"
@@ -193,7 +193,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
             materialized.columns.at 0 . at 0 . should_equal "f5"
             materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
@@ -203,7 +203,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate Code"
             materialized.columns.at 0 . at 0 . length . should_equal 7500
 
@@ -212,7 +212,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Count Nothing]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Count"
             materialized.columns.at 0 . at 0 . should_equal 0
 
@@ -220,7 +220,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
             materialized.columns.at 0 . at 0 . should_equal 0
             materialized.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
@@ -234,7 +234,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Count_Distinct "Code" (ignore_nothing=False), Count_Distinct "Code" (ignore_nothing=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Count Distinct Code"
             materialized.columns.at 0 . at 0 . should_equal 0
             materialized.columns.at 1 . name . should_equal "Count Distinct Code_1"
@@ -244,7 +244,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Sum "Value", Average "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Sum Value"
             materialized.columns.at 0 . at 0 . should_equal Nothing
             materialized.columns.at 1 . name . should_equal "Average ValueWithNothing"
@@ -254,7 +254,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Standard Deviation Value"
             materialized.columns.at 0 . at 0 . should_equal Nothing
             materialized.columns.at 1 . name . should_equal "Standard Deviation ValueWithNothing"
@@ -264,7 +264,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Median "Index", Mode "Index", Percentile 0.25 "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Median Index"
             materialized.columns.at 0 . at 0 . should_equal Nothing
             materialized.columns.at 1 . name . should_equal "Mode Index"
@@ -276,7 +276,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
             materialized.columns.at 0 . at 0 . should_equal Nothing
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
@@ -286,7 +286,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [First "Index", Last "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "First Index"
             materialized.columns.at 0 . at 0 . should_equal Nothing
             materialized.columns.at 1 . name . should_equal "Last Value"
@@ -296,7 +296,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Minimum "Value", Maximum "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Minimum Value"
             materialized.columns.at 0 . at 0 . should_equal Nothing
             materialized.columns.at 1 . name . should_equal "Maximum ValueWithNothing"
@@ -306,7 +306,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
             materialized.columns.at 0 . at 0 . should_equal Nothing
             materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
@@ -316,7 +316,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate Code"
             materialized.columns.at 0 . at 0 . should_equal Nothing
 
@@ -325,7 +325,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Count Nothing]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Count"
 
@@ -333,7 +333,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 5
+            materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Count Nothing Hexadecimal"
             materialized.columns.at 2 . name . should_equal "Count Not Nothing Hexadecimal"
@@ -344,7 +344,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Count_Distinct "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Count Distinct Code"
 
@@ -352,7 +352,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Sum "Value", Average "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Sum Value"
             materialized.columns.at 2 . name . should_equal "Average ValueWithNothing"
@@ -361,7 +361,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Standard Deviation Value"
             materialized.columns.at 2 . name . should_equal "Standard Deviation ValueWithNothing"
@@ -370,7 +370,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Median "Index", Mode "Index", Percentile 0.25 "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Median Index"
             materialized.columns.at 2 . name . should_equal "Mode Index"
@@ -380,7 +380,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Hexadecimal", Sort_Column.Name "TextWithNothing"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "First Index"
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
@@ -389,7 +389,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, First "Index", Last "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "First Index"
             materialized.columns.at 2 . name . should_equal "Last Value"
@@ -398,7 +398,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Minimum "Value", Maximum "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Minimum Value"
             materialized.columns.at 2 . name . should_equal "Maximum ValueWithNothing"
@@ -407,7 +407,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Shortest TextWithNothing"
             materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
@@ -416,7 +416,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = empty_table.aggregate [Group_By 0, Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Concatenate Code"
 
@@ -425,7 +425,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Count Nothing]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -436,7 +436,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 5
+            materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -453,7 +453,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -468,7 +468,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -479,7 +479,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 5
+            materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -496,7 +496,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 5
+            materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -513,7 +513,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 7
+            materialized.column_count . should_equal 7
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -534,7 +534,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [7] materialized
             idx.is_nothing . should_be_false
@@ -547,7 +547,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [7] materialized
             idx.is_nothing . should_be_false
@@ -560,7 +560,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing", Last "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -573,7 +573,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 5
+            materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -590,7 +590,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [1] materialized
             idx.is_nothing . should_be_false
@@ -603,7 +603,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
@@ -615,7 +615,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Flag", Count Nothing, Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Flag"
             materialized.columns.at 2 . name . should_equal "Index"
             idx = find_row [False, 6] materialized [0, 2]
@@ -627,7 +627,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Group_By "Index", Count_Empty "TextWithNothing", Group_By "Flag", Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 6
+            materialized.column_count . should_equal 6
             materialized.columns.at 4 . name . should_equal "Flag"
             materialized.columns.at 2 . name . should_equal "Index"
             idx = find_row [False, 6] materialized [4, 2]
@@ -645,7 +645,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag", Group_By "Flag"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 5
+            materialized.column_count . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 4 . name . should_equal "Flag"
             idx = find_row [False, 6] materialized [4, 0]
@@ -661,7 +661,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"]), Group_By "Flag"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 2 . name . should_equal "Flag"
             idx = find_row [False, 6] materialized [2, 0]
@@ -673,7 +673,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Group_By "Flag"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 6
+            materialized.column_count . should_equal 6
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 5 . name . should_equal "Flag"
             idx = find_row [False, 6] materialized [5, 0]
@@ -691,7 +691,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 6
+            materialized.column_count . should_equal 6
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 1 . name . should_equal "Flag"
             idx = find_row [False, 6] materialized [1, 0]
@@ -709,7 +709,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Group_By "Index", Group_By "Flag", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 8
+            materialized.column_count . should_equal 8
             materialized.columns.at 5 . name . should_equal "Flag"
             materialized.columns.at 4 . name . should_equal "Index"
             idx = find_row [False, 6] materialized [5, 4]
@@ -731,7 +731,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value", Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value"]), Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Flag"
             materialized.columns.at 3 . name . should_equal "Index"
             idx = find_row [False, 7] materialized [0, 3]
@@ -745,7 +745,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending]), Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Flag"
             materialized.columns.at 3 . name . should_equal "Index"
             idx = find_row [True, 7] materialized [0, 3]
@@ -759,7 +759,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing", Last "Value", Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Flag"
             materialized.columns.at 3 . name . should_equal "Index"
             idx = find_row [False, 6] materialized [0, 3]
@@ -773,7 +773,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Minimum "Value", Maximum "Value", Group_By "Flag", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 6
+            materialized.column_count . should_equal 6
             materialized.columns.at 3 . name . should_equal "Flag"
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [False, 6] materialized [3, 0]
@@ -791,7 +791,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Group_By "Flag", Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 4
+            materialized.column_count . should_equal 4
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 1 . name . should_equal "Flag"
             idx = find_row [1, False] materialized
@@ -805,7 +805,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "Index", Group_By "Flag", Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 3
+            materialized.column_count . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 1 . name . should_equal "Flag"
             idx = find_row [6, False] materialized
@@ -819,7 +819,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             result = table.aggregate [Shortest "A", Shortest "B"]
             result.row_count . should_equal 1
             materialized = materialize result
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "Shortest A"
             materialized.columns.at 0 . to_vector . should_equal [""]
             materialized.columns.at 1 . name . should_equal "Shortest B"
@@ -831,7 +831,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             result = table.aggregate [Group_By "A", (Concatenate "B" prefix="[[" suffix="]]" separator="; ")]
             result.row_count . should_equal 2
             materialized = materialize result . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"])
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 0 . name . should_equal "A"
             materialized.columns.at 0 . to_vector . should_equal ["bar", "foo"]
             materialized.columns.at 1 . name . should_equal "Concatenate B"
@@ -842,7 +842,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',b,'''c','''''',',']]"]
 
@@ -851,7 +851,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["[['1,0',A,'','',B,,,C]]"]
 
@@ -860,7 +860,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             result = table.aggregate [(Concatenate "A" prefix="[[" suffix="]]" separator=",")]
             result.row_count . should_equal 1
             materialized = materialize result
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["[[1,0,A,,,B,,,C]]"]
 
@@ -869,7 +869,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             result = table.aggregate [(Concatenate "A")]
             result.row_count . should_equal 1
             materialized = materialize result
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["1,0ABC"]
 
@@ -878,7 +878,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             result = table.aggregate [(Concatenate "A" quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
-            materialized.columns.length . should_equal 1
+            materialized.column_count . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["'1''0'A''''BC"]
 
@@ -911,14 +911,14 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=True)]
             r1.row_count . should_equal 2
             m1 = materialize r1 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
-            m1.columns.length . should_equal 2
+            m1.column_count . should_equal 2
             m1.columns.first.to_vector . should_equal ["bar", "foo"]
             m1.columns.second.to_vector . should_equal [0, 1]
 
             r2 = t5.aggregate [Group_By "G", Count_Distinct "A" (ignore_nothing=False)]
             r2.row_count . should_equal 2
             m2 = materialize r2 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
-            m2.columns.length . should_equal 2
+            m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["bar", "foo"]
             m2.columns.second.to_vector . should_equal [1, 2]
 
@@ -928,14 +928,14 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r2 = table.aggregate [Count_Distinct (By_Name ["A", "B"]) (ignore_nothing=False)]
             r2.row_count.should_equal 1
             m2 = materialize r2
-            m2.columns.length.should_equal 1
+            m2.column_count.should_equal 1
             m2.columns.first.name . should_equal "Count Distinct A B"
             m2.columns.first.to_vector . should_equal [4]
 
             r1 = table.aggregate [Count_Distinct (By_Name ["A", "B"]) (ignore_nothing=True)]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length.should_equal 1
+            m1.column_count.should_equal 1
             m1.columns.first.name . should_equal "Count Distinct A B"
             m1.columns.first.to_vector . should_equal [3]
 
@@ -944,7 +944,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = table_builder [["X", [1]]] . aggregate [Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 2
+            m1.column_count . should_equal 2
             m1.columns.first.at 0 . should_equal Nothing
             m1.columns.second.at 0 . should_equal 0
 
@@ -954,13 +954,13 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = table.aggregate [Average "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal (2/3) epsilon=0.00001
 
             r2 = table.aggregate [Group_By "G", Average "X"]
             r2.row_count.should_equal 2
             m2 = materialize r2 . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "G"])
-            m2.columns.length . should_equal 2
+            m2.column_count . should_equal 2
             m2.columns.first.to_vector . should_equal ["a", "b"]
             m2.columns.second.to_vector . should_equal [0.5, 1]
 
@@ -969,7 +969,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = table.aggregate [Median "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             m1.columns.first.to_vector . should_equal [0.5]
 
         Test.specify "widening to decimals on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -977,7 +977,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = table.aggregate [Percentile 0.3 "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             m1.columns.first.to_vector . should_equal [2.5]
 
         Test.specify "widening to decimals on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
@@ -985,7 +985,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = table.aggregate [Standard_Deviation "X" (population=True), Standard_Deviation "X" (population=False)]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 2
+            m1.column_count . should_equal 2
             m1.columns.first.at 0 . should_equal 1.1180339887499 epsilon=0.000001
             m1.columns.second.at 0 . should_equal 1.2909944487358 epsilon=0.000001
 
@@ -1006,14 +1006,14 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Average "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal pos_inf
 
             t2 = table_builder [["X", [Nothing, pos_inf, neg_inf, 0]]]
             r2 = t2.aggregate [Average "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
-            m2.columns.length . should_equal 1
+            m2.column_count . should_equal 1
             expect_null_or_nan <| m2.columns.first.at 0
 
         Test.specify "on Median" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -1021,28 +1021,28 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Median "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal pos_inf
 
             t2 = table_builder [["X", [pos_inf, pos_inf, neg_inf, neg_inf]]]
             r2 = t2.aggregate [Median "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
-            m2.columns.length . should_equal 1
+            m2.column_count . should_equal 1
             expect_null_or_nan <| m2.columns.first.at 0
 
             t3 = table_builder [["X", [pos_inf, pos_inf, Nothing, 0, 10, 20, neg_inf, neg_inf]]]
             r3 = t3.aggregate [Median "X"]
             r3.row_count.should_equal 1
             m3 = materialize r3
-            m3.columns.length . should_equal 1
+            m3.column_count . should_equal 1
             m3.columns.first.at 0 . should_equal 10
 
             t4 = table_builder [["X", [Nothing, pos_inf, pos_inf, 10, 12]]]
             r4 = t4.aggregate [Median "X"]
             r4.row_count.should_equal 1
             m4 = materialize r4
-            m4.columns.length . should_equal 1
+            m4.column_count . should_equal 1
             m4.columns.first.at 0 . should_equal pos_inf
 
         Test.specify "on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -1050,21 +1050,21 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Percentile 0.3 "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal 2.2
 
             t2 = table_builder [["X", [Nothing, neg_inf, neg_inf, 3, 4, pos_inf]]]
             r2 = t2.aggregate [Percentile 0.25 "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
-            m2.columns.length . should_equal 1
+            m2.column_count . should_equal 1
             m2.columns.first.at 0 . should_equal neg_inf
 
             t3 = table_builder [["X", [Nothing, neg_inf, neg_inf, pos_inf, pos_inf, pos_inf]]]
             r3 = t3.aggregate [Percentile 0.3 "X"]
             r3.row_count.should_equal 1
             m3 = materialize r3
-            m3.columns.length . should_equal 1
+            m3.column_count . should_equal 1
             expect_null_or_nan <| m3.columns.first.at 0
 
         Test.specify "on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
@@ -1072,7 +1072,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Standard_Deviation "X" (population=True), Standard_Deviation "X" (population=False)]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 2
+            m1.column_count . should_equal 2
             expect_null_or_nan <| m1.columns.first.at 0
             expect_null_or_nan <| m1.columns.second.at 0
 
@@ -1083,7 +1083,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Average "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             Double.isNaN (m1.columns.first.at 0) . should_be_true
 
         Test.specify "on Median" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -1091,7 +1091,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Median "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             Double.isNaN (m1.columns.first.at 0) . should_be_true
 
         Test.specify "on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -1099,7 +1099,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Percentile 0.3 "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             Double.isNaN (m1.columns.first.at 0) . should_be_true
 
         Test.specify "on Mode" (pending = resolve_pending test_selection.advanced_stats) <|
@@ -1107,7 +1107,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Mode "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             Double.isNaN (m1.columns.first.at 0) . should_be_true
 
         Test.specify "on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
@@ -1115,7 +1115,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 2
+            m1.column_count . should_equal 2
             Double.isNaN (m1.columns.first.at 0) . should_be_true
             Double.isNaN (m1.columns.second.at 0) . should_be_true
 
@@ -1125,7 +1125,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [Mode "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 1
+            m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal 2
 
     Test.group prefix+"Table.aggregate First and Last" pending=pending <|
@@ -1135,7 +1135,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             r1 = t1.aggregate [First "X" (order_by=order), Last "X" (order_by=order)]
             r1.row_count.should_equal 1
             m1 = materialize r1
-            m1.columns.length . should_equal 2
+            m1.column_count . should_equal 2
             first = m1.columns.first.at 0
             last = m1.columns.second.at 0
             (first != last).should_be_true
@@ -1146,7 +1146,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             grouped = table.aggregate [Group_By "B", Group_By "A"]
             grouped.row_count . should_equal 3
             materialized = materialize grouped . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A", Sort_Column.Name "B"])
-            materialized.columns.length . should_equal 2
+            materialized.column_count . should_equal 2
             materialized.columns.at 1 . name . should_equal "A"
             materialized.columns.at 1 . to_vector . should_equal [1, 1, 2]
             materialized.columns.at 0 . name . should_equal "B"
@@ -1159,7 +1159,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
                 tester result =
                     result.row_count . should_equal 1
                     materialized = materialize result
-                    materialized.columns.length . should_equal 1
+                    materialized.column_count . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
                 problems = [Unsupported_Database_Operation_Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation_Error "`Last` aggregation requires at least one `order_by` column."]
@@ -1318,7 +1318,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
     if is_database then
         Test.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" pending=pending <|
             expect_sum_and_unsupported_errors error_count result =
-                result.columns.length . should_equal 1
+                result.column_count . should_equal 1
                 result.row_count . should_equal 1
                 result.columns.first.to_vector . should_equal [6]
                 warnings = Warning.get_all result . map .value
