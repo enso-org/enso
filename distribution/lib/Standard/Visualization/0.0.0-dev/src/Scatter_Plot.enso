@@ -153,10 +153,45 @@ bound_data bounds data = case bounds of
 
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
 
+type Extreme min_x max_x min_y max_y
+
 ## PRIVATE
 limit_data limit data = case limit of
     Nothing -> data
-    _ -> data.take (Sample limit)
+    _ -> if (data.length <= limit) then data else
+        b = Vector.Builder.new
+
+        x datum = (datum.get "x").unwrap
+        y datum = (datum.get "y").unwrap
+
+        check_max_y min now = case min of
+            Extreme min_x max_x min_y Nothing -> Extreme min_x max_x min_y now
+            Extreme min_x max_x min_y max_y -> if y max_y < y now then @Tail_Call check_max_y (Extreme min_x max_x min_y now) max_y else
+                b.append now
+                min
+
+        check_min_y min now = case min of
+            Extreme min_x max_x Nothing max_y -> Extreme min_x max_x now max_y
+            Extreme min_x max_x min_y max_y -> if y min_y > y now then @Tail_Call check_min_y (Extreme min_x max_x now max_y) min_y else
+                check_max_y min now
+
+        check_max_x min now = case min of
+            Extreme min_x Nothing min_y max_y -> Extreme min_x now min_y max_y
+            Extreme min_x max_x min_y max_y -> if x max_x < x now then @Tail_Call check_max_x (Extreme min_x now min_y max_y) max_x else
+                check_min_y min now
+
+        check_min_x min now = case min of
+            Extreme Nothing max_x min_y max_y -> Extreme now max_x min_y max_y
+            Extreme min_x max_x min_y max_y -> if x min_x > x now then @Tail_Call check_min_x (Extreme now max_x min_y max_y) min_x else
+                check_max_x min now
+
+        extreme = case data.fold (Extreme Nothing Nothing Nothing Nothing) check_min_x of
+            Extreme min_x max_x min_y max_y -> [min_x, max_x, min_y, max_y].filter case _ of
+                Nothing -> False
+                _ -> True
+
+        if limit <= extreme.length then extreme.take (First limit) else
+            extreme + b.to_vector.take (Sample limit-extreme.length)
 
 ## PRIVATE
 json_from_table : Table -> [Int]|Nothing -> Int|Nothing -> Json

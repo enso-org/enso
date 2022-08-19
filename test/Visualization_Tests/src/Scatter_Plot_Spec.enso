@@ -118,6 +118,16 @@ spec =
             data = json.fields.get 'data'
             data.unwrap.length . should_equal 2
 
+
+        Test.specify "limit the number of squared elements" <|
+            vector = (-15).up_to 15 . map (x -> x * x)
+            text = Scatter_Plot.process_to_json_text vector limit=10
+            json = Json.parse text
+            json.fields.keys.should_equal ['axis','data']
+            data = (json.fields.get 'data') . unwrap
+            data.length . should_equal 10
+            (data.take (First 4)).to_text . should_equal "[[['x', 0], ['y', 225]], [['x', 29], ['y', 196]], [['x', 15], ['y', 0]], [['x', 1], ['y', 196]]]"
+
         Test.specify "filter the elements" <|
             vector = [0,10,20,30]
             bounds = [0,5,10,25]
