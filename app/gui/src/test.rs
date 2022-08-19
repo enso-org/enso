@@ -299,7 +299,7 @@ pub mod mock {
                 project.clone_ref(),
                 execution.clone_ref(),
             );
-            let executor = TestWithLocalPoolExecutor::set_up();
+            let mut executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
             let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
             let searcher_mode = controller::searcher::Mode::NewNode {
@@ -314,6 +314,7 @@ pub mod mock {
                 searcher_mode,
             )
             .unwrap();
+            executor.run_until_stalled();
             Fixture {
                 logger,
                 executor,
