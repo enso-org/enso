@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "read_array_element",
-    description = "Returns the size of a polyglot array.")
+    description = "Read a value from the array specified by the index.")
 public class ReadArrayElementNode extends Node {
   private @Child InteropLibrary library =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
