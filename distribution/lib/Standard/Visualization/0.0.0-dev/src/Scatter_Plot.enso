@@ -133,40 +133,44 @@ Table.Table.axes self =
     if axes_obj.fields.size > 0 then axes_obj else Nothing
 
 ## PRIVATE
-Vector.Vector.point_data : Vector -> [Int]|Nothing -> Int|Nothing-> Object
-Vector.Vector.point_data self bounds limit =
-    data = case bounds of
-        Nothing ->
-            self.map_with_index <| i-> elem->
-                Json.from_pairs [[X.name,i],[Y.name,elem]]
-        _ ->
-            minX = bounds.at 0
-            minY = bounds.at 1
-            maxX = bounds.at 2
-            maxY = bounds.at 3
-            pairs = self.map_with_index <| i-> elem->
-                if minX>i || i>maxX || minY>elem || elem>maxY then Nothing else
-                    Json.from_pairs [[X.name,i],[Y.name,elem]]
-            pairs.filter case _ of
-                Nothing -> False
-                _ -> True
-    case limit of
-        Nothing -> data
-        n -> data.take (Sample n)
+Vector.Vector.point_data : Vector -> Object
+Vector.Vector.point_data self  =
+    self.map_with_index <| i-> elem->
+        Json.from_pairs [[X.name,i],[Y.name,elem]]
 
 ## PRIVATE
-json_from_table : Table -> Json
-json_from_table table =
-    data = table.point_data
+bound_data bounds data = case bounds of
+    Nothing -> data
+    _ ->
+        min_x = bounds.at 0
+        min_y = bounds.at 1
+        max_x = bounds.at 2
+        max_y = bounds.at 3
+
+        data.filter <| datum->
+            x = datum.get "x" . unwrap
+            y = datum.get "y" . unwrap
+
+            min_x<=x && x<=max_x && min_y<=y && y<=max_y
+
+## PRIVATE
+limit_data limit data = case limit of
+    Nothing -> data
+    _ -> data.take (Sample limit)
+
+## PRIVATE
+json_from_table : Table -> [Int]|Nothing -> Int|Nothing -> Json
+json_from_table table bounds limit =
+    data = table.point_data |> bound_data bounds |> limit_data limit
     axes = table.axes
     Json.from_pairs <| [[data_field,data], [axis_field, axes]]
 
 ## PRIVATE
-json_from_vector : Vector Any -> Json
-json_from_vector vec bounds=Nothing limit=Nothing =
-    data = [data_field, vec.point_data bounds limit]
+json_from_vector : Vector Any -> [Int]|Nothing -> Int|Nothing -> Json
+json_from_vector vec bounds limit =
+    data = vec.point_data |> bound_data bounds |> limit_data limit
     axes = [axis_field, Nothing]
-    Json.from_pairs [data, axes]
+    Json.from_pairs <| [[data_field, data], axes]
 
 ## PRIVATE
 
@@ -179,10 +183,10 @@ json_from_vector vec bounds=Nothing limit=Nothing =
 process_to_json_text : Any -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
-        Column.Column _ -> json_from_table  value.to_table
-        Table.Table _   -> json_from_table  value
-        Vector.Vector _ -> json_from_vector value bounds=bounds limit=limit
-        _               -> json_from_vector value.to_vector
+        Column.Column _ -> json_from_table  value.to_table bounds limit
+        Table.Table _   -> json_from_table  value bounds limit
+        Vector.Vector _ -> json_from_vector value bounds limit
+        _               -> json_from_vector value.to_vector bounds limit
 
     json.to_text
 

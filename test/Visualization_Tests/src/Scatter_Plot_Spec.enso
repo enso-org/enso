@@ -73,6 +73,17 @@ spec =
             table = Table.from_rows header [row_1, row_2]
             expect table (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
 
+        Test.specify "provided only recognized columns within bounds" <|
+            header = ['x', 'y' , 'bar' , 'size']
+            row_1 =  [1  , 1   , '11'  , 30    ]
+            row_2 =  [11 , 10  , 'aa'  , 40    ]
+            row_3 =  [21 , 20  , 'bb'  , 50    ]
+            row_4 =  [31 , 30  , 'cc'  , 60    ]
+            table = Table.from_rows header [row_1, row_2, row_3, row_4]
+            bounds = [0,5,25,25]
+            text = Scatter_Plot.process_to_json_text table bounds
+            expect_text text (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
+
         Test.specify "used specified numeric index for x if missing 'x' column from table" <|
             header = [ 'y' , 'foo', 'bar', 'baz' , 'size']
             row_1 =  [ 10  , 'aa' , 12   , 14    , 40    ]
