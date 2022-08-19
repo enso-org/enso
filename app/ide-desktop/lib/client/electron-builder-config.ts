@@ -11,52 +11,54 @@
 
 import path from 'node:path'
 import fs from 'node:fs/promises'
-import {CliOptions, Configuration, LinuxTargetSpecificOptions, Platform} from 'electron-builder'
+import { CliOptions, Configuration, LinuxTargetSpecificOptions, Platform } from 'electron-builder'
 import builder from 'electron-builder'
 
 import { require_env } from '../../utils.js'
 import { project_manager_bundle } from './paths.js'
 import build from '../../build.json' assert { type: 'json' }
-import yargs from "yargs";
-import {MacOsTargetName} from "app-builder-lib/out/options/macOptions";
+import yargs from 'yargs'
+import { MacOsTargetName } from 'app-builder-lib/out/options/macOptions'
 
-const args = await yargs(process.argv.slice(2)).env("ENSO_BUILD").option({
-    ideDist: {
-        // Alias here (and subsequent occurrences) are for the environment variable name.
-        alias: 'ide',
-        type: 'string',
-        description: 'Output directory for IDE',
-        demandOption: true,
-    },
-    guiDist: {
-        alias: 'gui',
-        type: 'string',
-        description: 'Output directory with GUI',
-        demandOption: true,
-    },
-    iconsDist: {
-        alias: 'icons',
-        type: 'string',
-        description: 'Output directory with icons',
-        demandOption: true,
-    },
-    projectManagerDist: {
-        alias: 'project-manager',
-        type: 'string',
-        description: 'Output directory with project manager',
-        demandOption: true,
-    },
-    platform: {
-        type: 'string',
-        description: 'Platform that Electron Builder should target',
-        default: Platform.WINDOWS.toString(),
-        coerce: (p: string) => Platform.fromString(p),
-    },
-    targetOverride: {
-        type: 'string',
-        description: 'Overwrite the platform-default target',
-    }
-}).argv;
+const args = await yargs(process.argv.slice(2))
+    .env('ENSO_BUILD')
+    .option({
+        ideDist: {
+            // Alias here (and subsequent occurrences) are for the environment variable name.
+            alias: 'ide',
+            type: 'string',
+            description: 'Output directory for IDE',
+            demandOption: true,
+        },
+        guiDist: {
+            alias: 'gui',
+            type: 'string',
+            description: 'Output directory with GUI',
+            demandOption: true,
+        },
+        iconsDist: {
+            alias: 'icons',
+            type: 'string',
+            description: 'Output directory with icons',
+            demandOption: true,
+        },
+        projectManagerDist: {
+            alias: 'project-manager',
+            type: 'string',
+            description: 'Output directory with project manager',
+            demandOption: true,
+        },
+        platform: {
+            type: 'string',
+            description: 'Platform that Electron Builder should target',
+            default: Platform.WINDOWS.toString(),
+            coerce: (p: string) => Platform.fromString(p),
+        },
+        targetOverride: {
+            type: 'string',
+            description: 'Overwrite the platform-default target',
+        },
+    }).argv
 
 const config: Configuration = {
     appId: 'org.enso',
@@ -152,7 +154,6 @@ const config: Configuration = {
     // afterPack: 'tasks/prepareToSign.js',
 
     publish: null,
-
 }
 
 // `electron-builder` checks for presence of `node_modules` directory. If it is not present, it will
@@ -165,10 +166,10 @@ await fs.mkdir('node_modules', { recursive: true })
 
 const cli_opts: CliOptions = {
     config: config,
-    targets: args.platform.createTarget()
+    targets: args.platform.createTarget(),
 }
 
-console.log("Building with configuration:", cli_opts);
+console.log('Building with configuration:', cli_opts)
 
 const result = await builder.build(cli_opts)
-console.log("Electron Builder is done. Result:", result)
+console.log('Electron Builder is done. Result:', result)
