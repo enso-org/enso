@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Text_Sub_Range import Last
 import Standard.Base.System.Platform
 
 polyglot java import java.util.Random

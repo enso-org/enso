@@ -1,9 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Regex
-import Standard.Base.Data.Text.Regex.Mode
-import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
-
 polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator
 

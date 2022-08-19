@@ -1,17 +1,15 @@
 from Standard.Base import all
-
-import Standard.Base.Warning
 import Standard.Base.Data.Text.Matching
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Problem_Behavior import Report_Warning
+
 import Standard.Table.Data.Position
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Name, By_Index, By_Column
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Problem_Builder
-import Standard.Base.Data.Ordering.Natural_Order
 import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 

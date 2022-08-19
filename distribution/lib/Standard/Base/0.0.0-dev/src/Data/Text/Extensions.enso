@@ -4,15 +4,15 @@ from Standard.Base import all
 
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
+
 import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
-import Standard.Base.Data.Text.Span as Span_Module
+
 import Standard.Base.Data.Text.Text_Sub_Range
-from Standard.Base.Data.Text.Text_Sub_Range import First
+
 from Standard.Base.Error.Problem_Behavior import Report_Warning
-import Standard.Base.Data.Locale
 import Standard.Base.Meta
 
 export Standard.Base.Data.Text.Matching_Mode
