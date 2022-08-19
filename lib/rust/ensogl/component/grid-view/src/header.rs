@@ -52,10 +52,20 @@ impl WeakLayers {
 ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
     Input {
         set_layers(WeakLayers),
+        /// The information about section, should be provided when the [`section_info_needed`]
+        /// output is emitted.
+        ///
+        /// The first row in the range is considered a header of the section. The model is an
+        /// [`Entry::Model`] for the header instance (displayed in case when the section is scrolled
+        /// down).
         section_info(Range<Row>, Col, HeaderModel),
         reset_sections(),
     }
     Output {
+        /// Emitted when the information of the section where given location belongs is needed.
+        ///
+        /// As a response, the `section_info` input should be called for given column, until then
+        /// the header won't be displayed.
         section_info_needed(Row, Col),
         header_shown(Row, Col),
         header_position_changed(Row, Col, Vector2),
@@ -70,6 +80,9 @@ ensogl_core::define_endpoints_2! { <HeaderModel: (frp::node::Data)>
 // =============
 
 /// A pushed-down header visible on the top of the viewport.
+///
+/// We push down headers of scrolled-down sections to have them always visible. See the
+/// [main component documentation](GridView).
 #[derive(Clone, Debug)]
 pub struct VisibleHeader<HeaderEntry> {
     section_rows: Range<Row>,
@@ -173,6 +186,8 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         header.map(|h| h.header_position(col, entry_size, viewport))
     }
 
+    /// The y position of line between the header displayed on the top of the viewport and the rest
+    /// of entries. If no header is displayed in given column, the top of the viewport is returned.
     fn header_separator(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> f32 {
         let visible_headers = self.visible_headers.borrow();
         let header = visible_headers.get(&col);

@@ -17,6 +17,10 @@ use ensogl_core::display::scene::Layer;
 // === Constants ===
 // =================
 
+/// The distance the mouse should be moved in last couple of frames to highlight entry as hovered.
+///
+/// We avoid hovering the entry when mouse does not move for better UX (e.g. during scrolling with
+/// mouse wheel).
 const MOUSE_MOVEMENT_NEEDED_TO_HOVER_PX: f32 = 1.5;
 
 

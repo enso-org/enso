@@ -59,11 +59,10 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
     Output {
         /// Disabled entries does not react for mouse events, and cannot be selected.
         disabled(bool),
-        // TODO[ao] update docs.
-        /// Entry's contour. Defines what part of the entry will react for mouse events, and also
-        /// defines the shape of the selection/hover highlight (in case of
-        /// [selectable](crate::selectable) grid views.).
+        /// Entry's contour. Defines what part of the entry will react for mouse events.
         contour(Contour),
+        /// In [selectable](crate::selectable) grid views, this defines the shape of the
+        /// selection/hover highlight in case when this entry is selected.
         highlight_contour(Contour),
         selection_highlight_color(color::Rgba),
         hover_highlight_color(color::Rgba)
