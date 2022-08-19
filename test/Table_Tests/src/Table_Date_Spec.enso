@@ -1,8 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table
-from Standard.Table import Column, File_Format
-from Standard.Table.Data.Data_Formatter import Data_Formatter
+from Standard.Table import Column, File_Format, Data_Formatter
 
 import Standard.Test
 
