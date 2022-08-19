@@ -1,5 +1,7 @@
 package org.enso.table.data.table;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.Function;
@@ -127,10 +129,17 @@ public class Column {
 
   private static Object convertDateOrTime(Value item) {
     if (item.isDate()) {
+      LocalDate d = item.asDate();
       if (item.isTime()) {
-        return item.asDate().atTime(item.asTime());
+        LocalDateTime dtime = d.atTime(item.asTime());
+        if (item.isTimeZone()) {
+          return dtime.atZone(item.asTimeZone());
+        } else {
+          return dtime;
+        }
+      } else {
+        return d;
       }
-      return item.asDate();
     } else if (item.isTime()) {
       return item.asTime();
     }
