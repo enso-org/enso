@@ -17,6 +17,7 @@ const LINEAR_SCALE = 'linear'
 const LOGARITHMIC_SCALE = 'logarithmic'
 const VISIBLE_POINTS = 'visible'
 const BUTTONS_HEIGHT = 25
+const DEFAULT_LIMIT = 1024
 
 /**
  * A d3.js ScatterPlot visualization.
@@ -50,7 +51,7 @@ class ScatterPlot extends Visualization {
     constructor(data) {
         super(data)
         this.bounds = null
-        this.limit = 32
+        this.limit = DEFAULT_LIMIT
         this.updatePreprocessor()
         this.dataPoints = []
         this.axis = {
@@ -821,7 +822,7 @@ class ScatterPlot extends Visualization {
             self.zoomingHelper(zoom.transformedScale, boxWidth, scatter, points)
 
             self.bounds = null
-            self.limit = 32
+            self.limit = DEFAULT_LIMIT
             self.updatePreprocessor();
         }
 
