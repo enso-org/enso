@@ -4,14 +4,12 @@ use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
-use crate::controller::graph::NewNodeInfo;
 use crate::model::module::MethodId;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
-use crate::presenter;
 
 use const_format::concatcp;
 use double_representation::graph::GraphInfo;
@@ -23,8 +21,6 @@ use double_representation::tp;
 use engine_protocol::language_server;
 use enso_text::Location;
 use flo_stream::Subscriber;
-use ide_view::graph_editor::GraphEditor;
-use ide_view::project::SearcherParams;
 use parser::Parser;
 
 
@@ -392,54 +388,6 @@ impl Mode {
             Mode::EditNode { node_id } => *node_id,
         }
     }
-
-    fn with_new_node(
-        parameters: SearcherParams,
-        graph: &presenter::Graph,
-        graph_editor: &GraphEditor,
-        graph_controller: &controller::Graph,
-    ) -> FallibleResult<Self> {
-        /// The expression to be used for newly created nodes when initialising the searcher without
-        /// an existing node.
-        const DEFAULT_INPUT_EXPRESSION: &str = "Nothing";
-        let SearcherParams { input, source_node } = parameters;
-
-        let view_data = graph_editor.model.nodes.get_cloned_ref(&input);
-
-        let position = view_data.map(|node| node.position().xy());
-        let position = position.map(|vector| model::module::Position { vector });
-
-        let metadata = NodeMetadata { position, ..default() };
-        let mut new_node = NewNodeInfo::new_pushed_back(DEFAULT_INPUT_EXPRESSION);
-        new_node.metadata = Some(metadata);
-        new_node.introduce_pattern = false;
-        let created_node = graph_controller.add_node(new_node)?;
-
-        graph.assign_node_view_explicitly(input, created_node);
-        graph.allow_expression_auto_updates(created_node, false);
-
-        let source_node = source_node.and_then(|id| graph.ast_node_of_view(id.node));
-
-        Ok(Mode::NewNode { node_id: created_node, source_node })
-    }
-
-    /// Initiate the operating mode for the searcher based on the given [`SearcherParams`]. If the
-    /// view associated with the input node given in the parameters does not yet exist, it will
-    /// be created.
-    pub fn from_parameters(
-        parameters: SearcherParams,
-        graph: &presenter::Graph,
-        graph_editor: &GraphEditor,
-        graph_controller: &controller::Graph,
-    ) -> FallibleResult<Mode> {
-        let SearcherParams { input, .. } = parameters;
-        let ast_node = graph.ast_node_of_view(input);
-
-        match ast_node {
-            Some(node_id) => Ok(Mode::EditNode { node_id }),
-            None => Self::with_new_node(parameters, graph, graph_editor, graph_controller),
-        }
-    }
 }
 
 /// A fragment filled by single picked suggestion.
@@ -630,7 +578,6 @@ impl Searcher {
 
     fn init(self) -> Self {
         self.reload_list();
-        self.init_input();
         self
     }
 
@@ -952,19 +899,6 @@ impl Searcher {
         self.gather_actions_from_engine(this_type, return_types, None);
         self.data.borrow_mut().actions = Actions::Loading;
         executor::global::spawn(self.notifier.publish(Notification::NewActionList));
-    }
-
-    fn init_input(&self) {
-        if let Mode::NewNode { source_node, .. } = self.mode.deref() {
-            if source_node.is_none() {
-                if let Err(e) = self.set_input("".to_string()) {
-                    tracing::error!(
-                        "Failed to clear input when creating searcher for a new node: {:?}",
-                        e
-                    );
-                }
-            }
-        }
     }
 
     /// Get the typename of "this" value for current completion context. Returns `Future`, as the

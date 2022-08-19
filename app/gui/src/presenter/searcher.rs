@@ -3,12 +3,14 @@
 
 use crate::prelude::*;
 
+use crate::controller::graph::NewNodeInfo;
 use crate::controller::searcher::action::Suggestion;
 use crate::controller::searcher::component;
 use crate::controller::searcher::Mode;
 use crate::controller::searcher::Notification;
 use crate::controller::searcher::UserAction;
 use crate::executor::global::spawn_stream_handler;
+use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database::entry::Kind;
 use crate::presenter;
 use crate::presenter::graph::AstNodeId;
@@ -19,6 +21,7 @@ use ide_view as view;
 use ide_view::component_browser::list_panel;
 use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view::graph_editor::component::node as node_view;
+use ide_view::graph_editor::GraphEditor;
 use ide_view::project::SearcherParams;
 use ide_view::project::SearcherVariant;
 use ide_view_component_group::set::SectionId;
@@ -348,6 +351,65 @@ impl Searcher {
         Self { model, _network: network }
     }
 
+    /// Create a new input node for use in the searcher. Initiates a new node in the ast and
+    /// associates it with the already existing view.
+    ///
+    /// Returns the new node id and optionally the source node which was selected/dragged when
+    /// creating this node.
+    fn create_input_node(
+        parameters: SearcherParams,
+        graph: &presenter::Graph,
+        graph_editor: &GraphEditor,
+        graph_controller: &controller::Graph,
+    ) -> FallibleResult<(ast::Id, Option<ast::Id>)> {
+        /// The expression to be used for newly created nodes when initialising the searcher without
+        /// an existing node.
+        const DEFAULT_INPUT_EXPRESSION: &str = "Nothing";
+        let SearcherParams { input, source_node } = parameters;
+
+        let view_data = graph_editor.model.nodes.get_cloned_ref(&input);
+
+        let position = view_data.map(|node| node.position().xy());
+        let position = position.map(|vector| model::module::Position { vector });
+
+        let metadata = NodeMetadata { position, ..default() };
+        let mut new_node = NewNodeInfo::new_pushed_back(DEFAULT_INPUT_EXPRESSION);
+        new_node.metadata = Some(metadata);
+        new_node.introduce_pattern = false;
+        let created_node = graph_controller.add_node(new_node)?;
+
+        graph.assign_node_view_explicitly(input, created_node);
+        graph.allow_expression_auto_updates(created_node, false);
+
+        let source_node = source_node.and_then(|id| graph.ast_node_of_view(id.node));
+
+        Ok((created_node, source_node))
+    }
+
+    /// Initiate the operating mode for the searcher based on the given [`SearcherParams`]. If the
+    /// view associated with the input node given in the parameters does not yet exist, it will
+    /// be created.
+    ///
+    /// Returns the [`Mode`] that should be used for the searcher.
+    pub fn init_input_node(
+        parameters: SearcherParams,
+        graph: &presenter::Graph,
+        graph_editor: &GraphEditor,
+        graph_controller: &controller::Graph,
+    ) -> FallibleResult<Mode> {
+        let SearcherParams { input, .. } = parameters;
+        let ast_node = graph.ast_node_of_view(input);
+
+        match ast_node {
+            Some(node_id) => Ok(Mode::EditNode { node_id }),
+            None => {
+                let (new_node, source_node) =
+                    Self::create_input_node(parameters, graph, graph_editor, graph_controller)?;
+                Ok(Mode::NewNode { node_id: new_node, source_node })
+            }
+        }
+    }
+
     /// Setup new, appropriate searcher controller for the edition of `node_view`, and construct
     /// presenter handling it.
     #[profile(Task)]
@@ -360,7 +422,7 @@ impl Searcher {
         view: view::project::View,
         parameters: SearcherParams,
     ) -> FallibleResult<Self> {
-        let mode = Mode::from_parameters(
+        let mode = Self::init_input_node(
             parameters,
             graph_presenter,
             view.graph(),
@@ -374,6 +436,20 @@ impl Searcher {
             graph_controller,
             mode,
         )?;
+
+        // Clear input on a new node. By default this will be set to whatever is used as the default
+        // content of the new node.
+        if let Mode::NewNode { source_node, .. } = mode {
+            if source_node.is_none() {
+                if let Err(e) = searcher_controller.set_input("".to_string()) {
+                    tracing::error!(
+                        "Failed to clear input when creating searcher for a new node: {:?}",
+                        e
+                    );
+                }
+            }
+        }
+
         let input = parameters.input;
         Ok(Self::new(parent, searcher_controller, view, input))
     }
