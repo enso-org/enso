@@ -9,12 +9,13 @@ import Standard.Base.Data.Time.Zone
 import Standard.Test
 
 polyglot java import java.time.LocalDate
+polyglot java import java.time.format.DateTimeFormatter
 
 spec =
     specWith "Date" Date.new Date.parse
     specWith "JavaScriptDate" js_date js_parse
-    specWith "JavaDate" java_date Date.parse
-    specWith "JavaScriptArrayWithADate" js_array_date Date.parse
+    specWith "JavaDate" java_date java_parse
+    specWith "JavaScriptArrayWithADate" js_array_date js_parse
 
 specWith name create_new_date parse_date =
     Test.group name <|
@@ -150,10 +151,14 @@ js_parse text format=Nothing =
 js_date year month=1 day=1 =
     Panic.catch Any (js_date_impl year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
 
-
 js_array_date year month=1 day=1 =
     arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
     arr.at(0)
+
+java_parse date_text pattern=Nothing =
+  if pattern == Nothing then Panic.catch Polyglot_Error (LocalDate.parse date_text) (err -> Error.throw (Time.Time_Error err.payload.cause.getMessage)) else
+      formatter = DateTimeFormatter.ofPattern(pattern)
+      Panic.catch Polyglot_Error (LocalDate.parse date_text formatter) (err -> Error.throw (Time.Time_Error err.payload.cause.getMessage))
 
 java_date year month=1 day=1 =
     Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time.Time_Error <| err.payload.to_display_text.drop (Text_Sub_Range.First 16)))

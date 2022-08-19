@@ -13,6 +13,7 @@ use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
+use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::module::QualifiedName;
@@ -47,7 +48,9 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 
 /// The special module used for mock `Enso_Project.data` entry.
 /// See also [`Searcher::add_enso_project_entries`].
-const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
+const ENSO_PROJECT_SPECIAL_MODULE: &str =
+    concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
+
 
 
 // ==============
@@ -973,14 +976,16 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
-                    data.components = this.make_component_list(completions);
+                    data.components =
+                        this.make_component_list(completions, &this_type, &return_types);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    data.components = this.make_component_list(this.database.keys());
+                    data.components =
+                        this.make_component_list(this.database.keys(), &this_type, &return_types);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -998,10 +1003,6 @@ impl Searcher {
         let mut actions = action::ListWithSearchResultBuilder::new();
         let (libraries_icon, default_icon) =
             action::hardcoded::ICONS.with(|i| (i.libraries.clone_ref(), i.default.clone_ref()));
-        //TODO[ao] should be uncommented once new searcher GUI will be integrated + the order of
-        // added entries should be adjusted.
-        // https://github.com/enso-org/ide/issues/1681
-        // Self::add_hardcoded_entries(&mut actions,this_type,return_types)?;
         if should_add_additional_entries && self.ide.manage_projects().is_ok() {
             let mut root_cat = actions.add_root_category("Projects", default_icon.clone_ref());
             let category = root_cat.add_category("Projects", default_icon.clone_ref());
@@ -1043,8 +1044,11 @@ impl Searcher {
     fn make_component_list<'a>(
         &self,
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
+        this_type: &Option<String>,
+        return_types: &[String],
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
+        add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
@@ -1159,23 +1163,6 @@ impl Searcher {
             libraries_cat_builder.add_action(action);
         }
     }
-
-    //TODO[ao] The usage of add_hardcoded_entries_to_list is currently commented out. It should be
-    // uncommented when working on https://github.com/enso-org/ide/issues/1681.
-    #[allow(dead_code)]
-    fn add_hardcoded_entries(
-        list: &mut action::ListBuilder,
-        this_type: Option<String>,
-        return_types: Vec<String>,
-    ) -> FallibleResult {
-        let this_type = this_type.map(tp::QualifiedName::from_text).transpose()?;
-        let rt_converted = return_types.iter().map(tp::QualifiedName::from_text);
-        let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
-        let return_types = rt_result?;
-        let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
-        action::hardcoded::add_hardcoded_entries_to_list(list, this_type.as_ref(), return_types);
-        Ok(())
-    }
 }
 
 
@@ -1192,6 +1179,25 @@ fn component_list_builder_with_favorites<'a>(
     }
     builder.set_grouping_and_order_of_favorites(suggestion_db, groups);
     builder
+}
+
+fn add_virtual_entries_to_builder(
+    builder: &mut component::builder::List,
+    this_type: &Option<String>,
+    return_types: &[String],
+) {
+    if this_type.is_none() {
+        let snippets = if return_types.is_empty() {
+            component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
+        } else {
+            let parse_type_qn = |s| tp::QualifiedName::from_text(s).ok();
+            let rt_qns = return_types.iter().filter_map(parse_type_qn);
+            component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
+        };
+        let group_name = component::hardcoded::INPUT_GROUP_NAME;
+        let project = project::QualifiedName::standard_base_library();
+        builder.insert_virtual_components_in_favorites_group(group_name, project, snippets);
+    }
 }
 
 
@@ -1845,7 +1851,7 @@ pub mod test {
         // Prepare a sample component group to be returned by a mock Language Server client.
         let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
         let sample_ls_component_group = language_server::LibraryComponentGroup {
-            library: "".to_string(),
+            library: project::QualifiedName::standard_base_library().to_string(),
             name:    "Test Group 1".to_string(),
             color:   None,
             icon:    None,
@@ -1878,17 +1884,19 @@ pub mod test {
                 format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
             assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
-            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry1.name && e2.name() == entry9.name);
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
         let favorites = &components.favorites;
-        assert_eq!(favorites.len(), 1);
-        let favorites_group = &favorites[0];
-        assert_eq!(favorites_group.name, "Test Group 1");
-        let favorites_entries = favorites_group.entries.borrow();
+        assert_eq!(favorites.len(), 2);
+        let favorites_group_0 = &favorites[0];
+        assert_eq!(favorites_group_0.name, component::hardcoded::INPUT_GROUP_NAME);
+        let favorites_group_1 = &favorites[1];
+        assert_eq!(favorites_group_1.name, "Test Group 1");
+        let favorites_entries = favorites_group_1.entries.borrow();
         assert_eq!(favorites_entries.len(), 1);
-        assert_eq!(*favorites_entries[0].id, 1);
+        assert_eq!(favorites_entries[0].id().unwrap(), 1);
     }
 
     #[wasm_bindgen_test]

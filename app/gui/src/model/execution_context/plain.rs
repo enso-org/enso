@@ -313,7 +313,9 @@ pub mod test {
         }
 
         fn component_groups(&self) -> RefCell<Rc<Vec<ComponentGroup>>> {
-            let groups = self.component_groups.iter().map(|g| g.clone().into()).collect();
+            use engine_protocol::language_server::LibraryComponentGroup;
+            let group_from_lib_group = |g: &LibraryComponentGroup| g.clone().try_into().unwrap();
+            let groups = self.component_groups.iter().map(group_from_lib_group).collect();
             RefCell::new(Rc::new(groups))
         }
 
