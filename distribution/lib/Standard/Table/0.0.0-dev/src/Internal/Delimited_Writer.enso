@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.System
 import Standard.Base.Error.Common as Errors
 
-import Standard.Table
+import Standard.Table.Data.Table
 from Standard.Table.Errors as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
 from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Data.Data_Formatter import Data_Formatter
