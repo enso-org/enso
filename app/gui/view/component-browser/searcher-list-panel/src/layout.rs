@@ -5,7 +5,21 @@ use ensogl_grid_view::Row;
 use ide_view_component_group::set::GroupId;
 use ide_view_component_group::set::SectionId;
 
+
+
+// =================
+// === Constants ===
+// =================
+
+/// Height of the header of the component group. This value is added to the group's number of
+/// entries to get the total height.
 pub const HEADER_HEIGHT: usize = 1;
+
+
+
+// =================
+// === ElementId ===
+// =================
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum GroupElement {
@@ -13,12 +27,27 @@ pub enum GroupElement {
     Entry(usize),
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct ElementId {
+    group:   GroupId,
+    element: GroupElement,
+}
+
+
+
+// =============
+// === Group ===
+// =============
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Group {
     pub id:              GroupId,
     pub height:          usize,
     pub original_height: usize,
 }
+
+
+// === LaidGroup ===
 
 #[derive(Copy, Clone, Debug)]
 pub struct LaidGroup<'a> {
@@ -44,11 +73,11 @@ impl<'a> LaidGroup<'a> {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct ElementId {
-    group:   GroupId,
-    element: GroupElement,
-}
+
+
+// ==============
+// === Layout ===
+// ==============
 
 #[derive(Clone, Debug)]
 struct Column {
@@ -77,7 +106,28 @@ impl Layout {
         Self { columns, positions, local_scope_section_start, local_scope_entry_count, row_count }
     }
 
-    pub fn
+    pub fn create_from_groups<const COLUMN_COUNT: usize>(
+        groups: [Vec<Group>; COLUMN_COUNT],
+        local_scope_entry_count: usize,
+    ) -> Self {
+        let local_scope_rows = local_scope_entry_count.div_ceil(COLUMN_COUNT);
+        let col_heights: [usize; COLUMN_COUNT] =
+            groups.each_ref().map(|v| v.iter().map(|g| g.original_height + HEADER_HEIGHT).sum());
+        let groups_rows = col_heights.into_iter().max().unwrap_or_default();
+        let all_rows = local_scope_rows + groups_rows;
+        let mut this = Self::new(all_rows, COLUMN_COUNT, local_scope_entry_count);
+        let with_col_index = groups.into_iter().enumerate().map(Self::column_to_col_group_pairs);
+        for (column, group) in with_col_index.flatten() {
+            this.push_group(column, group);
+        }
+        this
+    }
+
+    fn column_to_col_group_pairs(
+        (index, column): (Col, Vec<Group>),
+    ) -> impl Iterator<Item = (Col, Group)> {
+        column.into_iter().map(move |group| (index, group))
+    }
 
     pub fn group_at_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
@@ -132,9 +182,21 @@ impl Layout {
         self.positions.insert(group.id, (next_header_row, column));
         next_header_row
     }
+
+    pub fn top_row(&self) -> Row {
+        self.columns.iter().map(|column| column.top_row).min().unwrap_or(self.row_count)
+    }
+
+    pub fn column_top_row(&self, column: Col) -> Row {
+        self.columns.get(column).map_or(self.row_count, |c| c.top_row)
+    }
 }
 
 
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {
@@ -147,20 +209,19 @@ mod tests {
 
     #[test]
     fn group_layout() {
-        let mut layout = Layout::new(10, 3, 8);
         let group_ids =
             (0..6).map(|index| GroupId { section: SectionId::Favorites, index }).collect_vec();
         let group_sizes = vec![2, 1, 3, 3, 2, 1];
-        let group_columns = vec![CENTER, LEFT, RIGHT, CENTER, LEFT, RIGHT];
-        for ((id, size), column) in
-            group_ids.iter().zip(group_sizes.into_iter()).zip(group_columns.into_iter())
-        {
-            layout.push_group(column, Group {
-                id:              *id,
-                height:          size,
-                original_height: size,
-            });
-        }
+        let group_data = group_ids.iter().zip(group_sizes.into_iter());
+        let mk_group = |(id, size): (&GroupId, usize)| Group {
+            id:              *id,
+            height:          size,
+            original_height: size,
+        };
+        let groups = group_data.map(mk_group).collect_vec();
+        let groups_in_columns =
+            [vec![groups[1], groups[4]], vec![groups[0], groups[3]], vec![groups[2], groups[5]]];
+        let layout = Layout::create_from_groups(groups_in_columns, 8);
 
         let header_of =
             |group_idx| ElementId { group: group_ids[group_idx], element: GroupElement::Header };

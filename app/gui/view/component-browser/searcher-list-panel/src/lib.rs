@@ -27,6 +27,7 @@
 #![feature(slice_as_chunks)]
 #![feature(option_result_contains)]
 #![feature(int_roundings)]
+#![feature(array_methods)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
