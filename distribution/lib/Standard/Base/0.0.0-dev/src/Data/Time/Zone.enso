@@ -2,6 +2,7 @@ from Standard.Base import all
 
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
+polyglot java import org.enso.base.Time_Utils
 
 ## The system default timezone.
 
@@ -123,9 +124,6 @@ type Zone
     zone_id : Text
     zone_id self = @Builtin_Method "Zone.zone_id"
 
-    equals : Zone -> Boolean
-    equals self that = @Builtin_Method "Zone.equals"
-
     ## Convert the time zone to JSON.
 
        > Example
@@ -139,4 +137,4 @@ type Zone
 
     ## Compares two Zones for equality.
     == : Zone -> Boolean
-    == self that = self.equals that
+    == self that = Time_Utils.equals_zone self that

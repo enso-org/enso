@@ -17,7 +17,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 import java.time.DateTimeException;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 
@@ -25,7 +24,7 @@ import java.time.ZoneOffset;
 @ExportLibrary(MethodDispatchLibrary.class)
 @Builtin(pkg = "date", name = "Zone", stdlibName = "Standard.Base.Data.Time.Zone")
 public class EnsoZone implements TruffleObject {
-  private ZoneId zone;
+  private final ZoneId zone;
 
   public EnsoZone(ZoneId zone) {
     this.zone = zone;
@@ -56,18 +55,6 @@ public class EnsoZone implements TruffleObject {
   @Builtin.Method(name = "system", description = "The system default timezone.")
   public static EnsoZone system() {
     return new EnsoZone(ZoneId.systemDefault());
-  }
-
-  @Builtin.Method(name = "equals", description = "Equality check for Zone.")
-  @Builtin.Specialize
-  public boolean equals(EnsoZone that) {
-    return this.zone.equals(that.zone);
-  }
-
-  @Builtin.Method(name = "equals", description = "Equality check for Zone.")
-  @Builtin.Specialize
-  public boolean equals(Object that) {
-    return false;
   }
 
   @ExportMessage

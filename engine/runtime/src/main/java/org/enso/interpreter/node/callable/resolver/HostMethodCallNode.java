@@ -107,10 +107,15 @@ public abstract class HostMethodCallNode extends Node {
   public static PolyglotCallType getPolyglotCallType(
       Object self, String methodName, InteropLibrary library) {
     if (library.isDate(self)) {
-      if (library.isTime(self))
-        if (library.isTimeZone(self)) return PolyglotCallType.CONVERT_TO_ZONEDDATETIME;
-        else return PolyglotCallType.CONVERT_TO_DATETIME;
-      else return PolyglotCallType.CONVERT_TO_DATE;
+      if (library.isTime(self)) {
+        if (library.isTimeZone(self)) {
+          return PolyglotCallType.CONVERT_TO_ZONEDDATETIME;
+        } else {
+          return PolyglotCallType.CONVERT_TO_DATETIME;
+        }
+      } else {
+        return PolyglotCallType.CONVERT_TO_DATE;
+      }
     } else if (library.isTime(self)) {
       return PolyglotCallType.CONVERT_TO_TIMEOFDAY;
     } else if (library.isTimeZone(self)) {

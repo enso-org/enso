@@ -98,6 +98,10 @@ public class Time_Utils {
     return self.compareTo(that);
   }
 
+  public static boolean equals_zone(ZoneId self, ZoneId that) {
+    return self.equals(that);
+  }
+
   /**
    * Obtains an instance of ZonedDateTime from a text string.
    *
