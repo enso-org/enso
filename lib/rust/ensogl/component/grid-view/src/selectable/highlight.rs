@@ -217,7 +217,6 @@ where InnerGrid: AsRef<crate::GridView<E>>
         if let Some(bottom_clip) = bottom_clip {
             frp::extend! {network
                 bottom_clip <- all(&init, bottom_clip)._1();
-                trace bottom_clip;
                 bottom_clip_and_viewport <- all(bottom_clip, grid_frp.viewport);
                 eval bottom_clip_and_viewport ([shape](&(c, v)) Setter::set_bottom_clip(&shape, c, v));
             }
@@ -381,7 +380,7 @@ impl<Kind: EndpointsGetter, E: Entry> HasConstructor
             new_jump <- position_after_highlight.map2(&prev_position, |pos, prev| prev - pos);
             animations.position_jump.target <+ new_jump;
             animations.position_jump.skip <+ new_jump.constant(());
-            animations.position_jump.target <+ new_jump.constant(Vector2(0.0, 0.0));
+            animations.position_jump.target <+ new_jump.constant(Vector2::zero());
 
 
             // === Color and Contour ===
