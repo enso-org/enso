@@ -823,7 +823,7 @@ class ScatterPlot extends Visualization {
 
             self.bounds = null
             self.limit = DEFAULT_LIMIT
-            self.updatePreprocessor();
+            self.updatePreprocessor()
         }
 
         document.addEventListener('keydown', e => {
