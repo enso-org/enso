@@ -18,6 +18,7 @@ use engine_protocol::language_server::*;
 use engine_protocol::types::*;
 use enso_gui::prelude::*;
 
+use enso_gui::model::execution_context::QualifiedMethodPointer;
 use enso_gui::model::execution_context::Visualization;
 use enso_gui::model::module;
 use enso_gui::transport::web::WebSocket;
@@ -125,18 +126,26 @@ async fn ls_text_protocol_test() {
     let visualisation_id = uuid::Uuid::new_v4();
     let expression_id = uuid::Uuid::parse_str("c553533e-a2b9-4305-9f12-b8fe7781f933");
     let expression_id = expression_id.expect("Couldn't parse expression id.");
-    let expression = "x -> here.encode x".to_string();
-    let visualisation_module = "Test.Visualisation".to_string();
-    let visualisation_config =
-        VisualisationConfiguration { execution_context_id, expression, visualisation_module };
+    let visualization_function = "foo".to_string();
+    let visualization_module = "Test.Visualisation";
+    let expression = MethodPointer {
+        module:          visualization_module.to_string(),
+        defined_on_type: visualization_module.to_string(),
+        name:            visualization_function,
+    };
+    let visualisation_config = VisualisationConfiguration { execution_context_id, expression };
     let response =
         client.attach_visualisation(&visualisation_id, &expression_id, &visualisation_config);
     response.await.expect("Couldn't attach visualisation.");
 
-    let expression = "x -> here.incAndEncode".to_string();
-    let visualisation_module = "Test.Visualisation".to_string();
-    let visualisation_config =
-        VisualisationConfiguration { execution_context_id, expression, visualisation_module };
+    let visualization_function = "bar".to_string();
+    let visualization_module = "Test.Visualisation";
+    let expression = MethodPointer {
+        module:          visualization_module.to_string(),
+        defined_on_type: visualization_module.to_string(),
+        name:            visualization_function,
+    };
+    let visualisation_config = VisualisationConfiguration { execution_context_id, expression };
     let response = client.modify_visualisation(&visualisation_id, &visualisation_config).await;
     response.expect("Couldn't modify visualisation.");
 
@@ -331,8 +340,6 @@ async fn binary_visualization_updates_test_hlp() {
     let project = ide.current_project().expect("IDE is configured without an open project.");
     info!(logger, "Got project: {project:?}");
 
-    let expression = "x -> x.json_serialize".to_owned();
-
     use controller::project::MAIN_DEFINITION_NAME;
     use ensogl::system::web::sleep;
 
@@ -354,7 +361,9 @@ async fn binary_visualization_updates_test_hlp() {
     info!(logger, "The code is: {module.ast().repr():?}");
     info!(logger, "Main node: {the_node:?} with {the_node.expression().repr()}");
 
-    let visualization = Visualization::new(the_node.id(), expression, module_qualified_name);
+    let method_pointer =
+        QualifiedMethodPointer::module_method(module_qualified_name, "quux".to_string());
+    let visualization = Visualization::new(the_node.id(), method_pointer);
     let stream = graph_executed.attach_visualization(visualization.clone()).await.unwrap();
     info!(logger, "Attached the visualization {visualization.id}");
     let mut stream = stream.boxed_local();

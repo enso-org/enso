@@ -448,11 +448,14 @@ pub mod test {
 
     #[test]
     fn attaching_visualizations_and_notifying() {
+        let method_pointer = QualifiedMethodPointer::module_method(
+            MockData::new().module_qualified_name(),
+            "".to_string(),
+        );
         let vis = Visualization {
-            id:                model::execution_context::VisualizationId::new_v4(),
-            expression_id:     model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code: "".to_string(),
-            context_module:    MockData::new().module_qualified_name(),
+            id: model::execution_context::VisualizationId::new_v4(),
+            expression_id: model::execution_context::ExpressionId::new_v4(),
+            method_pointer,
         };
         let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;
@@ -492,11 +495,14 @@ pub mod test {
     #[ignore]
     #[test]
     fn detaching_all_visualizations() {
+        let method_pointer = QualifiedMethodPointer::module_method(
+            MockData::new().module_qualified_name(),
+            "".to_string(),
+        );
         let vis = Visualization {
-            id:                model::execution_context::VisualizationId::new_v4(),
-            expression_id:     model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code: "".to_string(),
-            context_module:    MockData::new().module_qualified_name(),
+            id: model::execution_context::VisualizationId::new_v4(),
+            expression_id: model::execution_context::ExpressionId::new_v4(),
+            method_pointer,
         };
         let vis2 = Visualization { id: VisualizationId::new_v4(), ..vis.clone() };
 
@@ -524,14 +530,20 @@ pub mod test {
 
     #[test]
     fn modifying_visualizations() {
+        let method_pointer = QualifiedMethodPointer::module_method(
+            MockData::new().module_qualified_name(),
+            "".to_string(),
+        );
         let vis = Visualization {
-            id:                model::execution_context::VisualizationId::new_v4(),
-            expression_id:     model::execution_context::ExpressionId::new_v4(),
-            preprocessor_code: "x -> x.to_json.to_string".to_string(),
-            context_module:    MockData::new().module_qualified_name(),
+            id: model::execution_context::VisualizationId::new_v4(),
+            expression_id: model::execution_context::ExpressionId::new_v4(),
+            method_pointer,
         };
         let vis_id = vis.id;
-        let new_expression = "x -> x";
+        let new_expression = QualifiedMethodPointer::module_method(
+            MockData::new().module_qualified_name(),
+            "quux".to_string(),
+        );
         let new_module = "Test.Test_Module";
         let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;
@@ -540,8 +552,7 @@ pub mod test {
 
             let expected_config = language_server::types::VisualisationConfiguration {
                 execution_context_id: data.context_id,
-                visualisation_module: new_module.to_owned(),
-                expression:           new_expression.to_owned(),
+                expression:           new_expression.clone().into(),
             };
 
             expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
@@ -550,9 +561,8 @@ pub mod test {
 
         test.run_task(async move {
             context.attach_visualization(vis.clone()).await.unwrap();
-            let expression = Some(new_expression.to_owned());
-            let module = Some(QualifiedName::from_text(new_module).unwrap());
-            context.modify_visualization(vis_id, expression, module).await.unwrap();
+            let method_pointer = Some(new_expression);
+            context.modify_visualization(vis_id, method_pointer).await.unwrap();
         });
     }
 

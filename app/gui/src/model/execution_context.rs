@@ -232,6 +232,10 @@ pub struct QualifiedMethodPointer {
 }
 
 impl QualifiedMethodPointer {
+    /// Create a method pointer representing a module method.
+    pub fn module_method(module: module::QualifiedName, name: String) -> QualifiedMethodPointer {
+        QualifiedMethodPointer { module: module.clone(), defined_on_type: module, name }
+    }
     /// Tries to create a new method pointer from string components.
     pub fn from_unqualified(
         module: &str,
