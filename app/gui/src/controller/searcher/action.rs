@@ -26,7 +26,7 @@ pub enum Suggestion {
     /// The suggestion from Suggestion Database received from the Engine.
     FromDatabase(Rc<model::suggestion_database::Entry>),
     /// The one of the hard-coded suggestion.
-    Hardcoded(Rc<hardcoded::Suggestion>),
+    Hardcoded(Rc<controller::searcher::component::hardcoded::Snippet>),
 }
 
 impl Suggestion {
@@ -38,10 +38,8 @@ impl Suggestion {
     ) -> CodeToInsert {
         match self {
             Suggestion::FromDatabase(s) => s.code_to_insert(current_module, generate_this),
-            Suggestion::Hardcoded(s) => CodeToInsert {
-                code:    s.code.to_owned(),
-                imports: s.imports.iter().cloned().collect(),
-            },
+            Suggestion::Hardcoded(s) =>
+                CodeToInsert { code: s.code.to_owned(), imports: default() },
         }
     }
 
@@ -50,8 +48,7 @@ impl Suggestion {
         match self {
             Suggestion::FromDatabase(suggestion) =>
                 suggestion.arguments.iter().map(|a| a.repr_type.clone()).collect(),
-            Suggestion::Hardcoded(suggestion) =>
-                suggestion.argument_types.iter().map(|t| t.into()).collect(),
+            Suggestion::Hardcoded(_) => vec![],
         }
     }
 
@@ -69,7 +66,7 @@ impl Suggestion {
     pub fn method_id(&self) -> Option<MethodId> {
         match self {
             Suggestion::FromDatabase(s) => s.method_id(),
-            Suggestion::Hardcoded(s) => s.method_id.clone(),
+            Suggestion::Hardcoded(_) => None,
         }
     }
 }
@@ -98,17 +95,6 @@ pub enum Action {
     /// The project management operation: creating or opening, projects.
     ProjectManagement(ProjectManagement),
     // In the future, other action types will be added (like module/method management, etc.).
-}
-
-impl Action {
-    /// Get the name of the icon associated with given action.
-    pub fn icon(&self) -> ImString {
-        use Suggestion::*;
-        match self {
-            Self::Suggestion(Hardcoded(s)) => s.icon.clone_ref(),
-            _ => hardcoded::ICONS.with(|ics| ics.default.clone_ref()),
-        }
-    }
 }
 
 impl Display for Action {

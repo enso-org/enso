@@ -179,6 +179,8 @@
 - [Updated `Vector.take` and `Vector.drop` and removed their obsolete
   counterparts.][3629]
 - [Short-hand syntax for `order_by` added.][3643]
+- [Expanded `Table.at` to support index access and added `Table.column_count`
+  method.][3644]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -280,6 +282,7 @@
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3629]: https://github.com/enso-org/enso/pull/3629
 [3643]: https://github.com/enso-org/enso/pull/3643
+[3644]: https://github.com/enso-org/enso/pull/3644
 [3648]: https://github.com/enso-org/enso/pull/3648
 [5250]: https://github.com/enso-org/enso/pull/5250
 

@@ -47,6 +47,32 @@ spec prefix table_builder test_selection pending=Nothing =
     expect_column_names names table =
         table.columns . map .name . should_equal names frames_to_skip=2
 
+    Test.group prefix+"Table.at" pending=pending <|
+        Test.specify "should allow selecting columns by name" <|
+            column_1 = table.at "bar"
+            column_1.name . should_equal "bar"
+            column_1.to_vector . should_equal [4, 5, 6]
+
+            table.at "nonexistent column name" . should_fail_with No_Such_Column_Error
+        Test.specify "should allow selecting columns by index" <|
+            column_1 = table.at
+            column_1.name . should_equal "foo"
+            column_1.to_vector . should_equal [1, 2, 3]
+
+            column_2 = table.at 2
+            column_2.name . should_equal "Baz"
+            column_2.to_vector . should_equal [7, 8, 9]
+
+            column_3 = table.at -1
+            column_3.name . should_equal "abcd123"
+            column_3.to_vector . should_equal [19, 20, 21]
+
+            table.at 100 . should_fail_with Index_Out_Of_Bounds_Error
+
+    Test.group prefix+"Table.column_count" pending=pending <|
+        Test.specify "should allow getting the column count" <|
+            table.column_count . should_equal 7
+
     Test.group prefix+"Table.select_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| table.select_columns (By_Name ["bar", "foo"])
