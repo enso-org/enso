@@ -44,7 +44,6 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
@@ -89,6 +88,9 @@ use searcher_theme::list_panel as list_panel_theme;
 
 pub mod column_grid;
 pub mod layout;
+
+
+
 mod layouting;
 mod navigator;
 

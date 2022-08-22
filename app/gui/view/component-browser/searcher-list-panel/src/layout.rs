@@ -139,7 +139,7 @@ impl Layout {
     }
 
     /// Create the layout with given groups arranged in columns.
-    pub fn create_from_groups<const COLUMN_COUNT: usize>(
+    pub fn create_from_arranged_groups<const COLUMN_COUNT: usize>(
         groups: [Vec<Group>; COLUMN_COUNT],
         local_scope_entry_count: usize,
     ) -> Self {
@@ -260,7 +260,7 @@ mod tests {
         let groups = group_data.map(mk_group).collect_vec();
         let groups_in_columns =
             [vec![groups[1], groups[4]], vec![groups[0], groups[3]], vec![groups[2], groups[5]]];
-        let layout = Layout::create_from_groups(groups_in_columns, 8);
+        let layout = Layout::create_from_arranged_groups(groups_in_columns, 8);
 
         let header_of =
             |group_idx| ElementId { group: group_ids[group_idx], element: GroupElement::Header };

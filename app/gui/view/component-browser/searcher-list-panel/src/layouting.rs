@@ -3,10 +3,14 @@
 //!
 //! See [`Layouter`] struct documentation to learn more.
 
-use crate::layout::Group;
-use crate::layout::HEADER_HEIGHT;
 use ensogl_core::prelude::*;
+
+use crate::layout::Group;
+use crate::layout::Layout;
+use crate::layout::HEADER_HEIGHT;
+
 use ensogl_grid_view::Col;
+
 
 
 // =================
@@ -78,6 +82,11 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
         }
 
         self.columns
+    }
+
+    pub fn create_layout(self, local_scope_entry_count: usize) -> Layout {
+        let arranged_groups = self.arrange();
+        Layout::create_from_arranged_groups(arranged_groups, local_scope_entry_count)
     }
 
     /// Push the next group to the given column. Returns the size of the added group, 0 if no group
