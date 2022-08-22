@@ -696,6 +696,8 @@ case object AliasAnalysis extends IRPass {
           ),
           fields = fields.map(analysePattern(_, graph, parentScope))
         )
+      case literalPattern: Pattern.Literal =>
+        literalPattern
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

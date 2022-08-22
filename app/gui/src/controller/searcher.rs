@@ -13,6 +13,7 @@ use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
+use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::module::QualifiedName;
@@ -47,7 +48,9 @@ pub const ASSIGN_NAMES_FOR_NODES: bool = true;
 
 /// The special module used for mock `Enso_Project.data` entry.
 /// See also [`Searcher::add_enso_project_entries`].
-const ENSO_PROJECT_SPECIAL_MODULE: &str = "Standard.Base.Enso_Project";
+const ENSO_PROJECT_SPECIAL_MODULE: &str =
+    concatcp!(project::STANDARD_BASE_LIBRARY_PATH, ".Enso_Project");
+
 
 
 // ==============
@@ -440,7 +443,7 @@ impl Data {
         let actions = default();
         let components = default();
         let intended_method = edited_node.metadata.and_then(|md| md.intended_method);
-        let initial_entry = intended_method.and_then(|m| database.lookup_method(m));
+        let initial_entry = intended_method.and_then(|metadata| database.lookup_method(metadata));
         let initial_fragment = initial_entry.and_then(|entry| {
             let fragment = FragmentAddedByPickingSuggestion {
                 id:                CompletedFragmentId::Function,
@@ -494,7 +497,7 @@ pub struct Searcher {
     /// [`controller::ExecutedGraph::component_groups`]. Stored to reduce the number of
     /// [`database`] lookups performed when updating [`Data::components`].
     list_builder_with_favorites: Rc<component::builder::List>,
-    node_metadata_guard: Rc<Option<EditMetadataGuard>>,
+    node_edit_guard: Rc<Option<EditGuard>>,
 }
 
 impl Searcher {
@@ -533,7 +536,7 @@ impl Searcher {
             default()
         };
         let node_metadata_guard = if let Mode::EditNode { node_id } = mode {
-            Rc::new(Some(EditMetadataGuard::new(node_id, graph.clone_ref())))
+            Rc::new(Some(EditGuard::new(node_id, graph.clone_ref())))
         } else {
             default()
         };
@@ -563,7 +566,7 @@ impl Searcher {
             position_in_code: Immutable(position),
             project,
             list_builder_with_favorites: Rc::new(list_builder_with_favs),
-            node_metadata_guard,
+            node_edit_guard: node_metadata_guard,
         };
         ret.reload_list();
         Ok(ret)
@@ -764,6 +767,9 @@ impl Searcher {
     #[profile(Debug)]
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
+        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
+            guard.prevent_revert()
+        }
         let expr_and_method = || {
             let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
 
@@ -970,14 +976,16 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
-                    data.components = this.make_component_list(completions);
+                    data.components =
+                        this.make_component_list(completions, &this_type, &return_types);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    data.components = this.make_component_list(this.database.keys());
+                    data.components =
+                        this.make_component_list(this.database.keys(), &this_type, &return_types);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -995,10 +1003,6 @@ impl Searcher {
         let mut actions = action::ListWithSearchResultBuilder::new();
         let (libraries_icon, default_icon) =
             action::hardcoded::ICONS.with(|i| (i.libraries.clone_ref(), i.default.clone_ref()));
-        //TODO[ao] should be uncommented once new searcher GUI will be integrated + the order of
-        // added entries should be adjusted.
-        // https://github.com/enso-org/ide/issues/1681
-        // Self::add_hardcoded_entries(&mut actions,this_type,return_types)?;
         if should_add_additional_entries && self.ide.manage_projects().is_ok() {
             let mut root_cat = actions.add_root_category("Projects", default_icon.clone_ref());
             let category = root_cat.add_category("Projects", default_icon.clone_ref());
@@ -1040,8 +1044,11 @@ impl Searcher {
     fn make_component_list<'a>(
         &self,
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
+        this_type: &Option<String>,
+        return_types: &[String],
     ) -> component::List {
         let mut builder = self.list_builder_with_favorites.deref().clone();
+        add_virtual_entries_to_builder(&mut builder, this_type, return_types);
         builder.extend_list_and_allow_favorites_with_ids(&self.database, entry_ids);
         builder.build()
     }
@@ -1156,23 +1163,6 @@ impl Searcher {
             libraries_cat_builder.add_action(action);
         }
     }
-
-    //TODO[ao] The usage of add_hardcoded_entries_to_list is currently commented out. It should be
-    // uncommented when working on https://github.com/enso-org/ide/issues/1681.
-    #[allow(dead_code)]
-    fn add_hardcoded_entries(
-        list: &mut action::ListBuilder,
-        this_type: Option<String>,
-        return_types: Vec<String>,
-    ) -> FallibleResult {
-        let this_type = this_type.map(tp::QualifiedName::from_text).transpose()?;
-        let rt_converted = return_types.iter().map(tp::QualifiedName::from_text);
-        let rt_result: FallibleResult<HashSet<tp::QualifiedName>> = rt_converted.collect();
-        let return_types = rt_result?;
-        let return_types = if return_types.is_empty() { None } else { Some(&return_types) };
-        action::hardcoded::add_hardcoded_entries_to_list(list, this_type.as_ref(), return_types);
-        Ok(())
-    }
 }
 
 
@@ -1191,24 +1181,49 @@ fn component_list_builder_with_favorites<'a>(
     builder
 }
 
+fn add_virtual_entries_to_builder(
+    builder: &mut component::builder::List,
+    this_type: &Option<String>,
+    return_types: &[String],
+) {
+    if this_type.is_none() {
+        let snippets = if return_types.is_empty() {
+            component::hardcoded::INPUT_SNIPPETS.with(|s| s.clone())
+        } else {
+            let parse_type_qn = |s| tp::QualifiedName::from_text(s).ok();
+            let rt_qns = return_types.iter().filter_map(parse_type_qn);
+            component::hardcoded::input_snippets_with_matching_return_type(rt_qns)
+        };
+        let group_name = component::hardcoded::INPUT_GROUP_NAME;
+        let project = project::QualifiedName::standard_base_library();
+        builder.insert_virtual_components_in_favorites_group(group_name, project, snippets);
+    }
+}
+
 
 // === Node Edit Metadata Guard ===
 
-/// On creation the `EditMetadataGuard` saves the current expression of the node to its metadata.
-/// When dropped the metadata is cleared again.
+/// On creation the `EditGuard` saves the current expression of the node to its metadata.
+/// When dropped the metadata is cleared again and, by default, the node content is reverted to the
+/// previous expression. The expression reversion can be prevented by calling `prevent_revert`.
 #[derive(Debug)]
-struct EditMetadataGuard {
-    node_id: ast::Id,
-    graph:   controller::ExecutedGraph,
+struct EditGuard {
+    node_id:           ast::Id,
+    graph:             controller::ExecutedGraph,
+    revert_expression: Cell<bool>,
 }
 
-impl EditMetadataGuard {
+impl EditGuard {
     pub fn new(node_id: ast::Id, graph: controller::ExecutedGraph) -> Self {
-        let ret = Self { node_id, graph };
+        let ret = Self { node_id, graph, revert_expression: Cell::new(true) };
         ret.save_node_expression_to_metadata().unwrap_or_else(|e| {
             tracing::error!("Failed to save the node edit metadata due to error: {}", e)
         });
         ret
+    }
+
+    pub fn prevent_revert(&self) {
+        self.revert_expression.set(false);
     }
 
     /// Mark the node as edited in its metadata and save the current expression, so it can later be
@@ -1219,8 +1234,8 @@ impl EditMetadataGuard {
         let module = &self.graph.graph().module;
         module.with_node_metadata(
             self.node_id,
-            Box::new(|m| {
-                m.edit_status = Some(NodeEditStatus::Edited { previous_expression });
+            Box::new(|metadata| {
+                metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
             }),
         )
     }
@@ -1230,21 +1245,71 @@ impl EditMetadataGuard {
         let module = &self.graph.graph().module;
         module.with_node_metadata(
             self.node_id,
-            Box::new(|m| {
-                m.edit_status = None;
+            Box::new(|metadata| {
+                metadata.edit_status = None;
             }),
         )
     }
+
+    fn get_saved_expression(&self) -> FallibleResult<Option<NodeEditStatus>> {
+        let module = &self.graph.graph().module;
+        let mut edit_status = None;
+        module.with_node_metadata(
+            self.node_id,
+            Box::new(|metadata| {
+                edit_status = metadata.edit_status.clone();
+            }),
+        )?;
+        Ok(edit_status)
+    }
+
+    fn revert_node_expression_edit(&self) -> FallibleResult {
+        let edit_status = self.get_saved_expression()?;
+        match edit_status {
+            None => {
+                tracing::warn!(
+                    "Tried to revert the expression of the edited node, \
+                but found no edit metadata."
+                );
+            }
+            Some(NodeEditStatus::Created) => {
+                tracing::debug!("Deleting temporary node {} after aborting edit.", self.node_id);
+                self.graph.graph().remove_node(self.node_id)?;
+            }
+            Some(NodeEditStatus::Edited { previous_expression }) => {
+                tracing::debug!(
+                    "Reverting expression of node {} to {} after aborting edit.",
+                    self.node_id,
+                    &previous_expression
+                );
+                let graph = self.graph.graph();
+                graph.set_expression(self.node_id, previous_expression)?;
+            }
+        };
+        Ok(())
+    }
 }
 
-impl Drop for EditMetadataGuard {
+impl Drop for EditGuard {
     fn drop(&mut self) {
-        self.clear_node_edit_metadata().unwrap_or_else(|e| {
-            tracing::error!(
+        if self.revert_expression.get() {
+            self.revert_node_expression_edit().unwrap_or_else(|e| {
+                tracing::error!(
+                    "Failed to revert node edit after editing ended because of an error: {}",
+                    e
+                )
+            });
+        } else {
+            tracing::debug!("Not reverting node expression after edit.")
+        }
+        if self.graph.graph().node_exists(self.node_id) {
+            self.clear_node_edit_metadata().unwrap_or_else(|e| {
+                tracing::error!(
                 "Failed to clear node edit metadata after editing ended because of an error: {}",
                 e
             )
-        });
+            });
+        }
     }
 }
 
@@ -1450,7 +1515,7 @@ pub mod test {
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
                 list_builder_with_favorites: Rc::new(list_builder_with_favs),
-                node_metadata_guard,
+                node_edit_guard: node_metadata_guard,
             };
             let entry1 = searcher.database.lookup(1).unwrap();
             let entry2 = searcher.database.lookup(2).unwrap();
@@ -1786,7 +1851,7 @@ pub mod test {
         // Prepare a sample component group to be returned by a mock Language Server client.
         let module_qualified_name = crate::test::mock::data::module_qualified_name().to_string();
         let sample_ls_component_group = language_server::LibraryComponentGroup {
-            library: "".to_string(),
+            library: project::QualifiedName::standard_base_library().to_string(),
             name:    "Test Group 1".to_string(),
             color:   None,
             icon:    None,
@@ -1819,17 +1884,19 @@ pub mod test {
                 format!("{}.{}", entry1.module.project_name.project, entry1.module.name());
             assert_eq!(module_group.name, expected_group_name);
             let entries = module_group.entries.borrow();
-            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry1.name && e2.name() == entry9.name);
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
         let favorites = &components.favorites;
-        assert_eq!(favorites.len(), 1);
-        let favorites_group = &favorites[0];
-        assert_eq!(favorites_group.name, "Test Group 1");
-        let favorites_entries = favorites_group.entries.borrow();
+        assert_eq!(favorites.len(), 2);
+        let favorites_group_0 = &favorites[0];
+        assert_eq!(favorites_group_0.name, component::hardcoded::INPUT_GROUP_NAME);
+        let favorites_group_1 = &favorites[1];
+        assert_eq!(favorites_group_1.name, "Test Group 1");
+        let favorites_entries = favorites_group_1.entries.borrow();
         assert_eq!(favorites_entries.len(), 1);
-        assert_eq!(*favorites_entries[0].id, 1);
+        assert_eq!(favorites_entries[0].id().unwrap(), 1);
     }
 
     #[wasm_bindgen_test]
@@ -2278,22 +2345,27 @@ pub mod test {
     }
 
     #[wasm_bindgen_test]
-    fn metadata_guard() {
+    fn edit_guard() {
         let Fixture { test: _test, mut searcher, .. } = Fixture::new();
-        let node = searcher.graph.graph().nodes().unwrap().last().unwrap().clone();
+        let graph = searcher.graph.graph();
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let initial_node_expression = node.main_line.expression().clone();
         let node_id = node.info.id();
         searcher.mode = Immutable(Mode::EditNode { node_id });
-        searcher.node_metadata_guard =
-            Rc::new(Some(EditMetadataGuard::new(node_id, searcher.graph.clone_ref())));
+        searcher.node_edit_guard =
+            Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
+
+        // Apply an edit to the node.
+        graph.set_expression(node_id, "Edited Node").unwrap();
 
         // Verify the metadata was initialised after the guard creation.
-        let module = searcher.graph.graph().module.clone_ref();
+        let module = graph.module.clone_ref();
         module
             .with_node_metadata(
                 node_id,
-                Box::new(|m| {
+                Box::new(|metadata| {
                     assert_eq!(
-                        m.edit_status,
+                        metadata.edit_status,
                         Some(NodeEditStatus::Edited {
                             previous_expression: node.info.expression().to_string(),
                         })
@@ -2307,10 +2379,38 @@ pub mod test {
         module
             .with_node_metadata(
                 node_id,
-                Box::new(|m| {
-                    assert_eq!(m.edit_status, None);
+                Box::new(|metadata| {
+                    assert_eq!(metadata.edit_status, None);
                 }),
             )
             .unwrap();
+        // Verify the node was reverted.
+
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let final_node_expression = node.main_line.expression().clone();
+        assert_eq!(initial_node_expression.to_string(), final_node_expression.to_string());
+    }
+
+    #[wasm_bindgen_test]
+    fn edit_guard_no_revert() {
+        let Fixture { test: _test, mut searcher, .. } = Fixture::new();
+        let graph = searcher.graph.graph();
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let node_id = node.info.id();
+        searcher.mode = Immutable(Mode::EditNode { node_id });
+        searcher.node_edit_guard =
+            Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
+
+        // Apply an edit to the node.
+        let new_expression = "Edited Node";
+        graph.set_expression(node_id, new_expression).unwrap();
+        // Prevent reverting the node by calling the `prevent_revert` method.
+        searcher.node_edit_guard.deref().as_ref().unwrap().prevent_revert();
+
+        // Verify the node is not reverted after the searcher is dropped.
+        drop(searcher);
+        let node = graph.nodes().unwrap().last().unwrap().clone();
+        let final_node_expression = node.main_line.expression().clone();
+        assert_eq!(final_node_expression.to_string(), new_expression);
     }
 }

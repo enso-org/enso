@@ -45,7 +45,7 @@ spec_fmt header file read_method =
 
         Test.specify "should read an empty table" <|
             t = read_method file (File_Format.Excel (Sheet "Empty"))
-            t.columns.length.should_equal 0
+            t.column_count.should_equal 0
 
         Test.specify "should gracefully handle duplicate column names and formulas" <|
             t = read_method file (File_Format.Excel (Sheet "Duplicate Columns"))
@@ -59,13 +59,13 @@ spec_fmt header file read_method =
             t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
 
             t_2 = read_method file (File_Format.Excel (Cell_Range "Simple!3:5") headers=False)
-            t_2.columns.length.should_equal 3
+            t_2.column_count.should_equal 3
             t_2.at 'A' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
             t_2.at 'B' . to_vector . should_equal [20, Nothing, 30]
             t_2.at 'C' . to_vector . should_equal [32, 43.2, 54]
 
             t_3 = read_method file (File_Format.Excel (Cell_Range "Simple!B4:C5") headers=False)
-            t_3.columns.length.should_equal 2
+            t_3.column_count.should_equal 2
             t_3.at 'B' . to_vector . should_equal [Nothing, 30]
             t_3.at 'C' . to_vector . should_equal [43.2, 54]
 
@@ -480,7 +480,7 @@ spec =
         start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
 
     check_table table =
-        table.columns.length . should_equal 3
+        table.column_count . should_equal 3
         check_column (table.at "A") col_a
         check_column (table.at "B") col_b
         ## ToDo [JD]: Can't check Dates at present as not being handled correctly. Coming as a Polyglot array
@@ -518,24 +518,24 @@ spec =
             table = xlsx_sheet.read (File_Format.Excel (Sheet 1))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet 1 (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet 1 (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read by sheet name" <|
             table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read XLS by sheet index" <|
             table = xls_sheet.read (File_Format.Excel (Sheet 1))
             check_table table
 
-            table_2 = xls_sheet.read (File_Format.Excel (Sheet 1 (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xls_sheet.read (File_Format.Excel (Sheet 1 (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
         Test.specify "should let you read XLS by sheet name" <|
@@ -546,8 +546,8 @@ spec =
             table = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C" (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!A:C" (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
             check_table <| xlsx_sheet.read (File_Format.Excel (Cell_Range "Sheet1!10:13"))
@@ -555,22 +555,22 @@ spec =
 
         Test.specify "should let you read by range name" <|
             table = xlsx_sheet.read (File_Format.Excel (Cell_Range "myData"))
-            table.length . should_equal col_a.length
+            table.row_count . should_equal col_a.length
             check_table <| table
 
         Test.specify "should let you restrict number of rows read and skip rows" <|
             table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
             check_table table
 
-            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
-            table_2.length . should_equal col_a.length
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length)))
+            table_2.row_count . should_equal col_a.length
             check_table <| table_2
 
-            table_3 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length) 2))
-            table_3.length . should_equal 2
+            table_3 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.row_count - col_a.length) 2))
+            table_3.row_count . should_equal 2
 
             table_4 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" row_limit=6))
-            table_4.length . should_equal 6
+            table_4.row_count . should_equal 6
 
     Test.group "Problems" <|
         Test.specify "should handle non-existing file gracefully" <|
@@ -589,7 +589,7 @@ spec =
         file = enso_project.data / "RangeTests.xlsx"
 
         check_table table col_names data =
-            table.columns.length . should_equal col_names.length
+            table.column_count . should_equal col_names.length
             table.columns.map .name . should_equal col_names
             data.each_with_index idx->values->
                 table.at (col_names.at idx) . to_vector . should_equal values

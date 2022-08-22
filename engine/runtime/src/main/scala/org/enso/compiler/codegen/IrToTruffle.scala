@@ -947,6 +947,50 @@ class IrToTruffle(
 
             branchNode
           }
+        case literalPattern: Pattern.Literal =>
+          val branchCodeNode = childProcessor.processFunctionBody(
+            Nil,
+            branch.expression,
+            branch.location
+          )
+
+          literalPattern.literal match {
+            case num: IR.Literal.Number =>
+              num.numericValue match {
+                case doubleVal: Double =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      doubleVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case longVal: Long =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      longVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case bigIntVal: BigInteger =>
+                  Right(
+                    NumericLiteralBranchNode.build(
+                      bigIntVal,
+                      branchCodeNode.getCallTarget
+                    )
+                  )
+                case _ =>
+                  throw new CompilerError(
+                    "Invalid literal numeric value"
+                  )
+              }
+            case text: IR.Literal.Text =>
+              Right(
+                StringLiteralBranchNode.build(
+                  text.text,
+                  branchCodeNode.getCallTarget
+                )
+              )
+          }
         case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."

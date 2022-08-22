@@ -5930,6 +5930,7 @@ object IR {
         fields.forall {
           case _: Pattern.Name        => true
           case _: Pattern.Constructor => false
+          case _: Pattern.Literal     => true
           case _: Pattern.Documentation =>
             throw new CompilerError(
               "Branch documentation should not be present " +
@@ -5993,6 +5994,94 @@ object IR {
 
         s"${constructor.name} $fieldsStr"
       }
+    }
+
+    /** A literal pattern.
+      *
+      * A literal pattern matches on constants.
+      *
+      * @param literal the literal representing the pattern
+      * @param location the source location for this IR node
+      * @param passData any pass metadata associated with the node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Literal(
+      literal: IR.Literal,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Pattern {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param literal the literal representing the pattern
+        * @param location the source location for this IR node
+        * @param passData any pass metadata associated with the node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the provided values
+        */
+      def copy(
+        literal: IR.Literal                  = literal,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Literal = {
+        val res = Literal(literal, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      /** @inheritdoc */
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
+      ): Literal =
+        copy(
+          literal = literal.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = if (keepIdentifiers) id else randomId
+        )
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Literal = {
+        copy(literal = literal.mapExpressions(fn))
+      }
+
+      /** @inheritdoc */
+      override def toString: String =
+        s"""
+           |IR.Case.Pattern.Literal(
+           |literal = $literal,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".toSingleLine
+
+      /** @inheritdoc */
+      override def setLocation(location: Option[IdentifiedLocation]): Literal =
+        copy(location = location)
+
+      /** @inheritdoc */
+      override def children: List[IR] = List(literal)
+
+      /** @inheritdoc */
+      override def showCode(indent: Int): String = literal.showCode(indent)
     }
 
     /** A dummy pattern used for storing documentation comments between branches

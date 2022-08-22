@@ -16,6 +16,7 @@ enso-logger = { path = "../../../../lib/rust/logger" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 enso-profiler = { path = "../../../../lib/rust/profiler" }
 enso-text = { path = "../../../../lib/rust/text" }
+const_format = { version = "0.2.22" }
 failure = { version = "0.1.6" }
 itertools = { version = "0.10.0" }
 serde = { version = "1.0", features = ["derive"] }
