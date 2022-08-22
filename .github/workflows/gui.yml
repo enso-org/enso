@@ -602,6 +602,8 @@ jobs:
       - run: "./run ide build --wasm-source current-ci-run --backend-source current-ci-run"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          WIN_CSC_KEY_PASSWORD: "${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}"
+          WIN_CSC_LINK: "${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}"
       - name: List files if failed (Windows)
         run: Get-ChildItem -Force -Recurse
         if: "failure() && runner.os == 'Windows'"
