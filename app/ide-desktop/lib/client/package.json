@@ -36,6 +36,6 @@
   "scripts": {
     "start": "electron ../../../../dist/content -- ",
     "build": "ts-node bundle.ts",
-    "dist": "ts-node electron-builder-config.ts && electron-builder --publish never --config electron-builder-config.json"
+    "dist": "ts-node electron-builder-config.ts"
   }
 }
