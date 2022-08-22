@@ -1,8 +1,8 @@
 //! Java interface to [`enso_parser`].
 
+// === Features ===
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]

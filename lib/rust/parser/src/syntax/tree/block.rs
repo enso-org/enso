@@ -1,8 +1,9 @@
 //! Code blocks.
 
-use crate::syntax::tree::*;
+
 
 use crate::syntax::token;
+use crate::syntax::tree::*;
 
 
 
