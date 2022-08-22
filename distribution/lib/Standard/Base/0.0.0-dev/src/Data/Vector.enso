@@ -114,7 +114,15 @@ type Vector
     type Vector storage
 
     to_array self =
-        self.storage.to_array
+        arr = self.storage.to_array
+        case arr of
+            Array ->
+                arr
+            _     ->
+                len = self.storage.length
+                a = Array.new len
+                Array.copy arr 0 a 0 len
+                a
 
     ## Returns the number of elements stored in this vector.
 

@@ -21,7 +21,4 @@ type Proxy_Polyglot_Array
 
     to_array : Array Any
     to_array self =
-        len = self.length
-        a = Array.new len
-        0.up_to len . each ix-> a.set_at ix (self.at ix)
-        a
+        self.arr
