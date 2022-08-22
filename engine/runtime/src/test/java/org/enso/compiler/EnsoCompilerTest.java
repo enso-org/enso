@@ -166,6 +166,16 @@ public class EnsoCompilerTest {
         """);
   }
 
+  @Test
+  public void testSignature1() throws Exception {
+    parseTest("val : Bool");
+  }
+
+  @Test
+  public void testSignature2() throws Exception {
+    parseTest("val : List Int");
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
