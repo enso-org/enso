@@ -27,6 +27,7 @@ import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$MethodReference;
 import org.enso.compiler.core.IR$Name$Qualified;
+import org.enso.compiler.core.IR$Type$Ascription;
 import org.enso.compiler.core.IR.IdentifiedLocation;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -110,7 +111,10 @@ final class TreeToIr {
 //              var t = new IR$Comment$Documentation(doc, getIdentifiedLocation(comment), meta(), diag());
 //              bindings = cons(t, bindings);
 //            }
-
+            case Tree.TypeSignature def -> {
+              var t = translateModuleSymbol(def);
+              bindings = cons(t, bindings);
+            }
             case null -> {
             }
             default -> {
@@ -357,21 +361,19 @@ final class TreeToIr {
           getIdentifiedLocation(inputAst)
         )
       case AST.Comment.any(comment) => translateComment(comment)
-      case AstView.TypeAscription(typed, sig) =>
-        def buildAscription(ident: AST.Ident): IR.Type.Ascription = {
-          val methodName = buildName(ident)
-          val methodReference = Name.MethodReference(
-            None,
-            methodName,
-            methodName.location
-          )
-
-          IR.Type.Ascription(
-            methodReference,
-            translateExpression(sig, insideTypeSignature = true),
-            getIdentifiedLocation(inputAst)
-          )
-        }
+      */
+      case Tree.TypeSignature sig -> {
+//      case AstView.TypeAscription(typed, sig) =>
+        var methodName = buildName(sig, sig.getVariable());
+        var methodReference = new IR$Name$MethodReference(
+          Option.empty(),
+          methodName,
+          getIdentifiedLocation(sig),
+          meta(), diag()
+        );
+        var signature = translateExpression(sig.getType(), true);
+        yield new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
+        /*
         typed match {
           case AST.Ident.any(ident)       => buildAscription(ident)
           case AST.App.Section.Sides(opr) => buildAscription(opr)
@@ -386,6 +388,7 @@ final class TreeToIr {
       case _ => Error.Syntax(inputAst, Error.Syntax.UnexpectedExpression)
     }
     */
+      }
       default -> new IR$Error$Syntax(inputAst, new IR$Error$Syntax$UnexpectedExpression$(), meta(), diag());
     };
   }
