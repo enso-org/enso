@@ -221,6 +221,7 @@ impl Face {
 /// [`NonVariableFaceHeader`] to learn more. For variable faces the variation is [`VariationAxes`],
 /// however, as variable fonts have one face only, this parameter is not used while borrowing the
 /// face.
+#[allow(missing_docs)]
 pub trait Family<Variations> {
     fn with_borrowed_face<F, T>(&self, variations: &Variations, f: F) -> T
     where F: for<'a> FnOnce(Option<&'a Face>) -> T;

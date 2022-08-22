@@ -112,10 +112,8 @@ mod google_fonts {
     use std::path;
 
 
-    pub fn download_font(name: impl Into<String>, out_dir: &path::Path) -> Vec<GithubFile> {
-        let name = name.into();
-        let release = GoogleFontsRelease { name };
-        release.download(out_dir)
+    pub fn download_font(name: impl AsRef<str>, out_dir: &path::Path) -> Vec<GithubFile> {
+        GoogleFontsRelease::download(name.as_ref(), out_dir)
     }
 
     pub fn add_entries_to_fill_map_rs(out: &mut FillMapRsFile, files: &[GithubFile]) {

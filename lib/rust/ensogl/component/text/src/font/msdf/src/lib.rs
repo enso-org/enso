@@ -176,6 +176,7 @@ impl Drop for Msdf {
 }
 
 impl Msdf {
+    /// Number of used color channels in the MSDF texture.
     pub const CHANNELS_COUNT: usize = 3;
 
     /// Generate Mutlichannel Signed Distance Field (MSDF) for one glyph.

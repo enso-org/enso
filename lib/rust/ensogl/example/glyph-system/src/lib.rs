@@ -22,7 +22,6 @@
 
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use ensogl_text::font::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_text::font;
@@ -56,7 +55,7 @@ fn init(world: &World) {
     // }
 
 
-    let glyph_system = glyph::System::new(&world.default_scene, font);
+    let glyph_system = font::glyph::System::new(&world.default_scene, font);
     let height = 32.0;
     let color = color::Rgba::new(0.5, 0.0, 0.0, 1.0);
     let start_pos = Vector2(-300.0, -300.0);
