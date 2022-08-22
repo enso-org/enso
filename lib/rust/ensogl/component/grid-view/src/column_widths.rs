@@ -91,7 +91,6 @@ impl ColumnWidths {
         if column < borrowed.len() {
             borrowed.get(column)
         } else {
-            tracing::warn!("Column width diff not found for column {}", column);
             0.0
         }
     }
