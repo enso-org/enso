@@ -1,3 +1,6 @@
+//! A module with description how the list of Component Groups is laid out in the Component Panel
+//! List.
+
 use crate::prelude::*;
 
 use ensogl_grid_view::Col;
@@ -21,16 +24,21 @@ pub const HEADER_HEIGHT: usize = 1;
 // === ElementId ===
 // =================
 
+/// An identifier of element inside a concrete group: entry (by entry index) or header.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum GroupElement {
+    /// A group's header.
     Header,
+    /// A group's normal entry with index.
     Entry(usize),
 }
 
+/// An identifier of some group's element in Component Browser.
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ElementId {
-    group:   GroupId,
-    element: GroupElement,
+    pub group:   GroupId,
+    pub element: GroupElement,
 }
 
 
@@ -39,29 +47,39 @@ pub struct ElementId {
 // === Group ===
 // =============
 
+/// A information about group needed to compute the Component Panel List layout.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Group {
+    /// The group identifier.
     pub id:              GroupId,
+    /// Height of group in rows, not counting the header nor filtered-out entries.
     pub height:          usize,
+    /// Height of group in rows if no entry is filtered out, not counting the header.
     pub original_height: usize,
 }
 
 
 // === LaidGroup ===
 
+/// The information of group in the layout.
 #[derive(Copy, Clone, Debug)]
 pub struct LaidGroup<'a> {
-    header_row: Row,
-    column:     Col,
-    group:      &'a Group,
+    /// Number of row where header is placed.
+    pub header_row: Row,
+    /// The column where the group is placed.
+    pub column:     Col,
+    /// The reference to the group information in [`Layout`] structure.
+    pub group:      &'a Group,
 }
 
 impl<'a> LaidGroup<'a> {
-    fn rows(&self) -> Range<Row> {
+    /// The range of rows where the group spans, _including_ the header.
+    pub fn rows(&self) -> Range<Row> {
         self.header_row..(self.header_row + self.group.height + HEADER_HEIGHT)
     }
 
-    fn element_at_row(&self, row: Row) -> Option<ElementId> {
+    /// The id of element at given row, or `None` if row is outside the group.
+    pub fn element_at_row(&self, row: Row) -> Option<ElementId> {
         let element = self.rows().contains(&row).as_some_from(|| {
             if row < self.header_row + HEADER_HEIGHT {
                 GroupElement::Header
@@ -79,12 +97,23 @@ impl<'a> LaidGroup<'a> {
 // === Layout ===
 // ==============
 
+/// The info about single column in [`Layout`].
 #[derive(Clone, Debug)]
 struct Column {
+    /// A mapping between group position and the [`Group`] info. The keys in map are the rows with
+    /// given group's header.
     groups:  BTreeMap<Row, Group>,
+    /// The top occupied row in this group. If there is no group in column, it contains the first
+    /// row of "Local scope" section. If the "Local scope" section is also empty, it's an index
+    /// of row after last row in grid.
     top_row: Row,
 }
 
+/// The Component List Panel Layout information.
+///
+/// This structure allows for organizing the component groups according to received group
+/// information about their heights. It provides information about where given group is laid out
+/// in Grid View, and what group element is at given location (row and column).
 #[derive(Clone, Debug)]
 pub struct Layout {
     columns:                   Vec<Column>,
@@ -95,6 +124,9 @@ pub struct Layout {
 }
 
 impl Layout {
+    /// Create layout without standard (not the "Local Scope") groups.
+    ///
+    /// The layout will be completely empty if `local_scope_entry_count` will be 0.
     pub fn new(row_count: Row, column_count: Col, local_scope_entry_count: usize) -> Self {
         let local_scope_rows = local_scope_entry_count.div_ceil(column_count);
         let local_scope_section_start = row_count - local_scope_rows;
@@ -106,6 +138,7 @@ impl Layout {
         Self { columns, positions, local_scope_section_start, local_scope_entry_count, row_count }
     }
 
+    /// Create the layout with given groups arranged in columns.
     pub fn create_from_groups<const COLUMN_COUNT: usize>(
         groups: [Vec<Group>; COLUMN_COUNT],
         local_scope_entry_count: usize,
@@ -129,6 +162,9 @@ impl Layout {
         column.into_iter().map(move |group| (index, group))
     }
 
+    /// Get the information about group other than "Local Scope" occupying given location.
+    ///
+    /// If there is no group there, or it's "Local Scope" section, `None` is returned.
     pub fn group_at_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
         let (group_before_row, group_before) = groups_in_col.range(..=row).last()?;
@@ -140,6 +176,7 @@ impl Layout {
         })
     }
 
+    /// Get the information what element is at given location.
     pub fn element_at_location(&self, row: Row, column: Col) -> Option<ElementId> {
         if row >= self.local_scope_section_start {
             let index = (row - self.local_scope_section_start) * self.columns.len() + column;
@@ -148,13 +185,12 @@ impl Layout {
                 element: GroupElement::Entry(index),
             })
         } else {
-            println!("element_at_location: {row}, {column}");
             let group = self.group_at_location(row, column)?;
-            println!("got the group: {group:?}");
             group.element_at_row(row)
         }
     }
 
+    /// Return the location of element in Grid View.
     pub fn location_of_element(&self, element: ElementId) -> Option<(Row, Col)> {
         if element.group.section == SectionId::LocalScope {
             match element.element {
@@ -174,6 +210,7 @@ impl Layout {
         }
     }
 
+    /// Add group to the top of given column.
     pub fn push_group(&mut self, column: Col, group: Group) -> Row {
         let group_column = &mut self.columns[column];
         let next_header_row = group_column.top_row - group.height - HEADER_HEIGHT;
@@ -183,10 +220,12 @@ impl Layout {
         next_header_row
     }
 
+    /// The topmost row containing any group.
     pub fn top_row(&self) -> Row {
         self.columns.iter().map(|column| column.top_row).min().unwrap_or(self.row_count)
     }
 
+    /// The topmost row containing any group in given column.
     pub fn column_top_row(&self, column: Col) -> Row {
         self.columns.get(column).map_or(self.row_count, |c| c.top_row)
     }
