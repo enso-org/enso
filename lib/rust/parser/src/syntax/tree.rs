@@ -121,10 +121,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         Number {
             pub token: token::Number<'s>,
         },
-        /// A comment.
-        Comment {
-            pub token: token::Comment<'s>,
-        },
         /// A text section.
         TextSection {
             pub token: token::TextSection<'s>,
@@ -213,7 +209,27 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub open:  token::Symbol<'s>,
             pub body:  Option<Tree<'s>>,
             pub close: token::Symbol<'s>,
-        }
+        },
+        /// Statement declaring the type of a variable.
+        TypeSignature {
+            /// The variable whose type is being declared.
+            pub variable: token::Ident<'s>,
+            /// The `:` token.
+            pub operator: token::Operator<'s>,
+            /// The variable's type.
+            #[reflect(rename = "type")]
+            pub type_: Tree<'s>,
+        },
+        /// An expression with explicit type information attached.
+        TypeAnnotated {
+            /// The expression whose type is being annotated.
+            pub expression: Tree<'s>,
+            /// The `:` token.
+            pub operator: token::Operator<'s>,
+            /// The expression's type.
+            #[reflect(rename = "type")]
+            pub type_: Tree<'s>,
+        },
     }
 }};}
 
@@ -428,6 +444,17 @@ pub fn apply_operator<'s>(
         1 => Ok(opr.into_iter().next().unwrap()),
         _ => Err(MultipleOperatorError { operators: NonEmptyVec::try_from(opr).unwrap() }),
     };
+    if let Ok(opr_) = &opr && opr_.is_type_annotation {
+        let (lhs, rhs) = match (lhs, rhs) {
+            (Some(lhs), Some(rhs)) => (lhs, rhs),
+            (lhs, rhs) => {
+                let invalid = Tree::opr_app(lhs, opr, rhs);
+                let err = Error::new("`:` operator must be applied to two operands.");
+                return Tree::invalid(err, invalid);
+            }
+        };
+        return Tree::type_annotated(lhs, opr.unwrap(), rhs);
+    }
     if let Some(rhs_) = rhs.as_mut() {
         if let Variant::ArgumentBlockApplication(block) = &mut *rhs_.variant {
             if block.lhs.is_none() {

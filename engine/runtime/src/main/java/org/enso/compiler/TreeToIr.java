@@ -104,12 +104,12 @@ final class TreeToIr {
               var t = translateModuleSymbol(fn);
               bindings = cons(t, bindings);
             }
-            case Tree.Comment comment -> {
-              var doc = comment.getToken().codeRepr();
-              doc = doc.replace("##", "");
-              var t = new IR$Comment$Documentation(doc, getIdentifiedLocation(comment), meta(), diag());
-              bindings = cons(t, bindings);
-            }
+//            case Tree.Comment comment -> {
+//              var doc = comment.getToken().codeRepr();
+//              doc = doc.replace("##", "");
+//              var t = new IR$Comment$Documentation(doc, getIdentifiedLocation(comment), meta(), diag());
+//              bindings = cons(t, bindings);
+//            }
 
             case null -> {
             }
@@ -433,13 +433,13 @@ final class TreeToIr {
       */
       case Tree.TypeDef def -> translateModuleSymbol(def);
       case Tree.ArgumentBlockApplication app -> {
-        if (app.getLhs() instanceof Tree.Comment comment) {
-          var doc = new StringBuilder();
-          doc.append(comment.getToken().codeRepr());
-          yield new IR$Comment$Documentation(
-            doc.toString(), getIdentifiedLocation(comment), meta(), diag()
-          );
-        }
+//        if (app.getLhs() instanceof Tree.Comment comment) {
+//          var doc = new StringBuilder();
+//          doc.append(comment.getToken().codeRepr());
+//          yield new IR$Comment$Documentation(
+//            doc.toString(), getIdentifiedLocation(comment), meta(), diag()
+//          );
+//        }
         yield null;
       }
       /*
@@ -1313,6 +1313,7 @@ final class TreeToIr {
     */
   IR.Expression translateIdent(Tree identifier, boolean isMethod) {
     return switch (identifier) {
+      case null -> null;
       case Tree.Ident id -> buildName(id, id.getToken(), isMethod);
       default -> throw new UnhandledEntity(identifier, "translateIdent");
     };

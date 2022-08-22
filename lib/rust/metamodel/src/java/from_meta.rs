@@ -106,15 +106,18 @@ impl FromMeta {
         let mut fields = Vec::with_capacity(fields_.size_hint().0);
         for field in fields_ {
             let meta::Field { name, type_, hide, .. } = field;
-            let mut name_ = meta::FieldName::from_snake_case("field");
-            name_.append(name.clone());
-            let name = name_.to_camel_case().expect("Unimplemented: Tuples.");
+            let mut prefixed_name = meta::FieldName::from_snake_case("field");
+            prefixed_name.append(name.clone());
+            let prefixed_name = prefixed_name.to_camel_case().unwrap();
             let field = match self.primitives.get(type_) {
-                Some(primitive) => Field::primitive(name, *primitive),
-                None => Field::object(name, self.meta_to_java[type_], true),
+                Some(primitive) => Field::primitive(prefixed_name, *primitive),
+                None => Field::object(prefixed_name, self.meta_to_java[type_], true),
             };
             if !hide {
-                methods.push(Method::Dynamic(Dynamic::Getter(field.id())));
+                let mut getter_name = meta::FieldName::from_snake_case("get");
+                getter_name.append(name.clone());
+                let getter_name = getter_name.to_camel_case().unwrap();
+                methods.push(Method::Dynamic(Dynamic::GetterNamed(field.id(), getter_name)));
             }
             fields.push(field);
         }

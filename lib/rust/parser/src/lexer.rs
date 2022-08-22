@@ -528,9 +528,11 @@ impl<'s> Lexer<'s> {
             if token.code == "+-" {
                 let (left, right) = token.split_at_(Bytes(1));
                 let (binary, unary) = compute_precedence(&left.code);
-                self.submit_token(left.with_variant(token::Variant::operator(binary, unary)));
+                self.submit_token(
+                    left.with_variant(token::Variant::operator(binary, unary, false)),
+                );
                 let (_, unary) = compute_precedence(&right.code);
-                self.submit_token(right.with_variant(token::Variant::operator(None, unary)));
+                self.submit_token(right.with_variant(token::Variant::operator(None, unary, false)));
             } else {
                 let only_eq = token.code.chars().all(|t| t == '=');
                 let is_mod = token.code.ends_with('=') && !only_eq;
@@ -538,7 +540,7 @@ impl<'s> Lexer<'s> {
                     token::Variant::modifier()
                 } else {
                     let (binary, unary) = compute_precedence(&token.code);
-                    token::Variant::operator(binary, unary)
+                    token::Variant::operator(binary, unary, token.code == ":")
                 };
                 let token = token.with_variant(tp);
                 self.submit_token(token);
@@ -693,11 +695,11 @@ impl<'s> Lexer<'s> {
     fn comment(&mut self) {
         if let Some(current) = self.current_char {
             if current == '#' {
-                self.submit_line_as(token::Variant::comment());
+                self.submit_line_as(token::Variant::newline());
                 let initial_ident = self.current_block_indent;
                 let check_indent = |this: &mut Self| this.current_block_indent > initial_ident;
                 while self.run_and_check_if_progressed(|t| t.newline()) && check_indent(self) {
-                    self.submit_line_as(token::Variant::comment());
+                    self.submit_line_as(token::Variant::newline());
                 }
             }
         }
@@ -875,7 +877,7 @@ pub mod test {
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let (binary, unary) = compute_precedence(code);
-        Token(left_offset, code, token::Variant::operator(binary, unary))
+        Token(left_offset, code, token::Variant::operator(binary, unary, code == ":"))
     }
 }
 
@@ -1024,7 +1026,7 @@ mod tests {
     fn test_case_operators() {
         test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "===", ":", ","]));
         let (_, unary) = compute_precedence("-");
-        let unary_minus = Token("", "-", token::Variant::operator(None, unary));
+        let unary_minus = Token("", "-", token::Variant::operator(None, unary, false));
         test_lexer_many(vec![("+-", vec![operator_("", "+"), unary_minus])]);
     }
 
