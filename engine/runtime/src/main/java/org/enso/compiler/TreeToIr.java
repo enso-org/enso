@@ -683,6 +683,18 @@ final class TreeToIr {
         }
         yield new IR$Expression$Block(expressions.reverse(), last, getIdentifiedLocation(body), false, meta(), diag());
       }
+      case Tree.TypeAnnotated anno -> {
+        var type = translateCallArgument(anno.getType(), true);
+        var expr = translateCallArgument(anno.getExpression(), false);
+        var opName = new IR$Name$Literal(anno.getOperator().codeRepr(), true, Option.empty(), meta(), diag());
+        yield new IR$Application$Operator$Binary(
+          expr,
+          opName,
+          type,
+          getIdentifiedLocation(anno),
+          meta(), diag()
+        );
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*
