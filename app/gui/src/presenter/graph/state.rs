@@ -23,13 +23,30 @@ use ide_view::graph_editor::EdgeEndpoint;
 
 /// A single node data.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Node {
     pub view_id:       Option<ViewNodeId>,
     pub position:      Vector2,
     pub expression:    node_view::Expression,
     pub error:         Option<node_view::Error>,
     pub visualization: Option<visualization_view::Path>,
+
+    /// Indicate whether this node view is updated automatically by changes from the controller
+    /// or view, or will be explicitly updated..
+    expression_auto_update: bool,
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self {
+            view_id:                None,
+            position:               Vector2::default(),
+            expression:             node_view::Expression::default(),
+            error:                  None,
+            visualization:          None,
+            expression_auto_update: true,
+        }
+    }
 }
 
 /// The set of node states.
@@ -356,6 +373,16 @@ impl State {
     /// refreshed with the data from the state.
     pub fn assign_node_view_explicitly(&self, view_id: ViewNodeId, ast_id: AstNodeId) -> Node {
         self.nodes.borrow_mut().assign_node_view_explicitly(view_id, ast_id).clone()
+    }
+
+    /// Checks if the node should be synced with its AST automatically.
+    pub fn should_receive_expression_auto_updates(&self, node: ast::Id) -> bool {
+        self.nodes.borrow().get(node).map_or(false, |node| node.expression_auto_update)
+    }
+
+    /// Set the flag that indicates if the node should be synced with its AST automatically.
+    pub fn allow_expression_auto_updates(&self, node: ast::Id, allow: bool) {
+        self.nodes.borrow_mut().get_mut(node).for_each(|node| node.expression_auto_update = allow);
     }
 }
 

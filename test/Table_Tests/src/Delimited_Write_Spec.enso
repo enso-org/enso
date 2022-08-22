@@ -1,18 +1,12 @@
 from Standard.Base import all
-import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.System
 from Standard.Base.Error.Problem_Behavior import all
 
 import Standard.Table
-import Standard.Table.Data.Column
+from Standard.Table import Column, Data_Formatter, Quote_Style, Column_Name_Mapping, Match_Columns
 from Standard.Table.Errors import all
-import Standard.Table.IO.File_Read
 from Standard.Table.IO.File_Format import Delimited
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-import Standard.Table.IO.Quote_Style
-import Standard.Table.Data.Match_Columns
-import Standard.Table.Data.Column_Name_Mapping
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
 from Standard.Table.Errors as Table_Errors import Column_Count_Mismatch, Column_Name_Mismatch
 

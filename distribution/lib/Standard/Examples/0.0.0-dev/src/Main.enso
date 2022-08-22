@@ -3,20 +3,15 @@ from Standard.Base import all
 import Standard.Base.Data.Time
 import Standard.Base.Network.Http
 import Standard.Base.System.Platform
-import Standard.Image.Codecs
+import Standard.Base.Data.Time.Duration
+import Standard.Base.Network.URI
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+
 import Standard.Table
 
-# Renamed to avoid clashing with an uppercase name resolution for the relevant
-# items in this file.
-import Standard.Base.Data.Json as Enso_Json
-import Standard.Base.Data.List as Enso_List
-import Standard.Base.Data.Map as Enso_Map
-import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Mode as Regex_Mode
-import Standard.Base.Data.Time.Duration as Enso_Duration
-import Standard.Base.Network.URI
-import Standard.Image as Enso_Image
-import Standard.Image.Data.Matrix as Enso_Matrix
+import Standard.Image
+import Standard.Image.Codecs
+import Standard.Image.Data.Matrix
 
 ## An example error type used in a number of examples.
 
@@ -75,7 +70,7 @@ scratch_file =
 
 ## An example duration for experimenting with duration APIs.
 duration : Duration
-duration = Enso_Duration.between (Time.new 2020 10 20) Time.now
+duration = Duration.between (Time.new 2020 10 20) Time.now
 
 ## An example amount of JSON as text.
 json_text : Text
@@ -105,20 +100,20 @@ json_text = """
     ]
 
 ## Example JSON for working with.
-json : Enso_Json.Json
-json = Enso_Json.parse json_text
+json : Json.Json
+json = Json.parse json_text
 
 ## An example JSON object.
-json_object : Enso_Json.Object
+json_object : Json.Object
 json_object = json.items.head
 
 ## An example cons-list.
-list : Enso_List.List
+list : List
 list = Cons 1 (Cons 2 (Cons 3 Nil))
 
 ## A simple map that contains some numbers mapped to their word equivalents.
-map : Enso_Map.Map
-map = Enso_Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
+map : Map
+map = Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
 
 ## A dummy type that is used for example purposes.
 type No_Methods
@@ -189,11 +184,11 @@ image_file =
      the internet if it is not already present on your disk. If you do not want
      this to happen, please place the image in the
      `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
-image : Enso_Image.Image
-image = Enso_Image.read image_file [Codecs.Read_Alpha_Channel]
+image : Image.Image
+image = Image.read image_file [Codecs.Read_Alpha_Channel]
 
 ## A matrix that corresponds to `image`.
-matrix : Enso_Matrix.Matrix
+matrix : Matrix.Matrix
 matrix = image.to_matrix
 
 ## A silly little function that adds one to the provided number.
@@ -205,11 +200,11 @@ get_boolean : Boolean
 get_boolean = False
 
 ## A simple small piece of JSON that can easily be converted into a table.
-simple_table_json : Enso_Json.Json
+simple_table_json : Json.Json
 simple_table_json =
-    row_1 = Enso_Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
-    row_2 = Enso_Json.from_pairs [['bar', 'xyz'], ['baz', True]]
-    row_3 = Enso_Json.from_pairs [['baz', False], ['foo', 13]]
+    row_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
+    row_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
+    row_3 = Json.from_pairs [['baz', False], ['foo', 13]]
     [row_1, row_2, row_3].to_json
 
 ## The headers for the columns in the JSON table `simple_table_json`.
@@ -217,8 +212,8 @@ simple_table_json_headers : Vector Text
 simple_table_json_headers = ["foo", "bar", "baz"]
 
 ## Some simple GeoJSON.
-geo_json : Enso_Json.Json
-geo_json = Enso_Json.parse <| '''
+geo_json : Json.Json
+geo_json = Json.parse <| '''
     {
       "type": "FeatureCollection",
       "features": [

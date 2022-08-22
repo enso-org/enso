@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Vector
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Response.Body as Response_Body
 import Standard.Base.Network.Http.Status_Code
