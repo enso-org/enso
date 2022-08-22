@@ -54,10 +54,10 @@ pub fn visible_columns(
         let column_left_border = left_guess as f32 * entry_width + pos_offset;
         let column_width = entry_width + column_widths.width_diff(left_guess);
         let column_right_border = column_left_border + column_width;
-        let is_visible = column_right_border > v.left && column_left_border < v.right;
+        let is_partially_visible = column_left_border <= v.left && column_right_border >= v.left;
         let not_shifted = pos_offset == 0.0;
 
-        if not_shifted && is_visible {
+        if not_shifted && is_partially_visible {
             left_guess
         } else {
             let visible = |(_, x): &(_, f32)| v.left < *x;
@@ -203,19 +203,21 @@ mod tests {
             }
         }
 
-        let first_column_shrinked = adjusted_column_widths(0, -15.0);
-        let second_column_shrinked = adjusted_column_widths(1, -10.0);
+        let first_column_shrunk = adjusted_column_widths(0, -15.0);
+        let second_column_shrunk = adjusted_column_widths(1, -10.0);
         let first_column_extended = adjusted_column_widths(0, 20.0);
         let second_column_extended = adjusted_column_widths(1, 20.0);
+        let last_column_shrunk = adjusted_column_widths(COL_COUNT - 1, -10.0);
+        let last_column_extended = adjusted_column_widths(COL_COUNT - 1, 20.0);
 
         for case in [
-            Case::new(0.0, 40.0, 0..3, &first_column_shrinked),
-            Case::new(4.9, 40.0, 0..3, &first_column_shrinked),
-            Case::new(5.1, 40.0, 1..4, &first_column_shrinked),
-            Case::new(0.0, 40.0, 0..3, &second_column_shrinked),
-            Case::new(1.0, 40.0, 0..3, &second_column_shrinked),
-            Case::new(19.9, 40.0, 0..4, &second_column_shrinked),
-            Case::new(21.1, 40.0, 1..4, &second_column_shrinked),
+            Case::new(0.0, 40.0, 0..3, &first_column_shrunk),
+            Case::new(4.9, 40.0, 0..3, &first_column_shrunk),
+            Case::new(5.1, 40.0, 1..4, &first_column_shrunk),
+            Case::new(0.0, 40.0, 0..3, &second_column_shrunk),
+            Case::new(1.0, 40.0, 0..3, &second_column_shrunk),
+            Case::new(19.9, 40.0, 0..4, &second_column_shrunk),
+            Case::new(21.1, 40.0, 1..4, &second_column_shrunk),
             Case::new(0.0, 40.0, 0..1, &first_column_extended),
             Case::new(1.0, 40.0, 0..2, &first_column_extended),
             Case::new(39.9, 20.0, 0..2, &first_column_extended),
@@ -224,6 +226,11 @@ mod tests {
             Case::new(20.0, 40.0, 1..2, &second_column_extended),
             Case::new(59.9, 20.0, 1..3, &second_column_extended),
             Case::new(60.1, 20.0, 2..4, &second_column_extended),
+            Case::new(2000.0, 20.0, 100..100, &last_column_shrunk),
+            Case::new(1991.0, 20.0, 100..100, &last_column_shrunk),
+            Case::new(1989.0, 20.0, 99..100, &last_column_shrunk),
+            Case::new(1980.0, 40.0, 99..100, &last_column_extended),
+            Case::new(1979.0, 40.0, 98..100, &last_column_extended),
         ] {
             case.run()
         }
