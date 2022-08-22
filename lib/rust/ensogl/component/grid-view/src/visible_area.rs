@@ -45,15 +45,18 @@ pub fn visible_columns(
     let clamp = |idx: isize| idx.clamp(0, col_count as isize) as Col;
 
     // We guess the first visible column by the position of the viewport. If there are no resized
-    // columns, that would be the answer. If the guessed column is shifted by resized columns (or is
-    // resized itself), then we iterate over all columns to find the correct one. We repeat a
-    // similar process for the last visible column.
+    // columns (a common scenario), that would be the answer. If the guessed column is shifted by
+    // resized columns (or is resized itself), then we iterate over all columns to find the
+    // correct one. We repeat a similar process for the last visible column.
     let left_guess = clamp((v.left / entry_width).floor() as isize);
     let first_visible = {
         let pos_offset = column_widths.pos_offset(left_guess);
         let column_left_border = left_guess as f32 * entry_width + pos_offset;
         let column_width = entry_width + column_widths.width_diff(left_guess);
         let column_right_border = column_left_border + column_width;
+        // The visibility of the first column is determined by its position and width. If the left
+        // border of the column is not visible (not shifted), it does not mean the column itself is
+        // invisible. It can be either visible or not, depending on its width.
         let is_partially_visible = column_left_border <= v.left && column_right_border >= v.left;
         let not_shifted = pos_offset == 0.0;
 
@@ -68,6 +71,8 @@ pub fn visible_columns(
     let first_not_visible = if has_size(v) {
         let right_guess = clamp((v.right / entry_width).ceil() as isize);
         let not_shifted = column_widths.pos_offset(right_guess) == 0.0;
+        // The visibility of the last column does not depend on its width. If the left border of
+        // the column is visible (not shifted) – it is always visible.
         if not_shifted {
             right_guess
         } else {

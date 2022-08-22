@@ -391,9 +391,9 @@ impl<E: Entry> Model<E, E::Params> {
             };
             (entry.entry.frp().clone_ref(), should_set_location)
         };
-        // We should update the location as soon as possible because it is used when handling other
-        // FRP events. E.g. `set_model` can trigger `override_column_width` which needs up to date
-        // location.
+        // The location should be updated first, because computing entry position after column width
+        // change uses information about it. And column width may be change as a reaction of any
+        // other event, depending of Entry implementation.
         if should_set_location {
             entry_frp.set_location((row, col));
         }
@@ -421,7 +421,7 @@ impl<E: Entry> Model<E, E::Params> {
                 let width_diff = self.column_widths.width_diff(*col);
                 (entry.clone_ref(), size + Vector2(width_diff, 0.0))
             });
-            entries_and_sizes.collect::<Vec<_>>()
+            entries_and_sizes.collect_vec()
         };
         for (visible_entry, size) in entries_and_sizes {
             visible_entry.entry.frp().set_size(size);
@@ -510,6 +510,11 @@ pub struct GridViewTemplate<
 /// After either method of resizing, each visible entry in the affected column will receive
 /// the [`EntryFrp::set_size`] event. It is up to the entry implementation to avoid loops between
 /// [`EntryFrp::set_size`] and [`EntryFrp::override_column_width`].
+///
+/// The current implementation has performance implications for large amounts of entries. A more
+/// effective implementation is possible and may be implemented using a specialized tree-like data
+/// structure.
+/// See https://www.pivotaltracker.com/story/show/183046885 for more details.
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
 impl<E: Entry> GridView<E> {
