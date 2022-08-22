@@ -38,18 +38,39 @@ pub fn visible_columns(
     col_count: usize,
     column_widths: &ColumnWidths,
 ) -> Range<Col> {
-    let column_left = |idx: usize| idx as f32 * entry_size.x + column_widths.pos_offset(idx);
+    let entry_width = entry_size.x;
+    let column_left = |idx: usize| idx as f32 * entry_width + column_widths.pos_offset(idx);
     let column_right = |idx: usize| column_left(idx + 1);
     let index = |(idx, _): (usize, _)| idx;
+    let clamp = |idx: isize| idx.clamp(0, col_count as isize) as Col;
 
-    let visible = |(_, x): &(_, f32)| v.left < *x;
-    let mut right_borders = (0..col_count).map(|idx| (idx, column_right(idx)));
-    let first_visible = right_borders.find(visible).map(index).unwrap_or(col_count);
+    let left_guess = clamp((v.left / entry_width).floor() as isize);
+    let first_visible = {
+        let pos_offset = column_widths.pos_offset(left_guess);
+        let column_left_border = left_guess as f32 * entry_width + pos_offset;
+        let column_width = entry_width + column_widths.width_diff(left_guess);
+        let column_right_border = column_left_border + column_width;
+        let is_visible = column_right_border > v.left && column_left_border < v.right;
+        let not_shifted = pos_offset == 0.0;
 
+        if not_shifted && is_visible {
+            left_guess
+        } else {
+            let visible = |(_, x): &(_, f32)| v.left < *x;
+            let mut right_borders = (0..col_count).map(|idx| (idx, column_right(idx)));
+            right_borders.find(visible).map(index).unwrap_or(col_count)
+        }
+    };
     let first_not_visible = if has_size(v) {
-        let not_visible = |(_, x): &(_, f32)| v.right <= *x;
-        let mut left_borders = (0..col_count).map(|idx| (idx, column_left(idx)));
-        left_borders.find(not_visible).map(index).unwrap_or(col_count)
+        let right_guess = clamp((v.right / entry_width).ceil() as isize);
+        let not_shifted = column_widths.pos_offset(right_guess) == 0.0;
+        if not_shifted {
+            right_guess
+        } else {
+            let not_visible = |(_, x): &(_, f32)| v.right <= *x;
+            let mut left_borders = (first_visible..col_count).map(|idx| (idx, column_left(idx)));
+            left_borders.find(not_visible).map(index).unwrap_or(col_count)
+        }
     } else {
         first_visible
     };
@@ -185,12 +206,20 @@ mod tests {
 
         for case in [
             Case::new(0.0, 40.0, 0..3, &first_column_shrinked),
+            Case::new(4.9, 40.0, 0..3, &first_column_shrinked),
+            Case::new(5.1, 40.0, 1..4, &first_column_shrinked),
             Case::new(0.0, 40.0, 0..3, &second_column_shrinked),
             Case::new(1.0, 40.0, 0..3, &second_column_shrinked),
             Case::new(19.9, 40.0, 0..4, &second_column_shrinked),
             Case::new(21.1, 40.0, 1..4, &second_column_shrinked),
+            Case::new(0.0, 40.0, 0..1, &first_column_extended),
+            Case::new(1.0, 40.0, 0..2, &first_column_extended),
             Case::new(39.9, 20.0, 0..2, &first_column_extended),
+            Case::new(40.1, 20.0, 1..3, &first_column_extended),
+            Case::new(0.0, 40.0, 0..2, &second_column_extended),
+            Case::new(20.0, 40.0, 1..2, &second_column_extended),
             Case::new(59.9, 20.0, 1..3, &second_column_extended),
+            Case::new(60.1, 20.0, 2..4, &second_column_extended),
         ] {
             case.run()
         }

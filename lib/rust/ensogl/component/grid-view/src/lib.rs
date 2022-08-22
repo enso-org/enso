@@ -25,6 +25,7 @@
 // === Export ===
 // ==============
 
+pub mod column_widths;
 pub mod entry;
 pub mod scrollable;
 pub mod selectable;
@@ -57,6 +58,7 @@ use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::gui::Widget;
 
+use crate::column_widths::ColumnWidths;
 use crate::entry::EntryFrp;
 use crate::visible_area::all_visible_locations;
 use crate::visible_area::visible_columns;
@@ -145,87 +147,6 @@ struct VisibleEntry<Entry> {
 impl<E: display::Object> display::Object for VisibleEntry<E> {
     fn display_object(&self) -> &display::object::Instance {
         self.entry.display_object()
-    }
-}
-
-
-
-// ====================
-// === ColumnWidths ===
-// ====================
-
-type SegmentTree = segment_tree::SegmentPoint<f32, segment_tree::ops::Add>;
-
-fn segment_tree(width_diffs: Vec<f32>) -> SegmentTree {
-    segment_tree::SegmentPoint::build(width_diffs, segment_tree::ops::Add)
-}
-
-/// Create a new segment tree using an already allocated vector. [`width_diffs`] must have a size
-/// of at least `2N`, where `N` is a count of columns.
-fn segment_tree_noalloc(width_diffs: Vec<f32>) -> SegmentTree {
-    segment_tree::SegmentPoint::build_noalloc(width_diffs, segment_tree::ops::Add)
-}
-
-/// Storage for column widths.
-///
-/// It stores not the actual widths but rather the differences between [`Frp::set_entry_size`] and
-/// the width updated through [`Frp::set_column_width`] or [`EntryFrp::override_column_width`].
-///
-/// It uses a segment tree data structure, allowing efficient access to cumulative differences
-/// across column ranges. We use it in the [`ColumnWidths::pos_offset`] method to calculate the
-/// position of the entry inside the grid view.
-#[derive(Clone, CloneRef, Debug)]
-pub struct ColumnWidths {
-    width_diffs: Rc<RefCell<segment_tree::SegmentPoint<f32, segment_tree::ops::Add>>>,
-}
-
-impl ColumnWidths {
-    /// Constructor. Initializes the storage with every column having the default size inherited
-    /// from [`Frp::set_entry_size`].
-    pub fn new(number_of_columns: usize) -> Self {
-        let init_vec = (0..number_of_columns).map(|_| 0.0).collect();
-        let tree = segment_tree(init_vec);
-        Self { width_diffs: Rc::new(RefCell::new(tree)) }
-    }
-
-    /// Set a width difference for the specified column.
-    pub fn set_width_diff(&self, column: usize, width_diff: f32) {
-        self.width_diffs.borrow_mut().modify(column, width_diff);
-    }
-
-    /// Resize the storage to accommodate the new number of columns.
-    pub fn resize(&self, col_count: usize) {
-        let mut borrowed = self.width_diffs.borrow_mut();
-        let old_length = borrowed.len();
-        let length = col_count;
-        let double_length = length * 2;
-        if old_length < length {
-            let mut new_vec = Vec::with_capacity(double_length);
-            new_vec.resize(double_length, 0.0);
-            new_vec[length..length + old_length].copy_from_slice(borrowed.view());
-            *borrowed = segment_tree_noalloc(new_vec);
-        }
-    }
-
-    /// A cumulative sum of the differences for the columns to the left of the specified
-    /// one. The result is a position offset from the normal position of the [`column`] inside
-    /// the grid view.
-    ///
-    /// Works in O(log(N)) time.
-    pub fn pos_offset(&self, column: usize) -> f32 {
-        self.width_diffs.borrow().query(0, column)
-    }
-
-    /// The difference between the original and overridden width of the column.
-    ///
-    /// Works in O(1) time.
-    pub fn width_diff(&self, column: usize) -> f32 {
-        if let Some(diff) = self.width_diffs.borrow().view().get(column) {
-            *diff
-        } else {
-            tracing::warn!("Column width diff not found for column {}", column);
-            0.0
-        }
     }
 }
 
@@ -376,13 +297,14 @@ impl<Entry, EntryParams> Model<Entry, EntryParams> {
     }
 }
 
-impl<Entry: display::Object + entry::Entry, EntryParams> Model<Entry, EntryParams> {
+impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
     fn update_entries_visibility(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { viewport, entries_size, row_count: rows, col_count: cols } = properties;
+        let widths = &self.column_widths;
         let mut visible_entries = self.visible_entries.borrow_mut();
         let mut free_entries = self.free_entries.borrow_mut();
         let visible_rows = visible_rows(&viewport, entries_size, rows);
-        let visible_cols = visible_columns(&viewport, entries_size, cols, &self.column_widths);
+        let visible_cols = visible_columns(&viewport, entries_size, cols, widths);
         let no_longer_visible = visible_entries.drain_filter(|(row, col), _| {
             !visible_rows.contains(row) || !visible_cols.contains(col)
         });
@@ -391,7 +313,6 @@ impl<Entry: display::Object + entry::Entry, EntryParams> Model<Entry, EntryParam
             entry
         });
         free_entries.extend(detached);
-        let widths = &self.column_widths;
         let uncovered = all_visible_locations(&viewport, entries_size, rows, cols, widths)
             .filter(|loc| !visible_entries.contains_key(loc));
         uncovered.collect_vec()
@@ -403,25 +324,6 @@ impl<Entry: display::Object + entry::Entry, EntryParams> Model<Entry, EntryParam
             let size = properties.entries_size;
             let widths = &self.column_widths;
             set_entry_position(visible_entry, *row, *col, size, widths);
-        }
-        to_model_request
-    }
-
-    fn update_after_column_resize(
-        &self,
-        resized_column: Col,
-        properties: Properties,
-    ) -> Vec<(Row, Col)> {
-        let to_model_request = self.update_entries_visibility(properties);
-        for ((row, col), visible_entry) in &*self.visible_entries.borrow() {
-            // We are not interested in columns to the left of the resized column.
-            if *col < resized_column {
-                continue;
-            }
-            let size = properties.entries_size;
-            set_entry_position(visible_entry, *row, *col, size, &self.column_widths);
-            let width_diff = self.column_widths.width_diff(*col);
-            visible_entry.entry.frp().set_size(size + Vector2(width_diff, 0.0));
         }
         to_model_request
     }
@@ -472,24 +374,48 @@ impl<E: Entry> Model<E, E::Params> {
             let text_layer = text_layer.as_ref().and_then(|l| l.upgrade());
             self.entry_creation_ctx.create_entry(text_layer.as_ref())
         };
-        let entry_frp = {
+        // We must not emit FRP events when some state is borrowed to avoid double borrows.
+        // So the following code block isolates operations with borrowed fields from emitting
+        // FRP events.
+        let (entry_frp, should_set_location) = {
             let mut visible_entries = self.visible_entries.borrow_mut();
             let mut free_entries = self.free_entries.borrow_mut();
-            let entry = match visible_entries.entry((row, col)) {
-                Occupied(entry) => entry.into_mut(),
+            let (entry, should_set_location) = match visible_entries.entry((row, col)) {
+                Occupied(entry) => (entry.into_mut(), false),
                 Vacant(lack_of_entry) => {
                     let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
                     set_entry_position(&new_entry, row, col, entry_size, &self.column_widths);
-                    new_entry.entry.frp().set_location((row, col));
                     self.display_object.add_child(&new_entry);
-                    lack_of_entry.insert(new_entry)
+                    (lack_of_entry.insert(new_entry), true)
                 }
             };
-            entry.entry.frp().clone_ref()
+            (entry.entry.frp().clone_ref(), should_set_location)
         };
         let width_offset = self.column_widths.width_diff(col);
         entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
         entry_frp.set_model(model);
+        if should_set_location {
+            entry_frp.set_location((row, col));
+        }
+    }
+
+    fn update_after_column_resize(
+        &self,
+        resized_column: Col,
+        properties: Properties,
+    ) -> Vec<(Row, Col)> {
+        let to_model_request = self.update_entries_visibility(properties);
+        for ((row, col), visible_entry) in &*self.visible_entries.borrow() {
+            // We are not interested in columns to the left of the resized column.
+            if *col < resized_column {
+                continue;
+            }
+            let size = properties.entries_size;
+            set_entry_position(visible_entry, *row, *col, size, &self.column_widths);
+            let width_diff = self.column_widths.width_diff(*col);
+            visible_entry.entry.frp().set_size(size + Vector2(width_diff, 0.0));
+        }
+        to_model_request
     }
 }
 
