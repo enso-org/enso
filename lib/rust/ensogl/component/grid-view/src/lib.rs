@@ -405,15 +405,23 @@ impl<E: Entry> Model<E, E::Params> {
         properties: Properties,
     ) -> Vec<(Row, Col)> {
         let to_model_request = self.update_entries_visibility(properties);
-        for ((row, col), visible_entry) in &*self.visible_entries.borrow() {
+        // We must not emit FRP events when some state is borrowed to avoid double borrows.
+        // So the following code block isolates operations with borrowed fields from emitting
+        // FRP events.
+        let entries_and_sizes = {
+            let borrowed = self.visible_entries.borrow();
             // We are not interested in columns to the left of the resized column.
-            if *col < resized_column {
-                continue;
-            }
-            let size = properties.entries_size;
-            set_entry_position(visible_entry, *row, *col, size, &self.column_widths);
-            let width_diff = self.column_widths.width_diff(*col);
-            visible_entry.entry.frp().set_size(size + Vector2(width_diff, 0.0));
+            let entries = borrowed.iter().filter(|((_, col), _)| *col >= resized_column);
+            let entries_and_sizes = entries.map(|((row, col), entry)| {
+                let size = properties.entries_size;
+                set_entry_position(entry, *row, *col, size, &self.column_widths);
+                let width_diff = self.column_widths.width_diff(*col);
+                (entry.clone_ref(), size + Vector2(width_diff, 0.0))
+            });
+            entries_and_sizes.collect::<Vec<_>>()
+        };
+        for (visible_entry, size) in entries_and_sizes {
+            visible_entry.entry.frp().set_size(size);
         }
         to_model_request
     }

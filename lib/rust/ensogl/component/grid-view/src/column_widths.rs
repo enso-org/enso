@@ -23,8 +23,9 @@ fn segment_tree(width_diffs: Vec<f32>) -> SegmentTree {
 
 /// Storage for column widths.
 ///
-/// It stores not the actual widths but rather the differences between [`Frp::set_entry_size`] and
-/// the width updated through [`Frp::set_column_width`] or [`EntryFrp::override_column_width`].
+/// It stores not the actual widths but rather the differences between the default size set by
+/// [`Frp::set_entry_size`] endpoint and the width updated through [`Frp::set_column_width`] or
+/// [`EntryFrp::override_column_width`].
 ///
 /// It uses a segment tree data structure, allowing efficient access to cumulative differences
 /// across column ranges. We use it in the [`ColumnWidths::pos_offset`] method to calculate the
@@ -57,9 +58,9 @@ impl ColumnWidths {
     }
 
     /// Resize the storage to accommodate the new number of columns.
-    pub fn resize(&self, col_count: usize) {
+    pub fn resize(&self, number_of_columns: usize) {
         let mut values = self.width_diffs.take().unwrap();
-        values.resize(col_count, default());
+        values.resize(number_of_columns, default());
         *self.width_diffs.borrow_mut() = segment_tree(values);
     }
 
@@ -68,6 +69,12 @@ impl ColumnWidths {
     /// the grid view.
     ///
     /// Works in O(log(N)) time.
+    ///
+    /// # Panics
+    ///
+    /// If the specified column is greater than the number of columns in the storage. The
+    /// `colunm` can be equal to `number_of_columns` passed to the [`Self::new`] or
+    /// [`Self::resize`].
     pub fn pos_offset(&self, column: usize) -> f32 {
         if column == 0 {
             0.0

@@ -44,6 +44,10 @@ pub fn visible_columns(
     let index = |(idx, _): (usize, _)| idx;
     let clamp = |idx: isize| idx.clamp(0, col_count as isize) as Col;
 
+    // We guess the first visible column by the position of the viewport. If there are no resized
+    // columns, that would be the answer. If the guessed column is shifted by resized columns (or is
+    // resized itself), then we iterate over all columns to find the correct one. We repeat a
+    // similar process for the last visible column.
     let left_guess = clamp((v.left / entry_width).floor() as isize);
     let first_visible = {
         let pos_offset = column_widths.pos_offset(left_guess);
