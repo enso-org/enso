@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.System.File
 import Standard.Image.Data.Image.Internal
 import Standard.Image.Data.Matrix
 

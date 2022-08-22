@@ -2,11 +2,11 @@ from Standard.Base import all
 import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Time_Of_Day
 
-from Standard.Table import all
-from Standard.Table.Data.Table as Table_Internal import Empty_Error
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
-from Standard.Table.Errors as Table_Errors import Invalid_Format, Leading_Zeros, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
+import Standard.Table
+from Standard.Table import Data_Formatter
+from Standard.Table.Data.Table import Empty_Error
+from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
+from Standard.Table.Errors import Invalid_Format, Leading_Zeros, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 
 import Standard.Visualization
 

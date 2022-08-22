@@ -11,7 +11,7 @@
 
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
+from Standard.Base.Error.Common import Index_Out_Of_Bounds_Error
 
 polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator

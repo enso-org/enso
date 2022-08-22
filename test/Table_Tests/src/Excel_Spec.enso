@@ -4,14 +4,10 @@ from Standard.Base.System.File import File_Already_Exists_Error
 from Standard.Base.Error.Problem_Behavior import all
 
 import Standard.Table
-import Standard.Table.IO.File_Read
-import Standard.Table.IO.File_Format
-import Standard.Table.Data.Column_Name_Mapping
-import Standard.Table.Data.Match_Columns
+from Standard.Table import File_Format, Match_Columns, Column_Name_Mapping, Data_Formatter, Excel_Range
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Index
-from Standard.Table.IO.Excel import Excel_Range, Sheet_Names, Range_Names, Sheet, Cell_Range
+from Standard.Table.IO.Excel import Sheet_Names, Range_Names, Sheet, Cell_Range
 from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 
 import Standard.Test
 import Standard.Test.Problems

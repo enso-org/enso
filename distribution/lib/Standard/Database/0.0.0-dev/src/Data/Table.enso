@@ -1,16 +1,18 @@
 from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 import Standard.Database.Data.Internal.Helpers
 import Standard.Database.Data.Internal.Aggregate_Helper
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Sql
+
 import Standard.Table.Data.Column as Materialized_Column
 import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.IO.File_Format
+
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Problem_Builder
-import Standard.Table.IO.File_Format
-import Standard.Base.System.File.Existing_File_Behavior
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
@@ -18,9 +20,7 @@ from Standard.Database.Data.Column import Column, Aggregate_Column_Builder
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Errors import No_Such_Column_Error
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
 from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
 from Standard.Database.Error import Unsupported_Database_Operation_Error
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position

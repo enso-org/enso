@@ -1,11 +1,9 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Column_Name_Mapping
+from Standard.Table import Column_Name_Mapping, Sort_Column, Sort_Column_Selector
 from Standard.Table.Errors as Table_Errors import all
 from Standard.Table.Data.Column_Selector import all
 from Standard.Table.Data.Position import all
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
 
 import Standard.Test
 import Standard.Test.Problems
