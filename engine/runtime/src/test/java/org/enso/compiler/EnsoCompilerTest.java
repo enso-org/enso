@@ -100,7 +100,8 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testComment() throws Exception {
+  @Ignore // because of https://www.pivotaltracker.com/n/projects/2539304/stories/183042815
+  public void testDocumentationComment() throws Exception {
     parseTest("""
     ## A type representing computations that may fail.
     type Maybe
