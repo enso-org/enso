@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.System.Environment
 import Standard.Base.Runtime.Ref
 
 import Standard.Table as Materialized_Table

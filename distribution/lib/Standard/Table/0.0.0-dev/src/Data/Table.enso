@@ -1,12 +1,11 @@
 from Standard.Base import all
-
+import Standard.Base.Data.Ordering.Comparator
+from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.System.Platform
-import Standard.Table.Data.Column
-import Standard.Visualization
-import Standard.Table.IO.File_Format
-import Standard.Base.System.File
-import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.Error.Common as Errors
+
+import Standard.Table.Data.Column
+import Standard.Table.IO.File_Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
@@ -17,8 +16,6 @@ import Standard.Table.Internal.Problem_Builder
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error
 import Standard.Table.Data.Match_Columns
 
@@ -28,7 +25,7 @@ import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 
 import Standard.Table.Data.Aggregate_Column
-import Standard.Base.Data.Ordering.Comparator
+import Standard.Visualization
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
