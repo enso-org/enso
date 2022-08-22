@@ -391,12 +391,15 @@ impl<E: Entry> Model<E, E::Params> {
             };
             (entry.entry.frp().clone_ref(), should_set_location)
         };
-        let width_offset = self.column_widths.width_diff(col);
-        entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
-        entry_frp.set_model(model);
+        // We should update the location as soon as possible because it is used when handling other
+        // FRP events. E.g. `set_model` can trigger `override_column_width` which needs up to date
+        // location.
         if should_set_location {
             entry_frp.set_location((row, col));
         }
+        let width_offset = self.column_widths.width_diff(col);
+        entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
+        entry_frp.set_model(model);
     }
 
     fn update_after_column_resize(
