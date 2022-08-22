@@ -90,8 +90,6 @@ const config: Configuration = {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: args.targetOverride ?? 'nsis',
         icon: `${args.iconsDist}/icon.ico`,
-        certificateFile: 'C:\\Users\\mwurb\\Downloads\\New Byte Order Sp. z o.o._cert_49517.p12',
-        certificatePassword: '#BJfe2pUeLgEQ9&#',
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
