@@ -1,6 +1,7 @@
 //! Storage for column's widths in the GridView. See [`ColumnWidths`].
 
 use crate::prelude::*;
+
 use std::fmt::Formatter;
 
 
@@ -8,7 +9,6 @@ use std::fmt::Formatter;
 // ====================
 // === ColumnWidths ===
 // ====================
-
 
 // === Helper definitions ===
 
