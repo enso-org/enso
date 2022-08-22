@@ -1,5 +1,6 @@
 package org.enso.interpreter.service;
 
+import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
@@ -48,6 +49,8 @@ import java.util.function.Consumer;
  * language.
  */
 public class ExecutionService {
+
+  private static final String MAIN_METHOD = "main";
   private final Context context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
@@ -86,7 +89,7 @@ public class ExecutionService {
     return logger;
   }
 
-  private FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
+  public FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
       Module module, String consName, String methodName)
       throws ConstructorNotFoundException, MethodNotFoundException {
     ModuleScope scope = module.compileScope(context);
@@ -99,8 +102,9 @@ public class ExecutionService {
     if (function == null) {
       throw new MethodNotFoundException(module.getName().toString(), atomConstructor, methodName);
     }
-    return new FunctionCallInstrumentationNode.FunctionCall(
-        function, EmptyMap.create(), new Object[] {});
+    Object[] arguments =
+        MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {atomConstructor};
+    return new FunctionCallInstrumentationNode.FunctionCall(function, EmptyMap.create(), arguments);
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
@@ -249,6 +253,55 @@ public class ExecutionService {
       return interopLibrary.execute(fn, argument);
     } finally {
       context.getThreadManager().leave(p);
+    }
+  }
+
+  /**
+   * Calls a function with the given argument and attaching an execution instrument.
+   *
+   * @param module the module providing scope for the function
+   * @param function the function object
+   * @param argument the argument applied to the function
+   * @param cache the runtime cache
+   * @return the result of calling the function
+   */
+  public Object callFunctionWithInstrument(
+      Module module, Object function, Object argument, RuntimeCache cache)
+      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
+    UUID nextExecutionItem = null;
+    CallTarget entryCallTarget =
+        (function instanceof Function) ? ((Function) function).getCallTarget() : null;
+    MethodCallsCache methodCallsCache = new MethodCallsCache();
+    UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
+    Consumer<IdExecutionService.ExpressionCall> funCallCallback =
+        (value) -> context.getLogger().finest("ON_CACHED_CALL " + value.getExpressionId());
+    Consumer<IdExecutionService.ExpressionValue> onComputedCallback =
+        (value) -> context.getLogger().finest("ON_COMPUTED " + value.getExpressionId());
+    Consumer<IdExecutionService.ExpressionValue> onCachedCallback =
+        (value) -> context.getLogger().finest("ON_CACHED_VALUE " + value.getExpressionId());
+    Consumer<Exception> onExceptionalCallback =
+        (value) -> context.getLogger().finest("ON_ERROR " + value);
+
+    Optional<EventBinding<ExecutionEventListener>> listener =
+        idExecutionInstrument.map(
+            service ->
+                service.bind(
+                    module,
+                    entryCallTarget,
+                    cache,
+                    methodCallsCache,
+                    syncState,
+                    nextExecutionItem,
+                    funCallCallback,
+                    onComputedCallback,
+                    onCachedCallback,
+                    onExceptionalCallback));
+    Object p = context.getThreadManager().enter();
+    try {
+      return interopLibrary.execute(function, argument);
+    } finally {
+      context.getThreadManager().leave(p);
+      listener.ifPresent(EventBinding::dispose);
     }
   }
 

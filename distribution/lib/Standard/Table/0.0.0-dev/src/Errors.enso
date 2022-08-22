@@ -219,3 +219,29 @@ Column_Name_Mismatch.handle_java_exception =
         cause = caught_panic.payload.cause
         Error.throw (Column_Name_Mismatch (Vector.Vector cause.getMissing) (Vector.Vector cause.getExtras) cause.getMessage)
     Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
+
+## UNSTABLE
+
+   An error returned when a non-existent column is being looked up.
+
+   Arguments:
+   - column_name: The name of the column that doesn't exist.
+type No_Such_Column_Error column_name
+
+## UNSTABLE
+
+   Create a human-readable version of the no such column error.
+No_Such_Column_Error.to_display_text : Text
+No_Such_Column_Error.to_display_text self =
+    "The column " + self.column_name + " does not exist."
+
+## UNSTABLE
+
+   An error returned when getting an index but no index is set for that table.
+type No_Index_Set_Error
+
+## UNSTABLE
+
+   Create a human-readable version of the no such column error.
+No_Index_Set_Error.to_display_text : Text
+No_Index_Set_Error.to_display_text self = "The table does not have an index set."

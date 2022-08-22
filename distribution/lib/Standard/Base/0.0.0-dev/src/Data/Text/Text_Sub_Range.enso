@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Ref
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
@@ -118,19 +117,7 @@ type Codepoint_Ranges
        Empty subranges are not discarded.
     sorted_and_distinct_ranges : Vector Range
     sorted_and_distinct_ranges self = if self.is_sorted_and_distinct then self.ranges else
-        sorted = self.ranges.filter (range-> range.is_empty.not) . sort on=(.start)
-        if sorted.is_empty then [] else
-            current_ref = Ref.new sorted.first
-            builder = Vector.new_builder
-            sorted.tail.each range->
-                current = current_ref.get
-                case range.start <= current.end of
-                    True -> current_ref.put (Range current.start (Math.max current.end range.end))
-                    False ->
-                        builder.append current
-                        current_ref.put range
-            builder.append current_ref.get
-            builder.to_vector
+        Vector.sort_and_merge_ranges self.ranges
 
 ## PRIVATE
    Utility function to find char indices for Text_Sub_Range.

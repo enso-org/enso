@@ -6,6 +6,7 @@ use crate::model::module::QualifiedName as ModuleQualifiedName;
 use crate::model::suggestion_database::entry as suggestion;
 use crate::notification::Publisher;
 
+use double_representation::project;
 use engine_protocol::language_server;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
@@ -287,6 +288,10 @@ pub struct AttachedVisualization {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComponentGroup {
+    /// The fully qualified name of the library project.
+    pub project:    project::QualifiedName,
+    /// The group name without the library project name prefix. E.g. given the `Standard.Base.Group
+    /// 1` group reference, the `name` field contains `Group 1`.
     pub name:       ImString,
     /// An optional color to use when displaying the component group.
     pub color:      Option<color::Rgb>,
@@ -297,16 +302,18 @@ impl ComponentGroup {
     /// Construct from a [`language_server::LibraryComponentGroup`].
     pub fn from_language_server_protocol_struct(
         group: language_server::LibraryComponentGroup,
-    ) -> Self {
+    ) -> FallibleResult<Self> {
+        let project = group.library.try_into()?;
         let name = group.name.into();
         let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
         let components = group.exports.into_iter().map(|e| e.name.into()).collect();
-        ComponentGroup { name, color, components }
+        Ok(ComponentGroup { project, name, color, components })
     }
 }
 
-impl From<language_server::LibraryComponentGroup> for ComponentGroup {
-    fn from(group: language_server::LibraryComponentGroup) -> Self {
+impl TryFrom<language_server::LibraryComponentGroup> for ComponentGroup {
+    type Error = failure::Error;
+    fn try_from(group: language_server::LibraryComponentGroup) -> FallibleResult<Self> {
         Self::from_language_server_protocol_struct(group)
     }
 }

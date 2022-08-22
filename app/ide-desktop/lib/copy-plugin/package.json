@@ -1,0 +1,12 @@
+{
+  "name": "enso-copy-plugin",
+  "version": "1.0.0",
+  "description": "Plugin for esbuild that copies files in a watch-compatible manner.",
+  "main": "src/index.mjs",
+  "author": "",
+  "type": "module",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "typescript": "^4.7.4"
+  }
+}

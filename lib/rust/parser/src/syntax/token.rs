@@ -263,9 +263,8 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
             pub lift_level: usize
         },
         Operator {
-            pub precedence: usize,
-            pub can_be_binary_infix: bool,
-            pub can_be_unary_prefix: bool,
+            pub binary_infix_precedence: Option<Precedence>,
+            pub unary_prefix_precedence: Option<Precedence>,
         },
         Modifier,
         Comment,
@@ -283,6 +282,27 @@ impl Default for Variant {
         Self::Newline(variant::Newline {})
     }
 }
+
+
+// === Operator properties ===
+
+/// Value that can be compared to determine which operator will bind more tightly within an
+/// expression.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Reflect, Deserialize, PartialOrd, Ord)]
+pub struct Precedence {
+    /// A numeric value determining precedence order.
+    pub value: usize,
+}
+
+impl Precedence {
+    /// Return a precedence that is not higher than any other precedence.
+    pub fn minimum() -> Self {
+        Precedence { value: 0 }
+    }
+}
+
+
+// === Macro-based implementation ===
 
 macro_rules! generate_token_aliases {
     (

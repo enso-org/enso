@@ -27,6 +27,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
+  - [`VisualisationExpression`](#visualisationexpression)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
@@ -107,6 +108,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`text/applyEdit`](#textapplyedit)
   - [`text/applyExpressionValue`](#textapplyexpressionvalue)
   - [`text/didChange`](#textdidchange)
+  - [`text/autoSave`](#textautosave)
 - [Workspace Operations](#workspace-operations)
   - [`workspace/projectInfo`](#workspaceprojectinfo)
 - [Monitoring](#monitoring)
@@ -378,19 +380,17 @@ A configuration object for properties of the visualisation.
 
 ```typescript
 interface VisualisationConfiguration {
-  /**
-   * An execution context of the visualisation.
-   */
+  /** An execution context of the visualisation. */
   executionContextId: UUID;
+
   /**
    * A qualified name of the module containing the expression which creates
    * visualisation.
    */
-  visualisationModule: String;
-  /**
-   * The expression that creates a visualisation.
-   */
-  expression: String;
+  visualisationModule?: String;
+
+  /** An expression that creates a visualisation. */
+  expression: String | MethodPointer;
 }
 ```
 
@@ -2868,6 +2868,32 @@ This notification must _only_ be sent for files that the client has open.
 ```typescript
 {
   edits: [FileEdit];
+}
+```
+
+#### Errors
+
+```typescript
+null;
+```
+
+### `text/autoSave`
+
+This is a notification sent from the server to the clients to inform them of any
+successful auto-save action.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+This notification must _only_ be sent for files that the client has open.
+
+#### Parameters
+
+```typescript
+{
+  path: Path;
 }
 ```
 

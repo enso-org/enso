@@ -172,8 +172,8 @@ public class CaseFoldedString {
     return caseFoldAlgorithmForLocale(locale).apply(string);
   }
 
-  private static final Locale AZ_LOCALE = new Locale("az");
-  private static final Locale TR_LOCALE = new Locale("tr");
+  private static final Locale AZ_LOCALE = Locale.forLanguageTag("az");
+  private static final Locale TR_LOCALE = Locale.forLanguageTag("tr");
 
   /**
    * Returns a case folding algorithm appropriate for the given locale.

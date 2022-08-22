@@ -21,7 +21,7 @@ spec =
     Test.group "File.read (Delimited) should work with Dates" <|
         table = (enso_project.data / "prime_ministers.csv").read
         Test.specify "should be able to read in a table with dates" <|
-            table.columns.length.should_equal 5
+            table.column_count.should_equal 5
             table.columns.map (.name) . should_equal ['Number','Party', 'Title', 'From', 'To']
             table.row_count.should_equal 7
 

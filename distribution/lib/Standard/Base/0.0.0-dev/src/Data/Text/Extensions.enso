@@ -1099,10 +1099,7 @@ Text.take self range=(First 1) =
         Range start end _ ->
             Text_Utils.substring self start end
         Text_Sub_Range.Codepoint_Ranges char_ranges _ ->
-            sb = StringBuilder.new
-            char_ranges.map char_range->
-               sb.append self char_range.start char_range.end
-            sb.toString
+            slice_text self char_ranges
 
 ## ALIAS skip, remove
    Creates a new Text by removing the specified range of the input.
@@ -1152,12 +1149,9 @@ Text.drop self range=(First 1) =
                     prefix + Text_Utils.drop_first self end
         Text_Sub_Range.Codepoint_Ranges _ _ ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
-            len = Text_Utils.char_length self
-            sb = StringBuilder.new
-            ranges_with_sentinels = [Range 0 0] + sorted_char_ranges_to_remove + [Range len len]
-            ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
-                sb.append self prev.end next.start
-            sb.toString
+            char_length = Text_Utils.char_length self
+            inverted = Vector.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
+            slice_text self inverted
 
 ## ALIAS lower, upper, title, proper
    Converts each character in `self` to the specified case.
@@ -1504,3 +1498,15 @@ Text.location_of_all self term="" matcher=Text_Matcher = case matcher of
         case matcher.compile term . match self Mode.All of
             Nothing -> []
             matches -> matches.map m-> m.span 0 . to_grapheme_span
+
+## PRIVATE
+   Returns a new Text constructed by slicing the input according to the provided
+   ranges. The ranges are assumed to have step equal to 1 and bounds within the
+   input's range.
+
+   The input ranges are in UTF-16 code unit space.
+slice_text text char_ranges =
+    sb = StringBuilder.new
+    char_ranges.map char_range->
+       sb.append text char_range.start char_range.end
+    sb.toString

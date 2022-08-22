@@ -9,6 +9,7 @@ use crate::controller::searcher::component::MatchInfo;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
+use double_representation::project;
 use ensogl::data::color;
 use std::cmp;
 
@@ -22,6 +23,7 @@ use std::cmp;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Data {
+    pub project:               Option<project::QualifiedName>,
     pub name:                  ImString,
     pub color:                 Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
@@ -36,8 +38,13 @@ pub struct Data {
 }
 
 impl Data {
-    fn from_name_and_id(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+    fn from_name_and_project_and_id(
+        name: impl Into<ImString>,
+        project: Option<project::QualifiedName>,
+        component_id: Option<component::Id>,
+    ) -> Self {
         Data {
+            project,
             name: name.into(),
             color: None,
             component_id,
@@ -74,12 +81,14 @@ impl Deref for Group {
 }
 
 impl Group {
-    /// Create a named empty group referring to module with specified component ID.
-    pub fn from_name_and_id(
+    /// Create a named empty group referring to module with specified component ID and in the given
+    /// project.
+    pub fn from_name_and_project_and_id(
         name: impl Into<ImString>,
+        project: Option<project::QualifiedName>,
         component_id: Option<component::Id>,
     ) -> Self {
-        Self { data: Rc::new(Data::from_name_and_id(name, component_id)) }
+        Self { data: Rc::new(Data::from_name_and_project_and_id(name, project, component_id)) }
     }
 
     /// Create empty group referring to some module component.
@@ -91,7 +100,28 @@ impl Group {
         } else {
             entry.module.name().into()
         };
-        Self::from_name_and_id(name, Some(component_id))
+        let project_name = entry.module.project_name.clone();
+        Self::from_name_and_project_and_id(name, Some(project_name), Some(component_id))
+    }
+
+    /// Create a group with given name in given project and containing virtual components created
+    /// from given snippets.
+    pub fn from_name_and_project_and_snippets(
+        name: impl Into<ImString>,
+        project: project::QualifiedName,
+        snippets: impl IntoIterator<Item = Rc<component::hardcoded::Snippet>>,
+    ) -> Self {
+        let entries = snippets.into_iter().map(Into::into).collect_vec();
+        let group_data = Data {
+            project:               Some(project),
+            name:                  name.into(),
+            color:                 None,
+            component_id:          None,
+            matched_items:         Cell::new(entries.len()),
+            initial_entries_order: entries.clone(),
+            entries:               RefCell::new(entries),
+        };
+        Group { data: Rc::new(group_data) }
     }
 
     /// Construct from [`execution_context::ComponentGroup`] components looked up in the suggestion
@@ -104,13 +134,14 @@ impl Group {
     ) -> Option<Self> {
         let lookup_component = |qualified_name| {
             let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
-            Some(Component::new(id, suggestion))
+            Some(Component::new_from_database_entry(id, suggestion))
         };
         let components = &group.components;
         let looked_up_components = components.iter().filter_map(lookup_component).collect_vec();
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
+                project:               Some(group.project.clone()),
                 name:                  group.name.clone(),
                 color:                 group.color,
                 component_id:          None,
@@ -120,6 +151,14 @@ impl Group {
             };
             Group { data: Rc::new(group_data) }
         })
+    }
+
+    /// Insert given entries as first entries in the group.
+    pub fn insert_entries(&mut self, entries: &[Component]) {
+        let group_data = Rc::make_mut(&mut self.data);
+        group_data.entries.borrow_mut().splice(0..0, entries.iter().cloned());
+        group_data.initial_entries_order.splice(0..0, entries.iter().cloned());
+        group_data.update_matched_items();
     }
 
     /// Modify the group keeping only the [`Component`]s for which `f` returns [`true`].
@@ -301,6 +340,7 @@ mod tests {
         // order. Some of the names correspond to entries present in the suggestion database,
         // some do not.
         let ec_group = execution_context::ComponentGroup {
+            project:    project::QualifiedName::standard_base_library(),
             name:       "Test Group 1".into(),
             color:      color::Rgb::from_css_hex("#aabbcc"),
             components: vec![
@@ -326,7 +366,7 @@ mod tests {
             .entries
             .borrow()
             .iter()
-            .map(|e| (*e.id, e.suggestion.name.to_string()))
+            .map(|e| (e.id().unwrap(), e.name().to_string()))
             .collect_vec();
         let expected_ids_and_names =
             vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
@@ -340,6 +380,7 @@ mod tests {
         let logger = Logger::new("tests::constructing_component_group_from_names_not_found_in_db");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let ec_group = execution_context::ComponentGroup {
+            project:    project::QualifiedName::standard_base_library(),
             name:       "Input".into(),
             color:      None,
             components: vec!["NAME.NOT.FOUND.IN.DB".into()],

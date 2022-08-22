@@ -1,21 +1,21 @@
 'use strict'
 
 import { defaultLogServerHost } from '../../../config.js'
-import assert from 'assert'
+import assert from 'node:assert'
 import buildCfg from '../../../build.json'
 import Electron from 'electron'
 import isDev from 'electron-is-dev'
-import path from 'path'
-import * as Server from 'enso-studio-common/src/server.js'
-import util from 'util'
+import path from 'node:path'
+import * as Server from './server.js'
+import util from 'node:util'
 import yargs from 'yargs'
 import remoteMain from '@electron/remote/main/index.js'
 
-import { project_manager_bundle } from '../paths.mjs'
+import { project_manager_bundle } from '../paths.js'
 
 import child_process from 'child_process'
-import fss from 'fs'
-import fsp from 'fs/promises'
+import fss from 'node:fs'
+import fsp from 'node:fs/promises'
 
 // =============
 // === Paths ===
@@ -26,7 +26,7 @@ const resources = path.join(root, '..')
 const project_manager_executable = path.join(
     resources,
     project_manager_bundle,
-    PROJECT_MANAGER_IN_BUNDLE_PATH
+    PROJECT_MANAGER_IN_BUNDLE_PATH // Placeholder for a bundler-provided define.
 )
 
 // FIXME default options parsed wrong
@@ -476,26 +476,45 @@ let mainWindow = null
 let origin = null
 
 async function main(args) {
-    runBackend()
-    console.log('Starting the IDE service.')
-    if (args.server !== false) {
-        let serverCfg = Object.assign({}, args)
-        serverCfg.dir = root
-        serverCfg.fallback = '/assets/index.html'
-        server = await Server.create(serverCfg)
-        origin = `http://localhost:${server.port}`
-    }
-    if (args.window !== false) {
-        console.log('Starting the IDE client.')
-        mainWindow = createWindow()
-        mainWindow.on('close', evt => {
-            if (hideInsteadOfQuit) {
-                evt.preventDefault()
-                mainWindow.hide()
-            }
-        })
+    // Note [Main error handling]
+    try {
+        runBackend()
+
+        console.log('Starting the IDE service.')
+        if (args.server !== false) {
+            let serverCfg = Object.assign({}, args)
+            serverCfg.dir = root
+            serverCfg.fallback = '/assets/index.html'
+            server = await Server.create(serverCfg)
+            origin = `http://localhost:${server.port}`
+        }
+        if (args.window !== false) {
+            console.log('Starting the IDE client.')
+            mainWindow = createWindow()
+            mainWindow.on('close', evt => {
+                if (hideInsteadOfQuit) {
+                    evt.preventDefault()
+                    mainWindow.hide()
+                }
+            })
+        }
+    } catch (err) {
+        // Note [Main error handling]
+        console.error('Failed to setup IDE. Error:', err)
+        Electron.app.quit()
     }
 }
+
+// Note [Main error handling]
+// ==========================
+// It is critical that the main function runs in its entirety. Otherwise, IDE enters a "zombie
+// process" state, where Electron processes have been spawned, but there is no window and the user
+// can't observe anything. Usually they will try to spawn another instance of the IDE, but this can
+// fail because of these zombie process presence.
+//
+// The solution is to catch all errors and exit the process if any part of the initial setup fails.
+// If it succeeds, at least the window will be shown, allowing the user to observe the error and
+// close it.
 
 function urlParamsFromObject(obj) {
     let params = []

@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument
 
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
@@ -7,7 +8,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   VisualisationId
 }
 
-import scala.collection.mutable.Stack
+import scala.collection.mutable
 
 /** Storage for active execution contexts.
   */
@@ -50,16 +51,17 @@ class ExecutionContextManager {
     * @param id the context id.
     * @return the stack.
     */
-  def getStack(id: ContextId): Stack[InstrumentFrame] =
+  def getStack(id: ContextId): mutable.Stack[InstrumentFrame] =
     synchronized {
       contexts(id).stack
     }
 
   /** Gets all execution contexts.
     *
-    * @return all currently available execution contexsts.
+    * @return all currently available execution contexts.
     */
-  def getAll: collection.MapView[ContextId, Stack[InstrumentFrame]] =
+  def getAllContexts
+    : collection.MapView[ContextId, mutable.Stack[InstrumentFrame]] =
     synchronized {
       contexts.view.mapValues(_.stack)
     }
@@ -114,6 +116,22 @@ class ExecutionContextManager {
       state.visualisations.upsert(visualisation)
     }
 
+  /** Get visualizations of all execution contexts. */
+  def getAllVisualisations: Iterable[Visualisation] =
+    synchronized {
+      contexts.values.flatMap(_.visualisations.getAll)
+    }
+
+  /** Get visualisations defined in the module.
+    *
+    * @param module the qualified module name
+    * @return the list of matching visualisations
+    */
+  def getVisualisations(module: QualifiedName): Iterable[Visualisation] =
+    synchronized {
+      contexts.values.flatMap(_.visualisations.findByModule(module))
+    }
+
   /** Returns a visualisation with the provided id.
     *
     * @param contextId the identifier of the execution context
@@ -147,6 +165,25 @@ class ExecutionContextManager {
         visualisation <- state.visualisations.find(expressionId)
       } yield visualisation
     }
+
+  /** Get all visualisations invalidated by the provided list of expressions.
+    *
+    * @param module the module containing the visualisations
+    * @param invalidatedExpressions the list of invalidated expressions
+    * @return a list of matching visualisation
+    */
+  def getInvalidatedVisualisations(
+    module: QualifiedName,
+    invalidatedExpressions: Set[ExpressionId]
+  ): Iterable[Visualisation] = {
+    for {
+      state         <- contexts.values
+      visualisation <- state.visualisations.findByModule(module)
+      if visualisation.visualisationExpressionId.exists(
+        invalidatedExpressions.contains
+      )
+    } yield visualisation
+  }
 
   /** Removes a visualisation from the holder.
     *
