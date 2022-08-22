@@ -37,7 +37,7 @@ Visualizations can be displayed in the following ways:
   you move the node, the visualization moves as well. This mode can be toggled
   by tapping the spacebar.
 
-- **Fullscreen** Visualization attached to node can grow (animate) to ocupy full
+- **Fullscreen** Visualization attached to node can grow (animate) to occupy full
   IDE visual space. This mode can be triggered on the recently selected node (in
   case many nodes are selected, the last selected node will be used) by either
   pressing keeping the spacebar pressed for longer than approx 0.5s, or by
