@@ -4,11 +4,9 @@ use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
-use crate::controller::graph::NewNodeInfo;
 use crate::model::module::MethodId;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
-use crate::model::module::Position;
 use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
@@ -24,6 +22,7 @@ use engine_protocol::language_server;
 use enso_text::Location;
 use flo_stream::Subscriber;
 use parser::Parser;
+
 
 
 // ==============
@@ -374,11 +373,21 @@ impl ThisNode {
 #[derive(Copy, Clone, Debug)]
 #[allow(missing_docs)]
 pub enum Mode {
-    /// Searcher should add a new node at a given position. `source_node` is either a selected node
+    /// Searcher is working with a newly created node. `source_node` is either a selected node
     /// or a node from which the connection was dragged out before being dropped at the scene.
-    NewNode { position: Option<Position>, source_node: Option<ast::Id> },
+    NewNode { node_id: ast::Id, source_node: Option<ast::Id> },
     /// Searcher should edit existing node's expression.
     EditNode { node_id: ast::Id },
+}
+
+impl Mode {
+    /// Return the ID of the node used as target for the Searcher.
+    pub fn node_id(&self) -> ast::Id {
+        match self {
+            Mode::NewNode { node_id, .. } => *node_id,
+            Mode::EditNode { node_id } => *node_id,
+        }
+    }
 }
 
 /// A fragment filled by single picked suggestion.
@@ -535,11 +544,7 @@ impl Searcher {
         } else {
             default()
         };
-        let node_metadata_guard = if let Mode::EditNode { node_id } = mode {
-            Rc::new(Some(EditGuard::new(node_id, graph.clone_ref())))
-        } else {
-            default()
-        };
+        let node_metadata_guard = Rc::new(Some(EditGuard::new(&mode, graph.clone_ref())));
         let module_ast = graph.graph().module.ast();
         let def_id = graph.graph().id;
         let def_span = double_representation::module::definition_span(&module_ast, &def_id)?;
@@ -568,8 +573,12 @@ impl Searcher {
             list_builder_with_favorites: Rc::new(list_builder_with_favs),
             node_edit_guard: node_metadata_guard,
         };
-        ret.reload_list();
-        Ok(ret)
+        Ok(ret.init())
+    }
+
+    fn init(self) -> Self {
+        self.reload_list();
+        self
     }
 
     /// Return true if user is currently filtering entries (the input has non-empty _pattern_ part).
@@ -640,11 +649,11 @@ impl Searcher {
     /// searcher's input will be updated and returned by this function.
     #[profile(Debug)]
     pub fn use_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
-        info!(self.logger, "Picking suggestion: {picked_suggestion:?}");
+        tracing::info!("Picking suggestion: {:?}", picked_suggestion);
         let id = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion { id, picked_suggestion };
         let code_to_insert = self.code_to_insert(&picked_completion).code;
-        debug!(self.logger, "Code to insert: \"{code_to_insert}\"");
+        tracing::debug!("Code to insert: \"{}\"", code_to_insert);
         let added_ast = self.ide.parser().parse_line_ast(&code_to_insert)?;
         let pattern_offset = self.data.borrow().input.pattern_offset;
         let new_expression = match self.data.borrow_mut().input.expression.take() {
@@ -699,7 +708,7 @@ impl Searcher {
                 self.commit_node().map(Some)
             }
             Action::Example(example) => match *self.mode {
-                Mode::NewNode { position, .. } => self.add_example(&example, position).map(Some),
+                Mode::NewNode { .. } => self.add_example(&example).map(Some),
                 _ => Err(CannotExecuteWhenEditingNode.into()),
             },
             Action::ProjectManagement(action) => {
@@ -783,33 +792,24 @@ impl Searcher {
             (expression, intended_method)
         };
 
-        // We add the required imports before we create the node/edit its content. This way, we
-        // avoid an intermediate state where imports would already be in use but not yet available.
-        match *self.mode {
-            Mode::NewNode { position, .. } => {
-                self.add_required_imports()?;
-                let (expression, intended_method) = expr_and_method();
-                let metadata = NodeMetadata { position, intended_method, ..default() };
-                let mut new_node = NewNodeInfo::new_pushed_back(expression);
-                new_node.metadata = Some(metadata);
-                new_node.introduce_pattern = ASSIGN_NAMES_FOR_NODES;
-                let graph = self.graph.graph();
-                if let Some(this) = self.this_arg.deref().as_ref() {
-                    this.introduce_pattern(graph.clone_ref())?;
-                }
-                graph.add_node(new_node)
-            }
-            Mode::EditNode { node_id } => {
-                self.add_required_imports()?;
-                let (expression, intended_method) = expr_and_method();
-                self.graph.graph().set_expression(node_id, expression)?;
-                self.graph.graph().module.with_node_metadata(
-                    node_id,
-                    Box::new(|md| md.intended_method = intended_method),
-                )?;
-                Ok(node_id)
-            }
+        let node_id = self.mode.node_id();
+        // We add the required imports before we edit its content. This way, we avoid an
+        // intermediate state where imports would already be in use but not yet available.
+        self.add_required_imports()?;
+        let (expression, intended_method) = expr_and_method();
+        self.graph.graph().set_expression(node_id, expression)?;
+        if let Mode::NewNode { .. } = self.mode.as_ref() {
+            self.graph.graph().introduce_name_on(node_id)?;
         }
+        self.graph
+            .graph()
+            .module
+            .with_node_metadata(node_id, Box::new(|md| md.intended_method = intended_method))?;
+        let graph = self.graph.graph();
+        if let Some(this) = self.this_arg.deref().as_ref() {
+            this.introduce_pattern(graph.clone_ref())?;
+        }
+        Ok(node_id)
     }
 
     /// Adds an example to the graph.
@@ -817,11 +817,7 @@ impl Searcher {
     /// The example piece of code will be inserted as a new function definition, and in current
     /// graph the node calling this function will appear.
     #[profile(Debug)]
-    pub fn add_example(
-        &self,
-        example: &action::Example,
-        position: Option<Position>,
-    ) -> FallibleResult<ast::Id> {
+    pub fn add_example(&self, example: &action::Example) -> FallibleResult<ast::Id> {
         // === Add new function definition ===
         let graph = self.graph.graph();
         let mut module = double_representation::module::Info { ast: graph.module.ast() };
@@ -845,6 +841,8 @@ impl Searcher {
         let mut graph_info = GraphInfo::from_definition(graph_definition.item);
         graph_info.add_node(&node, LocationHint::End)?;
         module.ast = module.ast.set_traversing(&graph_definition.crumbs, graph_info.ast())?;
+        let position =
+            self.graph.graph().node(self.mode.node_id())?.metadata.and_then(|md| md.position);
         let metadata = NodeMetadata { position, ..default() };
 
 
@@ -1214,9 +1212,11 @@ struct EditGuard {
 }
 
 impl EditGuard {
-    pub fn new(node_id: ast::Id, graph: controller::ExecutedGraph) -> Self {
-        let ret = Self { node_id, graph, revert_expression: Cell::new(true) };
-        ret.save_node_expression_to_metadata().unwrap_or_else(|e| {
+    pub fn new(mode: &Mode, graph: controller::ExecutedGraph) -> Self {
+        tracing::debug!("Initialising EditGuard.");
+
+        let ret = Self { node_id: mode.node_id(), graph, revert_expression: Cell::new(true) };
+        ret.save_node_expression_to_metadata(mode).unwrap_or_else(|e| {
             tracing::error!("Failed to save the node edit metadata due to error: {}", e)
         });
         ret
@@ -1226,18 +1226,28 @@ impl EditGuard {
         self.revert_expression.set(false);
     }
 
-    /// Mark the node as edited in its metadata and save the current expression, so it can later be
-    /// restored.
-    fn save_node_expression_to_metadata(&self) -> FallibleResult {
-        let node = self.graph.graph().node(self.node_id)?;
-        let previous_expression = node.info.main_line.expression().to_string();
+    /// Mark the node as edited in its metadata and save the current expression, so it can later
+    /// be restored.
+    fn save_node_expression_to_metadata(&self, mode: &Mode) -> FallibleResult {
         let module = &self.graph.graph().module;
-        module.with_node_metadata(
-            self.node_id,
-            Box::new(|metadata| {
-                metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
-            }),
-        )
+        match mode {
+            Mode::NewNode { .. } => module.with_node_metadata(
+                self.node_id,
+                Box::new(|m| {
+                    m.edit_status = Some(NodeEditStatus::Created {});
+                }),
+            ),
+            Mode::EditNode { .. } => {
+                let node = self.graph.graph().node(self.node_id)?;
+                let previous_expression = node.info.main_line.expression().to_string();
+                module.with_node_metadata(
+                    self.node_id,
+                    Box::new(|metadata| {
+                        metadata.edit_status = Some(NodeEditStatus::Edited { previous_expression });
+                    }),
+                )
+            }
+        }
     }
 
     /// Mark the node as no longer edited and discard the edit metadata.
@@ -1267,7 +1277,7 @@ impl EditGuard {
         let edit_status = self.get_saved_expression()?;
         match edit_status {
             None => {
-                tracing::warn!(
+                tracing::error!(
                     "Tried to revert the expression of the edited node, \
                 but found no edit metadata."
                 );
@@ -1424,8 +1434,8 @@ pub mod test {
     }
 
     impl MockData {
-        fn change_main_body(&mut self, line: &str) {
-            let code: enso_text::Text = dbg!(crate::test::mock::main_from_lines(&[line])).into();
+        fn change_main_body(&mut self, lines: &[&str]) {
+            let code: enso_text::Text = dbg!(crate::test::mock::main_from_lines(lines)).into();
             let location = code.location_of_text_end();
             // TODO [mwu] Not nice that we ended up with duplicated mock data for code.
             self.graph.module.code = (&code).into();
@@ -1480,6 +1490,7 @@ pub mod test {
             let scope = Scope::InModule { range: code_range };
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
+            let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
@@ -1509,7 +1520,7 @@ pub mod test {
                 ide: Rc::new(ide),
                 data: default(),
                 notifier: default(),
-                mode: Immutable(Mode::NewNode { position: default(), source_node: None }),
+                mode: Immutable(Mode::NewNode { node_id: searcher_target, source_node: None }),
                 language_server: language_server::Connection::new_mock_rc(client),
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
@@ -1685,7 +1696,7 @@ pub mod test {
         for case in &cases {
             let Fixture { mut test, searcher, entry1, entry9, .. } =
                 Fixture::new_custom(|data, client| {
-                    data.change_main_body(case.node_line);
+                    data.change_main_body(&[case.node_line]);
                     data.selected_node = true;
                     // We expect following calls:
                     // 1) for the function - with the "this" filled (if the test case says so);
@@ -2138,7 +2149,7 @@ pub mod test {
         for case in cases.into_iter() {
             let mut fixture = Fixture::new_custom(|data, client| {
                 data.selected_node = true;
-                data.change_main_body(case.line);
+                data.change_main_body(&[case.line, "Nothing"]); // The last node will be used as searcher target.
                 data.expect_completion(client, None, None, &[]);
             });
             (case.run)(&mut fixture);
@@ -2168,7 +2179,8 @@ pub mod test {
             });
 
             // Add new node.
-            searcher.mode = Immutable(Mode::NewNode { position: None, source_node: None });
+            let node_id = searcher.mode.node_id();
+            searcher.mode = Immutable(Mode::NewNode { node_id, source_node: None });
             searcher.commit_node().unwrap();
 
             let module_info = module.info();
@@ -2191,7 +2203,14 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn committing_node() {
-        let Fixture { test: _test, mut searcher, entry4, .. } = Fixture::new();
+        let Fixture { test: _test, mut searcher, entry4, .. } =
+            Fixture::new_custom(|data, _client| {
+                data.change_main_body(&["2 + 2", "Nothing"]); // The last node will be used as
+                                                              // searcher target.
+            });
+
+        let (node1, searcher_target) = searcher.graph.graph().nodes().unwrap().expect_tuple();
+
         let module = searcher.graph.graph().module.clone_ref();
         // Setup searcher.
         let parser = Parser::new_or_panic();
@@ -2205,25 +2224,26 @@ pub mod test {
         });
 
         // Add new node.
-        let position = Some(Position::new(4.0, 5.0));
-        searcher.mode = Immutable(Mode::NewNode { position, source_node: None });
+        searcher.mode =
+            Immutable(Mode::NewNode { node_id: searcher_target.id(), source_node: None });
         searcher.commit_node().unwrap();
 
         let expected_code =
-            "import test.Test.Test\nmain = \n    2 + 2\n    operator1 = Test.testMethod1";
+            "import test.Test.Test\nmain =\n    2 + 2\n    operator1 = Test.testMethod1";
         assert_eq!(module.ast().repr(), expected_code);
-        let (node1, node2) = searcher.graph.graph().nodes().unwrap().expect_tuple();
         let expected_intended_method = Some(MethodId {
             module:          "test.Test.Test".to_string().try_into().unwrap(),
             defined_on_type: "test.Test.Test".to_string().try_into().unwrap(),
             name:            "testMethod1".to_string(),
         });
-        assert_eq!(node2.metadata.unwrap().intended_method, expected_intended_method);
+        let (_, searcher_target) = searcher.graph.graph().nodes().unwrap().expect_tuple();
+        assert_eq!(searcher_target.metadata.unwrap().intended_method, expected_intended_method);
 
         // Edit existing node.
         searcher.mode = Immutable(Mode::EditNode { node_id: node1.info.id() });
         searcher.commit_node().unwrap();
-        let expected_code = "import test.Test.Test\nmain = \n    Test.testMethod1\n    operator1 = Test.testMethod1";
+        let expected_code =
+            "import test.Test.Test\nmain =\n    Test.testMethod1\n    operator1 = Test.testMethod1";
         let (node1, _) = searcher.graph.graph().nodes().unwrap().expect_tuple();
         assert_eq!(node1.metadata.unwrap().intended_method, expected_intended_method);
         assert_eq!(module.ast().repr(), expected_code);
@@ -2321,7 +2341,7 @@ pub mod test {
         };
         let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
             main = \n    2 + 2\n    here.test_example1";
-        searcher.add_example(&Rc::new(example), None).unwrap();
+        searcher.add_example(&Rc::new(example)).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
     }
 
@@ -2339,8 +2359,8 @@ pub mod test {
             test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
             main = \n    2 + 2\n    here.test_example1\n    here.test_example2";
         let example = Rc::new(example);
-        searcher.add_example(&example, None).unwrap();
-        searcher.add_example(&example, None).unwrap();
+        searcher.add_example(&example).unwrap();
+        searcher.add_example(&example).unwrap();
         assert_eq!(module.ast().repr(), expected_code);
     }
 
@@ -2353,7 +2373,7 @@ pub mod test {
         let node_id = node.info.id();
         searcher.mode = Immutable(Mode::EditNode { node_id });
         searcher.node_edit_guard =
-            Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
+            Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
 
         // Apply an edit to the node.
         graph.set_expression(node_id, "Edited Node").unwrap();
@@ -2399,7 +2419,7 @@ pub mod test {
         let node_id = node.info.id();
         searcher.mode = Immutable(Mode::EditNode { node_id });
         searcher.node_edit_guard =
-            Rc::new(Some(EditGuard::new(node_id, searcher.graph.clone_ref())));
+            Rc::new(Some(EditGuard::new(&searcher.mode, searcher.graph.clone_ref())));
 
         // Apply an edit to the node.
         let new_expression = "Edited Node";
