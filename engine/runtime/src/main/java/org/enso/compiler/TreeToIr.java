@@ -695,6 +695,9 @@ final class TreeToIr {
           meta(), diag()
         );
       }
+      case Tree.Group group -> {
+        yield translateExpression(group.getBody(), moreArgs, insideTypeSignature, isMethod);
+      }
       default -> throw new UnhandledEntity(tree, "translateExpression");
     };
     /*

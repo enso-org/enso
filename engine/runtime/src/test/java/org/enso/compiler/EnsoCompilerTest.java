@@ -182,6 +182,11 @@ public class EnsoCompilerTest {
     parseTest("val = 123 : Int");
   }
 
+  @Test
+  public void testSignature4() throws Exception {
+    parseTest("val = foo (123 : Int)");
+  }
+
   @SuppressWarnings("unchecked")
   private void parseTest(String code) throws UnsupportedSyntaxException, IOException {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
