@@ -25,4 +25,4 @@ from Standard.Database.Connection.Connection_Options export Connection_Options
 from Standard.Database.Connection.Database export connect
 from Standard.Database.Connection.Postgres export Postgres
 from Standard.Database.Connection.SQLite export SQLite, In_Memory
-from Standard.Database.Connection.Redshift export Redshift, AWS_Profile
+from Standard.Database.Connection.Redshift export Redshift, AWS_Profile, AWS_Key
