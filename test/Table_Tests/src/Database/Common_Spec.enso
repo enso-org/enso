@@ -1,11 +1,10 @@
 from Standard.Base import all
 
+import Standard.Table as Materialized_Table
+from Standard.Table import Sort_Column, Sort_Column_Selector
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
-import Standard.Table.Data.Table as Materialized_Table
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
-from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
 from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns
 
 from Standard.Database import all
 

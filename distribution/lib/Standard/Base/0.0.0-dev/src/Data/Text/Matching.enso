@@ -1,8 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Locale
-import Standard.Base.Data.Text.Regex
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Problem_Behavior import Report_Warning
 from Standard.Base.Error.Common import Wrapped_Dataflow_Error
 
 ## UNSTABLE

@@ -1,12 +1,10 @@
 from Standard.Base import all
-import Standard.Table
-
-import Standard.Base.Error.Common as Errors
 import Standard.Base.System
-import Standard.Table.Data.Match_Columns
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior
-from Standard.Base.Data.Text.Encoding import Encoding
 import Standard.Base.Runtime.Ref
+import Standard.Base.Error.Common as Errors
+
+import Standard.Table.Data.Table
+import Standard.Table.Data.Match_Columns
 import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Delimited_Writer
 from Standard.Table.Errors import Unsupported_File_Type

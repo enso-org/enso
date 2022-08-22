@@ -1,10 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Locale
 import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.Data.Time.Zone
-import Standard.Base.Data.Ordering
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.ZonedDateTime
