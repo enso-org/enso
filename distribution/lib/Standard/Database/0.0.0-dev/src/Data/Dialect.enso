@@ -4,9 +4,9 @@ import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Aggregate_Column
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Internal.IR
-import Standard.Database.Data.Dialect.Postgres as Postgres_Module
-import Standard.Database.Data.Dialect.Redshift as Redshift_Module
-import Standard.Database.Data.Dialect.SQLite as SQLite_Module
+import Standard.Database.Data.Dialect.Postgres
+import Standard.Database.Data.Dialect.Redshift
+import Standard.Database.Data.Dialect.SQLite
 
 ## PRIVATE
 
@@ -52,18 +52,18 @@ type Dialect
 
    The dialect of SQLite databases.
 sqlite : Dialect
-sqlite = SQLite_Module.sqlite
+sqlite = SQLite.sqlite
 
 ## PRIVATE
 
    The dialect of PostgreSQL databases.
 postgres : Dialect
-postgres = Postgres_Module.postgres
+postgres = Postgres.postgres
 
 ## PRIVATE
 
    The dialect of Redshift databases.
 redshift : Dialect
-redshift = Redshift_Module.redshift
+redshift = Redshift.redshift
 
 

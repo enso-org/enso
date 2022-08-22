@@ -1,16 +1,15 @@
 from Standard.Base import all hiding First, Last
 
 import Standard.Table
+from Standard.Table import Sort_Column, Sort_Column_Selector
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
-import Standard.Table.Data.Sort_Column
-import Standard.Table.Data.Sort_Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Errors as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
-from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
+
+from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from Standard.Database.Error import Unsupported_Database_Operation_Error
 
 import Standard.Test
 import Standard.Test.Problems
-import Standard.Base.Error.Problem_Behavior
 
 polyglot java import java.lang.Double
 

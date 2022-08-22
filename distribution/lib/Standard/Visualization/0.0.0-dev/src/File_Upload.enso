@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.System.File as Base_File
-
 ## UNSTABLE
 
    A function that throws an error to indicate that a file is being uploaded to
@@ -9,11 +7,11 @@ import Standard.Base.System.File as Base_File
 
    Arguments:
    - `path`: The path to which the file is being uploaded.
-file_uploading : (Base_File.File | Text) -> Base_File.File ! File_Being_Uploaded
+file_uploading : (File.File | Text) -> File.File ! File_Being_Uploaded
 file_uploading path =
     err = File_Being_Uploaded <| case path of
         Text -> path
-        Base_File.File -> path.path
+        File.File -> path.path
         _ -> ""
     Error.throw err
 

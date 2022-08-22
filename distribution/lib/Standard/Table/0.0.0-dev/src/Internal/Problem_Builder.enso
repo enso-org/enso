@@ -1,7 +1,7 @@
 from Standard.Base import all
-
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Ref
+
 import Standard.Table.Internal.Vector_Builder
 
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Column_Matched_By_Multiple_Selectors

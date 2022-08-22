@@ -4,7 +4,6 @@ from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
 from Standard.Base.Data.Text.Text_Sub_Range import all
-from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
 
 import Standard.Test
 

@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.System.File
 import Standard.Base.System.Platform
 import Standard.Base.System.Process
 import Standard.Base.System.Process.Exit_Code
