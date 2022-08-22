@@ -15,10 +15,11 @@ import Standard.Database.Connection.Redshift
 export Standard.Database.Data.Table
 export Standard.Database.Data.Column
 
+export Standard.Database.Connection.SSL_Mode
 from Standard.Database.Connection.Connection export Sql_Error, Sql_Timeout_Error
+
 from Standard.Database.Connection.Credentials export Credentials
 from Standard.Database.Connection.Client_Certificate export Client_Certificate
-from Standard.Database.Connection.SSL_Mode export SSL_Mode
 from Standard.Database.Connection.Connection_Options export Connection_Options
 
 from Standard.Database.Connection.Database export connect
