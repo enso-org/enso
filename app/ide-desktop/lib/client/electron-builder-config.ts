@@ -51,7 +51,7 @@ const args = await yargs(process.argv.slice(2))
         platform: {
             type: 'string',
             description: 'Platform that Electron Builder should target',
-            default: Platform.WINDOWS.toString(),
+            default: Platform.current().toString(),
             coerce: (p: string) => Platform.fromString(p),
         },
         targetOverride: {
