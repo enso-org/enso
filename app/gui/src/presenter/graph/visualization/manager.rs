@@ -327,11 +327,11 @@ impl Manager {
 
     fn prepare_visualization(&self, desired: Desired) -> FallibleResult<Visualization> {
         let context_module = desired.metadata.preprocessor.module;
-        let preprocessor_function = desired.metadata.preprocessor.function;
+        let preprocessor_method = desired.metadata.preprocessor.method;
         let method_pointer = QualifiedMethodPointer::from_unqualified(
             &context_module,
             &context_module,
-            &preprocessor_function,
+            &preprocessor_method,
         )?;
         Ok(Visualization {
             id: desired.visualization_id,
@@ -521,11 +521,11 @@ mod tests {
             Self { inner, node_id }
         }
 
-        fn vis_metadata(&self, function: impl Into<String>) -> Metadata {
+        fn vis_metadata(&self, method: impl Into<String>) -> Metadata {
             Metadata {
                 preprocessor: PreprocessorConfiguration {
-                    module:   self.inner.module_name().to_string().into(),
-                    function: function.into().into(),
+                    module: self.inner.module_name().to_string().into(),
+                    method: method.into().into(),
                 },
             }
         }
@@ -604,14 +604,11 @@ mod tests {
         }
     }
 
-    fn matching_metadata(
-        visualization: &Visualization,
-        metadata: &Metadata,
-    ) -> bool {
-        let PreprocessorConfiguration { module, function } = &metadata.preprocessor;
+    fn matching_metadata(visualization: &Visualization, metadata: &Metadata) -> bool {
+        let PreprocessorConfiguration { module, method } = &metadata.preprocessor;
         let qualified_module: module::QualifiedName = module.deref().try_into().unwrap();
         visualization.method_pointer.module == qualified_module
-            && visualization.method_pointer.name == function.deref()
+            && visualization.method_pointer.name == method.deref()
     }
 
     #[wasm_bindgen_test]
@@ -655,7 +652,7 @@ mod tests {
             let desired_method_pointer = QualifiedMethodPointer::from_unqualified(
                 &desired_vis_1.preprocessor.module,
                 &desired_vis_1.preprocessor.module,
-                &desired_vis_1.preprocessor.function,
+                &desired_vis_1.preprocessor.method,
             )
             .unwrap();
             assert!(method_pointer.contains(&desired_method_pointer));

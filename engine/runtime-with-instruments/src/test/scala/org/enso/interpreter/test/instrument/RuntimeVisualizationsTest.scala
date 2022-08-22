@@ -1933,7 +1933,7 @@ class RuntimeVisualizationsTest
     val mainFile = context.writeMain(contents)
 
     // NOTE: below values need to be kept in sync with what is used internally by Rust IDE code
-    val visualisationModule = "Standard.Visualization.Preprocessor"
+    val visualisationModule   = "Standard.Visualization.Preprocessor"
     val visualisationFunction = "error_preprocessor"
 
     // create context

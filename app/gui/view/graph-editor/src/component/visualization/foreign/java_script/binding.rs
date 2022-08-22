@@ -197,9 +197,9 @@ impl JsConsArgs {
     }
 
     /// Helper method to emit an preprocessor change event from the visualisation.
-    pub fn emit_preprocessor_change(&self, module: Option<String>, fun: Option<String>) {
+    pub fn emit_preprocessor_change(&self, module: Option<String>, method: Option<String>) {
         let closure = &self.set_preprocessor;
-        let preprocessor_config = PreprocessorConfiguration::from_options(module, fun);
+        let preprocessor_config = PreprocessorConfiguration::from_options(module, method);
         (*closure)(preprocessor_config);
     }
 }

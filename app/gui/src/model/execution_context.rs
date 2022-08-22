@@ -216,9 +216,9 @@ pub struct LocalCall {
 
 
 
-// =====================
-// === Visualization ===
-// =====================
+// ==============================
+// === QualifiedMethodPointer ===
+// ==============================
 
 /// A method pointer containing the qualified module and type names.
 #[derive(Clone, Debug, PartialEq)]

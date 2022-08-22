@@ -58,24 +58,24 @@ impl ContextModule {
 /// Information on how the preprocessor should be set up for the visualization.
 #[derive(Clone, CloneRef, Debug, PartialEq, Eq)]
 pub struct PreprocessorConfiguration {
-    /// The module containing the `function`.
-    pub module:   enso::Module,
-    /// The function being invoked.
-    pub function: enso::Function,
+    /// The module containing the `method`.
+    pub module: enso::Module,
+    /// The method being invoked.
+    pub method: enso::Method,
 }
 
 impl PreprocessorConfiguration {
     /// Like `new` but arguments are optional. If `None` is given, default value will be used.
     pub fn from_options(
         module: Option<impl Into<enso::Module>>,
-        function: Option<impl Into<enso::Function>>,
+        method: Option<impl Into<enso::Method>>,
     ) -> Self {
         let mut ret = Self::default();
         if let Some(module) = module {
             ret.module = module.into();
         }
-        if let Some(function) = function {
-            ret.function = function.into();
+        if let Some(method) = method {
+            ret.method = method.into();
         }
         ret
     }
@@ -83,17 +83,17 @@ impl PreprocessorConfiguration {
     /// Create a configuration that runs the given code in the context of the given module.
     pub fn new(
         module: impl Into<enso::Module>,
-        function: impl Into<enso::Function>,
+        method: impl Into<enso::Method>,
     ) -> PreprocessorConfiguration {
-        PreprocessorConfiguration { module: module.into(), function: function.into() }
+        PreprocessorConfiguration { module: module.into(), method: method.into() }
     }
 }
 
 impl Default for PreprocessorConfiguration {
     fn default() -> Self {
         Self {
-            module:   DEFAULT_VISUALIZATION_MODULE.into(),
-            function: DEFAULT_VISUALIZATION_FUNCTION.into(),
+            module: DEFAULT_VISUALIZATION_MODULE.into(),
+            method: DEFAULT_VISUALIZATION_FUNCTION.into(),
         }
     }
 }

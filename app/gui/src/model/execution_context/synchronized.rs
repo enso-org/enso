@@ -544,7 +544,6 @@ pub mod test {
             MockData::new().module_qualified_name(),
             "quux".to_string(),
         );
-        let new_module = "Test.Test_Module";
         let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;
             let ast_id = vis.expression_id;
