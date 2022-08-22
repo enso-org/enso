@@ -159,7 +159,7 @@ type Extreme min_x max_x min_y max_y
 limit_data limit data = case limit of
     Nothing -> data
     _ -> if (data.length <= limit) then data else
-        b = Vector.Builder.new
+        b = Vector.new_builder limit
 
         x datum = (datum.get "x").unwrap
         y datum = (datum.get "y").unwrap
