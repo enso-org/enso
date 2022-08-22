@@ -759,14 +759,11 @@ type Table
         take_by_indices =
             indices = (Range 0 self.row_count . to_vector).take range
             mask = OrderMask.new indices.to_array
-            IO.println mask
-            res = Table (self.java_table.applyMask mask)
-            IO.println "res="+res.to_text
-            res
+            Table (self.java_table.applyMask mask)
         case range of
             Range _ _ _ -> self.take (Index_Sub_Range.By_Index range)
             First count -> self.slice 0 count
-            Last count -> self.slice self.length-count self.length
+            Last count -> self.slice self.row_count-count self.row_count
             While _ ->
                 unimplemented "Table.take While cannot be implemented before the Row type is."
             Index_Sub_Range.By_Index one_or_many_descriptors ->
@@ -777,14 +774,17 @@ type Table
                     False -> take_by_indices
                     True -> case indices.first of
                         Range start end step -> case step == 1 of
-                            True -> self.slice start end
+                            True ->
+                                if (start < 0) || (end < 0) then Error.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
+                                    if start >= self.row_count then Error.throw (Index_Out_Of_Bounds_Error start self.row_count) else
+                                        self.slice start end
                             False -> take_by_indices
                         _ -> take_by_indices
             Sample _ _ -> take_by_indices
             Every step start ->
                 if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                    if start >= self.length then self.slice 0 0 else
-                        range = Range start self.length step
+                    if start >= self.row_count then self.slice 0 0 else
+                        range = Range start self.row_count step
                         self.take (Index_Sub_Range.By_Index range)
 
     ## UNSTABLE
@@ -802,26 +802,16 @@ type Table
             Table <| self.java_table.applyMask mask
         case range of
             Range _ _ _ -> self.drop (Index_Sub_Range.By_Index range)
-            First count -> self.slice count self.length
-            Last count -> self.slice 0 self.length-count
+            First count -> self.slice count self.row_count
+            Last count -> self.slice 0 self.row_count-count
             While _ ->
                 unimplemented "Table.drop While cannot be implemented before the Row type is."
-            Index_Sub_Range.By_Index one_or_many_descriptors ->
-                indices = case one_or_many_descriptors of
-                    Vector.Vector _ -> one_or_many_descriptors
-                    _ -> [one_or_many_descriptors]
-                case indices.length == 1 of
-                    False -> drop_by_indices
-                    True -> case indices.first of
-                        Range start end step -> case step == 1 of
-                            True -> self.slice start end
-                            False -> drop_by_indices
-                        _ -> drop_by_indices
+            Index_Sub_Range.By_Index _ -> drop_by_indices
             Sample _ _ -> drop_by_indices
             Every step start ->
                 if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                    if start >= self.length then self else
-                        range = Range start self.length step
+                    if start >= self.row_count then self else
+                        range = Range start self.row_count step
                         self.drop (Index_Sub_Range.By_Index range)
 
     ## ALIAS Add Column
@@ -1024,8 +1014,9 @@ type Table
        Returns a table with a continuous sub-range of rows taken.
     slice : Integer -> Integer -> Table
     slice self start end =
-        offset = Math.max start 0
-        limit = Math.max (end - offset) 0
+        length = self.row_count
+        offset = Math.max (Math.min start length) 0
+        limit = Math.max (Math.min (end - offset) (length - offset)) 0
         Table (self.java_table.slice offset limit)
 
     ## UNSTABLE
