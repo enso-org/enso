@@ -78,11 +78,11 @@ where EntryParams: frp::node::Data
     pub fn create_entry<E: Entry<Params = EntryParams>>(
         &self,
         text_layer: Option<&Layer>,
-    ) -> VisibleEntry<E> {
+    ) -> (VisibleEntry<E>, Option<frp::Source<()>>) {
         let entry = E::new(&self.app, text_layer);
         let overlay = entry::overlay::View::new(Logger::new("EntryOverlay"));
         entry.add_child(&overlay);
-        if let Some(network) = self.network.upgrade_or_warn() {
+        let init = if let Some(network) = self.network.upgrade_or_warn() {
             let entry_frp = entry.frp();
             let entry_network = entry_frp.network();
             let mouse = &self.app.display.default_scene.mouse.frp;
@@ -124,9 +124,11 @@ where EntryParams: frp::node::Data
                     |width, col| (*col, *width)
                 );
             }
-            init.emit(());
-        }
-        VisibleEntry { entry, overlay }
+            Some(init)
+        } else {
+            None
+        };
+        (VisibleEntry { entry, overlay }, init)
     }
 }
 

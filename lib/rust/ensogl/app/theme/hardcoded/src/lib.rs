@@ -224,6 +224,21 @@ define_themes! { [light:0, dark:1]
                         }
                         padding = 5.0, 5.0;
                     }
+                    breadcrumbs {
+                        height = 28.0, 28.0;
+                        separator {
+                            width = 8.0, 8.0;
+                            height = 6.0, 6.0;
+                        }
+                        ellipsis {
+                            background_width = 24.0, 24.0;
+                            background_height = 10.0, 10.0;
+                            background_corners_radius = 16.0, 16.0;
+                            background_color = Rgba(0.0, 0.0, 0.0, 0.2), Rgba(0.0, 0.0, 0.0, 0.2);
+                            circles_radius = 2.0, 2.0;
+                            circles_gap = 6.0, 6.0;
+                        }
+                    }
 
                     favourites_section_base_color = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
 

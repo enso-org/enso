@@ -261,25 +261,29 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let widths = &self.column_widths;
         let create_new_entry = || {
             let text_layer = layers.upgrade_text();
-            let entry = self.entry_creation_ctx.create_entry(text_layer.as_ref());
+            let (entry, init) = self.entry_creation_ctx.create_entry(text_layer.as_ref());
             if let Some(layer) = layers.upgrade_header() {
                 layer.add_exclusive(&entry);
             }
-            entry
+            (entry, init)
         };
-        let entry = match visible_headers.entry(col) {
+        let (entry, init) = match visible_headers.entry(col) {
             Occupied(mut entry) => {
                 entry.get_mut().section_rows = rows;
-                entry.into_mut()
+                (entry.into_mut(), None)
             }
             Vacant(lack_of_entry) => {
-                let new_entry = free_headers.pop().unwrap_or_else(create_new_entry);
+                let (new_entry, init) =
+                    free_headers.pop().map(|entry| (entry, None)).unwrap_or_else(create_new_entry);
                 self.grid.add_child(&new_entry);
                 let new_header_entry =
                     VisibleHeader { section_rows: rows, entry: new_entry };
-                lack_of_entry.insert(new_header_entry)
+                (lack_of_entry.insert(new_header_entry), init)
             }
         };
+        if let Some(init) = init {
+            init.emit(());
+        }
         let entry_frp = entry.entry.entry.frp();
         entry_frp.set_model(model);
         entry_frp.set_location((entry.section_rows.start, col));
@@ -348,7 +352,7 @@ impl<Entry, InnerGridView, HeaderEntry, HeaderModel: frp::node::Data, HeaderPara
 /// **Important**. The [`Frp::section_info_needed`] are emitted once when needed and not repeated
 /// anymore, after adding connections to this FRP node in particular. Therefore, be sure, that you
 /// connect providing models logic before emitting any of [`crate::Frp::set_entries_size`] or
-/// [`crate::Frp::set_viewport`].  
+/// [`crate::Frp::set_viewport`].
 pub type GridView<Entry, HeaderEntry> = GridViewTemplate<
     Entry,
     crate::GridView<Entry>,
@@ -481,7 +485,7 @@ where
     HeaderParams: frp::node::Data,
 {
     /// Return the pushed-down header instance at given position, or `None` if the entry at this
-    /// position is not a pushed-down header.  
+    /// position is not a pushed-down header.
     pub fn get_header(&self, row: Row, col: Col) -> Option<HeaderEntry>
     where HeaderEntry: CloneRef {
         let headers = self.model.visible_headers.borrow();

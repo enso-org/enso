@@ -53,6 +53,7 @@ use crate::navigator::Section;
 
 use component_group::icon;
 use enso_frp as frp;
+use ensogl_breadcrumbs as breadcrumbs;
 use ensogl_core::animation::physics::inertia;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -219,6 +220,17 @@ impl Style {
 
     fn section_heading_height(&self) -> f32 {
         self.section_heading_size + self.section_heading_offset
+    }
+
+    fn breadcrumbs_pos(&self) -> Vector2 {
+        let breadcrumbs_height = self.menu_height;
+        let x = -self.content_width / 2.0 + self.navigator_width / 2.0 + self.content_padding;
+        let y = self.content_height / 2.0 + breadcrumbs_height / 2.0 - self.content_padding;
+        Vector2(x, y)
+    }
+
+    fn breadcrumbs_size(&self) -> Vector2 {
+        Vector2(self.content_width, self.menu_height)
     }
 }
 
@@ -406,6 +418,7 @@ pub struct Model {
     groups_wrapper:      component_group::set::Wrapper,
     navigator:           Rc<RefCell<Option<Navigator>>>,
     selection:           selection_box::View,
+    breadcrumbs:         breadcrumbs::Breadcrumbs,
 }
 
 impl Model {
@@ -441,6 +454,12 @@ impl Model {
         display_object.add_child(&section_navigator);
         layers.navigator.add_exclusive(&section_navigator);
 
+        let breadcrumbs = app.new_view::<breadcrumbs::Breadcrumbs>();
+        display_object.add_child(&breadcrumbs);
+        layers.navigator.add_exclusive(&breadcrumbs);
+        breadcrumbs.show_ellipsis(true);
+        breadcrumbs.set_entries(vec![breadcrumbs::Breadcrumb::new("All")]);
+
         let selection = selection_box::View::new(&app.logger);
         scroll_area.add_child(&selection);
         layers.selection_mask.add_exclusive(&selection);
@@ -473,6 +492,7 @@ impl Model {
             groups_wrapper,
             navigator,
             selection,
+            breadcrumbs,
         }
     }
 
@@ -498,6 +518,9 @@ impl Model {
         self.navigator_shadow.set_position_x(navigator_shadow_x);
         let section_navigator_shadow_size = Vector2(style.navigator_width, style.size_inner().y);
         self.navigator_shadow.size.set(section_navigator_shadow_size);
+
+        self.breadcrumbs.set_position_xy(style.breadcrumbs_pos());
+        self.breadcrumbs.set_size(style.breadcrumbs_size());
 
         // Sections
 
@@ -1037,6 +1060,11 @@ impl component::Frp<Model> for Frp {
             let weak_color = style.get_color(list_panel_theme::navigator_icon_weak_color);
             let params = icon::Params { strong_color, weak_color };
             model.section_navigator.set_bottom_buttons_entry_params(params);
+
+            // === Breadcrumbs ===
+            // TODO: Clicking on any header pushes an entry to the breadcrumbs stack. This behavior
+            //   would be changed in https://www.pivotaltracker.com/story/show/182675703.
+            eval_ output.header_accepted(model.breadcrumbs.push(breadcrumbs::Breadcrumb::new("Test")));
         }
         layout_frp.init.emit(());
         selection_animation.skip.emit(());
