@@ -476,26 +476,26 @@ mod tests {
         let Fixture { project, module, .. } = &fixture;
         let urm = project.urm();
 
-        assert_eq!(urm.repository.len(Stack::Undo), 0);
+        assert_eq!(urm.repository.len(Stack::Undo), 1);
         assert_eq!(urm.repository.len(Stack::Redo), 0);
 
         let before_action = module.serialized_content().unwrap();
         action();
         let after_action = module.serialized_content().unwrap();
 
-        assert_eq!(urm.repository.len(Stack::Undo), 1);
+        assert_eq!(urm.repository.len(Stack::Undo), 2);
         assert_eq!(urm.repository.len(Stack::Redo), 0);
 
         // After single undo everything should be as before.
         urm.undo().unwrap();
         assert_eq!(module.serialized_content().unwrap(), before_action);
-        assert_eq!(urm.repository.len(Stack::Undo), 0);
+        assert_eq!(urm.repository.len(Stack::Undo), 1);
         assert_eq!(urm.repository.len(Stack::Redo), 1);
 
         // After redo - as right after connecting.
         urm.redo().unwrap();
         assert_eq!(module.serialized_content().unwrap(), after_action);
-        assert_eq!(urm.repository.len(Stack::Undo), 1);
+        assert_eq!(urm.repository.len(Stack::Undo), 2);
         assert_eq!(urm.repository.len(Stack::Redo), 0);
     }
 
@@ -597,25 +597,28 @@ main =
         let nodes = executed_graph.graph().nodes().unwrap();
         let node = &nodes[0];
 
-        // Check initial state.
-        assert_eq!(urm.repository.len(Stack::Undo), 0);
+        // Check initial state. One transaction happens during setup of the searcher, which updates
+        // node metadata.
+        assert_eq!(urm.repository.len(Stack::Undo), 1, "Undo stack not empty: {:?}", urm);
         assert_eq!(module.ast().to_string(), "main = \n    2 + 2");
 
         // Perform an action.
         executed_graph.graph().set_expression(node.info.id(), "5 * 20").unwrap();
 
         // We can undo action.
-        assert_eq!(urm.repository.len(Stack::Undo), 1);
+        assert_eq!(urm.repository.len(Stack::Undo), 2);
         assert_eq!(module.ast().to_string(), "main = \n    5 * 20");
         urm.undo().unwrap();
         assert_eq!(module.ast().to_string(), "main = \n    2 + 2");
 
         // We cannot undo more actions than we made.
-        assert_eq!(urm.repository.len(Stack::Undo), 0);
+        assert_eq!(urm.repository.len(Stack::Undo), 1);
+        assert!(urm.undo().is_ok());
         assert!(urm.undo().is_err());
         assert_eq!(module.ast().to_string(), "main = \n    2 + 2");
 
         // We can redo since we undid.
+        urm.redo().unwrap();
         urm.redo().unwrap();
         assert_eq!(module.ast().to_string(), "main = \n    5 * 20");
 
