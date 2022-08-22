@@ -100,7 +100,7 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  @Ignore // because of https://www.pivotaltracker.com/n/projects/2539304/stories/183042815
+  @Ignore // because of https://github.com/enso-org/enso/pull/3653#issuecomment-1221841342
   public void testDocumentationComment() throws Exception {
     parseTest("""
     ## A type representing computations that may fail.
