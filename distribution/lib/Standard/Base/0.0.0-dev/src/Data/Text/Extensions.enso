@@ -817,7 +817,7 @@ Text.from_utf_8 bytes on_problems=Report_Warning =
 
          "Hello".char_vector
 Text.char_vector : Vector.Vector Integer
-Text.char_vector self = Vector.Vector (Text_Utils.get_chars self)
+Text.char_vector self = Vector.from_polyglot_array (Text_Utils.get_chars self)
 
 ## Takes a vector of characters and returns the text that results from it.
 
@@ -840,7 +840,7 @@ Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
          "Hello".codepoints
 Text.codepoints : Vector.Vector Integer
-Text.codepoints self = Vector.Vector (Text_Utils.get_codepoints self)
+Text.codepoints self = Vector.from_polyglot_array (Text_Utils.get_codepoints self)
 
 ## Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.
