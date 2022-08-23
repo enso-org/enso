@@ -9,7 +9,7 @@ from Standard.Base.Data.Text.Encoding import Encoding
 import Standard.Base.Runtime.Ref
 import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Delimited_Writer
-from Standard.Table.Errors import Unsupported_File_Type
+from Standard.Table.Errors import Unsupported_File_Type_Data
 
 from Standard.Table.Data.Data_Formatter import Data_Formatter, Data_Formatter_Data
 import Standard.Table.IO.Excel as Excel_Module
@@ -28,17 +28,17 @@ type Auto
         extension = file.extension
 
         output = Ref.new Nothing
-        if ".txt".equals_ignore_case extension then output.put File_Format.Plain_Text
-        if ".log".equals_ignore_case extension then output.put File_Format.Plain_Text
+        if ".txt".equals_ignore_case extension then output.put File_Format.Plain_Text_Data
+        if ".log".equals_ignore_case extension then output.put File_Format.Plain_Text_Data
         if ".csv".equals_ignore_case extension then output.put (File_Format.Delimited_Data ',')
         if ".tsv".equals_ignore_case extension then output.put (File_Format.Delimited_Data '\t')
-        if ".xlsx".equals_ignore_case extension then output.put File_Format.Excel
-        if ".xlsm".equals_ignore_case extension then output.put File_Format.Excel
-        if ".xls".equals_ignore_case extension then output.put File_Format.Excel
-        if ".xlt".equals_ignore_case extension then output.put File_Format.Excel
+        if ".xlsx".equals_ignore_case extension then output.put File_Format.Excel_Data
+        if ".xlsm".equals_ignore_case extension then output.put File_Format.Excel_Data
+        if ".xls".equals_ignore_case extension then output.put File_Format.Excel_Data
+        if ".xlt".equals_ignore_case extension then output.put File_Format.Excel_Data
 
         output.get.if_nothing <|
-            Error.throw (Unsupported_File_Type file.name)
+            Error.throw (Unsupported_File_Type_Data file.name)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any

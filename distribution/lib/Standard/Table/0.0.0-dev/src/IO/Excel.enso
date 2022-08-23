@@ -5,7 +5,7 @@ import Standard.Base.System.File.Option
 from Standard.Table.IO.File_Format import Infer
 
 import Standard.Table.Data.Table
-from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors import Invalid_Location_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
 import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Match_Columns
 
@@ -167,7 +167,7 @@ type Excel_Range
    Wrapper for validation of a value prior to execution.
 validate : Boolean -> Text -> Any
 validate validation ~error_message ~wrapped =
-    if validation then wrapped else Error.throw (Illegal_Argument_Error error_message)
+    if validation then wrapped else Error.throw (Illegal_Argument_Error_Data error_message)
 
 ## PRIVATE
    Reads an input Excel file according to the provided section.
@@ -184,8 +184,8 @@ validate validation ~error_message ~wrapped =
 read_excel : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_excel file section headers on_problems xls_format=False =
     reader stream = case section of
-        Sheet_Names -> Vector.Vector (ExcelReader.readSheetNames stream xls_format)
-        Range_Names -> Vector.Vector (ExcelReader.readRangeNames stream xls_format)
+        Sheet_Names -> Vector.Vector_Data (ExcelReader.readSheetNames stream xls_format)
+        Range_Names -> Vector.Vector_Data (ExcelReader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
             prepare_reader_table on_problems <| case sheet of
                 Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
@@ -229,11 +229,11 @@ write_excel file table on_existing_file section headers match_columns _ xls_form
 prepare_reader_table : Problem_Behavior -> Any -> Table
 prepare_reader_table on_problems result_with_problems =
     map_problem java_problem =
-        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames) else
-              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names (Vector.Vector java_problem.invalidNames) else
+        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names_Data (Vector.Vector_Data java_problem.duplicatedNames) else
+              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names_Data (Vector.Vector_Data java_problem.invalidNames) else
                 java_problem
-    parsing_problems = Vector.Vector (result_with_problems.problems) . map map_problem
-    on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
+    parsing_problems = Vector.Vector_Data (result_with_problems.problems) . map map_problem
+    on_problems.attach_problems_after (Table.Table_Data result_with_problems.value) parsing_problems
 
 ## PRIVATE
    Convert Boolean|Infer to the correct HeaderBehavior
@@ -260,7 +260,7 @@ handle_reader file reader =
     bad_format caught_panic = Error.throw (File.IO_Error file caught_panic.payload.cause.getMessage)
     handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
 
-    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+    bad_argument caught_panic = Error.throw (Invalid_Location_Data caught_panic.payload.cause.getCause)
     handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
 
     File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
@@ -270,17 +270,17 @@ handle_reader file reader =
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file
 handle_writer ~writer =
-    bad_location caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+    bad_location caught_panic = Error.throw (Invalid_Location_Data caught_panic.payload.cause.getCause)
     handle_bad_location = Panic.catch InvalidLocationException handler=bad_location
 
-    throw_range_exceeded caught_panic = Error.throw (Range_Exceeded caught_panic.payload.cause.getMessage)
+    throw_range_exceeded caught_panic = Error.throw (Range_Exceeded_Data caught_panic.payload.cause.getMessage)
     handle_range_exceeded = Panic.catch RangeExceededException handler=throw_range_exceeded
 
-    throw_existing_data caught_panic = Error.throw (Existing_Data caught_panic.payload.cause.getMessage)
+    throw_existing_data caught_panic = Error.throw (Existing_Data_Data caught_panic.payload.cause.getMessage)
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
     ## Should be impossible - occurs if no fallback serializer is provided.
-    throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error caught_panic.payload.cause.getMessage)
+    throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error_Data caught_panic.payload.cause.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
     handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|
