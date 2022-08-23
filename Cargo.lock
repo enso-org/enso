@@ -2847,6 +2847,7 @@ dependencies = [
  "enso-types",
  "ensogl-text-embedded-fonts",
  "ensogl-text-font-family",
+ "failure",
  "futures 0.3.21",
  "js-sys",
  "nalgebra 0.26.2",

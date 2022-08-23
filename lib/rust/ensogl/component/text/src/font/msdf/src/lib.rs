@@ -16,9 +16,11 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use crate::prelude::*;
 use binding::*;
 
 use emscripten_data::ArrayMemoryView;
+use enso_prelude::FallibleResult;
 use js_sys::Uint8Array;
 use std::future::Future;
 use std::pin::Pin;
@@ -37,6 +39,21 @@ pub use texture::*;
 pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_types::*;
+}
+
+
+
+// ==============
+// === Errors ===
+// ==============
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail, Eq, PartialEq)]
+pub enum SetVariationAxisError {
+    #[fail(display = "Invalid axis name: should fit in 4 bytes.")]
+    InvalidAxisName { name: String },
+    #[fail(display = "Msdfgen `setVariationAxis` operation was not successfull")]
+    LibraryError,
 }
 
 
@@ -122,6 +139,27 @@ impl OwnedFace {
 
         let handle = emscripten_call_function(function_name, return_type, param_types, params);
         OwnedFace { handle }
+    }
+
+    pub fn set_variation_axis(
+        &self,
+        name: &str,
+        coordinate: f64,
+    ) -> Result<(), SetVariationAxisError> {
+        let name_bytes = name.as_bytes();
+        if name_bytes.len() > 4 {
+            Err(SetVariationAxisError::InvalidAxisName { name: name.into() })
+        } else {
+            let name_number = ((name_bytes[0] as u32) << 24)
+                | ((name_bytes[1] as u32) << 16)
+                | ((name_bytes[2] as u32) << 8)
+                | (name_bytes[0] as u32);
+            if msdfgen_set_variation_axis(self.handle.clone(), name_number, coordinate) == 0 {
+                Err(SetVariationAxisError::LibraryError)
+            } else {
+                Ok(())
+            }
+        }
     }
 
     /// Mocked version of this struct. Used for testing purposes.
@@ -280,6 +318,20 @@ mod tests {
         assert_eq!(Vector2::new(3.03125, 1.0), msdf.translation);
         assert_eq!(Vector2::new(1.25, 1.25), msdf.scale);
         assert_eq!(19.265625, msdf.advance);
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn call_set_variation_axis() {
+        initialized().await;
+        let font_base = EmbeddedFonts::create_and_fill();
+        let font_name = DejaVuSans::regular();
+        let font = Font::load_from_memory(font_base.font_data_by_name.get(font_name).unwrap());
+        assert_eq!(
+            font.set_variation_axis("weight", 5.0),
+            Err(SetVariationAxisError::InvalidAxisName { name: "weight".into() })
+        );
+        // Deja vu does not support variation axes.
+        assert_eq!(font.set_variation_axis("wght", 5.0), Err(SetVariationAxisError::LibraryError));
     }
 
     /* Note [asserts]
