@@ -13,7 +13,7 @@ export Standard.Table.Data.Column
 export Standard.Table.IO.File_Read
 export Standard.Table.IO.File_Format
 
-from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Column_Error, Table, Table_Data
+from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Column_Error, No_Such_Column_Error_Data, Table, Table_Data
 
 ## ALIAS To Table
 

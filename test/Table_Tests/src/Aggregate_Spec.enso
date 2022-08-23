@@ -6,7 +6,7 @@ import Standard.Table.Data.Sort_Column
 import Standard.Table.Data.Sort_Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Errors as Error_Module import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
-from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error_Data
 
 import Standard.Test
 import Standard.Test.Problems
@@ -1163,7 +1163,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
                     materialized.columns.length . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
-                problems = [Unsupported_Database_Operation_Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation_Error "`Last` aggregation requires at least one `order_by` column."]
+                problems = [Unsupported_Database_Operation_Error_Data "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation_Error_Data "`Last` aggregation requires at least one `order_by` column."]
                 Problems.test_problem_handling action problems tester
 
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling pending) <|
@@ -1325,7 +1325,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
                 warnings = Warning.get_all result . map .value
                 warnings.length . should_equal error_count
                 warnings.each warning->
-                    warning.should_be_an Unsupported_Database_Operation_Error
+                    warning.should_be_an Unsupported_Database_Operation_Error_Data
 
             if test_selection.first_last_row_order.not then
                 Test.specify "with First and Last in row order" <|

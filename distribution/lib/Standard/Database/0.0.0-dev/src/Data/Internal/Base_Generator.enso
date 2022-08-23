@@ -51,7 +51,7 @@ make_binary_op name =
                 op = Sql.code " "+name+" "
                 (arguments.at 0)++op++(arguments.at 1) . paren
             False ->
-                Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name)
+                Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name)
 
 ## PRIVATE
 
@@ -66,7 +66,7 @@ make_unary_op name =
             True ->
                 (Sql.code name+" ")++(arguments.at 0) . paren
             False ->
-                Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name)
+                Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name)
 
 ## PRIVATE
 
@@ -80,7 +80,7 @@ make_unary_op name =
 lift_unary_op : Text -> (Sql.Builder -> Sql.Builder) -> [Text, (Vector Sql.Builder -> Sql.Builder)]
 lift_unary_op name function =
     generator = arguments -> case arguments.length == 1 of
-        False -> Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name + ".")
+        False -> Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name + ".")
         True -> function (arguments.at 0)
     [name, generator]
 
@@ -96,7 +96,7 @@ lift_unary_op name function =
 lift_binary_op : Text -> (Sql.Builder -> Sql.Builder -> Sql.Builder) -> [Text, (Vector Sql.Builder -> Sql.Builder)]
 lift_binary_op name function =
     generator = arguments -> case arguments.length == 2 of
-        False -> Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name + ".")
+        False -> Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name + ".")
         True -> function (arguments.at 0) (arguments.at 1)
     [name, generator]
 
@@ -136,7 +136,7 @@ make_function name =
 make_constant : Text -> Vector Sql.Builder -> Sql.Builder
 make_constant code =
     arguments ->
-        if arguments.not_empty then Error.throw <| Illegal_State_Error "No arguments were expected" else
+        if arguments.not_empty then Error.throw <| Illegal_State_Error_Data "No arguments were expected" else
             Sql.code code
 
 ## PRIVATE

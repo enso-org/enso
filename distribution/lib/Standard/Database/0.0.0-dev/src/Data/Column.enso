@@ -68,7 +68,7 @@ type Column
        Converts this column into a single-column table.
     to_table : Table.Table
     to_table self =
-        Table.Table self.name self.connection [self.as_internal] self.context
+        Table.Table_Data self.name self.connection [self.as_internal] self.context
 
     ## UNSTABLE
 
@@ -440,7 +440,7 @@ type Column
         True ->
             is_used_in_index = self.context.meta_index.exists i-> i.name == new_name
             case is_used_in_index of
-                True -> Error.throw <| Illegal_State_Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
+                True -> Error.throw <| Illegal_State_Error_Data "Cannot rename the column to "+new_name+", because it has an index with the same name."
                 False ->
                     Column_Data new_name self.connection self.sql_type self.expression self.context
 
@@ -510,7 +510,7 @@ type Column
 
     ## PRIVATE
     as_internal : IR.Internal_Column
-    as_internal self = IR.Internal_Column self.name self.sql_type self.expression
+    as_internal self = IR.Internal_Column_Data self.name self.sql_type self.expression
 
 type Aggregate_Column_Builder
 
@@ -630,7 +630,7 @@ lift_aggregate new_name connection expected_type expr context =
     # aggregate into a subquery, thus making it safe to use it everywhere. A
     # more complex solution may be adopted at some point.
     ixes = Table.freshen_columns [new_name] context.meta_index
-    col = IR.Internal_Column new_name expected_type expr
+    col = IR.Internal_Column_Data new_name expected_type expr
     setup = context.as_subquery new_name+"_sub" [[col], ixes]
     subquery = setup.first
     cols = setup.second

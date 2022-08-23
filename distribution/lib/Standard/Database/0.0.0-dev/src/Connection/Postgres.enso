@@ -52,7 +52,7 @@ type Postgres
                     Pair_Data Nothing Nothing ->
                         Pgpass.read self.host self.port self.database
                     Pair_Data Nothing _ ->
-                        Error.throw (Illegal_State_Error "PGPASSWORD is set, but PGUSER is not.")
+                        Error.throw (Illegal_State_Error_Data "PGPASSWORD is set, but PGUSER is not.")
                     Pair_Data username Nothing ->
                         Pgpass.read self.host self.port self.database username
                     Pair_Data username password ->

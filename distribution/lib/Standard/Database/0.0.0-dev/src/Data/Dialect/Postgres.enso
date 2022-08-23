@@ -150,7 +150,7 @@ first_last_aggregators =
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
 make_first_aggregator reverse ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
+    if args.length < 2 then Error.throw (Illegal_State_Error_Data "Insufficient number of arguments for the operation.") else
         result_expr = args.head
         order_bys = args.tail
 
