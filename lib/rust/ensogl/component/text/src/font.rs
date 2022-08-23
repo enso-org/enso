@@ -469,6 +469,7 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
                     // TODO: Switch from chars to GlyphIDs here.
                     let ch = *self.glyph_id_to_code_point.borrow().get(&glyph_id).unwrap();
                     // TODO: Use variations to generate variable-width glyphs.
+                    face.msdf.set_variation_axis("wght", 600.0).unwrap();
                     let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
                     if !self.cache.borrow().contains_key(variations) {
                         self.cache.borrow_mut().insert(variations.clone(), default());

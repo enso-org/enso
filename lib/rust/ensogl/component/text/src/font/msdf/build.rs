@@ -15,6 +15,7 @@ mod msdfgen_wasm {
         filename:    "msdfgen_wasm.js",
     };
 
+
     /// Downloads the msdfgen package.
     ///
     /// **Note**

@@ -153,7 +153,7 @@ impl OwnedFace {
             let name_number = ((name_bytes[0] as u32) << 24)
                 | ((name_bytes[1] as u32) << 16)
                 | ((name_bytes[2] as u32) << 8)
-                | (name_bytes[0] as u32);
+                | (name_bytes[3] as u32);
             if msdfgen_set_variation_axis(self.handle.clone(), name_number, coordinate) == 0 {
                 Err(SetVariationAxisError::LibraryError)
             } else {
@@ -283,7 +283,7 @@ impl Msdf {
 mod tests {
     use super::*;
 
-    use ensogl_text_embedded_fonts::EmbeddedFonts;
+    use ensogl_text_embedded_fonts::Embedded;
     use ensogl_text_embedded_fonts_names::DejaVuSans;
     use ensogl_text_embedded_fonts_names::FontFamily;
     use nalgebra::Vector2;
@@ -323,9 +323,9 @@ mod tests {
     #[wasm_bindgen_test(async)]
     async fn call_set_variation_axis() {
         initialized().await;
-        let font_base = EmbeddedFonts::create_and_fill();
+        let font_base = Embedded::init_and_load_embedded_fonts();
         let font_name = DejaVuSans::regular();
-        let font = Font::load_from_memory(font_base.font_data_by_name.get(font_name).unwrap());
+        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
         assert_eq!(
             font.set_variation_axis("weight", 5.0),
             Err(SetVariationAxisError::InvalidAxisName { name: "weight".into() })
