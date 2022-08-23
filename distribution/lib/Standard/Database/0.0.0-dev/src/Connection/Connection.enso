@@ -3,12 +3,15 @@ from Standard.Base import all
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Table as Database_Table
+
 import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.Data.Column_Name_Mapping
+import Standard.Table.Data.Column_Selector
 
 from Standard.Database.Data.Sql import Sql_Type, Sql_Type_Data
 from Standard.Database.Internal.JDBC_Connection import create_table_statement, handle_sql_errors
 from Standard.Database.Internal.Result_Set import read_column, result_set_to_table
-from Standard.Database.Error import Sql_Error
+from Standard.Database.Errors import Sql_Error
 
 polyglot java import java.lang.UnsupportedOperationException
 
@@ -71,8 +74,7 @@ type Connection
     ## Returns the name of the current schema.
     schema : Text
     schema self =
-        self.jdbc_connection.with_connection connection->
-            connection.getSchema
+        self.jdbc_connection.with_connection connection->connection.getSchema
 
     ## Returns a new Connection with the specified schema set as default.
 
@@ -88,6 +90,26 @@ type Connection
     table_types self =
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
+
+    ## Returns a materialised Table of all the matching views and tables.
+
+       Arguments:
+       - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+       - types: The table types to search for.
+       - all_fields: Return all the fields in the metadata table.
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
+    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+        types_array = if types.is_nothing then Nothing else types.to_array
+        name_map = Map.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
+        self.jdbc_connection.with_metadata metadata->
+            table = result_set_to_table <|
+                metadata.getTables database schema name_like types_array
+
+            renamed = table.rename_columns (Column_Name_Mapping.By_Name name_map)
+            if all_fields then renamed else
+                renamed.select_columns (Column_Selector.By_Name ["Database", "Schema", "Name", "Type", "Description"])
 
     ## ADVANCED
 

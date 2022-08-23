@@ -4,7 +4,7 @@ from Standard.Database.Data.Sql import Sql_Type, Statement
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
 
-from Standard.Database.Error import Sql_Error
+from Standard.Database.Errors import Sql_Error
 
 type SQLite_Connection
     ## PRIVATE
@@ -60,11 +60,23 @@ type SQLite_Connection
        Arguments:
         - schema: The name of the schema to connect to.
     set_schema : Text -> Connection ! Sql_Error
-    set_schema self schema = self.schema.set_schema schema
+    set_schema self schema = self.connection.set_schema schema
 
     ## Gets a list of the table types
     table_types : [Text]
     table_types self = self.connection.table_types
+
+    ## Returns a materialised Table of all the matching views and tables.
+
+       Arguments:
+       - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
+       - database: The database name to search in (default is current database).
+       - schema: The schema name to search in (defaults to current schema).
+       - types: The table types to search for.
+       - all_fields: Return all the fields in the metadata table.
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
+    tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
+        self.connection.tables name_like database schema types all_fields
 
     ## ADVANCED
 

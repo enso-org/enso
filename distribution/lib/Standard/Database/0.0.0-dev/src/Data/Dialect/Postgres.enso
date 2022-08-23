@@ -8,7 +8,7 @@ import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
 import Standard.Database.Data.Internal.IR
-from Standard.Database.Error import Unsupported_Database_Operation_Error
+from Standard.Database.Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE
 
