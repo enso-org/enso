@@ -511,9 +511,9 @@ pub struct GridViewTemplate<
 /// the [`EntryFrp::set_size`] event. It is up to the entry implementation to avoid loops between
 /// [`EntryFrp::set_size`] and [`EntryFrp::override_column_width`].
 ///
-/// **Important**: The current implementation has performance implications for large amounts of entries. A more
-/// effective implementation is possible and may be implemented using a specialized tree-like data
-/// structure.
+/// **Important**: The current implementation has performance implications for large amounts of
+/// entries. A more effective implementation is possible and may be implemented using a
+/// specialized tree-like data structure.
 /// See https://www.pivotaltracker.com/story/show/183046885 for more details.
 pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
 
