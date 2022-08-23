@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Table.Data.Column
 import Standard.Table.Data.Table
 import Standard.Visualization.Helpers
+from Standard.Base.Data.Index_Sub_Range import Sample
 
 ## PRIVATE
 
@@ -133,23 +134,63 @@ Table.Table.axes self =
 
 ## PRIVATE
 Vector.Vector.point_data : Vector -> Object
-Vector.Vector.point_data self =
-        self.map_with_index <| i-> elem->
-            Json.from_pairs [[X.name,i],[Y.name,elem]]
+Vector.Vector.point_data self  =
+    self.map_with_index <| i-> elem->
+        Json.from_pairs [[X.name,i],[Y.name,elem]]
 
 ## PRIVATE
-json_from_table : Table -> Json
-json_from_table table =
-    data = table.point_data
+bound_data bounds data = case bounds of
+    Nothing -> data
+    _ ->
+        min_x = bounds.at 0
+        min_y = bounds.at 1
+        max_x = bounds.at 2
+        max_y = bounds.at 3
+
+        data.filter <| datum->
+            x = datum.get "x" . unwrap
+            y = datum.get "y" . unwrap
+
+            min_x<=x && x<=max_x && min_y<=y && y<=max_y
+
+type Extreme min_x max_x min_y max_y
+
+## PRIVATE
+limit_data limit data = case limit of
+    Nothing -> data
+    _ -> if ((data.length <= limit) || (data.length == 0)) then data else
+        x datum = (datum.get "x").unwrap
+        y datum = (datum.get "y").unwrap
+
+        update_extreme current idx point =
+            new_min_x = if x current.min_x.second > x point then [idx, point] else current.min_x
+            new_min_y = if y current.min_y.second > y point then [idx, point] else current.min_y
+            new_max_x = if x current.max_x.second < x point then [idx, point] else current.max_x
+            new_max_y = if y current.max_y.second < y point then [idx, point] else current.max_y
+            Extreme new_min_x new_max_x new_min_y new_max_y
+
+        first = [0, data.first]
+        bounds = case data.fold_with_index (Extreme first first first first) update_extreme of
+            Extreme min_x max_x min_y max_y ->  [min_x, max_x, min_y, max_y]
+            _ -> []
+        extreme = Map.from_vector bounds . values
+
+        if limit <= extreme.length then extreme.take (First limit) else
+            extreme + data.take (Sample (limit - extreme.length))
+
+## PRIVATE
+json_from_table : Table -> [Int]|Nothing -> Int|Nothing -> Json
+json_from_table table bounds limit =
+    data = table.point_data |> bound_data bounds |> limit_data limit
     axes = table.axes
     Json.from_pairs <| [[data_field,data], [axis_field, axes]]
 
 ## PRIVATE
-json_from_vector : Vector Any -> Json
-json_from_vector vec =
-    data = [data_field, vec.point_data]
+json_from_vector : Vector Any -> [Int]|Nothing -> Int|Nothing -> Json
+json_from_vector vec bounds limit =
+    data = vec.point_data |> bound_data bounds |> limit_data limit
     axes = [axis_field, Nothing]
-    Json.from_pairs [data, axes]
+    Json.from_pairs <| [[data_field, data], axes]
 
 ## PRIVATE
 
@@ -160,12 +201,12 @@ json_from_vector vec =
    Arguments:
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value =
+process_to_json_text value bounds=Nothing limit=Nothing =
     json = case value of
-        Column.Column _ -> json_from_table  value.to_table
-        Table.Table _   -> json_from_table  value
-        Vector.Vector _ -> json_from_vector value
-        _               -> json_from_vector value.to_vector
+        Column.Column _ -> json_from_table  value.to_table bounds limit
+        Table.Table _   -> json_from_table  value bounds limit
+        Vector.Vector _ -> json_from_vector value bounds limit
+        _               -> json_from_vector value.to_vector bounds limit
 
     json.to_text
 
