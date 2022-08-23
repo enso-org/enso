@@ -18,10 +18,10 @@ polyglot java import org.enso.base.Time_Utils
      An hour interval between two points in time.
 
          import Standard.Base.Data.Time.Duration
-         import Standard.Base.Data.Time
+         import Standard.Base.Data.Time.Date_Time
 
-         example_between = Duration.between Time.now (Time.new 2010 10 20)
-between : Time -> Time -> Duration
+         example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
+between : Date_Time -> Date_Time -> Duration
 between start_inclusive end_exclusive timezone_aware=True =
     period = Java_Period.ofDays 0 . normalized
     duration = Time_Utils.duration_between start_inclusive end_exclusive timezone_aware

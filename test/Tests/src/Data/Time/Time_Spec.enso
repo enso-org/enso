@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time
+import Standard.Base.Data.Time.Date_Time
 import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Zone
 
@@ -11,7 +12,7 @@ polyglot java import java.time.LocalDateTime
 polyglot java import java.time.format.DateTimeFormatter
 
 spec =
-    specWith "Date_Time" Time.new Time.parse
+    specWith "Date_Time" Date_Time.new Date_Time.parse
     specWith "JavascriptDate" js_datetime js_parse nanoseconds_loss_in_precision=True
     specWith "JavaZonedDateTime" java_datetime java_parse
     specWith "JavascriptDataInArray" js_array_datetime js_parse nanoseconds_loss_in_precision=True
@@ -54,7 +55,7 @@ specWith name create_new_datetime parse_datetime nanoseconds_loss_in_precision=F
 
         Test.specify "should parse default time format" <|
             text = create_new_datetime 1970 (zone = Zone.utc) . to_text
-            time = Time.parse text
+            time = parse_datetime text
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -319,7 +320,7 @@ foreign js js_local_datetime_impl year month day hour minute second nanosecond =
     return new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000);
 
 js_parse text format=Nothing =
-    d = Time.parse text format
+    d = Date_Time.parse text format
     js_datetime d.year d.month d.day d.hour d.minute d.second d.nanosecond d.zone
 
 js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Zone.system =
