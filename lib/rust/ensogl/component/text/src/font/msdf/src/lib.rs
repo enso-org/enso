@@ -232,6 +232,28 @@ impl Msdf {
             params.edge_threshold,
             params.overlap_support,
         );
+        Self::msdf_from_generation_result_handle(handle, params)
+    }
+
+    /// Generate Mutlichannel Signed Distance Field (MSDF) for one glyph by its index in the font.
+    ///
+    /// For more information about MSDF see [https://github.com/Chlumsky/msdfgen].
+    pub fn generate_by_index(font: &OwnedFace, index: usize, params: &MsdfParameters) -> Msdf {
+        let handle = msdfgen_generate_msdf_by_index(
+            params.width,
+            params.height,
+            font.handle.clone(),
+            index,
+            params.edge_coloring_angle_threshold,
+            params.range,
+            params.max_scale,
+            params.edge_threshold,
+            params.overlap_support,
+        );
+        Self::msdf_from_generation_result_handle(handle, params)
+    }
+
+    fn msdf_from_generation_result_handle(handle: JsValue, params: &MsdfParameters) -> Msdf {
         let advance = msdfgen_result_get_advance(handle.clone());
         let translation = Self::translation(&handle);
         let scale = Self::scale(&handle);
@@ -284,8 +306,6 @@ mod tests {
     use super::*;
 
     use ensogl_text_embedded_fonts::Embedded;
-    use ensogl_text_embedded_fonts_names::DejaVuSans;
-    use ensogl_text_embedded_fonts_names::FontFamily;
     use nalgebra::Vector2;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -296,9 +316,9 @@ mod tests {
     async fn generate_msdf_for_capital_a() {
         initialized().await;
         // given
-        let font_base = EmbeddedFonts::create_and_fill();
-        let font_name = DejaVuSans::mono_bold();
-        let font = OwnedFace::load_from_memory(font_base.font_data_by_name.get(font_name).unwrap());
+        let font_base = Embedded::init_and_load_embedded_fonts();
+        let font_name = "DejaVuSansMono-Bold.ttf";
+        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
         let params = MsdfParameters {
             width: 32,
             height: 32,
@@ -321,10 +341,38 @@ mod tests {
     }
 
     #[wasm_bindgen_test(async)]
+    async fn generate_msdf_for_capital_a_by_index() {
+        initialized().await;
+        // given
+        let font_base = Embedded::init_and_load_embedded_fonts();
+        let font_name = "DejaVuSansMono-Bold.ttf";
+        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
+        let params = MsdfParameters {
+            width: 32,
+            height: 32,
+            edge_coloring_angle_threshold: 3.0,
+            range: 2.0,
+            max_scale: 2.0,
+            edge_threshold: 1.001,
+            overlap_support: true,
+        };
+        // when
+        let msdf = Msdf::generate_by_index(&font, 36, &params);
+        // then
+        let data: Vec<f32> = msdf.data.iter().collect();
+        assert_eq!(-0.9408906, data[0]); // Note [asserts]
+        assert_eq!(0.2, data[10]);
+        assert_eq!(-4.3035655, data[data.len() - 1]);
+        assert_eq!(Vector2::new(3.03125, 1.0), msdf.translation);
+        assert_eq!(Vector2::new(1.25, 1.25), msdf.scale);
+        assert_eq!(19.265625, msdf.advance);
+    }
+
+    #[wasm_bindgen_test(async)]
     async fn call_set_variation_axis() {
         initialized().await;
         let font_base = Embedded::init_and_load_embedded_fonts();
-        let font_name = DejaVuSans::regular();
+        let font_name = "DejaVuSans.ttf";
         let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
         assert_eq!(
             font.set_variation_axis("weight", 5.0),
