@@ -545,7 +545,7 @@ type Decimal
 
              4.736.ceil
     ceil : Integer
-    ceil self = @Builtin_Method "Integer.ceil"
+    ceil self = @Builtin_Method "Decimal.ceil"
 
     ## Compares the two operands to determine the ordering of this with
        respect to that.

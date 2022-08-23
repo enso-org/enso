@@ -767,7 +767,7 @@ type Column
 
              example_to_vector = Examples.integer_column.to_vector
     to_vector : Vector
-    to_vector self = Vector.Vector self.java_column.getStorage.toList
+    to_vector self = Vector.from_polyglot_array self.java_column.getStorage.toList
 
     ## Returns the underlying storage type of this column.
 
@@ -875,7 +875,7 @@ type Column
 
              example_sum = Examples.integer_column.sum
     sum : Any
-    sum self = self.java_column.aggregate 'sum' (x-> Vector.Vector x . reduce (+)) True
+    sum self = self.java_column.aggregate 'sum' (x-> Vector.from_polyglot_array x . reduce (+)) True
 
     ## ALIAS Max Columns
 
@@ -889,7 +889,7 @@ type Column
              example_max = Examples.integer_column.max
     max : Any
     max self =
-        self.java_column.aggregate 'max' (x-> Vector.Vector x . reduce Math.max) True
+        self.java_column.aggregate 'max' (x-> Vector.from_polyglot_array x . reduce Math.max) True
 
     ## ALIAS Min Columns
 
@@ -903,7 +903,7 @@ type Column
              example_min = Examples.integer_column.min
     min : Any
     min self =
-        self.java_column.aggregate 'min' (x-> Vector.Vector x . reduce Math.min) True
+        self.java_column.aggregate 'min' (x-> Vector.from_polyglot_array x . reduce Math.min) True
 
     ## ALIAS Mean Columns
 
@@ -918,7 +918,7 @@ type Column
     mean : Any
     mean self =
         vec_mean v = if v.length == 0 then Nothing else
-            (Vector.Vector v).reduce (+) / v.length
+            (Vector.from_polyglot_array v).reduce (+) / v.length
         self.java_column.aggregate 'mean' vec_mean True
 
     ## Computes the variance of the sample represented by this column.
@@ -1153,7 +1153,7 @@ type Aggregate_Column
                  Examples.aggregate_column.reduce .length . rename "transaction_count"
     reduce : (Vector.Vector -> Any) -> Boolean -> Text -> Column
     reduce self function skip_missing=True name_suffix="_result" =
-        f arr = function (Vector.Vector arr)
+        f arr = function (Vector.from_polyglot_array arr)
         r = self.java_column.aggregate Nothing name_suffix f skip_missing
         Column r
 
@@ -1172,7 +1172,7 @@ type Aggregate_Column
              example_sum = Examples.aggregate_column.sum . rename "id_sum"
     sum : Text -> Column
     sum self name_suffix='_sum' =
-        r = self.java_column.aggregate 'sum' name_suffix (x-> Vector.Vector x . reduce (+)) True
+        r = self.java_column.aggregate 'sum' name_suffix (x-> Vector.from_polyglot_array x . reduce (+)) True
         Column r
 
     ## Computes the maximum element of each group.
@@ -1189,7 +1189,7 @@ type Aggregate_Column
              example_max = Examples.aggregate_column.max . rename "latest_transaction"
     max : Text -> Column
     max self name_suffix='_max' =
-        r = self.java_column.aggregate 'max' name_suffix (x-> Vector.Vector x . reduce Math.max) True
+        r = self.java_column.aggregate 'max' name_suffix (x-> Vector.from_polyglot_array x . reduce Math.max) True
         Column r
 
     ## Computes the minimum element of each group.
@@ -1206,7 +1206,7 @@ type Aggregate_Column
              example_min = Examples.aggregate_column.min . rename "first_transaction"
     min : Text -> Column
     min self name_suffix='_min' =
-        r = self.java_column.aggregate 'min' name_suffix (x-> Vector.Vector x . reduce Math.min) True
+        r = self.java_column.aggregate 'min' name_suffix (x-> Vector.from_polyglot_array x . reduce Math.min) True
         Column r
 
     ## Computes the number of non-missing elements in each group.
@@ -1242,7 +1242,7 @@ type Aggregate_Column
     mean : Text -> Column
     mean self name_suffix='_mean' =
         vec_mean v = if v.length == 0 then Nothing else
-            (Vector.Vector v).reduce (+) / v.length
+            (Vector.from_polyglot_array v).reduce (+) / v.length
         r = self.java_column.aggregate 'mean' name_suffix vec_mean True
         Column r
 
@@ -1261,7 +1261,7 @@ type Aggregate_Column
              example_values = Examples.aggregate_column.values
     values : Text -> Column
     values self name_suffix='_values' =
-        r = self.java_column.aggregate Nothing name_suffix Vector.Vector False
+        r = self.java_column.aggregate Nothing name_suffix Vector.from_polyglot_array False
         Column r
 
     ## Prints an ASCII-art column with this data to the standard output.

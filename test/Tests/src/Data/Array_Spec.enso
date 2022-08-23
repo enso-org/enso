@@ -21,7 +21,7 @@ spec = Test.group "Arrays" <|
         arr = [1, 2, 3] . to_array
         arr.set_at 1 10
         arr.at 1 . should_equal 10
-        Vector.from_array arr . should_equal [1, 10, 3]
+        Vector.from_polyglot_array arr . should_equal [1, 10, 3]
 
     Test.specify "should panic on out of bounds access" <|
         arr = [1, 2, 3] . to_array

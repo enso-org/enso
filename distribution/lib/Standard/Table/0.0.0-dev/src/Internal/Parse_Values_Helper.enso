@@ -6,8 +6,8 @@ polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.LeadingZeros
 
 translate_parsing_problem expected_datatype problem =
-    invalid_format = [InvalidFormat, (java_problem-> Invalid_Format java_problem.column expected_datatype (Vector.Vector java_problem.cells))]
-    leading_zeros = [LeadingZeros, (java_problem-> Leading_Zeros java_problem.column expected_datatype (Vector.Vector java_problem.cells))]
+    invalid_format = [InvalidFormat, (java_problem-> Invalid_Format java_problem.column expected_datatype (Vector.from_polyglot_array java_problem.cells))]
+    leading_zeros = [LeadingZeros, (java_problem-> Leading_Zeros java_problem.column expected_datatype (Vector.from_polyglot_array java_problem.cells))]
 
     translations = [invalid_format, leading_zeros]
     found = translations.find t-> Java.is_instance problem t.first
