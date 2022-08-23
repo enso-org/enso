@@ -63,6 +63,7 @@ public class ClosureRootNode extends EnsoRootNode {
       String name,
       Boolean subjectToInstrumentation,
       boolean usedInBinding) {
+    localScope.buildFrameDescriptor();
     return new ClosureRootNode(
         language,
         localScope,
@@ -86,9 +87,9 @@ public class ClosureRootNode extends EnsoRootNode {
       com.oracle.truffle.api.TruffleSafepoint.poll(this);
     }
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    frame.setObject(this.getStateFrameSlot(), state);
+    frame.setObject(this.getStateFrameSlotIdx(), state);
     Object result = body.executeGeneric(frame);
-    state = FrameUtil.getObjectSafe(frame, this.getStateFrameSlot());
+    state = frame.getObject(this.getStateFrameSlotIdx());
     return new Stateful(state, result);
   }
 

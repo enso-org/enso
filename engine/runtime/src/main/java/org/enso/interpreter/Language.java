@@ -1,7 +1,6 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.debug.DebuggerTags;
@@ -166,7 +165,7 @@ public final class Language extends TruffleLanguage<Context> {
   @Override
   protected CallTarget parse(ParsingRequest request) {
     RootNode root = ProgramRootNode.build(this, request.getSource());
-    return Truffle.getRuntime().createCallTarget(root);
+    return root.getCallTarget();
   }
 
   /** {@inheritDoc} */
@@ -176,7 +175,7 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Returns the top scope of the requested contenxt.
+   * Returns the top scope of the requested context.
    *
    * @param context the context holding the top scope
    * @return the language's top scope

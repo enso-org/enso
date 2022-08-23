@@ -41,9 +41,9 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected long readLong(VirtualFrame frame) throws FrameSlotTypeException {
     if (getFramePointer().getParentLevel() == 0)
-      return frame.getLong(getFramePointer().getFrameSlot());
+      return frame.getLong(getFramePointer().getFrameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getLong(getFramePointer().getFrameSlot());
+    return currentFrame.getLong(getFramePointer().getFrameSlotIdx());
   }
 
   /**
@@ -57,17 +57,17 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected Object readGeneric(VirtualFrame frame) throws FrameSlotTypeException {
     if (getFramePointer().getParentLevel() == 0)
-      return frame.getObject(getFramePointer().getFrameSlot());
+      return frame.getObject(getFramePointer().getFrameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getObject(getFramePointer().getFrameSlot());
+    return currentFrame.getObject(getFramePointer().getFrameSlotIdx());
   }
 
   @Specialization
   protected Object readGenericValue(VirtualFrame frame) {
     if (getFramePointer().getParentLevel() == 0)
-      return frame.getValue(getFramePointer().getFrameSlot());
+      return frame.getValue(getFramePointer().getFrameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getValue(getFramePointer().getFrameSlot());
+    return currentFrame.getValue(getFramePointer().getFrameSlotIdx());
   }
 
   /**

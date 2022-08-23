@@ -3,7 +3,6 @@ package org.enso.interpreter.node;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 
@@ -28,19 +27,19 @@ public abstract class BaseNode extends Node {
   }
 
   private @CompilationFinal TailStatus tailStatus = TailStatus.NOT_TAIL;
-  private @CompilerDirectives.CompilationFinal FrameSlot stateFrameSlot;
+  private @CompilationFinal int stateFrameSlotIdx = -1;
 
   /**
    * Obtains the frame slot containing state variable for this node.
    *
    * @return The frame slot for state variable
    */
-  protected FrameSlot getStateFrameSlot() {
-    if (stateFrameSlot == null) {
+  protected int getStateFrameSlotIdx() {
+    if (stateFrameSlotIdx == -1) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      stateFrameSlot = ((EnsoRootNode) getRootNode()).getStateFrameSlot();
+      stateFrameSlotIdx = ((EnsoRootNode) getRootNode()).getStateFrameSlotIdx();
     }
-    return stateFrameSlot;
+    return stateFrameSlotIdx;
   }
 
   /**

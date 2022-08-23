@@ -165,7 +165,7 @@ public final class AtomConstructor implements TruffleObject {
             definitionScope.getModule().getName().item() + "." + name,
             null,
             false);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+    RootCallTarget callTarget = rootNode.getCallTarget();
     return new Function(callTarget, null, new FunctionSchema(args));
   }
 
@@ -178,7 +178,7 @@ public final class AtomConstructor implements TruffleObject {
 
   private void generateQualifiedAccessor() {
     QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    RootCallTarget callTarget = node.getCallTarget();
     Function function =
         new Function(
             callTarget,
@@ -190,7 +190,7 @@ public final class AtomConstructor implements TruffleObject {
 
   private Function generateGetter(int position) {
     GetFieldNode node = new GetFieldNode(null, position);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    RootCallTarget callTarget = node.getCallTarget();
     return new Function(
         callTarget,
         null,

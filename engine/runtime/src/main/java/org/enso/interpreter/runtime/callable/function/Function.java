@@ -90,7 +90,7 @@ public final class Function implements TruffleObject {
    * @return a Function object with specified behavior and arguments
    */
   public static Function fromBuiltinRootNode(BuiltinRootNode node, ArgumentDefinition... args) {
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    RootCallTarget callTarget = node.getCallTarget();
     FunctionSchema schema = new FunctionSchema(args);
     return new Function(callTarget, null, schema);
   }
@@ -107,7 +107,7 @@ public final class Function implements TruffleObject {
    */
   public static Function fromBuiltinRootNodeWithCallerFrameAccess(
       BuiltinRootNode node, ArgumentDefinition... args) {
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    RootCallTarget callTarget = node.getCallTarget();
     FunctionSchema schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, args);
     return new Function(callTarget, null, schema);
   }

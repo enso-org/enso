@@ -86,7 +86,7 @@ public abstract class CaseNode extends ExpressionNode {
       guards = {"!isDataflowError(object)", "!isPanicSentinel(object)", "!isWarning(object)"})
   @ExplodeLoop
   public Object doMatch(VirtualFrame frame, Object object) {
-    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+    Object state = frame.getObject(getStateFrameSlotIdx());
     try {
       for (BranchNode branchNode : cases) {
         branchNode.execute(frame, state, object);
@@ -96,7 +96,7 @@ public abstract class CaseNode extends ExpressionNode {
           Context.get(this).getBuiltins().error().makeInexhaustivePatternMatchError(object), this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
-      frame.setObject(getStateFrameSlot(), e.getResult().getState());
+      frame.setObject(getStateFrameSlotIdx(), e.getResult().getState());
       return e.getResult().getValue();
     }
   }

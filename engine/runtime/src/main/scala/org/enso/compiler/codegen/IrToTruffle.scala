@@ -1,7 +1,5 @@
 package org.enso.compiler.codegen
 
-import com.oracle.truffle.api.Truffle
-import com.oracle.truffle.api.frame.FrameSlot
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
@@ -221,12 +219,12 @@ class IrToTruffle(
               "No occurrence on an argument definition."
             )
             .unsafeAs[AliasAnalysis.Info.Occurrence]
-          val slot = localScope.createVarSlot(occInfo.id)
+          val slotIdx = localScope.createVarSlotIdx(occInfo.id)
           argDefs(idx) = arg
           val readArg =
             ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-          val assignmentArg = AssignmentNode.build(readArg, slot)
-          val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slot))
+          val assignmentArg = AssignmentNode.build(readArg, slotIdx)
+          val argRead       = ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
           argumentExpressions.append((assignmentArg, argRead))
         }
 
@@ -326,12 +324,12 @@ class IrToTruffle(
               language,
               expressionProcessor.scope,
               moduleScope,
-              () => bodyBuilder.bodyNode(),
+              bodyBuilder.bodyNode(),
               makeSection(moduleScope, methodDef.location),
               cons,
               methodDef.methodName.name
             )
-            val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+            val callTarget = rootNode.getCallTarget
             val arguments  = bodyBuilder.args()
             Right(
               Some(
@@ -403,12 +401,12 @@ class IrToTruffle(
               language,
               expressionProcessor.scope,
               moduleScope,
-              () => bodyBuilder.bodyNode(),
+              bodyBuilder.bodyNode(),
               makeSection(moduleScope, methodDef.location),
               toType,
               methodDef.methodName.name
             )
-            val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+            val callTarget = rootNode.getCallTarget
             val arguments  = bodyBuilder.args()
             new RuntimeFunction(
               callTarget,
@@ -529,9 +527,8 @@ class IrToTruffle(
   private def generateEnsoProjectMethod(): Unit = {
     val name = BindingsMap.Generated.ensoProjectMethodName
     val pkg  = context.getPackageOf(moduleScope.getModule.getSourceFile)
-    val body = Truffle.getRuntime.createCallTarget(
-      new EnsoProjectNode(language, context, pkg)
-    )
+    val ensoProjectNode = new EnsoProjectNode(language, context, pkg)
+    val body = ensoProjectNode.getCallTarget
     val schema = new FunctionSchema(
       new ArgumentDefinition(
         0,
@@ -546,9 +543,7 @@ class IrToTruffle(
   private def generateReExportBindings(module: IR.Module): Unit = {
     def mkConsGetter(constructor: AtomConstructor): RuntimeFunction = {
       new RuntimeFunction(
-        Truffle.getRuntime.createCallTarget(
-          new QualifiedAccessorNode(language, constructor)
-        ),
+        new QualifiedAccessorNode(language, constructor).getCallTarget,
         null,
         new FunctionSchema(
           new ArgumentDefinition(
@@ -736,7 +731,7 @@ class IrToTruffle(
           false
         )
 
-        val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
+        val callTarget = defaultRootNode.getCallTarget
         setLocation(CreateThunkNode.build(callTarget), block.location)
       } else {
         val statementExprs = block.expressions.map(this.run).toArray
@@ -1047,7 +1042,7 @@ class IrToTruffle(
 
       currentVarName = binding.name.name
 
-      val slot = scope.createVarSlot(occInfo.id)
+      val slot = scope.createVarSlotIdx(occInfo.id)
 
       setLocation(
         AssignmentNode.build(this.run(binding.expression, true), slot),
@@ -1290,7 +1285,7 @@ class IrToTruffle(
       def bodyNode(): BlockNode             = bodyN
 
       private def computeBodyNode(): BlockNode = {
-        val (argSlots, _, argExpressions) = slots
+        val (argSlotIdxs, _, argExpressions) = slots
 
         val bodyExpr = body match {
           case IR.Foreign.Definition(lang, code, _, _, _) =>
@@ -1298,7 +1293,7 @@ class IrToTruffle(
               lang,
               code,
               arguments.map(_.name.name),
-              argSlots
+              argSlotIdxs
             )
           case _ => ExpressionProcessor.this.run(body)
         }
@@ -1306,7 +1301,7 @@ class IrToTruffle(
       }
 
       private def computeSlots(): (
-        List[FrameSlot],
+        List[Int],
         Array[ArgumentDefinition],
         ArrayBuffer[RuntimeExpression]
       ) = {
@@ -1326,10 +1321,10 @@ class IrToTruffle(
               )
               .unsafeAs[AliasAnalysis.Info.Occurrence]
 
-            val slot = scope.createVarSlot(occInfo.id)
+            val slotIdx = scope.createVarSlotIdx(occInfo.id)
             val readArg =
               ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-            val assignArg = AssignmentNode.build(readArg, slot)
+            val assignArg = AssignmentNode.build(readArg, slotIdx)
 
             argExpressions.append(assignArg)
 
@@ -1340,7 +1335,7 @@ class IrToTruffle(
                 s"A duplicate argument name, $argName, was found during codegen."
               )
             } else seenArgNames.add(argName)
-            slot
+            slotIdx
         }
         (argSlots, argDefinitions, argExpressions)
       }
@@ -1350,13 +1345,13 @@ class IrToTruffle(
       language: EpbParser.ForeignLanguage,
       code: String,
       argumentNames: List[String],
-      argumentSlots: List[FrameSlot]
+      argumentSlotIdxs: List[Int]
     ): RuntimeExpression = {
       val src = EpbParser.buildSource(language, code, scopeName)
       val foreignCt = context.getEnvironment
         .parseInternal(src, argumentNames: _*)
-      val argumentReaders = argumentSlots
-        .map(slot => ReadLocalVariableNode.build(new FramePointer(0, slot)))
+      val argumentReaders = argumentSlotIdxs
+        .map(slotIdx => ReadLocalVariableNode.build(new FramePointer(0, slotIdx)))
         .toArray[RuntimeExpression]
       ForeignMethodCallNode.build(argumentReaders, foreignCt)
     }
@@ -1386,7 +1381,7 @@ class IrToTruffle(
         false,
         binding
       )
-      val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
+      val callTarget = fnRootNode.getCallTarget
 
       val expr = CreateFunctionNode.build(callTarget, bodyBuilder.args())
 
@@ -1563,18 +1558,17 @@ class IrToTruffle(
               .map(loc => source.createSection(loc.start, loc.length))
               .orNull
 
-            val callTarget = Truffle.getRuntime.createCallTarget(
-              ClosureRootNode.build(
-                language,
-                childScope,
-                moduleScope,
-                argumentExpression,
-                section,
-                displayName,
-                true,
-                false
-              )
+            val closureRootNode = ClosureRootNode.build(
+              language,
+              childScope,
+              moduleScope,
+              argumentExpression,
+              section,
+              displayName,
+              true,
+              false
             )
+            val callTarget = closureRootNode.getCallTarget
 
             CreateThunkNode.build(callTarget)
           }
@@ -1654,7 +1648,7 @@ class IrToTruffle(
             )
 
             CreateThunkNode.build(
-              Truffle.getRuntime.createCallTarget(defaultRootNode)
+              defaultRootNode.getCallTarget
             )
           } else {
             defaultExpression

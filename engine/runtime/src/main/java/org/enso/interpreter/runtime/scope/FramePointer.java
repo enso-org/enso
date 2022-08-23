@@ -1,23 +1,21 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.frame.FrameSlot;
-
 /**
  * A representation of a pointer into a stack frame at a given number of levels above the current.
  */
 public class FramePointer {
   private final int parentLevel;
-  private final FrameSlot frameSlot;
+  private final int frameSlotIdx;
 
   /**
    * A representation of a frame slot at a given level above the current frame.
    *
    * @param parentLevel the number of parents to move from the current frame to get here
-   * @param frameSlot the slot in the n-th parent frame
+   * @param frameSlotIdx the index of the slot in the n-th parent frame
    */
-  public FramePointer(int parentLevel, FrameSlot frameSlot) {
+  public FramePointer(int parentLevel, int frameSlotIdx) {
     this.parentLevel = parentLevel;
-    this.frameSlot = frameSlot;
+    this.frameSlotIdx = frameSlotIdx;
   }
 
   /**
@@ -30,11 +28,11 @@ public class FramePointer {
   }
 
   /**
-   * Gets the frame slot.
+   * Gets the index of the frame slot.
    *
-   * @return the frame slot represented by this {@code FramePointer}
+   * @return the frame slot index represented by this {@code FramePointer}
    */
-  public FrameSlot getFrameSlot() {
-    return frameSlot;
+  public int getFrameSlotIdx() {
+    return frameSlotIdx;
   }
 }
