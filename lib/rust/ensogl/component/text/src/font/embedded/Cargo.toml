@@ -13,6 +13,6 @@ enso-prelude = { path = "../../../../../../prelude" }
 ensogl-text-font-family = { path = "../../font/family" }
 
 [build-dependencies]
-enso-build-utilities = { path = "../../../../../../build-utils" }
+enso-build-utilities = { path = "../../../../../../../../build/build-utils" }
 ensogl-text-font-family = { path = "../../font/family" }
 zip = { version = "0.5" }

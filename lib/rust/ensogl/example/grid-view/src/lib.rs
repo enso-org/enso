@@ -30,7 +30,7 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_grid_view as grid_view;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text_msdf_sys::run_once_initialized;
+use ensogl_text_msdf::run_once_initialized;
 
 
 

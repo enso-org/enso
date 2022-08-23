@@ -62,7 +62,7 @@ impl Default for EntryParams {
         Self {
             bg_color:    color::Rgba::transparent(),
             bg_margin:   0.0,
-            font:        text::font::font::DEFAULT_FONT.into(),
+            font:        text::font::DEFAULT_FONT.into(),
             text_offset: 7.0,
             text_size:   text::Size(14.0),
             text_color:  default(),

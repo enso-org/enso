@@ -578,7 +578,7 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn empty_font_render_info() {
-        ensogl_text_msdf_sys::initialized().await;
+        ensogl_text_msdf::initialized().await;
         let font_render_info = create_test_font();
 
         assert_eq!(TEST_FONT_NAME, font_render_info.name);
@@ -588,7 +588,7 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn loading_glyph_info() {
-        ensogl_text_msdf_sys::initialized().await;
+        ensogl_text_msdf::initialized().await;
         let font_render_info = create_test_font();
 
         font_render_info.glyph_info('A');
@@ -616,7 +616,7 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn getting_or_creating_char() {
-        ensogl_text_msdf_sys::initialized().await;
+        ensogl_text_msdf::initialized().await;
         let font_render_info = create_test_font();
 
         {

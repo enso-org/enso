@@ -146,7 +146,7 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn moving_pen() {
-        ensogl_text_msdf_sys::initialized().await;
+        ensogl_text_msdf::initialized().await;
         let font = Font::mock("Test font");
         mock_a_glyph_info(font.clone_ref());
         mock_w_glyph_info(font.clone_ref());
