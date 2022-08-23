@@ -273,8 +273,7 @@ public class ExecutionService {
         (function instanceof Function) ? ((Function) function).getCallTarget() : null;
     MethodCallsCache methodCallsCache = new MethodCallsCache();
     UpdatesSynchronizationState syncState = new UpdatesSynchronizationState();
-    Consumer<IdExecutionService.ExpressionCall> funCallCallback =
-        (value) -> {};
+    Consumer<IdExecutionService.ExpressionCall> funCallCallback = (value) -> {};
     Consumer<IdExecutionService.ExpressionValue> onComputedCallback =
         (value) -> context.getLogger().finest("_ON_COMPUTED " + value.getExpressionId());
     Consumer<IdExecutionService.ExpressionValue> onCachedCallback =
