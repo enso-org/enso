@@ -68,7 +68,7 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
         }
     }
 
-    /// Calculate the layouting of the groups. See struct documentation for more information.
+    /// Calculate the layout of the groups. See struct documentation for more information.
     pub fn arrange(mut self) -> [Vec<Group>; COLUMNS] {
         let mut max_height = self.push_next_group_to(CENTER, None);
         while self.iter.peek().is_some() {
@@ -84,6 +84,9 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
         self.columns
     }
 
+    /// Calculate the layout of the groups, and return it as a [`Layout`] structure.
+    ///
+    /// See struct documentation for more information.
     pub fn create_layout(self, local_scope_entry_count: usize) -> Layout {
         let arranged_groups = self.arrange();
         Layout::create_from_arranged_groups(arranged_groups, local_scope_entry_count)
