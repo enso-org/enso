@@ -113,7 +113,7 @@ struct ConnectedEntryGuard {
 }
 
 impl ConnectedEntryGuard {
-    /// Create guard for entry FRP at given location.  
+    /// Create guard for entry FRP at given location.
     fn new_for_entry<EntryParams: frp::node::Data>(
         entry_frp: EntryEndpoints,
         row: Row,
@@ -347,9 +347,10 @@ impl<E: Entry> Handler<E, E::Model, E::Params> {
             eval should_reconnect ((loc) model.connect_new_highlighted_entry(*loc));
 
             became_highlighted <- frp.entry_highlighted.filter_map(|l| *l);
+            let column_widths = model.grid.model().column_widths.clone_ref();
             out.position <+ became_highlighted.all_with(
                 &grid_frp.entries_size,
-                |&(row, col), &es| entry_position(row, col, es)
+                move |&(row, col), &es| entry_position(row, col, es, &column_widths)
             );
             none_highlightd <- frp.entry_highlighted.filter(|opt| opt.is_none()).constant(());
             out.contour <+ none_highlightd.constant(default());
