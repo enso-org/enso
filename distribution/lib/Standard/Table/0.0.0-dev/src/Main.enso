@@ -49,7 +49,7 @@ from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Colu
              headers = Examples.simple_table_json_headers
              json.to_table headers
 Json.Json.to_table : Vector -> Table
-Json.Json.to_table self fields = case self of
+Json.Json.to_table self fields=Nothing = case self of
     Json.Array items ->
         rows = items.map item-> case item of
             Json.Object fs ->
@@ -60,7 +60,7 @@ Json.Json.to_table self fields = case self of
             [n, rows.map (_.at i)]
         Table.new cols
     Json.Object _ ->
-        if self.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error self "not being a feature collection") else
+        if self.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error_Data self "not being a feature collection") else
             case self.get "features" of
                 Json.Array items ->
                     feature_rows = items.map .get_feature_row
@@ -77,13 +77,14 @@ Json.Json.to_table self fields = case self of
                         [n, rows.map (_.at i)]
                     Table.new cols
 
-                _ -> Error.throw (Invalid_Format_Error self "not having the 'features' key.")
+                _ -> Error.throw (Invalid_Format_Error_Data self "not having the 'features' key.")
 
 
 ## UNSTABLE
 
    An error representing an invalid format for conversion.
-type Invalid_Format_Error input message
+type Invalid_Format_Error
+    Invalid_Format_Error_Data input message
 
 ## UNSTABLE
 

@@ -18,7 +18,7 @@ from Standard.Database.Data.Column import Column, Aggregate_Column_Builder
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Table import No_Such_Column_Error
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
+from Standard.Base.Data.Text.Text_Ordering import Text_Ordering_Data
 from Standard.Table.Data.Data_Formatter import Data_Formatter
 from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
 from Standard.Database.Error import Unsupported_Database_Operation_Error
@@ -266,14 +266,14 @@ type Table
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
+             table.sort_columns text_ordering=(Text_Ordering_Data sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
 
        > Example
          Sort columns in descending order.
 
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> Table
-    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
+    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering_Data =
         new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns direction text_ordering
         self.updated_columns new_columns
 
@@ -506,7 +506,7 @@ type Table
 
              table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
+    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering_Data on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|

@@ -152,7 +152,7 @@ type Sql_Type
        match more possible types.
     is_likely_text : Boolean
     is_likely_text self =
-       self.is_definitely_text || self.name.contains "text" (Text_Matcher Case_Insensitive)
+       self.is_definitely_text || self.name.contains "text" (Text_Matcher_Data Case_Insensitive_Data)
 
 
 ## UNSTABLE
