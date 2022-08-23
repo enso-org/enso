@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time
+
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 polyglot java import org.enso.base.Time_Utils
@@ -96,7 +98,9 @@ new (hours = 0) (minutes = 0) (seconds = 0) =
 
          example_parse = Zone.parse "+03:02:01"
 parse : Text -> Zone
-parse text = @Builtin_Method "Zone.parse"
+parse text =
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time.Time_Error java_exception.getMessage)) <|
+        Zone.parse_builtin text
 
 type Zone
 

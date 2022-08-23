@@ -19,6 +19,8 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
+import java.time.zone.ZoneRulesException;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
@@ -35,8 +37,9 @@ public class EnsoZone implements TruffleObject {
     return Text.create(this.zone.getId());
   }
 
-  @Builtin.Method(description = "Parse the ID producing EnsoZone.")
+  @Builtin.Method(name="parse_builtin", description = "Parse the ID producing EnsoZone.")
   @Builtin.Specialize
+  @Builtin.WrapException(from = ZoneRulesException.class, to = PolyglotError.class, propagate = true)
   public static EnsoZone parse(String text) {
     return new EnsoZone(ZoneId.of(text));
   }

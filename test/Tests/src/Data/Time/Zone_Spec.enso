@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Zone
 
 import Standard.Test
@@ -32,6 +33,12 @@ spec =
                 Json.from_pairs [["type", "Zone"], ["id", "+01:02:03"]]
             Zone.utc.to_json.should_equal <|
                 Json.from_pairs [["type", "Zone"], ["id", "UTC"]]
+        Test.specify "should throw error when parsing invalid zone id" <|
+            case Zone.parse "foo" . catch of
+                Time.Time_Error msg ->
+                    msg . should_equal "Unknown time-zone ID: foo"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
     Test.group "JavaZoneId" <|
         Test.specify "should get system zone id" <|
             defaultZone = ZoneId.systemDefault
