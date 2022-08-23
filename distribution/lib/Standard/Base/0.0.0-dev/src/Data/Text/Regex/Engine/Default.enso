@@ -477,7 +477,7 @@ type Pattern
                 Mode_Error "Splitting on a bounded region is not well-defined."
 
         splits = self.internal_pattern.split input limit
-        Vector.Vector splits
+        Vector.from_polyglot_array splits
 
     ## ADVANCED
 
@@ -683,7 +683,7 @@ type Match
                  matcg.named_groups default="UNMATCHED"
     named_groups : (a : Any) -> Map Text (Text | a)
     named_groups self default=Nothing =
-        group_names = Vector.Vector <|
+        group_names = Vector.from_polyglot_array <|
             Regex_Utils.get_group_names self.internal_match.pattern
         pairs = group_names.map name->
             value = case self.group name of

@@ -153,7 +153,7 @@ type Table
              example_display = Examples.inventory_table.display
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        cols = Vector.Vector self.java_table.getColumns
+        cols = Vector.from_polyglot_array self.java_table.getColumns
         index =  self.java_table.getIndex
         col_names = [index.getName] + cols.map .getName
         col_vals = cols.map .getStorage
@@ -710,7 +710,7 @@ type Table
                 storage = column.java_column.getStorage
                 new_storage_and_problems = parser.parseColumn column.name storage
                 new_storage = new_storage_and_problems.value
-                problems = Vector.Vector new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
+                problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
                 problems.each problem_builder.append
                 Column.Column (Java_Column.new column.name column.java_column.getIndex new_storage)
 
@@ -782,7 +782,7 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns self = Vector.Vector self.java_table.getColumns . map Column.Column
+    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column
 
     ## Sets the index of this table, using the column with the provided name.
 

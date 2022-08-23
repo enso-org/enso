@@ -28,7 +28,7 @@ type Response
              example_headers = Examples.get_response.headers
     headers : Vector.Vector
     headers self =
-        header_entries = Vector.Vector (Http_Utils.get_headers self.internal_http_response.headers)
+        header_entries = Vector.from_polyglot_array (Http_Utils.get_headers self.internal_http_response.headers)
         header_entries.map e-> Header.new e.getKey e.getValue
 
     ## Get the response body.
@@ -41,7 +41,7 @@ type Response
 
              example_body = Examples.get_response.body
     body : Response_Body
-    body self = Response_Body.Body (Vector.Vector self.internal_http_response.body)
+    body self = Response_Body.Body (Vector.from_polyglot_array self.internal_http_response.body)
 
     ## Get the response status code.
 

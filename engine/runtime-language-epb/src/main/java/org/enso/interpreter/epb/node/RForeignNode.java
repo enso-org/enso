@@ -11,13 +11,15 @@ import com.oracle.truffle.api.library.CachedLibrary;
 @NodeField(name = "foreignFunction", type = Object.class)
 public abstract class RForeignNode extends ForeignFunctionCallNode {
 
+  private @Child CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
+
   abstract Object getForeignFunction();
 
   @Specialization
   public Object doExecute(
       Object[] arguments, @CachedLibrary("foreignFunction") InteropLibrary interopLibrary) {
     try {
-      return interopLibrary.execute(getForeignFunction(), arguments);
+      return coercePrimitiveNode.execute(interopLibrary.execute(getForeignFunction(), arguments));
     } catch (UnsupportedMessageException | UnsupportedTypeException | ArityException e) {
       throw new IllegalStateException("R parser returned a malformed object", e);
     }
