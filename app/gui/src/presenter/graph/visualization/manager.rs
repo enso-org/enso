@@ -326,25 +326,20 @@ impl Manager {
     }
 
     fn prepare_visualization(&self, desired: Desired) -> FallibleResult<Visualization> {
-        let context_module = desired.metadata.preprocessor.module;
+        let preprocessor_module = desired.metadata.preprocessor.module;
         let preprocessor_method = desired.metadata.preprocessor.method;
         let method_pointer = QualifiedMethodPointer::from_unqualified(
-            &context_module,
-            &context_module,
+            &preprocessor_module,
+            &preprocessor_module,
             &preprocessor_method,
         )?;
+        let arguments =
+            desired.metadata.preprocessor.arguments.deref().into_iter().map_into().collect();
         Ok(Visualization {
             id: desired.visualization_id,
             expression_id: desired.expression_id,
             method_pointer,
-            arguments: desired
-                .metadata
-                .preprocessor
-                .arguments
-                .deref()
-                .into_iter()
-                .map_into()
-                .collect(),
+            arguments,
         })
     }
 
