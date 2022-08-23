@@ -31,7 +31,7 @@ public class DateTimeFormatter implements DataFormatter {
     }
 
     if (value instanceof ZonedDateTime date) {
-      return date.toLocalDateTime().format(formatter);
+      return date.format(formatter);
     }
 
     throw new IllegalArgumentException("Unsupported type for DateTimeFormatter.");
