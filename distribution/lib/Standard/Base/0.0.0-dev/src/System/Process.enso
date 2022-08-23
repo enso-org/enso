@@ -3,8 +3,6 @@ import Standard.Base.System
 
 import Standard.Base.System.Process.Exit_Code
 
-from Standard.Base.Data.Vector import Vector
-
 ## ALIAS Run a Command
    UNSTABLE
 

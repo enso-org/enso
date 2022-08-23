@@ -43,8 +43,8 @@ use ide_view_graph_editor::NodeSource;
 pub struct SearcherParams {
     /// The node being an Expression Input.
     pub input:       NodeId,
-    /// The node being a source for the edited node data - usually it's output shall be a this port
-    /// for inserted expression.
+    /// The node being a source for the edited node data - usually it's output shall be a `this`
+    /// port for inserted expression.
     pub source_node: Option<NodeSource>,
 }
 

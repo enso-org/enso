@@ -1,6 +1,6 @@
 from Standard.Base import all
-from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
-from Standard.Base.Data.Text.Span as Span_Module import Span
+from Standard.Base.Error.Common import Index_Out_Of_Bounds_Error
+from Standard.Base.Data.Text.Span import Span, range_to_char_indices
 from Standard.Base.Data.Index_Sub_Range import First, Last, While, By_Index, Sample, Every
 import Standard.Base.Random
 
@@ -158,7 +158,7 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Erro
             true_range = normalize_range descriptor len
             if descriptor.is_empty then Range 0 0 else
                 case true_range.step == 1 of
-                    True -> Span_Module.range_to_char_indices text true_range
+                    True -> range_to_char_indices text true_range
                     False ->
                         ranges = Vector.new_builder
                         if true_range.step <= 0 then panic_on_non_positive_step

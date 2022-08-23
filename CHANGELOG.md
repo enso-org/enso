@@ -52,11 +52,13 @@
   "executionContext/visualisationEvaluationFailed"][3193]
 - [New Version of the Node Searcher - the Component Browser][3530] The available
   methods, atoms and functions are presented in nice, categorized view. The most
-  popular tools are available at hand. The The panel is unstable, and thus is
+  popular tools are available at hand. The panel is unstable, and thus is
   available under the `--enable-new-component-browser` flag.
 - [Fixed error handling during startup.][3648] This prevents entering IDE into a
   "zombie" state, where processes were started but not visible to user. They
   could cause issues with starting further IDE instances.
+- [New nodes are created in the project source when the searcher is opened  
+  and a new node is created.][5250]
 
 #### EnsoGL (rendering engine)
 
@@ -177,6 +179,8 @@
 - [Updated `Vector.take` and `Vector.drop` and removed their obsolete
   counterparts.][3629]
 - [Short-hand syntax for `order_by` added.][3643]
+- [Expanded `Table.at` to support index access and added `Table.column_count`
+  method.][3644]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -278,7 +282,9 @@
 [3617]: https://github.com/enso-org/enso/pull/3617
 [3629]: https://github.com/enso-org/enso/pull/3629
 [3643]: https://github.com/enso-org/enso/pull/3643
+[3644]: https://github.com/enso-org/enso/pull/3644
 [3648]: https://github.com/enso-org/enso/pull/3648
+[5250]: https://github.com/enso-org/enso/pull/5250
 
 #### Enso Compiler
 

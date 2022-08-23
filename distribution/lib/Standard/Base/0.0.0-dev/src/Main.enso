@@ -22,7 +22,6 @@ import project.Data.Text
 import project.Data.Text.Encoding
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
-import project.Data.Text.Matching_Mode
 import project.Data.Text.Text_Ordering
 import project.Data.Text.Span
 import project.Data.Time.Date
@@ -42,6 +41,7 @@ import project.Runtime.State
 import project.System.Environment
 import project.System.File
 import project.System.File.Existing_File_Behavior
+import project.Data.Text.Regex
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
 
@@ -51,13 +51,14 @@ export project.Data.Locale
 export project.Data.Map
 export project.Data.Maybe
 export project.Data.Ordering
+
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Sort_Direction
 export project.Data.Regression
 export project.Data.Statistics
 export project.Data.Statistics.Rank_Method
+export project.Data.Text.Regex
 export project.Data.Text.Regex.Mode as Regex_Mode
-export project.Data.Text.Matching_Mode
 export project.Data.Time.Date
 export project.Data.Vector
 export project.Error.Problem_Behavior
@@ -87,7 +88,7 @@ from project.Data.Range export all
    Relevant issues:
    https://www.pivotaltracker.com/story/show/181403340
    https://www.pivotaltracker.com/story/show/181309938
-from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location
+from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location, Matching_Mode
 from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher, No_Matches_Found
 from project.Data.Text export all hiding Encoding, Span, Text_Ordering
 from project.Data.Text.Encoding export Encoding, Encoding_Error

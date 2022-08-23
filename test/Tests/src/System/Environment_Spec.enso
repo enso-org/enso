@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.System.Environment
 import Standard.Test
 import Standard.Test.Test_Environment
 

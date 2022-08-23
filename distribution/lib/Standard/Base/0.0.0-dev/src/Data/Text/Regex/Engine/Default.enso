@@ -39,7 +39,6 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Option as Global_Option
 import Standard.Base.Data.Text.Regex.Mode
-import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Polyglot.Java
 
 polyglot java import java.lang.IllegalArgumentException
