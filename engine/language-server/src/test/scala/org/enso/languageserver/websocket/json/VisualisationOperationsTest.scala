@@ -55,7 +55,7 @@ class VisualisationOperationsTest extends BaseServerTest {
       client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
-    "allow attaching method pointer as a visualisation expression" in {
+    "allow attaching method pointer without arguments as a visualisation expression" in {
       val visualisationId = UUID.randomUUID()
       val expressionId    = UUID.randomUUID()
 
@@ -70,7 +70,62 @@ class VisualisationOperationsTest extends BaseServerTest {
             visualisationModule,
             visualisationModule,
             visualisationMethod
-          )
+          ),
+          Vector()
+        )
+
+      client.send(
+        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+          1,
+          visualisationId,
+          expressionId,
+          visualisationConfig
+        )
+      )
+
+      val requestId =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.AttachVisualisation(
+                  `visualisationId`,
+                  `expressionId`,
+                  config
+                )
+              ) =>
+            config.expression shouldBe visualisationConfig.expression.toApi
+            config.visualisationModule shouldBe visualisationConfig.visualisationModule
+            config.executionContextId shouldBe visualisationConfig.executionContextId
+            requestId
+
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.VisualisationAttached()
+      )
+      client.expectJson(ExecutionContextJsonMessages.ok(1))
+    }
+
+    "allow attaching method pointer with arguments as a visualisation expression" in {
+      val visualisationId = UUID.randomUUID()
+      val expressionId    = UUID.randomUUID()
+
+      val client              = getInitialisedWsClient()
+      val contextId           = createExecutionContext(client)
+      val visualisationModule = "Foo.Bar"
+      val visualisationMethod = "baz"
+      val visualisationConfig =
+        VisualisationConfiguration(
+          contextId,
+          MethodPointer(
+            visualisationModule,
+            visualisationModule,
+            visualisationMethod
+          ),
+          Vector("1", "2", "3")
         )
 
       client.send(
