@@ -126,7 +126,7 @@ spec =
             json.fields.keys.should_equal ['axis','data']
             data = (json.fields.get 'data') . unwrap
             data.length . should_equal 10
-            (data.take (First 4)).to_text . should_equal "[[['x', 0], ['y', 225]], [['x', 29], ['y', 196]], [['x', 15], ['y', 0]], [['x', 1], ['y', 196]]]"
+            (data.take (First 3)).to_text . should_equal '[[[\'x\', 0], [\'y\', 225]], [[\'x\', 15], [\'y\', 0]], [[\'x\', 29], [\'y\', 196]]]'
 
         Test.specify "filter the elements" <|
             vector = [0,10,20,30]
@@ -141,3 +141,5 @@ spec =
         Test.specify "using indices for x if given a range" <|
             value = 2.up_to 5
             expect value no_labels '[{"x":0,"y":2},{"x":1,"y":3},{"x":2,"y":4}]'
+
+main = Test.Suite.run_main spec
