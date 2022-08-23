@@ -17,6 +17,7 @@ export class Visualization {
         // invoke `__emitPreprocessorChange__()` on this.
         this.__preprocessorModule__ = null
         this.__preprocessorMethod__ = null
+        this.__preprocessorArguments__ = null
 
         this.dom = api.root()
         this.theme = api.theme()
@@ -28,9 +29,16 @@ export class Visualization {
      * @private
      */
     __emitPreprocessorChange__() {
+        console.log(
+          'emitPreprocessorChange',
+          this.__preprocessorModule__,
+          this.__preprocessorMethod__,
+          this.__preprocessorArguments__
+        )
         this.__api__.emit_preprocessor_change(
             this.__preprocessorModule__,
-            this.__preprocessorMethod__
+            this.__preprocessorMethod__,
+            this.__preprocessorArguments__
         )
     }
 
@@ -56,6 +64,18 @@ export class Visualization {
     }
 
     /**
+     * Set the arguments of the preprocessor function.
+     *
+     * @param arguments the arguments passed to the preprocessor function.
+     */
+    setArguments(...args) {
+        if (args !== this.__preprocessorArguments__) {
+            this.__preprocessorArguments__ = args
+            this.__emitPreprocessorChange__()
+        }
+    }
+
+    /**
      * Set the preprocessor.
      *
      * Sets the preprocessor method by providing the method pointer consisting of a
@@ -63,12 +83,19 @@ export class Visualization {
      *
      * @param module module containing the preprocessor method.
      * @param method the preprocessor method name. The method must be invocable
-                     with one argument and return JSON-compatible result.
+     *               with one argument and return JSON-compatible result.
+     * @param arguments the arguments passed to the preprocessor function.
      */
-    setPreprocessor(module, method) {
-        if (module !== this.__preprocessorModule__ || method !== this.__preprocessorMethod__) {
+    setPreprocessor(module, method, ...args) {
+        console.log('setPreprocessor', module, method, ...args)
+        if (
+          module !== this.__preprocessorModule__ ||
+          method !== this.__preprocessorMethod__ ||
+          args !== this.__preprocessorArguments__
+        ) {
             this.__preprocessorModule__ = module
             this.__preprocessorMethod__ = method
+            this.__preprocessorArguments__ = args
             this.__emitPreprocessorChange__()
         }
     }

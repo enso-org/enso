@@ -20,6 +20,8 @@ use ensogl::display::Scene;
 pub const DEFAULT_VISUALIZATION_MODULE: &str = "Standard.Visualization.Preprocessor";
 /// A name of the default visualization function.
 pub const DEFAULT_VISUALIZATION_FUNCTION: &str = "default_preprocessor";
+/// A list of arguments passed to the default visualization function.
+const DEFAULT_VISUALIZATION_ARGUMENTS: Vec<enso::Code> = vec![];
 
 
 // ====================
@@ -59,9 +61,11 @@ impl ContextModule {
 #[derive(Clone, CloneRef, Debug, PartialEq, Eq)]
 pub struct PreprocessorConfiguration {
     /// The module containing the `method`.
-    pub module: enso::Module,
+    pub module:    enso::Module,
     /// The method being invoked.
-    pub method: enso::Method,
+    pub method:    enso::Method,
+    /// A list of arguments to pass to the visualization expression.
+    pub arguments: Rc<Vec<enso::Code>>,
 }
 
 impl PreprocessorConfiguration {
@@ -69,6 +73,7 @@ impl PreprocessorConfiguration {
     pub fn from_options(
         module: Option<impl Into<enso::Module>>,
         method: Option<impl Into<enso::Method>>,
+        arguments: Option<Vec<impl Into<enso::Code>>>,
     ) -> Self {
         let mut ret = Self::default();
         if let Some(module) = module {
@@ -77,6 +82,9 @@ impl PreprocessorConfiguration {
         if let Some(method) = method {
             ret.method = method.into();
         }
+        if let Some(arguments) = arguments {
+            ret.arguments = Rc::new(arguments.into_iter().map_into().collect());
+        }
         ret
     }
 
@@ -84,16 +92,22 @@ impl PreprocessorConfiguration {
     pub fn new(
         module: impl Into<enso::Module>,
         method: impl Into<enso::Method>,
+        arguments: Vec<impl Into<enso::Code>>,
     ) -> PreprocessorConfiguration {
-        PreprocessorConfiguration { module: module.into(), method: method.into() }
+        PreprocessorConfiguration {
+            module:    module.into(),
+            method:    method.into(),
+            arguments: Rc::new(arguments.into_iter().map_into().collect()),
+        }
     }
 }
 
 impl Default for PreprocessorConfiguration {
     fn default() -> Self {
         Self {
-            module: DEFAULT_VISUALIZATION_MODULE.into(),
-            method: DEFAULT_VISUALIZATION_FUNCTION.into(),
+            module:    DEFAULT_VISUALIZATION_MODULE.into(),
+            method:    DEFAULT_VISUALIZATION_FUNCTION.into(),
+            arguments: Rc::new(DEFAULT_VISUALIZATION_ARGUMENTS),
         }
     }
 }

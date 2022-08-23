@@ -337,6 +337,14 @@ impl Manager {
             id: desired.visualization_id,
             expression_id: desired.expression_id,
             method_pointer,
+            arguments: desired
+                .metadata
+                .preprocessor
+                .arguments
+                .deref()
+                .into_iter()
+                .map_into()
+                .collect(),
         })
     }
 

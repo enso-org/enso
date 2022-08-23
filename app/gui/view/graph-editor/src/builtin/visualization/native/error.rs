@@ -42,9 +42,16 @@ const PREPROCESSOR_MODULE: &str = "Standard.Visualization.Preprocessor";
 // RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
 const PREPROCESSOR_METHOD: &str = "error_preprocessor";
 
+/// The list of arguments passed to the error preprocessor.
+const PREPROCESSOR_ARGUMENTS: Vec<String> = vec![];
+
 /// Get preprocessor configuration for error visualization.
 pub fn preprocessor() -> instance::PreprocessorConfiguration {
-    instance::PreprocessorConfiguration::new(PREPROCESSOR_MODULE, PREPROCESSOR_METHOD)
+    instance::PreprocessorConfiguration::new(
+        PREPROCESSOR_MODULE,
+        PREPROCESSOR_METHOD,
+        PREPROCESSOR_ARGUMENTS,
+    )
 }
 
 /// Get metadata description for error visualization.
