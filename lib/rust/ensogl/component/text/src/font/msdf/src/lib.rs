@@ -153,7 +153,7 @@ impl OwnedFace {
             let name_number = ((name_bytes[0] as u32) << 24)
                 | ((name_bytes[1] as u32) << 16)
                 | ((name_bytes[2] as u32) << 8)
-                | (name_bytes[0] as u32);
+                | (name_bytes[3] as u32);
             if msdfgen_set_variation_axis(self.handle.clone(), name_number, coordinate) == 0 {
                 Err(SetVariationAxisError::LibraryError)
             } else {
