@@ -268,7 +268,7 @@ ensogl_core::define_endpoints! {
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
-        /// Set font in the text area. The name will be looked up in [`typeface::font::Registry`].
+        /// Set font in the text area. The name will be looked up in [`font::Registry`].
         ///
         /// Note, that this is a relatively heavy operation - it requires not only redrawing all
         /// lines, but also re-load internal structures for rendering (like WebGL buffers,
@@ -611,7 +611,7 @@ impl AreaModel {
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<font::Registry>();
-            let font = fonts.load("dejavusansmono");
+            let font = fonts.load("default");
             let glyph_system = font::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))
@@ -894,6 +894,7 @@ impl AreaModel {
         line.to_string()
     }
 
+    // FIXME: to be rewritten with the new line layouter.
     /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered
     /// using the current font at `font_size`. Return the truncated string with an ellipsis ("…")
     /// character appended, or `content` if not truncated.

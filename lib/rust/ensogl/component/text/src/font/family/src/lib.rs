@@ -44,6 +44,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use enso_prelude::*;
 
 use std::collections::HashMap;
 
@@ -57,18 +58,24 @@ pub use owned_ttf_parser::Width;
 // === Name ===
 // ============
 
-/// A name of a font. The name is normalized during construction to eliminate accidental mistakes.
-/// The normalization is done by removing all spaces, dashes, and underscores, and replacing all
-/// uppercase letters with lowercase ones.
+/// A name of a font. The name is normalized to case-insensitive form during construction to
+/// eliminate accidental mistakes, the same way as it's done in CSS:
+/// https://stackoverflow.com/questions/17967371/are-property-values-in-css-case-sensitive
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Display, Hash, PartialEq, Eq)]
 pub struct Name {
     pub normalized: String,
 }
 
+impl From<&Name> for Name {
+    fn from(name: &Name) -> Self {
+        name.clone()
+    }
+}
+
 impl From<&str> for Name {
     fn from(name: &str) -> Self {
-        let normalized = name.to_lowercase().replace(' ', "").replace('-', "").replace('_', "");
+        let normalized = name.to_lowercase();
         Name { normalized }
     }
 }
@@ -189,35 +196,31 @@ impl NonVariableFaceHeader {
 /// build.rs script in the future.
 pub fn font_family_files_map() -> HashMap<Name, FamilyDefinition> {
     let mut map = HashMap::new();
-    map.insert(
-        "mplus1".into(),
-        FamilyDefinition::Variable(VariableFamilyDefinition::new("MPLUS1[wght].ttf")),
-    );
-    map.insert(
-        "dejavusans".into(),
-        FamilyDefinition::NonVariable(NonVariableFamilyDefinition::from_iter([
-            (
-                NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
-                "DejaVuSans.ttf".to_string(),
-            ),
-            (
-                NonVariableFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
-                "DejaVuSans-Bold.ttf".to_string(),
-            ),
-        ])),
-    );
-    map.insert(
-        "dejavusansmono".into(),
-        FamilyDefinition::NonVariable(NonVariableFamilyDefinition::from_iter([
-            (
-                NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
-                "DejaVuSansMono.ttf".to_string(),
-            ),
-            (
-                NonVariableFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
-                "DejaVuSansMono-Bold.ttf".to_string(),
-            ),
-        ])),
-    );
+    let mplus1 = FamilyDefinition::Variable(VariableFamilyDefinition::new("MPLUS1[wght].ttf"));
+    let dejavusans = FamilyDefinition::NonVariable(NonVariableFamilyDefinition::from_iter([
+        (
+            NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
+            "DejaVuSans.ttf".to_string(),
+        ),
+        (
+            NonVariableFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
+            "DejaVuSans-Bold.ttf".to_string(),
+        ),
+    ]));
+    let dejavusansmono = FamilyDefinition::NonVariable(NonVariableFamilyDefinition::from_iter([
+        (
+            NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
+            "DejaVuSansMono.ttf".to_string(),
+        ),
+        (
+            NonVariableFaceHeader::new(Width::Normal, Weight::Bold, Style::Normal),
+            "DejaVuSansMono-Bold.ttf".to_string(),
+        ),
+    ]));
+    map.insert("mplus1".into(), mplus1);
+    map.insert("dejavusans".into(), dejavusans.clone());
+    map.insert("dejavusansmono".into(), dejavusansmono.clone());
+    map.insert("default".into(), dejavusans.clone());
+    map.insert("default-mono".into(), dejavusansmono.clone());
     map
 }

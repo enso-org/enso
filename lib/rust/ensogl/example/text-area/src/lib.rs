@@ -57,7 +57,7 @@ fn init(app: Application) {
     let text = quote.to_string() + snowman + zalgo;
     let text = "test".to_string();
     area.set_content(text.clone() + "\n" + text.as_str());
-    area.set_font("DejaVuSans");
+    area.set_font("default");
     area.focus();
     area.hover();
     area.set_cursor_at_end();

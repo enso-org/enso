@@ -39,10 +39,10 @@ pub use glyph_render_info::GlyphRenderInfo;
 const FONT_FACE_INDEX: u32 = 0;
 
 /// Default non-monospace font the app will revert to if a desired font could not be loaded.
-pub const DEFAULT_FONT: &str = "dejavusans";
+pub const DEFAULT_FONT: &str = "default";
 
 /// Default monospace font the app will revert to if a desired font could not be loaded.
-pub const DEFAULT_FONT_MONO: &str = "dejavusansmono";
+pub const DEFAULT_FONT_MONO: &str = "default-mono";
 
 
 
@@ -125,12 +125,19 @@ pub struct RegistryData {
 }
 
 impl {
+    pub fn load_default(&mut self) -> Font {
+        self.load(DEFAULT_FONT)
+    }
+
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
     /// registry if not used before. Returns the default font if the name is missing in both cache
     /// and embedded font list.
     pub fn load(&mut self, name:impl Into<Name>) -> Font {
-        self.try_load(name).unwrap_or_else(||
-            self.try_load(DEFAULT_FONT).expect("Default font not found."))
+        let name = name.into();
+        self.try_load(&name).unwrap_or_else(|| {
+            event!(WARN, "Font '{name}' not found. Loading the default font.");
+            self.try_load(DEFAULT_FONT).expect("Default font not found.")
+        })
     }
 
     /// Load a font by name. The font can be loaded either from cache or from the embedded fonts'
@@ -515,120 +522,5 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     /// Get number of rows in MSDF texture.
     pub fn msdf_texture_rows(&self) -> usize {
         self.atlas.rows()
-    }
-
-    // #[cfg(test)]
-    // pub fn mock(name: impl Into<String>) -> Self {
-    //     Self::from_msdf_font(name.into(), msdf::NonVariableFont::mock_font())
-    // }
-    //
-    // #[cfg(test)]
-    // pub fn mock_char_info(
-    //     &self,
-    //     ch: char,
-    //     offset: Vector2<f32>,
-    //     scale: Vector2<f32>,
-    //     advance: f32,
-    // ) -> GlyphRenderInfo {
-    //     self.glyphs.invalidate(&ch);
-    //     let data_size = msdf::Texture::ONE_GLYPH_SIZE;
-    //     let msdf_data = (0..data_size).map(|_| 0.12345);
-    //     let msdf_texture_glyph_id = self.msdf_texture_rows() / msdf::Texture::ONE_GLYPH_HEIGHT;
-    //
-    //     self.atlas.extend_with_raw_data(msdf_data);
-    //     self.glyphs.get_or_create(ch, move || GlyphRenderInfo {
-    //         offset,
-    //         scale,
-    //         advance,
-    //         msdf_texture_glyph_id,
-    //     })
-    // }
-    //
-    // #[cfg(test)]
-    // pub fn mock_kerning_info(&self, l: char, r: char, value: f32) {
-    //     self.kerning.invalidate(&(l, r));
-    //     self.kerning.get_or_create((l, r), || value);
-    // }
-}
-
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use ensogl_text_embedded_fonts;
-    use ensogl_text_embedded_fonts::EmbeddedFontsData;
-    // use ensogl_text_embedded_fonts::Family;
-    use wasm_bindgen_test::wasm_bindgen_test;
-    use wasm_bindgen_test::wasm_bindgen_test_configure;
-
-    const TEST_FONT_NAME: &str = embedded::DefaultFamily::mono_bold();
-
-    fn create_test_font() -> NonVariableFont {
-        let embedded = EmbeddedFontsData::create_and_fill();
-        NonVariableFont::try_from_embedded(&embedded, TEST_FONT_NAME).unwrap()
-    }
-
-    wasm_bindgen_test_configure!(run_in_browser);
-
-    #[wasm_bindgen_test(async)]
-    async fn empty_font_render_info() {
-        ensogl_text_msdf::initialized().await;
-        let font_render_info = create_test_font();
-
-        assert_eq!(TEST_FONT_NAME, font_render_info.name);
-        assert_eq!(0, font_render_info.atlas.with_borrowed_data(|t: &[u8]| t.len()));
-        assert_eq!(0, font_render_info.glyphs.len());
-    }
-
-    #[wasm_bindgen_test(async)]
-    async fn loading_glyph_info() {
-        ensogl_text_msdf::initialized().await;
-        let font_render_info = create_test_font();
-
-        font_render_info.glyph_info('A');
-        font_render_info.glyph_info('B');
-
-        let chars = 2;
-        let tex_width = msdf::Texture::WIDTH;
-        let tex_height = msdf::Texture::ONE_GLYPH_HEIGHT * chars;
-        let channels = Msdf::CHANNELS_COUNT;
-        let tex_size = tex_width * tex_height * channels;
-
-        assert_eq!(tex_height, font_render_info.msdf_texture_rows());
-        assert_eq!(tex_size, font_render_info.atlas.with_borrowed_data(|t| t.len()));
-        assert_eq!(chars, font_render_info.glyphs.len());
-
-        let first_char = font_render_info.glyphs.get_or_create('A', || panic!("Expected value"));
-        let second_char = font_render_info.glyphs.get_or_create('B', || panic!("Expected value"));
-
-        let first_index = 0;
-        let second_index = 1;
-
-        assert_eq!(first_index, first_char.msdf_texture_glyph_id);
-        assert_eq!(second_index, second_char.msdf_texture_glyph_id);
-    }
-
-    #[wasm_bindgen_test(async)]
-    async fn getting_or_creating_char() {
-        ensogl_text_msdf::initialized().await;
-        let font_render_info = create_test_font();
-
-        {
-            let char_info = font_render_info.glyph_info('A');
-            assert_eq!(0, char_info.msdf_texture_glyph_id);
-        }
-        assert_eq!(1, font_render_info.glyphs.len());
-
-        {
-            let char_info = font_render_info.glyph_info('A');
-            assert_eq!(0, char_info.msdf_texture_glyph_id);
-        }
-        assert_eq!(1, font_render_info.glyphs.len());
     }
 }

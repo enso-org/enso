@@ -2716,7 +2716,6 @@ name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
- "ensogl-text-embedded-fonts",
 ]
 
 [[package]]
@@ -2835,6 +2834,7 @@ dependencies = [
 name = "ensogl-text-font-family"
 version = "0.1.0"
 dependencies = [
+ "enso-prelude",
  "owned_ttf_parser",
 ]
 
