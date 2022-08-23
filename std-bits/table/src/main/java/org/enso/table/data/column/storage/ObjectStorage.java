@@ -4,8 +4,10 @@ import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.mask.SliceRange;
 
 import java.util.BitSet;
+import java.util.List;
 
 /** A column storing arbitrary objects. */
 public class ObjectStorage extends Storage {
@@ -145,6 +147,20 @@ public class ObjectStorage extends Storage {
     int newSize = Math.min(size - offset, limit);
     Object[] newData = new Object[newSize];
     System.arraycopy(data, offset, newData, 0, newSize);
+    return new ObjectStorage(newData, newSize);
+  }
+
+  @Override
+  public ObjectStorage slice(List<SliceRange> ranges) {
+    int newSize = SliceRange.totalLength(ranges);
+    Object[] newData = new Object[newSize];
+    int offset = 0;
+    for (SliceRange range : ranges) {
+      int length = range.end() - range.start();
+      System.arraycopy(data, range.start(), newData, offset, length);
+      offset += length;
+    }
+
     return new ObjectStorage(newData, newSize);
   }
 }

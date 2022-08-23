@@ -756,36 +756,8 @@ type Table
        - range: The selection of rows from the table to return.
     take : (Index_Sub_Range | Range) -> Table
     take self range=(First 1) =
-        take_by_indices =
-            indices = (Range 0 self.row_count . to_vector).take range
-            mask = OrderMask.new indices.to_array
-            Table (self.java_table.applyMask mask)
-        case range of
-            Range _ _ _ -> self.take (Index_Sub_Range.By_Index range)
-            First count -> self.slice 0 count
-            Last count -> self.slice self.row_count-count self.row_count
-            While _ ->
-                unimplemented "Table.take While cannot be implemented before the Row type is."
-            Index_Sub_Range.By_Index one_or_many_descriptors ->
-                indices = case one_or_many_descriptors of
-                    Vector.Vector _ -> one_or_many_descriptors
-                    _ -> [one_or_many_descriptors]
-                case indices.length == 1 of
-                    False -> take_by_indices
-                    True -> case indices.first of
-                        Range start end step -> case step == 1 of
-                            True ->
-                                if (start < 0) || (end < 0) then Error.throw (Illegal_Argument_Error "Range start and end must not be negative.") else
-                                    if start >= self.row_count then Error.throw (Index_Out_Of_Bounds_Error start self.row_count) else
-                                        self.slice start end
-                            False -> take_by_indices
-                        _ -> take_by_indices
-            Sample _ _ -> take_by_indices
-            Every step start ->
-                if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                    if start >= self.row_count then self.slice 0 0 else
-                        range = Range start self.row_count step
-                        self.take (Index_Sub_Range.By_Index range)
+        at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
+        Index_Sub_Range.take_helper self.row_count at self.slice (slice_ranges self) range
 
     ## UNSTABLE
        Creates a new Table from the input with the specified range of rows
@@ -796,23 +768,8 @@ type Table
        - range: The selection of rows from the table to remove.
     drop : (Index_Sub_Range | Range) -> Table
     drop self range=(First 1) =
-        drop_by_indices =
-            indices = (Range 0 self.row_count . to_vector).drop range
-            mask = OrderMask.new indices.to_array
-            Table <| self.java_table.applyMask mask
-        case range of
-            Range _ _ _ -> self.drop (Index_Sub_Range.By_Index range)
-            First count -> self.slice count self.row_count
-            Last count -> self.slice 0 self.row_count-count
-            While _ ->
-                unimplemented "Table.drop While cannot be implemented before the Row type is."
-            Index_Sub_Range.By_Index _ -> drop_by_indices
-            Sample _ _ -> drop_by_indices
-            Every step start ->
-                if step <= 0 then Error.throw (Illegal_Argument_Error "Step within Every must be positive.") else
-                    if start >= self.row_count then self else
-                        range = Range start self.row_count step
-                        self.drop (Index_Sub_Range.By_Index range)
+        at _ = unimplemented "Table.take While cannot be implemented before the Row type is."
+        Index_Sub_Range.drop_helper self.row_count at self.slice (slice_ranges self) range
 
     ## ALIAS Add Column
 
@@ -1199,3 +1156,9 @@ Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width =
 Text.from (that : Table) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') =
     if format.is_a File_Format.Delimited then Delimited_Writer.write_text that format else
         Errors.unimplemented "Text.from for fixed-width files is not yet implemented."
+
+## PRIVATE
+   A helper to create a new table consisting of slices of the original table.
+slice_ranges table ranges =
+    normalized = Index_Sub_Range.normalize_ranges ranges
+    Table (table.java_table.slice normalized.to_array)
