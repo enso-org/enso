@@ -34,7 +34,7 @@ wasm-bindgen-test = { version = "0.3.8" }
 enso-build-utilities = { path = "../../../../lib/rust/build-utils" }
 bytes = { version = "0.5.4" }
 futures = { version = "0.3.1" }
-reqwest = { version = "0.10.1" }
+reqwest = { version = "0.10.10" }
 tokio = { version = "0.2.10", features = ["macros"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

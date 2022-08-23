@@ -36,7 +36,7 @@ enso-build-utilities = { path = "../../../../lib/rust/build-utils" }
 bytes = { version = "0.5.4" }
 flatc-rust = { version = "0.1.2" }
 futures = { version = "0.3.1" }
-reqwest = { version = "0.10.1" }
+reqwest = { version = "0.10.10" }
 tokio = { version = "0.2.10", features = ["macros"] }
 # Zip is needed because the build script downloads and extracts artifacts from the Engine.
 zip = { version = "0.5.0" }

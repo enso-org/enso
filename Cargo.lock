@@ -1798,7 +1798,7 @@ dependencies = [
  "pulldown-cmark",
  "rand 0.8.5",
  "regex",
- "reqwest 0.11.10",
+ "reqwest 0.11.11",
  "scopeguard",
  "semver 1.0.9",
  "serde",
@@ -2716,7 +2716,7 @@ name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
- "ensogl-text-embedded-fonts",
+ "ensogl-text",
 ]
 
 [[package]]
@@ -3786,7 +3786,7 @@ dependencies = [
  "quote",
  "rand 0.8.5",
  "regex",
- "reqwest 0.11.10",
+ "reqwest 0.11.11",
  "scopeguard",
  "semver 1.0.9",
  "serde",
@@ -4773,7 +4773,7 @@ dependencies = [
  "hyperx",
  "jsonwebtoken",
  "once_cell",
- "reqwest 0.11.10",
+ "reqwest 0.11.11",
  "secrecy",
  "serde",
  "serde_json",
@@ -5682,9 +5682,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.11.10"
+version = "0.11.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46a1f7aa4f35e5e8b4160449f51afc758f0ce6454315a9fa7d0d113e958c41eb"
+checksum = "b75aa69a3f06bbcc66ede33af2af253c6f7a86b1ca0033f60c580a27074fbf92"
 dependencies = [
  "base64 0.13.0",
  "bytes 1.1.0",
@@ -5710,7 +5710,8 @@ dependencies = [
  "serde_urlencoded",
  "tokio 1.19.2",
  "tokio-rustls 0.23.4",
- "tokio-util 0.6.10",
+ "tokio-util 0.7.2",
+ "tower-service",
  "url 2.2.2",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -5809,9 +5810,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-pemfile"
-version = "0.3.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ee86d63972a7c661d1536fefe8c3c8407321c3df668891286de28abcd087360"
+checksum = "0864aeff53f8c05aa08d86e5ef839d3dfcf07aeba2db32f12db0ef716e87bd55"
 dependencies = [
  "base64 0.13.0",
 ]
@@ -6742,20 +6743,6 @@ dependencies = [
  "log 0.4.17",
  "pin-project-lite 0.1.12",
  "tokio 0.2.25",
-]
-
-[[package]]
-name = "tokio-util"
-version = "0.6.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36943ee01a6d67977dd3f84a5a1d2efeb4ada3a1ae771cadfaa535d9d9fc6507"
-dependencies = [
- "bytes 1.1.0",
- "futures-core",
- "futures-sink",
- "log 0.4.17",
- "pin-project-lite 0.2.9",
- "tokio 1.19.2",
 ]
 
 [[package]]
