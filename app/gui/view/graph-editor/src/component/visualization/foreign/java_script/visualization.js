@@ -29,12 +29,6 @@ export class Visualization {
      * @private
      */
     __emitPreprocessorChange__() {
-        console.log(
-          'emitPreprocessorChange',
-          this.__preprocessorModule__,
-          this.__preprocessorMethod__,
-          this.__preprocessorArguments__
-        )
         this.__api__.emit_preprocessor_change(
             this.__preprocessorModule__,
             this.__preprocessorMethod__,
@@ -66,6 +60,10 @@ export class Visualization {
     /**
      * Set the arguments of the preprocessor function.
      *
+     * Arguments should be strings representing valid Enso expressions that can
+     * be evaluated in the preprocessor module. See the
+     * [setter documentation]{@link setPreprocessor} for more information.
+     *
      * @param arguments the arguments passed to the preprocessor function.
      */
     setArguments(...args) {
@@ -87,7 +85,6 @@ export class Visualization {
      * @param arguments the arguments passed to the preprocessor function.
      */
     setPreprocessor(module, method, ...args) {
-        console.log('setPreprocessor', module, method, ...args)
         if (
           module !== this.__preprocessorModule__ ||
           method !== this.__preprocessorMethod__ ||
