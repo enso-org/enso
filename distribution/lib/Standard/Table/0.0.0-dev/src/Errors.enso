@@ -226,7 +226,7 @@ Column_Count_Mismatch.to_display_text self =
 Column_Count_Mismatch.handle_java_exception self =
     throw_column_count_mismatch caught_panic =
         cause = caught_panic.payload.cause
-        Error.throw (Column_Count_Mismatch cause.getExpected cause.getActual)
+        Error.throw (Column_Count_Mismatch_Data cause.getExpected cause.getActual)
     Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
 
 ## Indicates that the existing table has a different set of column names to the

@@ -4,7 +4,7 @@ import Standard.Table
 import Standard.Base.Data.Statistics
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Ignore, Report_Error
-from Standard.Table.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows_Data
+from Standard.Table.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row_Data, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows_Data
 from Standard.Base.Data.Text.Encoding import Encoding, Encoding_Error
 from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Data.Data_Formatter import Data_Formatter_Data
@@ -128,7 +128,7 @@ prepare_delimited_reader java_reader format max_columns on_problems newline_over
     DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 translate_reader_problem problem =
-    invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector_Data java_problem.row))]
+    invalid_row = [InvalidRow, (java_problem-> Invalid_Row_Data java_problem.source_row java_problem.table_index (Vector.Vector_Data java_problem.row))]
     additional_invalid_rows = [AdditionalInvalidRows, (java_problem-> Additional_Invalid_Rows_Data java_problem.count)]
     mismatched_quote = [MismatchedQuote, (_-> Mismatched_Quote)]
     duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names_Data (Vector.Vector_Data java_problem.duplicatedNames))]
