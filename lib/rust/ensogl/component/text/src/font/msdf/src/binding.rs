@@ -46,6 +46,19 @@ extern "C" {
         overlap_support: bool,
     ) -> JsValue;
 
+    #[wasm_bindgen(js_name = "_msdfgen_generateAutoframedMSDFByIndex")]
+    pub fn msdfgen_generate_msdf_by_index(
+        width: usize,
+        height: usize,
+        font_handle: JsValue,
+        index: usize,
+        edge_coloring_angle_threshold: f64,
+        range: f64,
+        max_scale: f64,
+        edge_threshold: f64,
+        overlap_support: bool,
+    ) -> JsValue;
+
     #[wasm_bindgen(js_name = "_msdfgen_result_getMSDFData")]
     pub fn msdfgen_result_get_msdf_data(result_handle: JsValue) -> usize;
 
