@@ -60,6 +60,7 @@ fn setup_grid_view(app: &Application) -> grid_view::simple::SimpleScrollableSele
             let model = grid_view::simple::EntryModel {
                 text:     format!("Entry ({row}, {col})").into(),
                 disabled: Immutable(row == col),
+                override_width: Immutable(if *col == 1 && *row == 5 { Some(180.0) } else { None }),
             };
             (*row, *col, model)
         });
@@ -108,6 +109,11 @@ fn init(app: &Application) {
     for (view, (x, y)) in grid_views.iter().zip(positions) {
         grids_layer.add_exclusive(view);
         view.set_position_xy(Vector2(x, y));
+    }
+
+    let view = &grid_views[0];
+    for i in (0..1000).step_by(2) {
+        view.set_column_width((i, 60.0));
     }
 
     for view in with_hover_mask {
