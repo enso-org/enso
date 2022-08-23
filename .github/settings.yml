@@ -217,7 +217,6 @@ branches:
           - "Engine (linux)"
           - "Engine (windows)"
           # The macOS job is intentionally omitted.
-          - "Verify Notice Package"
           - "Test Formatting"
           - "license/cla"
 
@@ -264,7 +263,6 @@ branches:
           - "Rust Test Native (ubuntu-latest)"
           - "Rust Test Native (windows-latest)"
           - "Rust Test WASM"
-          - "Verify Notice Package"
           - "license/cla"
       #          - "Vulnerability Scan" # CodeQL is temporarily disabled due to incompatibility
       enforce_admins: null

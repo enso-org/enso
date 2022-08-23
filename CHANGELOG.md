@@ -42,6 +42,7 @@
   visualizations. (Previously, they were placed to the left of the
   visualizations.)
 - [Fixed histograms coloring and added a color legend.][3153]
+- [Lazy visualization for scatter plot.][3655]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 - [Fixed developer console warnings about views being created but not
   registered.][3181]
@@ -52,11 +53,13 @@
   "executionContext/visualisationEvaluationFailed"][3193]
 - [New Version of the Node Searcher - the Component Browser][3530] The available
   methods, atoms and functions are presented in nice, categorized view. The most
-  popular tools are available at hand. The The panel is unstable, and thus is
+  popular tools are available at hand. The panel is unstable, and thus is
   available under the `--enable-new-component-browser` flag.
 - [Fixed error handling during startup.][3648] This prevents entering IDE into a
   "zombie" state, where processes were started but not visible to user. They
   could cause issues with starting further IDE instances.
+- [New nodes are created in the project source when the searcher is opened  
+  and a new node is created.][5250]
 
 #### EnsoGL (rendering engine)
 
@@ -183,6 +186,7 @@
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
 [3153]: https://github.com/enso-org/enso/pull/3153
+[3655]: https://github.com/enso-org/enso/pull/3655
 [3166]: https://github.com/enso-org/enso/pull/3166
 [3181]: https://github.com/enso-org/enso/pull/3181
 [3186]: https://github.com/enso-org/enso/pull/3186
@@ -282,6 +286,7 @@
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
 [3648]: https://github.com/enso-org/enso/pull/3648
+[5250]: https://github.com/enso-org/enso/pull/5250
 
 #### Enso Compiler
 

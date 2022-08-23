@@ -1,11 +1,9 @@
 from Standard.Base import all
-import Standard.Table
-
-import Standard.Base.Data.Statistics
 import Standard.Base.Error.Common as Errors
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Ignore, Report_Error
+from Standard.Base.Error.Problem_Behavior import Ignore, Report_Error
+
+import Standard.Table.Data.Table
 from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
-from Standard.Base.Data.Text.Encoding import Encoding, Encoding_Error
 from Standard.Table.IO.File_Format import Infer
 from Standard.Table.Data.Data_Formatter import Data_Formatter
 import Standard.Table.IO.Quote_Style

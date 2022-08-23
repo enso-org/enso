@@ -1,10 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
-import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.System.File.File_Permissions
-import Standard.Base.Error.Problem_Behavior
-import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.Runtime.Resource

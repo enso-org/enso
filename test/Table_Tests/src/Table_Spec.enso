@@ -1,9 +1,8 @@
 from Standard.Base import all
-from Standard.Table import all
 
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
-from Standard.Table.Data.Table as Table_Internal import Empty_Error
+import Standard.Table
+from Standard.Table import Column, Sort_Column, Sort_Column_Selector
+from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Errors as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns
 import Standard.Table.Data.Storage
 

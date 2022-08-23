@@ -63,8 +63,9 @@ impl Default for EntryParams {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct EntryModel {
-    pub text:     ImString,
-    pub disabled: Immutable<bool>,
+    pub text:           ImString,
+    pub disabled:       Immutable<bool>,
+    pub override_width: Immutable<Option<f32>>,
 }
 
 impl EntryModel {
@@ -170,6 +171,7 @@ impl crate::Entry for Entry {
             max_width_px <- input.set_size.map(|size| size.x);
             data.label.set_content_truncated <+ all(&content, &max_width_px);
 
+            out.override_column_width <+ input.set_model.filter_map(|m| *m.override_width);
             out.contour <+ contour;
             out.disabled <+ disabled;
             out.hover_highlight_color <+ hover_color;
