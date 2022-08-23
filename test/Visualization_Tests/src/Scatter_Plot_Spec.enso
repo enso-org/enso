@@ -10,8 +10,7 @@ import Standard.Test
 import project
 
 spec =
-    expect value axis_expected_text data_expected_text =
-        text = Scatter_Plot.process_to_json_text value
+    expect_text text axis_expected_text data_expected_text =
         json = Json.parse text
         json.fields.keys.should_equal ['axis','data']
 
@@ -19,6 +18,10 @@ spec =
         expected_data_pair     = ['data', Json.parse data_expected_text]
         expected_result        = Json.from_pairs [expected_axis_labels, expected_data_pair]
         json.should_equal expected_result
+
+    expect value axis_expected_text data_expected_text =
+        text = Scatter_Plot.process_to_json_text value
+        expect_text text axis_expected_text data_expected_text
 
     index = Scatter_Plot.index_name
     axis label = Json.from_pairs [['label',label]]
@@ -70,6 +73,17 @@ spec =
             table = Table.from_rows header [row_1, row_2]
             expect table (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
 
+        Test.specify "provided only recognized columns within bounds" <|
+            header = ['x', 'y' , 'bar' , 'size']
+            row_1 =  [1  , 1   , '11'  , 30    ]
+            row_2 =  [11 , 10  , 'aa'  , 40    ]
+            row_3 =  [21 , 20  , 'bb'  , 50    ]
+            row_4 =  [31 , 30  , 'cc'  , 60    ]
+            table = Table.from_rows header [row_1, row_2, row_3, row_4]
+            bounds = [0,5,25,25]
+            text = Scatter_Plot.process_to_json_text table bounds
+            expect_text text (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
+
         Test.specify "used specified numeric index for x if missing 'x' column from table" <|
             header = [ 'y' , 'foo', 'bar', 'baz' , 'size']
             row_1 =  [ 10  , 'aa' , 12   , 14    , 40    ]
@@ -96,6 +110,30 @@ spec =
             vector = [0,10,20]
             expect vector no_labels '[{"x":0,"y":0},{"x":1,"y":10},{"x":2,"y":20}]'
 
+        Test.specify "limit the number of elements" <|
+            vector = [0,10,20,30]
+            text = Scatter_Plot.process_to_json_text vector limit=2
+            json = Json.parse text
+            json.fields.keys.should_equal ['axis','data']
+            data = json.fields.get 'data'
+            data.unwrap.length . should_equal 2
+
+
+        Test.specify "limit the number of squared elements" <|
+            vector = (-15).up_to 15 . map (x -> x * x)
+            text = Scatter_Plot.process_to_json_text vector limit=10
+            json = Json.parse text
+            json.fields.keys.should_equal ['axis','data']
+            data = (json.fields.get 'data') . unwrap
+            data.length . should_equal 10
+            (data.take (First 3)).to_text . should_equal '[[[\'x\', 0], [\'y\', 225]], [[\'x\', 15], [\'y\', 0]], [[\'x\', 29], [\'y\', 196]]]'
+
+        Test.specify "filter the elements" <|
+            vector = [0,10,20,30]
+            bounds = [0,5,10,25]
+            text = Scatter_Plot.process_to_json_text vector bounds
+            expect_text text no_labels '[{"x":1,"y":10},{"x":2,"y":20}]'
+
         Test.specify "using indices for x if given a column" <|
             column = Column.from_vector 'some_col' [10,2,3]
             expect column (labels 'index' 'some_col') '[{"x":0,"y":10},{"x":1,"y":2},{"x":2,"y":3}]'
@@ -103,3 +141,5 @@ spec =
         Test.specify "using indices for x if given a range" <|
             value = 2.up_to 5
             expect value no_labels '[{"x":0,"y":2},{"x":1,"y":3},{"x":2,"y":4}]'
+
+main = Test.Suite.run_main spec

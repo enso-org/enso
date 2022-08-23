@@ -67,6 +67,7 @@ fn setup_grid_view(
     let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
     let header_frp = view.header_frp();
     frp::new_network! { network
+<<<<<<< HEAD
         requested_entry <- view.model_for_entry_needed.map(|&(r, c)| (r, c, entry_model(r, c)));
         requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
             let sections_size = 2 + col;
@@ -74,6 +75,15 @@ fn setup_grid_view(
             let section_end = section_start + sections_size;
             let model = entry_model(section_start, col);
             (section_start..section_end, col, model)
+=======
+        requested_entry <- view.model_for_entry_needed.map(|(row, col)| {
+            let model = grid_view::simple::EntryModel {
+                text:     format!("Entry ({row}, {col})").into(),
+                disabled: Immutable(row == col),
+                override_width: Immutable(if *col == 1 && *row == 5 { Some(180.0) } else { None }),
+            };
+            (*row, *col, model)
+>>>>>>> origin/develop
         });
         view.model_for_entry <+ requested_entry;
         header_frp.section_info <+ requested_section;
@@ -123,6 +133,11 @@ fn init(app: &Application) {
     for (view, (x, y)) in grid_views.iter().zip(positions) {
         grids_layer.add_exclusive(view);
         view.set_position_xy(Vector2(x, y));
+    }
+
+    let view = &grid_views[0];
+    for i in (0..1000).step_by(2) {
+        view.set_column_width((i, 60.0));
     }
 
     for view in with_hover_mask {

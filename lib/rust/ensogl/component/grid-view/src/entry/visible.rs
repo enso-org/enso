@@ -56,14 +56,15 @@ impl<E: display::Object> display::Object for VisibleEntry<E> {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct CreationCtx<EntryParams> {
-    pub app:              Application,
-    pub network:          frp::WeakNetwork,
-    pub set_entry_size:   frp::Stream<Vector2>,
-    pub set_entry_params: frp::Stream<EntryParams>,
-    pub entry_contour:    frp::Any<(Row, Col, entry::Contour)>,
-    pub entry_hovered:    frp::Any<Option<(Row, Col)>>,
-    pub entry_selected:   frp::Any<Option<(Row, Col)>>,
-    pub entry_accepted:   frp::Any<(Row, Col)>,
+    pub app:                   Application,
+    pub network:               frp::WeakNetwork,
+    pub set_entry_size:        frp::Stream<Vector2>,
+    pub set_entry_params:      frp::Stream<EntryParams>,
+    pub entry_contour:         frp::Any<(Row, Col, entry::Contour)>,
+    pub entry_hovered:         frp::Any<Option<(Row, Col)>>,
+    pub entry_selected:        frp::Any<Option<(Row, Col)>>,
+    pub entry_accepted:        frp::Any<(Row, Col)>,
+    pub override_column_width: frp::Any<(Col, f32)>,
 }
 
 impl<EntryParams> CreationCtx<EntryParams>
@@ -95,6 +96,7 @@ where EntryParams: frp::node::Data
                 let disabled = &entry_frp.disabled;
                 let location = entry_frp.set_location.clone_ref();
                 self.entry_contour <+ all_with(&location, &contour, |&(r, c), &cont| (r, c, cont));
+                column <- location._1();
 
                 // We make a distinction between "hovered" state and "mouse_in" state, because
                 // we want to highlight entry as hovered only when mouse moves a bit.
@@ -116,6 +118,10 @@ where EntryParams: frp::node::Data
                 self.entry_hovered <+ location.sample(&hovered).map(|l| Some(*l));
                 self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
                 self.entry_accepted <+ location.sample(&accepted);
+                self.override_column_width <+ entry_frp.override_column_width.map2(
+                    &column,
+                    |width, col| (*col, *width)
+                );
             }
             init.emit(());
         }
