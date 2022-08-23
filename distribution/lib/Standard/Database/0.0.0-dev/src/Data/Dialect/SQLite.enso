@@ -14,7 +14,7 @@ from Standard.Database.Error import Unsupported_Database_Operation_Error
    The dialect of SQLite databases.
 sqlite : Dialect
 sqlite =
-    SQLite_Dialect make_internal_generator_dialect
+    SQLite_Dialect_Data make_internal_generator_dialect
 
 ## PRIVATE
 
@@ -23,7 +23,7 @@ type SQLite_Dialect
     ## PRIVATE
 
        The dialect of SQLite databases.
-    type SQLite_Dialect internal_generator_dialect
+    SQLite_Dialect_Data internal_generator_dialect
 
     ## PRIVATE
        Name of the dialect.
@@ -59,7 +59,7 @@ type SQLite_Dialect
                         IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
                     True ->
                         IR.Order_Descriptor internal_column.expression sort_direction collation="BINARY"
-                    Case_Insensitive locale -> case locale == Locale.default of
+                    Case_Insensitive_Data locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
                         True ->

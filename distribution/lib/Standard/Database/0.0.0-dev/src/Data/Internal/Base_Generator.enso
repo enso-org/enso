@@ -24,7 +24,7 @@ type Internal_Dialect
 
        # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
        #                       (identifier_wrapper : Text -> Sql.Builder)
-    type Internal_Dialect operation_map wrap_identifier
+    Internal_Dialect_Data operation_map wrap_identifier
 
     ## PRIVATE
 
@@ -35,7 +35,7 @@ type Internal_Dialect
     extend_with : Vector Any -> Internal_Dialect
     extend_with self mappings =
         new_map = mappings.fold self.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect new_map self.wrap_identifier
+        Internal_Dialect_Data new_map self.wrap_identifier
 
 ## PRIVATE
 
@@ -171,7 +171,7 @@ base_dialect =
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
     nulls = [["ISNULL", make_right_unary_op "IS NULL"], ["FILLNULL", make_function "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
-    Internal_Dialect base_map wrap_in_quotes
+    Internal_Dialect_Data base_map wrap_in_quotes
 
 ## PRIVATE
 
@@ -190,7 +190,7 @@ generate_expression dialect expr = case expr of
         op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
-    IR.Order_Descriptor _ _ _ _ -> generate_order dialect expr
+    IR.Order_Descriptor_Data _ _ _ _ -> generate_order dialect expr
 
 ## PRIVATE
 

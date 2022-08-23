@@ -14,9 +14,9 @@ import Standard.Base.System.File.Existing_File_Behavior
 
 import Standard.Table.Data.Aggregate_Column
 import Standard.Table.Internal.Aggregate_Column_Helper
-from Standard.Database.Data.Column import Column, Aggregate_Column_Builder
-from Standard.Database.Data.Internal.IR import Internal_Column
-from Standard.Table.Data.Table import No_Such_Column_Error
+from Standard.Database.Data.Column import Column, Column_Data, Aggregate_Column_Builder
+from Standard.Database.Data.Internal.IR import Internal_Column, Internal_Column_Data
+from Standard.Table.Data.Table import No_Such_Column_Error, No_Such_Column_Error_Data
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
 from Standard.Base.Data.Text.Text_Ordering import Text_Ordering_Data
 from Standard.Table.Data.Data_Formatter import Data_Formatter
@@ -45,7 +45,7 @@ type Table
     # type Table (name : Text) (connection : Connection)
     #            (internal_columns : Vector Internal_Column)
     #            (context : IR.Context)
-    type Table name connection internal_columns context
+    Table_Data name connection internal_columns context
 
     ## UNSTABLE
 
@@ -91,7 +91,7 @@ type Table
     at self name =
         candidates = self.internal_columns + self.context.meta_index
         internal = candidates.find (p -> p.name == name)
-        self.make_column internal . map_error (_ -> No_Such_Column_Error name)
+        self.make_column internal . map_error (_ -> No_Such_Column_Error_Data name)
 
     ## Returns a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -321,7 +321,7 @@ type Table
         Text -> Panic.rethrow (self.at column)
         _ ->
             if Helpers.check_integrity self column then column else
-                Panic.throw (Integrity_Error "Column "+column.name)
+                Panic.throw (Integrity_Error_Data "Column "+column.name)
 
     ## UNSTABLE
 
@@ -342,7 +342,7 @@ type Table
     where self filter =
         case Helpers.check_integrity self filter of
             False ->
-                Error.throw (Integrity_Error "Column "+filter.name)
+                Error.throw (Integrity_Error_Data "Column "+filter.name)
             True ->
                 new_filters = self.context.where_filters + [filter.expression]
                 new_ctx = self.context.set_where_filters new_filters
@@ -544,8 +544,8 @@ type Table
        Icon: join
     join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join self other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = case other of
-        Column _ _ _ _ _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
-        Table _ _ _ _ -> Panic.recover Any <|
+        Column_Data _ _ _ _ _ -> self.join other.to_table on drop_unmatched left_suffix right_suffix
+        Table_Data _ _ _ _ -> Panic.recover Any <|
             Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
             if left_suffix == right_suffix then
                 Panic.throw <| Illegal_State_Error "left_suffix must be different from right_suffix"
@@ -614,7 +614,7 @@ type Table
             new_limit = Nothing
             new_ctx = IR.Context new_from [] [] [] new_index new_limit
 
-            Table new_table_name self.connection new_columns new_ctx
+            Table_Data new_table_name self.connection new_columns new_ctx
 
     ## ALIAS group, summarize
 
@@ -733,7 +733,7 @@ type Table
                 case preprocessed.internal_columns.is_empty of
                     True ->
                         internal_table = Java_Exports.make_table_without_columns self.row_count
-                        Materialized_Table.Table internal_table
+                        Materialized_Table.Table_Data internal_table
                     False ->
                         sql = preprocessed.to_sql
                         expected_types = preprocessed.internal_columns.map .sql_type
@@ -801,7 +801,7 @@ type Table
         # these distinctness assumptions, to avoid this renaming.
         ixes = freshen_columns [internal.name] self.context.meta_index
         new_ctx = self.context.set_index ixes
-        Column internal.name self.connection internal.sql_type internal.expression new_ctx
+        Column_Data internal.name self.connection internal.sql_type internal.expression new_ctx
 
     ## PRIVATE
 
@@ -810,7 +810,7 @@ type Table
        Arguments:
        - columns: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> Table
-    updated_columns self internal_columns = Table self.name self.connection internal_columns self.context
+    updated_columns self internal_columns = Table_Data self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -819,7 +819,7 @@ type Table
        Arguments:
        - ctx: The new context for this table.
     updated_context : Context -> Table
-    updated_context self ctx = Table self.name self.connection self.internal_columns ctx
+    updated_context self ctx = Table_Data self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -829,7 +829,7 @@ type Table
        - ctx: The new context for this table.
        - internal_columns: The new columns to include in the table.
     updated_context_and_columns : Context -> Vector Internal_Column -> Table
-    updated_context_and_columns self ctx internal_columns = Table self.name self.connection internal_columns ctx
+    updated_context_and_columns self ctx internal_columns = Table_Data self.name self.connection internal_columns ctx
 
     ## PRIVATE
 
@@ -933,7 +933,7 @@ type Integrity_Error
        contexts.
 
        To use columns from different tables, you must first join them.
-    type Integrity_Error object_description
+    Integrity_Error_Data object_description
 
     # Return a readable description of this error.
     to_text : Text
@@ -954,8 +954,8 @@ type Integrity_Error
 make_table : Connection -> Text -> Vector -> Table
 make_table connection table_name columns =
     ctx = IR.make_ctx_from table_name
-    cols = columns.map (p -> Internal_Column p.first p.second (IR.Column table_name p.first))
-    Table table_name connection cols ctx
+    cols = columns.map (p -> Internal_Column_Data p.first p.second (IR.Column table_name p.first))
+    Table_Data table_name connection cols ctx
 
 ## PRIVATE
 

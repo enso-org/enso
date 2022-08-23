@@ -9,9 +9,9 @@ import project.Delimited_Write_Spec
 import project.Excel_Spec
 import project.Json_Spec
 import project.Table_Spec
-#import project.Table_Date_Spec
-#import project.Aggregate_Column_Spec
-#import project.Aggregate_Spec
+import project.Table_Date_Spec
+import project.Aggregate_Column_Spec
+import project.Aggregate_Spec
 
 in_memory_spec =
     Column_Spec.spec
@@ -21,8 +21,8 @@ in_memory_spec =
     Excel_Spec.spec
     Json_Spec.spec
     Table_Spec.spec
-    #Table_Date_Spec.spec
-    #Aggregate_Column_Spec.spec
-    #Aggregate_Spec.spec
+    Table_Date_Spec.spec
+    Aggregate_Column_Spec.spec
+    Aggregate_Spec.spec
 
 main = Test.Suite.run_main in_memory_spec

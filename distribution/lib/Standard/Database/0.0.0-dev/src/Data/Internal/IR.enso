@@ -17,7 +17,7 @@ type Expression
          originates from, it corresponds to the `alias` field in `from_spec`.
        - name: the name of the column directly in the table or its alias in a
          sub-query.
-    type Column (origin : Text) (name : Text)
+    Column (origin : Text) (name : Text)
 
     ## PRIVATE
 
@@ -29,7 +29,7 @@ type Expression
          It is usually inferred from the expression's context.
        - value: the value to be interpolated; it should be a simple Number, Text
          or other types that are serializable for JDBC.
-    type Constant (sql_type : Sql.Sql_Type) (value : Any)
+    Constant (sql_type : Sql.Sql_Type) (value : Any)
 
     ## PRIVATE
 
@@ -42,7 +42,7 @@ type Expression
          dialect.
        - expressions: a list of expressions which are arguments to the operation
          different operations support different amounts of arguments.
-    type Operation (kind : Text) (expressions : Vector Expression)
+    Operation (kind : Text) (expressions : Vector Expression)
 
 type Internal_Column
     ## PRIVATE
@@ -53,7 +53,7 @@ type Internal_Column
        - name: The column name.
        - sql_type: The SQL type of the column.
        - expression: An expression for applying to the column.
-    type Internal_Column name sql_type expression
+    Internal_Column_Data name sql_type expression
 
     ## PRIVATE
 
@@ -62,7 +62,7 @@ type Internal_Column
        Arguments:
        - new_name: The new name for the column.
     rename : Text -> Internal_Column
-    rename self new_name = Internal_Column new_name self.sql_type self.expression
+    rename self new_name = Internal_Column_Data new_name self.sql_type self.expression
 
 ## PRIVATE
 
@@ -91,7 +91,7 @@ type Context
        - meta_index: a list of internal columns to use for joining or grouping.
        - limit: an optional maximum number of elements that the equery should
          return.
-    type Context (from_spec : From_Spec) (where_filters : Vector Expression) (orders : Vector Order_Descriptor) (groups : Vector Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
+    Context_Data (from_spec : From_Spec) (where_filters : Vector Expression) (orders : Vector Order_Descriptor) (groups : Vector Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
 
     ## PRIVATE
 
@@ -101,7 +101,7 @@ type Context
        - new_index: The new index to set in the query.
     set_index : Vector Internal_Column -> Context
     set_index self new_index =
-        Context self.from_spec self.where_filters self.orders self.groups new_index self.limit
+        Context_Data self.from_spec self.where_filters self.orders self.groups new_index self.limit
 
     ## PRIVATE
 
@@ -111,7 +111,7 @@ type Context
        - new_filters: The new filters to set in the query.
     set_where_filters : Vector Expression -> Context
     set_where_filters self new_filters =
-        Context self.from_spec new_filters self.orders self.groups self.meta_index self.limit
+        Context_Data self.from_spec new_filters self.orders self.groups self.meta_index self.limit
 
     ## PRIVATE
 
@@ -121,7 +121,7 @@ type Context
        - new_orders: The new ordering clauses to set in the query.
     set_orders : Vector Order_Descriptor -> Context
     set_orders self new_orders =
-        Context self.from_spec self.where_filters new_orders self.groups self.meta_index self.limit
+        Context_Data self.from_spec self.where_filters new_orders self.groups self.meta_index self.limit
 
     ## PRIVATE
 
@@ -138,7 +138,7 @@ type Context
        - new_orders: The new ordering clauses to add to the query.
     add_orders : Vector Order_Descriptor -> Context
     add_orders self new_orders =
-        Context self.from_spec self.where_filters new_orders+self.orders self.groups self.meta_index self.limit
+        Context_Data self.from_spec self.where_filters new_orders+self.orders self.groups self.meta_index self.limit
 
     ## PRIVATE
 
@@ -148,7 +148,7 @@ type Context
        - new_groups: The new grouping clauses to set in the query.
     set_groups : Vector Expression -> Context
     set_groups self new_groups =
-        Context self.from_spec self.where_filters self.orders new_groups self.meta_index self.limit
+        Context_Data self.from_spec self.where_filters self.orders new_groups self.meta_index self.limit
 
     ## PRIVATE
 
@@ -158,7 +158,7 @@ type Context
        - new_limit: The new limit clauses to set in the query.
     set_limit : (Nothing | Integer) -> Context
     set_limit self new_limit =
-       Context self.from_spec self.where_filters self.orders self.groups self.meta_index new_limit
+       Context_Data self.from_spec self.where_filters self.orders self.groups self.meta_index new_limit
 
     ## PRIVATE
 
@@ -179,7 +179,7 @@ type Context
     as_subquery self alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
-            Internal_Column column.name column.sql_type (IR.Column alias column.name)
+            Internal_Column_Data column.name column.sql_type (IR.Column alias column.name)
 
         new_columns = column_lists.map columns->
             columns.map rewrite_internal_column
@@ -206,7 +206,7 @@ type From_Spec
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
          the same table.
-    type From_Table (table_name : Text) (alias : Text)
+    From_Table (table_name : Text) (alias : Text)
 
     ## PRIVATE
 
@@ -219,7 +219,7 @@ type From_Spec
        - on: a list of expressions that will be used as join conditions, these
          are usually be equalities between expressions from the left and right
          sources.
-    type Join (kind : Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector Expression)
+    Join (kind : Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector Expression)
 
     ## PRIVATE
 
@@ -232,7 +232,7 @@ type From_Spec
        - context: the context for the sub-query.
        - alias: the name upon which the results of this sub-query can be
          referred to in other parts of the query.
-    type Sub_Query (columns : Vector (Pair Text Expression)) (context : Context) (alias : Text)
+    Sub_Query (columns : Vector (Pair Text Expression)) (context : Context) (alias : Text)
 
 ## PRIVATE
 
@@ -244,7 +244,7 @@ type Join_Kind
 
        The result will contain only rows that had a match in both left and right
        source.
-    type Join_Inner
+    Join_Inner
 
     ## PRIVATE
 
@@ -255,7 +255,7 @@ type Join_Kind
        the left source has no match on the right, it will be present exactly
        once in the result and the fields corresponding to the right source will
        be set to NULL.
-    type Join_Left
+    Join_Left
 
     ## PRIVATE
 
@@ -266,7 +266,7 @@ type Join_Kind
        the right source has no match on the left, it will be present exactly
        once in the result and the fields corresponding to the left source will
        be set to NULL.
-    type Join_Right
+    Join_Right
 
     ## PRIVATE
 
@@ -275,10 +275,11 @@ type Join_Kind
        The result will contain a cross product of rows from the left source with
        the right source. Its `on` list should be empty, instead `where_filters`
        in the query can be used to filter the results.
-    type Join_Cross
+    Join_Cross
 
 ## PRIVATE
-type Order_Descriptor (expression : Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
+type Order_Descriptor
+    Order_Descriptor_Data (expression : Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
 
 ## PRIVATE
 
@@ -288,12 +289,12 @@ type Nulls_Order
     ## PRIVATE
 
        Null values are included before any other values in the ordering.
-    type Nulls_First
+    Nulls_First
 
     ## PRIVATE
 
        Null values are included after all other values in the ordering.
-    type Nulls_Last
+    Nulls_Last
 
 ## PRIVATE
 
@@ -309,7 +310,7 @@ type Query
          is a pair whose first element is the name of the materialized column
          and the second element is the expression to compute.
        - context: The query context, see `Context` for more detail.
-    type Select (expressions : Vector (Pair Text Expression)) (context : Context)
+    Select (expressions : Vector (Pair Text Expression)) (context : Context)
 
     ## PRIVATE
 
@@ -317,7 +318,7 @@ type Query
 
        Arguments:
        - context: The query context, see `Context` for more detail.
-    type Select_All context
+    Select_All context
 
     ## PRIVATE
 
@@ -326,7 +327,7 @@ type Query
        Arguments:
        - table_name: The name of the table to insert to.
        - pairs: A list of pairs consisting of a column name and and expression.
-    type Insert table_name pairs
+    Insert table_name pairs
 
 ## PRIVATE
 
@@ -337,7 +338,7 @@ type Query
    - table_name: The name of the tanle for which the context is being created.
 make_ctx_from : Text -> Context
 make_ctx_from table_name =
-    Context (From_Table table_name table_name) [] [] [] [] Nothing
+    Context_Data (From_Table table_name table_name) [] [] [] [] Nothing
 
 ## PRIVATE
 
@@ -347,7 +348,7 @@ make_ctx_from table_name =
    - subquery: The subquery to lift into a context.
 subquery_as_ctx : Sub_Query -> Context
 subquery_as_ctx subquery =
-    Context subquery [] [] [] [] Nothing
+    Context_Data subquery [] [] [] [] Nothing
 
 ## PRIVATE
 
@@ -389,5 +390,5 @@ substitute_origin old_origin new_origin expr = case expr of
    - col: The column over which to apply `f`.
 lift_expression_map : (Expression -> Expression) -> Internal_Column -> Internal_Column
 lift_expression_map f col =
-    Internal_Column col.name col.sql_type (f col.expression)
+    Internal_Column_Data col.name col.sql_type (f col.expression)
 
