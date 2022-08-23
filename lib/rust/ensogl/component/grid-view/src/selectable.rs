@@ -233,7 +233,8 @@ mod tests {
 
         for (row, col) in iproduct!(0..2, 0..2) {
             grid_view.select_entry(Some((row, col)));
-            let expected_pos = entry_position(row, col, Vector2(20.0, 20.0));
+            let column_widths = &grid_view.model().column_widths;
+            let expected_pos = entry_position(row, col, Vector2(20.0, 20.0), column_widths);
             assert_eq!(highlight_frp.position.value(), expected_pos);
             assert_eq!(highlight_frp.contour.value(), CONTOUR_VARIANTS[row]);
             assert_eq!(highlight_frp.color.value(), COLOR_VARIANTS[col]);
