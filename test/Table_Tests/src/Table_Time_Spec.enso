@@ -17,14 +17,14 @@ spec =
     c_date = ["Posting date", [Time.new 2015 1 5 9 0, Time.new 2015 1 5 14 0, Time.new 2015 1 6 9 0, Time.new 2015 1 7 17 30, Time.new 2011 1 5 9 0, Time.new 2011 1 9 15 30]]
     expected = Table.new [c_number, c_type, c_date]
 
-    Test.group "File.read (Delimited) should work with DateTimes" <|
+    Test.group "File.read (Delimited) should work with Date_Time" <|
         table = (enso_project.data / "datetime_sample.csv").read
         Test.specify "should be able to read in a table with dates" <|
             table.column_count.should_equal 3
             table.columns.map (.name) . should_equal ['Serial number','Movement type', 'Posting date']
             table.row_count.should_equal 6
 
-        Test.specify "should be able to treat a single value as a Date" <|
+        Test.specify "should be able to treat a single value as a Date_Time" <|
             from_column = table.at 'Posting date'
             from_column.at 5 . year . should_equal 2011
             from_column.at 5 . should_equal (Time.new 2011 1 9 15 30)

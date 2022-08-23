@@ -112,12 +112,10 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
          example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
 parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time.Time_Error
 parse text pattern=Nothing locale=Locale.default =
-    result = Panic.recover Any <| case pattern of
-        Nothing -> Time_Of_Day.parse_builtin text
-        Text    -> Time_Utils.parse_time text pattern locale.java_locale
-    result . map_error <| case _ of
-        Polyglot_Error err -> Time.Time_Error err.getMessage
-        x -> x
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time.Time_Error java_exception.getMessage)) <|
+        case pattern of
+            Nothing -> Time_Of_Day.parse_builtin text
+            Text    -> Time_Utils.parse_time text pattern locale.java_locale
 
 type Time_Of_Day
 
@@ -214,7 +212,7 @@ type Time_Of_Day
              example_plus = Time_Of_Day.new + 3.seconds
     + : Duration -> Time_Of_Day
     + self amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
-        Time_Utils.time_adjust self 1 amount.internal_duration
+        Time_Utils.time_adjust self Time_Utils.AdjustOp.PLUS amount.internal_duration
 
     ## Subtract the  specified amount of time from this instant to get a new
        instant.
@@ -231,7 +229,7 @@ type Time_Of_Day
              example_minus = Time_Of_Day.now - 12.hours
     - : Duration -> Time_Of_Day
     - self amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else
-        Time_Utils.time_adjust self -1 amount.internal_duration
+        Time_Utils.time_adjust self Time_Utils.AdjustOp.MINUS amount.internal_duration
 
     ## Format this time of day as text using the default formatter.
 

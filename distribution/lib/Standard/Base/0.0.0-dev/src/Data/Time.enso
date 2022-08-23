@@ -51,7 +51,7 @@ now = @Builtin_Method "Date_Time.now"
          import Standard.Base.Data.Time.Zone
 
          example_new = Time.new 1986 8 5
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time ! Time_Error
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Date_Time ! Time_Error
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
     Panic.catch_java Any (Date_Time.new_builtin year month day hour minute second nanosecond zone) java_exception->
         Error.throw (Time_Error java_exception.getMessage)
@@ -136,12 +136,10 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond 
             Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
 parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
 parse text pattern=Nothing locale=Locale.default =
-    result = Panic.recover Any <| case pattern of
-        Nothing -> Date_Time.parse_builtin text
-        Text    -> Time_Utils.parse_datetime_format text pattern locale.java_locale
-    result . map_error <| case _ of
-        Polyglot_Error err ->  Time_Error err.getMessage
-        x -> x
+    Panic.catch_java Any handler=(java_exception -> Error.throw (Time.Time_Error java_exception.getMessage)) <|
+        case pattern of
+            Nothing -> Date_Time.parse_builtin text
+            Text    -> Time_Utils.parse_datetime_format text pattern locale.java_locale
 
 type Date_Time
 
@@ -343,7 +341,7 @@ type Date_Time
              example_plus = Time.new 2020 + 15.years + 3.hours
     + : Duration -> Date_Time
     + self amount =
-        Time_Utils.datetime_adjust self 1 amount.internal_period amount.internal_duration
+        Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS amount.internal_period amount.internal_duration
 
     ## Subtract the specified amount of time from this instant to get a new
        instant.
@@ -360,7 +358,7 @@ type Date_Time
              example_minus = Time.new 2020 - 1.year - 9.months
     - : Duration -> Date_Time
     - self amount =
-        Time_Utils.datetime_adjust self -1 amount.internal_period amount.internal_duration
+        Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS amount.internal_period amount.internal_duration
 
     ## Convert this time to text using the default formatter.
 
@@ -372,22 +370,6 @@ type Date_Time
              example_to_text = Time.now.to_text
     to_text : Text
     to_text self = @Builtin_Method "Date_Time.to_text"
-
-    ## Convert this date to a time of day to create a point in time.
-
-       Arguments:
-       - time_of_day: The time to combine with the date to create a date time.
-       - zone: The timezone in which to create the time.
-
-       > Example
-         Convert this date to midnight UTC time.
-
-             import Standard.Base.Data.Time.Time_Of_Day
-             import Standard.Base.Data.Time.Zone
-
-             example_to_time = Time.new 2020 2 3 . to_time Time_Of_Day.new Zone.utc
-    to_time : Time_Of_Day -> Zone -> Date_Time
-    to_time self time_of_day (zone=Zone.system) = self.to_time_builtin time_of_day zone
 
     ## Convert the time to JSON.
 

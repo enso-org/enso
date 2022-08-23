@@ -23,7 +23,6 @@ public class TimeFormatter implements DataFormatter {
       value = v.asTime();
     }
 
-
     if (value instanceof LocalTime date) {
       return date.format(formatter);
     }

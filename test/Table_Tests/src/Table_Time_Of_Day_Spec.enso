@@ -24,7 +24,7 @@ spec =
             table.columns.map (.name) . should_equal ['Serial number','Movement type', 'Posting time']
             table.row_count.should_equal 6
 
-        Test.specify "should be able to treat a single value as a Date" <|
+        Test.specify "should be able to treat a single value as a Time_Of_Days" <|
             from_column = table.at 'Posting time'
             from_column.at 5 . hour . should_equal 15
             from_column.at 5 . minute . should_equal 30

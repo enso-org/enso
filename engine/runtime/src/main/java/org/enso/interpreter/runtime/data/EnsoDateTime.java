@@ -95,42 +95,42 @@ public class EnsoDateTime implements TruffleObject {
             zone.asTimeZone()));
   }
 
-  @Builtin.Method(description = "Gets a value of year")
+  @Builtin.Method(description = "Gets the year")
   public long year() {
     return dateTime.getYear();
   }
 
-  @Builtin.Method(description = "Gets a value month")
+  @Builtin.Method(description = "Gets the month")
   public long month() {
     return dateTime.getMonthValue();
   }
 
-  @Builtin.Method(description = "Gets a value day")
+  @Builtin.Method(description = "Gets the day")
   public long day() {
     return dateTime.getDayOfMonth();
   }
 
-  @Builtin.Method(description = "Gets a value of hour")
+  @Builtin.Method(description = "Gets the hour")
   public long hour() {
     return dateTime.getHour();
   }
 
-  @Builtin.Method(description = "Gets a value minute")
+  @Builtin.Method(description = "Gets the minute")
   public long minute() {
     return dateTime.getMinute();
   }
 
-  @Builtin.Method(description = "Gets a value second")
+  @Builtin.Method(description = "Gets the second")
   public long second() {
     return dateTime.getSecond();
   }
 
-  @Builtin.Method(description = "Gets a value nanosecond")
+  @Builtin.Method(description = "Gets the nanosecond")
   public long nanosecond() {
     return dateTime.getNano();
   }
 
-  @Builtin.Method(name = "zone", description = "Gets a value zone")
+  @Builtin.Method(name = "zone", description = "Gets the zone")
   public EnsoZone zone() {
     return new EnsoZone(dateTime.getZone());
   }
@@ -159,7 +159,7 @@ public class EnsoDateTime implements TruffleObject {
     return new EnsoDate(dateTime.toLocalDate());
   }
 
-  @Builtin.Method(description = "Return this datetime to the datetime in the provided time zone.")
+  @Builtin.Method(description = "Return this datetime in the provided time zone.")
   public EnsoDateTime atZone(EnsoZone zone) {
     return new EnsoDateTime(dateTime.withZoneSameInstant(zone.asTimeZone()));
   }

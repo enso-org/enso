@@ -35,6 +35,11 @@ public class Time_Utils {
             .toFormatter();
   }
 
+  public enum AdjustOp {
+    PLUS,
+    MINUS
+  }
+
   /** @return default Time formatter. */
   public static DateTimeFormatter default_time_formatter() {
     return DateTimeFormatter.ISO_ZONED_DATE_TIME;
@@ -58,17 +63,38 @@ public class Time_Utils {
     return date.atTime(time).atZone(zone);
   }
 
-  public static LocalDate date_adjust(LocalDate date, long add, Period duration) {
-    return add == 1 ? date.plus(duration) : date.minus(duration);
+  public static LocalDate date_adjust(LocalDate date, AdjustOp op, Period duration) {
+    switch (op) {
+      case PLUS:
+        return date.plus(duration);
+      case MINUS:
+        return date.minus(duration);
+      default:
+        throw new DateTimeException("Unknown adjust operation");
+    }
   }
 
   public static ZonedDateTime datetime_adjust(
-      ZonedDateTime datetime, long add, Period period, Duration duration) {
-    return add == 1 ? datetime.plus(period).plus(duration) : datetime.minus(period).minus(duration);
+      ZonedDateTime datetime, AdjustOp op, Period period, Duration duration) {
+    switch (op) {
+      case PLUS:
+        return datetime.plus(period).plus(duration);
+      case MINUS:
+        return datetime.minus(period).minus(duration);
+      default:
+        throw new DateTimeException("Unknown adjust operation");
+    }
   }
 
-  public static LocalTime time_adjust(LocalTime time, long add, Duration duration) {
-    return add == 1 ? time.plus(duration) : time.minus(duration);
+  public static LocalTime time_adjust(LocalTime time, AdjustOp op, Duration duration) {
+    switch (op) {
+      case PLUS:
+        return time.plus(duration);
+      case MINUS:
+        return time.minus(duration);
+      default:
+        throw new DateTimeException("Unknown adjust operation");
+    }
   }
 
   public static long week_of_year_localdate(LocalDate date, Locale locale) {
