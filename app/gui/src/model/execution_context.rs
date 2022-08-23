@@ -7,6 +7,7 @@ use crate::model::suggestion_database::entry as suggestion;
 use crate::notification::Publisher;
 
 use double_representation::project;
+use double_representation::tp;
 use engine_protocol::language_server;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
@@ -226,7 +227,7 @@ pub struct QualifiedMethodPointer {
     /// A module name containing the method.
     pub module:          module::QualifiedName,
     /// A type on which the method is defined.
-    pub defined_on_type: module::QualifiedName,
+    pub defined_on_type: tp::QualifiedName,
     /// A method name.
     pub name:            String,
 }
@@ -234,7 +235,7 @@ pub struct QualifiedMethodPointer {
 impl QualifiedMethodPointer {
     /// Create a method pointer representing a module method.
     pub fn module_method(module: module::QualifiedName, name: String) -> QualifiedMethodPointer {
-        QualifiedMethodPointer { module: module.clone(), defined_on_type: module, name }
+        QualifiedMethodPointer { module: module.clone(), defined_on_type: module.into(), name }
     }
     /// Tries to create a new method pointer from string components.
     pub fn from_unqualified(

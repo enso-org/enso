@@ -501,6 +501,7 @@ mod tests {
     use super::*;
 
     use crate::model::module;
+
     use futures::future::ready;
     use ide_view::graph_editor::component::visualization::instance::PreprocessorConfiguration;
     use std::assert_matches::assert_matches;
@@ -557,7 +558,7 @@ mod tests {
             let qualified_module = inner.project.qualified_module_name(inner.module.path());
             let method_pointer = QualifiedMethodPointer {
                 module:          qualified_module.clone(),
-                defined_on_type: qualified_module,
+                defined_on_type: qualified_module.into(),
                 name:            "faux".to_string(),
             };
             let faux_vis =
