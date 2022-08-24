@@ -84,7 +84,7 @@ type Array
              [1, 2, 3, 4].to_array.to_default_visualization_data
     to_default_visualization_data : Text
     to_default_visualization_data self =
-        Vector.Vector self . to_default_visualization_data
+        Vector.from_array self . to_default_visualization_data
 
 ## Creates an array with length 0.
 

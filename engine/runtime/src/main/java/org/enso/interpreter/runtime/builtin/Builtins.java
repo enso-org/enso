@@ -8,7 +8,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.enso.compiler.Passes;
@@ -25,6 +29,7 @@ import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
+import org.enso.interpreter.node.expression.builtin.immutable.Vector;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.Context;
@@ -69,6 +74,7 @@ public class Builtins {
   private final BuiltinAtomConstructor polyglot;
   private final BuiltinAtomConstructor text;
   private final BuiltinAtomConstructor array;
+  private final BuiltinAtomConstructor vector;
   private final BuiltinAtomConstructor dataflowError;
   private final BuiltinAtomConstructor ref;
   private final BuiltinAtomConstructor managedResource;
@@ -107,6 +113,7 @@ public class Builtins {
     polyglot = new BuiltinAtomConstructor(this, Polyglot.class);
     text = new BuiltinAtomConstructor(this, Text.class);
     array = new BuiltinAtomConstructor(this, Array.class);
+    vector = new BuiltinAtomConstructor(this, Vector.class);
     dataflowError =
         new BuiltinAtomConstructor(this, org.enso.interpreter.node.expression.builtin.Error.class);
     ref = new BuiltinAtomConstructor(this, Ref.class);
@@ -453,6 +460,11 @@ public class Builtins {
   /** @return the Array constructor. */
   public AtomConstructor array() {
     return array.constructor();
+  }
+
+  /** @return the Array constructor. */
+  public AtomConstructor vector() {
+    return vector.constructor();
   }
 
   /** @return the Ref constructor. */

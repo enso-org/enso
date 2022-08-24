@@ -45,8 +45,8 @@ case object VectorLiterals extends IRPass {
       BindingAnalysis,
       "no bindings analysis on the current module"
     )
-    val vec = vectorCons(bindings)
-    ir.mapExpressions(doExpression(_, vec))
+    val vecModule = vectorModule(bindings)
+    ir.mapExpressions(doExpression(_, vecModule))
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -66,8 +66,8 @@ case object VectorLiterals extends IRPass {
       BindingAnalysis,
       "no bindings analysis on the current module"
     )
-    val vec = vectorCons(bindings)
-    doExpression(ir, vec)
+    val vecModule = vectorModule(bindings)
+    doExpression(ir, vecModule)
   }
 
   /** @inheritdoc */
@@ -76,7 +76,10 @@ case object VectorLiterals extends IRPass {
     copyOfIr: T
   ): T = copyOfIr
 
-  private def vectorCons(bindings: BindingsMap): IR.Expression = {
+  private def vectorModule(bindings: BindingsMap): IR.Expression = {
+    val modName =
+      IR.Name.Literal(name = "Vector", isMethod = false, location = None)
+
     val modules: List[Module] = bindings.resolvedImports.flatMap { imp =>
       val module = imp.module.unsafeAsModule()
       module :: module.getIr
@@ -88,38 +91,39 @@ case object VectorLiterals extends IRPass {
         .map { export => export.module.unsafeAsModule() }
     }
     val module = modules.find(_.getName.toString == vectorModuleName)
-    val name = IR.Name.Literal(
-      "<Sequence Macro>",
-      isMethod = false,
-      None
-    )
     module
       .map { module =>
-        val withRes = name.updateMetadata(
+        val withRes = modName.updateMetadata(
           GlobalNames -->> BindingsMap.Resolution(
             BindingsMap
-              .ResolvedConstructor(
-                ModuleReference.Concrete(module),
-                BindingsMap.Cons("Vector", 1, allFieldsDefaulted = false)
-              )
+              .ResolvedModule(ModuleReference.Concrete(module))
           )
         )
         withRes
       }
       .getOrElse {
-        IR.Error.Resolution(name, IR.Error.Resolution.UnresolvedSequenceMacro)
+        IR.Error.Resolution(
+          modName,
+          IR.Error.Resolution.UnresolvedSequenceMacro
+        )
       }
   }
 
   private def doExpression(
     ir: IR.Expression,
-    vec: IR.Expression
+    vecModule: IR.Expression
   ): IR.Expression =
     ir.transformExpressions { case seq: IR.Application.Literal.Sequence =>
-      val trans = seq.mapExpressions(doExpression(_, vec))
+      val trans = seq.mapExpressions(doExpression(_, vecModule))
+      val fromArrayVector = IR.Name.Literal(
+        "from_array",
+        isMethod = true,
+        None
+      )
       IR.Application.Prefix(
-        vec.duplicate(),
+        fromArrayVector,
         List(
+          IR.CallArgument.Specified(None, vecModule.duplicate(), None),
           IR.CallArgument
             .Specified(None, trans.copy(location = None), None)
         ),

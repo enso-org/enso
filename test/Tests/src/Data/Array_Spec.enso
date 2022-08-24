@@ -9,7 +9,7 @@ spec = Test.group "Arrays" <|
         arr = Vector.fill 1000 0 . to_array
         text = arr.to_default_visualization_data
         json = Json.parse text
-        as_vec = json.into (Vector.Vector Number)
+        as_vec = json.into (Vector.of Number)
         as_vec.should_equal <| Vector.fill 100 0
 
     Test.specify "should allow accessing elements" <|
