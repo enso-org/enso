@@ -15,6 +15,13 @@ use ensogl_core::display::scene::Layer;
 use ensogl_core::display::Attribute;
 
 
+// ==============
+// === Export ===
+// ==============
+
+pub mod visible;
+
+
 
 // ===============
 // === Contour ===
@@ -52,10 +59,11 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
     Output {
         /// Disabled entries does not react for mouse events, and cannot be selected.
         disabled(bool),
-        /// Entry's contour. Defines what part of the entry will react for mouse events, and also
-        /// defines the shape of the selection/hover highlight (in case of
-        /// [selectable](crate::selectable) grid views.).
+        /// Entry's contour. Defines what part of the entry will react for mouse events.
         contour(Contour),
+        /// In [selectable](crate::selectable) grid views, this defines the shape of the
+        /// selection/hover highlight in case when this entry is selected.
+        highlight_contour(Contour),
         /// Override column's width. If multiple entries from the same column emit this event,
         /// only the last one is applied. See [`crate::GridView`] documentation for more details.
         override_column_width(f32),

@@ -30,6 +30,8 @@ use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_grid_view as grid_view;
+use ensogl_grid_view::Col;
+use ensogl_grid_view::Row;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf_sys::run_once_initialized;
 
@@ -52,19 +54,31 @@ pub fn main() {
     });
 }
 
+fn entry_model(row: Row, col: Col) -> grid_view::simple::EntryModel {
+    grid_view::simple::EntryModel {
+        text:           format!("Entry ({row}, {col})").into(),
+        disabled:       Immutable(row == col),
+        override_width: Immutable(if col == 1 && row == 5 { Some(180.0) } else { None }),
+    }
+}
 
-fn setup_grid_view(app: &Application) -> grid_view::simple::SimpleScrollableSelectableGridView {
-    let view = grid_view::simple::SimpleScrollableSelectableGridView::new(app);
+fn setup_grid_view(
+    app: &Application,
+) -> grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders {
+    let view = grid_view::simple::SimpleScrollableSelectableGridViewWithHeaders::new(app);
+    let header_frp = view.header_frp();
     frp::new_network! { network
-        requested_entry <- view.model_for_entry_needed.map(|(row, col)| {
-            let model = grid_view::simple::EntryModel {
-                text:     format!("Entry ({row}, {col})").into(),
-                disabled: Immutable(row == col),
-                override_width: Immutable(if *col == 1 && *row == 5 { Some(180.0) } else { None }),
-            };
-            (*row, *col, model)
+        requested_entry <-
+            view.model_for_entry_needed.map(|&(row, col)| (row, col, entry_model(row, col)));
+        requested_section <- header_frp.section_info_needed.map(|&(row, col)| {
+            let sections_size = 2 + col;
+            let section_start = row - (row % sections_size);
+            let section_end = section_start + sections_size;
+            let model = entry_model(section_start, col);
+            (section_start..section_end, col, model)
         });
         view.model_for_entry <+ requested_entry;
+        header_frp.section_info <+ requested_section;
         entry_hovered <- view.entry_hovered.filter_map(|l| *l);
         entry_selected <- view.entry_selected.filter_map(|l| *l);
         eval entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
@@ -75,6 +89,8 @@ fn setup_grid_view(app: &Application) -> grid_view::simple::SimpleScrollableSele
     let params = grid_view::simple::EntryParams {
         bg_color: color::Rgba(0.8, 0.8, 0.9, 1.0),
         bg_margin: 1.0,
+        hover_color: color::Rgba(0.0, 1.0, 0.0, 1.0),
+        selection_color: color::Rgba(1.0, 0.0, 0.0, 1.0),
         ..default()
     };
     view.set_entries_params(params);
