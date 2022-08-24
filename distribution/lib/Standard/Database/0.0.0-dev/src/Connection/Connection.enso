@@ -61,8 +61,8 @@ type Connection
        Arguments:
         - database: The name of the database to connect to.
         - parent: The parent connection.
-    set_database : Text -> Connection ! Sql_Error
-    set_database self database parent =
+    set_database : Text -> Connection -> Connection ! Sql_Error
+    set_database self database parent=self =
         if database == self.database then parent else
             Sql_Error.throw_sql_error "Changing database is not supported."
 
@@ -75,15 +75,15 @@ type Connection
     ## Returns the name of the current schema.
     schema : Text
     schema self =
-        self.jdbc_connection.with_connection connection->connection.getSchema
+        self.jdbc_connection.with_connection .getSchema
 
     ## Returns a new Connection with the specified schema set as default.
 
        Arguments:
         - schema: The name of the schema to connect to.
         - parent: The parent connection.
-    set_schema : Text -> Connection ! Sql_Error
-    set_schema self schema parent =
+    set_schema : Text -> Connection -> Connection ! Sql_Error
+    set_schema self schema parent=self =
         if schema == self.schema then parent else
             Sql_Error.throw_sql_error "Changing schema is not supported."
 
@@ -93,10 +93,11 @@ type Connection
         self.jdbc_connection.with_metadata metadata->
             read_column metadata.getTableTypes "TABLE_TYPE"
 
-    ## Returns a materialised Table of all the matching views and tables.
+    ## Returns a materialized Table of all the matching views and tables.
 
        Arguments:
-       - name_like: The table name pattern to search for. Support SQL wildcards (`%`, `_`).
+       - name_like: The table name pattern to search for. Supports SQL wildcards (`%`, `_`). Defaults to `Nothing` which
+         means all tables are selected.
        - database: The database name to search in (default is current database).
        - schema: The schema name to search in (defaults to current schema).
        - types: The table types to search for.
