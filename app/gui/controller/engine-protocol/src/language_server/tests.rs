@@ -424,12 +424,18 @@ fn test_execution_context() {
     );
     let visualisation_id = uuid::Uuid::default();
     let expression_id = uuid::Uuid::default();
-    let expression = "1 + 1".to_string();
-    let visualisation_module = "[Foo.Bar.Baz]".to_string();
+    let visualization_function = "foo";
+    let visualization_module = "[Foo.Bar.Baz]";
+    let expression = MethodPointer {
+        module:          visualization_module.to_string(),
+        defined_on_type: visualization_module.to_string(),
+        name:            visualization_function.to_string(),
+    };
+    let positional_arguments_expressions = vec![];
     let visualisation_config = VisualisationConfiguration {
         execution_context_id: context_id,
         expression,
-        visualisation_module,
+        positional_arguments_expressions,
     };
     test_request(
         |client| {
@@ -459,12 +465,18 @@ fn test_execution_context() {
         unit_json.clone(),
         (),
     );
-    let expression = "1 + 1".to_string();
-    let visualisation_module = "[Foo.Bar.Baz]".to_string();
+    let visualization_function = "foo";
+    let visualization_module = "[Foo.Bar.Baz]";
+    let expression = MethodPointer {
+        module:          visualization_module.to_string(),
+        defined_on_type: visualization_module.to_string(),
+        name:            visualization_function.to_string(),
+    };
+    let positional_arguments_expressions = vec![];
     let visualisation_config = VisualisationConfiguration {
         execution_context_id: context_id,
         expression,
-        visualisation_module,
+        positional_arguments_expressions,
     };
     test_request(
         |client| client.modify_visualisation(&visualisation_id, &visualisation_config),

@@ -121,9 +121,9 @@ export class Visualization {
      */
     setPreprocessor(module, method, ...args) {
         if (
-          module !== this.__preprocessorModule__ ||
-          method !== this.__preprocessorMethod__ ||
-          args !== this.__preprocessorArguments__
+            module !== this.__preprocessorModule__ ||
+            method !== this.__preprocessorMethod__ ||
+            args !== this.__preprocessorArguments__
         ) {
             this.__preprocessorModule__ = module
             this.__preprocessorMethod__ = method

@@ -75,6 +75,7 @@ pub enum Notification {
 
 /// Describes the state of the visualization on the Language Server.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant)]
 pub enum Status {
     /// Not attached and no ongoing background work.
     NotAttached,
@@ -333,8 +334,7 @@ impl Manager {
             &preprocessor_module,
             &preprocessor_method,
         )?;
-        let arguments =
-            desired.metadata.preprocessor.arguments.deref().into_iter().map_into().collect();
+        let arguments = desired.metadata.preprocessor.arguments.deref().iter().map_into().collect();
         Ok(Visualization {
             id: desired.visualization_id,
             expression_id: desired.expression_id,

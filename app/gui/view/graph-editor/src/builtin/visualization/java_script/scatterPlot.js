@@ -69,11 +69,7 @@ class ScatterPlot extends Visualization {
             args.push('Nothing')
         }
         args.push(this.limit.toString())
-        this.setPreprocessor(
-            'Standard.Visualization.Scatter_Plot',
-            'process_to_json_text',
-            ...args
-        )
+        this.setPreprocessor('Standard.Visualization.Scatter_Plot', 'process_to_json_text', ...args)
     }
 
     /**
