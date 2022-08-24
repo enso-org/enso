@@ -1,10 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Data.Text.Line_Ending_Style
 
 import Standard.Table
-import Standard.Table.Data.Column
-import Standard.Table.IO.File_Format
-from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+from Standard.Table import Column, File_Format, Data_Formatter
 
 import Standard.Test
 

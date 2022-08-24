@@ -1,12 +1,11 @@
 from Standard.Base import all
-
+import Standard.Base.Data.Ordering.Comparator
+from Standard.Base.Error.Problem_Behavior import Report_Warning
 import Standard.Base.System.Platform
-import Standard.Table.Data.Column
-import Standard.Visualization
-import Standard.Table.IO.File_Format
-import Standard.Base.System.File
-import Standard.Base.System.File.Existing_File_Behavior
 import Standard.Base.Error.Common as Errors
+
+import Standard.Table.Data.Column
+import Standard.Table.IO.File_Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
@@ -17,8 +16,6 @@ import Standard.Table.Internal.Problem_Builder
 from Standard.Table.Data.Column_Selector import Column_Selector, By_Index
 from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter import Data_Formatter
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error
 import Standard.Table.Data.Match_Columns
 
@@ -28,7 +25,7 @@ import Standard.Table.Data.Sort_Column_Selector
 import Standard.Table.Data.Sort_Column
 
 import Standard.Table.Data.Aggregate_Column
-import Standard.Base.Data.Ordering.Comparator
+import Standard.Visualization
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -156,7 +153,7 @@ type Table
              example_display = Examples.inventory_table.display
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        cols = Vector.Vector self.java_table.getColumns
+        cols = Vector.from_polyglot_array self.java_table.getColumns
         index =  self.java_table.getIndex
         col_names = [index.getName] + cols.map .getName
         col_vals = cols.map .getStorage
@@ -713,7 +710,7 @@ type Table
                 storage = column.java_column.getStorage
                 new_storage_and_problems = parser.parseColumn column.name storage
                 new_storage = new_storage_and_problems.value
-                problems = Vector.Vector new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
+                problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
                 problems.each problem_builder.append
                 Column.Column (Java_Column.new column.name column.java_column.getIndex new_storage)
 
@@ -785,7 +782,7 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns self = Vector.Vector self.java_table.getColumns . map Column.Column
+    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column
 
     ## Sets the index of this table, using the column with the provided name.
 

@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Error.Problem_Behavior import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Problem_Behavior import Report_Warning
 
 import Standard.Table.IO.File_Format
 
@@ -40,7 +40,6 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
      Read the first sheet of an XLSX from disk and convert it into a table.
 
          import Standard.Table
-         import Standard.Table.IO.File_Read
          import Standard.Examples
 
          example_xlsx_to_table = Examples.xlsx.read
@@ -49,7 +48,6 @@ File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
      Read the sheet named `Dates` from an XLS and convert it to a table.
 
          import Standard.Table
-         import Standard.Table.IO.File_Read
          from Standard.Table.IO.File_Format import Excel
          from Standard.Table.IO.Excel import Excel_Section
          import Standard.Examples

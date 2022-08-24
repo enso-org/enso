@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Table
-import Standard.Table.Data.Column_Selector
+import Standard.Table
+from Standard.Table import Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
 
 import Standard.Test.Bench

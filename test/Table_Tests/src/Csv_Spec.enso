@@ -1,9 +1,8 @@
 from Standard.Base import all
 
 import Standard.Table
-import Standard.Table.Data.Column
+from Standard.Table import Column, File_Format
 from Standard.Table.Data.Column_Selector import By_Index
-import Standard.Table.IO.File_Format
 
 import Standard.Test
 

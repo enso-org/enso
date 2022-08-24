@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Vector
-
 ## Create Form data from Parts.
 
    Arguments:

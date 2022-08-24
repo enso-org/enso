@@ -1,16 +1,15 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Column_Selector as Column_Selector_Module import By_Name
-import Standard.Table.Data.Sort_Column_Selector
-import Standard.Table.Data.Sort_Column
+from Standard.Table import Sort_Column, Sort_Column_Selector
+from Standard.Table.Data.Column_Selector import By_Name
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Errors as Table_Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column_Error
+from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column_Error
 
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
-import Standard.Database.Data.Table as Table_Module
-from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
+from Standard.Database.Data.Table import combine_names, fresh_names
+from Standard.Database.Error import Unsupported_Database_Operation_Error
 
 import Standard.Test
 import Standard.Test.Problems
@@ -177,15 +176,15 @@ spec =
         Test.specify "combine_names should combine lists of names" <|
             v1 = ["A", "B"]
             v2 = ["A", "C"]
-            combined = Table_Module.combine_names v1 v2 "_1" "_2"
+            combined = combine_names v1 v2 "_1" "_2"
             combined.first . should_equal ["A_1", "B"]
             combined.second . should_equal ["A_2", "C"]
 
-            Test.expect_panic_with (Table_Module.combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State_Error
+            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State_Error
         Test.specify "fresh_names should provide fresh names" <|
             used_names = ["A", "A_1"]
             preferred_names = ["A", "A", "B"]
-            Table_Module.fresh_names used_names preferred_names . should_equal ["A_2", "A_3", "B"]
+            fresh_names used_names preferred_names . should_equal ["A_2", "A_3", "B"]
 
     Test.group "[Codegen] Aggregation" <|
         Test.specify "should allow to count rows" <|

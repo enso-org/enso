@@ -29,12 +29,12 @@ type Unique_Name_Strategy
 
     ## Vector of any duplicates renamed
     renames : Vector
-    renames self = Vector.Vector self.deduplicator.getDuplicatedNames
+    renames self = Vector.from_polyglot_array self.deduplicator.getDuplicatedNames
 
 
     ## Vector of any invalid names
     invalid_names : Vector
-    invalid_names self = Vector.Vector self.deduplicator.getInvalidNames
+    invalid_names self = Vector.from_polyglot_array self.deduplicator.getInvalidNames
 
 
     ## Takes a value and converts to a valid (but not necessarily unique) name

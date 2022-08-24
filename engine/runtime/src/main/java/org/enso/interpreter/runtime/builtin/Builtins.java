@@ -316,8 +316,12 @@ public class Builtins {
    */
   public Optional<Function> getBuiltinFunction(
       AtomConstructor atom, String methodName, Language language) {
-    // TODO: move away from String mapping once Builtins is gone
-    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(atom.getName());
+    return getBuiltinFunction(atom.getName(), methodName, language);
+  }
+
+  public Optional<Function> getBuiltinFunction(
+      String methodOwner, String methodName, Language language) {
+    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(methodOwner);
     if (atomNodes == null) return Optional.empty();
     Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
     if (clazz == null) return Optional.empty();

@@ -2,9 +2,9 @@ from Standard.Base import all
 
 from Standard.Base.Data.Time import Time
 from Standard.Base.Data.Time.Time_Of_Day import Time_Of_Day
-from Standard.Table.Data.Column_Type_Selection import Auto
 import Standard.Base.Error.Common as Errors
-import Standard.Base.Error.Problem_Behavior
+
+from Standard.Table.Data.Column_Type_Selection import Auto
 import Standard.Table.Data.Storage
 import Standard.Table.Internal.Parse_Values_Helper
 
@@ -73,7 +73,7 @@ type Data_Formatter
             Auto -> self.make_auto_parser
             _ -> self.make_datatype_parser datatype
         result = parser.parseIndependentValue text
-        problems = Vector.Vector result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
+        problems = Vector.from_polyglot_array result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
         on_problems.attach_problems_after result.value problems
 
     ## Format a value into a Text.
