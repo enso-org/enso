@@ -15,10 +15,6 @@ use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
-use ensogl_text_embedded_fonts::NonVariableFaceHeader;
-use ensogl_text_embedded_fonts::Style;
-use ensogl_text_embedded_fonts::Weight;
-use ensogl_text_embedded_fonts::Width;
 use font::Font;
 use font::GlyphRenderInfo;
 use owned_ttf_parser::GlyphId;
@@ -48,7 +44,7 @@ pub struct GlyphData {
     pub sprite:      Sprite,
     pub context:     Context,
     pub font:        Font,
-    pub properties:  Cell<NonVariableFaceHeader>,
+    pub properties:  Cell<font::family::NonVariableFaceHeader>,
     pub variations:  RefCell<VariationAxes>,
     pub font_size:   Attribute<f32>,
     pub color:       Attribute<Vector4<f32>>,
@@ -65,7 +61,7 @@ macro_rules! define_prop_setters_and_getters {
         #[doc = "Setter of the glyph `"]
         #[doc = stringify!($prop)]
         #[doc = "` property."]
-        pub fn [<set_ $prop:snake:lower>](&self, value: $prop) {
+        pub fn [<set_ $prop:snake:lower>](&self, value: font::$prop) {
             self.properties.modify(|p| p.[<$prop:snake:lower>] = value);
             self.variations.borrow_mut().[<set_ $prop:snake:lower>](value);
             self.refresh();
@@ -78,7 +74,7 @@ macro_rules! define_prop_setters_and_getters {
             #[doc = stringify!($name)]
             #[doc = "`."]
             pub fn [<set_ $prop:snake:lower _ $name:snake:lower>](&self) {
-                self.[<set_ $prop:snake:lower>]($prop::$name)
+                self.[<set_ $prop:snake:lower>](font::$prop::$name)
             }
 
             #[doc = "Checks whether the `"]
@@ -87,7 +83,7 @@ macro_rules! define_prop_setters_and_getters {
             #[doc = stringify!($name)]
             #[doc = "`."]
             pub fn [<is_ $prop:snake:lower _ $name:snake:lower>](&self) -> bool {
-                self.properties.get().[<$prop:snake:lower>] == $prop::$name
+                self.properties.get().[<$prop:snake:lower>] == font::$prop::$name
             }
         )*
     }};

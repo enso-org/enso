@@ -2812,6 +2812,7 @@ dependencies = [
  "enso-types",
  "ensogl-core",
  "ensogl-text-embedded-fonts",
+ "ensogl-text-font-family",
  "ensogl-text-msdf",
  "ordered-float",
  "owned_ttf_parser",

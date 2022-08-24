@@ -46,11 +46,10 @@
 
 use enso_prelude::*;
 
+use owned_ttf_parser::Style;
+use owned_ttf_parser::Weight;
+use owned_ttf_parser::Width;
 use std::collections::HashMap;
-
-pub use owned_ttf_parser::Style;
-pub use owned_ttf_parser::Weight;
-pub use owned_ttf_parser::Width;
 
 
 
@@ -95,34 +94,34 @@ impl From<String> for Name {
 
 
 
-// ========================
-// === FamilyDefinition ===
-// ========================
+// ==================
+// === Definition ===
+// ==================
 
 /// Definition of a font family. Font family consist of one font face in case of variable fonts or
 /// multiple font faces in case of non-variable ones.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum FamilyDefinition {
-    Variable(VariableFamilyDefinition),
-    NonVariable(NonVariableFamilyDefinition),
+pub enum Definition {
+    Variable(VariableDefinition),
+    NonVariable(NonVariableDefinition),
 }
 
 
 
-// ================================
-// === VariableFamilyDefinition ===
-// ================================
+// ==========================
+// === VariableDefinition ===
+// ==========================
 
 /// Definition of a variable font family. See the following link to learn more about variable fonts:
 /// https://docs.microsoft.com/en-us/windows/win32/directwrite/opentype-variable-fonts
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VariableFamilyDefinition {
+pub struct VariableDefinition {
     pub file_name: String,
 }
 
-impl VariableFamilyDefinition {
+impl VariableDefinition {
     /// Constructor.
     pub fn new(file_name: impl Into<String>) -> Self {
         let file_name = file_name.into();
@@ -132,19 +131,19 @@ impl VariableFamilyDefinition {
 
 
 
-// ===================================
-// === NonVariableFamilyDefinition ===
-// ===================================
+// =============================
+// === NonVariableDefinition ===
+// =============================
 
 /// Definition of a non-variable font family. Contains mapping between (width, weight, style) triple
 /// (see [`NonVariableFaceHeader`]) to learn more) and file names.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NonVariableFamilyDefinition {
+pub struct NonVariableDefinition {
     pub map: HashMap<NonVariableFaceHeader, String>,
 }
 
-impl NonVariableFamilyDefinition {
+impl NonVariableDefinition {
     /// Constructor.
     pub fn new(map: HashMap<NonVariableFaceHeader, String>) -> Self {
         Self { map }
@@ -156,7 +155,7 @@ impl NonVariableFamilyDefinition {
     }
 }
 
-impl FromIterator<(NonVariableFaceHeader, String)> for NonVariableFamilyDefinition {
+impl FromIterator<(NonVariableFaceHeader, String)> for NonVariableDefinition {
     fn from_iter<T>(iter: T) -> Self
     where T: IntoIterator<Item = (NonVariableFaceHeader, String)> {
         Self::new(iter.into_iter().collect())
@@ -194,10 +193,10 @@ impl NonVariableFaceHeader {
 
 /// List of embedded fonts. For now this list is hardcoded, but it should be generated from the
 /// build.rs script in the future.
-pub fn font_family_files_map() -> HashMap<Name, FamilyDefinition> {
+pub fn font_family_files_map() -> HashMap<Name, Definition> {
     let mut map = HashMap::new();
-    let mplus1 = FamilyDefinition::Variable(VariableFamilyDefinition::new("MPLUS1[wght].ttf"));
-    let dejavusans = FamilyDefinition::NonVariable(NonVariableFamilyDefinition::from_iter([
+    let mplus1 = Definition::Variable(VariableDefinition::new("MPLUS1[wght].ttf"));
+    let dejavusans = Definition::NonVariable(NonVariableDefinition::from_iter([
         (
             NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
             "DejaVuSans.ttf".to_string(),
@@ -207,7 +206,7 @@ pub fn font_family_files_map() -> HashMap<Name, FamilyDefinition> {
             "DejaVuSans-Bold.ttf".to_string(),
         ),
     ]));
-    let dejavusansmono = FamilyDefinition::NonVariable(NonVariableFamilyDefinition::from_iter([
+    let dejavusansmono = Definition::NonVariable(NonVariableDefinition::from_iter([
         (
             NonVariableFaceHeader::new(Width::Normal, Weight::Normal, Style::Normal),
             "DejaVuSansMono.ttf".to_string(),
@@ -220,7 +219,7 @@ pub fn font_family_files_map() -> HashMap<Name, FamilyDefinition> {
     map.insert("mplus1".into(), mplus1);
     map.insert("dejavusans".into(), dejavusans.clone());
     map.insert("dejavusansmono".into(), dejavusansmono.clone());
-    map.insert("default".into(), dejavusans.clone());
-    map.insert("default-mono".into(), dejavusansmono.clone());
+    map.insert("default".into(), dejavusans);
+    map.insert("default-mono".into(), dejavusansmono);
     map
 }

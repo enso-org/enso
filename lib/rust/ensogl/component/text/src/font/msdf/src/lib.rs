@@ -20,7 +20,6 @@ use crate::prelude::*;
 use binding::*;
 
 use emscripten_data::ArrayMemoryView;
-use enso_prelude::FallibleResult;
 use js_sys::Uint8Array;
 use owned_ttf_parser::Tag;
 use std::future::Future;
@@ -51,8 +50,6 @@ pub mod prelude {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Fail, Eq, PartialEq)]
 pub enum SetVariationAxisError {
-    #[fail(display = "Invalid axis name: should fit in 4 bytes.")]
-    InvalidAxisName { name: String },
     #[fail(
         display = "Msdfgen `setVariationAxis` operation was not successfull for axis: {}.",
         name
@@ -145,37 +142,14 @@ impl OwnedFace {
         OwnedFace { handle }
     }
 
+    /// Set font's variation axis.
     pub fn set_variation_axis(
-        &self,
-        name: &str,
-        coordinate: f64,
-    ) -> Result<(), SetVariationAxisError> {
-        let name_bytes = name.as_bytes();
-        if name_bytes.len() > 4 {
-            Err(SetVariationAxisError::InvalidAxisName { name: name.into() })
-        } else {
-            let name_number = ((name_bytes[0] as u32) << 24)
-                | ((name_bytes[1] as u32) << 16)
-                | ((name_bytes[2] as u32) << 8)
-                | (name_bytes[3] as u32);
-            if msdfgen_set_variation_axis(self.handle.clone(), name_number, coordinate) == 0 {
-                Err(SetVariationAxisError::LibraryError { name: name.into() })
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    pub fn set_variation_axis2(
         &self,
         tag: Tag,
         coordinate: f64,
     ) -> Result<(), SetVariationAxisError> {
-        if msdfgen_set_variation_axis(self.handle.clone(), tag.0, coordinate) == 0 {
-            Err(SetVariationAxisError::LibraryError { name: format!("{}", tag) })
-        } else {
-            Ok(())
-        }
+        let ok = msdfgen_set_variation_axis(self.handle.clone(), tag.0, coordinate) == 0;
+        ok.ok_or_else(|| SetVariationAxisError::LibraryError { name: format!("{}", tag) })
     }
 
     /// Mocked version of this struct. Used for testing purposes.
@@ -382,20 +356,6 @@ mod tests {
         assert_eq!(Vector2::new(3.03125, 1.0), msdf.translation);
         assert_eq!(Vector2::new(1.25, 1.25), msdf.scale);
         assert_eq!(19.265625, msdf.advance);
-    }
-
-    #[wasm_bindgen_test(async)]
-    async fn call_set_variation_axis() {
-        initialized().await;
-        let font_base = Embedded::init_and_load_embedded_fonts();
-        let font_name = "DejaVuSans.ttf";
-        let font = OwnedFace::load_from_memory(font_base.data.get(font_name).unwrap());
-        assert_eq!(
-            font.set_variation_axis("weight", 5.0),
-            Err(SetVariationAxisError::InvalidAxisName { name: "weight".into() })
-        );
-        // Deja vu does not support variation axes.
-        assert_eq!(font.set_variation_axis("wght", 5.0), Err(SetVariationAxisError::LibraryError));
     }
 
     /* Note [asserts]

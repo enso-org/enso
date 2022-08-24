@@ -11,7 +11,7 @@ mod msdfgen_wasm {
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {
         project_url: "https://github.com/enso-org/msdfgen-wasm",
-        version:     "v1.1",
+        version:     "v1.4",
         filename:    "msdfgen_wasm.js",
     };
 
@@ -53,6 +53,6 @@ mod msdfgen_wasm {
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    // msdfgen_wasm::download();
+    msdfgen_wasm::download();
     msdfgen_wasm::patch_for_wasm_bindgen_test();
 }

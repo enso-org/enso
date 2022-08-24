@@ -19,9 +19,8 @@
 
 use enso_prelude::*;
 
-use ensogl_text_font_family as font_family;
+use ensogl_text_font_family as family;
 
-pub use font_family::*;
 
 
 // ==============
@@ -45,7 +44,7 @@ include!(concat!(env!("OUT_DIR"), "/embedded_fonts_data.rs"));
 #[allow(missing_docs)]
 #[derive(Clone)]
 pub struct Embedded {
-    pub definitions: HashMap<Name, FamilyDefinition>,
+    pub definitions: HashMap<family::Name, family::Definition>,
     pub data:        HashMap<&'static str, &'static [u8]>,
 }
 
@@ -53,7 +52,7 @@ impl Embedded {
     /// Construct and load all the embedded fonts to memory.
     pub fn init_and_load_embedded_fonts() -> Self {
         let data = embedded_fonts_data();
-        let definitions = font_family_files_map();
+        let definitions = family::font_family_files_map();
         Self { data, definitions }
     }
 }
