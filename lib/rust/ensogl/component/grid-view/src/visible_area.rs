@@ -13,13 +13,13 @@ use crate::Viewport;
 // === Ranges of Rows and Columns Visible ===
 // ==========================================
 
-fn has_size(v: &Viewport) -> bool {
+fn has_size(v: Viewport) -> bool {
     v.right > v.left + f32::EPSILON && v.top > v.bottom + f32::EPSILON
 }
 
 
 /// Return range of visible rows.
-pub fn visible_rows(v: &Viewport, entry_size: Vector2, row_count: usize) -> Range<Row> {
+pub fn visible_rows(v: Viewport, entry_size: Vector2, row_count: usize) -> Range<Row> {
     let first_visible_unrestricted = (v.top / -entry_size.y).floor() as isize;
     let first_visible = first_visible_unrestricted.clamp(0, row_count as isize) as Row;
     let first_not_visible = if has_size(v) {
@@ -33,7 +33,7 @@ pub fn visible_rows(v: &Viewport, entry_size: Vector2, row_count: usize) -> Rang
 
 /// Return range of visible columns.
 pub fn visible_columns(
-    v: &Viewport,
+    v: Viewport,
     entry_size: Vector2,
     col_count: usize,
     column_widths: &ColumnWidths,
@@ -94,7 +94,7 @@ pub fn visible_columns(
 
 /// Return iterator over all visible locations (row-column pairs).
 pub fn all_visible_locations(
-    v: &Viewport,
+    v: Viewport,
     entry_size: Vector2,
     row_count: usize,
     col_count: usize,
@@ -144,12 +144,12 @@ mod tests {
 
             fn run(&self) {
                 assert_eq!(
-                    visible_rows(&self.viewport, ENTRY_SIZE, ROW_COUNT),
+                    visible_rows(self.viewport, ENTRY_SIZE, ROW_COUNT),
                     self.expected_rows,
                     "Wrong visible rows in {self:?}"
                 );
                 assert_eq!(
-                    visible_columns(&self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
+                    visible_columns(self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
                     self.expected_cols,
                     "Wrong visible cols in {self:?}"
                 );
@@ -201,7 +201,7 @@ mod tests {
 
             fn run(self) {
                 assert_eq!(
-                    visible_columns(&self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
+                    visible_columns(self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
                     self.expected_cols,
                     "Wrong visible cols in {self:?}"
                 );

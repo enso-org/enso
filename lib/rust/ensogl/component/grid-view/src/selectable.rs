@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::header;
 use crate::Entry;
 
 use ensogl_core::application::Application;
@@ -23,17 +24,15 @@ pub mod highlight;
 /// A template for [`GridView`] structure, where entry parameters and model are separate generic
 /// arguments, similar to [`crate::GridViewTemplate`] - see its docs for details.
 #[derive(CloneRef, Debug, Deref, Derivative)]
-#[derivative(Clone(bound = ""))]
-pub struct GridViewTemplate<
-    Entry: 'static,
-    EntryModel: frp::node::Data,
-    EntryParams: frp::node::Data,
-> {
+#[derivative(Clone(bound = "InnerGridView: Clone"))]
+#[clone_ref(bound = "InnerGridView: CloneRef")]
+pub struct GridViewTemplate<InnerGridView, Entry, EntryParams: frp::node::Data> {
     #[deref]
-    grid:              crate::GridViewTemplate<Entry, EntryModel, EntryParams>,
+    grid:              InnerGridView,
     highlights:        highlight::shape::View,
-    selection_handler: highlight::Handler<Entry, EntryModel, EntryParams>,
-    hover_handler:     highlight::Handler<Entry, EntryModel, EntryParams>,
+    header_highlights: Immutable<Option<highlight::shape::View>>,
+    selection_handler: highlight::SelectionHandler<InnerGridView, Entry, EntryParams>,
+    hover_handler:     highlight::HoverHandler<InnerGridView, Entry, EntryParams>,
 }
 
 /// The Selectable Grid View.
@@ -63,32 +62,95 @@ pub struct GridViewTemplate<
 ///
 /// The "Masked layer" mode may be set for highlight and selection independently, by calling
 /// [`highlight::FRP::setup_masked_layer`] on the proper highlight API.
-pub type GridView<E> = GridViewTemplate<E, <E as Entry>::Model, <E as Entry>::Params>;
+pub type GridView<E> = GridViewTemplate<crate::GridView<E>, E, <E as Entry>::Params>;
+
+/// The Selectable Grid View with Headers.
+///
+/// An extension of [the `GridView` with headers](header::GridView), where hovered and selected
+/// entries or pushed-down headers will be highlighted.
+///
+/// # Highlight Shape
+///
+/// The selection shape in this case is implemented in a pretty tricky way. We want to render the
+/// highlight between specific `Entry` elements (e.g. between the text and the background). However,
+/// the headers are rendered in different layer, and we want the selection to be above the header
+/// background and below the text entries at the same time, which is not possible.
+///
+/// Therefore, this version has two highlight shapes instantiated, one for normal entries and one
+/// for headers, the latter being clipped at the header bottom (using the [highlight shape clipping
+/// ability](highlight::shape::AttrSetter::top_clip)).
+///
+/// # Highlight Mask in *Masked Layer* Mode.
+///
+/// The grid view displayed in the masked layer also is a grid view with headers. As In a scrolled
+/// grid view, the user can select a partially visible entry behind the group's header, we manually
+/// clip the highlight shape in the mask in such case, so the highlight will not be over the header.
+pub type GridViewWithHeaders<E, HeaderEntry> =
+    GridViewTemplate<header::GridView<E, HeaderEntry>, E, <E as Entry>::Params>;
+
+impl<InnerGridView, E: Entry> GridViewTemplate<InnerGridView, E, E::Params>
+where
+    InnerGridView: AsRef<crate::GridView<E>> + display::Object,
+    highlight::SelectionHandler<InnerGridView, E, E::Params>:
+        highlight::HasConstructor<InnerGridView = InnerGridView>,
+    highlight::HoverHandler<InnerGridView, E, E::Params>:
+        highlight::HasConstructor<InnerGridView = InnerGridView>,
+{
+    fn new_wrapping(app: &Application, grid: InnerGridView) -> Self {
+        let highlights = highlight::shape::View::new(Logger::new("highlights"));
+        let header_highlights = Immutable(None);
+        let selection_handler = highlight::SelectionHandler::new_connected(app, &grid);
+        let hover_handler = highlight::HoverHandler::new_connected(app, &grid);
+        grid.add_child(&highlights);
+        selection_handler.connect_with_shape(&highlights);
+        hover_handler.connect_with_shape(&highlights);
+
+        let grid_frp = grid.as_ref().frp();
+        let network = grid_frp.network();
+        frp::extend! { network
+            eval grid_frp.viewport ([highlights](&vp) {
+                highlight::shape::set_viewport(&highlights, vp);
+            });
+        }
+
+        Self { grid, highlights, header_highlights, selection_handler, hover_handler }
+    }
+}
 
 impl<E: Entry> GridView<E> {
     /// Create new Selectable Grid View instance.
     pub fn new(app: &Application) -> Self {
-        let grid = crate::GridView::<E>::new(app);
-        let highlights = highlight::shape::View::new(Logger::new("highlights"));
-        let selection_handler = highlight::Handler::new_for_selection_connected(app, &grid);
-        let hover_handler = highlight::Handler::new_for_hover_connected(app, &grid);
-        grid.add_child(&highlights);
-        selection_handler.connect_with_shape::<highlight::shape::SelectionAttrSetter>(&highlights);
-        hover_handler.connect_with_shape::<highlight::shape::HoverAttrSetter>(&highlights);
-
-        let network = grid.frp().network();
-        frp::extend! { network
-            eval grid.viewport ([highlights](&vp) highlight::shape::set_viewport(&highlights, vp));
-        }
-
-        Self { grid, highlights, selection_handler, hover_handler }
+        Self::new_wrapping(app, crate::GridView::<E>::new(app))
     }
 }
 
-impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryParams>
-where
-    EntryModel: frp::node::Data,
-    EntryParams: frp::node::Data,
+impl<E: Entry, HeaderEntry: Entry<Params = E::Params>> GridViewWithHeaders<E, HeaderEntry> {
+    /// Create new Selectable Grid View With Headers instance.
+    pub fn new(app: &Application) -> Self {
+        let mut this = Self::new_wrapping(app, header::GridView::<E, HeaderEntry>::new(app));
+        let header_highlights = highlight::shape::View::new(Logger::new("header_highlights"));
+        this.grid.add_child(&header_highlights);
+        this.selection_handler.connect_with_header_shape(&header_highlights);
+        this.hover_handler.connect_with_header_shape(&header_highlights);
+
+        let network = this.grid.frp().network();
+        let header_frp = this.grid.header_frp();
+        frp::extend! { network
+            eval this.grid.viewport ([header_highlights](&vp) {
+                highlight::shape::set_viewport(&header_highlights, vp);
+            });
+            eval header_frp.set_layers([header_highlights](layers) if let Some(layer) = layers.upgrade_header() {
+                layer.add_exclusive(&header_highlights);
+            });
+        }
+        this.header_highlights = Immutable(Some(header_highlights));
+        this
+    }
+}
+
+
+impl<InnerGridView, Entry, EntryParams> GridViewTemplate<InnerGridView, Entry, EntryParams>
+where EntryParams: frp::node::Data
 {
     /// Access to the Selection Highlight FRP.
     pub fn selection_highlight_frp(&self) -> &highlight::Frp<EntryParams> {
@@ -101,21 +163,18 @@ where
     }
 }
 
-impl<Entry, EntryModel, EntryParams> AsRef<crate::GridViewTemplate<Entry, EntryModel, EntryParams>>
-    for GridViewTemplate<Entry, EntryModel, EntryParams>
-where
-    EntryModel: frp::node::Data,
-    EntryParams: frp::node::Data,
+impl<InnerGridView, E: Entry, T> AsRef<T> for GridViewTemplate<InnerGridView, E, E::Params>
+where InnerGridView: AsRef<T>
 {
-    fn as_ref(&self) -> &crate::GridViewTemplate<Entry, EntryModel, EntryParams> {
-        &self.grid
+    fn as_ref(&self) -> &T {
+        self.grid.as_ref()
     }
 }
 
-impl<Entry, EntryModel, EntryParams> display::Object
-    for GridViewTemplate<Entry, EntryModel, EntryParams>
+impl<InnerGridView, Entry, EntryParams> display::Object
+    for GridViewTemplate<InnerGridView, Entry, EntryParams>
 where
-    EntryModel: frp::node::Data,
+    InnerGridView: display::Object,
     EntryParams: frp::node::Data,
 {
     fn display_object(&self) -> &display::object::Instance {
@@ -133,7 +192,7 @@ where
 mod tests {
     use super::*;
     use crate::entry;
-    use crate::entry_position;
+    use crate::header::WeakLayers;
     use crate::Col;
     use crate::EntryFrp;
     use crate::Row;
@@ -194,6 +253,7 @@ mod tests {
                     model.selected.set(*selected);
                     model.hovered.set(*hovered);
                 });
+                out.highlight_contour <+ input.set_model.map(|m| m.contour);
                 out.contour <+ input.set_model.map(|m| m.contour);
                 out.selection_highlight_color <+ input.set_model.map(|m| m.color);
                 out.hover_highlight_color <+ input.set_model.map(|m| m.color);
@@ -234,7 +294,8 @@ mod tests {
         for (row, col) in iproduct!(0..2, 0..2) {
             grid_view.select_entry(Some((row, col)));
             let column_widths = &grid_view.model().column_widths;
-            let expected_pos = entry_position(row, col, Vector2(20.0, 20.0), column_widths);
+            let expected_pos =
+                entry::visible::position(row, col, Vector2(20.0, 20.0), column_widths);
             assert_eq!(highlight_frp.position.value(), expected_pos);
             assert_eq!(highlight_frp.contour.value(), CONTOUR_VARIANTS[row]);
             assert_eq!(highlight_frp.color.value(), COLOR_VARIANTS[col]);
@@ -278,5 +339,52 @@ mod tests {
         grid_view.set_viewport(viewport_showing_last_two);
         assert!(!entries[1].selected.get());
         assert!(entries[2].selected.get());
+    }
+
+    #[test]
+    fn selecting_header() {
+        init_tracing(TRACE);
+        let app = Application::new("root");
+        let network = frp::Network::new("selecting_header");
+        let grid_view = GridViewWithHeaders::<TestEntry, TestEntry>::new(&app);
+        let headers_layer = app.display.default_scene.layers.main.create_sublayer();
+        grid_view.header_frp().set_layers(WeakLayers::new(&headers_layer, None));
+        let entries = (0..3).map(|i| Rc::new(TestEntryModel::new(i, 0))).collect_vec();
+        let models = entries.clone();
+        let header_model = Rc::new(TestEntryModel::new(1, 0));
+        let selection_state = || entries.iter().map(|e| e.selected.get()).collect_vec();
+        let headers = grid_view.header_frp();
+        frp::extend! { network
+            grid_view.model_for_entry <+
+                grid_view.model_for_entry_needed.map(move |&(r, c)| (r, c, models[r].clone_ref()));
+            headers.section_info <+
+                headers.section_info_needed.filter_map(move |&(r, _)| (r > 0).as_some(((1..3), 0, header_model.clone_ref())));
+        }
+        grid_view.set_entries_size(Vector2(20.0, 20.0));
+        let viewport_having_header_pushed_down =
+            Viewport { left: 1.0, top: -21.0, right: 19.0, bottom: -51.0 };
+        let viewport_having_header_pushed_down_further =
+            Viewport { left: 1.0, top: -30.0, right: 19.0, bottom: -60.0 };
+        let viewport_with_no_pushed_header =
+            Viewport { left: 1.0, top: -15.0, right: 19.0, bottom: -45.0 };
+
+        grid_view.set_viewport(viewport_having_header_pushed_down);
+        grid_view.reset_entries(3, 1);
+        grid_view.select_entry(Some((1, 0)));
+        assert_eq!(selection_state(), vec![false, true, false]);
+        assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -31.0));
+
+        grid_view.set_viewport(viewport_having_header_pushed_down_further);
+        assert_eq!(selection_state(), vec![false, true, false]);
+        assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -40.0));
+
+        tracing::debug!("About to go up");
+        grid_view.set_viewport(viewport_with_no_pushed_header);
+        assert_eq!(selection_state(), vec![false, true, false]);
+        assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -30.0));
+
+        grid_view.set_viewport(viewport_having_header_pushed_down);
+        assert_eq!(selection_state(), vec![false, true, false]);
+        assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -31.0));
     }
 }
