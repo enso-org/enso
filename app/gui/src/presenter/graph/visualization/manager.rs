@@ -525,12 +525,17 @@ mod tests {
             Self { inner, node_id }
         }
 
-        fn vis_metadata(&self, method: impl Into<String>) -> Metadata {
+        fn vis_metadata(
+            &self,
+            method: impl Into<String>,
+            arguments: Vec<impl Into<String>>,
+        ) -> Metadata {
             Metadata {
-                preprocessor: PreprocessorConfiguration {
-                    module: self.inner.module_name().to_string().into(),
-                    method: method.into().into(),
-                },
+                preprocessor: PreprocessorConfiguration::new(
+                    self.inner.module_name().to_string(),
+                    method.into(),
+                    arguments.into_iter().map_into().collect(),
+                ),
             }
         }
     }
@@ -564,8 +569,13 @@ mod tests {
                 defined_on_type: qualified_module.into(),
                 name:            "faux".to_string(),
             };
-            let faux_vis =
-                Visualization { id: default(), expression_id: default(), method_pointer };
+            let arguments = vec!["foo".to_owned()];
+            let faux_vis = Visualization {
+                id: default(),
+                expression_id: default(),
+                method_pointer,
+                arguments,
+            };
             let is_ready = Synchronized::new(false);
             let mut execution_context = model::execution_context::MockAPI::new();
             let (request_sender, requests_receiver) = futures::channel::mpsc::unbounded();
@@ -609,7 +619,7 @@ mod tests {
     }
 
     fn matching_metadata(visualization: &Visualization, metadata: &Metadata) -> bool {
-        let PreprocessorConfiguration { module, method } = &metadata.preprocessor;
+        let PreprocessorConfiguration { module, method, .. } = &metadata.preprocessor;
         let qualified_module: module::QualifiedName = module.deref().try_into().unwrap();
         visualization.method_pointer.module == qualified_module
             && visualization.method_pointer.name == method.deref()
@@ -620,8 +630,8 @@ mod tests {
         let fixture = Fixture::new();
         let node_id = fixture.node_id;
         let fixture = VisOperationsTester::new(fixture);
-        let desired_vis_1 = fixture.vis_metadata("expr1");
-        let desired_vis_2 = fixture.vis_metadata("expr2");
+        let desired_vis_1 = fixture.vis_metadata("expr1", vec!["one"]);
+        let desired_vis_2 = fixture.vis_metadata("expr2", vec!["two"]);
         let VisOperationsTester { mut requests, manager, mut inner, is_ready, .. } = fixture;
 
         // No requests are sent before execution context is ready.

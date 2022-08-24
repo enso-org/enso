@@ -452,10 +452,12 @@ pub mod test {
             MockData::new().module_qualified_name(),
             "".to_string(),
         );
+        let arguments = vec![];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
+            arguments,
         };
         let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let exe_id = data.context_id;
@@ -499,10 +501,12 @@ pub mod test {
             MockData::new().module_qualified_name(),
             "".to_string(),
         );
+        let arguments = vec!["foo".to_owned()];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
+            arguments,
         };
         let vis2 = Visualization { id: VisualizationId::new_v4(), ..vis.clone() };
 
@@ -534,10 +538,12 @@ pub mod test {
             MockData::new().module_qualified_name(),
             "".to_string(),
         );
+        let arguments = vec!["bar".to_owned()];
         let vis = Visualization {
             id: model::execution_context::VisualizationId::new_v4(),
             expression_id: model::execution_context::ExpressionId::new_v4(),
             method_pointer,
+            arguments: arguments.clone(),
         };
         let vis_id = vis.id;
         let new_expression = QualifiedMethodPointer::module_method(
@@ -551,7 +557,8 @@ pub mod test {
 
             let expected_config = language_server::types::VisualisationConfiguration {
                 execution_context_id: data.context_id,
-                expression:           new_expression.clone().into(),
+                expression: new_expression.clone().into(),
+                positional_arguments_expressions: arguments,
             };
 
             expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));

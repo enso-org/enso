@@ -133,7 +133,12 @@ async fn ls_text_protocol_test() {
         defined_on_type: visualization_module.to_string(),
         name:            visualization_function,
     };
-    let visualisation_config = VisualisationConfiguration { execution_context_id, expression };
+    let positional_arguments_expressions = vec!["1".to_owned()];
+    let visualisation_config = VisualisationConfiguration {
+        execution_context_id,
+        expression,
+        positional_arguments_expressions,
+    };
     let response =
         client.attach_visualisation(&visualisation_id, &expression_id, &visualisation_config);
     response.await.expect("Couldn't attach visualisation.");
@@ -145,7 +150,12 @@ async fn ls_text_protocol_test() {
         defined_on_type: visualization_module.to_string(),
         name:            visualization_function,
     };
-    let visualisation_config = VisualisationConfiguration { execution_context_id, expression };
+    let positional_arguments_expressions = vec!["1".to_owned(), "2".to_owned()];
+    let visualisation_config = VisualisationConfiguration {
+        execution_context_id,
+        expression,
+        positional_arguments_expressions,
+    };
     let response = client.modify_visualisation(&visualisation_id, &visualisation_config).await;
     response.expect("Couldn't modify visualisation.");
 
@@ -363,7 +373,7 @@ async fn binary_visualization_updates_test_hlp() {
 
     let method_pointer =
         QualifiedMethodPointer::module_method(module_qualified_name, "quux".to_string());
-    let visualization = Visualization::new(the_node.id(), method_pointer);
+    let visualization = Visualization::new(the_node.id(), method_pointer, vec![]);
     let stream = graph_executed.attach_visualization(visualization.clone()).await.unwrap();
     info!(logger, "Attached the visualization {visualization.id}");
     let mut stream = stream.boxed_local();
