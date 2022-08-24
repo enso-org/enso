@@ -26,6 +26,8 @@
 #![feature(derive_default_enum)]
 #![feature(slice_as_chunks)]
 #![feature(option_result_contains)]
+#![feature(int_roundings)]
+#![feature(array_methods)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -42,20 +44,13 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
-
-// ==============
-// === Export ===
-// ==============
-
-mod navigator;
-
+use crate::prelude::*;
 use ensogl_core::display::shape::*;
-use ensogl_core::prelude::*;
 
 use crate::navigator::navigator_shadow;
 use crate::navigator::Navigator as SectionNavigator;
 use crate::navigator::Section;
+
 use component_group::icon;
 use enso_frp as frp;
 use ensogl_core::animation::physics::inertia;
@@ -92,11 +87,16 @@ use searcher_theme::list_panel as list_panel_theme;
 // ==============
 
 pub mod column_grid;
+pub mod layout;
+
+
 
 mod layouting;
+mod navigator;
 
 pub use column_grid::LabeledAnyModelProvider;
 pub use component_group::set::GroupId;
+pub use ensogl_core::prelude;
 
 
 
