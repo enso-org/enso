@@ -6,6 +6,7 @@ use crate::entry;
 use crate::entry::visible::VisibleEntry;
 use crate::visible_area;
 use crate::Col;
+use crate::ColumnWidths;
 use crate::Entry;
 use crate::Properties;
 use crate::Row;
@@ -90,13 +91,19 @@ pub struct VisibleHeader<HeaderEntry> {
 }
 
 impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
-    fn header_position(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> Vector2 {
+    fn header_position(
+        &self,
+        col: Col,
+        entry_size: Vector2,
+        viewport: Viewport,
+        column_widths: &ColumnWidths,
+    ) -> Vector2 {
         let contour = self.entry.entry.frp().contour.value();
         let max_y = entry::visible::position_y(self.section_rows.start, entry_size);
         let next_section_y = entry::visible::position_y(self.section_rows.end, entry_size);
         let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0;
         let y = (viewport.top - contour.size.y / 2.0).min(max_y).max(min_y);
-        Vector2(entry::visible::position_x(col, entry_size), y)
+        Vector2(entry::visible::position_x(col, entry_size, column_widths), y)
     }
 }
 
@@ -104,16 +111,25 @@ impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
 #[derive(Clone, Debug)]
 pub struct Model<InnerGrid, HeaderEntry, HeaderParams> {
     grid:               InnerGrid,
+    /// The cloned-ref instance of ColumnWidths structure from `grid`.
+    column_widths:      ColumnWidths,
     visible_headers:    RefCell<HashMap<Col, VisibleHeader<HeaderEntry>>>,
     free_headers:       RefCell<Vec<VisibleEntry<HeaderEntry>>>,
     entry_creation_ctx: entry::visible::CreationCtx<HeaderParams>,
 }
 
 impl<InnerGrid, HeaderEntry, HeaderParams> Model<InnerGrid, HeaderEntry, HeaderParams> {
-    fn new(grid: InnerGrid, entry_creation_ctx: entry::visible::CreationCtx<HeaderParams>) -> Self {
+    fn new<E: Entry>(
+        grid: InnerGrid,
+        entry_creation_ctx: entry::visible::CreationCtx<HeaderParams>,
+    ) -> Self
+    where
+        InnerGrid: AsRef<crate::GridView<E>>,
+    {
         let visible_headers = default();
         let free_headers = default();
-        Self { grid, visible_headers, free_headers, entry_creation_ctx }
+        let column_widths = grid.as_ref().model().column_widths.clone_ref();
+        Self { grid, column_widths, visible_headers, free_headers, entry_creation_ctx }
     }
 }
 
@@ -122,9 +138,10 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
 {
     fn hide_no_longer_visible_headers(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let widths = &self.column_widths;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
-        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count);
+        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count, widths);
         let highest_visible_row =
             visible_area::visible_rows(viewport, entries_size, row_count).start;
         let freed = visible_headers.drain_filter(|col, header| {
@@ -141,8 +158,9 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
 
     fn needed_info_for_uncovered_sections(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let widths = &self.column_widths;
         let visible_headers = self.visible_headers.borrow();
-        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count);
+        let cols_range = visible_area::visible_columns(viewport, entries_size, col_count, widths);
         let highest_visible_row =
             visible_area::visible_rows(viewport, entries_size, row_count).start;
         let uncovered = cols_range.filter_map(|col| {
@@ -153,6 +171,7 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
 
     fn reset_entries(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { row_count, col_count, viewport, entries_size } = properties;
+        let widths = &self.column_widths;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
         let highest_visible_row =
@@ -162,7 +181,8 @@ impl<InnerGrid, HeaderEntry: display::Object, HeaderParams>
             header.entry
         });
         free_headers.extend(detached);
-        let visible_columns = visible_area::visible_columns(viewport, entries_size, col_count);
+        let visible_columns =
+            visible_area::visible_columns(viewport, entries_size, col_count, widths);
         visible_columns.map(|col| (highest_visible_row, col)).collect()
     }
 
@@ -182,36 +202,36 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         viewport: Viewport,
     ) -> Option<Vector2> {
         let visible_headers = self.visible_headers.borrow();
+        let widths = &self.column_widths;
         let header = visible_headers.get(&col).filter(|h| h.section_rows.start == row);
-        header.map(|h| h.header_position(col, entry_size, viewport))
+        header.map(|h| h.header_position(col, entry_size, viewport, widths))
     }
 
     /// The y position of line between the header displayed on the top of the viewport and the rest
     /// of entries. If no header is displayed in given column, the top of the viewport is returned.
     fn header_separator(&self, col: Col, entry_size: Vector2, viewport: Viewport) -> f32 {
         let visible_headers = self.visible_headers.borrow();
+        let widths = &self.column_widths;
         let header = visible_headers.get(&col);
-        header
-            .map(|h| {
-                h.header_position(col, entry_size, viewport).y
-                    - h.entry.entry.frp().contour.value().size.y / 2.0
-            })
-            .unwrap_or(viewport.top)
+        let separator_if_header_visible = header.map(|h| {
+            h.header_position(col, entry_size, viewport, widths).y
+                - h.entry.entry.frp().contour.value().size.y / 2.0
+        });
+        separator_if_header_visible.unwrap_or(viewport.top)
     }
 
     fn update_headers_positions(&self, properties: Properties) -> Vec<(Row, Col, Vector2)> {
         let Properties { viewport, entries_size, .. } = properties;
         let visible_headers = self.visible_headers.borrow();
-        visible_headers
-            .iter()
-            .filter_map(|(col, header)| {
-                let new_position = header.header_position(*col, entries_size, viewport);
-                (header.entry.position().xy() != new_position).as_some_from(|| {
-                    header.entry.set_position_xy(new_position);
-                    (header.section_rows.start, *col, new_position)
-                })
+        let widths = &self.column_widths;
+        let updated_positions = visible_headers.iter().filter_map(|(col, header)| {
+            let new_position = header.header_position(*col, entries_size, viewport, widths);
+            (header.entry.position().xy() != new_position).as_some_from(|| {
+                header.entry.set_position_xy(new_position);
+                (header.section_rows.start, *col, new_position)
             })
-            .collect()
+        });
+        updated_positions.collect()
     }
 
     fn update_section(
@@ -229,6 +249,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         use std::collections::hash_map::Entry::*;
         let mut visible_headers = self.visible_headers.borrow_mut();
         let mut free_headers = self.free_headers.borrow_mut();
+        let widths = &self.column_widths;
         let create_new_entry = || {
             let text_layer = layers.upgrade_text();
             let entry = self.entry_creation_ctx.create_entry(text_layer.as_ref());
@@ -253,7 +274,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let entry_frp = entry.entry.entry.frp();
         entry_frp.set_model(model);
         entry_frp.set_location((entry.section_rows.start, col));
-        let position = entry.header_position(col, entry_size, viewport);
+        let position = entry.header_position(col, entry_size, viewport, widths);
         entry.entry.set_position_xy(position);
         (entry.section_rows.start, col, position)
     }

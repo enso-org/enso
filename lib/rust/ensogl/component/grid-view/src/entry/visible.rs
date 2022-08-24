@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::entry;
 use crate::Col;
+use crate::ColumnWidths;
 use crate::Entry;
 use crate::Row;
 
@@ -136,8 +137,9 @@ where EntryParams: frp::node::Data
 // ================
 
 /// Get base X position of entry at given column.
-pub fn position_x(col: Col, entry_size: Vector2) -> f32 {
-    (col as f32 + 0.5) * entry_size.x
+pub fn position_x(col: Col, entry_size: Vector2, column_widths: &ColumnWidths) -> f32 {
+    let x_offset = column_widths.pos_offset(col) + column_widths.width_diff(col) / 2.0;
+    (col as f32 + 0.5) * entry_size.x + x_offset
 }
 
 /// Get base Y position of entry at given row.
@@ -146,11 +148,17 @@ pub fn position_y(row: Row, entry_size: Vector2) -> f32 {
 }
 
 /// Get base position of entry at given row and column.
-pub fn position(row: Row, col: Col, entry_size: Vector2) -> Vector2 {
-    Vector2(position_x(col, entry_size), position_y(row, entry_size))
+pub fn position(row: Row, col: Col, entry_size: Vector2, column_widths: &ColumnWidths) -> Vector2 {
+    Vector2(position_x(col, entry_size, column_widths), position_y(row, entry_size))
 }
 
 /// Set the proper position of entry at given row and column.
-pub fn set_position<E: display::Object>(entry: &E, row: Row, col: Col, entry_size: Vector2) {
-    entry.set_position_xy(position(row, col, entry_size));
+pub fn set_position<E: display::Object>(
+    entry: &E,
+    row: Row,
+    col: Col,
+    entry_size: Vector2,
+    column_widths: &ColumnWidths,
+) {
+    entry.set_position_xy(position(row, col, entry_size, column_widths));
 }

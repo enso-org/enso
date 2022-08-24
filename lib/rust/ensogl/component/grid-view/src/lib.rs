@@ -105,8 +105,12 @@ pub struct Properties {
 
 impl Properties {
     /// Return iterator over all visible locations (row-column pairs).
-    pub fn all_visible_locations(&self) -> impl Iterator<Item = (Row, Col)> {
-        all_visible_locations(self.viewport, self.entries_size, self.row_count, self.col_count)
+    pub fn all_visible_locations(
+        &self,
+        column_widths: &ColumnWidths,
+    ) -> impl Iterator<Item = (Row, Col)> {
+        let Self { row_count, col_count, viewport, entries_size } = *self;
+        all_visible_locations(viewport, entries_size, row_count, col_count, column_widths)
     }
 }
 
@@ -280,7 +284,13 @@ impl<E: Entry> Model<E, E::Params> {
                 Occupied(entry) => (entry.into_mut(), false),
                 Vacant(lack_of_entry) => {
                     let new_entry = free_entries.pop().unwrap_or_else(create_new_entry);
-                    set_entry_position(&new_entry, row, col, entry_size, &self.column_widths);
+                    entry::visible::set_position(
+                        &new_entry,
+                        row,
+                        col,
+                        entry_size,
+                        &self.column_widths,
+                    );
                     self.display_object.add_child(&new_entry);
                     (lack_of_entry.insert(new_entry), true)
                 }
@@ -313,7 +323,7 @@ impl<E: Entry> Model<E, E::Params> {
             let entries = borrowed.iter().filter(|((_, col), _)| *col >= resized_column);
             let entries_and_sizes = entries.map(|((row, col), entry)| {
                 let size = properties.entries_size;
-                set_entry_position(entry, *row, *col, size, &self.column_widths);
+                entry::visible::set_position(entry, *row, *col, size, &self.column_widths);
                 let width_diff = self.column_widths.width_diff(*col);
                 (entry.clone_ref(), size + Vector2(width_diff, 0.0))
             });
@@ -455,7 +465,7 @@ impl<E: Entry> GridView<E> {
 
             set_column_width <- any(&input.set_column_width, &override_column_width);
             resized_column <- set_column_width.map2(
-                &prop,
+                &out.properties,
                 f!(((col, width), prop) {
                     model.resize_column(*col,*width, *prop);
                     *col
@@ -477,7 +487,7 @@ impl<E: Entry> GridView<E> {
             request_models_after_reset <=
                 input.reset_entries.map2(&out.properties, f!((_, p) model.reset_entries(*p)));
             request_models_after_column_resize <=
-                resized_column.map2(&&out.properties, f!((col, p) model.update_after_column_resize(*col, *p)));
+                resized_column.map2(&out.properties, f!((col, p) model.update_after_column_resize(*col, *p)));
             request_models_after_text_layer_change <=
                 input.set_text_layer.map2(&out.properties, f!((_, p) model.drop_all_entries(*p)));
             request_models_for_request <= input.request_model_for_visible_entries.map2(
@@ -529,7 +539,8 @@ where
 
     /// Return the position of the Entry instance for given row and column.
     pub fn entry_position(&self, row: Row, column: Col) -> Vector2 {
-        entry::visible::position(row, column, self.entries_size.value())
+        let column_widths = &self.widget.model().column_widths;
+        entry::visible::position(row, column, self.entries_size.value(), column_widths)
     }
 }
 

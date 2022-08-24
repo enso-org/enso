@@ -149,14 +149,10 @@ mod tests {
                     "Wrong visible rows in {self:?}"
                 );
                 assert_eq!(
-                <<<<<<< HEAD
-                                    visible_columns(self.viewport, ENTRY_SIZE, COL_COUNT),
-                =======
-                                    visible_columns(&self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
-                >>>>>>> origin/develop
-                                    self.expected_cols,
-                                    "Wrong visible cols in {self:?}"
-                                );
+                    visible_columns(self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
+                    self.expected_cols,
+                    "Wrong visible cols in {self:?}"
+                );
             }
         }
 
@@ -205,7 +201,7 @@ mod tests {
 
             fn run(self) {
                 assert_eq!(
-                    visible_columns(&self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
+                    visible_columns(self.viewport, ENTRY_SIZE, COL_COUNT, &self.column_widths),
                     self.expected_cols,
                     "Wrong visible cols in {self:?}"
                 );
