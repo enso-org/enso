@@ -1,3 +1,5 @@
+/// Definition of font, font face, and font registry. Aggregates information and utilities for
+/// working with fonts.
 use crate::prelude::*;
 
 use enso_shapely::shared;
@@ -63,14 +65,7 @@ impl VariationAxis {
     }
 
     /// Constructor.
-    pub fn from_bytes(bytes: &[u8; 4]) -> Self {
-        let tag = Tag::from_bytes(bytes);
-        let value = default();
-        Self { tag, value }
-    }
-
-    /// Constructor.
-    pub fn from_bytes2(bytes: &[u8; 4], value: NotNan<f32>) -> Self {
+    pub fn from_bytes(bytes: &[u8; 4], value: NotNan<f32>) -> Self {
         let tag = Tag::from_bytes(bytes);
         Self { tag, value }
     }
@@ -82,8 +77,7 @@ impl VariationAxis {
 // === VariationAxes ===
 // =====================
 
-/// Variation axes of variable fonts. Contains five common axes and a general way of storing
-/// non-common ones.
+/// Variation axes of variable fonts.
 #[allow(missing_docs)]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct VariationAxes {
@@ -91,13 +85,25 @@ pub struct VariationAxes {
 }
 
 impl VariationAxes {
-    /// Map a function over all non-standard axes.
+    /// Map a function over all standard axes. Not all fonts have to support them, but it is a good
+    /// idea to set these values when loading a font. Otherwise, some fonts might not be visible
+    /// on the screen, as for example their width might default to zero.
+    pub fn with_default_axes_values(f: impl Fn(VariationAxis)) {
+        let mut axes = Self::default();
+        axes.set_weight(Weight::Normal);
+        axes.set_width(Width::Normal);
+        axes.set_style(Style::Normal);
+        axes.with_axes(f);
+    }
+
+    /// Map a function over all changed axes.
     pub fn with_axes(&self, f: impl Fn(VariationAxis)) {
         for axis in &self.vec {
             f(*axis);
         }
     }
 
+    /// Variation axis setter.
     pub fn set(&mut self, axis: VariationAxis) {
         if let Some(index) = self.vec.iter().position(|a| a.tag == axis.tag) {
             self.vec[index] = axis;
@@ -106,34 +112,56 @@ impl VariationAxes {
         }
     }
 
+    /// Variation axis setter. “Italic” (`ital` in CSS) is an axis found in some variable fonts. It
+    /// controls the font file’s italic parameter, with italics either turned “off” or “on”, rather
+    /// than gradually changing over a range. The Google Fonts CSS v2 API defines the axis as:
+    /// Default: 0   Min: 0   Max: 1   Step: 0.1
+    /// https://fonts.google.com/knowledge/glossary/italic_axis
     pub fn set_ital(&mut self, value: NotNan<f32>) {
-        self.set(VariationAxis::from_bytes2(b"ital", value));
+        self.set(VariationAxis::from_bytes(b"ital", value));
     }
 
+    /// Variation axis setter. “Optical Size” (controlled with `font-optical-sizing` or
+    /// `font-variation-setting`: ‘opsz’ VALUE in CSS) is an axis found in some variable fonts. It
+    /// controls the font file’s optical size optimizations. The Google Fonts CSS v2 API defines the
+    /// axis as:
+    /// Default: 14   Min: 6   Max: 144   Step: 0.1
+    /// https://fonts.google.com/knowledge/glossary/optical_size_axis
     pub fn set_opsz(&mut self, value: NotNan<f32>) {
-        self.set(VariationAxis::from_bytes2(b"opsz", value));
+        self.set(VariationAxis::from_bytes(b"opsz", value));
     }
 
+    /// Variation axis setter. Slant (`slnt` in CSS) is an axis found in some variable fonts. It
+    /// controls the font file’s slant parameter for oblique styles. The Google Fonts CSS v2 API
+    /// defines the axis as:
+    /// Default: 0   Min: -90   Max: 90   Step: 1
+    /// https://fonts.google.com/knowledge/glossary/slant_axis
     pub fn set_slnt(&mut self, value: NotNan<f32>) {
-        self.set(VariationAxis::from_bytes2(b"slnt", value));
+        self.set(VariationAxis::from_bytes(b"slnt", value));
     }
 
-    pub fn set_wght(&mut self, value: NotNan<f32>) {
-        self.set(VariationAxis::from_bytes2(b"wght", value));
-    }
-
-    pub fn set_wdth(&mut self, value: NotNan<f32>) {
-        self.set(VariationAxis::from_bytes2(b"wdth", value));
-    }
-
-    /// Weight setter. See the following docs to learn more:
+    /// Variation axis setter. “Weight” (`wght` in CSS) is an axis found in many variable fonts. It
+    /// controls the font file’s weight parameter. The Google Fonts CSS v2 API defines the axis as:
+    /// Default: 400   Min: 1   Max: 1000   Step: 1
     /// https://fonts.google.com/knowledge/glossary/weight_axis
+    pub fn set_wght(&mut self, value: NotNan<f32>) {
+        self.set(VariationAxis::from_bytes(b"wght", value));
+    }
+
+    /// Variation axis setter. “Width” (`wdth` in CSS) is an axis found in some variable fonts. It
+    /// controls the font file’s width parameter. The Google Fonts CSS v2 API defines the axis as:
+    /// Default: 100   Min: 25   Max: 200   Step: 0.1
+    /// https://fonts.google.com/knowledge/glossary/width_axis
+    pub fn set_wdth(&mut self, value: NotNan<f32>) {
+        self.set(VariationAxis::from_bytes(b"wdth", value));
+    }
+
+    /// Weight setter.
     pub fn set_weight(&mut self, value: Weight) {
         self.set_wght(value.to_number().into());
     }
 
-    /// Width setter. See the following docs to learn more:
-    /// https://fonts.google.com/knowledge/glossary/width_axis
+    /// Width setter.
     pub fn set_width(&mut self, value: Width) {
         let wdth = match value {
             Width::UltraCondensed => 25.0,
@@ -149,9 +177,7 @@ impl VariationAxes {
         self.set_wdth(NotNan::new(wdth).unwrap());
     }
 
-    /// Style setter. See the following docs to learn more:
-    /// https://fonts.google.com/knowledge/glossary/italic_axis
-    /// https://fonts.google.com/knowledge/glossary/slant_axis
+    /// Style setter.
     pub fn set_style(&mut self, value: Style) {
         match value {
             Style::Normal => {
@@ -259,6 +285,12 @@ impl VariableFamily {
     /// ignored.
     fn load_all_faces(&self, embedded: &Embedded) {
         if let Some(face) = Face::load_from_memory(&self.definition.file_name, embedded) {
+            // Set default variation axes during face initialization. This is needed to make some
+            // fonts appear on the screen. In case some axes are not found, warnings will be
+            // silenced.
+            VariationAxes::with_default_axes_values(|axis| {
+                face.msdf.set_variation_axis(axis.tag, axis.value.into_inner() as f64).ok();
+            });
             self.face.borrow_mut().replace(face);
         }
     }
@@ -353,6 +385,8 @@ impl Font {
         }
     }
 
+    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
+    //   https://www.pivotaltracker.com/story/show/182746060
     /// Get the glyph id of the provided code point.
     pub fn glyph_id_of_code_point(
         &self,
@@ -389,13 +423,12 @@ impl Font {
         &self,
         non_variable_font_variations: NonVariableFaceHeader,
         variable_font_variations: &VariationAxes,
-        left_id: GlyphId,
-        right_id: GlyphId,
+        left: GlyphId,
+        right: GlyphId,
     ) -> f32 {
         match self {
-            Font::NonVariable(font) =>
-                font.kerning(&non_variable_font_variations, left_id, right_id),
-            Font::Variable(font) => font.kerning(variable_font_variations, left_id, right_id),
+            Font::NonVariable(font) => font.kerning(&non_variable_font_variations, left, right),
+            Font::Variable(font) => font.kerning(variable_font_variations, left, right),
         }
     }
 }
@@ -423,7 +456,8 @@ pub struct FontTemplateData<Family, Variations> {
     pub family:                 Family,
     pub atlas:                  msdf::Texture,
     pub cache:                  RefCell<HashMap<Variations, FontDataCache>>,
-    // FIXME: remove after MSDF-gen API will be updated to handle GlyphIds.
+    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
+    //   https://www.pivotaltracker.com/story/show/182746060
     pub glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
 }
 
@@ -452,6 +486,8 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
         Self { rc: Rc::new(data) }
     }
 
+    // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
+    //   https://www.pivotaltracker.com/story/show/182746060
     /// Get the glyph id of the provided code point.
     pub fn glyph_id_of_code_point(&self, variations: &V, code_point: char) -> Option<GlyphId> {
         self.family
@@ -478,38 +514,30 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
                 if !self.cache.borrow().contains_key(variations) {
                     self.cache.borrow_mut().insert(variations.clone(), default());
                 }
-                self.cache
-                    .borrow_mut()
-                    .get_mut(variations)
-                    .unwrap()
-                    .glyphs
-                    .insert(glyph_id, render_info);
+                let mut borrowed_cache = self.cache.borrow_mut();
+                let font_data_cache = borrowed_cache.get_mut(variations).unwrap();
+                font_data_cache.glyphs.insert(glyph_id, render_info);
                 render_info
             })
         }
     }
 
     /// Get kerning between two characters.
-    pub fn kerning(&self, variations: &V, left_id: GlyphId, right_id: GlyphId) -> f32 {
+    pub fn kerning(&self, variations: &V, left: GlyphId, right: GlyphId) -> f32 {
         self.family
             .with_borrowed_face(variations, |face| {
                 if !self.cache.borrow().contains_key(variations) {
                     self.cache.borrow_mut().insert(variations.clone(), default());
                 }
-                *self
-                    .cache
-                    .borrow_mut()
-                    .get_mut(variations)
-                    .unwrap()
-                    .kerning
-                    .entry((left_id, right_id))
-                    .or_insert_with(|| {
-                        let tables = face.ttf.as_face_ref().tables();
-                        let units_per_em = tables.head.units_per_em;
-                        let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
-                        let kerning = kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
-                        kerning.unwrap_or_default() as f32 / units_per_em as f32
-                    })
+                let mut borrowed_cache = self.cache.borrow_mut();
+                let font_data_cache = borrowed_cache.get_mut(variations).unwrap();
+                *font_data_cache.kerning.entry((left, right)).or_insert_with(|| {
+                    let tables = face.ttf.as_face_ref().tables();
+                    let units_per_em = tables.head.units_per_em;
+                    let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
+                    let kerning = kern_table.and_then(|t| t.glyphs_kerning(left, right));
+                    kerning.unwrap_or_default() as f32 / units_per_em as f32
+                })
             })
             .unwrap_or_default()
     }

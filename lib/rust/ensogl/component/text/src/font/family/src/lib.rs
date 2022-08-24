@@ -50,6 +50,7 @@ use owned_ttf_parser::Style;
 use owned_ttf_parser::Weight;
 use owned_ttf_parser::Width;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 
 
@@ -81,8 +82,7 @@ impl From<&str> for Name {
 
 impl From<&String> for Name {
     fn from(name: &String) -> Self {
-        let str: &str = &*name;
-        str.into()
+        name.as_str().into()
     }
 }
 

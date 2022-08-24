@@ -148,7 +148,7 @@ impl OwnedFace {
         tag: Tag,
         coordinate: f64,
     ) -> Result<(), SetVariationAxisError> {
-        let ok = msdfgen_set_variation_axis(self.handle.clone(), tag.0, coordinate) == 0;
+        let ok = msdfgen_set_variation_axis(self.handle.clone(), tag.0, coordinate) != 0;
         ok.ok_or_else(|| SetVariationAxisError::LibraryError { name: format!("{}", tag) })
     }
 
