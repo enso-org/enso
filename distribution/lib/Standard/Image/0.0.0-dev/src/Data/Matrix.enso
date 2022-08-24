@@ -152,7 +152,7 @@ type Matrix
         if (row < 0) || (row >= self.rows) then Error.throw (Index_Out_Of_Bounds_Error self.rows self.columns row) else
             if (column < 0) || (column >= self.columns) then Error.throw (Index_Out_Of_Bounds_Error self.rows self.columns column) else
                 arr = Java_Matrix.get self.opencv_mat row column
-                Vector.Vector arr
+                Vector.from_polyglot_array arr
 
     ## UNSTABLE
 
@@ -413,7 +413,7 @@ type Matrix
     to_vector : Vector
     to_vector self =
         arr = Java_Matrix.to_vector self.opencv_mat
-        Vector.Vector arr
+        Vector.from_polyglot_array arr
 
     ## UNSTABLE
 

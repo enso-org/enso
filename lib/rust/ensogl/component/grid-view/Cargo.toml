@@ -12,6 +12,7 @@ ensogl-shadow = { path = "../shadow" }
 ensogl-text = { path = "../text" }
 ensogl-scroll-area = { path = "../scroll-area" }
 itertools = "0.10.3"
+segment-tree = "2.0"
 
 [dev-dependencies]
 approx = "0.5.1"
