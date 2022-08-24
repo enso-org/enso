@@ -3885,6 +3885,7 @@ dependencies = [
  "enso-frp",
  "ensogl-core",
  "ensogl-derive-theme",
+ "ensogl-grid-view",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",

@@ -12,6 +12,7 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 
+import java.time.ZoneId;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
@@ -23,8 +24,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.EnsoDate;
+import org.enso.interpreter.runtime.data.*;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
@@ -254,6 +254,118 @@ public abstract class InvokeMethodNode extends BaseNode {
       var date = new EnsoDate(hostLocalDate);
       Function function = dateDispatch.getFunctionalDispatch(date, symbol);
       arguments[0] = date;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATE_TIME"
+      })
+  Stateful doConvertDateTime(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
+    var ctx = Context.get(this);
+    try {
+      var hostLocalDate = interop.asDate(self);
+      var hostLocalTime = interop.asTime(self);
+      var hostZonedDateTime = hostLocalDate.atTime(hostLocalTime).atZone(ZoneId.systemDefault());
+      var dateTime = new EnsoDateTime(hostZonedDateTime);
+      Function function = dateDispatch.getFunctionalDispatch(dateTime, symbol);
+      arguments[0] = dateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ZONED_DATE_TIME"
+      })
+  Stateful doConvertZonedDateTime(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
+    var ctx = Context.get(this);
+    try {
+      var hostLocalDate = interop.asDate(self);
+      var hostLocalTime = interop.asTime(self);
+      var hostZone = interop.asTimeZone(self);
+      var dateTime = new EnsoDateTime(hostLocalDate.atTime(hostLocalTime).atZone(hostZone));
+      Function function = dateDispatch.getFunctionalDispatch(dateTime, symbol);
+      arguments[0] = dateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ZONE"
+      })
+  Stateful doConvertZone(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
+    var ctx = Context.get(this);
+    try {
+      var hostZone = interop.asTimeZone(self);
+      var dateTime = new EnsoZone(hostZone);
+      Function function = dateDispatch.getFunctionalDispatch(dateTime, symbol);
+      arguments[0] = dateTime;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(self)",
+        "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TIME_OF_DAY"
+      })
+  Stateful doConvertTimeOfDay(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
+    var ctx = Context.get(this);
+    try {
+      var hostLocalTime = interop.asTime(self);
+      var dateTime = new EnsoTimeOfDay(hostLocalTime);
+      Function function = dateDispatch.getFunctionalDispatch(dateTime, symbol);
+      arguments[0] = dateTime;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchMethodException | UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
