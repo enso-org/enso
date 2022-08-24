@@ -264,7 +264,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!methods.hasFunctionalDispatch(self)",
         "!methods.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATETIME"
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_DATE_TIME"
       })
   Stateful doConvertDateTime(
       VirtualFrame frame,
@@ -293,7 +293,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!methods.hasFunctionalDispatch(self)",
         "!methods.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ZONEDDATETIME"
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_ZONED_DATE_TIME"
       })
   Stateful doConvertZonedDateTime(
       VirtualFrame frame,
@@ -349,7 +349,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!methods.hasFunctionalDispatch(self)",
         "!methods.hasSpecialDispatch(self)",
-        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TIMEOFDAY"
+        "getPolyglotCallType(self, symbol.getName(), interop) == CONVERT_TO_TIME_OF_DAY"
       })
   Stateful doConvertTimeOfDay(
       VirtualFrame frame,

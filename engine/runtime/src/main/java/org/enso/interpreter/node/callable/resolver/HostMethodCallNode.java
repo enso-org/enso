@@ -52,17 +52,17 @@ public abstract class HostMethodCallNode extends Node {
      * The method call should be handled by converting {@code self} to a {@code
      * Standard.Base.Data.DateTime} and dispatching natively.
      */
-    CONVERT_TO_ZONEDDATETIME,
+    CONVERT_TO_ZONED_DATE_TIME,
     /**
      * The method call should be handled by converting {@code self} to a {@code
      * Standard.Base.Data.DateTime} with a system Zone and dispatching natively.
      */
-    CONVERT_TO_DATETIME,
+    CONVERT_TO_DATE_TIME,
     /**
      * The method call should be handled by converting {@code self} to a {@code
      * Standard.Base.Data.Time.Time_Of_Day} and dispatching natively.
      */
-    CONVERT_TO_TIMEOFDAY,
+    CONVERT_TO_TIME_OF_DAY,
     /**
      * The method call should be handled by converting {@code self} to a {@code
      * Standard.Base.Data.Time.Zone} and dispatching natively.
@@ -82,9 +82,9 @@ public abstract class HostMethodCallNode extends Node {
       return this != NOT_SUPPORTED
           && this != CONVERT_TO_TEXT
           && this != CONVERT_TO_DATE
-          && this != CONVERT_TO_DATETIME
-          && this != CONVERT_TO_ZONEDDATETIME
-          && this != CONVERT_TO_TIMEOFDAY
+          && this != CONVERT_TO_DATE_TIME
+          && this != CONVERT_TO_ZONED_DATE_TIME
+          && this != CONVERT_TO_TIME_OF_DAY
           && this != CONVERT_TO_ZONE;
     }
   }
@@ -109,15 +109,15 @@ public abstract class HostMethodCallNode extends Node {
     if (library.isDate(self)) {
       if (library.isTime(self)) {
         if (library.isTimeZone(self)) {
-          return PolyglotCallType.CONVERT_TO_ZONEDDATETIME;
+          return PolyglotCallType.CONVERT_TO_ZONED_DATE_TIME;
         } else {
-          return PolyglotCallType.CONVERT_TO_DATETIME;
+          return PolyglotCallType.CONVERT_TO_DATE_TIME;
         }
       } else {
         return PolyglotCallType.CONVERT_TO_DATE;
       }
     } else if (library.isTime(self)) {
-      return PolyglotCallType.CONVERT_TO_TIMEOFDAY;
+      return PolyglotCallType.CONVERT_TO_TIME_OF_DAY;
     } else if (library.isTimeZone(self)) {
       return PolyglotCallType.CONVERT_TO_ZONE;
     } else if (library.isString(self)) {

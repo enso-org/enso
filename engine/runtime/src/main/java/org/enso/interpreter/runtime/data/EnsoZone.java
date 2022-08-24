@@ -25,7 +25,7 @@ import java.time.zone.ZoneRulesException;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
 @Builtin(pkg = "date", name = "Zone", stdlibName = "Standard.Base.Data.Time.Zone")
-public class EnsoZone implements TruffleObject {
+public final class EnsoZone implements TruffleObject {
   private final ZoneId zone;
 
   public EnsoZone(ZoneId zone) {

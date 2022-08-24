@@ -25,7 +25,7 @@ import java.time.temporal.TemporalAccessor;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
 @Builtin(pkg = "date", name = "DateTime", stdlibName = "Standard.Base.Data.Time.Date_Time")
-public class EnsoDateTime implements TruffleObject {
+public final class EnsoDateTime implements TruffleObject {
   private final ZonedDateTime dateTime;
 
   public EnsoDateTime(ZonedDateTime dateTime) {
@@ -96,36 +96,43 @@ public class EnsoDateTime implements TruffleObject {
   }
 
   @Builtin.Method(description = "Gets the year")
+  @CompilerDirectives.TruffleBoundary
   public long year() {
     return dateTime.getYear();
   }
 
   @Builtin.Method(description = "Gets the month")
+  @CompilerDirectives.TruffleBoundary
   public long month() {
     return dateTime.getMonthValue();
   }
 
   @Builtin.Method(description = "Gets the day")
+  @CompilerDirectives.TruffleBoundary
   public long day() {
     return dateTime.getDayOfMonth();
   }
 
   @Builtin.Method(description = "Gets the hour")
+  @CompilerDirectives.TruffleBoundary
   public long hour() {
     return dateTime.getHour();
   }
 
   @Builtin.Method(description = "Gets the minute")
+  @CompilerDirectives.TruffleBoundary
   public long minute() {
     return dateTime.getMinute();
   }
 
   @Builtin.Method(description = "Gets the second")
+  @CompilerDirectives.TruffleBoundary
   public long second() {
     return dateTime.getSecond();
   }
 
   @Builtin.Method(description = "Gets the nanosecond")
+  @CompilerDirectives.TruffleBoundary
   public long nanosecond() {
     return dateTime.getNano();
   }
@@ -136,11 +143,13 @@ public class EnsoDateTime implements TruffleObject {
   }
 
   @Builtin.Method(description = "Return the number of seconds from the Unix epoch.")
+  @CompilerDirectives.TruffleBoundary
   public long toEpochSeconds() {
     return dateTime.toEpochSecond();
   }
 
   @Builtin.Method(description = "Return the number of milliseconds from the Unix epoch.")
+  @CompilerDirectives.TruffleBoundary
   public long toEpochMilliseconds() {
     return dateTime.toInstant().toEpochMilli();
   }
@@ -251,6 +260,7 @@ public class EnsoDateTime implements TruffleObject {
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   public final Object toDisplayString(boolean allowSideEffects) {
     return DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime);
   }
