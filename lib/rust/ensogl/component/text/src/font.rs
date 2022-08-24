@@ -11,6 +11,11 @@ use owned_ttf_parser as ttf;
 use std::collections::hash_map::Entry;
 use ttf::AsFaceRef;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod glyph;
 pub mod glyph_render_info;
 pub mod pen;
@@ -205,7 +210,10 @@ impl VariationAxes {
 /// A face of a font. In case of non-variable fonts, a face corresponds to a font variation defined
 /// as a triple (width, weight, style), see [`NonVariableFaceHeader`]. In case of variable fonts,
 /// the font variation ([`VariationAxes`]) is set up at runtime, so only one face is needed.
-/// The face consists of a ttf face and MSDF one.
+///
+/// The face consists of a [ttf face](ttf::OwnedFace) and [MSDF one](msdf::OwnedFace). The former
+/// contains all information needed to layout glyphs, like kerning. The latter is used to generate
+/// MSDF textures for glyphs.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Face {
@@ -238,7 +246,6 @@ impl Face {
 /// [`NonVariableFaceHeader`] to learn more. For variable faces, the variation is [`VariationAxes`],
 /// however, as variable fonts have one face only, this parameter is not used while borrowing the
 /// face.
-#[allow(missing_docs)]
 pub trait Family<Variations> {
     /// Update MSDFgen settings for given variations. For non-variable fonts, this function is a
     /// no-op.
@@ -250,8 +257,7 @@ pub trait Family<Variations> {
     where F: for<'a> FnOnce(&'a Face) -> T;
 }
 
-/// A non-variable font family. Contains font family definition and a mapping from font variations
-/// to font faces.
+/// A non-variable font family.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct NonVariableFamily {

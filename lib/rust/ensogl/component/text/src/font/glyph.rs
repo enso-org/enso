@@ -5,8 +5,8 @@ use crate::prelude::*;
 use ensogl_core::display::world::*;
 
 use crate::font;
-
 use crate::font::VariationAxes;
+
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;

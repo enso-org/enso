@@ -24,10 +24,8 @@ use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use ensogl_text::font;
-
-
 use ensogl_core::data::color;
+use ensogl_text::font;
 use ensogl_text_msdf::run_once_initialized;
 
 

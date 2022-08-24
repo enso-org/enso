@@ -20,7 +20,6 @@ use std::path;
 #[derive(Debug, Default)]
 pub struct FillMapRsFile {
     embedded_fonts_map_body: String,
-    // file: fs::File,
 }
 
 impl FillMapRsFile {
@@ -54,7 +53,6 @@ mod deja_vu {
     use crate::FillMapRsFile;
 
     use enso_build_utilities::GithubRelease;
-    // use ensogl_text_embedded_fonts_names::DejaVuSans;
     use std::path;
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {
@@ -66,7 +64,6 @@ mod deja_vu {
     pub const PACKAGE_FONTS_PREFIX: &str = "dejavu-fonts-ttf-2.37/ttf";
 
     pub fn extract_font(package_path: &path::Path, file_name: &str) {
-        // println!("cargo:warning={:?}",package_path);
         let font_in_package_path = format!("{}/{}", PACKAGE_FONTS_PREFIX, file_name);
         let package_dir = package_path.parent().unwrap();
         let output_path = package_dir.join(file_name);
@@ -74,12 +71,9 @@ mod deja_vu {
         let archive_file = std::fs::File::open(package_path).unwrap();
         let mut archive = zip::ZipArchive::new(archive_file).unwrap();
         let mut input_stream = archive.by_name(font_in_package_path.as_str()).unwrap();
-        // println!("cargo:warning={:?}",output_path);
         let mut output_stream = std::fs::File::create(output_path).unwrap();
         std::io::copy(&mut input_stream, &mut output_stream).unwrap();
     }
-
-    // const deja_vu: DejaVuSans = DejaVuSans;
 
     const FILE_NAMES: [&str; 4] =
         ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf"];
@@ -126,7 +120,6 @@ mod google_fonts {
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     let out = env::var("OUT_DIR").unwrap();
-    // println!("cargo:warning=out dir {:?}",out);
     let out_dir = path::Path::new(&out);
     deja_vu::download_and_extract_all_fonts(out_dir);
     let files = google_fonts::download_font("mplus1", out_dir);

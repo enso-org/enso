@@ -29,8 +29,6 @@ use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
-// #[cfg(target_arch = "wasm32")]
-// use ensogl_text_embedded_fonts as embedded_fonts;
 use std::ops::Not;
 
 

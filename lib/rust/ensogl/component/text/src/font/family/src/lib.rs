@@ -50,7 +50,6 @@ use owned_ttf_parser::Style;
 use owned_ttf_parser::Weight;
 use owned_ttf_parser::Width;
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 
 
@@ -118,6 +117,8 @@ pub enum Definition {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VariableDefinition {
+    /// Name of the file that the font data was read from. It contains the file extension, for
+    /// example `MPLUS1[wght].ttf`.
     pub file_name: String,
 }
 

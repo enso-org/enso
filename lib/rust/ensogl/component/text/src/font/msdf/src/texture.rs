@@ -1,9 +1,10 @@
 //! Multichannel Signed Distance Field handling.
 
-use crate::Msdf;
-use serde;
-
 use crate::prelude::*;
+
+use crate::Msdf;
+
+use serde;
 
 
 

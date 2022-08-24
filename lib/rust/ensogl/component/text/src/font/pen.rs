@@ -2,8 +2,9 @@
 //! with each glyph rendered. For details, see
 //! [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
 
-use crate::font;
 use crate::prelude::*;
+
+use crate::font;
 
 use super::Font;
 

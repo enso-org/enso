@@ -29,6 +29,8 @@ use std::task::Poll;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsValue;
 
+
+
 mod binding;
 pub mod emscripten_data;
 pub mod texture;
