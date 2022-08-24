@@ -234,6 +234,15 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         updated_positions.collect()
     }
 
+    fn update_header_size(&self, col: Col, properties: Properties) {
+        let entries_size = properties.entries_size;
+        let width_diff = self.column_widths.width_diff(col);
+        let header = self.visible_headers.borrow().get(&col).map(|h| h.entry.clone_ref());
+        if let Some(header) = header {
+            header.entry.frp().set_size(entries_size + Vector2(width_diff, 0.0))
+        }
+    }
+
     fn update_section(
         &self,
         rows: Range<Row>,
@@ -274,6 +283,8 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let entry_frp = entry.entry.entry.frp();
         entry_frp.set_model(model);
         entry_frp.set_location((entry.section_rows.start, col));
+        let width_offset = self.column_widths.width_diff(col);
+        entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
         let position = entry.header_position(col, entry_size, viewport, widths);
         entry.entry.set_position_xy(position);
         (entry.section_rows.start, col, position)
@@ -371,16 +382,15 @@ where
         let input = &frp.private.input;
         let out = &frp.private.output;
         frp::extend! { network
-            headers_hidden_after_viewport_change <=
-                grid_frp.viewport.map2(&grid_frp.properties,
-                f!((_, props) model.hide_no_longer_visible_headers(*props))
-            );
-            headers_hidden_after_entry_size_change <= grid_frp.entries_size.map2(
+            viewport_changed <- grid_frp.viewport.constant(());
+            entries_size_changed <- grid_frp.entries_size.constant(());
+            column_resized <- grid_frp.column_resized.constant(());
+            headers_may_be_hidden <- any(viewport_changed, entries_size_changed, column_resized);
+            header_hidden <= headers_may_be_hidden.map2(
                 &grid_frp.properties,
-                f!((_, props) model.hide_no_longer_visible_headers(*props))
+                f!(((), props) model.hide_no_longer_visible_headers(*props))
             );
-            out.header_hidden <+ headers_hidden_after_viewport_change;
-            out.header_hidden <+ headers_hidden_after_entry_size_change;
+            out.header_hidden <+ header_hidden;
 
             request_sections_after_viewport_change <= grid_frp.viewport.map2(
                 &grid_frp.properties,
@@ -402,15 +412,21 @@ where
                 &grid_frp.properties,
                 f!((_, props) model.drop_all_entries(*props))
             );
+            request_sections_after_column_resize <= grid_frp.column_resized.map2(
+                &grid_frp.properties,
+                f!((_, props) model.needed_info_for_uncovered_sections(*props))
+            );
             out.section_info_needed <+ request_sections_after_viewport_change;
             out.section_info_needed <+ request_sections_after_entry_size_change;
             out.section_info_needed <+ request_sections_after_reset;
             out.section_info_needed <+ request_sections_after_sections_reset;
             out.section_info_needed <+ request_sections_after_layer_change;
+            out.section_info_needed <+ request_sections_after_column_resize;
 
-            position_update <= grid_frp.viewport.map2(
+            pos_should_be_updated <- any(viewport_changed, entries_size_changed, column_resized);
+            position_update <= pos_should_be_updated.map2(
                 &grid_frp.properties,
-                f!((_, props) model.update_headers_positions(*props))
+                f!(((), props) model.update_headers_positions(*props))
             );
             out.header_position_changed <+ position_update;
             section_update <- input.section_info.map3(
@@ -421,6 +437,9 @@ where
             );
             out.header_shown <+ section_update.map(|&(row, col, _)| (row, col));
             out.header_position_changed <+ section_update;
+
+            column_resize_params <- all(&grid_frp.column_resized, &grid_frp.properties);
+            eval column_resize_params ((&((col, _), props)) model.update_header_size(col, props));
         }
         let entry_type = PhantomData;
         Self { frp, model, entry_type }

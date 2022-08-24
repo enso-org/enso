@@ -164,6 +164,7 @@ ensogl_core::define_endpoints_2! {
         entry_hovered(Option<(Row, Col)>),
         entry_selected(Option<(Row, Col)>),
         entry_accepted(Row, Col),
+        column_resized(Col, f32),
     }
 }
 
@@ -314,18 +315,20 @@ impl<E: Entry> Model<E, E::Params> {
         properties: Properties,
     ) -> Vec<(Row, Col)> {
         let to_model_request = self.update_entries_visibility(properties);
+        let entries_size = properties.entries_size;
         // We must not emit FRP events when some state is borrowed to avoid double borrows.
         // So the following code block isolates operations with borrowed fields from emitting
         // FRP events.
         let entries_and_sizes = {
             let borrowed = self.visible_entries.borrow();
-            // We are not interested in columns to the left of the resized column.
-            let entries = borrowed.iter().filter(|((_, col), _)| *col >= resized_column);
-            let entries_and_sizes = entries.map(|((row, col), entry)| {
-                let size = properties.entries_size;
-                entry::visible::set_position(entry, *row, *col, size, &self.column_widths);
+            let should_update_pos = borrowed.iter().filter(|((_, col), _)| *col >= resized_column);
+            for ((row, col), entry) in should_update_pos {
+                entry::visible::set_position(entry, *row, *col, entries_size, &self.column_widths);
+            }
+            let should_update_size = borrowed.iter().filter(|((_, col), _)| *col == resized_column);
+            let entries_and_sizes = should_update_size.map(|((_, col), entry)| {
                 let width_diff = self.column_widths.width_diff(*col);
-                (entry.clone_ref(), size + Vector2(width_diff, 0.0))
+                (entry.clone_ref(), entries_size + Vector2(width_diff, 0.0))
             });
             entries_and_sizes.collect_vec()
         };
@@ -471,6 +474,7 @@ impl<E: Entry> GridView<E> {
                     *col
                 })
             );
+            out.column_resized <+ set_column_width;
 
             column_resized <- resized_column.constant(());
             content_size_params <- all(out.grid_size, input.set_entries_size, column_resized);
