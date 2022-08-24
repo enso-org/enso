@@ -311,6 +311,7 @@ class IrToTruffle(
             }
             val methodName      = builtinNameElements(1)
             val methodOwnerName = builtinNameElements(0)
+
             val builtinFunction = context.getBuiltins
               .getBuiltinFunction(methodOwnerName, methodName, language)
             builtinFunction.toScala

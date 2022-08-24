@@ -182,8 +182,8 @@ validate validation ~error_message ~wrapped =
 read_excel : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_excel file section headers on_problems xls_format=False =
     reader stream = case section of
-        Sheet_Names -> Vector.Vector (ExcelReader.readSheetNames stream xls_format)
-        Range_Names -> Vector.Vector (ExcelReader.readRangeNames stream xls_format)
+        Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames stream xls_format)
+        Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
             prepare_reader_table on_problems <| case sheet of
                 Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
@@ -227,10 +227,10 @@ write_excel file table on_existing_file section headers match_columns _ xls_form
 prepare_reader_table : Problem_Behavior -> Any -> Table
 prepare_reader_table on_problems result_with_problems =
     map_problem java_problem =
-        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames) else
-              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names (Vector.Vector java_problem.invalidNames) else
+        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names (Vector.from_polyglot_array java_problem.duplicatedNames) else
+              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names (Vector.from_polyglot_array java_problem.invalidNames) else
                 java_problem
-    parsing_problems = Vector.Vector (result_with_problems.problems) . map map_problem
+    parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map map_problem
     on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
 
 ## PRIVATE

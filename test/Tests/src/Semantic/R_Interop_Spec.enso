@@ -50,6 +50,9 @@ foreign r make_true = """
 foreign r make_false = """
     FALSE
 
+foreign r make_null = """
+    NULL
+
 spec =
     pending = if Polyglot.is_language_installed "R" then Nothing else """
         Can't run R tests, R is not installed.
@@ -68,7 +71,7 @@ spec =
             obj.compare 11 . should_be_true
 
         Test.specify "should expose array interfaces for R arrays" <|
-            vec = Vector.Vector make_array
+            vec = Vector.from_polyglot_array make_array
             vec.map .x . should_equal [10, 20, 30]
 
         Test.specify "should correctly marshall strings" <|
@@ -122,6 +125,10 @@ spec =
             num_double_match = case make_double of
                 Number -> True
             num_double_match.should_be_true
+
+        Test.specify "should make R null objects equal to Nothing" <|
+            r_null = make_null
+            r_null . should_equal Nothing
 
         Test.specify "should allow Enso to catch R exceptions" <|
             value = My_Type 1 2

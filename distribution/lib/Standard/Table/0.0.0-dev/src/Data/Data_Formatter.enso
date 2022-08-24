@@ -73,7 +73,7 @@ type Data_Formatter
             Auto -> self.make_auto_parser
             _ -> self.make_datatype_parser datatype
         result = parser.parseIndependentValue text
-        problems = Vector.Vector result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
+        problems = Vector.from_polyglot_array result.problems . map (Parse_Values_Helper.translate_parsing_problem datatype)
         on_problems.attach_problems_after result.value problems
 
     ## Format a value into a Text.

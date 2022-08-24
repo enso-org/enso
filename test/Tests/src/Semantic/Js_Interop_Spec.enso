@@ -45,6 +45,9 @@ foreign js make_object = """
 foreign js make_array = """
     return [{ x: 10}, {x: 20}, {x: 30}];
 
+foreign js make_simple_array = """
+    return [10, 20, 30];
+
 foreign js make_str str = """
     return "foo " + str + " bar"
 
@@ -59,6 +62,9 @@ foreign js make_false = """
 
 foreign js make_double = """
     return 10.5
+
+foreign js make_null = """
+    return null;
 
 foreign js does_not_parse = """
     return { x
@@ -90,8 +96,10 @@ spec = Test.group "Polyglot JS" <|
         obj.compare 11 . should_be_true
 
     Test.specify "should expose array interfaces for JS arrays" <|
-        vec = Vector.Vector make_array
+        vec = Vector.from_polyglot_array make_array
         vec.map .x . should_equal [10, 20, 30]
+        vec2 = Vector.from_polyglot_array make_simple_array
+        vec2.to_array.at 0 . should_equal 10
 
     Test.specify "should correctly marshall strings" <|
         str = make_str "x" + " baz"
@@ -130,6 +138,10 @@ spec = Test.group "Polyglot JS" <|
             Array -> True
             _ -> False
         r.should_be_true
+
+    Test.specify "should make JS null values equal to Nothing" <|
+        js_null = make_null
+        js_null . should_equal Nothing
 
     Test.specify "should make JS numbers type pattern-matchable" <|
         int_match = case make_int of
