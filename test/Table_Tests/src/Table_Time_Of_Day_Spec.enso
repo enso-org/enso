@@ -1,0 +1,53 @@
+from Standard.Base import all
+import Standard.Base.Data.Text.Line_Ending_Style
+import Standard.Base.Data.Time.Time_Of_Day
+
+import Standard.Table
+import Standard.Table.Data.Column
+import Standard.Table.IO.File_Format
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
+
+import Standard.Test
+
+from project.Util import all
+
+spec =
+    c_number = ["Serial number", ["2LMXK1", "2LMXK1", "JEMLP3", "JEMLP3", "BR83GP", "BR83GP"]]
+    c_type = ["Movement type", [101, 301, 101, 203, 101, 301]]
+    c_time = ["Posting time", [Time_Of_Day.new 9 0, Time_Of_Day.new 14 0 12, Time_Of_Day.new 9 0, Time_Of_Day.new 17 30, Time_Of_Day.new 9 0 4, Time_Of_Day.new 15 30]]
+    expected = Table.new [c_number, c_type, c_time]
+
+    Test.group "File.read (Delimited) should work with Time_Of_Days" <|
+        table = (enso_project.data / "time_of_day_sample.csv").read
+        Test.specify "should be able to read in a table with dates" <|
+            table.column_count.should_equal 3
+            table.columns.map (.name) . should_equal ['Serial number','Movement type', 'Posting time']
+            table.row_count.should_equal 6
+
+        Test.specify "should be able to treat a single value as a Time_Of_Days" <|
+            from_column = table.at 'Posting time'
+            from_column.at 5 . hour . should_equal 15
+            from_column.at 5 . minute . should_equal 30
+            from_column.at 5 . should_equal (Time_Of_Day.new 15 30)
+
+        Test.specify "should be able to compare columns and table" <|
+            table.at 'Serial number' . should_equal (Column.from_vector c_number.first c_number.second)
+            table.at 'Movement type' . should_equal (Column.from_vector c_type.first c_type.second)
+            table.at 'Posting time' . should_equal (Column.from_vector c_time.first c_time.second)
+            table.should_equal expected
+
+    Test.group "Should be able to serialise a table with Time_Of_Days to Text" <|
+        Test.specify "should serialise back to input" <|
+            expected_text = normalize_lines <|
+                (enso_project.data / "time_of_day_sample.csv").read_text
+            delimited = Text.from expected format=(File_Format.Delimited "," line_endings=Line_Ending_Style.Unix)
+            delimited.should_equal expected_text
+
+        Test.specify "should serialise dates with format" <|
+            test_table = Table.new [c_time]
+            expected_text = 'Posting time\n09-00-00\n14-00-12\n09-00-00\n17-30-00\n09-00-04\n15-30-00\n'
+            data_formatter = Data_Formatter . with_datetime_formats time_formats=["HH-mm-ss"]
+            delimited = Text.from test_table format=(File_Format.Delimited "," value_formatter=data_formatter line_endings=Line_Ending_Style.Unix)
+            delimited.should_equal expected_text
+
+main = Test.Suite.run_main spec

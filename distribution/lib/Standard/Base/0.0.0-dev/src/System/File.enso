@@ -335,8 +335,7 @@ type File
              example_exists = Examples.csv.creation_time
     creation_time : Time ! File_Error
     creation_time self =
-        handle_java_exceptions self <|
-            Time (self.creation_time_builtin)
+        handle_java_exceptions self <| self.creation_time_builtin
 
     ## PRIVATE
 
@@ -356,8 +355,7 @@ type File
              example_exists = Examples.csv.last_modified_time
     last_modified_time : Time ! File_Error
     last_modified_time self =
-        handle_java_exceptions self <|
-            Time (self.last_modified_time_builtin)
+        handle_java_exceptions self <| self.last_modified_time_builtin
 
     ## PRIVATE
 
