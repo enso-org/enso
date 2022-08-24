@@ -132,10 +132,25 @@ impl RawTextModel {
             Data::Json { content } => content,
             _ => todo!(), // FIXME
         };
+        self.dom.dom().set_inner_html("");
         let data_str = serde_json::to_string_pretty(&**data_inner);
         let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>", e));
-        self.dom.dom().set_inner_text(&data_str);
-        Ok(())
+        if data_str.len() > 1024 {
+            let it = data_str.chars().chunks(1024);
+            for ch in &it {
+                let s: String = ch.collect();
+                let node = web::document.create_div_or_panic();
+                node.set_inner_text(&s);
+                let res = self.dom.dom().append_child(&node);
+                if res.is_err() {
+                    return Err(DataError::InternalComputationError);
+                }
+            }
+            Ok(())
+        } else {
+            self.dom.dom().set_inner_text(&data_str);
+            Ok(())
+        }
     }
 
     fn reload_style(&self) {
