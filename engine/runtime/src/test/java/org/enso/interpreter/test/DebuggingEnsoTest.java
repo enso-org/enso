@@ -18,6 +18,7 @@ import org.graalvm.polyglot.Source;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DebuggingEnsoTest {
@@ -70,6 +71,7 @@ public class DebuggingEnsoTest {
   }
 
   @Test
+  @Ignore
   public void unsafeRecursiveAtom() throws Exception {
     Engine eng = Engine.newBuilder()
       .allowExperimentalOptions(true)
