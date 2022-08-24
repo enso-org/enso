@@ -5,26 +5,26 @@ import Standard.Base.System
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
+polyglot java import org.enso.base.Time_Utils
 
 ## Create an interval representing the duration between two points in time.
 
    Arguments:
    - start_inclusive: The start time of the duration.
    - end_inclusive: The end time of the duration.
+   - timezone_aware: Should the creation of the interval be timezone-aware.
 
    > Example
      An hour interval between two points in time.
 
          import Standard.Base.Data.Time.Duration
-         import Standard.Base.Data.Time
+         import Standard.Base.Data.Time.Date_Time
 
-         example_between = Duration.between Time.now (Time.new 2010 10 20)
-between : Time -> Time -> Duration
-between start_inclusive end_exclusive =
+         example_between = Duration.between Date_Time.now (Date_Time.new 2010 10 20)
+between : Date_Time -> Date_Time -> Duration
+between start_inclusive end_exclusive timezone_aware=True =
     period = Java_Period.ofDays 0 . normalized
-    start = start_inclusive.internal_zoned_date_time
-    end = end_exclusive.internal_zoned_date_time
-    duration = Java_Duration.between start end
+    duration = Time_Utils.duration_between start_inclusive end_exclusive timezone_aware
     Duration period duration
 
 
