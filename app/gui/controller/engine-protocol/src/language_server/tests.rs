@@ -447,8 +447,12 @@ fn test_execution_context() {
             "expressionId"        : "00000000-0000-0000-0000-000000000000",
             "visualisationConfig" : {
                 "executionContextId"  : "00000000-0000-0000-0000-000000000000",
-                "visualisationModule" : "[Foo.Bar.Baz]",
-                "expression"          : "1 + 1"
+                "expression"          : {
+                    "module"        : "[Foo.Bar.Baz]",
+                    "definedOnType" : "[Foo.Bar.Baz]",
+                    "name"          : "foo"
+                },
+                "positionalArgumentsExpressions" : []
             }
         }),
         unit_json.clone(),
@@ -485,8 +489,12 @@ fn test_execution_context() {
             "visualisationId"     : "00000000-0000-0000-0000-000000000000",
             "visualisationConfig" : {
                 "executionContextId"  : "00000000-0000-0000-0000-000000000000",
-                "visualisationModule" : "[Foo.Bar.Baz]",
-                "expression"          : "1 + 1"
+                "expression"          : {
+                    "module"        : "[Foo.Bar.Baz]",
+                    "definedOnType" : "[Foo.Bar.Baz]",
+                    "name"          : "foo"
+                },
+                "positionalArgumentsExpressions" : []
             }
         }),
         unit_json.clone(),
