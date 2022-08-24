@@ -99,6 +99,15 @@ class SuspendedArgumentsTest extends InterpreterTest {
       eval(code).call(1) shouldEqual 1
     }
 
+    "work properly with multiple defaulted arguments" in {
+      val code =
+        """from Standard.Base import all
+          |
+          |main = a -> (~b = Panic.throw 1) -> (~c = Panic.throw 2) -> a
+          |""".stripMargin
+      eval(code).call(1) shouldEqual 1
+    }
+
     "allow passing suspended functions" in {
       val code =
         """main =
