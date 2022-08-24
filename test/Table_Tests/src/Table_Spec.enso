@@ -490,7 +490,7 @@ spec =
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
 
-            t_1.at 'col' . take_start 2 . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
+            t_1.at 'col' . take (First 2) . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
 
         Test.specify "should allow taking the last n rows" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -506,6 +506,8 @@ spec =
             t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (Last 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
+
+            t_1.at 'col1' . take (Last 2) . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
 
         Test.specify "should allow reversing the table" <|
             i_1 = ['ix', [1, 2, 3]]

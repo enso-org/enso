@@ -1,8 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Data.Ordering.Comparator
-from Standard.Base.Error.Problem_Behavior import Report_Warning
-import Standard.Base.System.Platform
 import Standard.Base.Error.Common as Errors
+from Standard.Base.Error.Problem_Behavior import Report_Warning
+import Standard.Base.Data.Index_Sub_Range
+import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.System.Platform
 
 import Standard.Table.Data.Column
 import Standard.Table.IO.File_Format
@@ -18,8 +19,6 @@ from Standard.Table.Data.Column_Type_Selection import Column_Type_Selection, Aut
 from Standard.Table.Data.Data_Formatter import Data_Formatter
 from Standard.Table.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error
 import Standard.Table.Data.Match_Columns
-from Standard.Base.Data.Index_Sub_Range import First, Last, While, Sample, Every
-import Standard.Base.Data.Index_Sub_Range
 
 import Standard.Table.Data.Column_Name_Mapping
 import Standard.Table.Data.Position
@@ -762,7 +761,6 @@ type Table
     ## UNSTABLE
        Creates a new Table from the input with the specified range of rows
        removed.
-
 
        Arguments:
        - range: The selection of rows from the table to remove.
