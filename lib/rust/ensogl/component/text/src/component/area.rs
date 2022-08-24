@@ -609,7 +609,7 @@ impl AreaModel {
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<font::Registry>();
-            let font = fonts.load("default");
+            let font = fonts.load(font::DEFAULT_FONT_MONO);
             let glyph_system = font::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))
@@ -820,12 +820,12 @@ impl AreaModel {
             let next = iter.next();
             let style = line_style.next().unwrap_or_default();
             let chr_size = style.size.raw;
-            let char_info = next.as_ref().map(|t| {
+            let char_info = next.as_ref().map(|(glyph, ch)| {
                 pen::CharInfo::new(
-                    t.1,
+                    *ch,
                     chr_size,
-                    t.0.properties.get(),
-                    t.0.variations.borrow().clone(),
+                    glyph.properties.get(),
+                    glyph.variations.borrow().clone(),
                 )
             });
             let info = pen.advance(char_info);
@@ -853,18 +853,18 @@ impl AreaModel {
                             &glyph.variations.borrow(),
                             chr,
                         )
-                        .unwrap(); // FIXME
+                        .unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
                     let glyph_info = glyph_system
                         .font
                         .glyph_info(glyph.properties.get(), &glyph.variations.borrow(), glyph_id)
-                        .unwrap(); // FIXME
+                        .unwrap(); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
                     let glyph_y = glyph_offset.y;
                     glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
-                    // glyph.set_bold(style.bold.raw); // FIXME
+                    // glyph.set_bold(style.bold.raw); // FIXME[WD] to be fixed in https://www.pivotaltracker.com/story/show/182746060
                     glyph.set_sdf_bold(style.sdf_bold.raw);
                     glyph.set_font_size(chr_size);
                     match &last_cursor {
@@ -892,7 +892,7 @@ impl AreaModel {
         line.to_string()
     }
 
-    // FIXME: to be rewritten with the new line layouter.
+    // FIXME: to be rewritten with the new line layouter. https://www.pivotaltracker.com/story/show/182746060
     /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered
     /// using the current font at `font_size`. Return the truncated string with an ellipsis ("…")
     /// character appended, or `content` if not truncated.

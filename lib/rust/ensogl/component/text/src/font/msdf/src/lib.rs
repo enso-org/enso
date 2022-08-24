@@ -106,11 +106,8 @@ impl Future for MsdfgenJsInitialized {
 // === OwnedFace ===
 // =================
 
-/// A font face loaded to JS memory and handled by the msdfgen library.
-///
-/// The name uses the "owned" prefix in order to stay compatible with the `ttf-parser` library. In
-/// most cases, non-owned version is desirable, however, as this library uses JS interop (which is
-/// costly), keeping the owned version makes more sense.
+/// A font face loaded to JS memory and handled by the msdfgen library. The name uses the "owned"
+/// prefix in order to stay compatible with the `ttf-parser` library.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct OwnedFace {
@@ -151,7 +148,7 @@ impl OwnedFace {
         coordinate: f64,
     ) -> Result<(), SetVariationAxisError> {
         let ok = msdfgen_set_variation_axis(self.handle.clone(), tag.0, coordinate) != 0;
-        ok.ok_or_else(|| SetVariationAxisError::LibraryError { name: format!("{}", tag) })
+        ok.ok_or_else(|| SetVariationAxisError::LibraryError { name: tag.to_string() })
     }
 
     /// Mocked version of this struct. Used for testing purposes.

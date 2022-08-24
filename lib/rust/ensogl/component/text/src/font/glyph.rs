@@ -57,7 +57,7 @@ pub struct GlyphData {
 // === Properties getters and setters ===
 
 macro_rules! define_prop_setters_and_getters {
-    ($prop:ident ($($name:ident),* $(,)?)) => { paste! {
+    ($prop:ident ($($variant:ident),* $(,)?)) => { paste! {
         #[doc = "Setter of the glyph `"]
         #[doc = stringify!($prop)]
         #[doc = "` property."]
@@ -71,19 +71,19 @@ macro_rules! define_prop_setters_and_getters {
             #[doc = "Set the `"]
             #[doc = stringify!($prop)]
             #[doc = "` property to `"]
-            #[doc = stringify!($name)]
+            #[doc = stringify!($variant)]
             #[doc = "`."]
-            pub fn [<set_ $prop:snake:lower _ $name:snake:lower>](&self) {
-                self.[<set_ $prop:snake:lower>](font::$prop::$name)
+            pub fn [<set_ $prop:snake:lower _ $variant:snake:lower>](&self) {
+                self.[<set_ $prop:snake:lower>](font::$prop::$variant)
             }
 
             #[doc = "Checks whether the `"]
             #[doc = stringify!($prop)]
             #[doc = "` property is set to `"]
-            #[doc = stringify!($name)]
+            #[doc = stringify!($variant)]
             #[doc = "`."]
-            pub fn [<is_ $prop:snake:lower _ $name:snake:lower>](&self) -> bool {
-                self.properties.get().[<$prop:snake:lower>] == font::$prop::$name
+            pub fn [<is_ $prop:snake:lower _ $variant:snake:lower>](&self) -> bool {
+                self.properties.get().[<$prop:snake:lower>] == font::$prop::$variant
             }
         )*
     }};
@@ -167,6 +167,9 @@ impl Glyph {
             self.update_atlas();
             let font_size = self.font_size();
             self.sprite.size.set(glyph_info.scale.scale(font_size));
+        } else {
+            // FIXME[WD]: This should display a bad character. https://www.pivotaltracker.com/story/show/182746060
+            panic!()
         }
     }
 

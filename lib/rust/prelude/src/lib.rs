@@ -211,8 +211,9 @@ pub trait ToImpl: Sized {
 impl<T> ToImpl for T {}
 
 
+
 // ================
-// === nalgebra ===
+// === Nalgebra ===
 // ================
 
 #[cfg(feature = "nalgebra")]

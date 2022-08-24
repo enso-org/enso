@@ -246,14 +246,16 @@ impl Face {
 /// [`NonVariableFaceHeader`] to learn more. For variable faces, the variation is [`VariationAxes`],
 /// however, as variable fonts have one face only, this parameter is not used while borrowing the
 /// face.
-pub trait Family<Variations> {
+pub trait Family {
+    type Variations: Eq + Hash + Clone + Debug;
+
     /// Update MSDFgen settings for given variations. For non-variable fonts, this function is a
     /// no-op.
-    fn update_msdfgen_variations(&self, variations: &Variations);
+    fn update_msdfgen_variations(&self, variations: &Self::Variations);
     /// Run the function with borrowed font face for the given variations set. For non-variable
     /// fonts, the function will not be run if variations do not match a known definition. For
     /// variable fonts, the function always succeeds.
-    fn with_borrowed_face<F, T>(&self, variations: &Variations, f: F) -> Option<T>
+    fn with_borrowed_face<F, T>(&self, variations: &Self::Variations, f: F) -> Option<T>
     where F: for<'a> FnOnce(&'a Face) -> T;
 }
 
@@ -265,12 +267,19 @@ pub struct NonVariableFamily {
     pub faces:      Rc<RefCell<HashMap<NonVariableFaceHeader, Face>>>,
 }
 
-/// A variable font family. Contains font family definition and the font face.
+/// A variable font family. Contains font family definition and the font face. The face is kept in
+/// an `Option` because it is created after the family initialization. Currently, it could be
+/// simplified, but it is already designed in this way to support on-demand face loading (served
+/// from server when needed).
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct VariableFamily {
     pub definition: family::VariableDefinition,
     pub face:       Rc<RefCell<Option<Face>>>,
+    /// Most recent axes used to generate MSDF textures. If axes change, MSDFgen parameters need to
+    /// be updated, which involves a non-zero cost (mostly due to Rust <> JS interop). Thus, we
+    /// want to refresh them only when needed. This field is a cache allowing us to check if
+    /// axes changed.
     pub last_axes:  Rc<RefCell<Option<VariationAxes>>>,
 }
 
@@ -302,16 +311,18 @@ impl VariableFamily {
     }
 }
 
-impl Family<NonVariableFaceHeader> for NonVariableFamily {
-    fn update_msdfgen_variations(&self, _variations: &NonVariableFaceHeader) {}
-    fn with_borrowed_face<F, T>(&self, variations: &NonVariableFaceHeader, f: F) -> Option<T>
+impl Family for NonVariableFamily {
+    type Variations = NonVariableFaceHeader;
+    fn update_msdfgen_variations(&self, _variations: &Self::Variations) {}
+    fn with_borrowed_face<F, T>(&self, variations: &Self::Variations, f: F) -> Option<T>
     where F: for<'a> FnOnce(&'a Face) -> T {
         self.faces.borrow().get(variations).map(f)
     }
 }
 
-impl Family<VariationAxes> for VariableFamily {
-    fn update_msdfgen_variations(&self, variations: &VariationAxes) {
+impl Family for VariableFamily {
+    type Variations = VariationAxes;
+    fn update_msdfgen_variations(&self, variations: &Self::Variations) {
         if let Some(face) = self.face.borrow().as_ref() {
             if self.last_axes.borrow().as_ref() != Some(variations) {
                 self.last_axes.borrow_mut().replace(variations.clone());
@@ -328,7 +339,7 @@ impl Family<VariationAxes> for VariableFamily {
         }
     }
 
-    fn with_borrowed_face<F, T>(&self, _variations: &VariationAxes, f: F) -> Option<T>
+    fn with_borrowed_face<F, T>(&self, _variations: &Self::Variations, f: F) -> Option<T>
     where F: for<'a> FnOnce(&'a Face) -> T {
         self.face.borrow().as_ref().map(f)
     }
@@ -354,8 +365,7 @@ impl From<&family::NonVariableDefinition> for NonVariableFamily {
 // === Font ===
 // ============
 
-/// A typeface, commonly referred to as a font. See the documentation of [`FontTemplate`] to learn
-/// more.
+/// A typeface, commonly referred to as a font.
 #[allow(missing_docs)]
 #[derive(Debug, Clone, CloneRef, From)]
 pub enum Font {
@@ -364,10 +374,10 @@ pub enum Font {
 }
 
 /// A non-variable version of [`Font`].
-pub type NonVariableFont = FontTemplate<NonVariableFamily, NonVariableFaceHeader>;
+pub type NonVariableFont = FontTemplate<NonVariableFamily>;
 
 /// A variable version of [`Font`].
-pub type VariableFont = FontTemplate<VariableFamily, VariationAxes>;
+pub type VariableFont = FontTemplate<VariableFamily>;
 
 impl Font {
     /// List all possible weights. In case of variable fonts, [`None`] will be returned.
@@ -450,18 +460,18 @@ impl Font {
 /// layout glyphs.
 #[derive(Deref, Derivative, CloneRef, Debug)]
 #[derivative(Clone(bound = ""))]
-pub struct FontTemplate<Family, Variations> {
-    rc: Rc<FontTemplateData<Family, Variations>>,
+pub struct FontTemplate<F: Family> {
+    rc: Rc<FontTemplateData<F>>,
 }
 
 /// Internal representation of [`FontTemplate`].
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct FontTemplateData<Family, Variations> {
+pub struct FontTemplateData<F: Family> {
     pub name:                   Name,
-    pub family:                 Family,
+    pub family:                 F,
     pub atlas:                  msdf::Texture,
-    pub cache:                  RefCell<HashMap<Variations, FontDataCache>>,
+    pub cache:                  RefCell<HashMap<F::Variations, FontDataCache>>,
     // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
     //   https://www.pivotaltracker.com/story/show/182746060
     pub glyph_id_to_code_point: RefCell<HashMap<GlyphId, char>>,
@@ -474,14 +484,14 @@ pub struct FontDataCache {
     glyphs:  HashMap<GlyphId, GlyphRenderInfo>,
 }
 
-impl<F, V> From<FontTemplateData<F, V>> for FontTemplate<F, V> {
-    fn from(t: FontTemplateData<F, V>) -> Self {
+impl<F: Family> From<FontTemplateData<F>> for FontTemplate<F> {
+    fn from(t: FontTemplateData<F>) -> Self {
         let rc = Rc::new(t);
         Self { rc }
     }
 }
 
-impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
+impl<F: Family> FontTemplate<F> {
     /// Constructor.
     pub fn new(name: Name, family: impl Into<F>) -> Self {
         let atlas = default();
@@ -495,7 +505,11 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     // FIXME[WD]: Remove after all APIs will use GlyphIds (incl. pen API).
     //   https://www.pivotaltracker.com/story/show/182746060
     /// Get the glyph id of the provided code point.
-    pub fn glyph_id_of_code_point(&self, variations: &V, code_point: char) -> Option<GlyphId> {
+    pub fn glyph_id_of_code_point(
+        &self,
+        variations: &F::Variations,
+        code_point: char,
+    ) -> Option<GlyphId> {
         self.family
             .with_borrowed_face(variations, |face| {
                 let id = face.ttf.as_face_ref().glyph_index(code_point);
@@ -508,7 +522,11 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     }
 
     /// Get render info for one character, generating one if not found.
-    pub fn glyph_info(&self, variations: &V, glyph_id: GlyphId) -> Option<GlyphRenderInfo> {
+    pub fn glyph_info(
+        &self,
+        variations: &F::Variations,
+        glyph_id: GlyphId,
+    ) -> Option<GlyphRenderInfo> {
         let opt_render_info =
             self.cache.borrow().get(variations).and_then(|t| t.glyphs.get(&glyph_id)).copied();
         if opt_render_info.is_some() {
@@ -529,7 +547,7 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
     }
 
     /// Get kerning between two characters.
-    pub fn kerning(&self, variations: &V, left: GlyphId, right: GlyphId) -> f32 {
+    pub fn kerning(&self, variations: &F::Variations, left: GlyphId, right: GlyphId) -> f32 {
         self.family
             .with_borrowed_face(variations, |face| {
                 if !self.cache.borrow().contains_key(variations) {
