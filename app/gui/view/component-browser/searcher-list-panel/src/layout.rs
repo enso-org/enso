@@ -16,7 +16,7 @@ use ide_view_component_group::set::SectionId;
 
 /// Height of the header of the component group. This value is added to the group's number of
 /// entries to get the total height.
-pub const HEADER_HEIGHT: usize = 1;
+pub const HEADER_HEIGHT_IN_ROWS: usize = 1;
 
 
 
@@ -64,7 +64,7 @@ pub struct Group {
 /// The information of group in the layout.
 #[derive(Copy, Clone, Debug)]
 pub struct LaidGroup<'a> {
-    /// Number of row where header is placed.
+    /// The row where header is placed.
     pub header_row: Row,
     /// The column where the group is placed.
     pub column:     Col,
@@ -75,16 +75,16 @@ pub struct LaidGroup<'a> {
 impl<'a> LaidGroup<'a> {
     /// The range of rows where the group spans, _including_ the header.
     pub fn rows(&self) -> Range<Row> {
-        self.header_row..(self.header_row + self.group.height + HEADER_HEIGHT)
+        self.header_row..(self.header_row + self.group.height + HEADER_HEIGHT_IN_ROWS)
     }
 
     /// The id of element at given row, or `None` if row is outside the group.
     pub fn element_at_row(&self, row: Row) -> Option<ElementId> {
         let element = self.rows().contains(&row).as_some_from(|| {
-            if row < self.header_row + HEADER_HEIGHT {
+            if row < self.header_row + HEADER_HEIGHT_IN_ROWS {
                 GroupElement::Header
             } else {
-                GroupElement::Entry(row - self.header_row - HEADER_HEIGHT)
+                GroupElement::Entry(row - self.header_row - HEADER_HEIGHT_IN_ROWS)
             }
         });
         element.map(|element| ElementId { group: self.group.id, element })
@@ -144,8 +144,9 @@ impl Layout {
         local_scope_entry_count: usize,
     ) -> Self {
         let local_scope_rows = local_scope_entry_count.div_ceil(COLUMN_COUNT);
-        let col_heights: [usize; COLUMN_COUNT] =
-            groups.each_ref().map(|v| v.iter().map(|g| g.original_height + HEADER_HEIGHT).sum());
+        let col_heights: [usize; COLUMN_COUNT] = groups
+            .each_ref()
+            .map(|v| v.iter().map(|g| g.original_height + HEADER_HEIGHT_IN_ROWS).sum());
         let groups_rows = col_heights.into_iter().max().unwrap_or_default();
         let all_rows = local_scope_rows + groups_rows;
         let mut this = Self::new(all_rows, COLUMN_COUNT, local_scope_entry_count);
@@ -168,7 +169,7 @@ impl Layout {
     pub fn group_at_location(&self, row: Row, column: Col) -> Option<LaidGroup> {
         let groups_in_col = &self.columns.get(column)?.groups;
         let (group_before_row, group_before) = groups_in_col.range(..=row).last()?;
-        let group_end = group_before_row + group_before.height + HEADER_HEIGHT;
+        let group_end = group_before_row + group_before.height + HEADER_HEIGHT_IN_ROWS;
         (group_end > row).as_some_from(|| LaidGroup {
             header_row: *group_before_row,
             column,
@@ -205,7 +206,8 @@ impl Layout {
             let &(header_pos, col) = self.positions.get(&element.group)?;
             match element.element {
                 GroupElement::Header => Some((header_pos, col)),
-                GroupElement::Entry(index) => Some((header_pos + HEADER_HEIGHT + index, col)),
+                GroupElement::Entry(index) =>
+                    Some((header_pos + HEADER_HEIGHT_IN_ROWS + index, col)),
             }
         }
     }
@@ -213,7 +215,7 @@ impl Layout {
     /// Add group to the top of given column.
     pub fn push_group(&mut self, column: Col, group: Group) -> Row {
         let group_column = &mut self.columns[column];
-        let next_header_row = group_column.top_row - group.height - HEADER_HEIGHT;
+        let next_header_row = group_column.top_row - group.height - HEADER_HEIGHT_IN_ROWS;
         group_column.groups.insert(next_header_row, group);
         group_column.top_row = next_header_row;
         self.positions.insert(group.id, (next_header_row, column));

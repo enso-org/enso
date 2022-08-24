@@ -7,7 +7,7 @@ use ensogl_core::prelude::*;
 
 use crate::layout::Group;
 use crate::layout::Layout;
-use crate::layout::HEADER_HEIGHT;
+use crate::layout::HEADER_HEIGHT_IN_ROWS;
 
 use ensogl_grid_view::Col;
 
@@ -123,7 +123,7 @@ impl<I: Iterator<Item = Group>> Layouter<I> {
     /// [`HEADER_HEIGHT`])
     fn push(&mut self, column: Col, group: Group) -> GroupHeight {
         self.columns[column].push(group);
-        let group_height = group.original_height + HEADER_HEIGHT;
+        let group_height = group.original_height + HEADER_HEIGHT_IN_ROWS;
         self.column_heights[column] += group_height;
         group_height
     }
