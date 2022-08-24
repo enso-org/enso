@@ -148,12 +148,20 @@ js_parse text format=Nothing =
     d = Date.parse text format
     js_date d.year d.month d.day
 
+## JSDate is not only a date but also time and timezone.
+## Here, we explicitly convert JS ZonedDateTime to LocalDate
+js_set_zone local_datetime =
+    zone = Zone.utc
+    datetime_with_tz = local_datetime.at_zone(zone)
+    diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
+    (datetime_with_tz + diff).to_localdate_builtin
+
 js_date year month=1 day=1 =
-    Panic.catch Any (js_date_impl year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
+    Panic.catch Any (js_set_zone (js_date_impl year month day)) (err -> Error.throw (Time.Time_Error err.payload.cause))
 
 js_array_date year month=1 day=1 =
     arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time.Time_Error err.payload.cause))
-    arr.at(0)
+    js_set_zone arr.at(0)
 
 java_parse date_text pattern=Nothing =
   if pattern == Nothing then Panic.catch Polyglot_Error (LocalDate.parse date_text) (err -> Error.throw (Time.Time_Error err.payload.cause.getMessage)) else

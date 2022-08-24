@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time
+import Standard.Base.Data.Time.Date_Time
 import Standard.Base.Network.Http
 import Standard.Base.System.Platform
 import Standard.Base.Data.Time.Duration
@@ -70,7 +70,7 @@ scratch_file =
 
 ## An example duration for experimenting with duration APIs.
 duration : Duration
-duration = Duration.between (Time.new 2020 10 20) Time.now
+duration = Duration.between (Date_Time.new 2020 10 20) Date_Time.now
 
 ## An example amount of JSON as text.
 json_text : Text

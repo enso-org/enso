@@ -1,8 +1,12 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Zone
 
 import Standard.Test
+
+polyglot java import java.time.ZoneId
+polyglot java import java.time.ZoneOffset
 
 spec =
     Test.group "Zone" <|
@@ -29,3 +33,36 @@ spec =
                 Json.from_pairs [["type", "Zone"], ["id", "+01:02:03"]]
             Zone.utc.to_json.should_equal <|
                 Json.from_pairs [["type", "Zone"], ["id", "UTC"]]
+        Test.specify "should throw error when parsing invalid zone id" <|
+            case Zone.parse "foo" . catch of
+                Time.Time_Error msg ->
+                    msg . should_equal "Unknown time-zone ID: foo"
+                result ->
+                    Test.fail ("Unexpected result: " + result.to_text)
+    Test.group "JavaZoneId" <|
+        Test.specify "should get system zone id" <|
+            defaultZone = ZoneId.systemDefault
+            Zone.system . should_equal defaultZone
+        Test.specify "should parse UTC zone" <|
+            zone = "UTC"
+            id = ZoneId.of zone
+            id . should_equal Zone.utc
+        Test.specify "should parse id-based zone" <|
+            zone = "Europe/Warsaw"
+            id = ZoneId.of zone
+            id . zone_id . should_equal zone
+        Test.specify "should parse offset-based zone" <|
+            zone = "+01:02:03"
+            id = ZoneId.of zone
+            id . zone_id . should_equal zone
+        Test.specify "should get utc zone id" <|
+            zone = ZoneId.of "UTC"
+            zone  . should_equal Zone.utc
+        Test.specify "should convert to Json" <|
+            zone = ZoneOffset.ofHoursMinutesSeconds 1 2 3
+            zone.to_json.should_equal <|
+                Json.from_pairs [["type", "Zone"], ["id", "+01:02:03"]]
+            (ZoneId.of "UTC").to_json.should_equal <|
+                Json.from_pairs [["type", "Zone"], ["id", "UTC"]]
+
+main = Test.Suite.run_main spec
