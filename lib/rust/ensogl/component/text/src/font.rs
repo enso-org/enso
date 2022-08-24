@@ -68,6 +68,12 @@ impl VariationAxis {
         let value = default();
         Self { tag, value }
     }
+
+    /// Constructor.
+    pub fn from_bytes2(bytes: &[u8; 4], value: NotNan<f32>) -> Self {
+        let tag = Tag::from_bytes(bytes);
+        Self { tag, value }
+    }
 }
 
 
@@ -79,63 +85,51 @@ impl VariationAxis {
 /// Variation axes of variable fonts. Contains five common axes and a general way of storing
 /// non-common ones.
 #[allow(missing_docs)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct VariationAxes {
-    pub ital:         VariationAxis,
-    pub opsz:         VariationAxis,
-    pub slnt:         VariationAxis,
-    pub wght:         VariationAxis,
-    pub wdth:         VariationAxis,
-    pub non_standard: Vec<VariationAxis>,
-}
-
-impl Default for VariationAxes {
-    fn default() -> Self {
-        Self::new()
-    }
+    pub vec: Vec<VariationAxis>,
 }
 
 impl VariationAxes {
-    /// Constructor.
-    pub fn new() -> Self {
-        Self {
-            ital:         VariationAxis::from_bytes(b"ital"),
-            opsz:         VariationAxis::from_bytes(b"opsz"),
-            slnt:         VariationAxis::from_bytes(b"slnt"),
-            wght:         VariationAxis::from_bytes(b"wght"),
-            wdth:         VariationAxis::from_bytes(b"wdth"),
-            non_standard: default(),
-        }
-        .init()
-    }
-
-    fn init(mut self) -> Self {
-        self.set_weight(Weight::Normal);
-        self.set_width(Width::Normal);
-        self.set_style(Style::Normal);
-        self
-    }
-
-    /// Map a function over all standard axes.
-    pub fn with_standard_axes(&self, f: impl Fn(VariationAxis)) {
-        f(self.ital);
-        f(self.opsz);
-        f(self.slnt);
-        f(self.wght);
-        f(self.wdth);
-    }
-
     /// Map a function over all non-standard axes.
-    pub fn with_non_standard_axes(&self, f: impl Fn(VariationAxis)) {
-        for axis in &self.non_standard {
+    pub fn with_axes(&self, f: impl Fn(VariationAxis)) {
+        for axis in &self.vec {
             f(*axis);
         }
+    }
+
+    pub fn set(&mut self, axis: VariationAxis) {
+        if let Some(index) = self.vec.iter().position(|a| a.tag == axis.tag) {
+            self.vec[index] = axis;
+        } else {
+            self.vec.push(axis);
+        }
+    }
+
+    pub fn set_ital(&mut self, value: NotNan<f32>) {
+        self.set(VariationAxis::from_bytes2(b"ital", value));
+    }
+
+    pub fn set_opsz(&mut self, value: NotNan<f32>) {
+        self.set(VariationAxis::from_bytes2(b"opsz", value));
+    }
+
+    pub fn set_slnt(&mut self, value: NotNan<f32>) {
+        self.set(VariationAxis::from_bytes2(b"slnt", value));
+    }
+
+    pub fn set_wght(&mut self, value: NotNan<f32>) {
+        self.set(VariationAxis::from_bytes2(b"wght", value));
+    }
+
+    pub fn set_wdth(&mut self, value: NotNan<f32>) {
+        self.set(VariationAxis::from_bytes2(b"wdth", value));
     }
 
     /// Weight setter. See the following docs to learn more:
     /// https://fonts.google.com/knowledge/glossary/weight_axis
     pub fn set_weight(&mut self, value: Weight) {
-        self.wght.value = value.to_number().into();
+        self.set_wght(value.to_number().into());
     }
 
     /// Width setter. See the following docs to learn more:
@@ -152,7 +146,7 @@ impl VariationAxes {
             Width::ExtraExpanded => 156.25,
             Width::UltraExpanded => 175.0,
         };
-        self.wdth.value = NotNan::new(wdth).unwrap();
+        self.set_wdth(NotNan::new(wdth).unwrap());
     }
 
     /// Style setter. See the following docs to learn more:
@@ -161,16 +155,16 @@ impl VariationAxes {
     pub fn set_style(&mut self, value: Style) {
         match value {
             Style::Normal => {
-                self.ital.value = 0_u16.into();
-                self.slnt.value = 0_u16.into();
+                self.set_ital(0_u16.into());
+                self.set_slnt(0_u16.into());
             }
             Style::Italic => {
-                self.ital.value = 1_u16.into();
-                self.slnt.value = 0_u16.into();
+                self.set_ital(1_u16.into());
+                self.set_slnt(0_u16.into());
             }
             Style::Oblique => {
-                self.ital.value = 0_u16.into();
-                self.slnt.value = 90_u16.into();
+                self.set_ital(0_u16.into());
+                self.set_slnt(90_u16.into());
             }
         }
     }
@@ -283,11 +277,7 @@ impl Family<VariationAxes> for VariableFamily {
         if let Some(face) = self.face.borrow().as_ref() {
             if self.last_axes.borrow().as_ref() != Some(variations) {
                 self.last_axes.borrow_mut().replace(variations.clone());
-                variations.with_standard_axes(|axis| {
-                    let value = axis.value.into_inner() as f64;
-                    face.msdf.set_variation_axis(axis.tag, value).ok();
-                });
-                variations.with_non_standard_axes(|axis| {
+                variations.with_axes(|axis| {
                     let value = axis.value.into_inner() as f64;
                     face.msdf
                         .set_variation_axis(axis.tag, value)
