@@ -107,10 +107,11 @@ export class Visualization {
      * this.setPreprocessor('Foo.Bar.Baz', 'prepare_visualization', '42', 'False')
      *
      * First argument of the visualization function is always the node value
-     * (`data`) followed by the setting parameters. In this example `setPreprocessor`
-     * call passes the number `42` as `param_1` and boolean `False` as `param_2`.
-     * `param_3` has been left unchanged with a default value `Nothing` since it
-     * was not specified in the example `setPreprocessor` call.
+     * (`data`), followed by the configuration parameters. In this example
+     * `setPreprocessor` call passes the number `42` as `param_1` and boolean
+     * `False` as `param_2`. `param_3` has been left unchanged with the default
+     * value `Nothing` since it was not specified in the example
+     * `setPreprocessor` call.
      *
      * @param module The qualified module containing the preprocessor method.
      * @param method The preprocessor method name. The method must be invocable
