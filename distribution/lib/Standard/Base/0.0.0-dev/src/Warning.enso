@@ -83,7 +83,7 @@ attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_wi
    Gets all the warnings attached to the given value. Warnings are returned in the
    reverse-chronological order with respect to their attachment time.
 get_all : Any -> Vector.Vector Warning
-get_all value = Vector.Vector (get_all_array value)
+get_all value = Vector.from_array (get_all_array value)
 
 
 ## PRIVATE

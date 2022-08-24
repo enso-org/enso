@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Runtime.Ref
 import Standard.Base.Runtime.Unsafe
 from Standard.Base.Data.Index_Sub_Range import While, By_Index, Sample, Every
-import Standard.Base.Polyglot.Proxy_Polyglot_Array
 import Standard.Base.Random
 
 ## Creates a new vector of the given length, initializing elements using

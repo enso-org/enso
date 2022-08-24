@@ -98,7 +98,7 @@ type Json
 
              example_into =
                  json = Examples.json
-                 format = (Vector.Vector.new (_->(Book title=Text (Author name=Text year_of_birth=Number))))
+                 format = (Vector.of (Book title=Text (Author name=Text year_of_birth=Number)))
                  json.into format
     into : Any -> Any ! Marshalling_Error
     into self type_descriptor =

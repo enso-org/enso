@@ -736,7 +736,7 @@ type File
 
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector.Vector File
-    list_immediate_children self = Vector.Vector (self.list_immediate_children_array)
+    list_immediate_children self = Vector.from_array (self.list_immediate_children_array)
 
     ## PRIVATE
 
@@ -905,7 +905,7 @@ type Input_Stream
     read_n_bytes self n = self.stream_resource . with java_stream->
         handle_java_exceptions self.file <|
             bytes = java_stream.readNBytes n
-            Vector.Vector bytes
+            Vector.from_polyglot_array bytes
 
     ## ADVANCED
 
@@ -971,7 +971,7 @@ type Input_Stream
     with_stream_decoder self encoding on_problems action = self.stream_resource . with java_stream->
         java_charset = encoding.to_java_charset
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
-        problems = Vector.Vector results.problems . map Encoding_Error
+        problems = Vector.from_polyglot_array results.problems . map Encoding_Error
         on_problems.attach_problems_after results.result problems
 
 ## PRIVATE
