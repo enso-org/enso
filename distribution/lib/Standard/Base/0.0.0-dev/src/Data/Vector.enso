@@ -66,18 +66,18 @@ fill length ~item =
    - capacity: Initial capacity of the Vector.Builder
 
    > Example
-     Construct a vector using a builder that contains the items 1 to 10.
+     Construct a vector using a builder that contains the items 1 to 5.
 
          example_new_builder =
-              builder = Vector.new_builder 10
+              builder = Vector.new_builder 5
               do_build start stop =
                   builder.append start
                   if start >= stop then Nothing else
                       @Tail_Call do_build start+1 stop
-              do_build 1 10
+              do_build 1 5
               builder.to_vector
 new_builder : Integer -> Builder
-new_builder (capacity=1) = Builder.new capacity
+new_builder (capacity=10) = Builder.new capacity
 
 ## ADVANCED
 
@@ -116,12 +116,12 @@ type Vector
              Vector.fill length=50 item=42
     type Vector storage
 
+    ## PRIVATE
     to_array self =
         arr = self.storage.to_array
-        case arr of
-            Array ->
-                arr
-            _     ->
+        case Meta.meta arr of
+            Meta.Primitive _ -> arr
+            _ ->
                 len = self.storage.length
                 a = Array.new len
                 Array.copy arr 0 a 0 len
@@ -1021,7 +1021,7 @@ type Builder
 
              Vector.new_builder
     new : Integer->Builder
-    new (capacity=1) = Builder (ArrayList.new capacity)
+    new (capacity=10) = Builder (ArrayList.new capacity)
 
     ## Checks if this builder is empty.
     is_empty : Boolean
@@ -1125,7 +1125,7 @@ type Builder
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
         new_array = self.java_builder.toArray
-        Vector new_array
+        from_polyglot_array new_array
 
 ## UNSTABLE
 
