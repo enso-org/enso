@@ -218,9 +218,9 @@ parse_aggregated_problems problems =
         problems_array = problems.getProblems
         parsed = Vector.new problems_array.length i->
             p = problems_array.at i
-            if Java.is_instance p InvalidAggregation then Invalid_Aggregation p.getColumnName (Vector.Vector p.getRows) p.getMessage else
-                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping p.getColumnName (Vector.Vector p.getRows) else
-                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter p.getColumnName (Vector.Vector p.getRows) else
+            if Java.is_instance p InvalidAggregation then Invalid_Aggregation p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
+                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter p.getColumnName (Vector.from_polyglot_array p.getRows) else
                         Invalid_Aggregation Nothing -1 "Unknown Error"
 
         if problems.getCount == problems_array.length then parsed else

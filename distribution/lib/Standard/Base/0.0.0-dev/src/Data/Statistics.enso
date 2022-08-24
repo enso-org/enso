@@ -207,7 +207,7 @@ calculate_correlation_statistics_matrix : [Vector] -> [CorrelationStatistics]
 calculate_correlation_statistics_matrix data =
     data_array = Vector.new data.length i->(data.at i).to_array . to_array
     stats_array = wrap_java_call <| CorrelationStatistics.computeMatrix data_array
-    Vector.new stats_array.length i->(Vector.Vector (stats_array.at i))
+    Vector.new stats_array.length i->(Vector.from_polyglot_array (stats_array.at i))
 
 
 ## Compute a single statistic on the vector.
@@ -248,4 +248,4 @@ rank_data input method=Rank_Method.Average =
 
     handle_classcast <| handle_nullpointer <|
         java_ranks = Rank.rank input.to_array Comparator.new java_method
-        Vector.Vector java_ranks
+        Vector.from_polyglot_array java_ranks

@@ -217,7 +217,7 @@ Column_Name_Mismatch.to_display_text self = self.message
 Column_Name_Mismatch.handle_java_exception =
     throw_column_name_mismatch caught_panic =
         cause = caught_panic.payload.cause
-        Error.throw (Column_Name_Mismatch (Vector.Vector cause.getMissing) (Vector.Vector cause.getExtras) cause.getMessage)
+        Error.throw (Column_Name_Mismatch (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
     Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
 
 ## UNSTABLE

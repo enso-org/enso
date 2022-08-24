@@ -9,7 +9,7 @@ polyglot java import org.enso.base.Text_Utils
 all_character_sets : Vector.Vector Text
 all_character_sets =
     java_array = Charset.availableCharsets.keySet.toArray
-    Vector.Vector java_array
+    Vector.from_polyglot_array java_array
 
 ## Get all available Encodings.
 all_encodings : Vector Encoding

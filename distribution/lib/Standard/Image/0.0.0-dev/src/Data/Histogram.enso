@@ -52,4 +52,4 @@ type Histogram
 Image.Image.histogram : Integer -> Histogram
 Image.Image.histogram self channel =
     hist = Java_Histogram.calculate self.opencv_mat channel
-    Histogram channel (Vector.Vector hist.get_data)
+    Histogram channel (Vector.from_polyglot_array hist.get_data)

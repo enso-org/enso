@@ -91,7 +91,7 @@ read_from_reader format java_reader on_problems max_columns=4096 =
     Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
         reader = prepare_delimited_reader java_reader format max_columns on_problems
         result_with_problems = reader.read
-        parsing_problems = Vector.Vector (result_with_problems.problems) . map translate_reader_problem
+        parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map translate_reader_problem
         on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
 
 ## PRIVATE
@@ -124,11 +124,11 @@ prepare_delimited_reader java_reader format max_columns on_problems newline_over
     DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 translate_reader_problem problem =
-    invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row))]
+    invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.from_polyglot_array java_problem.row))]
     additional_invalid_rows = [AdditionalInvalidRows, (java_problem-> Additional_Invalid_Rows java_problem.count)]
     mismatched_quote = [MismatchedQuote, (_-> Mismatched_Quote)]
-    duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames))]
-    invalid_names = [InvalidNames, (java_problem-> Invalid_Output_Column_Names (Vector.Vector java_problem.invalidNames))]
+    duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names (Vector.from_polyglot_array java_problem.duplicatedNames))]
+    invalid_names = [InvalidNames, (java_problem-> Invalid_Output_Column_Names (Vector.from_polyglot_array java_problem.invalidNames))]
 
     translations = [invalid_row, additional_invalid_rows, mismatched_quote, duplicate_names, invalid_names]
     found = translations.find t-> Java.is_instance problem t.first
@@ -185,7 +185,7 @@ detect_metadata file format =
                         column_count = reader.getColumnCount
                         if column_count == 0 then Nothing else
                             No_Headers column_count
-                    _ -> Existing_Headers (Vector.Vector defined_columns)
+                    _ -> Existing_Headers (Vector.from_polyglot_array defined_columns)
                 line_separator_from_parser = reader.getEffectiveLineSeparator
                 has_seen_newline = newline_detecting_reader.newlineEncountered
                 ## If the parser has seen a newline, we can trust that it

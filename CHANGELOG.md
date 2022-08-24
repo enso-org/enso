@@ -177,6 +177,8 @@
   type from `Standard.Table`.][3601]
 - [Created `Index_Sub_Range` type and updated `Text.take` and
   `Text.drop`.][3617]
+- [Added `Vector.from_polyglot_array` to make `Vector`s backed by polyglot
+  Arrays][3628]
 - [Updated `Vector.take` and `Vector.drop` and removed their obsolete
   counterparts.][3629]
 - [Short-hand syntax for `order_by` added.][3643]
@@ -282,6 +284,7 @@
 [3593]: https://github.com/enso-org/enso/pull/3593
 [3601]: https://github.com/enso-org/enso/pull/3601
 [3617]: https://github.com/enso-org/enso/pull/3617
+[3628]: https://github.com/enso-org/enso/pull/3628
 [3629]: https://github.com/enso-org/enso/pull/3629
 [3643]: https://github.com/enso-org/enso/pull/3643
 [3644]: https://github.com/enso-org/enso/pull/3644
@@ -357,7 +360,8 @@
 [3531]: https://github.com/enso-org/enso/pull/3531
 [3562]: https://github.com/enso-org/enso/pull/3562
 [3538]: https://github.com/enso-org/enso/pull/3538
-[3538]: https://github.com/enso-org/enso/pull/3569
+[3569]: https://github.com/enso-org/enso/pull/3569
+[3578]: https://github.com/enso-org/enso/pull/3578
 [3618]: https://github.com/enso-org/enso/pull/3618
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3608]: https://github.com/enso-org/enso/pull/3608
