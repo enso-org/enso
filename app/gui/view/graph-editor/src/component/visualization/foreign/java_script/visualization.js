@@ -58,6 +58,17 @@ export class Visualization {
     }
 
     /**
+     * Get the current preprocessor's arguments.
+     *
+     * See the [setter documentation]{@link setPreprocessor} for more information.
+     *
+     * @returns {Array} The list of preprocessor arguments or `null` if none were set.
+     */
+    getPreprocessorArguments() {
+        return this.__preprocessorArguments__
+    }
+
+    /**
      * Set the arguments of the preprocessor function.
      *
      * Arguments should be strings representing valid Enso expressions that can
@@ -66,7 +77,7 @@ export class Visualization {
      *
      * @param arguments the arguments passed to the preprocessor function.
      */
-    setArguments(...args) {
+    setPreprocessorArguments(...args) {
         if (args !== this.__preprocessorArguments__) {
             this.__preprocessorArguments__ = args
             this.__emitPreprocessorChange__()
@@ -79,10 +90,34 @@ export class Visualization {
      * Sets the preprocessor method by providing the method pointer consisting of a
      * method name and a module name defining the preprocessor method.
      *
-     * @param module module containing the preprocessor method.
-     * @param method the preprocessor method name. The method must be invocable
+     * An example of setting a preprocessor without arguments.
+     * @example
+     * this.setPreprocessor('Standard.Visualization.Preprocessor', 'default_preprocessor')
+     *
+     * The arguments should be strings representing Enso expressions. These
+     * expressions will be evaluated in the context of preprocessor module and
+     * passed to the visualization function in the same order.
+     *
+     * For example, given the `prepare_visualization` Enso method defined as
+     * @example
+     * prepare_visualization data param_1=10 param_2=True param_3=Nothing = ...
+     *
+     * the `setPreprocessor` method call can look like
+     * @example
+     * this.setPreprocessor('Foo.Bar.Baz', 'prepare_visualization', '42', 'False')
+     *
+     * First argument of the visualization function is always the node value
+     * (`data`) followed by the setting parameters. In this example `setPreprocessor`
+     * call passes the number `42` as `param_1` and boolean `False` as `param_2`.
+     * `param_3` has been left unchanged with a default value `Nothing` since it
+     * was not specified in the example `setPreprocessor` call.
+     *
+     * @param module The qualified module containing the preprocessor method.
+     * @param method The preprocessor method name. The method must be invocable
      *               with one argument and return JSON-compatible result.
-     * @param arguments the arguments passed to the preprocessor function.
+     * @param arguments Positional arguments passed to the preprocessor function.
+     *                  Arguments should be strings representing valid Enso
+     *                  expressions that can be evaluated in the preprocessor module.
      */
     setPreprocessor(module, method, ...args) {
         if (
