@@ -22,6 +22,7 @@ use binding::*;
 use emscripten_data::ArrayMemoryView;
 use enso_prelude::FallibleResult;
 use js_sys::Uint8Array;
+use owned_ttf_parser::Tag;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::Context;
@@ -52,8 +53,11 @@ pub mod prelude {
 pub enum SetVariationAxisError {
     #[fail(display = "Invalid axis name: should fit in 4 bytes.")]
     InvalidAxisName { name: String },
-    #[fail(display = "Msdfgen `setVariationAxis` operation was not successfull")]
-    LibraryError,
+    #[fail(
+        display = "Msdfgen `setVariationAxis` operation was not successfull for axis: {}.",
+        name
+    )]
+    LibraryError { name: String },
 }
 
 
@@ -155,10 +159,22 @@ impl OwnedFace {
                 | ((name_bytes[2] as u32) << 8)
                 | (name_bytes[3] as u32);
             if msdfgen_set_variation_axis(self.handle.clone(), name_number, coordinate) == 0 {
-                Err(SetVariationAxisError::LibraryError)
+                Err(SetVariationAxisError::LibraryError { name: name.into() })
             } else {
                 Ok(())
             }
+        }
+    }
+
+    pub fn set_variation_axis2(
+        &self,
+        tag: Tag,
+        coordinate: f64,
+    ) -> Result<(), SetVariationAxisError> {
+        if msdfgen_set_variation_axis(self.handle.clone(), tag.0, coordinate) == 0 {
+            Err(SetVariationAxisError::LibraryError { name: format!("{}", tag) })
+        } else {
+            Ok(())
         }
     }
 

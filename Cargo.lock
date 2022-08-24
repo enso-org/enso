@@ -2851,6 +2851,7 @@ dependencies = [
  "futures 0.3.21",
  "js-sys",
  "nalgebra 0.26.2",
+ "owned_ttf_parser",
  "serde",
  "wasm-bindgen",
  "wasm-bindgen-test",

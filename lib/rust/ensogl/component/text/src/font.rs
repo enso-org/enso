@@ -47,29 +47,100 @@ pub const DEFAULT_FONT_MONO: &str = "default-mono";
 
 
 // =====================
+// === VariationAxis ===
+// =====================
+
+/// A variation axis of variable fonts. The axis name is [`Tag`], which is a 4-bytes identifier
+/// constructed from the axis name, e.g. by `Tag::from_bytes(b"ital")`. See the following link to
+/// learn more:
+/// https://docs.microsoft.com/en-us/typography/opentype/spec/dvaraxisreg#registered-axis-tags
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct VariationAxis {
+    tag:   Tag,
+    value: NotNan<f32>,
+}
+
+impl VariationAxis {
+    /// Constructor
+    pub fn new(tag: Tag, value: NotNan<f32>) -> Self {
+        Self { tag, value }
+    }
+
+    /// Constructor.
+    pub fn from_bytes(bytes: &[u8; 4]) -> Self {
+        let tag = Tag::from_bytes(bytes);
+        let value = default();
+        Self { tag, value }
+    }
+}
+
+
+
+// =====================
 // === VariationAxes ===
 // =====================
 
 /// Variation axes of variable fonts. Contains five common axes and a general way of storing
-/// non-common ones. The axe name is [`Tag`], which is a 4-bytes identifier constructed from the axe
-/// name, e.g. by `Tag::from_bytes(b"ital")`. See the following link to learn more:
-/// https://docs.microsoft.com/en-us/typography/opentype/spec/dvaraxisreg#registered-axis-tags
+/// non-common ones.
 #[allow(missing_docs)]
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VariationAxes {
-    pub ital:         NotNan<f32>,
-    pub opsz:         NotNan<f32>,
-    pub slnt:         NotNan<f32>,
-    pub wght:         NotNan<f32>,
-    pub wdth:         NotNan<f32>,
-    pub non_standard: Vec<(Tag, NotNan<f32>)>,
+    pub ital:         VariationAxis,
+    pub opsz:         VariationAxis,
+    pub slnt:         VariationAxis,
+    pub wght:         VariationAxis,
+    pub wdth:         VariationAxis,
+    pub non_standard: Vec<VariationAxis>,
+}
+
+impl Default for VariationAxes {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl VariationAxes {
+    /// Constructor.
+    pub fn new() -> Self {
+        Self {
+            ital:         VariationAxis::from_bytes(b"ital"),
+            opsz:         VariationAxis::from_bytes(b"opsz"),
+            slnt:         VariationAxis::from_bytes(b"slnt"),
+            wght:         VariationAxis::from_bytes(b"wght"),
+            wdth:         VariationAxis::from_bytes(b"wdth"),
+            non_standard: default(),
+        }
+        .init()
+    }
+
+    fn init(mut self) -> Self {
+        self.set_weight(Weight::Normal);
+        self.set_width(Width::Normal);
+        self.set_style(Style::Normal);
+        self
+    }
+
+    /// Map a function over all standard axes.
+    pub fn with_standard_axes(&self, f: impl Fn(VariationAxis)) {
+        f(self.ital);
+        f(self.opsz);
+        f(self.slnt);
+        f(self.wght);
+        f(self.wdth);
+    }
+
+    /// Map a function over all non-standard axes.
+    pub fn with_non_standard_axes(&self, f: impl Fn(VariationAxis)) {
+        for axis in &self.non_standard {
+            f(*axis);
+        }
+    }
+
     /// Weight setter. See the following docs to learn more:
     /// https://fonts.google.com/knowledge/glossary/weight_axis
     pub fn set_weight(&mut self, value: Weight) {
-        self.wght = value.to_number().into();
+        self.wght.value = value.to_number().into();
     }
 
     /// Width setter. See the following docs to learn more:
@@ -86,7 +157,7 @@ impl VariationAxes {
             Width::ExtraExpanded => 156.25,
             Width::UltraExpanded => 175.0,
         };
-        self.wdth = NotNan::new(wdth).unwrap();
+        self.wdth.value = NotNan::new(wdth).unwrap();
     }
 
     /// Style setter. See the following docs to learn more:
@@ -95,16 +166,16 @@ impl VariationAxes {
     pub fn set_style(&mut self, value: Style) {
         match value {
             Style::Normal => {
-                self.ital = 0_u16.into();
-                self.slnt = 0_u16.into();
+                self.ital.value = 0_u16.into();
+                self.slnt.value = 0_u16.into();
             }
             Style::Italic => {
-                self.ital = 1_u16.into();
-                self.slnt = 0_u16.into();
+                self.ital.value = 1_u16.into();
+                self.slnt.value = 0_u16.into();
             }
             Style::Oblique => {
-                self.ital = 0_u16.into();
-                self.slnt = 90_u16.into();
+                self.ital.value = 0_u16.into();
+                self.slnt.value = 90_u16.into();
             }
         }
     }
@@ -230,8 +301,14 @@ impl Face {
 /// face.
 #[allow(missing_docs)]
 pub trait Family<Variations> {
-    fn with_borrowed_face<F, T>(&self, variations: &Variations, f: F) -> T
-    where F: for<'a> FnOnce(Option<&'a Face>) -> T;
+    /// Update MSDFgen settings for given variations. For non-variable fonts, this function is a
+    /// no-op.
+    fn update_msdfgen_variations(&self, variations: &Variations);
+    /// Run the function with borrowed font face for the given variations set. For non-variable
+    /// fonts, the function will not be run if variations do not match a known definition. For
+    /// variable fonts, the function always succeeds.
+    fn with_borrowed_face<F, T>(&self, variations: &Variations, f: F) -> Option<T>
+    where F: for<'a> FnOnce(&'a Face) -> T;
 }
 
 /// A non-variable font family. Contains font family definition and a mapping from font variations
@@ -249,6 +326,7 @@ pub struct NonVariableFamily {
 pub struct VariableFamily {
     pub definition: VariableFamilyDefinition,
     pub face:       Rc<RefCell<Option<Face>>>,
+    pub last_axes:  Rc<RefCell<Option<VariationAxes>>>,
 }
 
 impl NonVariableFamily {
@@ -274,24 +352,45 @@ impl VariableFamily {
 }
 
 impl Family<NonVariableFaceHeader> for NonVariableFamily {
-    fn with_borrowed_face<F, T>(&self, variations: &NonVariableFaceHeader, f: F) -> T
-    where F: for<'a> FnOnce(Option<&'a Face>) -> T {
-        f(self.faces.borrow().get(variations))
+    fn update_msdfgen_variations(&self, _variations: &NonVariableFaceHeader) {}
+    fn with_borrowed_face<F, T>(&self, variations: &NonVariableFaceHeader, f: F) -> Option<T>
+    where F: for<'a> FnOnce(&'a Face) -> T {
+        self.faces.borrow().get(variations).map(f)
     }
 }
 
-impl<V> Family<V> for VariableFamily {
-    fn with_borrowed_face<F, T>(&self, _variations: &V, f: F) -> T
-    where F: for<'a> FnOnce(Option<&'a Face>) -> T {
-        f(self.face.borrow().as_ref())
+impl Family<VariationAxes> for VariableFamily {
+    fn update_msdfgen_variations(&self, variations: &VariationAxes) {
+        if let Some(face) = self.face.borrow().as_ref() {
+            if self.last_axes.borrow().as_ref() != Some(&variations) {
+                self.last_axes.borrow_mut().replace(variations.clone());
+                variations.with_standard_axes(|axis| {
+                    let value = axis.value.into_inner() as f64;
+                    face.msdf.set_variation_axis2(axis.tag, value).ok();
+                });
+                variations.with_non_standard_axes(|axis| {
+                    let value = axis.value.into_inner() as f64;
+                    face.msdf
+                        .set_variation_axis2(axis.tag, value)
+                        .map_err(|err| {
+                            event!(WARN, "Error setting font variation axis: {}", err);
+                        })
+                        .ok();
+                });
+            }
+        }
+    }
+
+    fn with_borrowed_face<F, T>(&self, _variations: &VariationAxes, f: F) -> Option<T>
+    where F: for<'a> FnOnce(&'a Face) -> T {
+        self.face.borrow().as_ref().map(f)
     }
 }
-
 
 impl From<&VariableFamilyDefinition> for VariableFamily {
     fn from(definition: &VariableFamilyDefinition) -> Self {
         let definition = definition.clone();
-        Self { definition, face: default() }
+        Self { definition, face: default(), last_axes: default() }
     }
 }
 
@@ -446,15 +545,15 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
 
     /// Get the glyph id of the provided code point.
     pub fn glyph_id_of_code_point(&self, variations: &V, code_point: char) -> Option<GlyphId> {
-        self.family.with_borrowed_face(variations, |opt_face| {
-            opt_face.and_then(|face| {
+        self.family
+            .with_borrowed_face(variations, |face| {
                 let id = face.ttf.as_face_ref().glyph_index(code_point);
                 if let Some(id) = id {
                     self.glyph_id_to_code_point.borrow_mut().insert(id, code_point);
                 }
                 id
             })
-        })
+            .flatten()
     }
 
     /// Get render info for one character, generating one if not found.
@@ -464,55 +563,46 @@ impl<F: Family<V>, V: Eq + Hash + Clone> FontTemplate<F, V> {
         if opt_render_info.is_some() {
             opt_render_info
         } else {
-            self.family.with_borrowed_face(variations, |opt_face| {
-                opt_face.map(|face| {
-                    // TODO: Switch from chars to GlyphIDs here.
-                    let ch = *self.glyph_id_to_code_point.borrow().get(&glyph_id).unwrap();
-                    // TODO: Use variations to generate variable-width glyphs.
-                    face.msdf.set_variation_axis("wght", 600.0).unwrap();
-                    let render_info = GlyphRenderInfo::load(&face.msdf, ch, &self.atlas);
-                    if !self.cache.borrow().contains_key(variations) {
-                        self.cache.borrow_mut().insert(variations.clone(), default());
-                    }
-                    self.cache
-                        .borrow_mut()
-                        .get_mut(variations)
-                        .unwrap()
-                        .glyphs
-                        .insert(glyph_id, render_info);
-                    render_info
-                })
+            self.family.update_msdfgen_variations(variations);
+            self.family.with_borrowed_face(variations, |face| {
+                let render_info = GlyphRenderInfo::load(&face.msdf, glyph_id, &self.atlas);
+                if !self.cache.borrow().contains_key(variations) {
+                    self.cache.borrow_mut().insert(variations.clone(), default());
+                }
+                self.cache
+                    .borrow_mut()
+                    .get_mut(variations)
+                    .unwrap()
+                    .glyphs
+                    .insert(glyph_id, render_info);
+                render_info
             })
         }
     }
 
     /// Get kerning between two characters.
     pub fn kerning(&self, variations: &V, left_id: GlyphId, right_id: GlyphId) -> f32 {
-        self.family.with_borrowed_face(variations, |opt_face| {
-            opt_face
-                .map(|face| {
-                    if !self.cache.borrow().contains_key(variations) {
-                        self.cache.borrow_mut().insert(variations.clone(), default());
-                    }
-                    *self
-                        .cache
-                        .borrow_mut()
-                        .get_mut(variations)
-                        .unwrap()
-                        .kerning
-                        .entry((left_id, right_id))
-                        .or_insert_with(|| {
-                            let tables = face.ttf.as_face_ref().tables();
-                            let units_per_em = tables.head.units_per_em;
-                            let kern_table =
-                                tables.kern.and_then(|t| t.subtables.into_iter().next());
-                            let kerning =
-                                kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
-                            kerning.unwrap_or_default() as f32 / units_per_em as f32
-                        })
-                })
-                .unwrap_or_default()
-        })
+        self.family
+            .with_borrowed_face(variations, |face| {
+                if !self.cache.borrow().contains_key(variations) {
+                    self.cache.borrow_mut().insert(variations.clone(), default());
+                }
+                *self
+                    .cache
+                    .borrow_mut()
+                    .get_mut(variations)
+                    .unwrap()
+                    .kerning
+                    .entry((left_id, right_id))
+                    .or_insert_with(|| {
+                        let tables = face.ttf.as_face_ref().tables();
+                        let units_per_em = tables.head.units_per_em;
+                        let kern_table = tables.kern.and_then(|t| t.subtables.into_iter().next());
+                        let kerning = kern_table.and_then(|t| t.glyphs_kerning(left_id, right_id));
+                        kerning.unwrap_or_default() as f32 / units_per_em as f32
+                    })
+            })
+            .unwrap_or_default()
     }
 
     /// A whole MSDF texture bound for this font.

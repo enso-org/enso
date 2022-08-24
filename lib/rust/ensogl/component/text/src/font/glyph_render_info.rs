@@ -5,6 +5,7 @@ pub mod prelude {
     pub use ensogl_core::prelude::*;
 }
 
+use owned_ttf_parser::GlyphId;
 use prelude::*;
 
 use crate::font::msdf;
@@ -72,10 +73,9 @@ impl GlyphRenderInfo {
 
     /// Load new [`GlyphRenderInfo`] from msdf_sys font handle. This also extends the atlas with
     /// MSDF generated for this character.
-    pub fn load(handle: &msdf_sys::OwnedFace, ch: char, atlas: &msdf::Texture) -> Self {
-        let unicode = ch as u32;
+    pub fn load(handle: &msdf_sys::OwnedFace, glyph_id: GlyphId, atlas: &msdf::Texture) -> Self {
         let params = Self::MSDF_PARAMS;
-        let msdf = Msdf::generate(handle, unicode, &params);
+        let msdf = Msdf::generate_by_index(handle, glyph_id.0 as usize, &params);
         let inversed_scale = Vector2::new(1.0 / msdf.scale.x, 1.0 / msdf.scale.y);
         let translation = msdf::convert_msdf_translation(&msdf);
         let glyph_id = atlas.rows() / msdf::Texture::ONE_GLYPH_HEIGHT;

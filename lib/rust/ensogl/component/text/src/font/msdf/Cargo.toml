@@ -15,6 +15,7 @@ js-sys = { version = "0.3" }
 nalgebra = { version = "0.26.1" }
 wasm-bindgen = { version = "0.2.78" }
 serde = {version = "1", features = ["rc"]}
+owned_ttf_parser = "0.15.1"
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }
