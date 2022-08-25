@@ -4,7 +4,8 @@ import Standard.Visualization
 
 import Standard.Test
 
-type My_Type my_field
+type My_Type
+    My_Type_Data my_field
 
 spec = Test.group "Serializable Visualization Identifiers" <|
 
@@ -29,7 +30,7 @@ spec = Test.group "Serializable Visualization Identifiers" <|
         v_2.to_json.should_equal (expected "Standard.Base" "Other Vis")
 
     Test.specify "specifies default JSON visualization for any type"
-        My_Type 30 . default_visualization . should_equal Visualization.Id.json
+        My_Type_Data 30 . default_visualization . should_equal Visualization.Id.json
         [1,2,3].default_visualization.should_equal Visualization.Id.json
         "foobar".default_visualization.should_equal Visualization.Id.json
 

@@ -28,25 +28,22 @@ label_field = 'label'
 type Point_Data
 
     ## PRIVATE
-    type Point_Data
+    X
 
     ## PRIVATE
-    type X
+    Y
 
     ## PRIVATE
-    type Y
+    Color
 
     ## PRIVATE
-    type Color
+    Shape
 
     ## PRIVATE
-    type Shape
+    Label
 
     ## PRIVATE
-    type Label
-
-    ## PRIVATE
-    type Size
+    Size
 
     ## PRIVATE
 
@@ -162,9 +159,9 @@ json_from_vector vec =
 process_to_json_text : Any -> Text
 process_to_json_text value =
     json = case value of
-        Column.Column _ -> json_from_table  value.to_table
-        Table.Table _   -> json_from_table  value
-        Vector.Vector _ -> json_from_vector value
+        Column.Column_Data _ -> json_from_table  value.to_table
+        Table.Table_Data _   -> json_from_table  value
+        Vector.Vector_Data _ -> json_from_vector value
         _               -> json_from_vector value.to_vector
 
     json.to_text

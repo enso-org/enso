@@ -849,7 +849,7 @@ type Column
 
              example_to_table = Examples.integer_column.to_table
     to_table : Table.Table
-    to_table self = Table.Table self.java_column.toTable
+    to_table self = Table.Table_Data self.java_column.toTable
 
     ## UNSTABLE
        ADVANCED
