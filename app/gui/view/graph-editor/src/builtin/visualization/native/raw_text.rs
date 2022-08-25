@@ -161,7 +161,7 @@ impl RawTextModel {
     }
 }
 
-fn split_long_lines(data_str: &String, process_line: &mut impl FnMut(String) -> Result<(), DataError>) -> Result<(), DataError> {
+fn split_long_lines(data_str: &str, process_line: &mut impl FnMut(String) -> Result<(), DataError>) -> Result<(), DataError> {
     let it = data_str.chars().chunks(1024);
     for ch in &it {
         let s: String = ch.collect();
