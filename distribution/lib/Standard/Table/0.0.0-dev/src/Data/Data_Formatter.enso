@@ -53,7 +53,7 @@ type Data_Formatter
        - datetime_locale: The locale to use when parsing dates and times.
        - true_values: Values representing True.
        - false_values: Values representing False.
-    type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
+    type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' allow_exponential_notation:Boolean=False datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss", "HH:mm"] datetime_locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
 
     ## Parse a Text into a value.
 
